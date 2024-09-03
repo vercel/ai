@@ -9,6 +9,8 @@ Generates a typed, structured object for a given prompt and schema using a langu
 
 It can be used to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
 
+#### Example: generate an object using a schema
+
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
@@ -29,7 +31,43 @@ const { object } = await generateObject({
 console.log(JSON.stringify(object, null, 2));
 ```
 
-To see `generateObject` in action, check out [these examples](#examples).
+#### Example: generate an array using a schema
+
+For arrays, you specify the schema of the array items.
+
+```ts highlight="7"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const { object } = await generateObject({
+  model: openai('gpt-4-turbo'),
+  output: 'array',
+  schema: z.object({
+    name: z.string(),
+    class: z
+      .string()
+      .describe('Character class, e.g. warrior, mage, or thief.'),
+    description: z.string(),
+  }),
+  prompt: 'Generate 3 hero descriptions for a fantasy role playing game.',
+});
+```
+
+#### Example: generate JSON without a schema
+
+```ts highlight="6"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+
+const { object } = await generateObject({
+  model: openai('gpt-4-turbo'),
+  output: 'no-schema',
+  prompt: 'Generate a lasagna recipe.',
+});
+```
+
+To see `generateObject` in action, check out the [additional examples](#more-examples).
 
 ## Import
 
@@ -47,28 +85,43 @@ To see `generateObject` in action, check out [these examples](#examples).
       description: "The language model to use. Example: openai('gpt-4-turbo')",
     },
     {
+      name: 'output',
+      type: "'object' | 'array' | 'no-schema' | undefined",
+      description: "The type of output to generate. Defaults to 'object'.",
+    },
+    {
       name: 'mode',
       type: "'auto' | 'json' | 'tool'",
       description:
-        "The mode to use for object generation. Not every model supports all modes. Defaults to 'auto'.",
+        'The mode to use for object generation. Not every model supports all modes. ' +
+        "Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. " +
+        "Must be 'json' for 'no-schema' output.",
     },
     {
       name: 'schema',
       type: 'Zod Schema | JSON Schema',
       description:
-        'The schema that describes the shape of the object to generate. It is sent to the model to generate the object and used to validate the output. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
+        'The schema that describes the shape of the object to generate. ' +
+        'It is sent to the model to generate the object and used to validate the output. ' +
+        'You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). ' +
+        'In "array" mode, the schema is used to describe an array element. ' +
+        'Not available with "no-schema" output.',
     },
     {
       name: 'schemaName',
       type: 'string | undefined',
       description:
-        'Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+        'Optional name of the output that should be generated. ' +
+        'Used by some providers for additional LLM guidance, e.g. via tool or schema name. ' +
+        'Not available with "no-schema" output.',
     },
     {
       name: 'schemaDescription',
       type: 'string | undefined',
       description:
-        'Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+        'Optional description of the output that should be generated. ' +
+        'Used by some providers for additional LLM guidance, e.g. via tool or schema name. ' +
+        'Not available with "no-schema" output.',
     },
     {
       name: 'system',
@@ -464,7 +517,7 @@ To see `generateObject` in action, check out [these examples](#examples).
   ]}
 />
 
-## Examples
+## More Examples
 
 <ExampleLinks
   examples={[

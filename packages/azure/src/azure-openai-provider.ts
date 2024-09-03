@@ -6,13 +6,15 @@ import {
   OpenAIEmbeddingModel,
   OpenAIEmbeddingSettings,
 } from '@ai-sdk/openai/internal';
+import {
+  EmbeddingModelV1,
+  LanguageModelV1,
+  ProviderV1,
+} from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
-export interface AzureOpenAIProvider {
-  (
-    deploymentId: string,
-    settings?: OpenAIChatSettings,
-  ): OpenAIChatLanguageModel;
+export interface AzureOpenAIProvider extends ProviderV1 {
+  (deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV1;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
@@ -20,39 +22,44 @@ Creates an Azure OpenAI chat model for text generation.
   languageModel(
     deploymentId: string,
     settings?: OpenAIChatSettings,
-  ): OpenAIChatLanguageModel;
+  ): LanguageModelV1;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  chat(
-    deploymentId: string,
-    settings?: OpenAIChatSettings,
-  ): OpenAIChatLanguageModel;
+  chat(deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV1;
 
   /**
-Creates an Azure OpenAI model for text embeddings.
-   */
-  embedding(
-    deploymentId: string,
-    settings?: OpenAIEmbeddingSettings,
-  ): OpenAIEmbeddingModel;
-
-  /**
-Creates an Azure OpenAI model for text embeddings.
-   */
-  textEmbedding(
-    deploymentId: string,
-    settings?: OpenAIEmbeddingSettings,
-  ): OpenAIEmbeddingModel;
-
-  /**
-   * Creates an Azure OpenAI completion model for text generation.
+Creates an Azure OpenAI completion model for text generation.
    */
   completion(
     deploymentId: string,
     settings?: OpenAICompletionSettings,
-  ): OpenAICompletionLanguageModel;
+  ): LanguageModelV1;
+
+  /**
+@deprecated Use `textEmbeddingModel` instead.
+   */
+  embedding(
+    deploymentId: string,
+    settings?: OpenAIEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
+
+  /**
+@deprecated Use `textEmbeddingModel` instead.
+   */
+  textEmbedding(
+    deploymentId: string,
+    settings?: OpenAIEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
+
+  /**
+Creates an Azure OpenAI model for text embeddings.
+   */
+  textEmbeddingModel(
+    deploymentId: string,
+    settings?: OpenAIEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -169,6 +176,7 @@ export function createAzure(
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
 
   return provider as AzureOpenAIProvider;
 }
@@ -176,4 +184,4 @@ export function createAzure(
 /**
 Default Azure OpenAI provider instance.
  */
-export const azure = createAzure({});
+export const azure = createAzure();

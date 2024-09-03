@@ -1,5 +1,55 @@
 # @ai-sdk/react
 
+## 0.0.54
+
+### Patch Changes
+
+- 4ab883f: fix (ai/react): useObject error handling
+
+## 0.0.53
+
+### Patch Changes
+
+- Updated dependencies [aa2dc58]
+  - @ai-sdk/ui-utils@0.0.40
+
+## 0.0.52
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.17
+- @ai-sdk/ui-utils@0.0.39
+
+## 0.0.51
+
+### Patch Changes
+
+- Updated dependencies [d151349]
+  - @ai-sdk/ui-utils@0.0.38
+
+## 0.0.50
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+  - @ai-sdk/ui-utils@0.0.37
+
+## 0.0.49
+
+### Patch Changes
+
+- Updated dependencies [b5a82b7]
+  - @ai-sdk/ui-utils@0.0.36
+
+## 0.0.48
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+  - @ai-sdk/ui-utils@0.0.35
+
 ## 0.0.47
 
 ### Patch Changes

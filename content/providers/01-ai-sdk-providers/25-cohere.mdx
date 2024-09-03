@@ -5,7 +5,7 @@ description: Learn how to use the Cohere provider for the Vercel AI SDK.
 
 # Cohere Provider
 
-The [Cohere](https://cohere.com/) provider contains language model support for the Cohere chat API.
+The [Cohere](https://cohere.com/) provider contains language and emdedding model support for the Cohere chat API.
 
 ## Setup
 
@@ -106,3 +106,52 @@ Cohere language models can also be used in the `streamText` function (see [AI SD
   The table above lists popular models. You can also pass any available provider
   model ID as a string if needed.
 </Note>
+
+## Embedding Models
+
+You can create models that call the [Cohere embed API](https://docs.cohere.com/reference/embed)
+using the `.embedding()` factory method.
+
+```ts
+const model = cohere.embedding('embed-english-v3.0');
+```
+
+Cohere embedding models support additional settings. You can pass them as an options argument:
+
+```ts
+const model = cohere.embedding('embed-english-v3.0', {
+  inputType: 'search_document',
+});
+```
+
+The following optional settings are available for Cohere embedding models:
+
+- **inputType** _'search_document' | 'search_query' | 'classification' | 'clustering'_
+
+  Specifies the type of input passed to the model. Default is `search_query`.
+
+  - `search_document`: Used for embeddings stored in a vector database for search use-cases.
+  - `search_query`: Used for embeddings of search queries run against a vector DB to find relevant documents.
+  - `classification`: Used for embeddings passed through a text classifier.
+  - `clustering`: Used for embeddings run through a clustering algorithm.
+
+- **truncate** _'NONE' | 'START' | 'END'_
+
+  Specifies how the API will handle inputs longer than the maximum token length.
+  Default is `END`.
+
+  - `NONE`: If selected, when the input exceeds the maximum input token length will return an error.
+  - `START`: Will discard the start of the input until the remaining input is exactly the maximum input token length for the model.
+  - `END`: Will discard the end of the input until the remaining input is exactly the maximum input token length for the model.
+
+### Model Capabilities
+
+| Model                           | Embedding Dimensions |
+| ------------------------------- | -------------------- |
+| `embed-english-v3.0`            | 1024                 |
+| `embed-multilingual-v3.0`       | 1024                 |
+| `embed-english-light-v3.0`      | 384                  |
+| `embed-multilingual-light-v3.0` | 384                  |
+| `embed-english-v2.0`            | 4096                 |
+| `embed-english-light-v2.0`      | 1024                 |
+| `embed-multilingual-v2.0`       | 768                  |

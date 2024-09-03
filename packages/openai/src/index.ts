@@ -1,2 +1,3 @@
 export * from './openai-facade';
-export * from './openai-provider';
+export { createOpenAI, openai } from './openai-provider';
+export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';

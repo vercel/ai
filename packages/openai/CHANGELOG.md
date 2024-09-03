@@ -1,5 +1,40 @@
 # @ai-sdk/openai
 
+## 0.0.55
+
+### Patch Changes
+
+- 28cbf2e: fix (provider/openai): support tool call deltas when arguments are sent in the first chunk
+
+## 0.0.54
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+
+## 0.0.53
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+
+## 0.0.52
+
+### Patch Changes
+
+- d5b6a15: feat (provider/openai): support partial usage information
+
+## 0.0.51
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+
 ## 0.0.50
 
 ### Patch Changes

@@ -284,8 +284,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
             })),
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       usage: {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
+        promptTokens: response.usage?.prompt_tokens ?? NaN,
+        completionTokens: response.usage?.completion_tokens ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
@@ -335,9 +335,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     }> = [];
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
-    let usage: { promptTokens: number; completionTokens: number } = {
-      promptTokens: Number.NaN,
-      completionTokens: Number.NaN,
+    let usage: {
+      promptTokens: number | undefined;
+      completionTokens: number | undefined;
+    } = {
+      promptTokens: undefined,
+      completionTokens: undefined,
     };
     let logprobs: LanguageModelV1LogProbs;
 
@@ -368,8 +371,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
             if (value.usage != null) {
               usage = {
-                promptTokens: value.usage.prompt_tokens,
-                completionTokens: value.usage.completion_tokens,
+                promptTokens: value.usage.prompt_tokens ?? undefined,
+                completionTokens: value.usage.completion_tokens ?? undefined,
               };
             }
 
@@ -450,29 +453,32 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
                   const toolCall = toolCalls[index];
 
-                  // check if tool call is complete (some providers send the full tool call in one chunk)
                   if (
                     toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null &&
-                    isParsableJson(toolCall.function.arguments)
+                    toolCall.function?.arguments != null
                   ) {
-                    // send delta
-                    controller.enqueue({
-                      type: 'tool-call-delta',
-                      toolCallType: 'function',
-                      toolCallId: toolCall.id,
-                      toolName: toolCall.function.name,
-                      argsTextDelta: toolCall.function.arguments,
-                    });
+                    // send delta if the argument text has already started:
+                    if (toolCall.function.arguments.length > 0) {
+                      controller.enqueue({
+                        type: 'tool-call-delta',
+                        toolCallType: 'function',
+                        toolCallId: toolCall.id,
+                        toolName: toolCall.function.name,
+                        argsTextDelta: toolCall.function.arguments,
+                      });
+                    }
 
-                    // send tool call
-                    controller.enqueue({
-                      type: 'tool-call',
-                      toolCallType: 'function',
-                      toolCallId: toolCall.id ?? generateId(),
-                      toolName: toolCall.function.name,
-                      args: toolCall.function.arguments,
-                    });
+                    // check if tool call is complete
+                    // (some providers send the full tool call in one chunk):
+                    if (isParsableJson(toolCall.function.arguments)) {
+                      controller.enqueue({
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: toolCall.id ?? generateId(),
+                        toolName: toolCall.function.name,
+                        args: toolCall.function.arguments,
+                      });
+                    }
                   }
 
                   continue;
@@ -518,7 +524,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               type: 'finish',
               finishReason,
               logprobs,
-              usage,
+              usage: {
+                promptTokens: usage.promptTokens ?? NaN,
+                completionTokens: usage.completionTokens ?? NaN,
+              },
             });
           },
         }),
@@ -529,6 +538,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     };
   }
 }
+
+const openAITokenUsageSchema = z
+  .object({
+    prompt_tokens: z.number().nullish(),
+    completion_tokens: z.number().nullish(),
+  })
+  .nullish();
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -579,10 +595,7 @@ const openAIChatResponseSchema = z.object({
       finish_reason: z.string().nullish(),
     }),
   ),
-  usage: z.object({
-    prompt_tokens: z.number(),
-    completion_tokens: z.number(),
-  }),
+  usage: openAITokenUsageSchema,
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -638,12 +651,7 @@ const openaiChatChunkSchema = z.union([
         index: z.number(),
       }),
     ),
-    usage: z
-      .object({
-        prompt_tokens: z.number(),
-        completion_tokens: z.number(),
-      })
-      .nullish(),
+    usage: openAITokenUsageSchema,
   }),
   openAIErrorDataSchema,
 ]);

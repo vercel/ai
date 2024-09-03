@@ -3,7 +3,7 @@ export {
   formatStreamPart,
   parseStreamPart,
   readDataStream,
-  parseComplexResponse,
+  processDataProtocolResponse,
 } from '@ai-sdk/ui-utils';
 export type {
   AssistantStatus,

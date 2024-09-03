@@ -1,7 +1,6 @@
+import { NoSuchModelError } from '@ai-sdk/provider';
 import { MockEmbeddingModelV1 } from '../test/mock-embedding-model-v1';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
-import { InvalidModelIdError } from './invalid-model-id-error';
-import { NoSuchModelError } from './no-such-model-error';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { experimental_createProviderRegistry } from './provider-registry';
 
@@ -58,11 +57,11 @@ describe('languageModel', () => {
     );
   });
 
-  it("should throw InvalidModelIdError if model id doesn't contain a colon", () => {
+  it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
     const registry = experimental_createProviderRegistry({});
 
     expect(() => registry.languageModel('model')).toThrowError(
-      InvalidModelIdError,
+      NoSuchModelError,
     );
   });
 });
@@ -120,11 +119,11 @@ describe('textEmbeddingModel', () => {
     );
   });
 
-  it("should throw InvalidModelIdError if model id doesn't contain a colon", () => {
+  it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
     const registry = experimental_createProviderRegistry({});
 
     expect(() => registry.textEmbeddingModel('model')).toThrowError(
-      InvalidModelIdError,
+      NoSuchModelError,
     );
   });
 });

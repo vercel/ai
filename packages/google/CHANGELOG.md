@@ -1,5 +1,34 @@
 # @ai-sdk/google
 
+## 0.0.46
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+
+## 0.0.45
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+
+## 0.0.44
+
+### Patch Changes
+
+- cb94042: fix (provider/google): allow disabling structured generation
+
+## 0.0.43
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+
 ## 0.0.42
 
 ### Patch Changes

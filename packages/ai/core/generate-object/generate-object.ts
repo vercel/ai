@@ -1,5 +1,6 @@
+import { JSONValue } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
-import { Schema, asSchema } from '@ai-sdk/ui-utils';
+import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
@@ -23,92 +24,49 @@ import {
 import { calculateCompletionTokenUsage } from '../types/token-usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
-import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
+import { getOutputStrategy } from './output-strategy';
+import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
 
 This function does not stream the output. If you want to stream the output, use `streamObject` instead.
 
-@param model - The language model to use.
-
-@param schema - The schema of the object that the model should generate.
-@param schemaName - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
-@param schemaDescription - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
-@param mode - The mode to use for object generation. Not all models support all modes. Defaults to 'auto'.
-
-@param system - A system message that will be part of the prompt.
-@param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
-@param messages - A list of messages. You can either use `prompt` or `messages` but not both.
-
-@param maxTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting.
-The value is passed through to the provider. The range depends on the provider and model.
-It is recommended to set either `temperature` or `topP`, but not both.
-@param topP - Nucleus sampling.
-The value is passed through to the provider. The range depends on the provider and model.
-It is recommended to set either `temperature` or `topP`, but not both.
-@param topK - Only sample from the top K options for each subsequent token.
-Used to remove "long tail" low probability responses.
-Recommended for advanced use cases only. You usually only need to use temperature.
-@param presencePenalty - Presence penalty setting.
-It affects the likelihood of the model to repeat information that is already in the prompt.
-The value is passed through to the provider. The range depends on the provider and model.
-@param frequencyPenalty - Frequency penalty setting.
-It affects the likelihood of the model to repeatedly use the same words or phrases.
-The value is passed through to the provider. The range depends on the provider and model.
-@param seed - The seed (integer) to use for random sampling.
-If set and supported by the model, calls will generate deterministic results.
-
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
 @returns
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
-export async function generateObject<T>({
-  model,
-  schema: inputSchema,
-  schemaName,
-  schemaDescription,
-  mode,
-  system,
-  prompt,
-  messages,
-  maxRetries,
-  abortSignal,
-  headers,
-  experimental_telemetry: telemetry,
-  ...settings
-}: Omit<CallSettings, 'stopSequences'> &
-  Prompt & {
-    /**
+export async function generateObject<OBJECT>(
+  options: Omit<CallSettings, 'stopSequences'> &
+    Prompt & {
+      output?: 'object' | undefined;
+
+      /**
 The language model to use.
      */
-    model: LanguageModel;
+      model: LanguageModel;
 
-    /**
+      /**
 The schema of the object that the model should generate.
      */
-    schema: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
+      schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT>;
 
-    /**
+      /**
 Optional name of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema name.
      */
-    schemaName?: string;
+      schemaName?: string;
 
-    /**
+      /**
 Optional description of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
      */
-    schemaDescription?: string;
+      schemaDescription?: string;
 
-    /**
+      /**
 The mode to use for object generation.
 
 The schema is converted in a JSON schema and used in one of the following ways
@@ -121,21 +79,158 @@ Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
      */
-    mode?: 'auto' | 'json' | 'tool';
+      mode?: 'auto' | 'json' | 'tool';
 
-    /**
-     * Optional telemetry configuration (experimental).
+      /**
+Optional telemetry configuration (experimental).
+       */
+
+      experimental_telemetry?: TelemetrySettings;
+    },
+): Promise<GenerateObjectResult<OBJECT>>;
+/**
+Generate an array with structured, typed elements for a given prompt and element schema using a language model.
+
+This function does not stream the output. If you want to stream the output, use `streamObject` instead.
+
+@return
+A result object that contains the generated object, the finish reason, the token usage, and additional information.
+ */
+export async function generateObject<ELEMENT>(
+  options: Omit<CallSettings, 'stopSequences'> &
+    Prompt & {
+      output: 'array';
+
+      /**
+The language model to use.
      */
+      model: LanguageModel;
+
+      /**
+The element schema of the array that the model should generate.
+ */
+      schema: z.Schema<ELEMENT, z.ZodTypeDef, any> | Schema<ELEMENT>;
+
+      /**
+Optional name of the array that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema name.
+     */
+      schemaName?: string;
+
+      /**
+Optional description of the array that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema description.
+ */
+      schemaDescription?: string;
+
+      /**
+The mode to use for object generation.
+
+The schema is converted in a JSON schema and used in one of the following ways
+
+- 'auto': The provider will choose the best mode for the model.
+- 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
+- 'json': The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
+
+Please note that most providers do not support all modes.
+
+Default and recommended: 'auto' (best mode for the model).
+     */
+      mode?: 'auto' | 'json' | 'tool';
+
+      /**
+Optional telemetry configuration (experimental).
+     */
+      experimental_telemetry?: TelemetrySettings;
+    },
+): Promise<GenerateObjectResult<Array<ELEMENT>>>;
+/**
+Generate JSON with any schema for a given prompt using a language model.
+
+This function does not stream the output. If you want to stream the output, use `streamObject` instead.
+
+@returns
+A result object that contains the generated object, the finish reason, the token usage, and additional information.
+ */
+export async function generateObject(
+  options: Omit<CallSettings, 'stopSequences'> &
+    Prompt & {
+      output: 'no-schema';
+
+      /**
+The language model to use.
+     */
+      model: LanguageModel;
+
+      /**
+The mode to use for object generation. Must be "json" for no-schema output.
+     */
+      mode?: 'json';
+
+      /**
+Optional telemetry configuration (experimental).
+       */
+      experimental_telemetry?: TelemetrySettings;
+    },
+): Promise<GenerateObjectResult<JSONValue>>;
+export async function generateObject<SCHEMA, RESULT>({
+  model,
+  schema: inputSchema,
+  schemaName,
+  schemaDescription,
+  mode,
+  output = 'object',
+  system,
+  prompt,
+  messages,
+  maxRetries,
+  abortSignal,
+  headers,
+  experimental_telemetry: telemetry,
+  ...settings
+}: Omit<CallSettings, 'stopSequences'> &
+  Prompt & {
+    /**
+     * The expected structure of the output.
+     *
+     * - 'object': Generate a single object that conforms to the schema.
+     * - 'array': Generate an array of objects that conform to the schema.
+     * - 'no-schema': Generate any JSON object. No schema is specified.
+     *
+     * Default is 'object' if not specified.
+     */
+    output?: 'object' | 'array' | 'no-schema';
+
+    model: LanguageModel;
+    schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
+    schemaName?: string;
+    schemaDescription?: string;
+    mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
-  }): Promise<DefaultGenerateObjectResult<T>> {
+  }): Promise<GenerateObjectResult<RESULT>> {
+  validateObjectGenerationInput({
+    output,
+    mode,
+    schema: inputSchema,
+    schemaName,
+    schemaDescription,
+  });
+
+  const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
+
+  // automatically set mode to 'json' for no-schema output
+  if (outputStrategy.type === 'no-schema' && mode === undefined) {
+    mode = 'json';
+  }
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
     headers,
     settings: { ...settings, maxRetries },
   });
-
-  const schema = asSchema(inputSchema);
 
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan({
@@ -152,11 +247,13 @@ Default and recommended: 'auto' (best mode for the model).
         'ai.prompt': {
           input: () => JSON.stringify({ system, prompt, messages }),
         },
-        'ai.schema': {
-          input: () => JSON.stringify(schema.jsonSchema),
-        },
+        'ai.schema':
+          outputStrategy.jsonSchema != null
+            ? { input: () => JSON.stringify(outputStrategy.jsonSchema) }
+            : undefined,
         'ai.schema.name': schemaName,
         'ai.schema.description': schemaDescription,
+        'ai.settings.output': outputStrategy.type,
         'ai.settings.mode': mode,
       },
     }),
@@ -180,12 +277,15 @@ Default and recommended: 'auto' (best mode for the model).
       switch (mode) {
         case 'json': {
           const validatedPrompt = validatePrompt({
-            system: model.supportsStructuredOutputs
-              ? system
-              : injectJsonSchemaIntoSystem({
-                  system,
-                  schema: schema.jsonSchema,
-                }),
+            system:
+              outputStrategy.jsonSchema == null
+                ? injectJsonInstruction({ prompt: system })
+                : model.supportsStructuredOutputs
+                ? system
+                : injectJsonInstruction({
+                    prompt: system,
+                    schema: outputStrategy.jsonSchema,
+                  }),
             prompt,
             messages,
           });
@@ -217,10 +317,13 @@ Default and recommended: 'auto' (best mode for the model).
                   'ai.settings.mode': mode,
 
                   // standardized gen-ai llm span attributes:
-                  'gen_ai.request.model': model.modelId,
                   'gen_ai.system': model.provider,
+                  'gen_ai.request.model': model.modelId,
+                  'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
                   'gen_ai.request.max_tokens': settings.maxTokens,
+                  'gen_ai.request.presence_penalty': settings.presencePenalty,
                   'gen_ai.request.temperature': settings.temperature,
+                  'gen_ai.request.top_k': settings.topK,
                   'gen_ai.request.top_p': settings.topP,
                 },
               }),
@@ -229,7 +332,7 @@ Default and recommended: 'auto' (best mode for the model).
                 const result = await model.doGenerate({
                   mode: {
                     type: 'object-json',
-                    schema: schema.jsonSchema,
+                    schema: outputStrategy.jsonSchema,
                     name: schemaName,
                     description: schemaDescription,
                   },
@@ -249,10 +352,15 @@ Default and recommended: 'auto' (best mode for the model).
                   selectTelemetryAttributes({
                     telemetry,
                     attributes: {
-                      'ai.finishReason': result.finishReason,
+                      'ai.response.finishReason': result.finishReason,
+                      'ai.response.object': { output: () => result.text },
+
                       'ai.usage.promptTokens': result.usage.promptTokens,
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
+
+                      // deprecated:
+                      'ai.finishReason': result.finishReason,
                       'ai.result.object': { output: () => result.text },
 
                       // standardized gen-ai llm span attributes:
@@ -313,10 +421,13 @@ Default and recommended: 'auto' (best mode for the model).
                   'ai.settings.mode': mode,
 
                   // standardized gen-ai llm span attributes:
-                  'gen_ai.request.model': model.modelId,
                   'gen_ai.system': model.provider,
+                  'gen_ai.request.model': model.modelId,
+                  'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
                   'gen_ai.request.max_tokens': settings.maxTokens,
+                  'gen_ai.request.presence_penalty': settings.presencePenalty,
                   'gen_ai.request.temperature': settings.temperature,
+                  'gen_ai.request.top_k': settings.topK,
                   'gen_ai.request.top_p': settings.topP,
                 },
               }),
@@ -330,7 +441,7 @@ Default and recommended: 'auto' (best mode for the model).
                       name: schemaName ?? 'json',
                       description:
                         schemaDescription ?? 'Respond with a JSON object.',
-                      parameters: schema.jsonSchema,
+                      parameters: outputStrategy.jsonSchema!,
                     },
                   },
                   ...prepareCallSettings(settings),
@@ -351,16 +462,21 @@ Default and recommended: 'auto' (best mode for the model).
                   selectTelemetryAttributes({
                     telemetry,
                     attributes: {
-                      'ai.finishReason': result.finishReason,
+                      'ai.response.finishReason': result.finishReason,
+                      'ai.response.object': { output: () => objectText },
+
                       'ai.usage.promptTokens': result.usage.promptTokens,
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
+
+                      // deprecated:
+                      'ai.finishReason': result.finishReason,
                       'ai.result.object': { output: () => objectText },
 
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
-                      'gen_ai.usage.prompt_tokens': result.usage.promptTokens,
-                      'gen_ai.usage.completion_tokens':
+                      'gen_ai.usage.input_tokens': result.usage.promptTokens,
+                      'gen_ai.usage.output_tokens':
                         result.usage.completionTokens,
                     },
                   }),
@@ -394,10 +510,18 @@ Default and recommended: 'auto' (best mode for the model).
         }
       }
 
-      const parseResult = safeParseJSON({ text: result, schema });
+      const parseResult = safeParseJSON({ text: result });
 
       if (!parseResult.success) {
         throw parseResult.error;
+      }
+
+      const validationResult = outputStrategy.validateFinalResult(
+        parseResult.value,
+      );
+
+      if (!validationResult.success) {
+        throw validationResult.error;
       }
 
       // Add response information to the span:
@@ -405,18 +529,25 @@ Default and recommended: 'auto' (best mode for the model).
         selectTelemetryAttributes({
           telemetry,
           attributes: {
-            'ai.finishReason': finishReason,
+            'ai.response.finishReason': finishReason,
+            'ai.response.object': {
+              output: () => JSON.stringify(validationResult.value),
+            },
+
             'ai.usage.promptTokens': usage.promptTokens,
             'ai.usage.completionTokens': usage.completionTokens,
+
+            // deprecated:
+            'ai.finishReason': finishReason,
             'ai.result.object': {
-              output: () => JSON.stringify(parseResult.value),
+              output: () => JSON.stringify(validationResult.value),
             },
           },
         }),
       );
 
       return new DefaultGenerateObjectResult({
-        object: parseResult.value,
+        object: validationResult.value,
         finishReason,
         usage: calculateCompletionTokenUsage(usage),
         warnings,

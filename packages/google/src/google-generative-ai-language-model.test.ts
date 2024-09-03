@@ -281,7 +281,7 @@ describe('doGenerate', () => {
   );
 
   it(
-    'should set response mime type for json mode',
+    'should set response mime type in object-json mode',
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
       await model.doGenerate({
         inputFormat: 'prompt',
@@ -301,6 +301,76 @@ describe('doGenerate', () => {
           responseSchema: {
             type: 'object',
           },
+        },
+      });
+    }),
+  );
+
+  it(
+    'should pass specification in object-json mode with structuredOutputs = true (default)',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await provider.languageModel('gemini-pro').doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-json',
+          schema: {
+            type: 'object',
+            properties: {
+              property1: { type: 'string' },
+              property2: { type: 'number' },
+            },
+            required: ['property1', 'property2'],
+            additionalProperties: false,
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await call(0).getRequestBodyJson()).toStrictEqual({
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            properties: {
+              property1: { type: 'string' },
+              property2: { type: 'number' },
+            },
+            required: ['property1', 'property2'],
+            type: 'object',
+          },
+        },
+      });
+    }),
+  );
+
+  it(
+    'should not pass specification in object-json mode with structuredOutputs = false',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await provider
+        .languageModel('gemini-pro', {
+          structuredOutputs: false,
+        })
+        .doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'object-json',
+            schema: {
+              type: 'object',
+              properties: {
+                property1: { type: 'string' },
+                property2: { type: 'number' },
+              },
+              required: ['property1', 'property2'],
+              additionalProperties: false,
+            },
+          },
+          prompt: TEST_PROMPT,
+        });
+
+      expect(await call(0).getRequestBodyJson()).toStrictEqual({
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
         },
       });
     }),

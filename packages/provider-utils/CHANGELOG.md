@@ -1,5 +1,24 @@
 # @ai-sdk/provider-utils
 
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+
+## 1.0.16
+
+### Patch Changes
+
+- 09f895f: feat (ai/core): no-schema output for generateObject / streamObject
+
+## 1.0.15
+
+### Patch Changes
+
+- d67fa9c: feat (provider/amazon-bedrock): add support for session tokens
+
 ## 1.0.14
 
 ### Patch Changes

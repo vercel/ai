@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/openai",
-  "version": "0.0.50",
+  "version": "0.0.55",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,7 +8,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "internal/dist/**/*"
+    "internal/dist/**/*",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
@@ -36,8 +37,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.21",
-    "@ai-sdk/provider-utils": "1.0.14"
+    "@ai-sdk/provider": "0.0.22",
+    "@ai-sdk/provider-utils": "1.0.17"
   },
   "devDependencies": {
     "@types/node": "^18",

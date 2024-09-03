@@ -1,5 +1,45 @@
 # @ai-sdk/ui-utils
 
+## 0.0.40
+
+### Patch Changes
+
+- aa2dc58: feat (ai/core): add maxToolRoundtrips to streamText
+
+## 0.0.39
+
+### Patch Changes
+
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+
+## 0.0.38
+
+### Patch Changes
+
+- d151349: feat (ai/core): array output for generateObject / streamObject
+
+## 0.0.37
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+
+## 0.0.36
+
+### Patch Changes
+
+- b5a82b7: chore (ai): update zod-to-json-schema to 3.23.2
+
+## 0.0.35
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+
 ## 0.0.34
 
 ### Patch Changes

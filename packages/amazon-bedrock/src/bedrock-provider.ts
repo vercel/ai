@@ -1,4 +1,13 @@
-import { generateId, loadSetting } from '@ai-sdk/provider-utils';
+import {
+  LanguageModelV1,
+  NoSuchModelError,
+  ProviderV1,
+} from '@ai-sdk/provider';
+import {
+  generateId,
+  loadOptionalSetting,
+  loadSetting,
+} from '@ai-sdk/provider-utils';
 import {
   BedrockRuntimeClient,
   BedrockRuntimeClientConfig,
@@ -13,6 +22,7 @@ export interface AmazonBedrockProviderSettings {
   region?: string;
   accessKeyId?: string;
   secretAccessKey?: string;
+  sessionToken?: string;
 
   /**
    * Complete Bedrock configuration for setting advanced authentication and
@@ -25,16 +35,16 @@ export interface AmazonBedrockProviderSettings {
   generateId?: () => string;
 }
 
-export interface AmazonBedrockProvider {
+export interface AmazonBedrockProvider extends ProviderV1 {
   (
     modelId: BedrockChatModelId,
     settings?: BedrockChatSettings,
-  ): BedrockChatLanguageModel;
+  ): LanguageModelV1;
 
   languageModel(
     modelId: BedrockChatModelId,
     settings?: BedrockChatSettings,
-  ): BedrockChatLanguageModel;
+  ): LanguageModelV1;
 }
 
 /**
@@ -65,6 +75,10 @@ export function createAmazonBedrock(
             environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
             description: 'AWS secret access key',
           }),
+          sessionToken: loadOptionalSetting({
+            settingValue: options.sessionToken,
+            environmentVariableName: 'AWS_SESSION_TOKEN',
+          }),
         },
       },
     );
@@ -92,6 +106,9 @@ export function createAmazonBedrock(
   };
 
   provider.languageModel = createChatModel;
+  provider.textEmbeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
 
   return provider as AmazonBedrockProvider;
 }

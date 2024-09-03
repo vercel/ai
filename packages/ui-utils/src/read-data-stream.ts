@@ -20,7 +20,7 @@ function concatChunks(chunks: Uint8Array[], totalLength: number) {
 Converts a ReadableStreamDefaultReader into an async generator that yields
 StreamPart objects.
 
-@param reader 
+@param reader
        Reader for the stream to read from.
 @param isAborted
        Optional function that returns true if the request has been aborted.

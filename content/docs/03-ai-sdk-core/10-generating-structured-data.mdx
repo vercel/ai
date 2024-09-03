@@ -5,15 +5,23 @@ description: Learn how to generate structured data with the Vercel AI SDK.
 
 # Generating Structured Data
 
-While text generation can be useful, your usecase will likely call for generating structured data.
+While text generation can be useful, your use case will likely call for generating structured data.
 For example, you might want to extract information from text, classify data, or generate synthetic data.
 
 Many language models are capable of generating structured data, often defined as using "JSON modes" or "tools".
 However, you need to manually provide schemas and then validate the generated data as LLMs can produce incorrect or incomplete structured data.
 
-The Vercel AI SDK standardises structured object generation across model providers with the [`generateObject`](/docs/reference/ai-sdk-core/generate-object) function.
+The Vercel AI SDK standardises structured object generation across model providers
+with the [`generateObject`](/docs/reference/ai-sdk-core/generate-object)
+and [`streamObject`](/docs/reference/ai-sdk-core/stream-object) functions.
+You can use both functions with different output strategies, e.g. `array`, `object`, or `no-schema`,
+and with different generation modes, e.g. `auto`, `tool`, or `json`.
+You can use [Zod schemas](./schemas-and-zod) or [JSON schemas](/docs/reference/ai-sdk-core/json-schema) to specify the shape of the data that you want,
+and the AI model will generate data that conforms to that structure.
 
-The `generateObject` function uses [Zod schemas](./schemas-and-zod) or [JSON schemas](/docs/reference/ai-sdk-core/json-schema) to specify the shape of the data that you want, and the AI model will generate data that conforms to that structure.
+## Generate Object
+
+The `generateObject` generates structured data from a prompt.
 The schema is also used to validate the generated data, ensuring type safety and correctness.
 
 ```ts
@@ -33,7 +41,83 @@ const { object } = await generateObject({
 });
 ```
 
-### Specifying Generation Mode
+## Stream Object
+
+Given the added complexity of returning structured data, model response time can be unacceptable for your interactive use case.
+With the [`streamObject`](/docs/reference/ai-sdk-core/stream-object) function, you can stream the model's response as it is generated.
+
+```ts
+import { streamObject } from 'ai';
+
+const { partialObjectStream } = await streamObject({
+  // ...
+});
+
+// use partialObjectStream as an async iterable
+for await (const partialObject of partialObjectStream) {
+  console.log(partialObject);
+}
+```
+
+You can use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-sdk-rsc))) or the [`useObject`](/docs/reference/ai-sdk-ui/use-object) hook.
+
+## Output Strategy
+
+You can use both functions with different output strategies, e.g. `array`, `object`, or `no-schema`.
+
+### Output Strategy: Object
+
+The default output strategy is `object`, which returns the generated data as an object.
+You don't need to specify the output strategy if you want to use the default.
+
+### Output Strategy: Array
+
+If you want to generate an array of objects, you can set the output strategy to `array`.
+When you use the `array` output strategy, the schema specifies the shape of an array element.
+With `streamObject`, you can also stream the generated array elements using `elementStream`.
+
+```ts highlight="7,18"
+import { openai } from '@ai-sdk/openai';
+import { streamObject } from 'ai';
+import { z } from 'zod';
+
+const { elementStream } = await streamObject({
+  model: openai('gpt-4-turbo'),
+  output: 'array',
+  schema: z.object({
+    name: z.string(),
+    class: z
+      .string()
+      .describe('Character class, e.g. warrior, mage, or thief.'),
+    description: z.string(),
+  }),
+  prompt: 'Generate 3 hero descriptions for a fantasy role playing game.',
+});
+
+for await (const hero of elementStream) {
+  console.log(hero);
+}
+```
+
+### Output Strategy: No Schema
+
+In some cases, you might not want to use a schema,
+for example when the data is a dynamic user request.
+You can use the `output` setting to set the output format to `no-schema` in those cases
+and omit the schema parameter.
+
+```ts highlight="6"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+
+const { object } = await generateObject({
+  model: openai('gpt-4-turbo'),
+  output: 'no-schema',
+  prompt: 'Generate a lasagna recipe.',
+});
+```
+
+## Generation Mode
 
 While some models (like OpenAI) natively support object generation, others require alternative methods, like modified [tool calling](/docs/ai-sdk-core/tools-and-tool-calling). The `generateObject` function allows you to specify the method it will use to return structured data.
 
@@ -46,7 +130,7 @@ While some models (like OpenAI) natively support object generation, others requi
   providers do not support object generation at all.
 </Note>
 
-### Specifying Schema Name and Description
+## Schema Name and Description
 
 You can optionally specify a name and description for the schema. These are used by some providers for additional LLM guidance, e.g. via tool or schema name.
 
@@ -67,53 +151,10 @@ const { object } = await generateObject({
 });
 ```
 
-## Streaming Objects
-
-Given the added complexity of returning structured data, model response time can be unacceptable for your interactive use case. With the [`streamObject`](/docs/reference/ai-sdk-core/stream-object) function, you can stream the model's response as it is generated.
-
-```ts
-import { streamObject } from 'ai';
-
-const { partialObjectStream } = await streamObject({
-  // ...
-});
-
-// use partialObjectStream as an async iterable
-for await (const partialObject of partialObjectStream) {
-  console.log(partialObject);
-}
-```
-
-You can use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-sdk-rsc))) or the [`useObject`](/docs/reference/ai-sdk-ui/use-object) hook.
-
 ## Schema Writing Tips
 
 The mapping from Zod schemas to LLM inputs (typically JSON schema) is not always straightforward, since the mapping is not one-to-one.
 Please checkout the following tips and the [Prompt Engineering with Tools](/docs/ai-sdk-core/tools-and-tool-calling#prompt-engineering-with-tools) guide.
-
-### Generating Arrays
-
-Most models require an object as the top-level schema. If you want to generate an array, you can wrap it in an object with a single descriptive key and use destructuring to access the array.
-
-```ts highlight="2,5-6"
-const {
-  object: { users },
-} = await generateObject({
-  model: yourModel,
-  schema: z.object({
-    users: z.array(
-      z.object({
-        login: z.string(),
-        fullName: z.string(),
-        age: z.number(),
-      }),
-    ),
-  }),
-  prompt: 'Generate a list of fake user profiles for testing.',
-});
-
-console.log('users', users);
-```
 
 ### Dates
 
@@ -190,7 +231,7 @@ async function generateRecipe(
 }
 ```
 
-## Examples
+## More Examples
 
 You can see `generateObject` and `streamObject` in action using various frameworks in the following examples:
 

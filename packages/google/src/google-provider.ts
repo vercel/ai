@@ -14,22 +14,27 @@ import {
   GoogleGenerativeAIEmbeddingModelId,
   GoogleGenerativeAIEmbeddingSettings,
 } from './google-generative-ai-embedding-settings';
+import {
+  EmbeddingModelV1,
+  LanguageModelV1,
+  ProviderV1,
+} from '@ai-sdk/provider';
 
-export interface GoogleGenerativeAIProvider {
+export interface GoogleGenerativeAIProvider extends ProviderV1 {
   (
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): GoogleGenerativeAILanguageModel;
+  ): LanguageModelV1;
 
   languageModel(
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): GoogleGenerativeAILanguageModel;
+  ): LanguageModelV1;
 
   chat(
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): GoogleGenerativeAILanguageModel;
+  ): LanguageModelV1;
 
   /**
    * @deprecated Use `chat()` instead.
@@ -37,23 +42,31 @@ export interface GoogleGenerativeAIProvider {
   generativeAI(
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): GoogleGenerativeAILanguageModel;
+  ): LanguageModelV1;
 
   /**
-Creates a model for text embeddings.
+@deprecated Use `textEmbeddingModel()` instead.
    */
   embedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
     settings?: GoogleGenerativeAIEmbeddingSettings,
-  ): GoogleGenerativeAIEmbeddingModel;
+  ): EmbeddingModelV1<string>;
 
   /**
-Creates a model for text embeddings.
+@deprecated Use `textEmbeddingModel()` instead.
  */
   textEmbedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
     settings?: GoogleGenerativeAIEmbeddingSettings,
-  ): GoogleGenerativeAIEmbeddingModel;
+  ): EmbeddingModelV1<string>;
+
+  /**
+@deprecated Use `textEmbeddingModel()` instead.
+ */
+  textEmbeddingModel(
+    modelId: GoogleGenerativeAIEmbeddingModelId,
+    settings?: GoogleGenerativeAIEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
@@ -148,6 +161,7 @@ export function createGoogleGenerativeAI(
   provider.generativeAI = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
 
   return provider as GoogleGenerativeAIProvider;
 }

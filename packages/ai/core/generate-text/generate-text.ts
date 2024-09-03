@@ -23,6 +23,7 @@ import {
   calculateCompletionTokenUsage,
 } from '../types/token-usage';
 import { GenerateTextResult } from './generate-text-result';
+import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
 
@@ -206,10 +207,14 @@ By default, it's set to 0, which will disable the feature.
                 },
 
                 // standardized gen-ai llm span attributes:
-                'gen_ai.request.model': model.modelId,
                 'gen_ai.system': model.provider,
+                'gen_ai.request.model': model.modelId,
+                'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
                 'gen_ai.request.max_tokens': settings.maxTokens,
+                'gen_ai.request.presence_penalty': settings.presencePenalty,
+                'gen_ai.request.stop_sequences': settings.stopSequences,
                 'gen_ai.request.temperature': settings.temperature,
+                'gen_ai.request.top_k': settings.topK,
                 'gen_ai.request.top_p': settings.topP,
               },
             }),
@@ -229,9 +234,19 @@ By default, it's set to 0, which will disable the feature.
                 selectTelemetryAttributes({
                   telemetry,
                   attributes: {
-                    'ai.finishReason': result.finishReason,
+                    'ai.response.finishReason': result.finishReason,
+                    'ai.response.text': {
+                      output: () => result.text,
+                    },
+                    'ai.response.toolCalls': {
+                      output: () => JSON.stringify(result.toolCalls),
+                    },
+
                     'ai.usage.promptTokens': result.usage.promptTokens,
                     'ai.usage.completionTokens': result.usage.completionTokens,
+
+                    // deprecated:
+                    'ai.finishReason': result.finishReason,
                     'ai.result.text': {
                       output: () => result.text,
                     },
@@ -241,9 +256,8 @@ By default, it's set to 0, which will disable the feature.
 
                     // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [result.finishReason],
-                    'gen_ai.usage.prompt_tokens': result.usage.promptTokens,
-                    'gen_ai.usage.completion_tokens':
-                      result.usage.completionTokens,
+                    'gen_ai.usage.input_tokens': result.usage.promptTokens,
+                    'gen_ai.usage.output_tokens': result.usage.completionTokens,
                   },
                 }),
               );
@@ -290,7 +304,7 @@ By default, it's set to 0, which will disable the feature.
 
         // append to messages for potential next roundtrip:
         const newResponseMessages = toResponseMessages({
-          text: currentModelResponse.text ?? '',
+          text: currentModelResponse.text,
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
         });
@@ -314,10 +328,20 @@ By default, it's set to 0, which will disable the feature.
         selectTelemetryAttributes({
           telemetry,
           attributes: {
-            'ai.finishReason': currentModelResponse.finishReason,
+            'ai.response.finishReason': currentModelResponse.finishReason,
+            'ai.response.text': {
+              output: () => currentModelResponse.text,
+            },
+            'ai.response.toolCalls': {
+              output: () => JSON.stringify(currentModelResponse.toolCalls),
+            },
+
             'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
             'ai.usage.completionTokens':
               currentModelResponse.usage.completionTokens,
+
+            // deprecated:
+            'ai.finishReason': currentModelResponse.finishReason,
             'ai.result.text': {
               output: () => currentModelResponse.text,
             },
@@ -463,40 +487,6 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.roundtrips = options.roundtrips;
     this.experimental_providerMetadata = options.providerMetadata;
   }
-}
-
-/**
-Converts the result of a `generateText` call to a list of response messages.
- */
-function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
-  text,
-  toolCalls,
-  toolResults,
-}: {
-  text: string;
-  toolCalls: ToToolCallArray<TOOLS>;
-  toolResults: ToToolResultArray<TOOLS>;
-}): Array<CoreAssistantMessage | CoreToolMessage> {
-  const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> = [];
-
-  responseMessages.push({
-    role: 'assistant',
-    content: [{ type: 'text', text }, ...toolCalls],
-  });
-
-  if (toolResults.length > 0) {
-    responseMessages.push({
-      role: 'tool',
-      content: toolResults.map(result => ({
-        type: 'tool-result',
-        toolCallId: result.toolCallId,
-        toolName: result.toolName,
-        result: result.result,
-      })),
-    });
-  }
-
-  return responseMessages;
 }
 
 /**

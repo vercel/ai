@@ -412,6 +412,56 @@ const finishMessageStreamPart: StreamPart<
   },
 };
 
+const finishRoundtripStreamPart: StreamPart<
+  'e',
+  'finish_roundtrip',
+  {
+    finishReason: LanguageModelV1FinishReason;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+    };
+  }
+> = {
+  code: 'e',
+  name: 'finish_roundtrip',
+  parse: (value: JSONValue) => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('finishReason' in value) ||
+      typeof value.finishReason !== 'string' ||
+      !('usage' in value) ||
+      value.usage == null ||
+      typeof value.usage !== 'object' ||
+      !('promptTokens' in value.usage) ||
+      !('completionTokens' in value.usage)
+    ) {
+      throw new Error(
+        '"finish_roundtrip" parts expect an object with a "finishReason" and "usage" property.',
+      );
+    }
+    // NaN is JSON parsed as null.
+    if (typeof value.usage.promptTokens !== 'number') {
+      value.usage.promptTokens = Number.NaN;
+    }
+    if (typeof value.usage.completionTokens !== 'number') {
+      value.usage.completionTokens = Number.NaN;
+    }
+    return {
+      type: 'finish_roundtrip',
+      value: value as unknown as {
+        finishReason: LanguageModelV1FinishReason;
+        usage: {
+          promptTokens: number;
+          completionTokens: number;
+          totalTokens: number;
+        };
+      },
+    };
+  },
+};
+
 const streamParts = [
   textStreamPart,
   functionCallStreamPart,
@@ -427,6 +477,7 @@ const streamParts = [
   toolCallStreamingStartStreamPart,
   toolCallDeltaStreamPart,
   finishMessageStreamPart,
+  finishRoundtripStreamPart,
 ] as const;
 
 // union type of all stream parts
@@ -444,7 +495,8 @@ type StreamParts =
   | typeof toolResultStreamPart
   | typeof toolCallStreamingStartStreamPart
   | typeof toolCallDeltaStreamPart
-  | typeof finishMessageStreamPart;
+  | typeof finishMessageStreamPart
+  | typeof finishRoundtripStreamPart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -467,7 +519,8 @@ export type StreamPartType =
   | ReturnType<typeof toolResultStreamPart.parse>
   | ReturnType<typeof toolCallStreamingStartStreamPart.parse>
   | ReturnType<typeof toolCallDeltaStreamPart.parse>
-  | ReturnType<typeof finishMessageStreamPart.parse>;
+  | ReturnType<typeof finishMessageStreamPart.parse>
+  | ReturnType<typeof finishRoundtripStreamPart.parse>;
 
 export const streamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -484,6 +537,7 @@ export const streamPartsByCode = {
   [toolCallStreamingStartStreamPart.code]: toolCallStreamingStartStreamPart,
   [toolCallDeltaStreamPart.code]: toolCallDeltaStreamPart,
   [finishMessageStreamPart.code]: finishMessageStreamPart,
+  [finishRoundtripStreamPart.code]: finishRoundtripStreamPart,
 } as const;
 
 /**
@@ -524,6 +578,7 @@ export const StreamStringPrefixes = {
     toolCallStreamingStartStreamPart.code,
   [toolCallDeltaStreamPart.name]: toolCallDeltaStreamPart.code,
   [finishMessageStreamPart.name]: finishMessageStreamPart.code,
+  [finishRoundtripStreamPart.name]: finishRoundtripStreamPart.code,
 } as const;
 
 export const validCodes = streamParts.map(part => part.code);

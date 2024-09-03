@@ -1,5 +1,5 @@
 import { createChunkDecoder } from './index';
-import { parseComplexResponse } from './parse-complex-response';
+import { processDataProtocolResponse } from './process-data-protocol-response';
 import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
 
 // use function to allow for mocking in tests:
@@ -28,7 +28,7 @@ export async function callChatApi({
   abortController: (() => AbortController | null) | undefined;
   restoreMessagesOnFailure: () => void;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
-  onUpdate: (merged: Message[], data: JSONValue[] | undefined) => void;
+  onUpdate: (newMessages: Message[], data: JSONValue[] | undefined) => void;
   onFinish: UseChatOptions['onFinish'];
   onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
@@ -111,15 +111,15 @@ export async function callChatApi({
     }
 
     case 'data': {
-      return await parseComplexResponse({
+      return await processDataProtocolResponse({
         reader,
         abortControllerRef:
           abortController != null ? { current: abortController() } : undefined,
         update: onUpdate,
         onToolCall,
-        onFinish({ prefixMap, finishReason, usage }) {
-          if (onFinish && prefixMap.text != null) {
-            onFinish(prefixMap.text, { usage, finishReason });
+        onFinish({ message, finishReason, usage }) {
+          if (onFinish && message != null) {
+            onFinish(message, { usage, finishReason });
           }
         },
         generateId,

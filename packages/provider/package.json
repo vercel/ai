@@ -1,13 +1,14 @@
 {
   "name": "@ai-sdk/provider",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
