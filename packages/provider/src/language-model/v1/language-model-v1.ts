@@ -1,4 +1,3 @@
-import { JSONValue } from '../../json-value';
 import { LanguageModelV1CallOptions } from './language-model-v1-call-options';
 import { LanguageModelV1CallWarning } from './language-model-v1-call-warning';
 import { LanguageModelV1FinishReason } from './language-model-v1-finish-reason';
@@ -217,5 +216,3 @@ export type LanguageModelV1StreamPart =
 
   // error parts are streamed, allowing for multiple errors
   | { type: 'error'; error: unknown };
-
-export type LanguageModelV1ResponseMetadata = Record<string, JSONValue>;
