@@ -230,5 +230,48 @@ describe('convertToLanguageModelMessage', () => {
         });
       });
     });
+
+    describe('tool call parts', () => {
+      it('should pass through provider metadata', () => {
+        const result = convertToLanguageModelMessage(
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                args: {},
+                experimental_providerMetadata: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                    'key-b': 'test-value-2',
+                  },
+                },
+              },
+            ],
+          },
+          null,
+        );
+
+        expect(result).toEqual({
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              args: {},
+              toolCallId: 'toolCallId',
+              toolName: 'toolName',
+              providerMetadata: {
+                'test-provider': {
+                  'key-a': 'test-value-1',
+                  'key-b': 'test-value-2',
+                },
+              },
+            },
+          ],
+        });
+      });
+    });
   });
 });

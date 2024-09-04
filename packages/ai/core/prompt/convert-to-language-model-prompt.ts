@@ -219,10 +219,18 @@ export function convertToLanguageModelMessage(
 
       return {
         role: 'assistant',
-        content: message.content.filter(
-          // remove empty text parts:
-          part => part.type !== 'text' || part.text !== '',
-        ),
+        content: message.content
+          .filter(
+            // remove empty text parts:
+            part => part.type !== 'text' || part.text !== '',
+          )
+          .map(part => {
+            const { experimental_providerMetadata, ...rest } = part;
+            return {
+              ...rest,
+              providerMetadata: experimental_providerMetadata,
+            };
+          }),
         providerMetadata: message.experimental_providerMetadata,
       };
     }
