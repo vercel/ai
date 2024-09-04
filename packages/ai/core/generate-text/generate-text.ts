@@ -263,6 +263,8 @@ By default, it's set to 0, which will disable the feature.
                     },
                     'ai.response.id': result.response.id,
                     'ai.response.model': result.response.modelId,
+                    'ai.response.timestamp':
+                      result.response.timestamp?.toISOString(),
 
                     'ai.usage.promptTokens': result.usage.promptTokens,
                     'ai.usage.completionTokens': result.usage.completionTokens,
