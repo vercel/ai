@@ -3,12 +3,11 @@ import { customAlphabet } from 'nanoid/non-secure';
 /**
  * Creates an ID generator that uses an alphabet of digits, uppercase and lowercase letters.
  *
- * TODO change length to 16 in 4.0
- *
  * @param alphabet - The alphabet to use for the ID. Default: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.
  * @param prefix - The prefix of the ID to generate. Default: ''.
  * @param length - The length of the random part of the ID to generate. Default: 7.
  */
+// TODO change length to 16 in 4.0
 export const createIdGenerator = ({
   prefix = '',
   length = 7,
@@ -24,7 +23,6 @@ export const createIdGenerator = ({
 
 /**
  * Generates a 7-character random string to use for IDs. Not secure.
- *
- * TODO change length to 16 in 4.0
  */
+//TODO change length to 16 in 4.0
 export const generateId = createIdGenerator();
