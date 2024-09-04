@@ -5,6 +5,7 @@ import { LanguageModelV1FunctionToolCall } from './language-model-v1-function-to
 import { LanguageModelV1LogProbs } from './language-model-v1-logprobs';
 import { LanguageModelV1ProviderMetadata } from './language-model-v1-provider-metadata';
 
+// TODO
 /**
 Specification for a language model that implements the language model interface version 1.
  */
