@@ -2,7 +2,7 @@ export * from './combine-headers';
 export * from './convert-async-generator-to-readable-stream';
 export * from './extract-response-headers';
 export * from './fetch-function';
-export * from './generate-id';
+export { createIdGenerator, generateId } from './generate-id';
 export * from './get-error-message';
 export * from './is-abort-error';
 export * from './load-api-key';

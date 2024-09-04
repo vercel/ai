@@ -1,4 +1,4 @@
-import { generateId as originalGenerateId } from '@ai-sdk/provider-utils';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
@@ -27,6 +27,8 @@ import { GenerateTextResult } from './generate-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
+
+const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
 
 /**
 Generate a text and call tools for a given prompt using a language model.
