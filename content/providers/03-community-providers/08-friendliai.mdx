@@ -32,6 +32,8 @@ You can install it with
 
 ## Provider Instance
 
+### Using the OpenAI Provider
+
 To use FriendliAI, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
 
 ```ts
@@ -42,6 +44,44 @@ const friendliai = createOpenAI({
   apiKey: process.env.FRIENDLI_API_KEY,
 });
 ```
+
+### Using the `@friendliai/ai-provider` Package
+
+You can import the default provider instance `friendliai` from `@friendliai/ai-provider`:
+
+frist install the package
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @friendliai/ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @friendliai/ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @friendliai/ai-provider" dark />
+  </Tab>
+</Tabs>
+
+then import the provider
+
+```ts
+import { friendliai } from '@friendliai/ai-provider';
+```
+
+If you need a customized setup, you can import `createFriendliAI` from `@friendliai/ai-provider` and create a provider instance with your settings:
+
+```ts
+import { createFriendliAI } from '@friendliai/ai-provider';
+
+const friendliai = createFriendliAI({
+  baseURL: 'https://inference.friendli.ai/v1',
+  apiKey: process.env.FRIENDLI_API_KEY,
+  teamId: process.env.FRIENDLI_TEAM_ID || 'YOUR FRIENDLIAI TEAM ID',
+});
+```
+
+### Credentials
 
 [[Guide](https://docs.friendli.ai/guides/credentials)] The tokens required for model usage can be obtained from the [Friendli suite](https://suite.friendli.ai/).
 
@@ -54,7 +94,7 @@ The first argument is the model id, e.g. `meta-llama-3.1-8b-instruct`.
 const model = friendliai('meta-llama-3.1-8b-instruct');
 ```
 
-### Example
+### Example: generating text
 
 You can use FriendliAI language models to generate text with the `generateText` function:
 
@@ -73,10 +113,31 @@ const { text } = await generateText({
 })
 ```
 
+### Example: Using friendli hosted tools
+
+`@friendliai/ai-provider`를 사용하는 경우 hosted_tools 옵션을 사용할 수 있습니다.
+
+With search grounding, the model has access to the latest information using Google search. Search grounding can e.g. be used to provide answers around current events:
+
+```ts highlight="4,5,6"
+import { friendliai } from '@friendliai/ai-provider';
+
+const result = await streamText({
+  model: friendliai('meta-llama-3.1-8b-instruct', {
+    hostedTools: [{ type: 'calculator' }, { type: 'web_search' }],
+  }),
+  prompt: 'What is the meaning of life?',
+});
+
+for await (const textPart of result.textStream) {
+  console.log(textPart);
+}
+```
+
 FriendliAI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
-## Model Capabilities
+### Model Capabilities
 
 | Model                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
