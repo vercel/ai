@@ -235,7 +235,7 @@ describe('doGenerate', () => {
 
     expect(response).toStrictEqual({
       id: 'test-id',
-      timestamp: new Date(123),
+      timestamp: new Date(123 * 1000),
       modelId: 'test-model',
     });
   });
