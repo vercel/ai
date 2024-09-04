@@ -6,6 +6,8 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
+import { mockId } from '../test/mock-id';
+import { mockValues } from '../test/mock-values';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -518,6 +520,10 @@ describe('result.responseMessages', () => {
         },
         prompt: 'test-input',
         maxToolRoundtrips: 2,
+        _internal: {
+          generateId: mockId(),
+          currentDate: mockValues(new Date(0), new Date(1000)),
+        },
       });
     });
 
@@ -542,52 +548,7 @@ describe('result.responseMessages', () => {
     });
 
     it('should return information about all roundtrips', () => {
-      assert.deepStrictEqual(result.roundtrips, [
-        {
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          text: '',
-          toolCalls: [
-            {
-              args: {
-                value: 'value',
-              },
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              type: 'tool-call',
-            },
-          ],
-          toolResults: [
-            {
-              args: {
-                value: 'value',
-              },
-              result: 'result1',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-            },
-          ],
-          usage: {
-            completionTokens: 5,
-            promptTokens: 10,
-            totalTokens: 15,
-          },
-          warnings: undefined,
-        },
-        {
-          finishReason: 'stop',
-          logprobs: undefined,
-          text: 'Hello, world!',
-          toolCalls: [],
-          toolResults: [],
-          usage: {
-            completionTokens: 20,
-            promptTokens: 10,
-            totalTokens: 30,
-          },
-          warnings: undefined,
-        },
-      ]);
+      expect(result.roundtrips).toMatchSnapshot();
     });
   });
 });
