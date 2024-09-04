@@ -135,10 +135,8 @@ ID for the generated response, if the provider sends one.
 
       /**
 Timestamp for the start of the generated response, if the provider sends one.
-
-The unit is milliseconds since 1970-01-01T00:00:00Z (epoch time).
      */
-      timestamp?: number;
+      timestamp?: Date;
 
       /**
 The ID of the response model that was used to generate the response, if the provider sends one.

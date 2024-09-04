@@ -291,7 +291,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       rawResponse: { headers: responseHeaders },
       response: {
         id: response.id ?? undefined,
-        timestamp: response.created ?? undefined,
+        timestamp:
+          response.created != null ? new Date(response.created) : undefined,
         modelId: response.model ?? undefined,
       },
       warnings,
