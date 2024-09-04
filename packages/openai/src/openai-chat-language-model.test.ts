@@ -220,46 +220,24 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should send the response timestamp', async () => {
-    prepareJsonResponse({
-      created: 123,
-    });
-
-    const { timestamp } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(timestamp).toStrictEqual(123);
-  });
-
-  it('should send the response id', async () => {
+  it('should send additional response information', async () => {
     prepareJsonResponse({
       id: 'test-id',
+      created: 123,
+      model: 'test-model',
     });
 
-    const { id } = await model.doGenerate({
+    const { response } = await model.doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(id).toStrictEqual('test-id');
-  });
-
-  it('should send the response model id', async () => {
-    prepareJsonResponse({
-      model: 'gpt-4',
+    expect(response).toStrictEqual({
+      id: 'test-id',
+      timestamp: 123,
+      modelId: 'test-model',
     });
-
-    const { responseModelId } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(responseModelId).toStrictEqual('gpt-4');
   });
 
   it('should support partial usage', async () => {

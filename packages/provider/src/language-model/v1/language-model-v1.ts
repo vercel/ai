@@ -116,13 +116,34 @@ settings.
     };
 
     /**
-Optional raw response information for debugging purposes.
+Optional response information for telemetry and debugging purposes.
+
+TODO rename to `response` in v2
      */
     rawResponse?: {
       /**
 Response headers.
       */
       headers?: Record<string, string>;
+    };
+
+    response?: {
+      /**
+ID for the generated response, if the provider sends one.
+     */
+      id?: string;
+
+      /**
+Timestamp for the start of the generated response, if the provider sends one.
+
+The unit is milliseconds since 1970-01-01T00:00:00Z (epoch time).
+     */
+      timestamp?: number;
+
+      /**
+The ID of the response model that was used to generate the response, if the provider sends one.
+     */
+      modelId?: string;
     };
 
     warnings?: LanguageModelV1CallWarning[];
@@ -133,23 +154,6 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
      */
     providerMetadata?: LanguageModelV1ProviderMetadata;
-
-    /**
-ID for the generated response, if the provider sends one.
-     */
-    id?: string;
-
-    /**
-Timestamp for the start of the generated response, if the provider sends one.
-
-The unit is milliseconds since 1970-01-01T00:00:00Z (epoch time).
-     */
-    timestamp?: number;
-
-    /**
-The ID of the response model that was used to generate the response, if the provider sends one.
-     */
-    responseModelId?: string;
 
     /**
 Logprobs for the completion.

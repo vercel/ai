@@ -265,9 +265,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const choice = response.choices[0];
 
     return {
-      id: response.id ?? undefined,
-      timestamp: response.created ?? undefined,
-      responseModelId: response.model ?? undefined,
       text: choice.message.content ?? undefined,
       toolCalls:
         this.settings.useLegacyFunctionCalling && choice.message.function_call
@@ -292,6 +289,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      response: {
+        id: response.id ?? undefined,
+        timestamp: response.created ?? undefined,
+        modelId: response.model ?? undefined,
+      },
       warnings,
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
     };
