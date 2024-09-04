@@ -406,7 +406,7 @@ describe('cache control', () => {
   });
 
   describe('assistant message', () => {
-    it('should set cache_control on user message part with part cache control', async () => {
+    it('should set cache_control on assistant message text part with part cache control', async () => {
       const result = convertToAnthropicMessagesPrompt({
         prompt: [
           { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
@@ -437,6 +437,50 @@ describe('cache control', () => {
               {
                 type: 'text',
                 text: 'test',
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      });
+    });
+
+    it('should set cache_control on assistant tool call part with part cache control', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'test-id',
+                toolName: 'test-tool',
+                args: { some: 'arg' },
+                providerMetadata: {
+                  anthropic: {
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        cacheControl: true,
+      });
+
+      expect(result).toEqual({
+        messages: [
+          { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                name: 'test-tool',
+                id: 'test-id',
+                input: { some: 'arg' },
                 cache_control: { type: 'ephemeral' },
               },
             ],

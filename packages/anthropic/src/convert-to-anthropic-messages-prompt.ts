@@ -174,10 +174,7 @@ export function convertToAnthropicMessagesPrompt({
             const isLastPart = j === content.length - 1;
 
             const cacheControl =
-              getCacheControl(
-                // TODO support tool call parts
-                part.type === 'text' ? part.providerMetadata : undefined,
-              ) ??
+              getCacheControl(part.providerMetadata) ??
               (isLastPart
                 ? getCacheControl(message.providerMetadata)
                 : undefined);
@@ -205,6 +202,7 @@ export function convertToAnthropicMessagesPrompt({
                   id: part.toolCallId,
                   name: part.toolName,
                   input: part.args,
+                  cache_control: cacheControl,
                 });
                 break;
               }
