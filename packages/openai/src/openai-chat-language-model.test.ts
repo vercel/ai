@@ -891,6 +891,12 @@ describe('doStream', () => {
 
     // note: space moved to last chunk bc of trimming
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
+        modelId: 'gpt-3.5-turbo-0613',
+        timestamp: new Date('2023-12-15T16:17:00.000Z'),
+      },
       { type: 'text-delta', textDelta: '' },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
@@ -960,6 +966,12 @@ describe('doStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
+        modelId: 'gpt-3.5-turbo-0125',
+        timestamp: new Date('2024-03-25T09:06:38.000Z'),
+      },
       {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
@@ -1082,6 +1094,12 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
+        type: 'response-metadata',
+        id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
+        modelId: 'gpt-3.5-turbo-0125',
+        timestamp: new Date('2024-03-25T09:06:38.000Z'),
+      },
+      {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
         toolCallType: 'function',
@@ -1189,6 +1207,12 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
+        type: 'response-metadata',
+        id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
+        modelId: 'gpt-3.5-turbo-0125',
+        timestamp: new Date('2024-03-25T09:06:38.000Z'),
+      },
+      {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
         toolCallType: 'function',
@@ -1251,6 +1275,12 @@ describe('doStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2',
+        modelId: 'gpt-4-turbo-2024-04-09',
+        timestamp: new Date('2024-07-23T07:41:59.000Z'),
+      },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),

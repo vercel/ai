@@ -289,14 +289,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
-      response: {
-        id: response.id ?? undefined,
-        modelId: response.model ?? undefined,
-        timestamp:
-          response.created != null
-            ? new Date(response.created * 1000) // seconds to milliseconds
-            : undefined,
-      },
+      response: getMetadata(response),
       warnings,
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
     };
@@ -351,6 +344,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       completionTokens: undefined,
     };
     let logprobs: LanguageModelV1LogProbs;
+    let isFirstChunk = true;
 
     const { useLegacyFunctionCalling } = this.settings;
 
@@ -375,6 +369,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               finishReason = 'error';
               controller.enqueue({ type: 'error', error: value.error });
               return;
+            }
+
+            if (isFirstChunk) {
+              isFirstChunk = false;
+
+              controller.enqueue({
+                type: 'response-metadata',
+                ...getMetadata(value),
+              });
             }
 
             if (value.usage != null) {
@@ -609,10 +612,26 @@ const openAIChatResponseSchema = z.object({
   usage: openAITokenUsageSchema,
 });
 
+function getMetadata(value: {
+  id?: string | undefined | null;
+  created?: number | undefined | null;
+  model?: string | undefined | null;
+}) {
+  return {
+    id: value.id ?? undefined,
+    modelId: value.model ?? undefined,
+    timestamp:
+      value.created != null ? new Date(value.created * 1000) : undefined,
+  };
+}
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiChatChunkSchema = z.union([
   z.object({
+    id: z.string().nullish(),
+    created: z.number().nullish(),
+    model: z.string().nullish(),
     choices: z.array(
       z.object({
         delta: z
