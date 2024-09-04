@@ -131,6 +131,9 @@ describe('doGenerate', () => {
     },
     logprobs = null,
     finish_reason = 'stop',
+    id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+    created = 1711115037,
+    model = 'gpt-3.5-turbo-0125',
   }: {
     content?: string;
     tool_calls?: Array<{
@@ -160,12 +163,15 @@ describe('doGenerate', () => {
         | null;
     } | null;
     finish_reason?: string;
+    created?: number;
+    id?: string;
+    model?: string;
   } = {}) {
     server.responseBodyJson = {
-      id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+      id,
       object: 'chat.completion',
-      created: 1711115037,
-      model: 'gpt-3.5-turbo-0125',
+      created,
+      model,
       choices: [
         {
           index: 0,
@@ -212,6 +218,48 @@ describe('doGenerate', () => {
       promptTokens: 20,
       completionTokens: 5,
     });
+  });
+
+  it('should send the response timestamp', async () => {
+    prepareJsonResponse({
+      created: 123,
+    });
+
+    const { timestamp } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(timestamp).toStrictEqual(123);
+  });
+
+  it('should send the response id', async () => {
+    prepareJsonResponse({
+      id: 'test-id',
+    });
+
+    const { id } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(id).toStrictEqual('test-id');
+  });
+
+  it('should send the response model id', async () => {
+    prepareJsonResponse({
+      model: 'gpt-4',
+    });
+
+    const { responseModelId } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(responseModelId).toStrictEqual('gpt-4');
   });
 
   it('should support partial usage', async () => {

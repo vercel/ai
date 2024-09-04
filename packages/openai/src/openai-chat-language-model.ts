@@ -265,6 +265,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const choice = response.choices[0];
 
     return {
+      id: response.id ?? undefined,
+      timestamp: response.created ?? undefined,
+      responseModelId: response.model ?? undefined,
       text: choice.message.content ?? undefined,
       toolCalls:
         this.settings.useLegacyFunctionCalling && choice.message.function_call
@@ -549,6 +552,9 @@ const openAITokenUsageSchema = z
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openAIChatResponseSchema = z.object({
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
   choices: z.array(
     z.object({
       message: z.object({
