@@ -592,6 +592,42 @@ describe('result.responseMessages', () => {
   });
 });
 
+describe('result.response', () => {
+  it('should contain response information', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: undefined,
+            toolChoice: undefined,
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: `Hello, world!`,
+            response: {
+              id: 'test-id-from-model',
+              timestamp: new Date(10000),
+              modelId: 'test-response-model-id',
+            },
+          };
+        },
+      }),
+      prompt: 'prompt',
+    });
+
+    expect(result.response).toStrictEqual({
+      id: 'test-id-from-model',
+      timestamp: new Date(10000),
+      modelId: 'test-response-model-id',
+    });
+  });
+});
+
 describe('options.headers', () => {
   it('should pass headers to model', async () => {
     const result = await generateText({

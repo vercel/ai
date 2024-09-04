@@ -107,7 +107,9 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   }>;
 
   /**
-  Optional raw response data.
+Optional raw response data.
+
+@deprecated Will be merged into `response` in the future.
    */
   readonly rawResponse?: {
     /**
@@ -117,8 +119,35 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   };
 
   /**
-  Logprobs for the completion.
-  `undefined` if the mode does not support logprobs or if was not enabled.
+Additional response information.
+   */
+  readonly response: {
+    /**
+ID for the generated response, if the provider sends one.
+     */
+    id?: string;
+
+    /**
+Timestamp for the start of the generated response, if the provider sends one.
+*/
+    timestamp?: Date;
+
+    /**
+The ID of the response model that was used to generate the response, if the provider sends one.
+*/
+    modelId?: string;
+
+    /**
+Response headers if available.
+   */
+    readonly headers?: Record<string, string>;
+  };
+
+  /**
+Logprobs for the completion.
+`undefined` if the mode does not support logprobs or if was not enabled.
+
+@deprecated Will become a provider extension in the future.
      */
   readonly logprobs: LogProbs | undefined;
 
