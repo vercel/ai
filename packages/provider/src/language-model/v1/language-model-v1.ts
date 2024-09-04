@@ -5,7 +5,6 @@ import { LanguageModelV1FunctionToolCall } from './language-model-v1-function-to
 import { LanguageModelV1LogProbs } from './language-model-v1-logprobs';
 import { LanguageModelV1ProviderMetadata } from './language-model-v1-provider-metadata';
 
-// TODO
 /**
 Specification for a language model that implements the language model interface version 1.
  */
@@ -134,6 +133,23 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
      */
     providerMetadata?: LanguageModelV1ProviderMetadata;
+
+    /**
+ID for the generated response, if the provider sends one.
+     */
+    id?: string;
+
+    /**
+Timestamp for the start of the generated response, if the provider sends one.
+
+The unit is milliseconds since 1970-01-01T00:00:00Z (epoch time).
+     */
+    timestamp?: number;
+
+    /**
+The ID of the response model that was used to generate the response, if the provider sends one.
+     */
+    responseModelId?: string;
 
     /**
 Logprobs for the completion.
