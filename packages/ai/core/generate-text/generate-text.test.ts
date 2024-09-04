@@ -390,7 +390,7 @@ describe('result.responseMessages', () => {
           doGenerate: async ({ prompt, mode }) => {
             switch (responseCount++) {
               case 0:
-                assert.deepStrictEqual(mode, {
+                expect(mode).toStrictEqual({
                   type: 'regular',
                   toolChoice: { type: 'auto' },
                   tools: [
@@ -408,7 +408,8 @@ describe('result.responseMessages', () => {
                     },
                   ],
                 });
-                assert.deepStrictEqual(prompt, [
+
+                expect(prompt).toStrictEqual([
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
@@ -441,7 +442,7 @@ describe('result.responseMessages', () => {
                   },
                 };
               case 1:
-                assert.deepStrictEqual(mode, {
+                expect(mode).toStrictEqual({
                   type: 'regular',
                   toolChoice: { type: 'auto' },
                   tools: [
@@ -459,7 +460,8 @@ describe('result.responseMessages', () => {
                     },
                   ],
                 });
-                assert.deepStrictEqual(prompt, [
+
+                expect(prompt).toStrictEqual([
                   {
                     role: 'user',
                     content: [
@@ -477,6 +479,7 @@ describe('result.responseMessages', () => {
                         toolCallId: 'call-1',
                         toolName: 'tool1',
                         args: { value: 'value' },
+                        providerMetadata: undefined,
                       },
                     ],
                     providerMetadata: undefined,

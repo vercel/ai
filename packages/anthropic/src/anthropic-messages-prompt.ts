@@ -40,6 +40,7 @@ export interface AnthropicToolCallContent {
   id: string;
   name: string;
   input: unknown;
+  cache_control?: AnthropicCacheControl;
 }
 
 export interface AnthropicToolResultContent {

@@ -84,6 +84,13 @@ Name of the tool that is being called.
 Arguments of the tool call. This is a JSON-serializable object that matches the tool's input schema.
    */
   args: unknown;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  experimental_providerMetadata?: ProviderMetadata;
 }
 
 export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
