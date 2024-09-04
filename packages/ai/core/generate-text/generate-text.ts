@@ -1,3 +1,4 @@
+import { generateId as originalGenerateId } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
@@ -84,6 +85,10 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   experimental_telemetry: telemetry,
+  _internal: {
+    generateId = originalGenerateId,
+    currentDate = () => new Date(),
+  } = {},
   ...settings
 }: CallSettings &
   Prompt & {
@@ -125,6 +130,14 @@ By default, it's set to 0, which will disable the feature.
      * Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
+
+    /**
+     * Internal. For test use only. May change without notice.
+     */
+    _internal?: {
+      generateId?: () => string;
+      currentDate?: () => Date;
+    };
   }): Promise<GenerateTextResult<TOOLS>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
@@ -229,6 +242,13 @@ By default, it's set to 0, which will disable the feature.
                 headers,
               });
 
+              // Fill in default values:
+              result.response = {
+                id: result.response?.id ?? generateId(),
+                timestamp: result.response?.timestamp ?? currentDate(),
+                modelId: result.response?.modelId ?? model.modelId,
+              };
+
               // Add response information to the span:
               span.setAttributes(
                 selectTelemetryAttributes({
@@ -241,6 +261,8 @@ By default, it's set to 0, which will disable the feature.
                     'ai.response.toolCalls': {
                       output: () => JSON.stringify(result.toolCalls),
                     },
+                    'ai.response.id': result.response.id,
+                    'ai.response.model': result.response.modelId,
 
                     'ai.usage.promptTokens': result.usage.promptTokens,
                     'ai.usage.completionTokens': result.usage.completionTokens,
@@ -256,6 +278,8 @@ By default, it's set to 0, which will disable the feature.
 
                     // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [result.finishReason],
+                    'gen_ai.response.id': result.response.id,
+                    'gen_ai.response.model': result.response.modelId,
                     'gen_ai.usage.input_tokens': result.usage.promptTokens,
                     'gen_ai.usage.output_tokens': result.usage.completionTokens,
                   },

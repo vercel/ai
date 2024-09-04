@@ -647,6 +647,11 @@ describe('telemetry', () => {
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
           text: `Hello, world!`,
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
         }),
       }),
       prompt: 'prompt',
@@ -698,6 +703,10 @@ describe('telemetry', () => {
       experimental_telemetry: {
         isEnabled: true,
       },
+      _internal: {
+        generateId: () => 'test-id',
+        currentDate: () => new Date(0),
+      },
     });
 
     expect(tracer.jsonSpans).toMatchSnapshot();
@@ -729,6 +738,10 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
+      },
+      _internal: {
+        generateId: () => 'test-id',
+        currentDate: () => new Date(0),
       },
     });
 
@@ -807,6 +820,10 @@ describe('tools with custom schema', () => {
       },
       toolChoice: 'required',
       prompt: 'test-input',
+      _internal: {
+        generateId: () => 'test-id',
+        currentDate: () => new Date(0),
+      },
     });
 
     // test type inference
