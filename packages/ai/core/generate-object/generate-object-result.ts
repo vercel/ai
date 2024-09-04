@@ -4,7 +4,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 
 /**
 The result of a `generateObject` call.
@@ -23,7 +23,7 @@ export interface GenerateObjectResult<T> {
   /**
   The token usage of the generated text.
      */
-  readonly usage: CompletionTokenUsage;
+  readonly usage: LanguageModelUsage;
 
   /**
   Warnings from the model provider (e.g. unsupported settings)

@@ -1,4 +1,5 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import {
@@ -33,7 +34,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -50,6 +51,8 @@ import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+
+const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -112,7 +115,11 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   experimental_toolCallStreaming: toolCallStreaming = false,
   onChunk,
   onFinish,
-  _internal: { now = originalNow } = {},
+  _internal: {
+    now = originalNow,
+    generateId = originalGenerateId,
+    currentDate = () => new Date(),
+  } = {},
   ...settings
 }: CallSettings &
   Prompt & {
@@ -185,7 +192,7 @@ The reason why the generation finished.
       /**
 The token usage of the generated response.
  */
-      usage: CompletionTokenUsage;
+      usage: LanguageModelUsage;
 
       /**
 The full text that has been generated.
@@ -230,6 +237,8 @@ results that can be fully encapsulated in the provider.
      */
     _internal?: {
       now?: () => number;
+      generateId?: () => string;
+      currentDate?: () => Date;
     };
   }): Promise<StreamTextResult<TOOLS>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
@@ -364,7 +373,10 @@ results that can be fully encapsulated in the provider.
         maxToolRoundtrips,
         startRoundtrip,
         promptMessages,
+        modelId: model.modelId,
         now,
+        currentDate,
+        generateId,
       });
     },
   });
@@ -416,7 +428,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     maxToolRoundtrips,
     startRoundtrip,
     promptMessages,
+    modelId,
     now,
+    currentDate,
+    generateId,
   }: {
     stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
     warnings: StreamTextResult<TOOLS>['warnings'];
@@ -430,14 +445,17 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     maxToolRoundtrips: number;
     startRoundtrip: StartRoundtripFunction<TOOLS>;
     promptMessages: LanguageModelV1Prompt;
+    modelId: string;
     now: () => number;
+    currentDate: () => Date;
+    generateId: () => string;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
 
     // initialize usage promise
     const { resolve: resolveUsage, promise: usagePromise } =
-      createResolvablePromise<CompletionTokenUsage>();
+      createResolvablePromise<LanguageModelUsage>();
     this.usage = usagePromise;
 
     // initialize finish reason promise
@@ -491,17 +509,17 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         totalTokens: 0,
       },
     }: {
-      stream: ReadableStream<TextStreamPart<TOOLS>>;
+      stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
       startTimestamp: number;
       doStreamSpan: Span;
       currentToolRoundtrip: number;
       promptMessages: LanguageModelV1Prompt;
-      usage: CompletionTokenUsage | undefined;
+      usage: LanguageModelUsage | undefined;
     }) {
       const roundtripToolCalls: ToToolCall<TOOLS>[] = [];
       const roundtripToolResults: ToToolResult<TOOLS>[] = [];
       let roundtripFinishReason: FinishReason = 'unknown';
-      let roundtripUsage: CompletionTokenUsage = {
+      let roundtripUsage: LanguageModelUsage = {
         promptTokens: 0,
         completionTokens: 0,
         totalTokens: 0,
@@ -510,6 +528,15 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       let roundtripFirstChunk = true;
       let roundtripText = '';
       let roundtripLogProbs: LogProbs | undefined;
+      let roundtripResponse: {
+        id: string;
+        timestamp: Date;
+        modelId: string;
+      } = {
+        id: generateId(),
+        timestamp: currentDate(),
+        modelId,
+      };
 
       addStream(
         stream.pipeThrough(
@@ -546,29 +573,41 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
               const chunkType = chunk.type;
               switch (chunkType) {
-                case 'text-delta':
+                case 'text-delta': {
                   controller.enqueue(chunk);
                   // create the full text from text deltas (for onFinish callback and text promise):
                   roundtripText += chunk.textDelta;
                   await onChunk?.({ chunk });
                   break;
+                }
 
-                case 'tool-call':
+                case 'tool-call': {
                   controller.enqueue(chunk);
                   // store tool calls for onFinish callback and toolCalls promise:
                   roundtripToolCalls.push(chunk);
                   await onChunk?.({ chunk });
                   break;
+                }
 
-                case 'tool-result':
+                case 'tool-result': {
                   controller.enqueue(chunk);
                   // store tool results for onFinish callback and toolResults promise:
                   roundtripToolResults.push(chunk);
                   // as any needed, bc type inferences mixed up tool-result with tool-call
                   await onChunk?.({ chunk: chunk as any });
                   break;
+                }
 
-                case 'finish':
+                case 'response-metadata': {
+                  roundtripResponse = {
+                    id: chunk.id ?? roundtripResponse.id,
+                    timestamp: chunk.timestamp ?? roundtripResponse.timestamp,
+                    modelId: chunk.modelId ?? roundtripResponse.modelId,
+                  };
+                  break;
+                }
+
+                case 'finish': {
                   // Note: tool executions might not be finished yet when the finish event is emitted.
                   // store usage and finish reason for promises and onFinish callback:
                   roundtripUsage = chunk.usage;
@@ -588,6 +627,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   });
 
                   break;
+                }
 
                 case 'tool-call-streaming-start':
                 case 'tool-call-delta': {
@@ -596,10 +636,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   break;
                 }
 
-                case 'error':
+                case 'error': {
                   controller.enqueue(chunk);
                   roundtripFinishReason = 'error';
                   break;
+                }
 
                 default: {
                   const exhaustiveCheck: never = chunkType;
@@ -616,6 +657,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 usage: roundtripUsage,
                 experimental_providerMetadata: roundtripProviderMetadata,
                 logprobs: roundtripLogProbs,
+                response: roundtripResponse,
               });
 
               const telemetryToolCalls =
@@ -722,6 +764,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   usage: combinedUsage,
                   experimental_providerMetadata: roundtripProviderMetadata,
                   logprobs: roundtripLogProbs,
+                  response: roundtripResponse,
                 });
 
                 // close the stitchable stream

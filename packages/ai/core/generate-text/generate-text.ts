@@ -20,9 +20,9 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool/tool';
 import { CoreToolChoice, LanguageModel } from '../types';
 import {
-  CompletionTokenUsage,
-  calculateCompletionTokenUsage,
-} from '../types/token-usage';
+  LanguageModelUsage,
+  calculateLanguageModelUsage,
+} from '../types/usage';
 import { GenerateTextResult } from './generate-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray, parseToolCall } from './tool-call';
@@ -194,7 +194,7 @@ By default, it's set to 0, which will disable the feature.
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
       const roundtrips: GenerateTextResult<TOOLS>['roundtrips'] = [];
-      const usage: CompletionTokenUsage = {
+      const usage: LanguageModelUsage = {
         completionTokens: 0,
         promptTokens: 0,
         totalTokens: 0,
@@ -312,7 +312,7 @@ By default, it's set to 0, which will disable the feature.
               });
 
         // token usage:
-        const currentUsage = calculateCompletionTokenUsage(
+        const currentUsage = calculateLanguageModelUsage(
           currentModelResponse.usage,
         );
         usage.completionTokens += currentUsage.completionTokens;

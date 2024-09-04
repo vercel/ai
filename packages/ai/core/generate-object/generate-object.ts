@@ -21,7 +21,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { calculateCompletionTokenUsage } from '../types/token-usage';
+import { calculateLanguageModelUsage } from '../types/usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
@@ -268,7 +268,7 @@ export async function generateObject<SCHEMA, RESULT>({
 
       let result: string;
       let finishReason: FinishReason;
-      let usage: Parameters<typeof calculateCompletionTokenUsage>[0];
+      let usage: Parameters<typeof calculateLanguageModelUsage>[0];
       let warnings: CallWarning[] | undefined;
       let rawResponse: { headers?: Record<string, string> } | undefined;
       let logprobs: LogProbs | undefined;
@@ -549,7 +549,7 @@ export async function generateObject<SCHEMA, RESULT>({
       return new DefaultGenerateObjectResult({
         object: validationResult.value,
         finishReason,
-        usage: calculateCompletionTokenUsage(usage),
+        usage: calculateLanguageModelUsage(usage),
         warnings,
         rawResponse,
         logprobs,

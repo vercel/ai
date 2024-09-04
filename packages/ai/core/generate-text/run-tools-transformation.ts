@@ -7,8 +7,13 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
-import { FinishReason, LogProbs, ProviderMetadata } from '../types';
-import { calculateCompletionTokenUsage } from '../types/token-usage';
+import {
+  LanguageModelUsage,
+  FinishReason,
+  LogProbs,
+  ProviderMetadata,
+} from '../types';
+import { calculateLanguageModelUsage } from '../types/usage';
 import { parseToolCall, ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
 
@@ -37,14 +42,16 @@ export type SingleRequestTextStreamPart<
       type: 'tool-result';
     } & ToToolResult<TOOLS>)
   | {
+      type: 'response-metadata';
+      id?: string;
+      timestamp?: Date;
+      modelId?: string;
+    }
+  | {
       type: 'finish';
       finishReason: FinishReason;
       logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
+      usage: LanguageModelUsage;
       experimental_providerMetadata?: ProviderMetadata;
     }
   | {
@@ -99,6 +106,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
       switch (chunkType) {
         // forward:
         case 'text-delta':
+        case 'response-metadata':
         case 'error': {
           controller.enqueue(chunk);
           break;
@@ -246,19 +254,13 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
           break;
         }
 
-        // process response metadata:
-        case 'response-metadata': {
-          // TODO implement
-          break;
-        }
-
         // process finish:
         case 'finish': {
           controller.enqueue({
             type: 'finish',
             finishReason: chunk.finishReason,
             logprobs: chunk.logprobs,
-            usage: calculateCompletionTokenUsage(chunk.usage),
+            usage: calculateLanguageModelUsage(chunk.usage),
             experimental_providerMetadata: chunk.providerMetadata,
           });
           break;

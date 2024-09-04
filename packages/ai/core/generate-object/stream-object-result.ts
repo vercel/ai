@@ -5,7 +5,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 
 /**
@@ -20,7 +20,7 @@ export interface StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   /**
   The token usage of the generated response. Resolved when the response is finished.
      */
-  readonly usage: Promise<CompletionTokenUsage>;
+  readonly usage: Promise<LanguageModelUsage>;
 
   /**
 Additional provider-specific metadata. They are passed through

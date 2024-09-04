@@ -29,9 +29,9 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CallWarning, LanguageModel, ProviderMetadata } from '../types';
 import {
-  CompletionTokenUsage,
-  calculateCompletionTokenUsage,
-} from '../types/token-usage';
+  LanguageModelUsage,
+  calculateLanguageModelUsage,
+} from '../types/usage';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -51,7 +51,7 @@ type OnFinishCallback<RESULT> = (event: {
   /**
 The token usage of the generated response.
 */
-  usage: CompletionTokenUsage;
+  usage: LanguageModelUsage;
 
   /**
 The generated object. Can be undefined if the final object does not match the schema.
@@ -310,7 +310,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
     onFinish?: (event: {
-      usage: CompletionTokenUsage;
+      usage: LanguageModelUsage;
       object: RESULT | undefined;
       error: unknown | undefined;
       rawResponse?: {
@@ -615,7 +615,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
     // initialize usage promise
     const { resolve: resolveUsage, promise: usagePromise } =
-      createResolvablePromise<CompletionTokenUsage>();
+      createResolvablePromise<LanguageModelUsage>();
     this.usage = usagePromise;
 
     // initialize experimental_providerMetadata promise
@@ -626,7 +626,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     this.experimental_providerMetadata = providerMetadataPromise;
 
     // store information for onFinish callback:
-    let usage: CompletionTokenUsage | undefined;
+    let usage: LanguageModelUsage | undefined;
     let finishReason: LanguageModelV1FinishReason | undefined;
     let providerMetadata: ProviderMetadata | undefined;
     let object: RESULT | undefined;
@@ -722,7 +722,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               finishReason = chunk.finishReason;
 
               // store usage and metadata for promises and onFinish callback:
-              usage = calculateCompletionTokenUsage(chunk.usage);
+              usage = calculateLanguageModelUsage(chunk.usage);
               providerMetadata = chunk.providerMetadata;
 
               controller.enqueue({ ...chunk, usage });

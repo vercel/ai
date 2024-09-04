@@ -10,9 +10,9 @@ import { Prompt } from '../../core/prompt/prompt';
 import { validatePrompt } from '../../core/prompt/validate-prompt';
 import { CallWarning, CoreToolChoice, FinishReason } from '../../core/types';
 import {
-  CompletionTokenUsage,
-  calculateCompletionTokenUsage,
-} from '../../core/types/token-usage';
+  LanguageModelUsage,
+  calculateLanguageModelUsage,
+} from '../../core/types/usage';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
@@ -124,7 +124,7 @@ export async function streamUI<
       /**
        * The token usage of the generated response.
        */
-      usage: CompletionTokenUsage;
+      usage: LanguageModelUsage;
       /**
        * The final ui node that was generated.
        */
@@ -327,7 +327,7 @@ export async function streamUI<
           case 'finish': {
             onFinish?.({
               finishReason: value.finishReason,
-              usage: calculateCompletionTokenUsage(value.usage),
+              usage: calculateLanguageModelUsage(value.usage),
               value: ui.value,
               warnings: result.warnings,
               rawResponse: result.rawResponse,

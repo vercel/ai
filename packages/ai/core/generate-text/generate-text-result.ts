@@ -3,10 +3,11 @@ import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 import { ToToolCallArray } from './tool-call';
 import { ToToolResultArray } from './tool-result';
 
@@ -38,7 +39,7 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   /**
   The token usage of the generated text.
    */
-  readonly usage: CompletionTokenUsage;
+  readonly usage: LanguageModelUsage;
 
   /**
   Warnings from the model provider (e.g. unsupported settings)
@@ -82,7 +83,7 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
     /**
   The token usage of the generated text.
   */
-    readonly usage: CompletionTokenUsage;
+    readonly usage: LanguageModelUsage;
 
     /**
   Warnings from the model provider (e.g. unsupported settings)
@@ -110,22 +111,7 @@ Response headers.
     /**
 Additional response information.
  */
-    readonly response: {
-      /**
-ID for the generated response, if the provider sends one.
-   */
-      id?: string;
-
-      /**
-Timestamp for the start of the generated response, if the provider sends one.
-*/
-      timestamp?: Date;
-
-      /**
-The ID of the response model that was used to generate the response, if the provider sends one.
-*/
-      modelId?: string;
-
+    readonly response: LanguageModelResponseMetadata & {
       /**
 Response headers if available.
  */
@@ -148,22 +134,7 @@ Optional raw response data.
   /**
 Additional response information.
    */
-  readonly response: {
-    /**
-ID for the generated response, if the provider sends one.
-     */
-    id?: string;
-
-    /**
-Timestamp for the start of the generated response, if the provider sends one.
-*/
-    timestamp?: Date;
-
-    /**
-The ID of the response model that was used to generate the response, if the provider sends one.
-*/
-    modelId?: string;
-
+  readonly response: LanguageModelResponseMetadata & {
     /**
 Response headers if available.
    */

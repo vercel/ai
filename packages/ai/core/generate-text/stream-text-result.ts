@@ -4,10 +4,11 @@ import { CoreTool } from '../tool';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
@@ -28,7 +29,7 @@ When there are multiple roundtrips, the usage is the sum of all roundtrip usages
 
 Resolved when the response is finished.
      */
-  readonly usage: Promise<CompletionTokenUsage>;
+  readonly usage: Promise<LanguageModelUsage>;
 
   /**
 The reason why the generation finished. Taken from the last roundtrip.
@@ -217,22 +218,16 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       type: 'roundtrip-finish';
       finishReason: FinishReason;
       logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
+      usage: LanguageModelUsage;
+      response: LanguageModelResponseMetadata;
       experimental_providerMetadata?: ProviderMetadata;
     }
   | {
       type: 'finish';
       finishReason: FinishReason;
       logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
+      usage: LanguageModelUsage;
+      response: LanguageModelResponseMetadata;
       experimental_providerMetadata?: ProviderMetadata;
     }
   | {
