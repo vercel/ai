@@ -246,6 +246,12 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
           break;
         }
 
+        // process response metadata:
+        case 'response-metadata': {
+          // TODO implement
+          break;
+        }
+
         // process finish:
         case 'finish': {
           controller.enqueue({
