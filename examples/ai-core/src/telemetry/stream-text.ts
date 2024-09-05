@@ -1,12 +1,9 @@
-import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
+import { anthropic } from '@ai-sdk/anthropic';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
+import { streamText } from 'ai';
+import 'dotenv/config';
 
 const sdk = new NodeSDK({
   traceExporter: new ConsoleSpanExporter(),
@@ -17,7 +14,7 @@ sdk.start();
 
 async function main() {
   const result = await streamText({
-    model: openai('gpt-3.5-turbo'),
+    model: anthropic('claude-3-5-sonnet-20240620'),
     maxTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_telemetry: {

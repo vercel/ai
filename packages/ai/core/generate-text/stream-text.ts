@@ -675,6 +675,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.response.toolCalls': {
                         output: () => telemetryToolCalls,
                       },
+                      'ai.response.id': roundtripResponse.id,
+                      'ai.response.model': roundtripResponse.modelId,
+                      'ai.response.timestamp':
+                        roundtripResponse.timestamp.toISOString(),
 
                       'ai.usage.promptTokens': roundtripUsage.promptTokens,
                       'ai.usage.completionTokens':
