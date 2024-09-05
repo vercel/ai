@@ -230,6 +230,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
+    let isFirstChunk = true;
 
     return {
       stream: response.pipeThrough(
@@ -244,6 +245,15 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
             }
 
             const value = chunk.value;
+
+            if (isFirstChunk) {
+              isFirstChunk = false;
+
+              controller.enqueue({
+                type: 'response-metadata',
+                ...getResponseMetadata(value),
+              });
+            }
 
             if (value.usage != null) {
               usage = {
@@ -338,7 +348,9 @@ const mistralChatResponseSchema = z.object({
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const mistralChatChunkSchema = z.object({
-  object: z.literal('chat.completion.chunk'),
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
   choices: z.array(
     z.object({
       delta: z.object({

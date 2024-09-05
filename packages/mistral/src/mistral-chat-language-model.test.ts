@@ -312,6 +312,12 @@ describe('doStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: '6e2cd91750904b7092f49bdca9083de1',
+        timestamp: new Date(1711097175 * 1000),
+        modelId: 'mistral-small-latest',
+      },
       { type: 'text-delta', textDelta: '' },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
@@ -363,9 +369,12 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
-        type: 'text-delta',
-        textDelta: '',
+        type: 'response-metadata',
+        id: 'ad6f7ce6543c4d0890280ae184fe4dd8',
+        timestamp: new Date(1711365023 * 1000),
+        modelId: 'mistral-large-latest',
       },
+      { type: 'text-delta', textDelta: '' },
       {
         type: 'tool-call-delta',
         toolCallId: 'yfBEybNYi',
