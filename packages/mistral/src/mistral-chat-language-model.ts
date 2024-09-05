@@ -20,6 +20,7 @@ import {
   MistralChatSettings,
 } from './mistral-chat-settings';
 import { mistralFailedResponseHandler } from './mistral-error';
+import { getResponseMetadata } from './get-response-metadata';
 
 type MistralChatConfig = {
   provider: string;
@@ -200,6 +201,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      response: getResponseMetadata(response),
       warnings,
     };
   }
@@ -308,6 +310,9 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const mistralChatResponseSchema = z.object({
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
   choices: z.array(
     z.object({
       message: z.object({

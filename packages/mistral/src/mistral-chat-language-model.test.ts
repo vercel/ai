@@ -27,6 +27,9 @@ describe('doGenerate', () => {
       total_tokens: 34,
       completion_tokens: 30,
     },
+    id = '16362f24e60340d0994dd205c267a43a',
+    created = 1711113008,
+    model = 'mistral-small-latest',
   }: {
     content?: string;
     usage?: {
@@ -34,12 +37,15 @@ describe('doGenerate', () => {
       total_tokens: number;
       completion_tokens: number;
     };
+    id?: string;
+    created?: number;
+    model?: string;
   }) {
     server.responseBodyJson = {
-      id: '16362f24e60340d0994dd205c267a43a',
       object: 'chat.completion',
-      created: 1711113008,
-      model: 'mistral-small-latest',
+      id,
+      created,
+      model,
       choices: [
         {
           index: 0,
@@ -128,6 +134,26 @@ describe('doGenerate', () => {
     expect(usage).toStrictEqual({
       promptTokens: 20,
       completionTokens: 5,
+    });
+  });
+
+  it('should send additional response information', async () => {
+    prepareJsonResponse({
+      id: 'test-id',
+      created: 123,
+      model: 'test-model',
+    });
+
+    const { response } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response).toStrictEqual({
+      id: 'test-id',
+      timestamp: new Date(123 * 1000),
+      modelId: 'test-model',
     });
   });
 
