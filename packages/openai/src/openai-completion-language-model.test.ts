@@ -338,6 +338,12 @@ describe('doStream', () => {
 
     // note: space moved to last chunk bc of trimming
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        id: 'cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT',
+        modelId: 'gpt-3.5-turbo-instruct',
+        timestamp: new Date('2024-03-25T10:44:00.000Z'),
+        type: 'response-metadata',
+      },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
       { type: 'text-delta', textDelta: 'World!' },

@@ -241,6 +241,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       completionTokens: Number.NaN,
     };
     let logprobs: LanguageModelV1LogProbs;
+    let isFirstChunk = true;
 
     return {
       stream: response.pipeThrough(
@@ -263,6 +264,15 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
               finishReason = 'error';
               controller.enqueue({ type: 'error', error: value.error });
               return;
+            }
+
+            if (isFirstChunk) {
+              isFirstChunk = false;
+
+              controller.enqueue({
+                type: 'response-metadata',
+                ...getResponseMetadata(value),
+              });
             }
 
             if (value.usage != null) {
@@ -340,6 +350,9 @@ const openAICompletionResponseSchema = z.object({
 // this approach limits breakages when the API changes and increases efficiency
 const openaiCompletionChunkSchema = z.union([
   z.object({
+    id: z.string().nullish(),
+    created: z.number().nullish(),
+    model: z.string().nullish(),
     choices: z.array(
       z.object({
         text: z.string(),
