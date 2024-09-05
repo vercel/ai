@@ -2107,99 +2107,60 @@ describe('options.onChunk', () => {
   });
 });
 
-describe('options.onFinish', () => {
+it('options.onFinish should send correct information', async () => {
   let result: Parameters<
     Required<Parameters<typeof streamText>[0]>['onFinish']
   >[0];
 
-  beforeEach(async () => {
-    const { textStream } = await streamText({
-      model: new MockLanguageModelV1({
-        doStream: async ({}) => ({
-          stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello' },
-            { type: 'text-delta', textDelta: ', ' },
-            {
-              type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+  const { textStream } = await streamText({
+    model: new MockLanguageModelV1({
+      doStream: async ({}) => ({
+        stream: convertArrayToReadableStream([
+          {
+            type: 'response-metadata',
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          { type: 'text-delta', textDelta: 'Hello' },
+          { type: 'text-delta', textDelta: ', ' },
+          {
+            type: 'tool-call',
+            toolCallType: 'function',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            args: `{ "value": "value" }`,
+          },
+          { type: 'text-delta', textDelta: `world!` },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            logprobs: undefined,
+            usage: { completionTokens: 10, promptTokens: 3 },
+            providerMetadata: {
+              testProvider: { testKey: 'testValue' },
             },
-            { type: 'text-delta', textDelta: `world!` },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              logprobs: undefined,
-              usage: { completionTokens: 10, promptTokens: 3 },
-              providerMetadata: {
-                testProvider: { testKey: 'testValue' },
-              },
-            },
-          ]),
-          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-        }),
+          },
+        ]),
+        rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        rawResponse: { headers: { call: '2' } },
       }),
-      tools: {
-        tool1: {
-          parameters: z.object({ value: z.string() }),
-          execute: async ({ value }) => `${value}-result`,
-        },
+    }),
+    tools: {
+      tool1: {
+        parameters: z.object({ value: z.string() }),
+        execute: async ({ value }) => `${value}-result`,
       },
-      prompt: 'test-input',
-      onFinish: async event => {
-        result = event as unknown as typeof result;
-      },
-    });
-
-    // consume stream
-    await convertAsyncIterableToArray(textStream);
+    },
+    prompt: 'test-input',
+    onFinish: async event => {
+      result = event as unknown as typeof result;
+    },
   });
 
-  it('should contain token usage', async () => {
-    assert.deepStrictEqual(result.usage, {
-      completionTokens: 10,
-      promptTokens: 3,
-      totalTokens: 13,
-    });
-  });
+  await convertAsyncIterableToArray(textStream); // consume stream
 
-  it('should contain finish reason', async () => {
-    assert.strictEqual(result.finishReason, 'stop');
-  });
-
-  it('should contain full text', async () => {
-    assert.strictEqual(result.text, 'Hello, world!');
-  });
-
-  it('should contain tool calls', async () => {
-    assert.deepStrictEqual(result.toolCalls, [
-      {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'tool1',
-        args: { value: 'value' },
-      },
-    ]);
-  });
-
-  it('should contain tool results', async () => {
-    assert.deepStrictEqual(result.toolResults, [
-      {
-        type: 'tool-result',
-        toolCallId: 'call-1',
-        toolName: 'tool1',
-        args: { value: 'value' },
-        result: 'value-result',
-      },
-    ]);
-  });
-
-  it('should contain provider metadata', async () => {
-    assert.deepStrictEqual(result.experimental_providerMetadata, {
-      testProvider: { testKey: 'testValue' },
-    });
-  });
+  expect(result!).toMatchSnapshot();
 });
 
 describe('options.maxToolRoundtrips', () => {
@@ -2461,26 +2422,9 @@ describe('options.maxToolRoundtrips', () => {
       });
     });
 
-    describe('onFinish', () => {
-      beforeEach(async () => {
-        await convertAsyncIterableToArray(result.fullStream); // consume stream
-      });
-
-      it('should contain total token usage', async () => {
-        assert.deepStrictEqual(onFinishResult.usage, {
-          completionTokens: 15,
-          promptTokens: 4,
-          totalTokens: 19,
-        });
-      });
-
-      it('should contain finish reason from final roundtrip', async () => {
-        assert.strictEqual(onFinishResult.finishReason, 'stop');
-      });
-
-      it('should contain text from final roundtrip', async () => {
-        assert.strictEqual(onFinishResult.text, 'Hello, world!');
-      });
+    it('onFinish should send correct information', async () => {
+      await convertAsyncIterableToArray(result.fullStream); // consume stream
+      expect(onFinishResult).toMatchSnapshot();
     });
 
     describe('value promises', () => {

@@ -5,6 +5,7 @@ import {
   CallWarning,
   FinishReason,
   LanguageModelResponseMetadata,
+  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -82,11 +83,7 @@ Optional raw response data.
   /**
 Additional response information.
  */
-  readonly response: Promise<
-    LanguageModelResponseMetadata & {
-      headers?: Record<string, string>;
-    }
-  >;
+  readonly response: Promise<LanguageModelResponseMetadataWithHeaders>;
 
   /**
   A text stream that returns only the generated text deltas. You can use it

@@ -31,7 +31,7 @@ import {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
-  LanguageModelResponseMetadata,
+  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -212,6 +212,8 @@ The tool results that have been generated.
 
       /**
 Optional raw response data.
+
+@deprecated Use `response` instead.
        */
       rawResponse?: {
         /**
@@ -219,6 +221,11 @@ Response headers.
          */
         headers?: Record<string, string>;
       };
+
+      /**
+Response metadata.
+       */
+      response: LanguageModelResponseMetadataWithHeaders;
 
       /**
 Warnings from the model provider (e.g. unsupported settings).
@@ -832,6 +839,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   // The type exposed to the users will be correctly inferred.
                   toolResults: roundtripToolResults as any,
                   rawResponse,
+                  response: {
+                    ...roundtripResponse,
+                    headers: rawResponse?.headers,
+                  },
                   warnings,
                   experimental_providerMetadata: roundtripProviderMetadata,
                 });

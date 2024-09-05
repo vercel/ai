@@ -3,7 +3,7 @@ import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
   FinishReason,
-  LanguageModelResponseMetadata,
+  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -111,12 +111,7 @@ Response headers.
     /**
 Additional response information.
  */
-    readonly response: LanguageModelResponseMetadata & {
-      /**
-Response headers if available.
- */
-      readonly headers?: Record<string, string>;
-    };
+    readonly response: LanguageModelResponseMetadataWithHeaders;
   }>;
 
   /**
@@ -134,12 +129,7 @@ Optional raw response data.
   /**
 Additional response information.
    */
-  readonly response: LanguageModelResponseMetadata & {
-    /**
-Response headers if available.
-   */
-    readonly headers?: Record<string, string>;
-  };
+  readonly response: LanguageModelResponseMetadataWithHeaders;
 
   /**
 Logprobs for the completion.

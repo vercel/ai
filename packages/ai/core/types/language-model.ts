@@ -65,3 +65,8 @@ The ID of the response model that was used to generate the response.
 */
   modelId: string;
 };
+
+export type LanguageModelResponseMetadataWithHeaders =
+  LanguageModelResponseMetadata & {
+    headers?: Record<string, string>;
+  };
