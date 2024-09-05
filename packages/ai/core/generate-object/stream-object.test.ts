@@ -813,127 +813,96 @@ describe('output = "object"', () => {
   });
 
   describe('options.onFinish', () => {
-    describe('with successfully validated object', () => {
+    it('should be called when a valid object is generated', async () => {
       let result: Parameters<
         Required<Parameters<typeof streamObject>[0]>['onFinish']
       >[0];
 
-      beforeEach(async () => {
-        const { partialObjectStream } = await streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'text-delta',
-                  textDelta: '{ "content": "Hello, world!" }',
+      const { partialObjectStream } = await streamObject({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'text-delta',
+                textDelta: '{ "content": "Hello, world!" }',
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+                providerMetadata: {
+                  testProvider: { testKey: 'testValue' },
                 },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                  providerMetadata: {
-                    testProvider: { testKey: 'testValue' },
-                  },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           }),
-          schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-          onFinish: async event => {
-            result = event as unknown as typeof result;
-          },
-        });
-
-        // consume stream
-        await convertAsyncIterableToArray(partialObjectStream);
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        onFinish: async event => {
+          result = event as unknown as typeof result;
+        },
       });
 
-      it('should contain token usage', async () => {
-        assert.deepStrictEqual(result.usage, {
-          completionTokens: 10,
-          promptTokens: 3,
-          totalTokens: 13,
-        });
-      });
+      // consume stream
+      await convertAsyncIterableToArray(partialObjectStream);
 
-      it('should contain the full object', async () => {
-        assert.deepStrictEqual(result.object, {
-          content: 'Hello, world!',
-        });
-      });
-
-      it('should not contain an error object', async () => {
-        assert.deepStrictEqual(result.error, undefined);
-      });
-
-      it('should contain provider metadata', async () => {
-        assert.deepStrictEqual(result.experimental_providerMetadata, {
-          testProvider: { testKey: 'testValue' },
-        });
-      });
+      expect(result!).toMatchSnapshot();
     });
 
-    describe("with object that doesn't match the schema", () => {
+    it("should be called when object doesn't match the schema", async () => {
       let result: Parameters<
         Required<Parameters<typeof streamObject>[0]>['onFinish']
       >[0];
 
-      beforeEach(async () => {
-        const { partialObjectStream, object } = await streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"invalid": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
+      const { partialObjectStream, object } = await streamObject({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"invalid": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           }),
-          schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-          onFinish: async event => {
-            result = event as unknown as typeof result;
-          },
-        });
-
-        // consume stream
-        await convertAsyncIterableToArray(partialObjectStream);
-
-        // consume expected error rejection
-        await object.catch(() => {});
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        onFinish: async event => {
+          result = event as unknown as typeof result;
+        },
       });
 
-      it('should contain token usage', async () => {
-        assert.deepStrictEqual(result.usage, {
-          completionTokens: 10,
-          promptTokens: 3,
-          totalTokens: 13,
-        });
-      });
+      // consume stream
+      await convertAsyncIterableToArray(partialObjectStream);
 
-      it('should not contain a full object', async () => {
-        assert.deepStrictEqual(result.object, undefined);
-      });
+      // consume expected error rejection
+      await object.catch(() => {});
 
-      it('should contain an error object', async () => {
-        assert.deepStrictEqual(
-          TypeValidationError.isInstance(result.error),
-          true,
-        );
-      });
+      expect(result!).toMatchSnapshot();
     });
   });
 

@@ -1,5 +1,64 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`output = "object" > options.onFinish > should be called when a valid object is generated 1`] = `
+{
+  "error": undefined,
+  "experimental_providerMetadata": {
+    "testProvider": {
+      "testKey": "testValue",
+    },
+  },
+  "object": {
+    "content": "Hello, world!",
+  },
+  "rawResponse": undefined,
+  "response": {
+    "headers": undefined,
+    "id": "id-0",
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "usage": {
+    "completionTokens": 10,
+    "promptTokens": 3,
+    "totalTokens": 13,
+  },
+  "warnings": undefined,
+}
+`;
+
+exports[`output = "object" > options.onFinish > should be called when object doesn't match the schema 1`] = `
+{
+  "error": [AI_TypeValidationError: Type validation failed: Value: {"invalid":"Hello, world!"}.
+Error message: [
+  {
+    "code": "invalid_type",
+    "expected": "string",
+    "received": "undefined",
+    "path": [
+      "content"
+    ],
+    "message": "Required"
+  }
+]],
+  "experimental_providerMetadata": undefined,
+  "object": undefined,
+  "rawResponse": undefined,
+  "response": {
+    "headers": undefined,
+    "id": "id-0",
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "usage": {
+    "completionTokens": 10,
+    "promptTokens": 3,
+    "totalTokens": 13,
+  },
+  "warnings": undefined,
+}
+`;
+
 exports[`output = "object" > result.fullStream > should send full stream data 1`] = `
 [
   {

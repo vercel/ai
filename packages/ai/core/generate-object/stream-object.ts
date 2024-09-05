@@ -71,13 +71,20 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
 
   /**
 Optional raw response data.
-*/
+
+@deprecated Use `response` instead.
+       */
   rawResponse?: {
     /**
 Response headers.
-*/
+   */
     headers?: Record<string, string>;
   };
+
+  /**
+Response metadata.
+ */
+  response: LanguageModelResponseMetadataWithHeaders;
 
   /**
 Warnings from the model provider (e.g. unsupported settings).
@@ -325,16 +332,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
-    onFinish?: (event: {
-      usage: LanguageModelUsage;
-      object: RESULT | undefined;
-      error: unknown | undefined;
-      rawResponse?: {
-        headers?: Record<string, string>;
-      };
-      warnings?: CallWarning[];
-      experimental_providerMetadata: ProviderMetadata | undefined;
-    }) => Promise<void> | void;
+    onFinish?: OnFinishCallback<RESULT>;
     _internal?: {
       generateId?: () => string;
       currentDate?: () => Date;
@@ -878,6 +876,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               object,
               error,
               rawResponse,
+              response: {
+                ...response,
+                headers: rawResponse?.headers,
+              },
               warnings,
               experimental_providerMetadata: providerMetadata,
             });
