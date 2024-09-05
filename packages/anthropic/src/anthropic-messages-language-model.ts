@@ -396,6 +396,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                   };
                 }
 
+                controller.enqueue({
+                  type: 'response-metadata',
+                  id: value.message.id ?? undefined,
+                  modelId: value.message.model ?? undefined,
+                });
+
                 return;
               }
 
@@ -470,6 +476,8 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('message_start'),
     message: z.object({
+      id: z.string().nullish(),
+      model: z.string().nullish(),
       usage: z.object({
         input_tokens: z.number(),
         output_tokens: z.number(),

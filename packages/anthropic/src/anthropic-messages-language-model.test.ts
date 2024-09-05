@@ -426,6 +426,11 @@ describe('doStream', () => {
 
     // note: space moved to last chunk bc of trimming
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+        modelId: 'claude-3-haiku-20240307',
+      },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
       { type: 'text-delta', textDelta: 'World!' },
@@ -480,6 +485,11 @@ describe('doStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'msg_01GouTqNCGXzrj5LQ5jEkw67',
+        modelId: 'claude-3-haiku-20240307',
+      },
       {
         type: 'text-delta',
         textDelta: 'Okay',
@@ -561,6 +571,11 @@ describe('doStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+        modelId: 'claude-3-haiku-20240307',
+      },
       { type: 'error', error: { type: 'error', message: 'test error' } },
     ]);
   });
@@ -662,6 +677,11 @@ describe('doStream', () => {
 
     // note: space moved to last chunk bc of trimming
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+        modelId: 'claude-3-haiku-20240307',
+      },
       { type: 'text-delta', textDelta: 'Hello' },
       {
         type: 'finish',
