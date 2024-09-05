@@ -1997,7 +1997,7 @@ describe('options.maxToolRoundtrips', () => {
           doStream: async ({ prompt, mode }) => {
             switch (responseCount++) {
               case 0:
-                assert.deepStrictEqual(mode, {
+                expect(mode).toStrictEqual({
                   type: 'regular',
                   tools: [
                     {
@@ -2015,7 +2015,8 @@ describe('options.maxToolRoundtrips', () => {
                   ],
                   toolChoice: { type: 'auto' },
                 });
-                assert.deepStrictEqual(prompt, [
+
+                expect(prompt).toStrictEqual([
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
@@ -2041,7 +2042,7 @@ describe('options.maxToolRoundtrips', () => {
                   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                 };
               case 1:
-                assert.deepStrictEqual(mode, {
+                expect(mode).toStrictEqual({
                   type: 'regular',
                   tools: [
                     {
@@ -2059,7 +2060,8 @@ describe('options.maxToolRoundtrips', () => {
                   ],
                   toolChoice: { type: 'auto' },
                 });
-                assert.deepStrictEqual(prompt, [
+
+                expect(prompt).toStrictEqual([
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
@@ -2072,6 +2074,7 @@ describe('options.maxToolRoundtrips', () => {
                         toolCallId: 'call-1',
                         toolName: 'tool1',
                         args: { value: 'value' },
+                        providerMetadata: undefined,
                       },
                     ],
                     providerMetadata: undefined,

@@ -135,8 +135,10 @@ results that can be fully encapsulated in the provider.
     providerMetadata?: LanguageModelV1ProviderMetadata;
 
     /**
-  Logprobs for the completion.
-  `undefined` if the mode does not support logprobs or if was not enabled
+Logprobs for the completion.
+`undefined` if the mode does not support logprobs or if was not enabled
+
+@deprecated will be changed into a provider-specific extension in v2
      */
     logprobs?: LanguageModelV1LogProbs;
   }>;
@@ -205,12 +207,12 @@ export type LanguageModelV1StreamPart =
   | {
       type: 'finish';
       finishReason: LanguageModelV1FinishReason;
-      logprobs?: LanguageModelV1LogProbs;
       providerMetadata?: LanguageModelV1ProviderMetadata;
       usage: { promptTokens: number; completionTokens: number };
+
+      // @deprecated - will be changed into a provider-specific extension in v2
+      logprobs?: LanguageModelV1LogProbs;
     }
 
   // error parts are streamed, allowing for multiple errors
   | { type: 'error'; error: unknown };
-
-export type LanguageModelV1ResponseMetadata = {};
