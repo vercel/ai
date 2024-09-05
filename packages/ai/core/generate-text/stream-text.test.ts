@@ -2526,6 +2526,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async ({}) => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             { type: 'text-delta', textDelta: 'Hello' },
             { type: 'text-delta', textDelta: ', ' },
             { type: 'text-delta', textDelta: `world!` },
@@ -2540,7 +2546,9 @@ describe('telemetry', () => {
         }),
       }),
       prompt: 'test-input',
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: {
+        now: mockValues(0, 100, 500),
+      },
     });
 
     // consume stream
@@ -2554,6 +2562,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async ({}) => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             { type: 'text-delta', textDelta: 'Hello' },
             { type: 'text-delta', textDelta: ', ' },
             { type: 'text-delta', textDelta: `world!` },
@@ -2601,6 +2615,12 @@ describe('telemetry', () => {
         doStream: async ({}) => ({
           stream: convertArrayToReadableStream([
             {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
               type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'call-1',
@@ -2639,6 +2659,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async ({}) => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             {
               type: 'tool-call',
               toolCallType: 'function',

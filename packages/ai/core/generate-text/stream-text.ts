@@ -689,6 +689,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [roundtripFinishReason],
+                      'gen_ai.response.id': roundtripResponse.id,
+                      'gen_ai.response.model': roundtripResponse.modelId,
                       'gen_ai.usage.input_tokens': roundtripUsage.promptTokens,
                       'gen_ai.usage.output_tokens':
                         roundtripUsage.completionTokens,

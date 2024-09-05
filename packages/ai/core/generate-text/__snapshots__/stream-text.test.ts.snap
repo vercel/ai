@@ -42,6 +42,8 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
       "gen_ai.response.finish_reasons": [
         "tool-calls",
       ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 3,
       "gen_ai.usage.output_tokens": 10,
@@ -95,6 +97,8 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
+      "gen_ai.response.id": "id-1",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 1,
       "gen_ai.usage.output_tokens": 5,
@@ -153,6 +157,8 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 10,
       "gen_ai.usage.output_tokens": 20,
@@ -230,6 +236,8 @@ exports[`telemetry > should record successful tool call 1`] = `
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 10,
       "gen_ai.usage.output_tokens": 20,
@@ -340,6 +348,8 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 10,
       "gen_ai.usage.output_tokens": 20,
