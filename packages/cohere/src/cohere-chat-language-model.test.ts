@@ -488,6 +488,7 @@ describe('doStream', () => {
 
     // note: space moved to last chunk bc of trimming
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      { type: 'response-metadata', id: '586ac33f-9c64-452c-8f8d-e5890e73b6fb' },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
       { type: 'text-delta', textDelta: 'World!' },
@@ -501,7 +502,7 @@ describe('doStream', () => {
 
   it('should stream tool deltas', async () => {
     server.responseChunks = [
-      `{"event_type":"stream-start"}\n\n`,
+      `{"event_type":"stream-start","generation_id":"29f14a5a-11de-4cae-9800-25e4747408ea"}\n\n`,
       `{"event_type":"tool-calls-chunk","text":"I"}\n\n`,
       `{"event_type":"tool-calls-chunk","text":" will"}\n\n`,
       `{"event_type":"tool-calls-chunk","text":" use"}\n\n`,
@@ -557,6 +558,7 @@ describe('doStream', () => {
     const responseArray = await convertReadableStreamToArray(stream);
 
     expect(responseArray).toStrictEqual([
+      { type: 'response-metadata', id: '29f14a5a-11de-4cae-9800-25e4747408ea' },
       {
         type: 'tool-call-delta',
         toolCallType: 'function',
@@ -663,7 +665,7 @@ describe('doStream', () => {
 
   it('should handle out of order tool deltas', async () => {
     server.responseChunks = [
-      `{"event_type":"stream-start"}\n\n`,
+      `{"event_type":"stream-start","generation_id":"29f14a5a-11de-4cae-9800-25e4747408ea"}\n\n`,
       `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"name":"test-tool-a"}}\n\n`,
       `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"name":"test-tool-b"}}\n\n`,
       `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"{\\n    \\""}}\n\n`,
@@ -725,6 +727,7 @@ describe('doStream', () => {
     const responseArray = await convertReadableStreamToArray(stream);
 
     expect(responseArray).toStrictEqual([
+      { type: 'response-metadata', id: '29f14a5a-11de-4cae-9800-25e4747408ea' },
       {
         type: 'tool-call-delta',
         toolCallType: 'function',

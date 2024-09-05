@@ -294,6 +294,15 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                 return;
               }
 
+              case 'stream-start': {
+                controller.enqueue({
+                  type: 'response-metadata',
+                  id: value.generation_id ?? undefined,
+                });
+
+                return;
+              }
+
               case 'stream-end': {
                 finishReason = mapCohereFinishReason(value.finish_reason);
                 const tokens = value.response.meta.tokens;
@@ -359,6 +368,7 @@ const cohereChatResponseSchema = z.object({
 const cohereChatChunkSchema = z.discriminatedUnion('event_type', [
   z.object({
     event_type: z.literal('stream-start'),
+    generation_id: z.string().nullish(),
   }),
   z.object({
     event_type: z.literal('search-queries-generation'),
