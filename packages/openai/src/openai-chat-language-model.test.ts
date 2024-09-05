@@ -131,6 +131,9 @@ describe('doGenerate', () => {
     },
     logprobs = null,
     finish_reason = 'stop',
+    id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+    created = 1711115037,
+    model = 'gpt-3.5-turbo-0125',
   }: {
     content?: string;
     tool_calls?: Array<{
@@ -160,12 +163,15 @@ describe('doGenerate', () => {
         | null;
     } | null;
     finish_reason?: string;
+    created?: number;
+    id?: string;
+    model?: string;
   } = {}) {
     server.responseBodyJson = {
-      id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+      id,
       object: 'chat.completion',
-      created: 1711115037,
-      model: 'gpt-3.5-turbo-0125',
+      created,
+      model,
       choices: [
         {
           index: 0,
@@ -211,6 +217,26 @@ describe('doGenerate', () => {
     expect(usage).toStrictEqual({
       promptTokens: 20,
       completionTokens: 5,
+    });
+  });
+
+  it('should send additional response information', async () => {
+    prepareJsonResponse({
+      id: 'test-id',
+      created: 123,
+      model: 'test-model',
+    });
+
+    const { response } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response).toStrictEqual({
+      id: 'test-id',
+      timestamp: new Date(123 * 1000),
+      modelId: 'test-model',
     });
   });
 
@@ -865,6 +891,12 @@ describe('doStream', () => {
 
     // note: space moved to last chunk bc of trimming
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
+        modelId: 'gpt-3.5-turbo-0613',
+        timestamp: new Date('2023-12-15T16:17:00.000Z'),
+      },
       { type: 'text-delta', textDelta: '' },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
@@ -934,6 +966,12 @@ describe('doStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
+        modelId: 'gpt-3.5-turbo-0125',
+        timestamp: new Date('2024-03-25T09:06:38.000Z'),
+      },
       {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
@@ -1056,6 +1094,12 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
+        type: 'response-metadata',
+        id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
+        modelId: 'gpt-3.5-turbo-0125',
+        timestamp: new Date('2024-03-25T09:06:38.000Z'),
+      },
+      {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
         toolCallType: 'function',
@@ -1163,6 +1207,12 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
+        type: 'response-metadata',
+        id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
+        modelId: 'gpt-3.5-turbo-0125',
+        timestamp: new Date('2024-03-25T09:06:38.000Z'),
+      },
+      {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
         toolCallType: 'function',
@@ -1225,6 +1275,12 @@ describe('doStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2',
+        modelId: 'gpt-4-turbo-2024-04-09',
+        timestamp: new Date('2024-07-23T07:41:59.000Z'),
+      },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),

@@ -1,10 +1,11 @@
 import {
   CallWarning,
   FinishReason,
+  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 
 /**
 The result of a `generateObject` call.
@@ -23,7 +24,7 @@ export interface GenerateObjectResult<T> {
   /**
   The token usage of the generated text.
      */
-  readonly usage: CompletionTokenUsage;
+  readonly usage: LanguageModelUsage;
 
   /**
   Warnings from the model provider (e.g. unsupported settings)
@@ -31,7 +32,9 @@ export interface GenerateObjectResult<T> {
   readonly warnings: CallWarning[] | undefined;
 
   /**
-  Optional raw response data.
+ Optional raw response data.
+
+@deprecated Use `response.headers` instead.
      */
   readonly rawResponse?: {
     /**
@@ -41,8 +44,15 @@ export interface GenerateObjectResult<T> {
   };
 
   /**
-  Logprobs for the completion.
-  `undefined` if the mode does not support logprobs or if was not enabled
+Additional response information.
+   */
+  readonly response: LanguageModelResponseMetadataWithHeaders;
+
+  /**
+ Logprobs for the completion.
+`undefined` if the mode does not support logprobs or if was not enabled.
+
+@deprecated Will become a provider extension in the future.
      */
   readonly logprobs: LogProbs | undefined;
 

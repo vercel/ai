@@ -26,6 +26,7 @@ import {
   openAIErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
+import { getResponseMetadata } from './get-response-metadata';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -289,6 +290,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      response: getResponseMetadata(response),
       warnings,
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
     };
@@ -343,6 +345,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       completionTokens: undefined,
     };
     let logprobs: LanguageModelV1LogProbs;
+    let isFirstChunk = true;
 
     const { useLegacyFunctionCalling } = this.settings;
 
@@ -367,6 +370,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               finishReason = 'error';
               controller.enqueue({ type: 'error', error: value.error });
               return;
+            }
+
+            if (isFirstChunk) {
+              isFirstChunk = false;
+
+              controller.enqueue({
+                type: 'response-metadata',
+                ...getResponseMetadata(value),
+              });
             }
 
             if (value.usage != null) {
@@ -549,6 +561,9 @@ const openAITokenUsageSchema = z
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openAIChatResponseSchema = z.object({
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
   choices: z.array(
     z.object({
       message: z.object({
@@ -602,6 +617,9 @@ const openAIChatResponseSchema = z.object({
 // this approach limits breakages when the API changes and increases efficiency
 const openaiChatChunkSchema = z.union([
   z.object({
+    id: z.string().nullish(),
+    created: z.number().nullish(),
+    model: z.string().nullish(),
     choices: z.array(
       z.object({
         delta: z

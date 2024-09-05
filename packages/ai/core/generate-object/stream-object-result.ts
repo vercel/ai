@@ -2,10 +2,12 @@ import { ServerResponse } from 'http';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelResponseMetadata,
+  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 
 /**
@@ -20,7 +22,7 @@ export interface StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   /**
   The token usage of the generated response. Resolved when the response is finished.
      */
-  readonly usage: Promise<CompletionTokenUsage>;
+  readonly usage: Promise<LanguageModelUsage>;
 
   /**
 Additional provider-specific metadata. They are passed through
@@ -30,14 +32,22 @@ results that can be fully encapsulated in the provider.
   readonly experimental_providerMetadata: Promise<ProviderMetadata | undefined>;
 
   /**
-  Optional raw response data.
+Optional raw response data.
+
+@deprecated Use `response` instead.
      */
+  // TODO removed in v4
   readonly rawResponse?: {
     /**
   Response headers.
    */
     headers?: Record<string, string>;
   };
+
+  /**
+Additional response information.
+ */
+  readonly response: Promise<LanguageModelResponseMetadataWithHeaders>;
 
   /**
   The generated object (typed according to the schema). Resolved when the response is finished.
@@ -93,7 +103,15 @@ results that can be fully encapsulated in the provider.
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
-export type ObjectStreamInputPart =
+export type ObjectStreamPart<PARTIAL> =
+  | {
+      type: 'object';
+      object: PARTIAL;
+    }
+  | {
+      type: 'text-delta';
+      textDelta: string;
+    }
   | {
       type: 'error';
       error: unknown;
@@ -102,21 +120,7 @@ export type ObjectStreamInputPart =
       type: 'finish';
       finishReason: FinishReason;
       logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
+      usage: LanguageModelUsage;
+      response: LanguageModelResponseMetadata;
       providerMetadata?: ProviderMetadata;
-    };
-
-export type ObjectStreamPart<PARTIAL> =
-  | ObjectStreamInputPart
-  | {
-      type: 'object';
-      object: PARTIAL;
-    }
-  | {
-      type: 'text-delta';
-      textDelta: string;
     };

@@ -27,6 +27,9 @@ describe('doGenerate', () => {
       total_tokens: 34,
       completion_tokens: 30,
     },
+    id = '16362f24e60340d0994dd205c267a43a',
+    created = 1711113008,
+    model = 'mistral-small-latest',
   }: {
     content?: string;
     usage?: {
@@ -34,12 +37,15 @@ describe('doGenerate', () => {
       total_tokens: number;
       completion_tokens: number;
     };
+    id?: string;
+    created?: number;
+    model?: string;
   }) {
     server.responseBodyJson = {
-      id: '16362f24e60340d0994dd205c267a43a',
       object: 'chat.completion',
-      created: 1711113008,
-      model: 'mistral-small-latest',
+      id,
+      created,
+      model,
       choices: [
         {
           index: 0,
@@ -128,6 +134,26 @@ describe('doGenerate', () => {
     expect(usage).toStrictEqual({
       promptTokens: 20,
       completionTokens: 5,
+    });
+  });
+
+  it('should send additional response information', async () => {
+    prepareJsonResponse({
+      id: 'test-id',
+      created: 123,
+      model: 'test-model',
+    });
+
+    const { response } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response).toStrictEqual({
+      id: 'test-id',
+      timestamp: new Date(123 * 1000),
+      modelId: 'test-model',
     });
   });
 
@@ -286,6 +312,12 @@ describe('doStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: '6e2cd91750904b7092f49bdca9083de1',
+        timestamp: new Date(1711097175 * 1000),
+        modelId: 'mistral-small-latest',
+      },
       { type: 'text-delta', textDelta: '' },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
@@ -337,9 +369,12 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
-        type: 'text-delta',
-        textDelta: '',
+        type: 'response-metadata',
+        id: 'ad6f7ce6543c4d0890280ae184fe4dd8',
+        timestamp: new Date(1711365023 * 1000),
+        modelId: 'mistral-large-latest',
       },
+      { type: 'text-delta', textDelta: '' },
       {
         type: 'tool-call-delta',
         toolCallId: 'yfBEybNYi',

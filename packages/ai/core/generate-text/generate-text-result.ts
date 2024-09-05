@@ -3,10 +3,11 @@ import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 import { ToToolCallArray } from './tool-call';
 import { ToToolResultArray } from './tool-result';
 
@@ -38,7 +39,7 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   /**
   The token usage of the generated text.
    */
-  readonly usage: CompletionTokenUsage;
+  readonly usage: LanguageModelUsage;
 
   /**
   Warnings from the model provider (e.g. unsupported settings)
@@ -82,7 +83,7 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
     /**
   The token usage of the generated text.
   */
-    readonly usage: CompletionTokenUsage;
+    readonly usage: LanguageModelUsage;
 
     /**
   Warnings from the model provider (e.g. unsupported settings)
@@ -96,18 +97,27 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
     readonly logprobs: LogProbs | undefined;
 
     /**
-  Optional raw response data.
-     */
+Optional raw response data.
+
+@deprecated Use `response.headers` instead.
+   */
     readonly rawResponse?: {
       /**
-  Response headers.
-     */
+Response headers.
+ */
       readonly headers?: Record<string, string>;
     };
+
+    /**
+Additional response information.
+ */
+    readonly response: LanguageModelResponseMetadataWithHeaders;
   }>;
 
   /**
-  Optional raw response data.
+Optional raw response data.
+
+@deprecated Use `response.headers` instead.
    */
   readonly rawResponse?: {
     /**
@@ -117,8 +127,15 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   };
 
   /**
-  Logprobs for the completion.
-  `undefined` if the mode does not support logprobs or if was not enabled.
+Additional response information.
+   */
+  readonly response: LanguageModelResponseMetadataWithHeaders;
+
+  /**
+Logprobs for the completion.
+`undefined` if the mode does not support logprobs or if was not enabled.
+
+@deprecated Will become a provider extension in the future.
      */
   readonly logprobs: LogProbs | undefined;
 

@@ -20,6 +20,7 @@ import {
   MistralChatSettings,
 } from './mistral-chat-settings';
 import { mistralFailedResponseHandler } from './mistral-error';
+import { getResponseMetadata } from './get-response-metadata';
 
 type MistralChatConfig = {
   provider: string;
@@ -200,6 +201,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      response: getResponseMetadata(response),
       warnings,
     };
   }
@@ -212,10 +214,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-      },
+      body: { ...args, stream: true },
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         mistralChatChunkSchema,
@@ -231,6 +230,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
+    let isFirstChunk = true;
 
     return {
       stream: response.pipeThrough(
@@ -245,6 +245,15 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
             }
 
             const value = chunk.value;
+
+            if (isFirstChunk) {
+              isFirstChunk = false;
+
+              controller.enqueue({
+                type: 'response-metadata',
+                ...getResponseMetadata(value),
+              });
+            }
 
             if (value.usage != null) {
               usage = {
@@ -308,6 +317,9 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const mistralChatResponseSchema = z.object({
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
   choices: z.array(
     z.object({
       message: z.object({
@@ -336,7 +348,9 @@ const mistralChatResponseSchema = z.object({
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const mistralChatChunkSchema = z.object({
-  object: z.literal('chat.completion.chunk'),
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
   choices: z.array(
     z.object({
       delta: z.object({

@@ -1,5 +1,28 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`options.maxToolRoundtrips > 2 roundtrips > onFinish should send correct information 1`] = `
+{
+  "experimental_providerMetadata": undefined,
+  "finishReason": "stop",
+  "rawResponse": undefined,
+  "response": {
+    "headers": undefined,
+    "id": "id-1",
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:01.000Z,
+  },
+  "text": "Hello, world!",
+  "toolCalls": [],
+  "toolResults": [],
+  "usage": {
+    "completionTokens": 15,
+    "promptTokens": 4,
+    "totalTokens": 19,
+  },
+  "warnings": undefined,
+}
+`;
+
 exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data for each roundtrip 1`] = `
 [
   {
@@ -29,9 +52,12 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.response.avgCompletionTokensPerSecond": 20,
       "ai.response.finishReason": "tool-calls",
+      "ai.response.id": "id-0",
+      "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 500,
       "ai.response.msToFirstChunk": 100,
       "ai.response.text": "",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.result.text": "",
       "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
@@ -42,6 +68,8 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
       "gen_ai.response.finish_reasons": [
         "tool-calls",
       ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 3,
       "gen_ai.usage.output_tokens": 10,
@@ -84,9 +112,12 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]",
       "ai.response.avgCompletionTokensPerSecond": 12.5,
       "ai.response.finishReason": "stop",
+      "ai.response.id": "id-1",
+      "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 400,
       "ai.response.msToFirstChunk": 400,
       "ai.response.text": "Hello, world!",
+      "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
       "ai.result.text": "Hello, world!",
       "ai.stream.msToFirstChunk": 400,
       "ai.usage.completionTokens": 5,
@@ -95,6 +126,8 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
+      "gen_ai.response.id": "id-1",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 1,
       "gen_ai.usage.output_tokens": 5,
@@ -116,6 +149,58 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
     "name": "ai.streamText.doStream",
   },
 ]
+`;
+
+exports[`options.onFinish should send correct information 1`] = `
+{
+  "experimental_providerMetadata": {
+    "testProvider": {
+      "testKey": "testValue",
+    },
+  },
+  "finishReason": "stop",
+  "rawResponse": {
+    "headers": {
+      "call": "2",
+    },
+  },
+  "response": {
+    "headers": {
+      "call": "2",
+    },
+    "id": "id-0",
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "text": "Hello, world!",
+  "toolCalls": [
+    {
+      "args": {
+        "value": "value",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+  ],
+  "toolResults": [
+    {
+      "args": {
+        "value": "value",
+      },
+      "result": "value-result",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+  ],
+  "usage": {
+    "completionTokens": 10,
+    "promptTokens": 3,
+    "totalTokens": 13,
+  },
+  "warnings": undefined,
+}
 `;
 
 exports[`telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
@@ -144,8 +229,11 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
       "ai.operationId": "ai.streamText.doStream",
       "ai.response.avgCompletionTokensPerSecond": 40,
       "ai.response.finishReason": "stop",
+      "ai.response.id": "id-0",
+      "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 500,
       "ai.response.msToFirstChunk": 100,
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.stream.msToFirstChunk": 100,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
@@ -153,6 +241,8 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 10,
       "gen_ai.usage.output_tokens": 20,
@@ -217,9 +307,12 @@ exports[`telemetry > should record successful tool call 1`] = `
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.response.avgCompletionTokensPerSecond": 40,
       "ai.response.finishReason": "stop",
+      "ai.response.id": "id-0",
+      "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 500,
       "ai.response.msToFirstChunk": 100,
       "ai.response.text": "",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.result.text": "",
       "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
@@ -230,6 +323,8 @@ exports[`telemetry > should record successful tool call 1`] = `
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 10,
       "gen_ai.usage.output_tokens": 20,
@@ -310,9 +405,12 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "ai.request.headers.header2": "value2",
       "ai.response.avgCompletionTokensPerSecond": 40,
       "ai.response.finishReason": "stop",
+      "ai.response.id": "id-0",
+      "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 500,
       "ai.response.msToFirstChunk": 100,
       "ai.response.text": "Hello, world!",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.result.text": "Hello, world!",
       "ai.settings.frequencyPenalty": 0.3,
       "ai.settings.presencePenalty": 0.4,
@@ -340,6 +438,8 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 10,
       "gen_ai.usage.output_tokens": 20,

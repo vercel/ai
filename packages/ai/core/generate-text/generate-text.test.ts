@@ -6,6 +6,8 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
+import { mockId } from '../test/mock-id';
+import { mockValues } from '../test/mock-values';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -440,6 +442,11 @@ describe('result.responseMessages', () => {
                     promptTokens: 10,
                     totalTokens: 15,
                   },
+                  response: {
+                    id: 'test-id-1-from-model',
+                    timestamp: new Date(0),
+                    modelId: 'test-response-model-id',
+                  },
                 };
               case 1:
                 expect(mode).toStrictEqual({
@@ -501,6 +508,16 @@ describe('result.responseMessages', () => {
                 return {
                   ...dummyResponseValues,
                   text: 'Hello, world!',
+                  response: {
+                    id: 'test-id-2-from-model',
+                    timestamp: new Date(10000),
+                    modelId: 'test-response-model-id',
+                  },
+                  rawResponse: {
+                    headers: {
+                      'custom-response-header': 'response-header-value',
+                    },
+                  },
                 };
               default:
                 throw new Error(`Unexpected response count: ${responseCount}`);
@@ -542,52 +559,51 @@ describe('result.responseMessages', () => {
     });
 
     it('should return information about all roundtrips', () => {
-      assert.deepStrictEqual(result.roundtrips, [
-        {
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          text: '',
-          toolCalls: [
-            {
-              args: {
-                value: 'value',
-              },
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              type: 'tool-call',
+      expect(result.roundtrips).toMatchSnapshot();
+    });
+  });
+});
+
+describe('result.response', () => {
+  it('should contain response information', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: undefined,
+            toolChoice: undefined,
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: `Hello, world!`,
+            response: {
+              id: 'test-id-from-model',
+              timestamp: new Date(10000),
+              modelId: 'test-response-model-id',
             },
-          ],
-          toolResults: [
-            {
-              args: {
-                value: 'value',
+            rawResponse: {
+              headers: {
+                'custom-response-header': 'response-header-value',
               },
-              result: 'result1',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
             },
-          ],
-          usage: {
-            completionTokens: 5,
-            promptTokens: 10,
-            totalTokens: 15,
-          },
-          warnings: undefined,
+          };
         },
-        {
-          finishReason: 'stop',
-          logprobs: undefined,
-          text: 'Hello, world!',
-          toolCalls: [],
-          toolResults: [],
-          usage: {
-            completionTokens: 20,
-            promptTokens: 10,
-            totalTokens: 30,
-          },
-          warnings: undefined,
-        },
-      ]);
+      }),
+      prompt: 'prompt',
+    });
+
+    expect(result.response).toStrictEqual({
+      id: 'test-id-from-model',
+      timestamp: new Date(10000),
+      modelId: 'test-response-model-id',
+      headers: {
+        'custom-response-header': 'response-header-value',
+      },
     });
   });
 });
@@ -647,6 +663,11 @@ describe('telemetry', () => {
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
           text: `Hello, world!`,
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
         }),
       }),
       prompt: 'prompt',
@@ -698,6 +719,10 @@ describe('telemetry', () => {
       experimental_telemetry: {
         isEnabled: true,
       },
+      _internal: {
+        generateId: () => 'test-id',
+        currentDate: () => new Date(0),
+      },
     });
 
     expect(tracer.jsonSpans).toMatchSnapshot();
@@ -729,6 +754,10 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
+      },
+      _internal: {
+        generateId: () => 'test-id',
+        currentDate: () => new Date(0),
       },
     });
 
@@ -807,6 +836,10 @@ describe('tools with custom schema', () => {
       },
       toolChoice: 'required',
       prompt: 'test-input',
+      _internal: {
+        generateId: () => 'test-id',
+        currentDate: () => new Date(0),
+      },
     });
 
     // test type inference
