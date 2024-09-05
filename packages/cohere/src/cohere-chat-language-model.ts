@@ -174,6 +174,9 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
         },
         rawSettings,
       },
+      response: {
+        id: response.generation_id ?? undefined,
+      },
       rawResponse: { headers: responseHeaders },
       warnings: undefined,
     };
@@ -332,6 +335,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const cohereChatResponseSchema = z.object({
+  generation_id: z.string().nullish(),
   text: z.string(),
   tool_calls: z
     .array(
@@ -340,7 +344,7 @@ const cohereChatResponseSchema = z.object({
         parameters: z.unknown({}),
       }),
     )
-    .optional(),
+    .nullish(),
   finish_reason: z.string(),
   meta: z.object({
     tokens: z.object({

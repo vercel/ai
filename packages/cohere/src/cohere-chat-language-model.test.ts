@@ -38,6 +38,7 @@ describe('doGenerate', () => {
       input_tokens: 4,
       output_tokens: 30,
     },
+    generation_id = 'dad0c7cd-7982-42a7-acfb-706ccf598291',
   }: {
     input?: string;
     text?: string;
@@ -47,11 +48,12 @@ describe('doGenerate', () => {
       input_tokens: number;
       output_tokens: number;
     };
+    generation_id?: string;
   }) {
     server.responseBodyJson = {
       response_id: '0cf61ae0-1f60-4c18-9802-be7be809e712',
       text,
-      generation_id: 'dad0c7cd-7982-42a7-acfb-706ccf598291',
+      generation_id,
       chat_history: [
         { role: 'USER', message: input },
         { role: 'CHATBOT', message: text },
@@ -136,6 +138,22 @@ describe('doGenerate', () => {
     expect(usage).toStrictEqual({
       promptTokens: 20,
       completionTokens: 5,
+    });
+  });
+
+  it('should send additional response information', async () => {
+    prepareJsonResponse({
+      generation_id: 'test-id',
+    });
+
+    const { response } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response).toStrictEqual({
+      id: 'test-id',
     });
   });
 
