@@ -652,6 +652,11 @@ describe('telemetry', () => {
         doGenerate: async () => ({
           ...dummyResponseValues,
           text: `{ "content": "Hello, world!" }`,
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
         }),
       }),
       schema: z.object({ content: z.string() }),
@@ -694,6 +699,11 @@ describe('telemetry', () => {
               args: `{ "content": "Hello, world!" }`,
             },
           ],
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
         }),
       }),
       schema: z.object({ content: z.string() }),
@@ -729,6 +739,11 @@ describe('telemetry', () => {
         doGenerate: async () => ({
           ...dummyResponseValues,
           text: `{ "content": "Hello, world!" }`,
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
         }),
       }),
       schema: z.object({ content: z.string() }),
@@ -757,6 +772,11 @@ describe('telemetry', () => {
               args: `{ "content": "Hello, world!" }`,
             },
           ],
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
         }),
       }),
       schema: z.object({ content: z.string() }),

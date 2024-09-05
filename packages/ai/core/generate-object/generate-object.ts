@@ -387,6 +387,12 @@ export async function generateObject<SCHEMA, RESULT>({
                   throw new NoObjectGeneratedError();
                 }
 
+                const responseData = {
+                  id: result.response?.id ?? generateId(),
+                  timestamp: result.response?.timestamp ?? currentDate(),
+                  modelId: result.response?.modelId ?? model.modelId,
+                };
+
                 // Add response information to the span:
                 span.setAttributes(
                   selectTelemetryAttributes({
@@ -394,6 +400,10 @@ export async function generateObject<SCHEMA, RESULT>({
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
                       'ai.response.object': { output: () => result.text },
+                      'ai.response.id': responseData.id,
+                      'ai.response.model': responseData.modelId,
+                      'ai.response.timestamp':
+                        responseData.timestamp.toISOString(),
 
                       'ai.usage.promptTokens': result.usage.promptTokens,
                       'ai.usage.completionTokens':
@@ -405,6 +415,8 @@ export async function generateObject<SCHEMA, RESULT>({
 
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
+                      'gen_ai.response.id': responseData.id,
+                      'gen_ai.response.model': responseData.modelId,
                       'gen_ai.usage.prompt_tokens': result.usage.promptTokens,
                       'gen_ai.usage.completion_tokens':
                         result.usage.completionTokens,
@@ -412,7 +424,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   }),
                 );
 
-                return { ...result, objectText: result.text };
+                return { ...result, objectText: result.text, responseData };
               },
             }),
           );
@@ -424,11 +436,7 @@ export async function generateObject<SCHEMA, RESULT>({
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
           providerMetadata = generateResult.providerMetadata;
-          response = {
-            id: generateResult.response?.id ?? generateId(),
-            timestamp: generateResult.response?.timestamp ?? currentDate(),
-            modelId: generateResult.response?.modelId ?? model.modelId,
-          };
+          response = generateResult.responseData;
 
           break;
         }
@@ -502,6 +510,12 @@ export async function generateObject<SCHEMA, RESULT>({
                   throw new NoObjectGeneratedError();
                 }
 
+                const responseData = {
+                  id: result.response?.id ?? generateId(),
+                  timestamp: result.response?.timestamp ?? currentDate(),
+                  modelId: result.response?.modelId ?? model.modelId,
+                };
+
                 // Add response information to the span:
                 span.setAttributes(
                   selectTelemetryAttributes({
@@ -509,6 +523,10 @@ export async function generateObject<SCHEMA, RESULT>({
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
                       'ai.response.object': { output: () => objectText },
+                      'ai.response.id': responseData.id,
+                      'ai.response.model': responseData.modelId,
+                      'ai.response.timestamp':
+                        responseData.timestamp.toISOString(),
 
                       'ai.usage.promptTokens': result.usage.promptTokens,
                       'ai.usage.completionTokens':
@@ -520,6 +538,8 @@ export async function generateObject<SCHEMA, RESULT>({
 
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
+                      'gen_ai.response.id': responseData.id,
+                      'gen_ai.response.model': responseData.modelId,
                       'gen_ai.usage.input_tokens': result.usage.promptTokens,
                       'gen_ai.usage.output_tokens':
                         result.usage.completionTokens,
@@ -527,7 +547,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   }),
                 );
 
-                return { ...result, objectText };
+                return { ...result, objectText, responseData };
               },
             }),
           );
@@ -539,11 +559,7 @@ export async function generateObject<SCHEMA, RESULT>({
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
           providerMetadata = generateResult.providerMetadata;
-          response = {
-            id: generateResult.response?.id ?? generateId(),
-            timestamp: generateResult.response?.timestamp ?? currentDate(),
-            modelId: generateResult.response?.modelId ?? model.modelId,
-          };
+          response = generateResult.responseData;
 
           break;
         }
