@@ -6,8 +6,9 @@ exports[`result.responseMessages > single roundtrip > should return information 
     "finishReason": "tool-calls",
     "logprobs": undefined,
     "response": {
-      "id": "id-0",
-      "modelId": "mock-model-id",
+      "headers": undefined,
+      "id": "test-id-1-from-model",
+      "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "text": "",
@@ -42,9 +43,12 @@ exports[`result.responseMessages > single roundtrip > should return information 
     "finishReason": "stop",
     "logprobs": undefined,
     "response": {
-      "id": "id-1",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
+      "headers": {
+        "custom-response-header": "response-header-value",
+      },
+      "id": "test-id-2-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:10.000Z,
     },
     "text": "Hello, world!",
     "toolCalls": [],

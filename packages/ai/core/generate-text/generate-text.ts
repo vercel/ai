@@ -328,7 +328,10 @@ By default, it's set to 0, which will disable the feature.
           usage: currentUsage,
           warnings: currentModelResponse.warnings,
           logprobs: currentModelResponse.logprobs,
-          response: currentModelResponse.response,
+          response: {
+            ...currentModelResponse.response,
+            headers: currentModelResponse.rawResponse?.headers,
+          },
         });
 
         // append to messages for potential next roundtrip:

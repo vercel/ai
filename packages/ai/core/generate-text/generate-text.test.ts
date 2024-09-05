@@ -442,6 +442,11 @@ describe('result.responseMessages', () => {
                     promptTokens: 10,
                     totalTokens: 15,
                   },
+                  response: {
+                    id: 'test-id-1-from-model',
+                    timestamp: new Date(0),
+                    modelId: 'test-response-model-id',
+                  },
                 };
               case 1:
                 expect(mode).toStrictEqual({
@@ -503,6 +508,16 @@ describe('result.responseMessages', () => {
                 return {
                   ...dummyResponseValues,
                   text: 'Hello, world!',
+                  response: {
+                    id: 'test-id-2-from-model',
+                    timestamp: new Date(10000),
+                    modelId: 'test-response-model-id',
+                  },
+                  rawResponse: {
+                    headers: {
+                      'custom-response-header': 'response-header-value',
+                    },
+                  },
                 };
               default:
                 throw new Error(`Unexpected response count: ${responseCount}`);
@@ -520,10 +535,6 @@ describe('result.responseMessages', () => {
         },
         prompt: 'test-input',
         maxToolRoundtrips: 2,
-        _internal: {
-          generateId: mockId(),
-          currentDate: mockValues(new Date(0), new Date(1000)),
-        },
       });
     });
 
