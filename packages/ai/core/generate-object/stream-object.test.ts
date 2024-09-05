@@ -388,6 +388,12 @@ describe('output = "object"', () => {
         model: new MockLanguageModelV1({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
               { type: 'text-delta', textDelta: '{ ' },
               { type: 'text-delta', textDelta: '"content": ' },
               { type: 'text-delta', textDelta: `"Hello, ` },
@@ -409,59 +415,9 @@ describe('output = "object"', () => {
         prompt: 'prompt',
       });
 
-      assert.deepStrictEqual(
+      expect(
         await convertAsyncIterableToArray(result.fullStream),
-        [
-          {
-            type: 'object',
-            object: {},
-          },
-          {
-            type: 'text-delta',
-            textDelta: '{ ',
-          },
-          {
-            type: 'object',
-            object: { content: 'Hello, ' },
-          },
-          {
-            type: 'text-delta',
-            textDelta: '"content": "Hello, ',
-          },
-          {
-            type: 'object',
-            object: { content: 'Hello, world' },
-          },
-          {
-            type: 'text-delta',
-            textDelta: 'world',
-          },
-          {
-            type: 'object',
-            object: { content: 'Hello, world!' },
-          },
-          {
-            type: 'text-delta',
-            textDelta: '!"',
-          },
-          {
-            type: 'text-delta',
-            textDelta: ' }',
-          },
-          {
-            type: 'finish',
-            finishReason: 'stop',
-            usage: { promptTokens: 2, completionTokens: 10, totalTokens: 12 },
-            logprobs: [
-              {
-                token: '-',
-                logprob: 1,
-                topLogprobs: [],
-              },
-            ],
-          },
-        ],
-      );
+      ).toMatchSnapshot();
     });
   });
 

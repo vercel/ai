@@ -1,5 +1,73 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`output = "object" > result.fullStream > should send full stream data 1`] = `
+[
+  {
+    "object": {},
+    "type": "object",
+  },
+  {
+    "textDelta": "{ ",
+    "type": "text-delta",
+  },
+  {
+    "object": {
+      "content": "Hello, ",
+    },
+    "type": "object",
+  },
+  {
+    "textDelta": ""content": "Hello, ",
+    "type": "text-delta",
+  },
+  {
+    "object": {
+      "content": "Hello, world",
+    },
+    "type": "object",
+  },
+  {
+    "textDelta": "world",
+    "type": "text-delta",
+  },
+  {
+    "object": {
+      "content": "Hello, world!",
+    },
+    "type": "object",
+  },
+  {
+    "textDelta": "!"",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": " }",
+    "type": "text-delta",
+  },
+  {
+    "finishReason": "stop",
+    "logprobs": [
+      {
+        "logprob": 1,
+        "token": "-",
+        "topLogprobs": [],
+      },
+    ],
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 2,
+      "totalTokens": 12,
+    },
+  },
+]
+`;
+
 exports[`telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
 
 exports[`telemetry > should not record telemetry inputs / outputs when disabled with mode "json" 1`] = `

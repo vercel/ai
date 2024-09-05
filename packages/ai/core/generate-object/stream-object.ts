@@ -782,7 +782,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               usage = calculateLanguageModelUsage(chunk.usage);
               providerMetadata = chunk.providerMetadata;
 
-              controller.enqueue({ ...chunk, usage });
+              controller.enqueue({ ...chunk, usage, response });
 
               // resolve promises that can be resolved now:
               resolveUsage(usage);

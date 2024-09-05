@@ -2,6 +2,7 @@ import { ServerResponse } from 'http';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelResponseMetadata,
   LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
@@ -120,5 +121,6 @@ export type ObjectStreamPart<PARTIAL> =
       finishReason: FinishReason;
       logprobs?: LogProbs;
       usage: LanguageModelUsage;
+      response: LanguageModelResponseMetadata;
       providerMetadata?: ProviderMetadata;
     };
