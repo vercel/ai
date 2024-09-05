@@ -26,6 +26,7 @@ import {
   openAIErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
+import { getResponseMetadata } from './get-response-metadata';
 
 type OpenAICompletionConfig = {
   provider: string;
@@ -198,6 +199,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      response: getResponseMetadata(response),
       warnings,
     };
   }
@@ -312,6 +314,9 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openAICompletionResponseSchema = z.object({
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
   choices: z.array(
     z.object({
       text: z.string(),
@@ -322,8 +327,7 @@ const openAICompletionResponseSchema = z.object({
           token_logprobs: z.array(z.number()),
           top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
         })
-        .nullable()
-        .optional(),
+        .nullish(),
     }),
   ),
   usage: z.object({
@@ -347,8 +351,7 @@ const openaiCompletionChunkSchema = z.union([
             token_logprobs: z.array(z.number()),
             top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
           })
-          .nullable()
-          .optional(),
+          .nullish(),
       }),
     ),
     usage: z
@@ -356,8 +359,7 @@ const openaiCompletionChunkSchema = z.union([
         prompt_tokens: z.number(),
         completion_tokens: z.number(),
       })
-      .optional()
-      .nullable(),
+      .nullish(),
   }),
   openAIErrorDataSchema,
 ]);

@@ -26,6 +26,7 @@ import {
   openAIErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
+import { getResponseMetadata } from './get-response-metadata';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -289,7 +290,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
-      response: getMetadata(response),
+      response: getResponseMetadata(response),
       warnings,
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
     };
@@ -376,7 +377,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
               controller.enqueue({
                 type: 'response-metadata',
-                ...getMetadata(value),
+                ...getResponseMetadata(value),
               });
             }
 
@@ -611,19 +612,6 @@ const openAIChatResponseSchema = z.object({
   ),
   usage: openAITokenUsageSchema,
 });
-
-function getMetadata(value: {
-  id?: string | undefined | null;
-  created?: number | undefined | null;
-  model?: string | undefined | null;
-}) {
-  return {
-    id: value.id ?? undefined,
-    modelId: value.model ?? undefined,
-    timestamp:
-      value.created != null ? new Date(value.created * 1000) : undefined,
-  };
-}
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
