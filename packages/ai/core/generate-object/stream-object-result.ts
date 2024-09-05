@@ -2,6 +2,7 @@ import { ServerResponse } from 'http';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -30,14 +31,22 @@ results that can be fully encapsulated in the provider.
   readonly experimental_providerMetadata: Promise<ProviderMetadata | undefined>;
 
   /**
-  Optional raw response data.
+Optional raw response data.
+
+@deprecated Use `response` instead.
      */
+  // TODO removed in v4
   readonly rawResponse?: {
     /**
   Response headers.
    */
     headers?: Record<string, string>;
   };
+
+  /**
+Additional response information.
+ */
+  readonly response: Promise<LanguageModelResponseMetadataWithHeaders>;
 
   /**
   The generated object (typed according to the schema). Resolved when the response is finished.
@@ -93,7 +102,15 @@ results that can be fully encapsulated in the provider.
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
-export type ObjectStreamInputPart =
+export type ObjectStreamPart<PARTIAL> =
+  | {
+      type: 'object';
+      object: PARTIAL;
+    }
+  | {
+      type: 'text-delta';
+      textDelta: string;
+    }
   | {
       type: 'error';
       error: unknown;
@@ -102,21 +119,6 @@ export type ObjectStreamInputPart =
       type: 'finish';
       finishReason: FinishReason;
       logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
+      usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
-    };
-
-export type ObjectStreamPart<PARTIAL> =
-  | ObjectStreamInputPart
-  | {
-      type: 'object';
-      object: PARTIAL;
-    }
-  | {
-      type: 'text-delta';
-      textDelta: string;
     };

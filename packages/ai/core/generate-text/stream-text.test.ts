@@ -15,7 +15,6 @@ import {
 } from '../../streams';
 import { delay } from '../../util/delay';
 import { setTestTracer } from '../telemetry/get-tracer';
-import { mockId } from '../test/mock-id';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';

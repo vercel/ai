@@ -27,7 +27,14 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { CallWarning, LanguageModel, ProviderMetadata } from '../types';
+import {
+  CallWarning,
+  FinishReason,
+  LanguageModel,
+  LanguageModelResponseMetadataWithHeaders,
+  LogProbs,
+  ProviderMetadata,
+} from '../types';
 import {
   LanguageModelUsage,
   calculateLanguageModelUsage,
@@ -40,12 +47,11 @@ import { now as originalNow } from '../util/now';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { OutputStrategy, getOutputStrategy } from './output-strategy';
-import {
-  ObjectStreamInputPart,
-  ObjectStreamPart,
-  StreamObjectResult,
-} from './stream-object-result';
+import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
+
+const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
 
 type OnFinishCallback<RESULT> = (event: {
   /**
@@ -152,6 +158,8 @@ Callback that is called when the LLM response and the final object validation ar
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
+        generateId?: () => string;
+        currentDate?: () => Date;
         now?: () => number;
       };
     },
@@ -222,6 +230,8 @@ Callback that is called when the LLM response and the final object validation ar
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
+        generateId?: () => string;
+        currentDate?: () => Date;
         now?: () => number;
       };
     },
@@ -269,6 +279,8 @@ Callback that is called when the LLM response and the final object validation ar
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
+        generateId?: () => string;
+        currentDate?: () => Date;
         now?: () => number;
       };
     },
@@ -288,7 +300,11 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   headers,
   experimental_telemetry: telemetry,
   onFinish,
-  _internal: { now = originalNow } = {},
+  _internal: {
+    generateId = originalGenerateId,
+    currentDate = () => new Date(),
+    now = originalNow,
+  } = {},
   ...settings
 }: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
@@ -320,6 +336,8 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
       experimental_providerMetadata: ProviderMetadata | undefined;
     }) => Promise<void> | void;
     _internal?: {
+      generateId?: () => string;
+      currentDate?: () => Date;
       now?: () => number;
     };
   }): Promise<StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>> {
@@ -426,6 +444,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
                 case 'text-delta':
                   controller.enqueue(chunk.textDelta);
                   break;
+                case 'response-metadata':
                 case 'finish':
                 case 'error':
                   controller.enqueue(chunk);
@@ -470,6 +489,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
                 case 'tool-call-delta':
                   controller.enqueue(chunk.argsTextDelta);
                   break;
+                case 'response-metadata':
                 case 'finish':
                 case 'error':
                   controller.enqueue(chunk);
@@ -547,7 +567,10 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
         doStreamSpan,
         telemetry,
         startTimestampMs,
+        modelId: model.modelId,
         now,
+        currentDate,
+        generateId,
       });
     },
   });
@@ -576,6 +599,11 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     ELEMENT_STREAM
   >['rawResponse'];
   readonly outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
+  readonly response: StreamObjectResult<
+    PARTIAL,
+    RESULT,
+    ELEMENT_STREAM
+  >['response'];
 
   constructor({
     stream,
@@ -587,13 +615,16 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     doStreamSpan,
     telemetry,
     startTimestampMs,
+    modelId,
     now,
+    currentDate,
+    generateId,
   }: {
     stream: ReadableStream<
       string | Omit<LanguageModelV1StreamPart, 'text-delta'>
     >;
     warnings: StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>['warnings'];
-    rawResponse?: StreamObjectResult<
+    rawResponse: StreamObjectResult<
       PARTIAL,
       RESULT,
       ELEMENT_STREAM
@@ -604,7 +635,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     doStreamSpan: Span;
     telemetry: TelemetrySettings | undefined;
     startTimestampMs: number;
+    modelId: string;
     now: () => number;
+    currentDate: () => Date;
+    generateId: () => string;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -617,6 +651,11 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     const { resolve: resolveUsage, promise: usagePromise } =
       createResolvablePromise<LanguageModelUsage>();
     this.usage = usagePromise;
+
+    // initialize response promise
+    const { resolve: resolveResponse, promise: responsePromise } =
+      createResolvablePromise<LanguageModelResponseMetadataWithHeaders>();
+    this.response = responsePromise;
 
     // initialize experimental_providerMetadata promise
     const {
@@ -635,6 +674,15 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     // pipe chunks through a transformation stream that extracts metadata:
     let accumulatedText = '';
     let textDelta = '';
+    let response: {
+      id: string;
+      timestamp: Date;
+      modelId: string;
+    } = {
+      id: generateId(),
+      timestamp: currentDate(),
+      modelId,
+    };
 
     // Keep track of raw parse result before type validation, since e.g. Zod might
     // change the object by mapping properties.
@@ -712,6 +760,15 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           }
 
           switch (chunk.type) {
+            case 'response-metadata': {
+              response = {
+                id: chunk.id ?? response.id,
+                timestamp: chunk.timestamp ?? response.timestamp,
+                modelId: chunk.modelId ?? response.modelId,
+              };
+              break;
+            }
+
             case 'finish': {
               // send final text delta:
               if (textDelta !== '') {
@@ -730,6 +787,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               // resolve promises that can be resolved now:
               resolveUsage(usage);
               resolveProviderMetadata(providerMetadata);
+              resolveResponse({
+                ...response,
+                headers: rawResponse?.headers,
+              });
 
               // resolve the object promise with the latest object:
               const validationResult =
@@ -935,3 +996,22 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
  * @deprecated Use `streamObject` instead.
  */
 export const experimental_streamObject = streamObject;
+
+export type ObjectStreamInputPart =
+  | {
+      type: 'error';
+      error: unknown;
+    }
+  | {
+      type: 'response-metadata';
+      id?: string;
+      timestamp?: Date;
+      modelId?: string;
+    }
+  | {
+      type: 'finish';
+      finishReason: FinishReason;
+      logprobs?: LogProbs;
+      usage: LanguageModelUsage;
+      providerMetadata?: ProviderMetadata;
+    };
