@@ -1428,6 +1428,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             { type: 'text-delta', textDelta: '{ ' },
             { type: 'text-delta', textDelta: '"content": ' },
             { type: 'text-delta', textDelta: `"Hello, ` },
@@ -1460,6 +1466,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             { type: 'text-delta', textDelta: '{ ' },
             { type: 'text-delta', textDelta: '"content": ' },
             { type: 'text-delta', textDelta: `"Hello, ` },
@@ -1511,6 +1523,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             {
               type: 'tool-call-delta',
               toolCallType: 'function',
@@ -1598,6 +1616,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             { type: 'text-delta', textDelta: '{ ' },
             { type: 'text-delta', textDelta: '"content": ' },
             { type: 'text-delta', textDelta: `"Hello, ` },
@@ -1635,6 +1659,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             {
               type: 'tool-call-delta',
               toolCallType: 'function',

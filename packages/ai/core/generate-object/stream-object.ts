@@ -51,7 +51,7 @@ import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', length: 24 });
 
 type OnFinishCallback<RESULT> = (event: {
   /**
@@ -831,6 +831,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   'ai.response.object': {
                     output: () => JSON.stringify(object),
                   },
+                  'ai.response.id': response.id,
+                  'ai.response.model': response.modelId,
+                  'ai.response.timestamp': response.timestamp.toISOString(),
 
                   'ai.usage.promptTokens': finalUsage.promptTokens,
                   'ai.usage.completionTokens': finalUsage.completionTokens,
@@ -840,9 +843,11 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   'ai.result.object': { output: () => JSON.stringify(object) },
 
                   // standardized gen-ai llm span attributes:
+                  'gen_ai.response.finish_reasons': [finishReason],
+                  'gen_ai.response.id': response.id,
+                  'gen_ai.response.model': response.modelId,
                   'gen_ai.usage.input_tokens': finalUsage.promptTokens,
                   'gen_ai.usage.output_tokens': finalUsage.completionTokens,
-                  'gen_ai.response.finish_reasons': [finishReason],
                 },
               }),
             );
