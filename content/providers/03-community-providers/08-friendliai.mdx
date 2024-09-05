@@ -69,13 +69,20 @@ then import the provider
 import { friendliai } from '@friendliai/ai-provider';
 ```
 
+The following optional settings are available for the provider instance:
+
+- **hostedTools** _Array_
+- **hostedTools.type** _string_
+
+  Optional. The hosted tools to use with the model. The available types are `calculator` and `web_search`.
+
 If you need a customized setup, you can import `createFriendliAI` from `@friendliai/ai-provider` and create a provider instance with your settings:
 
 ```ts
 import { createFriendliAI } from '@friendliai/ai-provider';
 
 const friendliai = createFriendliAI({
-  baseURL: 'https://inference.friendli.ai/v1',
+  baseURL: 'https://inference.friendli.ai/dedicated/v1',
   apiKey: process.env.FRIENDLI_API_KEY,
   teamId: process.env.FRIENDLI_TEAM_ID || 'YOUR FRIENDLIAI TEAM ID',
 });
