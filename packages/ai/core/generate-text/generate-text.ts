@@ -391,7 +391,10 @@ By default, it's set to 0, which will disable the feature.
         finishReason: currentModelResponse.finishReason,
         usage,
         warnings: currentModelResponse.warnings,
-        response: currentModelResponse.response,
+        response: {
+          ...currentModelResponse.response,
+          headers: currentModelResponse.rawResponse?.headers,
+        },
         logprobs: currentModelResponse.logprobs,
         responseMessages,
         roundtrips,

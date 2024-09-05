@@ -214,10 +214,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-      },
+      body: { ...args, stream: true },
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         mistralChatChunkSchema,

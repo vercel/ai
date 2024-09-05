@@ -575,6 +575,11 @@ describe('result.response', () => {
               timestamp: new Date(10000),
               modelId: 'test-response-model-id',
             },
+            rawResponse: {
+              headers: {
+                'custom-response-header': 'response-header-value',
+              },
+            },
           };
         },
       }),
@@ -585,6 +590,9 @@ describe('result.response', () => {
       id: 'test-id-from-model',
       timestamp: new Date(10000),
       modelId: 'test-response-model-id',
+      headers: {
+        'custom-response-header': 'response-header-value',
+      },
     });
   });
 });

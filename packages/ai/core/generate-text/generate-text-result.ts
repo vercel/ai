@@ -99,7 +99,7 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
     /**
 Optional raw response data.
 
-@deprecated Will be merged into `response` in the future.
+@deprecated Use `response.headers` instead.
    */
     readonly rawResponse?: {
       /**
@@ -117,7 +117,7 @@ Additional response information.
   /**
 Optional raw response data.
 
-@deprecated Will be merged into `response` in the future.
+@deprecated Use `response.headers` instead.
    */
   readonly rawResponse?: {
     /**
