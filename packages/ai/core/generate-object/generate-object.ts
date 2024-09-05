@@ -1,5 +1,5 @@
 import { JSONValue } from '@ai-sdk/provider';
-import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
@@ -18,6 +18,7 @@ import {
   CallWarning,
   FinishReason,
   LanguageModel,
+  LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -28,6 +29,8 @@ import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+
+const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', length: 24 });
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -86,6 +89,14 @@ Optional telemetry configuration (experimental).
        */
 
       experimental_telemetry?: TelemetrySettings;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        generateId?: () => string;
+        currentDate?: () => Date;
+      };
     },
 ): Promise<GenerateObjectResult<OBJECT>>;
 /**
@@ -144,6 +155,14 @@ Default and recommended: 'auto' (best mode for the model).
 Optional telemetry configuration (experimental).
      */
       experimental_telemetry?: TelemetrySettings;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        generateId?: () => string;
+        currentDate?: () => Date;
+      };
     },
 ): Promise<GenerateObjectResult<Array<ELEMENT>>>;
 /**
@@ -173,6 +192,14 @@ The mode to use for object generation. Must be "json" for no-schema output.
 Optional telemetry configuration (experimental).
        */
       experimental_telemetry?: TelemetrySettings;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        generateId?: () => string;
+        currentDate?: () => Date;
+      };
     },
 ): Promise<GenerateObjectResult<JSONValue>>;
 export async function generateObject<SCHEMA, RESULT>({
@@ -189,6 +216,10 @@ export async function generateObject<SCHEMA, RESULT>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
+  _internal: {
+    generateId = originalGenerateId,
+    currentDate = () => new Date(),
+  } = {},
   ...settings
 }: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
@@ -209,6 +240,14 @@ export async function generateObject<SCHEMA, RESULT>({
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
+
+    /**
+     * Internal. For test use only. May change without notice.
+     */
+    _internal?: {
+      generateId?: () => string;
+      currentDate?: () => Date;
+    };
   }): Promise<GenerateObjectResult<RESULT>> {
   validateObjectGenerationInput({
     output,
@@ -271,6 +310,7 @@ export async function generateObject<SCHEMA, RESULT>({
       let usage: Parameters<typeof calculateLanguageModelUsage>[0];
       let warnings: CallWarning[] | undefined;
       let rawResponse: { headers?: Record<string, string> } | undefined;
+      let response: LanguageModelResponseMetadata;
       let logprobs: LogProbs | undefined;
       let providerMetadata: ProviderMetadata | undefined;
 
@@ -384,6 +424,11 @@ export async function generateObject<SCHEMA, RESULT>({
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
           providerMetadata = generateResult.providerMetadata;
+          response = {
+            id: generateResult.response?.id ?? generateId(),
+            timestamp: generateResult.response?.timestamp ?? currentDate(),
+            modelId: generateResult.response?.modelId ?? model.modelId,
+          };
 
           break;
         }
@@ -494,6 +539,11 @@ export async function generateObject<SCHEMA, RESULT>({
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
           providerMetadata = generateResult.providerMetadata;
+          response = {
+            id: generateResult.response?.id ?? generateId(),
+            timestamp: generateResult.response?.timestamp ?? currentDate(),
+            modelId: generateResult.response?.modelId ?? model.modelId,
+          };
 
           break;
         }
@@ -551,7 +601,10 @@ export async function generateObject<SCHEMA, RESULT>({
         finishReason,
         usage: calculateLanguageModelUsage(usage),
         warnings,
-        rawResponse,
+        response: {
+          ...response,
+          headers: rawResponse?.headers,
+        },
         logprobs,
         providerMetadata,
       });
@@ -567,23 +620,29 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly rawResponse: GenerateObjectResult<T>['rawResponse'];
   readonly logprobs: GenerateObjectResult<T>['logprobs'];
   readonly experimental_providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
+  readonly response: GenerateObjectResult<T>['response'];
 
   constructor(options: {
     object: GenerateObjectResult<T>['object'];
     finishReason: GenerateObjectResult<T>['finishReason'];
     usage: GenerateObjectResult<T>['usage'];
     warnings: GenerateObjectResult<T>['warnings'];
-    rawResponse: GenerateObjectResult<T>['rawResponse'];
     logprobs: GenerateObjectResult<T>['logprobs'];
     providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
+    response: GenerateObjectResult<T>['response'];
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
-    this.rawResponse = options.rawResponse;
-    this.logprobs = options.logprobs;
     this.experimental_providerMetadata = options.providerMetadata;
+    this.response = options.response;
+
+    // deprecated:
+    this.rawResponse = {
+      headers: options.response.headers,
+    };
+    this.logprobs = options.logprobs;
   }
 
   toJsonResponse(init?: ResponseInit): Response {

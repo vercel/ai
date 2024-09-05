@@ -1,6 +1,7 @@
 import {
   CallWarning,
   FinishReason,
+  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -31,7 +32,9 @@ export interface GenerateObjectResult<T> {
   readonly warnings: CallWarning[] | undefined;
 
   /**
-  Optional raw response data.
+ Optional raw response data.
+
+@deprecated Use `response.headers` instead.
      */
   readonly rawResponse?: {
     /**
@@ -41,8 +44,15 @@ export interface GenerateObjectResult<T> {
   };
 
   /**
-  Logprobs for the completion.
-  `undefined` if the mode does not support logprobs or if was not enabled
+Additional response information.
+   */
+  readonly response: LanguageModelResponseMetadataWithHeaders;
+
+  /**
+ Logprobs for the completion.
+`undefined` if the mode does not support logprobs or if was not enabled.
+
+@deprecated Will become a provider extension in the future.
      */
   readonly logprobs: LogProbs | undefined;
 

@@ -509,12 +509,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
     roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
     providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
-    response: {
-      id: string;
-      timestamp: Date;
-      modelId: string;
-      headers?: Record<string, string>;
-    };
+    response: GenerateTextResult<TOOLS>['response'];
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;

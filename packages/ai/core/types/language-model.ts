@@ -25,6 +25,8 @@ export type FinishReason = LanguageModelV1FinishReason;
 
 /**
 Log probabilities for each token and its top log probabilities.
+
+@deprecated Will become a provider extension in the future.
  */
 export type LogProbs = LanguageModelV1LogProbs;
 
