@@ -1760,6 +1760,45 @@ describe('result.providerMetadata', () => {
   });
 });
 
+describe('result.response', () => {
+  it('should resolve with response information', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          rawResponse: { headers: { call: '2' } },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    // consume stream (runs in parallel)
+    convertAsyncIterableToArray(result.textStream);
+
+    assert.deepStrictEqual(await result.response, {
+      id: 'id-0',
+      modelId: 'mock-model-id',
+      timestamp: new Date(0),
+      headers: { call: '2' },
+    });
+  });
+});
+
 describe('result.text', () => {
   it('should resolve with full text', async () => {
     const result = await streamText({

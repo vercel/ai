@@ -31,6 +31,7 @@ import {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
+  LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -414,6 +415,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   readonly text: StreamTextResult<TOOLS>['text'];
   readonly toolCalls: StreamTextResult<TOOLS>['toolCalls'];
   readonly toolResults: StreamTextResult<TOOLS>['toolResults'];
+  readonly response: StreamTextResult<TOOLS>['response'];
 
   constructor({
     stream,
@@ -484,6 +486,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       promise: providerMetadataPromise,
     } = createResolvablePromise<ProviderMetadata | undefined>();
     this.experimental_providerMetadata = providerMetadataPromise;
+
+    // initialize response promise
+    const { resolve: resolveResponse, promise: responsePromise } =
+      createResolvablePromise<Awaited<StreamTextResult<TOOLS>['response']>>();
+    this.response = responsePromise;
 
     // create a stitchable stream to send roundtrips in a single response stream
     const {
@@ -808,6 +815,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 resolveToolCalls(roundtripToolCalls);
                 resolveProviderMetadata(roundtripProviderMetadata);
                 resolveToolResults(roundtripToolResults);
+                resolveResponse({
+                  ...roundtripResponse,
+                  headers: rawResponse?.headers,
+                });
 
                 // call onFinish callback:
                 await onFinish?.({

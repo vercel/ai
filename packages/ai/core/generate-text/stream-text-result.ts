@@ -68,14 +68,25 @@ Resolved when the all tool executions are finished.
 
   /**
 Optional raw response data.
+
+@deprecated Use `response` instead.
      */
-  // TODO change to async in v4 and use value from last roundtrip
+  // TODO removed in v4
   readonly rawResponse?: {
     /**
   Response headers.
        */
     headers?: Record<string, string>;
   };
+
+  /**
+Additional response information.
+ */
+  readonly response: Promise<
+    LanguageModelResponseMetadata & {
+      headers?: Record<string, string>;
+    }
+  >;
 
   /**
   A text stream that returns only the generated text deltas. You can use it
