@@ -9,6 +9,7 @@ import {
 export type {
   LanguageModelV1,
   LanguageModelV1CallOptions,
+  LanguageModelV1Prompt,
 } from '@ai-sdk/provider';
 
 /**

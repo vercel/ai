@@ -1,4 +1,4 @@
-import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV1CallOptions } from 'ai';
 
 export function addToLastUserMessage({
   text,

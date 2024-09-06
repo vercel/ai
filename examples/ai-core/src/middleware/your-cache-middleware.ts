@@ -1,5 +1,8 @@
-import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
-import type { Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware } from 'ai';
+import type {
+  LanguageModelV1,
+  LanguageModelV1CallOptions,
+  Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware,
+} from 'ai';
 
 export const yourCacheMiddleware: LanguageModelV1Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
