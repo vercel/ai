@@ -1,6 +1,18 @@
 import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
 import { Experimental_LanguageModelV1Middleware } from './language-model-v1-middleware';
 
+/**
+ * Wraps a LanguageModelV1 instance with middleware functionality.
+ * This function allows you to apply middleware to transform parameters,
+ * wrap generate operations, and wrap stream operations of a language model.
+ *
+ * @param options - Configuration options for wrapping the language model.
+ * @param options.model - The original LanguageModelV1 instance to be wrapped.
+ * @param options.middleware - The middleware to be applied to the language model.
+ * @param options.modelId - Optional custom model ID to override the original model's ID.
+ * @param options.providerId - Optional custom provider ID to override the original model's provider.
+ * @returns A new LanguageModelV1 instance with middleware applied.
+ */
 export const experimental_wrapLanguageModel = ({
   model,
   middleware: { transformParams, wrapGenerate, wrapStream },
