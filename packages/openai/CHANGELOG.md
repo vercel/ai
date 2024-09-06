@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.58
+
+### Patch Changes
+
+- e0c36bd: feat (provider/openai): support image detail
+
 ## 0.0.57
 
 ### Patch Changes
