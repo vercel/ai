@@ -1,0 +1,46 @@
+---
+title: LanguageModelV1Middleware
+description: Middleware for enhancing language model behavior (API Reference)
+---
+
+# `LanguageModelV1Middleware`
+
+<Note type="warning">
+  Language model middleware is an experimental feature.
+</Note>
+
+Language model middleware provides a way to enhance the behavior of language models
+by intercepting and modifying the calls to the language model. It can be used to add
+features like guardrails, RAG, caching, and logging in a language model agnostic way.
+
+See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more information.
+
+## Import
+
+<Snippet
+  text={`import { Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+<PropertiesTable
+  content={[
+    {
+      name: 'transformParams',
+      type: '({ type: "generate" | "stream", params: LanguageModelV1CallOptions }) => Promise<LanguageModelV1CallOptions>',
+      description:
+        'Transforms the parameters before they are passed to the language model.',
+    },
+    {
+      name: 'wrapGenerate',
+      type: '({ doGenerate: DoGenerateFunction, params: LanguageModelV1CallOptions, model: LanguageModelV1 }) => Promise<DoGenerateResult>',
+      description: 'Wraps the generate operation of the language model.',
+    },
+    {
+      name: 'wrapStream',
+      type: '({ doStream: DoStreamFunction, params: LanguageModelV1CallOptions, model: LanguageModelV1 }) => Promise<DoStreamResult>',
+      description: 'Wraps the stream operation of the language model.',
+    },
+  ]}
+/>
