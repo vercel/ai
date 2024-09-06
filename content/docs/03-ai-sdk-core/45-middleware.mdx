@@ -40,6 +40,16 @@ const result = await streamText({
 });
 ```
 
+## Implementing Language Model Middleware
+
+You can implement any of the following three function to modify the behavior of the language model:
+
+1. `transformParams`: Transforms the parameters before they are passed to the language model, for both `doGenerate` and `doStream`.
+2. `wrapGenerate`: Wraps the `doGenerate` method of the language model.
+3. `wrapStream`: Wraps the `doStream` method of the language model.
+
+Here are some examples of how to implement language model middleware:
+
 ## Examples
 
 <Note>
@@ -134,11 +144,11 @@ export const yourCacheMiddleware: LanguageModelV1Middleware = {
 
 ### Retrieval Augmented Generation (RAG)
 
-This example shows how to implement RAG as middleware.
+This example shows how to use RAG as middleware.
 
 <Note>
   Helper functions like `getLastUserMessageText` and `findSources` are not part
-  of the AI SDK. They are just used in this example to illustrate the steps of
+  of the AI SDK. They are just used in this example to illustrate the concept of
   RAG.
 </Note>
 
