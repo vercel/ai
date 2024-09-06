@@ -186,7 +186,7 @@ The following optional settings are available for OpenAI chat models:
 
 - **parallelToolCalls** _boolean_
 
-  Whether to enable parallel function calling during tool use. Default to true.
+  Whether to enable parallel function calling during tool use. Defaults to `true`.
 
 - **useLegacyFunctionCalls** _boolean_
 
@@ -200,7 +200,7 @@ The following optional settings are available for OpenAI chat models:
 
 - **structuredOutputs** _boolean_
 
-  Whether to use [structured outputs](#structured-outputs). Defaults to false.
+  Whether to use [structured outputs](#structured-outputs). Defaults to `false`.
 
   When enabled, tool calls and object generation will be strict and follow the provided schema.
 
@@ -208,6 +208,13 @@ The following optional settings are available for OpenAI chat models:
 
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. Learn more.
+
+- **downloadImages** _boolean_
+
+  Automatically download images and pass the image as data to the model.
+  OpenAI supports image URLs for public models, so this is only needed for
+  private models or when the images are not publicly accessible.
+  Defaults to `false`.
 
 #### Structured Outputs
 
