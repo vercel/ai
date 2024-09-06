@@ -3,6 +3,7 @@ export type { DeepPartial, Schema } from '@ai-sdk/ui-utils';
 export * from './embed';
 export * from './generate-object';
 export * from './generate-text';
+export * from './middleware';
 export * from './prompt';
 export * from './registry';
 export * from './tool';
