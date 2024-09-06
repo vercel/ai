@@ -630,18 +630,37 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Warnings from the model provider (e.g. unsupported settings).',
             },
             {
-              name: 'rawResponse',
-              type: 'RawResponse',
-              description: 'Optional raw response data.',
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
               properties: [
                 {
-                  type: 'RawResponse',
+                  type: 'Response',
                   parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
                     {
                       name: 'headers',
                       optional: true,
                       type: 'Record<string, string>',
-                      description: 'Response headers.',
+                      description: 'Optional response headers.',
                     },
                   ],
                 },
@@ -717,19 +736,37 @@ To see `streamText` in action, check out [these examples](#examples).
         'The tool results that have been generated. Resolved when the all tool executions are finished.',
     },
     {
-      name: 'rawResponse',
-      type: 'RawResponse',
+      name: 'response',
+      type: 'Promise<Response>',
       optional: true,
-      description: 'Optional raw response data.',
+      description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
-          type: 'RawResponse',
+          type: 'Response',
           parameters: [
+            {
+              name: 'id',
+              type: 'string',
+              description:
+                'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+            },
+            {
+              name: 'model',
+              type: 'string',
+              description:
+                'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+            },
+            {
+              name: 'timestamp',
+              type: 'Date',
+              description:
+                'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+            },
             {
               name: 'headers',
               optional: true,
               type: 'Record<string, string>',
-              description: 'Response headers.',
+              description: 'Optional response headers.',
             },
           ],
         },
@@ -936,6 +973,37 @@ To see `streamText` in action, check out [these examples](#examples).
                 },
               ],
             },
+            {
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
         {
@@ -974,6 +1042,37 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'totalTokens',
                       type: 'number',
                       description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
                     },
                   ],
                 },

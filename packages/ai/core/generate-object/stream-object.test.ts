@@ -388,6 +388,12 @@ describe('output = "object"', () => {
         model: new MockLanguageModelV1({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
               { type: 'text-delta', textDelta: '{ ' },
               { type: 'text-delta', textDelta: '"content": ' },
               { type: 'text-delta', textDelta: `"Hello, ` },
@@ -409,59 +415,9 @@ describe('output = "object"', () => {
         prompt: 'prompt',
       });
 
-      assert.deepStrictEqual(
+      expect(
         await convertAsyncIterableToArray(result.fullStream),
-        [
-          {
-            type: 'object',
-            object: {},
-          },
-          {
-            type: 'text-delta',
-            textDelta: '{ ',
-          },
-          {
-            type: 'object',
-            object: { content: 'Hello, ' },
-          },
-          {
-            type: 'text-delta',
-            textDelta: '"content": "Hello, ',
-          },
-          {
-            type: 'object',
-            object: { content: 'Hello, world' },
-          },
-          {
-            type: 'text-delta',
-            textDelta: 'world',
-          },
-          {
-            type: 'object',
-            object: { content: 'Hello, world!' },
-          },
-          {
-            type: 'text-delta',
-            textDelta: '!"',
-          },
-          {
-            type: 'text-delta',
-            textDelta: ' }',
-          },
-          {
-            type: 'finish',
-            finishReason: 'stop',
-            usage: { promptTokens: 2, completionTokens: 10, totalTokens: 12 },
-            logprobs: [
-              {
-                token: '-',
-                logprob: 1,
-                topLogprobs: [],
-              },
-            ],
-          },
-        ],
-      );
+      ).toMatchSnapshot();
     });
   });
 
@@ -667,6 +623,92 @@ describe('output = "object"', () => {
     });
   });
 
+  describe('result.response', () => {
+    it('should resolve with response information in json mode', async () => {
+      const result = await streamObject({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-delta', textDelta: '{"content": "Hello, world!"}' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            rawResponse: { headers: { call: '2' } },
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+      });
+
+      // consume stream (runs in parallel)
+      convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(await result.response).toStrictEqual({
+        id: 'id-0',
+        modelId: 'mock-model-id',
+        timestamp: new Date(0),
+        headers: { call: '2' },
+      });
+    });
+
+    it('should resolve with response information in tool mode', async () => {
+      const result = await streamObject({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: '{"content": "Hello, world!"}',
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            rawResponse: { headers: { call: '2' } },
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'tool',
+        prompt: 'prompt',
+      });
+
+      // consume stream (runs in parallel)
+      convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(await result.response).toStrictEqual({
+        id: 'id-0',
+        modelId: 'mock-model-id',
+        timestamp: new Date(0),
+        headers: { call: '2' },
+      });
+    });
+  });
+
   describe('result.object', () => {
     it('should resolve with typed object', async () => {
       const result = await streamObject({
@@ -771,127 +813,96 @@ describe('output = "object"', () => {
   });
 
   describe('options.onFinish', () => {
-    describe('with successfully validated object', () => {
+    it('should be called when a valid object is generated', async () => {
       let result: Parameters<
         Required<Parameters<typeof streamObject>[0]>['onFinish']
       >[0];
 
-      beforeEach(async () => {
-        const { partialObjectStream } = await streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'text-delta',
-                  textDelta: '{ "content": "Hello, world!" }',
+      const { partialObjectStream } = await streamObject({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'text-delta',
+                textDelta: '{ "content": "Hello, world!" }',
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+                providerMetadata: {
+                  testProvider: { testKey: 'testValue' },
                 },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                  providerMetadata: {
-                    testProvider: { testKey: 'testValue' },
-                  },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           }),
-          schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-          onFinish: async event => {
-            result = event as unknown as typeof result;
-          },
-        });
-
-        // consume stream
-        await convertAsyncIterableToArray(partialObjectStream);
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        onFinish: async event => {
+          result = event as unknown as typeof result;
+        },
       });
 
-      it('should contain token usage', async () => {
-        assert.deepStrictEqual(result.usage, {
-          completionTokens: 10,
-          promptTokens: 3,
-          totalTokens: 13,
-        });
-      });
+      // consume stream
+      await convertAsyncIterableToArray(partialObjectStream);
 
-      it('should contain the full object', async () => {
-        assert.deepStrictEqual(result.object, {
-          content: 'Hello, world!',
-        });
-      });
-
-      it('should not contain an error object', async () => {
-        assert.deepStrictEqual(result.error, undefined);
-      });
-
-      it('should contain provider metadata', async () => {
-        assert.deepStrictEqual(result.experimental_providerMetadata, {
-          testProvider: { testKey: 'testValue' },
-        });
-      });
+      expect(result!).toMatchSnapshot();
     });
 
-    describe("with object that doesn't match the schema", () => {
+    it("should be called when object doesn't match the schema", async () => {
       let result: Parameters<
         Required<Parameters<typeof streamObject>[0]>['onFinish']
       >[0];
 
-      beforeEach(async () => {
-        const { partialObjectStream, object } = await streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"invalid": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
+      const { partialObjectStream, object } = await streamObject({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"invalid": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           }),
-          schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-          onFinish: async event => {
-            result = event as unknown as typeof result;
-          },
-        });
-
-        // consume stream
-        await convertAsyncIterableToArray(partialObjectStream);
-
-        // consume expected error rejection
-        await object.catch(() => {});
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        onFinish: async event => {
+          result = event as unknown as typeof result;
+        },
       });
 
-      it('should contain token usage', async () => {
-        assert.deepStrictEqual(result.usage, {
-          completionTokens: 10,
-          promptTokens: 3,
-          totalTokens: 13,
-        });
-      });
+      // consume stream
+      await convertAsyncIterableToArray(partialObjectStream);
 
-      it('should not contain a full object', async () => {
-        assert.deepStrictEqual(result.object, undefined);
-      });
+      // consume expected error rejection
+      await object.catch(() => {});
 
-      it('should contain an error object', async () => {
-        assert.deepStrictEqual(
-          TypeValidationError.isInstance(result.error),
-          true,
-        );
-      });
+      expect(result!).toMatchSnapshot();
     });
   });
 
@@ -1342,6 +1353,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             { type: 'text-delta', textDelta: '{ ' },
             { type: 'text-delta', textDelta: '"content": ' },
             { type: 'text-delta', textDelta: `"Hello, ` },
@@ -1374,6 +1391,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             { type: 'text-delta', textDelta: '{ ' },
             { type: 'text-delta', textDelta: '"content": ' },
             { type: 'text-delta', textDelta: `"Hello, ` },
@@ -1425,6 +1448,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             {
               type: 'tool-call-delta',
               toolCallType: 'function',
@@ -1512,6 +1541,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             { type: 'text-delta', textDelta: '{ ' },
             { type: 'text-delta', textDelta: '"content": ' },
             { type: 'text-delta', textDelta: `"Hello, ` },
@@ -1549,6 +1584,12 @@ describe('telemetry', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
             {
               type: 'tool-call-delta',
               toolCallType: 'function',

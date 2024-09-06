@@ -26,6 +26,8 @@ describe('doGenerate', () => {
       output_tokens: 30,
     },
     stopReason = 'end_turn',
+    id = 'msg_017TfcQ4AgGxKyBduUpqYPZn',
+    model = 'claude-3-haiku-20240307',
   }: {
     content?: AnthropicAssistantMessage['content'];
     usage?: {
@@ -35,13 +37,15 @@ describe('doGenerate', () => {
       cache_read_input_tokens?: number;
     };
     stopReason?: string;
+    id?: string;
+    model?: string;
   }) {
     server.responseBodyJson = {
-      id: 'msg_017TfcQ4AgGxKyBduUpqYPZn',
+      id,
       type: 'message',
       role: 'assistant',
       content,
-      model: 'claude-3-haiku-20240307',
+      model,
       stop_reason: stopReason,
       stop_sequence: null,
       usage,
@@ -193,6 +197,24 @@ describe('doGenerate', () => {
     expect(usage).toStrictEqual({
       promptTokens: 20,
       completionTokens: 5,
+    });
+  });
+
+  it('should send additional response information', async () => {
+    prepareJsonResponse({
+      id: 'test-id',
+      model: 'test-model',
+    });
+
+    const { response } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response).toStrictEqual({
+      id: 'test-id',
+      modelId: 'test-model',
     });
   });
 
@@ -404,6 +426,11 @@ describe('doStream', () => {
 
     // note: space moved to last chunk bc of trimming
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+        modelId: 'claude-3-haiku-20240307',
+      },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
       { type: 'text-delta', textDelta: 'World!' },
@@ -458,6 +485,11 @@ describe('doStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'msg_01GouTqNCGXzrj5LQ5jEkw67',
+        modelId: 'claude-3-haiku-20240307',
+      },
       {
         type: 'text-delta',
         textDelta: 'Okay',
@@ -539,6 +571,11 @@ describe('doStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+        modelId: 'claude-3-haiku-20240307',
+      },
       { type: 'error', error: { type: 'error', message: 'test error' } },
     ]);
   });
@@ -640,6 +677,11 @@ describe('doStream', () => {
 
     // note: space moved to last chunk bc of trimming
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+        modelId: 'claude-3-haiku-20240307',
+      },
       { type: 'text-delta', textDelta: 'Hello' },
       {
         type: 'finish',

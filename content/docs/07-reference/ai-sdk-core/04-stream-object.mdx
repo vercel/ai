@@ -508,18 +508,37 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                 'Warnings from the model provider (e.g. unsupported settings).',
             },
             {
-              name: 'rawResponse',
-              type: 'RawResponse',
-              description: 'Optional raw response data.',
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
               properties: [
                 {
-                  type: 'RawResponse',
+                  type: 'Response',
                   parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
                     {
                       name: 'headers',
                       optional: true,
                       type: 'Record<string, string>',
-                      description: 'Response headers.',
+                      description: 'Optional response headers.',
                     },
                   ],
                 },
@@ -662,24 +681,73 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
               type: 'Usage',
               description: 'Token usage.',
             },
+            {
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
     },
     {
-      name: 'rawResponse',
-      type: 'RawResponse',
+      name: 'response',
+      type: 'Promise<Response>',
       optional: true,
-      description: 'Optional raw response data.',
+      description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
-          type: 'RawResponse',
+          type: 'Response',
           parameters: [
+            {
+              name: 'id',
+              type: 'string',
+              description:
+                'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+            },
+            {
+              name: 'model',
+              type: 'string',
+              description:
+                'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+            },
+            {
+              name: 'timestamp',
+              type: 'Date',
+              description:
+                'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+            },
             {
               name: 'headers',
               optional: true,
               type: 'Record<string, string>',
-              description: 'Response headers.',
+              description: 'Optional response headers.',
             },
           ],
         },

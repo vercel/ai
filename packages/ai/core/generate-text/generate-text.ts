@@ -1,3 +1,4 @@
+import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
@@ -19,13 +20,15 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool/tool';
 import { CoreToolChoice, LanguageModel } from '../types';
 import {
-  CompletionTokenUsage,
-  calculateCompletionTokenUsage,
-} from '../types/token-usage';
+  LanguageModelUsage,
+  calculateLanguageModelUsage,
+} from '../types/usage';
 import { GenerateTextResult } from './generate-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
+
+const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -84,6 +87,10 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   experimental_telemetry: telemetry,
+  _internal: {
+    generateId = originalGenerateId,
+    currentDate = () => new Date(),
+  } = {},
   ...settings
 }: CallSettings &
   Prompt & {
@@ -125,6 +132,14 @@ By default, it's set to 0, which will disable the feature.
      * Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
+
+    /**
+     * Internal. For test use only. May change without notice.
+     */
+    _internal?: {
+      generateId?: () => string;
+      currentDate?: () => Date;
+    };
   }): Promise<GenerateTextResult<TOOLS>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
@@ -172,14 +187,14 @@ By default, it's set to 0, which will disable the feature.
 
       let currentModelResponse: Awaited<
         ReturnType<LanguageModel['doGenerate']>
-      >;
+      > & { response: { id: string; timestamp: Date; modelId: string } };
       let currentToolCalls: ToToolCallArray<TOOLS> = [];
       let currentToolResults: ToToolResultArray<TOOLS> = [];
       let roundtripCount = 0;
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
       const roundtrips: GenerateTextResult<TOOLS>['roundtrips'] = [];
-      const usage: CompletionTokenUsage = {
+      const usage: LanguageModelUsage = {
         completionTokens: 0,
         promptTokens: 0,
         totalTokens: 0,
@@ -229,6 +244,13 @@ By default, it's set to 0, which will disable the feature.
                 headers,
               });
 
+              // Fill in default values:
+              const responseData = {
+                id: result.response?.id ?? generateId(),
+                timestamp: result.response?.timestamp ?? currentDate(),
+                modelId: result.response?.modelId ?? model.modelId,
+              };
+
               // Add response information to the span:
               span.setAttributes(
                 selectTelemetryAttributes({
@@ -241,6 +263,10 @@ By default, it's set to 0, which will disable the feature.
                     'ai.response.toolCalls': {
                       output: () => JSON.stringify(result.toolCalls),
                     },
+                    'ai.response.id': responseData.id,
+                    'ai.response.model': responseData.modelId,
+                    'ai.response.timestamp':
+                      responseData.timestamp.toISOString(),
 
                     'ai.usage.promptTokens': result.usage.promptTokens,
                     'ai.usage.completionTokens': result.usage.completionTokens,
@@ -256,13 +282,15 @@ By default, it's set to 0, which will disable the feature.
 
                     // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [result.finishReason],
+                    'gen_ai.response.id': responseData.id,
+                    'gen_ai.response.model': responseData.modelId,
                     'gen_ai.usage.input_tokens': result.usage.promptTokens,
                     'gen_ai.usage.output_tokens': result.usage.completionTokens,
                   },
                 }),
               );
 
-              return result;
+              return { ...result, response: responseData };
             },
           }),
         );
@@ -284,7 +312,7 @@ By default, it's set to 0, which will disable the feature.
               });
 
         // token usage:
-        const currentUsage = calculateCompletionTokenUsage(
+        const currentUsage = calculateLanguageModelUsage(
           currentModelResponse.usage,
         );
         usage.completionTokens += currentUsage.completionTokens;
@@ -300,6 +328,10 @@ By default, it's set to 0, which will disable the feature.
           usage: currentUsage,
           warnings: currentModelResponse.warnings,
           logprobs: currentModelResponse.logprobs,
+          response: {
+            ...currentModelResponse.response,
+            headers: currentModelResponse.rawResponse?.headers,
+          },
         });
 
         // append to messages for potential next roundtrip:
@@ -362,7 +394,10 @@ By default, it's set to 0, which will disable the feature.
         finishReason: currentModelResponse.finishReason,
         usage,
         warnings: currentModelResponse.warnings,
-        rawResponse: currentModelResponse.rawResponse,
+        response: {
+          ...currentModelResponse.response,
+          headers: currentModelResponse.rawResponse?.headers,
+        },
         logprobs: currentModelResponse.logprobs,
         responseMessages,
         roundtrips,
@@ -461,6 +496,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
   readonly rawResponse: GenerateTextResult<TOOLS>['rawResponse'];
   readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
   readonly experimental_providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
+  readonly response: GenerateTextResult<TOOLS>['response'];
 
   constructor(options: {
     text: GenerateTextResult<TOOLS>['text'];
@@ -469,11 +505,11 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     finishReason: GenerateTextResult<TOOLS>['finishReason'];
     usage: GenerateTextResult<TOOLS>['usage'];
     warnings: GenerateTextResult<TOOLS>['warnings'];
-    rawResponse?: GenerateTextResult<TOOLS>['rawResponse'];
     logprobs: GenerateTextResult<TOOLS>['logprobs'];
     responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
     roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
     providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
+    response: GenerateTextResult<TOOLS>['response'];
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -481,11 +517,16 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
-    this.rawResponse = options.rawResponse;
-    this.logprobs = options.logprobs;
+    this.response = options.response;
     this.responseMessages = options.responseMessages;
     this.roundtrips = options.roundtrips;
     this.experimental_providerMetadata = options.providerMetadata;
+
+    // deprecated:
+    this.rawResponse = {
+      headers: options.response.headers,
+    };
+    this.logprobs = options.logprobs;
   }
 }
 

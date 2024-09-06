@@ -4,10 +4,12 @@ import { CoreTool } from '../tool';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelResponseMetadata,
+  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
@@ -28,7 +30,7 @@ When there are multiple roundtrips, the usage is the sum of all roundtrip usages
 
 Resolved when the response is finished.
      */
-  readonly usage: Promise<CompletionTokenUsage>;
+  readonly usage: Promise<LanguageModelUsage>;
 
   /**
 The reason why the generation finished. Taken from the last roundtrip.
@@ -67,14 +69,21 @@ Resolved when the all tool executions are finished.
 
   /**
 Optional raw response data.
+
+@deprecated Use `response` instead.
      */
-  // TODO change to async in v4 and use value from last roundtrip
+  // TODO removed in v4
   readonly rawResponse?: {
     /**
   Response headers.
        */
     headers?: Record<string, string>;
   };
+
+  /**
+Additional response information.
+ */
+  readonly response: Promise<LanguageModelResponseMetadataWithHeaders>;
 
   /**
   A text stream that returns only the generated text deltas. You can use it
@@ -217,22 +226,16 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       type: 'roundtrip-finish';
       finishReason: FinishReason;
       logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
+      usage: LanguageModelUsage;
+      response: LanguageModelResponseMetadata;
       experimental_providerMetadata?: ProviderMetadata;
     }
   | {
       type: 'finish';
       finishReason: FinishReason;
       logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
+      usage: LanguageModelUsage;
+      response: LanguageModelResponseMetadata;
       experimental_providerMetadata?: ProviderMetadata;
     }
   | {

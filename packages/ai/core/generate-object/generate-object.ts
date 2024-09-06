@@ -1,5 +1,5 @@
 import { JSONValue } from '@ai-sdk/provider';
-import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
@@ -18,16 +18,19 @@ import {
   CallWarning,
   FinishReason,
   LanguageModel,
+  LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { calculateCompletionTokenUsage } from '../types/token-usage';
+import { calculateLanguageModelUsage } from '../types/usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+
+const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', length: 24 });
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -86,6 +89,14 @@ Optional telemetry configuration (experimental).
        */
 
       experimental_telemetry?: TelemetrySettings;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        generateId?: () => string;
+        currentDate?: () => Date;
+      };
     },
 ): Promise<GenerateObjectResult<OBJECT>>;
 /**
@@ -144,6 +155,14 @@ Default and recommended: 'auto' (best mode for the model).
 Optional telemetry configuration (experimental).
      */
       experimental_telemetry?: TelemetrySettings;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        generateId?: () => string;
+        currentDate?: () => Date;
+      };
     },
 ): Promise<GenerateObjectResult<Array<ELEMENT>>>;
 /**
@@ -173,6 +192,14 @@ The mode to use for object generation. Must be "json" for no-schema output.
 Optional telemetry configuration (experimental).
        */
       experimental_telemetry?: TelemetrySettings;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        generateId?: () => string;
+        currentDate?: () => Date;
+      };
     },
 ): Promise<GenerateObjectResult<JSONValue>>;
 export async function generateObject<SCHEMA, RESULT>({
@@ -189,6 +216,10 @@ export async function generateObject<SCHEMA, RESULT>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
+  _internal: {
+    generateId = originalGenerateId,
+    currentDate = () => new Date(),
+  } = {},
   ...settings
 }: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
@@ -209,6 +240,14 @@ export async function generateObject<SCHEMA, RESULT>({
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
+
+    /**
+     * Internal. For test use only. May change without notice.
+     */
+    _internal?: {
+      generateId?: () => string;
+      currentDate?: () => Date;
+    };
   }): Promise<GenerateObjectResult<RESULT>> {
   validateObjectGenerationInput({
     output,
@@ -268,9 +307,10 @@ export async function generateObject<SCHEMA, RESULT>({
 
       let result: string;
       let finishReason: FinishReason;
-      let usage: Parameters<typeof calculateCompletionTokenUsage>[0];
+      let usage: Parameters<typeof calculateLanguageModelUsage>[0];
       let warnings: CallWarning[] | undefined;
       let rawResponse: { headers?: Record<string, string> } | undefined;
+      let response: LanguageModelResponseMetadata;
       let logprobs: LogProbs | undefined;
       let providerMetadata: ProviderMetadata | undefined;
 
@@ -347,6 +387,12 @@ export async function generateObject<SCHEMA, RESULT>({
                   throw new NoObjectGeneratedError();
                 }
 
+                const responseData = {
+                  id: result.response?.id ?? generateId(),
+                  timestamp: result.response?.timestamp ?? currentDate(),
+                  modelId: result.response?.modelId ?? model.modelId,
+                };
+
                 // Add response information to the span:
                 span.setAttributes(
                   selectTelemetryAttributes({
@@ -354,6 +400,10 @@ export async function generateObject<SCHEMA, RESULT>({
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
                       'ai.response.object': { output: () => result.text },
+                      'ai.response.id': responseData.id,
+                      'ai.response.model': responseData.modelId,
+                      'ai.response.timestamp':
+                        responseData.timestamp.toISOString(),
 
                       'ai.usage.promptTokens': result.usage.promptTokens,
                       'ai.usage.completionTokens':
@@ -365,6 +415,8 @@ export async function generateObject<SCHEMA, RESULT>({
 
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
+                      'gen_ai.response.id': responseData.id,
+                      'gen_ai.response.model': responseData.modelId,
                       'gen_ai.usage.prompt_tokens': result.usage.promptTokens,
                       'gen_ai.usage.completion_tokens':
                         result.usage.completionTokens,
@@ -372,7 +424,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   }),
                 );
 
-                return { ...result, objectText: result.text };
+                return { ...result, objectText: result.text, responseData };
               },
             }),
           );
@@ -384,6 +436,7 @@ export async function generateObject<SCHEMA, RESULT>({
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
           providerMetadata = generateResult.providerMetadata;
+          response = generateResult.responseData;
 
           break;
         }
@@ -457,6 +510,12 @@ export async function generateObject<SCHEMA, RESULT>({
                   throw new NoObjectGeneratedError();
                 }
 
+                const responseData = {
+                  id: result.response?.id ?? generateId(),
+                  timestamp: result.response?.timestamp ?? currentDate(),
+                  modelId: result.response?.modelId ?? model.modelId,
+                };
+
                 // Add response information to the span:
                 span.setAttributes(
                   selectTelemetryAttributes({
@@ -464,6 +523,10 @@ export async function generateObject<SCHEMA, RESULT>({
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
                       'ai.response.object': { output: () => objectText },
+                      'ai.response.id': responseData.id,
+                      'ai.response.model': responseData.modelId,
+                      'ai.response.timestamp':
+                        responseData.timestamp.toISOString(),
 
                       'ai.usage.promptTokens': result.usage.promptTokens,
                       'ai.usage.completionTokens':
@@ -475,6 +538,8 @@ export async function generateObject<SCHEMA, RESULT>({
 
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
+                      'gen_ai.response.id': responseData.id,
+                      'gen_ai.response.model': responseData.modelId,
                       'gen_ai.usage.input_tokens': result.usage.promptTokens,
                       'gen_ai.usage.output_tokens':
                         result.usage.completionTokens,
@@ -482,7 +547,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   }),
                 );
 
-                return { ...result, objectText };
+                return { ...result, objectText, responseData };
               },
             }),
           );
@@ -494,6 +559,7 @@ export async function generateObject<SCHEMA, RESULT>({
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
           providerMetadata = generateResult.providerMetadata;
+          response = generateResult.responseData;
 
           break;
         }
@@ -549,9 +615,12 @@ export async function generateObject<SCHEMA, RESULT>({
       return new DefaultGenerateObjectResult({
         object: validationResult.value,
         finishReason,
-        usage: calculateCompletionTokenUsage(usage),
+        usage: calculateLanguageModelUsage(usage),
         warnings,
-        rawResponse,
+        response: {
+          ...response,
+          headers: rawResponse?.headers,
+        },
         logprobs,
         providerMetadata,
       });
@@ -567,23 +636,29 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly rawResponse: GenerateObjectResult<T>['rawResponse'];
   readonly logprobs: GenerateObjectResult<T>['logprobs'];
   readonly experimental_providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
+  readonly response: GenerateObjectResult<T>['response'];
 
   constructor(options: {
     object: GenerateObjectResult<T>['object'];
     finishReason: GenerateObjectResult<T>['finishReason'];
     usage: GenerateObjectResult<T>['usage'];
     warnings: GenerateObjectResult<T>['warnings'];
-    rawResponse: GenerateObjectResult<T>['rawResponse'];
     logprobs: GenerateObjectResult<T>['logprobs'];
     providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
+    response: GenerateObjectResult<T>['response'];
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
-    this.rawResponse = options.rawResponse;
-    this.logprobs = options.logprobs;
     this.experimental_providerMetadata = options.providerMetadata;
+    this.response = options.response;
+
+    // deprecated:
+    this.rawResponse = {
+      headers: options.response.headers,
+    };
+    this.logprobs = options.logprobs;
   }
 
   toJsonResponse(init?: ResponseInit): Response {

@@ -223,6 +223,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      response: {
+        id: response.id ?? undefined,
+        modelId: response.model ?? undefined,
+      },
       warnings,
       providerMetadata:
         this.settings.cacheControl === true
@@ -392,6 +396,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                   };
                 }
 
+                controller.enqueue({
+                  type: 'response-metadata',
+                  id: value.message.id ?? undefined,
+                  modelId: value.message.model ?? undefined,
+                });
+
                 return;
               }
 
@@ -435,6 +445,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 // this approach limits breakages when the API changes and increases efficiency
 const anthropicMessagesResponseSchema = z.object({
   type: z.literal('message'),
+  id: z.string().nullish(),
+  model: z.string().nullish(),
   content: z.array(
     z.discriminatedUnion('type', [
       z.object({
@@ -464,6 +476,8 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('message_start'),
     message: z.object({
+      id: z.string().nullish(),
+      model: z.string().nullish(),
       usage: z.object({
         input_tokens: z.number(),
         output_tokens: z.number(),
