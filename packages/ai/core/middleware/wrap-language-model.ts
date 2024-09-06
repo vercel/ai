@@ -4,9 +4,13 @@ import { Experimental_LanguageModelV1Middleware } from './language-model-v1-midd
 export const experimental_wrapLanguageModel = ({
   model,
   middleware: { transformParams, wrapGenerate, wrapStream },
+  modelId,
+  providerId,
 }: {
   model: LanguageModelV1;
   middleware: Experimental_LanguageModelV1Middleware;
+  modelId?: string;
+  providerId?: string;
 }): LanguageModelV1 => {
   async function doTransform({
     params,
@@ -20,9 +24,13 @@ export const experimental_wrapLanguageModel = ({
 
   return {
     specificationVersion: 'v1',
-    provider: model.provider,
-    modelId: model.modelId,
+
+    provider: providerId ?? model.provider,
+    modelId: modelId ?? model.modelId,
+
     defaultObjectGenerationMode: model.defaultObjectGenerationMode,
+    supportsImageUrls: model.supportsImageUrls,
+    supportsStructuredOutputs: model.supportsStructuredOutputs,
 
     async doGenerate(
       params: LanguageModelV1CallOptions,
@@ -30,7 +38,7 @@ export const experimental_wrapLanguageModel = ({
       const transformedParams = await doTransform({ params, type: 'generate' });
       const doGenerate = async () => model.doGenerate(transformedParams);
       return wrapGenerate
-        ? wrapGenerate({ doGenerate, params: transformedParams })
+        ? wrapGenerate({ doGenerate, params: transformedParams, model })
         : doGenerate();
     },
 
@@ -40,7 +48,7 @@ export const experimental_wrapLanguageModel = ({
       const transformedParams = await doTransform({ params, type: 'stream' });
       const doStream = async () => model.doStream(transformedParams);
       return wrapStream
-        ? wrapStream({ doStream, params: transformedParams })
+        ? wrapStream({ doStream, params: transformedParams, model })
         : doStream();
     },
   };
