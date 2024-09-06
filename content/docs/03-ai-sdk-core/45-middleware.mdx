@@ -42,6 +42,12 @@ const result = await streamText({
 
 ## Implementing Language Model Middleware
 
+<Note>
+  Implementing language model middleware is advanced functionality and requires
+  a solid understanding of the [language model
+  specification](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v1/language-model-v1.ts).
+</Note>
+
 You can implement any of the following three function to modify the behavior of the language model:
 
 1. `transformParams`: Transforms the parameters before they are passed to the language model, for both `doGenerate` and `doStream`.
