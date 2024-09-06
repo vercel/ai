@@ -260,6 +260,34 @@ You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 </Note>
 
+#### Image Detail
+
+You can use the `openai` provider metadata to set the [image generation detail](https://platform.openai.com/docs/guides/vision/low-or-high-fidelity-image-understanding) to `high`, `low`, or `auto`:
+
+```ts highlight="13-16"
+const result = await generateText({
+  model: openai('gpt-4o'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the image in detail.' },
+        {
+          type: 'image',
+          image:
+            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+
+          // OpenAI specific extension - image detail:
+          experimental_providerMetadata: {
+            openai: { imageDetail: 'low' },
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
 ### Completion Models
 
 You can create models that call the [OpenAI completions API](https://platform.openai.com/docs/api-reference/completions) using the `.completion()` factory method.

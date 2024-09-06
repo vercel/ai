@@ -4,7 +4,10 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4o', {
+      // AI SDK will download the images and add them as data:
+      downloadImages: true,
+    }),
     messages: [
       {
         role: 'user',
@@ -14,6 +17,11 @@ async function main() {
             type: 'image',
             image:
               'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+
+            // OpenAI specific extension - image detail:
+            experimental_providerMetadata: {
+              openai: { imageDetail: 'low' },
+            },
           },
         ],
       },

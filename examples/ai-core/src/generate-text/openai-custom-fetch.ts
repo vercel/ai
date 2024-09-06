@@ -1,8 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 const openai = createOpenAI({
   // example fetch wrapper that logs the input to the API call:
