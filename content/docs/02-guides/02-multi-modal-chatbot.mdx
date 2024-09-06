@@ -180,11 +180,12 @@ To make your chatbot multi-modal, let's add the ability to upload and send image
 
 Update your root page (`app/page.tsx`) with the following code:
 
-```tsx filename="app/page.tsx" highlight="4,9-10,18-31,37-47,49-59"
+```tsx filename="app/page.tsx" highlight="4-5,10-11,19-33,39-49,51-61"
 'use client';
 
 import { useChat } from 'ai/react';
 import { useRef, useState } from 'react';
+import Image from "next/image";
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -204,11 +205,12 @@ export default function Chat() {
                 attachment?.contentType?.startsWith('image/'),
               )
               .map((attachment, index) => (
-                <img
+                <Image
                   key={`${m.id}-${index}`}
                   src={attachment.url}
                   width={500}
-                  alt={attachment.name}
+                  height={500}
+                  alt={attachment.name ?? `attachment-${index}`}
                 />
               ))}
           </div>
