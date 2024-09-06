@@ -3,27 +3,21 @@ import {
   streamText,
   experimental_wrapLanguageModel as wrapLanguageModel,
 } from 'ai';
-import dotenv from 'dotenv';
-import { yourRagMiddleware } from './your-rag-middleware';
-
-dotenv.config();
+import 'dotenv/config';
+import { yourLogMiddleware } from './your-log-middleware';
 
 async function main() {
   const result = await streamText({
     model: wrapLanguageModel({
       model: openai('gpt-4o'),
-      middleware: yourRagMiddleware,
+      middleware: yourLogMiddleware,
     }),
     prompt: 'What cities are in the United States?',
   });
 
   for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
+    // consume the stream
   }
-
-  console.log();
-  console.log('Token usage:', await result.usage);
-  console.log('Finish reason:', await result.finishReason);
 }
 
 main().catch(console.error);

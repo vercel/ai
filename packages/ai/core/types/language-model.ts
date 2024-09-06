@@ -10,6 +10,7 @@ export type {
   LanguageModelV1,
   LanguageModelV1CallOptions,
   LanguageModelV1Prompt,
+  LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 
 /**
