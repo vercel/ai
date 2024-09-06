@@ -1,7 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import {
+  streamText,
+  experimental_wrapLanguageModel as wrapLanguageModel,
+} from 'ai';
 import dotenv from 'dotenv';
-import { wrapLanguageModel } from './wrap-language-model';
 import { yourRagMiddleware } from './your-rag-middleware';
 
 dotenv.config();

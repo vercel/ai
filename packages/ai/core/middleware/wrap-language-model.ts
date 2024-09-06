@@ -1,12 +1,12 @@
 import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
-import { LanguageModelV1Middleware } from './language-model-v1-middleware';
+import { Experimental_LanguageModelV1Middleware } from './language-model-v1-middleware';
 
-export const wrapLanguageModel = ({
+export const experimental_wrapLanguageModel = ({
   model,
   middleware: { transformParams, wrapGenerate, wrapStream },
 }: {
   model: LanguageModelV1;
-  middleware: LanguageModelV1Middleware;
+  middleware: Experimental_LanguageModelV1Middleware;
 }): LanguageModelV1 => {
   async function doTransform({
     params,
