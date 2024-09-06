@@ -3,7 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/provider": "latest",
     "@ai-sdk/amazon-bedrock": "latest",
     "@ai-sdk/anthropic": "latest",
     "@ai-sdk/azure": "latest",

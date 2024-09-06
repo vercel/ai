@@ -5,6 +5,12 @@ import {
   LanguageModelV1LogProbs,
 } from '@ai-sdk/provider';
 
+// Re-export LanguageModelV1 types for the middleware:
+export type {
+  LanguageModelV1,
+  LanguageModelV1CallOptions,
+} from '@ai-sdk/provider';
+
 /**
 Language model that is used by the AI SDK Core functions.
 */
