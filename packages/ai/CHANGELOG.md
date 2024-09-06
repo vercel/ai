@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.28
+
+### Patch Changes
+
+- db61c53: feat (ai/core): middleware support
+
 ## 3.3.27
 
 ### Patch Changes
