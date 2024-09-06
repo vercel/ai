@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.57
+
+### Patch Changes
+
+- d1aaeae: feat (provider/openai): support ai sdk image download
+
 ## 0.0.56
 
 ### Patch Changes
