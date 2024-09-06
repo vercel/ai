@@ -57,7 +57,7 @@ describe('user messages', () => {
               mimeType: 'image/png',
               providerMetadata: {
                 openai: {
-                  detail: 'low',
+                  imageDetail: 'low',
                 },
               },
             },
