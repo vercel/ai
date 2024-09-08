@@ -4,6 +4,14 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+async function bufferStream(stream: AsyncIterable<string>): Promise<string> {
+  let chunks: string[] = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+  return chunks.join('');
+}
+
 async function main() {
   const result = await streamText({
     model: openai('gpt-4-turbo'),
@@ -25,9 +33,8 @@ async function main() {
     },
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
+  const fullText = await bufferStream(result.textStream);
+  process.stdout.write(fullText);
 }
 
 main().catch(console.error);
