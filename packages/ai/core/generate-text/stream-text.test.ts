@@ -1291,11 +1291,11 @@ describe('result.pipeDataStreamToResponse', async () => {
 
     await mockResponse.waitForEnd();
 
-    assert.strictEqual(mockResponse.statusCode, 200);
-    assert.deepStrictEqual(mockResponse.headers, {
+    expect(mockResponse.statusCode).toBe(200);
+    expect(mockResponse.headers).toEqual({
       'Content-Type': 'text/plain; charset=utf-8',
     });
-    assert.deepStrictEqual(mockResponse.getDecodedChunks(), [
+    expect(mockResponse.getDecodedChunks()).toEqual([
       '0:"Hello"\n',
       '0:", "\n',
       '0:"world!"\n',
@@ -1336,16 +1336,16 @@ describe('result.pipeDataStreamToResponse', async () => {
 
     await mockResponse.waitForEnd();
 
-    assert.strictEqual(mockResponse.statusCode, 201);
-    // assert.strictEqual(mockResponse.statusMessage, 'foo');
+    expect(mockResponse.statusCode).toBe(201);
+    // expect(mockResponse.statusMessage).toBe('foo');
 
-    expect(mockResponse.headers).toStrictEqual({
+    expect(mockResponse.headers).toEqual({
       'Content-Type': 'text/plain; charset=utf-8',
       // 'x-vercel-ai-data-stream': 'v1',
       'custom-header': 'custom-value',
     });
 
-    assert.deepStrictEqual(mockResponse.getDecodedChunks(), [
+    expect(mockResponse.getDecodedChunks()).toEqual([
       '0:"Hello"\n',
       '0:", "\n',
       '0:"world!"\n',
