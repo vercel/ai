@@ -109,11 +109,16 @@ Additional response information.
 
   @returns A data stream.
 
-  @deprecated Use `toDataStreamResponse` instead.
+  @deprecated Use `toDataStream` instead.
      */
   toAIStream(
     callbacks?: AIStreamCallbacksAndOptions,
   ): ReadableStream<Uint8Array>;
+
+  toDataStream(options?: {
+    data?: StreamData;
+    getErrorMessage?: (error: unknown) => string;
+  }): ReadableStream<Uint8Array>;
 
   /**
   Writes stream data output to a Node.js response-like object.

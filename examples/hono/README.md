@@ -1,4 +1,4 @@
-# Node.js Http Server + Vercel AI SDK Example
+# Hono + Vercel AI SDK Example
 
 ## Usage
 
