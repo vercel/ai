@@ -4,6 +4,7 @@ class MockServerResponse {
   writtenChunks: any[] = [];
   headers = {};
   statusCode = 0;
+  statusMessage = '';
   ended = false;
 
   write(chunk: any): void {
@@ -15,8 +16,13 @@ class MockServerResponse {
     this.ended = true;
   }
 
-  writeHead(statusCode: number, headers: Record<string, string>): void {
+  writeHead(
+    statusCode: number,
+    statusMessage: string,
+    headers: Record<string, string>,
+  ): void {
     this.statusCode = statusCode;
+    this.statusMessage = statusMessage;
     this.headers = headers;
   }
 

@@ -527,28 +527,19 @@ describe('output = "object"', () => {
 
       result.pipeTextStreamToResponse(mockResponse);
 
-      // Wait for the stream to finish writing to the mock response
-      await new Promise(resolve => {
-        const checkIfEnded = () => {
-          if (mockResponse.ended) {
-            resolve(undefined);
-          } else {
-            setImmediate(checkIfEnded);
-          }
-        };
-        checkIfEnded();
-      });
+      await mockResponse.waitForEnd();
 
-      const decoder = new TextDecoder();
-
-      assert.strictEqual(mockResponse.statusCode, 200);
-      assert.deepStrictEqual(mockResponse.headers, {
+      expect(mockResponse.statusCode).toBe(200);
+      expect(mockResponse.headers).toEqual({
         'Content-Type': 'text/plain; charset=utf-8',
       });
-      assert.deepStrictEqual(
-        mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
-        ['{ ', '"content": "Hello, ', 'world', '!"', ' }'],
-      );
+      expect(mockResponse.getDecodedChunks()).toEqual([
+        '{ ',
+        '"content": "Hello, ',
+        'world',
+        '!"',
+        ' }',
+      ]);
     });
   });
 

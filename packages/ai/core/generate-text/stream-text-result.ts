@@ -141,17 +141,9 @@ Additional response information.
   pipeDataStreamToResponse(
     response: ServerResponse,
     init?:
+      | ResponseInit
       | {
-          headers?: Record<string, string>;
-          status?: number;
-          statusMessage?: string;
-        }
-      | {
-          init?: {
-            headers?: Record<string, string>;
-            status?: number;
-            statusMessage?: string;
-          };
+          init?: ResponseInit;
           data?: StreamData;
           getErrorMessage?: (error: unknown) => string;
         },

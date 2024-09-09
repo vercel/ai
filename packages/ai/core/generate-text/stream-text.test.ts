@@ -1294,6 +1294,7 @@ describe('result.pipeDataStreamToResponse', async () => {
     expect(mockResponse.statusCode).toBe(200);
     expect(mockResponse.headers).toEqual({
       'Content-Type': 'text/plain; charset=utf-8',
+      'X-Vercel-AI-Data-Stream': 'v1',
     });
     expect(mockResponse.getDecodedChunks()).toEqual([
       '0:"Hello"\n',
@@ -1328,7 +1329,7 @@ describe('result.pipeDataStreamToResponse', async () => {
 
     result.pipeDataStreamToResponse(mockResponse, {
       status: 201,
-      statusMessage: 'foo',
+      statusText: 'foo',
       headers: {
         'custom-header': 'custom-value',
       },
@@ -1337,11 +1338,11 @@ describe('result.pipeDataStreamToResponse', async () => {
     await mockResponse.waitForEnd();
 
     expect(mockResponse.statusCode).toBe(201);
-    // expect(mockResponse.statusMessage).toBe('foo');
+    expect(mockResponse.statusMessage).toBe('foo');
 
     expect(mockResponse.headers).toEqual({
       'Content-Type': 'text/plain; charset=utf-8',
-      // 'x-vercel-ai-data-stream': 'v1',
+      'X-Vercel-AI-Data-Stream': 'v1',
       'custom-header': 'custom-value',
     });
 
@@ -1467,28 +1468,13 @@ describe('result.pipeTextStreamToResponse', async () => {
 
     result.pipeTextStreamToResponse(mockResponse);
 
-    // Wait for the stream to finish writing to the mock response
-    await new Promise(resolve => {
-      const checkIfEnded = () => {
-        if (mockResponse.ended) {
-          resolve(undefined);
-        } else {
-          setImmediate(checkIfEnded);
-        }
-      };
-      checkIfEnded();
-    });
+    await mockResponse.waitForEnd();
 
-    const decoder = new TextDecoder();
-
-    assert.strictEqual(mockResponse.statusCode, 200);
-    assert.deepStrictEqual(mockResponse.headers, {
+    expect(mockResponse.statusCode).toBe(200);
+    expect(mockResponse.headers).toEqual({
       'Content-Type': 'text/plain; charset=utf-8',
     });
-    assert.deepStrictEqual(
-      mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
-      ['Hello', ', ', 'world!'],
-    );
+    expect(mockResponse.getDecodedChunks()).toEqual(['Hello', ', ', 'world!']);
   });
 });
 

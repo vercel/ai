@@ -52,6 +52,7 @@ import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
 
@@ -1034,14 +1035,15 @@ However, the LLM results are expected to be small enough to not cause issues.
     return this.pipeDataStreamToResponse(response, init);
   }
 
-  pipeDataStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ) {
-    response.writeHead(init?.status ?? 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      ...init?.headers,
-    });
+  pipeDataStreamToResponse(response: ServerResponse, init?: ResponseInit) {
+    response.writeHead(
+      init?.status ?? 200,
+      init?.statusText,
+      prepareOutgoingHttpHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+        dataStreamVersion: 'v1',
+      }),
+    );
 
     const reader = this.toDataStream().getReader();
 
@@ -1066,10 +1068,13 @@ However, the LLM results are expected to be small enough to not cause issues.
     response: ServerResponse,
     init?: { headers?: Record<string, string>; status?: number },
   ) {
-    response.writeHead(init?.status ?? 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      ...init?.headers,
-    });
+    response.writeHead(
+      init?.status ?? 200,
+      undefined,
+      prepareOutgoingHttpHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
+    );
 
     const reader = this.textStream
       .pipeThrough(new TextEncoderStream())

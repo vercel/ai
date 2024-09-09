@@ -50,6 +50,7 @@ import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', length: 24 });
 
@@ -963,10 +964,13 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     response: ServerResponse,
     init?: { headers?: Record<string, string>; status?: number },
   ) {
-    response.writeHead(init?.status ?? 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      ...init?.headers,
-    });
+    response.writeHead(
+      init?.status ?? 200,
+      undefined,
+      prepareOutgoingHttpHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
+    );
 
     const reader = this.textStream
       .pipeThrough(new TextEncoderStream())
