@@ -9,8 +9,8 @@ createServer(async (req, res) => {
   data.append('initialized call');
 
   const result = await streamText({
-    model: openai('gpt-4-turbo'),
-    prompt: 'What is the weather in San Francisco?',
+    model: openai('gpt-4o'),
+    prompt: 'Invent a new holiday and describe its traditions.',
     onFinish() {
       data.append('call completed');
       data.close();
