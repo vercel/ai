@@ -52,6 +52,8 @@ import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
+import { writeToServerResponse } from '../util/write-to-server-response';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
 
@@ -1036,60 +1038,64 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   pipeDataStreamToResponse(
     response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
+    options?:
+      | ResponseInit
+      | {
+          init?: ResponseInit;
+          data?: StreamData;
+          getErrorMessage?: (error: unknown) => string;
+        },
   ) {
-    response.writeHead(init?.status ?? 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      ...init?.headers,
+    const init: ResponseInit | undefined =
+      options == null
+        ? undefined
+        : 'init' in options
+        ? options.init
+        : {
+            headers: 'headers' in options ? options.headers : undefined,
+            status: 'status' in options ? options.status : undefined,
+            statusText:
+              'statusText' in options ? options.statusText : undefined,
+          };
+
+    const data: StreamData | undefined =
+      options == null
+        ? undefined
+        : 'data' in options
+        ? options.data
+        : undefined;
+
+    const getErrorMessage: ((error: unknown) => string) | undefined =
+      options == null
+        ? undefined
+        : 'getErrorMessage' in options
+        ? options.getErrorMessage
+        : undefined;
+
+    writeToServerResponse({
+      response,
+      status: init?.status,
+      statusText: init?.statusText,
+      headers: prepareOutgoingHttpHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+        dataStreamVersion: 'v1',
+      }),
+      stream: data
+        ? mergeStreams(data.stream, this.toDataStream({ getErrorMessage }))
+        : this.toDataStream({ getErrorMessage }),
     });
-
-    const reader = this.toDataStream().getReader();
-
-    const read = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          response.write(value);
-        }
-      } catch (error) {
-        throw error;
-      } finally {
-        response.end();
-      }
-    };
-
-    read();
   }
 
-  pipeTextStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ) {
-    response.writeHead(init?.status ?? 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      ...init?.headers,
+  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
+    writeToServerResponse({
+      response,
+      status: init?.status,
+      statusText: init?.statusText,
+      headers: prepareOutgoingHttpHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
+      stream: this.textStream.pipeThrough(new TextEncoderStream()),
     });
-
-    const reader = this.textStream
-      .pipeThrough(new TextEncoderStream())
-      .getReader();
-
-    const read = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          response.write(value);
-        }
-      } catch (error) {
-        throw error;
-      } finally {
-        response.end();
-      }
-    };
-
-    read();
   }
 
   toAIStreamResponse(

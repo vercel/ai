@@ -5,6 +5,11 @@ description: Learn to use streamToResponse helper function in your application.
 
 # `streamToResponse`
 
+<Note type="warning">
+  `streamToResponse` is deprecated. Use `pipeDataStreamToResponse` from
+  [streamText](/docs/reference/ai-sdk-core/stream-text) instead.
+</Note>
+
 `streamToResponse` pipes an AI stream to a Node.js `ServerResponse` object and sets the status code and headers.
 
 This is useful to create AI stream responses in environments that use `ServerResponse` objects, such as Node.js HTTP servers.
@@ -13,8 +18,6 @@ The status code and headers can be configured using the `options` parameter.
 By default, the status code is set to 200 and the Content-Type header is set to `text/plain; charset=utf-8`.
 
 ## Import
-
-### React
 
 <Snippet text={`import { streamToResponse } from "ai"`} prompt={false} />
 
