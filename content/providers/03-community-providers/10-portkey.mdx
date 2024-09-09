@@ -30,11 +30,11 @@ Sign up for Portkey, get your API key, and configure the Portkey provider in you
 import { createPortkey } from '@portkey-ai/vercel-provider';
 
 const portkeyConfig = {
-  provider: "openai", // Choose your provider (e.g., 'anthropic', 'aws-bedrock')
-  api_key: "OPENAI_API_KEY",
+  provider: 'openai', // Choose your provider (e.g., 'anthropic', 'aws-bedrock')
+  api_key: 'OPENAI_API_KEY',
   override_params: {
-    model: "gpt-4o"
-  }
+    model: 'gpt-4o',
+  },
 };
 
 const portkey = createPortkey({
@@ -56,11 +56,11 @@ import { createPortkey } from '@portkey-ai/vercel-provider';
 import { generateText } from 'ai';
 
 const portkeyConfig = {
-  provider: "openai",
-  api_key: "OPENAI_API_KEY",
+  provider: 'openai',
+  api_key: 'OPENAI_API_KEY',
   override_params: {
-    model: "gpt-4"
-  }
+    model: 'gpt-4',
+  },
 };
 
 const portkey = createPortkey({
@@ -70,7 +70,7 @@ const portkey = createPortkey({
 
 const { text } = await generateText({
   model: portkey.chatModel(''), // Provide an empty string, we defined the model in the config
-  prompt: 'What is Portkey?', 
+  prompt: 'What is Portkey?',
 });
 
 console.log(text);
@@ -83,11 +83,11 @@ import { createPortkey } from '@portkey-ai/vercel-provider';
 import { streamText } from 'ai';
 
 const portkeyConfig = {
-  provider: "openai",
-  api_key: "OPENAI_API_KEY",
+  provider: 'openai',
+  api_key: 'OPENAI_API_KEY',
   override_params: {
-    model: "gpt-4"
-  }
+    model: 'gpt-4',
+  },
 };
 
 const portkey = createPortkey({
@@ -107,11 +107,11 @@ for await (const chunk of result) {
 
 ## Portkey's `chatModel` & `completionModel`
 
-Portkey supports `chatModel` and `completionModel` to easily handle chatbots or text completions. In the above examples, we used `portkey.chatModel` for  generateText and `portkey.completionModel` for streamText.
+Portkey supports `chatModel` and `completionModel` to easily handle chatbots or text completions. In the above examples, we used `portkey.chatModel` for generateText and `portkey.completionModel` for streamText.
 
 ## Tool Calling with Portkey
-Portkey suppports Tool calling with Vercel AI SDK. Here's how-
 
+Portkey suppports Tool calling with Vercel AI SDK. Here's how-
 
 ```typescript
 import { z } from 'zod';
@@ -149,11 +149,11 @@ Here's how you'd use OpenAI with Portkey's Vercel integration:
 
 ```javascript
 const portkeyConfig = {
-  provider: "openai",
-  api_key: "OPENAI_API_KEY",
+  provider: 'openai',
+  api_key: 'OPENAI_API_KEY',
   override_params: {
-    model: "gpt-4"
-  }
+    model: 'gpt-4',
+  },
 };
 ```
 
@@ -161,13 +161,14 @@ To switch to Anthropic, change your provider slug to `anthropic` and enter your 
 
 ```javascript
 const portkeyConfig = {
-  provider: "anthropic",
-  api_key: "Anthropic_API_KEY",
+  provider: 'anthropic',
+  api_key: 'Anthropic_API_KEY',
   override_params: {
-    model: "claude-3-sonnet-20240229"
-  }
+    model: 'claude-3-sonnet-20240229',
+  },
 };
 ```
+
 Here is is the list of (supported LLMs)[https://docs.portkey.ai/docs/integrations/llms]
 
 ## Observability
@@ -183,6 +184,7 @@ Portkey's OpenTelemetry-compliant observability suite gives you complete control
 Portkey enhances the robustness of your AI applications with built-in features such as caching, fallback mechanisms, load balancing, conditional routing, and request timeouts.
 
 Here's how you can modify your config to include the following Portkey features:
+
 - Fallback
 - Caching
 - Conditional routing
@@ -193,23 +195,24 @@ import { generateText } from 'ai';
 
 const portkeyConfig = {
   strategy: {
-    mode: "fallback"
+    mode: 'fallback',
   },
   targets: [
-    {   
-provider: "anthropic",
-api_key: "Anthropic_API_KEY",
-override_params: {
-  model: "claude-3-sonnet-20240229"
-  } },
-    {  
-provider: "openai",
-api_key: "OPENAI_API_KEY",
-override_params: {
-    model: "gpt-4o"
-  }
-}
-  ]
+    {
+      provider: 'anthropic',
+      api_key: 'Anthropic_API_KEY',
+      override_params: {
+        model: 'claude-3-sonnet-20240229',
+      },
+    },
+    {
+      provider: 'openai',
+      api_key: 'OPENAI_API_KEY',
+      override_params: {
+        model: 'gpt-4o',
+      },
+    },
+  ],
 };
 
 const portkey = createPortkey({
@@ -229,7 +232,7 @@ Learn more about Portkey's AI gateway features in detail [here](https://docs.por
 
 ## Guardrails
 
-Portkey Guardrails allow you to enforce LLM behavior in real-time, verifying both inputs and outputs against specified checks. 
+Portkey Guardrails allow you to enforce LLM behavior in real-time, verifying both inputs and outputs against specified checks.
 
 You can create Guardrail checks in the UI and then pass them in your Portkey Configs with before-request or after-request hooks.
 
@@ -238,7 +241,6 @@ Read more about Guardrails [here](https://docs.portkey.ai/docs/product/guardrail
 ## Security and Compliance
 
 Set budget limits on provider API keys and implement fine-grained user roles and permissions for both your application and the Portkey APIs.
-
 
 ## Advanced Configuration
 
@@ -251,7 +253,6 @@ The `portkeyConfig` object supports various options:
 - `targets`: Specifies multiple providers for fallback or load balancing
 - `override_params`: Allows overriding default parameters- model, top_p, top_k, etc.
 
-
 For a complete list of options, refer to the [Portkey documentation](https://docs.portkey.ai/docs/product/ai-gateway/configs).
 
 ## Additional Resources
@@ -260,4 +261,3 @@ For a complete list of options, refer to the [Portkey documentation](https://doc
 - [🐦 Twitter](https://twitter.com/portkeyai)
 - [💬 Discord Community](https://discord.gg/JHPt4C7r)
 - [📊 Portkey App](https://app.portkey.ai)
-
