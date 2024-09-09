@@ -1263,8 +1263,6 @@ describe('result.toAIStream', () => {
 
 describe('result.pipeDataStreamToResponse', async () => {
   it('should write data stream parts to a Node.js response-like object', async () => {
-    const mockResponse = createMockServerResponse();
-
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async () => {
@@ -1287,6 +1285,8 @@ describe('result.pipeDataStreamToResponse', async () => {
       prompt: 'test-input',
     });
 
+    const mockResponse = createMockServerResponse();
+
     result.pipeDataStreamToResponse(mockResponse);
 
     await mockResponse.waitForEnd();
@@ -1305,8 +1305,6 @@ describe('result.pipeDataStreamToResponse', async () => {
   });
 
   it('should create a Response with a data stream and custom headers', async () => {
-    const mockResponse = createMockServerResponse();
-
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async () => ({
@@ -1325,6 +1323,8 @@ describe('result.pipeDataStreamToResponse', async () => {
       }),
       prompt: 'test-input',
     });
+
+    const mockResponse = createMockServerResponse();
 
     result.pipeDataStreamToResponse(mockResponse, {
       status: 201,
