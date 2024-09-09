@@ -132,15 +132,14 @@ Additional response information.
 
   /**
   Writes data stream output to a Node.js response-like object.
-  It sets a `Content-Type` header to `text/plain; charset=utf-8` and
-  writes each data stream part as a separate chunk.
 
   @param response A Node.js response-like object (ServerResponse).
-  @param init Optional headers and status code.
+  @param options An object with an init property (ResponseInit) and a data property.
+  You can also pass in a ResponseInit directly (deprecated).
      */
   pipeDataStreamToResponse(
     response: ServerResponse,
-    init?:
+    options?:
       | ResponseInit
       | {
           init?: ResponseInit;
