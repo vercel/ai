@@ -5,12 +5,20 @@ description: Portkey Provider for the AI SDK
 
 # Portkey Provider
 
-[Portkey](https://portkey.ai/) is an AI Gateway that allows developers to connect to many AI models with a single AI SDK provider.
-Portkey also brings in observability, caching, and other features that are useful for building production-grade AI applications.
+[Portkey](https://portkey.ai/?utm_source=vercel&utm_medium=docs&utm_campaign=integration) natively integrates with the Vercel AI SDK to make your apps production-ready and reliable. Import Portkey's Vercel package and use it as a provider in your Vercel AI app to enable all of Portkey's features:
+
+- Full-stack **observability** and **tracing** for all requests
+- Interoperability across **250+ LLMs**
+- Built-in **50+** state-of-the-art guardrails
+- Simple & semantic **caching** to save costs & time
+- Conditional request routing with fallbacks, load-balancing, automatic retries, and more
+- Continuous improvement based on user feedback
+
+Learn more at [Portkey docs for Vercel AI SDK](https://docs.portkey.ai/docs/integrations/libraries/vercel)
 
 ## Setup
 
-The Portkey provider is available in the `@portkey-ai/vercel-provider` module. You can install it with
+The Portkey provider is available in the `@portkey-ai/vercel-provider` module. You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
@@ -26,72 +34,106 @@ The Portkey provider is available in the `@portkey-ai/vercel-provider` module. Y
 
 ## Provider Instance
 
-You can create the Portkey provider instance using `portkey`:
+To create a Portkey provider instance, use the `createPortkey` function:
 
-```ts
-import { portkey } from '@portkey-ai/vercel-provider';
-```
+```typescript
+import { createPortkey } from '@portkey-ai/vercel-provider';
 
-If you need a customized setup, you can import `createPortkey` from `@portkey-ai/vercel-provider`:
-
-```ts
-import { createPortkey } from '@ai-sdk/portkey';
+const portkeyConfig = {
+  provider: 'openai', //enter provider of choice
+  api_key: 'OPENAI_API_KEY', //enter the respective provider's api key
+  override_params: {
+    model: 'gpt-4', //choose from 250+ LLMs
+  },
+};
 
 const portkey = createPortkey({
-  apiKey: process.ENV.PORTKEY_API_KEY,
-  config: process.PORTKEY_CONFIG_ID,
+  apiKey: 'YOUR_PORTKEY_API_KEY',
+  config: portkeyConfig,
 });
 ```
+
+You can find your Portkey API key in the [Portkey Dashboard](https://app.portkey.ai).
 
 ## Language Models
 
-The **[Portkey provider](https://sdk.vercel.ai/providers/community-providers/portkey)** for the AI SDK
-contains language model support for the Portkey chat and completion APIs.
+Portkey supports both chat and completion models. Use `portkey.chatModel()` for chat models and `portkey.completionModel()` for completion models:
 
-### Example
-
-```ts
-import { portkey } from '@portkey-ai/vercel-provider';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: portkey('gpt-4-turbo'),
-  prompt: 'What is a portkey?',
-});
+```typescript
+const chatModel = portkey.chatModel('');
+const completionModel = portkey.completionModel('');
 ```
 
-For more examples, please refer to the [Portkey documentation](https://docs.portkey.ai/docs/integrations/libraries/vercel).
+Note: You can provide an empty string as the model name if you've defined it in the `portkeyConfig`.
 
-### Supported Portkey providers
+## Examples
 
-| Provider              | Portkey Prompts     | Chat                | Chat - Vision       | Chat - Tools        | Completions         | Images              | Audio               | Fine-tuning         | Batch               | Files               | Moderations         | Assistants          |
-| --------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| AI21                  | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Anthropic             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Anyscale              | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Azure OpenAI          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| AWS Bedrock           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Cohere                | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Deepinfra             | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Fireworks AI          | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Google Vertex AI      | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Google Gemini         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Groq                  | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Jina                  | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Lingyi (01.ai)        | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Mistral AI            | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Monster API           | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Moonshot.cn           | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Nomic AI              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Novita AI             | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Ollama                | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| OpenAI                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Openrouter            | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Perplexity AI         | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Predibase             | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Reka AI               | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Segmind               | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Stability AI          | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Together AI           | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Cloudflare Workers AI | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| Zhipu AI              | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+You can use Portkey language models with the `generateText` or `streamText` function:
+
+### `generateText`
+
+```javascript
+import { createPortkey } from '@portkey-ai/vercel-provider';
+import { generateText } from 'ai';
+
+const portkey = createPortkey({
+  apiKey: 'YOUR_PORTKEY_API_KEY',
+  config: portkeyConfig,
+});
+
+const { text } = await generateText({
+  model: portkey.chatModel(''),
+  prompt: 'What is Portkey?',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```javascript
+import { createPortkey } from '@portkey-ai/vercel-provider';
+import { streamText } from 'ai';
+
+const portkey = createPortkey({
+  apiKey: 'YOUR_PORTKEY_API_KEY',
+  config: portkeyConfig,
+});
+
+const result = await streamText({
+  model: portkey.completionModel(''),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+
+for await (const chunk of result) {
+  console.log(chunk);
+}
+```
+
+Note:
+
+- Portkey supports `Tool` use with Vercel AI SDK
+- `generatObject` and `streamObject` are currently not supported.
+
+## Advanced Features
+
+Portkey offers several advanced features to enhance your AI applications:
+
+1. **Interoperability**: Easily switch between 250+ AI models by changing the provider and model name in your configuration.
+
+2. **Observability**: Access comprehensive analytics and logs for all your requests.
+
+3. **Reliability**: Implement caching, fallbacks, load balancing, and conditional routing.
+
+4. **Guardrails**: Enforce LLM behavior in real-time with input and output checks.
+
+5. **Security and Compliance**: Set budget limits and implement fine-grained user roles and permissions.
+
+For detailed information on these features and advanced configuration options, please refer to the [Portkey documentation](https://docs.portkey.ai/docs/integrations/libraries/vercel).
+
+## Additional Resources
+
+- [Portkey Documentation](https://docs.portkey.ai/docs/integrations/libraries/vercel)
+- [Twitter](https://twitter.com/portkeyai)
+- [Discord Community](https://discord.gg/JHPt4C7r)
+- [Portkey Dashboard](https://app.portkey.ai)
