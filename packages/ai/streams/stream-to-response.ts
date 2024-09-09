@@ -4,6 +4,8 @@ import { mergeStreams } from '../core/util/merge-streams';
 
 /**
  * A utility function to stream a ReadableStream to a Node.js response-like object.
+ *
+ * @deprecated Use `pipeDataStreamToResponse` (part of `StreamTextResult`) instead.
  */
 export function streamToResponse(
   res: ReadableStream,
