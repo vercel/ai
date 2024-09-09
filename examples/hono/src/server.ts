@@ -22,6 +22,10 @@ app.post('/', async c =>
       },
     });
 
+    // Mark the response as a v1 data stream:
+    c.header('X-Vercel-AI-Data-Stream', 'v1');
+    c.header('Content-Type', 'text/plain; charset=utf-8');
+
     await stream.pipe(result.toDataStream({ data }));
   }),
 );
