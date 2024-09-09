@@ -1355,95 +1355,107 @@ describe('result.pipeDataStreamToResponse', async () => {
     ]);
   });
 
-  // it('should support merging with existing stream data', async () => {
-  //   const result = await streamText({
-  //     model: new MockLanguageModelV1({
-  //       doStream: async () => ({
-  //         stream: convertArrayToReadableStream([
-  //           { type: 'text-delta', textDelta: 'Hello' },
-  //           { type: 'text-delta', textDelta: ', ' },
-  //           { type: 'text-delta', textDelta: 'world!' },
-  //           {
-  //             type: 'finish',
-  //             finishReason: 'stop',
-  //             usage: { promptTokens: 3, completionTokens: 10 },
-  //           },
-  //         ]),
-  //         rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-  //       }),
-  //     }),
-  //     prompt: 'test-input',
-  //   });
+  it('should support merging with existing stream data', async () => {
+    const mockResponse = createMockServerResponse();
 
-  //   const streamData = new StreamData();
-  //   streamData.append('stream-data-value');
-  //   streamData.close();
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
 
-  //   const response = result.toDataStreamResponse({ data: streamData });
+    const streamData = new StreamData();
+    streamData.append('stream-data-value');
+    streamData.close();
 
-  //   assert.strictEqual(response.status, 200);
-  //   assert.strictEqual(
-  //     response.headers.get('Content-Type'),
-  //     'text/plain; charset=utf-8',
-  //   );
+    result.pipeDataStreamToResponse(mockResponse, {
+      data: streamData,
+    });
 
-  //   const chunks = await convertResponseStreamToArray(response);
+    await mockResponse.waitForEnd();
 
-  //   assert.deepStrictEqual(chunks, [
-  //     '2:["stream-data-value"]\n',
-  //     '0:"Hello"\n',
-  //     '0:", "\n',
-  //     '0:"world!"\n',
-  //     'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-  //     'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-  //   ]);
-  // });
+    expect(mockResponse.statusCode).toBe(200);
+    expect(mockResponse.headers).toEqual({
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Vercel-AI-Data-Stream': 'v1',
+    });
 
-  // it('should mask error messages by default', async () => {
-  //   const result = await streamText({
-  //     model: new MockLanguageModelV1({
-  //       doStream: async () => ({
-  //         stream: convertArrayToReadableStream([
-  //           { type: 'error', error: 'error' },
-  //         ]),
-  //         rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-  //       }),
-  //     }),
-  //     prompt: 'test-input',
-  //   });
+    expect(mockResponse.getDecodedChunks()).toEqual([
+      '2:["stream-data-value"]\n',
+      '0:"Hello"\n',
+      '0:", "\n',
+      '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+    ]);
+  });
 
-  //   const response = result.toDataStreamResponse();
+  it('should mask error messages by default', async () => {
+    const mockResponse = createMockServerResponse();
 
-  //   assert.deepStrictEqual(await convertResponseStreamToArray(response), [
-  //     '3:""\n',
-  //     'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-  //     'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-  //   ]);
-  // });
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
 
-  // it('should support custom error messages', async () => {
-  //   const result = await streamText({
-  //     model: new MockLanguageModelV1({
-  //       doStream: async () => ({
-  //         stream: convertArrayToReadableStream([
-  //           { type: 'error', error: 'error' },
-  //         ]),
-  //         rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-  //       }),
-  //     }),
-  //     prompt: 'test-input',
-  //   });
+    result.pipeDataStreamToResponse(mockResponse);
 
-  //   const response = result.toDataStreamResponse({
-  //     getErrorMessage: error => `custom error message: ${error}`,
-  //   });
+    await mockResponse.waitForEnd();
 
-  //   assert.deepStrictEqual(await convertResponseStreamToArray(response), [
-  //     '3:"custom error message: error"\n',
-  //     'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-  //     'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-  //   ]);
-  // });
+    expect(mockResponse.getDecodedChunks()).toEqual([
+      '3:""\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+    ]);
+  });
+
+  it('should support custom error messages', async () => {
+    const mockResponse = createMockServerResponse();
+
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    result.pipeDataStreamToResponse(mockResponse, {
+      getErrorMessage: error => `custom error message: ${error}`,
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.getDecodedChunks()).toEqual([
+      '3:"custom error message: error"\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+    ]);
+  });
 });
 
 describe('result.pipeTextStreamToResponse', async () => {

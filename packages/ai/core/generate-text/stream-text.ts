@@ -1035,7 +1035,42 @@ However, the LLM results are expected to be small enough to not cause issues.
     return this.pipeDataStreamToResponse(response, init);
   }
 
-  pipeDataStreamToResponse(response: ServerResponse, init?: ResponseInit) {
+  pipeDataStreamToResponse(
+    response: ServerResponse,
+    options?:
+      | ResponseInit
+      | {
+          init?: ResponseInit;
+          data?: StreamData;
+          getErrorMessage?: (error: unknown) => string;
+        },
+  ) {
+    const init: ResponseInit | undefined =
+      options == null
+        ? undefined
+        : 'init' in options
+        ? options.init
+        : {
+            headers: 'headers' in options ? options.headers : undefined,
+            status: 'status' in options ? options.status : undefined,
+            statusText:
+              'statusText' in options ? options.statusText : undefined,
+          };
+
+    const data: StreamData | undefined =
+      options == null
+        ? undefined
+        : 'data' in options
+        ? options.data
+        : undefined;
+
+    const getErrorMessage: ((error: unknown) => string) | undefined =
+      options == null
+        ? undefined
+        : 'getErrorMessage' in options
+        ? options.getErrorMessage
+        : undefined;
+
     response.writeHead(
       init?.status ?? 200,
       init?.statusText,
@@ -1045,7 +1080,11 @@ However, the LLM results are expected to be small enough to not cause issues.
       }),
     );
 
-    const reader = this.toDataStream().getReader();
+    const stream = data
+      ? mergeStreams(data.stream, this.toDataStream({ getErrorMessage }))
+      : this.toDataStream({ getErrorMessage });
+
+    const reader = stream.getReader();
 
     const read = async () => {
       try {
