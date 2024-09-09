@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.30
+
+### Patch Changes
+
+- 6ee1f8e: feat (ai/core): add toDataStream to streamText result
+
 ## 3.3.29
 
 ### Patch Changes
