@@ -1289,34 +1289,19 @@ describe('result.pipeDataStreamToResponse', async () => {
 
     result.pipeDataStreamToResponse(mockResponse);
 
-    // Wait for the stream to finish writing to the mock response
-    await new Promise(resolve => {
-      const checkIfEnded = () => {
-        if (mockResponse.ended) {
-          resolve(undefined);
-        } else {
-          setImmediate(checkIfEnded);
-        }
-      };
-      checkIfEnded();
-    });
-
-    const decoder = new TextDecoder();
+    await mockResponse.waitForEnd();
 
     assert.strictEqual(mockResponse.statusCode, 200);
     assert.deepStrictEqual(mockResponse.headers, {
       'Content-Type': 'text/plain; charset=utf-8',
     });
-    assert.deepStrictEqual(
-      mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
-      [
-        '0:"Hello"\n',
-        '0:", "\n',
-        '0:"world!"\n',
-        'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-        'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      ],
-    );
+    assert.deepStrictEqual(mockResponse.getDecodedChunks(), [
+      '0:"Hello"\n',
+      '0:", "\n',
+      '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+    ]);
   });
 
   it('should create a Response with a data stream and custom headers', async () => {
@@ -1349,19 +1334,7 @@ describe('result.pipeDataStreamToResponse', async () => {
       },
     });
 
-    // Wait for the stream to finish writing to the mock response
-    await new Promise(resolve => {
-      const checkIfEnded = () => {
-        if (mockResponse.ended) {
-          resolve(undefined);
-        } else {
-          setImmediate(checkIfEnded);
-        }
-      };
-      checkIfEnded();
-    });
-
-    const decoder = new TextDecoder();
+    await mockResponse.waitForEnd();
 
     assert.strictEqual(mockResponse.statusCode, 201);
     // assert.strictEqual(mockResponse.statusMessage, 'foo');
@@ -1372,16 +1345,13 @@ describe('result.pipeDataStreamToResponse', async () => {
       'custom-header': 'custom-value',
     });
 
-    assert.deepStrictEqual(
-      mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
-      [
-        '0:"Hello"\n',
-        '0:", "\n',
-        '0:"world!"\n',
-        'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-        'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      ],
-    );
+    assert.deepStrictEqual(mockResponse.getDecodedChunks(), [
+      '0:"Hello"\n',
+      '0:", "\n',
+      '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+    ]);
   });
 
   // it('should support merging with existing stream data', async () => {

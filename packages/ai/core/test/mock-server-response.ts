@@ -24,6 +24,30 @@ class MockServerResponse {
     // Combine all written chunks into a single string
     return this.writtenChunks.join('');
   }
+
+  /**
+   * Get the decoded chunks as strings.
+   */
+  getDecodedChunks() {
+    const decoder = new TextDecoder();
+    return this.writtenChunks.map(chunk => decoder.decode(chunk));
+  }
+
+  /**
+   * Wait for the stream to finish writing to the mock response.
+   */
+  async waitForEnd() {
+    await new Promise(resolve => {
+      const checkIfEnded = () => {
+        if (this.ended) {
+          resolve(undefined);
+        } else {
+          setImmediate(checkIfEnded);
+        }
+      };
+      checkIfEnded();
+    });
+  }
 }
 
 export function createMockServerResponse(): ServerResponse &
