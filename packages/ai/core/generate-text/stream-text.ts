@@ -1088,12 +1088,12 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
     writeToServerResponse({
+      response,
       status: init?.status,
       statusText: init?.statusText,
       headers: prepareOutgoingHttpHeaders(init, {
         contentType: 'text/plain; charset=utf-8',
       }),
-      response,
       stream: this.textStream.pipeThrough(new TextEncoderStream()),
     });
   }
