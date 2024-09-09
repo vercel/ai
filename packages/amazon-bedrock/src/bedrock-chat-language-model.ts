@@ -123,6 +123,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         stopSequences,
       },
       messages,
+      guardrailConfig: this.settings.guardrailConfig,
     };
 
     switch (type) {

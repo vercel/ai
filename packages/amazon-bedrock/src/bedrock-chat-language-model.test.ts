@@ -149,6 +149,39 @@ describe('doGenerate', () => {
     ).toBe(1);
   });
 
+  it('should pass guardrailConfig in settings, accepting GuardrailConfiguration', async () => {
+    bedrockMock.on(ConverseCommand).resolves({
+      output: {
+        message: { role: 'assistant', content: [{ text: 'Testing' }] },
+      },
+    });
+
+    await provider('amazon.titan-tg1-large', {
+      guardrailConfig: {
+        guardrailIdentifier: '-1',
+        guardrailVersion: '1',
+        trace: 'enabled',
+      },
+    }).doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      bedrockMock.commandCalls(ConverseCommand, {
+        modelId: 'amazon.titan-tg1-large',
+        messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+        system: [{ text: 'System Prompt' }],
+        guardrailConfig: {
+          guardrailIdentifier: '-1',
+          guardrailVersion: '1',
+          trace: 'enabled',
+        },
+      }).length,
+    ).toBe(1);
+  });
+
   it('should pass tool specification in object-tool mode', async () => {
     bedrockMock.on(ConverseCommand).resolves({
       output: {
@@ -389,6 +422,39 @@ describe('doStream', () => {
       bedrockMock.commandCalls(ConverseStreamCommand, {
         modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
         messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+      }).length,
+    ).toBe(1);
+  });
+
+  it('should pass guardrailConfig in settings, accepting GuardrailStreamConfiguration', async () => {
+    bedrockMock.on(ConverseStreamCommand).resolves({
+      stream: convertArrayToAsyncIterable([]),
+    });
+
+    await provider('amazon.titan-tg1-large', {
+      guardrailConfig: {
+        guardrailIdentifier: '-1',
+        guardrailVersion: '1',
+        trace: 'enabled',
+        streamProcessingMode: 'async',
+      },
+    }).doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      bedrockMock.commandCalls(ConverseStreamCommand, {
+        modelId: 'amazon.titan-tg1-large',
+        messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+        system: [{ text: 'System Prompt' }],
+        guardrailConfig: {
+          guardrailIdentifier: '-1',
+          guardrailVersion: '1',
+          trace: 'enabled',
+          streamProcessingMode: 'async',
+        },
       }).length,
     ).toBe(1);
   });
