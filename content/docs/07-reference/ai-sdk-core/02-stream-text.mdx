@@ -1232,6 +1232,31 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(init?: ResponseInit) => Response',
       description:
         'Creates a simple text stream response. Each text delta is encoded as UTF-8 and sent as a separate chunk. Non-text-delta events are ignored.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              optional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              optional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              optional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
     },
   ]}
 />
