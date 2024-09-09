@@ -32,10 +32,10 @@ To create a Portkey provider instance, use the `createPortkey` function:
 import { createPortkey } from '@portkey-ai/vercel-provider';
 
 const portkeyConfig = {
-  provider: 'openai',
-  api_key: 'OPENAI_API_KEY',
+  provider: 'openai', //enter provider of choice
+  api_key: 'OPENAI_API_KEY', //enter the respective provider's api key
   override_params: {
-    model: 'gpt-4',
+    model: 'gpt-4', //choose from 250+ LLMs
   },
 };
 
@@ -103,7 +103,7 @@ for await (const chunk of result) {
 ```
 
 Note: 
-- Portkey supports Tool use with Vercel AI SDK
+- Portkey supports `Tool` use with Vercel AI SDK
 - `generatObject` and `streamObject` are currently not supported.
 
 ## Advanced Features
