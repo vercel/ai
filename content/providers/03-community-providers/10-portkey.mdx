@@ -20,15 +20,23 @@ Learn more at [Portkey docs for Vercel AI SDK](https://docs.portkey.ai/docs/inte
 
 The Portkey provider is available in the `@portkey-ai/vercel-provider` module. You can install it with:
 
-```bash
-npm install @portkey-ai/vercel-provider
-```
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @portkey-ai/vercel-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @portkey-ai/vercel-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @portkey-ai/vercel-provider" dark />
+  </Tab>
+</Tabs>
 
 ## Provider Instance
 
 To create a Portkey provider instance, use the `createPortkey` function:
 
-```javascript
+```typescript
 import { createPortkey } from '@portkey-ai/vercel-provider';
 
 const portkeyConfig = {
@@ -51,7 +59,7 @@ You can find your Portkey API key in the [Portkey Dashboard](https://app.portkey
 
 Portkey supports both chat and completion models. Use `portkey.chatModel()` for chat models and `portkey.completionModel()` for completion models:
 
-```javascript
+```typescript
 const chatModel = portkey.chatModel('');
 const completionModel = portkey.completionModel('');
 ```
