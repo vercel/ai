@@ -85,6 +85,14 @@ const { text, roundtrips } = await generateText({
 });
 ```
 
+In the above example, there is a single roundtrip:
+
+1. **Call 1**: The prompt is sent to the model.
+1. The model generates a tool call.
+1. The tool call is executed.
+1. **Call 2 (Roundtrip)**: the model is called again, this time with the tool result.
+1. The model generates a response considering the tool result.
+
 To access intermediate tool calls and results, you can use the `roundTrips` property in the result object.
 It contains all the text, tool calls, tool results, and more from each roundtrip.
 
