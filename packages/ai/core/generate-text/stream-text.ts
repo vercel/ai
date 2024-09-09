@@ -905,10 +905,10 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toAIStream(callbacks: AIStreamCallbacksAndOptions = {}) {
-    return this.toDataStream({ callbacks });
+    return this.toDataStreamInternal({ callbacks });
   }
 
-  private toDataStream({
+  private toDataStreamInternal({
     callbacks = {},
     getErrorMessage = () => '', // mask error messages for safety by default
   }: {
@@ -1080,9 +1080,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         contentType: 'text/plain; charset=utf-8',
         dataStreamVersion: 'v1',
       }),
-      stream: data
-        ? mergeStreams(data.stream, this.toDataStream({ getErrorMessage }))
-        : this.toDataStream({ getErrorMessage }),
+      stream: this.toDataStream({ data, getErrorMessage }),
     });
   }
 
@@ -1102,6 +1100,17 @@ However, the LLM results are expected to be small enough to not cause issues.
     options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
   ): Response {
     return this.toDataStreamResponse(options);
+  }
+
+  toDataStream(options?: {
+    data?: StreamData;
+    getErrorMessage?: (error: unknown) => string;
+  }) {
+    const stream = this.toDataStreamInternal({
+      getErrorMessage: options?.getErrorMessage,
+    });
+
+    return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
   }
 
   toDataStreamResponse(
@@ -1139,11 +1148,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         ? options.getErrorMessage
         : undefined;
 
-    const stream = data
-      ? mergeStreams(data.stream, this.toDataStream({ getErrorMessage }))
-      : this.toDataStream({ getErrorMessage });
-
-    return new Response(stream, {
+    return new Response(this.toDataStream({ data, getErrorMessage }), {
       status: init?.status ?? 200,
       statusText: init?.statusText,
       headers: prepareResponseHeaders(init, {

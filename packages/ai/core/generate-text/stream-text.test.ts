@@ -1490,6 +1490,137 @@ describe('result.pipeTextStreamToResponse', async () => {
   });
 });
 
+describe('result.toDataStream', () => {
+  it('should create a data stream', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const dataStream = result.toDataStream();
+
+    expect(
+      await convertReadableStreamToArray(
+        dataStream.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toEqual([
+      '0:"Hello"\n',
+      '0:", "\n',
+      '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+    ]);
+  });
+
+  it('should support merging with existing stream data', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const streamData = new StreamData();
+    streamData.append('stream-data-value');
+    streamData.close();
+
+    const dataStream = result.toDataStream({ data: streamData });
+
+    expect(
+      await convertReadableStreamToArray(
+        dataStream.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toEqual([
+      '2:["stream-data-value"]\n',
+      '0:"Hello"\n',
+      '0:", "\n',
+      '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+    ]);
+  });
+
+  it('should mask error messages by default', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const dataStream = result.toDataStream();
+
+    expect(
+      await convertReadableStreamToArray(
+        dataStream.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toEqual([
+      '3:""\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+    ]);
+  });
+
+  it('should support custom error messages', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const dataStream = result.toDataStream({
+      getErrorMessage: error => `custom error message: ${error}`,
+    });
+
+    expect(
+      await convertReadableStreamToArray(
+        dataStream.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toEqual([
+      '3:"custom error message: error"\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+    ]);
+  });
+});
+
 describe('result.toDataStreamResponse', () => {
   it('should create a Response with a data stream', async () => {
     const result = await streamText({

@@ -1171,13 +1171,38 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'toDataStreamResponse',
+      name: 'toDataStream',
       type: '(options?: ToDataStreamOptions) => Response',
+      description: 'Converts the result to a data stream.',
+      properties: [
+        {
+          type: 'ToDataStreamOptions',
+          parameters: [
+            {
+              name: 'data',
+              type: 'StreamData',
+              optional: true,
+              description: 'The stream data object.',
+            },
+            {
+              name: 'getErrorMessage',
+              type: '(error: unknown) => string',
+              description:
+                'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
+              optional: true,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'toDataStreamResponse',
+      type: '(options?: ToDataStreamResponseOptions) => Response',
       description:
         'Converts the result to a streamed response object with a stream data part stream. It can be used with the `useChat` and `useCompletion` hooks.',
       properties: [
         {
-          type: 'ToDataStreamOptions',
+          type: 'ToDataStreamResponseOptions',
           parameters: [
             {
               name: 'init',
