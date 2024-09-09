@@ -32,7 +32,9 @@ import { createPortkey } from '@portkey-ai/vercel-provider';
 const portkeyConfig = {
   provider: "openai", // Choose your provider (e.g., 'anthropic', 'aws-bedrock')
   api_key: "OPENAI_API_KEY",
-  model: "gpt-4" // Select from 250+ models
+  override_params: {
+    model: "gpt-4o"
+  }
 };
 
 const portkey = createPortkey({
@@ -116,7 +118,7 @@ import { z } from 'zod';
 import { generateText, tool } from 'ai';
 
 const result = await generateText({
-  model: portkey.chatModel('gpt-4-turbo'),
+  model: portkey.chatModel('gpt-4-turbo'), // Model is an optional parameter; no need to redefine model if specified in config
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -149,7 +151,9 @@ Here's how you'd use OpenAI with Portkey's Vercel integration:
 const portkeyConfig = {
   provider: "openai",
   api_key: "OPENAI_API_KEY",
-  model: "gpt-4-turbo"
+  override_params: {
+    model: "gpt-4"
+  }
 };
 ```
 
@@ -159,7 +163,9 @@ To switch to Anthropic, change your provider slug to `anthropic` and enter your 
 const portkeyConfig = {
   provider: "anthropic",
   api_key: "Anthropic_API_KEY",
-  model: "claude-3-sonnet-20240229"
+  override_params: {
+    model: "claude-3-sonnet-20240229"
+  }
 };
 ```
 Here is is the list of (supported LLMs)[https://docs.portkey.ai/docs/integrations/llms]
@@ -190,8 +196,19 @@ const portkeyConfig = {
     mode: "fallback"
   },
   targets: [
-    { virtual_key: "anthropic-key" },
-    { virtual_key: "aws-bedrock-key" }
+    {   
+provider: "anthropic",
+api_key: "Anthropic_API_KEY",
+override_params: {
+  model: "claude-3-sonnet-20240229"
+  } },
+    {  
+provider: "openai",
+api_key: "OPENAI_API_KEY",
+override_params: {
+    model: "gpt-4o"
+  }
+}
   ]
 };
 
