@@ -140,7 +140,21 @@ Additional response information.
      */
   pipeDataStreamToResponse(
     response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
+    init?:
+      | {
+          headers?: Record<string, string>;
+          status?: number;
+          statusMessage?: string;
+        }
+      | {
+          init?: {
+            headers?: Record<string, string>;
+            status?: number;
+            statusMessage?: string;
+          };
+          data?: StreamData;
+          getErrorMessage?: (error: unknown) => string;
+        },
   ): void;
 
   /**
