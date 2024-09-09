@@ -51,6 +51,7 @@ import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
+import { writeToServerResponse } from '../util/write-to-server-response';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', length: 24 });
 
@@ -960,37 +961,16 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     });
   }
 
-  pipeTextStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ) {
-    response.writeHead(
-      init?.status ?? 200,
-      undefined,
-      prepareOutgoingHttpHeaders(init, {
+  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
+    writeToServerResponse({
+      response,
+      status: init?.status,
+      statusText: init?.statusText,
+      headers: prepareOutgoingHttpHeaders(init, {
         contentType: 'text/plain; charset=utf-8',
       }),
-    );
-
-    const reader = this.textStream
-      .pipeThrough(new TextEncoderStream())
-      .getReader();
-
-    const read = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          response.write(value);
-        }
-      } catch (error) {
-        throw error;
-      } finally {
-        response.end();
-      }
-    };
-
-    read();
+      stream: this.textStream.pipeThrough(new TextEncoderStream()),
+    });
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {

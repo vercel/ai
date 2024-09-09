@@ -154,12 +154,9 @@ Additional response information.
   writes each text delta as a separate chunk.
 
   @param response A Node.js response-like object (ServerResponse).
-  @param init Optional headers and status code.
+  @param init Optional headers, status code, and status text.
      */
-  pipeTextStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ): void;
+  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
 
   /**
   Converts the result to a streamed response object with a stream data part stream.
@@ -200,7 +197,7 @@ Additional response information.
   Each text delta is encoded as UTF-8 and sent as a separate chunk.
   Non-text-delta events are ignored.
 
-  @param init Optional headers and status code.
+  @param init Optional headers, status code, and status text.
      */
   toTextStreamResponse(init?: ResponseInit): Response;
 }

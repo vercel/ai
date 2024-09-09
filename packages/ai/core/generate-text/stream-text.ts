@@ -53,6 +53,7 @@ import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
+import { writeToServerResponse } from '../util/write-to-server-response';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
 
@@ -1071,69 +1072,30 @@ However, the LLM results are expected to be small enough to not cause issues.
         ? options.getErrorMessage
         : undefined;
 
-    response.writeHead(
-      init?.status ?? 200,
-      init?.statusText,
-      prepareOutgoingHttpHeaders(init, {
+    writeToServerResponse({
+      response,
+      status: init?.status,
+      statusText: init?.statusText,
+      headers: prepareOutgoingHttpHeaders(init, {
         contentType: 'text/plain; charset=utf-8',
         dataStreamVersion: 'v1',
       }),
-    );
-
-    const stream = data
-      ? mergeStreams(data.stream, this.toDataStream({ getErrorMessage }))
-      : this.toDataStream({ getErrorMessage });
-
-    const reader = stream.getReader();
-
-    const read = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          response.write(value);
-        }
-      } catch (error) {
-        throw error;
-      } finally {
-        response.end();
-      }
-    };
-
-    read();
+      stream: data
+        ? mergeStreams(data.stream, this.toDataStream({ getErrorMessage }))
+        : this.toDataStream({ getErrorMessage }),
+    });
   }
 
-  pipeTextStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ) {
-    response.writeHead(
-      init?.status ?? 200,
-      undefined,
-      prepareOutgoingHttpHeaders(init, {
+  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
+    writeToServerResponse({
+      status: init?.status,
+      statusText: init?.statusText,
+      headers: prepareOutgoingHttpHeaders(init, {
         contentType: 'text/plain; charset=utf-8',
       }),
-    );
-
-    const reader = this.textStream
-      .pipeThrough(new TextEncoderStream())
-      .getReader();
-
-    const read = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          response.write(value);
-        }
-      } catch (error) {
-        throw error;
-      } finally {
-        response.end();
-      }
-    };
-
-    read();
+      response,
+      stream: this.textStream.pipeThrough(new TextEncoderStream()),
+    });
   }
 
   toAIStreamResponse(
