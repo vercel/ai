@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.29
+
+### Patch Changes
+
+- 1e3dfd2: feat (ai/core): enhance pipeToData/TextStreamResponse methods
+
 ## 3.3.28
 
 ### Patch Changes
