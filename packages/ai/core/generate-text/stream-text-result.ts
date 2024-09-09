@@ -109,11 +109,24 @@ Additional response information.
 
   @returns A data stream.
 
-  @deprecated Use `toDataStreamResponse` instead.
+  @deprecated Use `toDataStream` instead.
      */
   toAIStream(
     callbacks?: AIStreamCallbacksAndOptions,
   ): ReadableStream<Uint8Array>;
+
+  /**
+  Converts the result to a data stream.
+
+  @param data an optional StreamData object that will be merged into the stream.
+  @param getErrorMessage an optional function that converts an error to an error message.
+
+  @return A data stream.
+     */
+  toDataStream(options?: {
+    data?: StreamData;
+    getErrorMessage?: (error: unknown) => string;
+  }): ReadableStream<Uint8Array>;
 
   /**
   Writes stream data output to a Node.js response-like object.

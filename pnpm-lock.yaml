@@ -115,6 +115,34 @@ importers:
         specifier: 5.5.4
         version: 5.5.4
 
+  examples/hono:
+    dependencies:
+      '@ai-sdk/openai':
+        specifier: latest
+        version: link:../../packages/openai
+      '@hono/node-server':
+        specifier: 1.12.2
+        version: 1.12.2(hono@4.5.11)
+      ai:
+        specifier: latest
+        version: link:../../packages/ai
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      hono:
+        specifier: 4.5.11
+        version: 4.5.11
+    devDependencies:
+      '@types/node':
+        specifier: 20.11.20
+        version: 20.11.20
+      tsx:
+        specifier: 4.7.1
+        version: 4.7.1
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/ui-utils':
@@ -5205,6 +5233,15 @@ packages:
       long: 5.2.3
       protobufjs: 7.3.2
       yargs: 17.7.2
+
+  /@hono/node-server@1.12.2(hono@4.5.11):
+    resolution: {integrity: sha512-xjzhqhSWUE/OhN0g3KCNVzNsQMlFUAL+/8GgPUr3TKcU7cvgZVBGswFofJ8WwGEHTqobzze1lDpGJl9ZNckDhA==}
+    engines: {node: '>=18.14.1'}
+    peerDependencies:
+      hono: ^4
+    dependencies:
+      hono: 4.5.11
+    dev: false
 
   /@huggingface/inference@2.6.4:
     resolution: {integrity: sha512-Xna7arltBSBoKaH3diGi3sYvkExgJMd/pF4T6vl2YbmDccbr1G/X5EPZ2048p+YgrJYG1jTYFCtY6Dr3HvJaow==}
@@ -15426,6 +15463,11 @@ packages:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
     dependencies:
       react-is: 16.13.1
+    dev: false
+
+  /hono@4.5.11:
+    resolution: {integrity: sha512-62FcjLPtjAFwISVBUshryl+vbHOjg8rE4uIK/dxyR8GpLztunZpwFmfEvmJCUI7xoGh/Sr3CGCDPCmYxVw7wUQ==}
+    engines: {node: '>=16.0.0'}
     dev: false
 
   /hookable@5.5.3:
