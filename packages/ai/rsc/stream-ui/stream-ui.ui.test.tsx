@@ -231,22 +231,20 @@ describe('rsc - streamUI() onFinish callback', () => {
 });
 
 describe('options.headers', () => {
-  it('should set headers', async () => {
+  it('should pass headers to model', async () => {
     const result = await streamUI({
       model: new MockLanguageModelV1({
         doStream: async ({ headers }) => {
-          assert.deepStrictEqual(headers, {
+          expect(headers).toStrictEqual({
             'custom-request-header': 'request-header-value',
           });
 
           return {
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"content": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'text-delta',
+                textDelta: '{ "content": "headers test" }',
+              },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -262,7 +260,6 @@ describe('options.headers', () => {
       headers: { 'custom-request-header': 'request-header-value' },
     });
 
-    const rendered = await simulateFlightServerRender(result.value);
-    expect(rendered).toMatchSnapshot();
+    expect(await simulateFlightServerRender(result.value)).toMatchSnapshot();
   });
 });
