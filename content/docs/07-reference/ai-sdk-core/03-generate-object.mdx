@@ -54,6 +54,25 @@ const { object } = await generateObject({
 });
 ```
 
+#### Example: generate an enum
+
+When you want to generate a specific enum value, you can set the output strategy to `enum`
+and provide a list of possible values in the `enum` parameter.
+
+```ts highlight="5-6"
+import { generateObject } from 'ai';
+
+const { object } = await generateObject({
+  model: yourModel,
+  output: 'enum',
+  enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
+  prompt:
+    'Classify the genre of this movie plot: ' +
+    '"A group of astronauts travel through a wormhole in search of a ' +
+    'new habitable planet for humanity."',
+});
+```
+
 #### Example: generate JSON without a schema
 
 ```ts highlight="6"
@@ -86,7 +105,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
     },
     {
       name: 'output',
-      type: "'object' | 'array' | 'no-schema' | undefined",
+      type: "'object' | 'array' | 'enum' | 'no-schema' | undefined",
       description: "The type of output to generate. Defaults to 'object'.",
     },
     {
@@ -105,7 +124,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
         'It is sent to the model to generate the object and used to validate the output. ' +
         'You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). ' +
         'In "array" mode, the schema is used to describe an array element. ' +
-        'Not available with "no-schema" output.',
+        'Not available with "no-schema" or "enum" output.',
     },
     {
       name: 'schemaName',
@@ -113,7 +132,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
       description:
         'Optional name of the output that should be generated. ' +
         'Used by some providers for additional LLM guidance, e.g. via tool or schema name. ' +
-        'Not available with "no-schema" output.',
+        'Not available with "no-schema" or "enum" output.',
     },
     {
       name: 'schemaDescription',
@@ -121,7 +140,14 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
       description:
         'Optional description of the output that should be generated. ' +
         'Used by some providers for additional LLM guidance, e.g. via tool or schema name. ' +
-        'Not available with "no-schema" output.',
+        'Not available with "no-schema" or "enum" output.',
+    },
+    {
+      name: 'enum',
+      type: 'string[]',
+      description:
+        'List of possible values to generate. ' +
+        'Only available with "enum" output.',
     },
     {
       name: 'system',
