@@ -9,7 +9,7 @@ export function validateObjectGenerationInput({
   schemaName,
   schemaDescription,
 }: {
-  output?: 'object' | 'array' | 'no-schema';
+  output?: 'object' | 'array' | 'enum' | 'no-schema';
   schema?: z.Schema<any, z.ZodTypeDef, any> | Schema<any>;
   schemaName?: string;
   schemaDescription?: string;
@@ -19,6 +19,7 @@ export function validateObjectGenerationInput({
     output != null &&
     output !== 'object' &&
     output !== 'array' &&
+    output !== 'enum' &&
     output !== 'no-schema'
   ) {
     throw new InvalidArgumentError({
