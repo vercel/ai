@@ -898,22 +898,25 @@ describe('output = "object"', () => {
   });
 
   describe('options.headers', () => {
-    it('should set headers', async () => {
+    it('should pass headers to model in json mode', async () => {
       const result = await streamObject({
         model: new MockLanguageModelV1({
           doStream: async ({ headers }) => {
-            assert.deepStrictEqual(headers, {
+            expect(headers).toStrictEqual({
               'custom-request-header': 'request-header-value',
             });
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                {
+                  type: 'text-delta',
+                  textDelta: `{ "content": "headers test" }`,
+                },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
               ]),
               rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
@@ -925,15 +928,47 @@ describe('output = "object"', () => {
         headers: { 'custom-request-header': 'request-header-value' },
       });
 
-      assert.deepStrictEqual(
+      expect(
         await convertAsyncIterableToArray(result.partialObjectStream),
-        [
-          {},
-          { content: 'Hello, ' },
-          { content: 'Hello, world' },
-          { content: 'Hello, world!' },
-        ],
-      );
+      ).toStrictEqual([{ content: 'headers test' }]);
+    });
+
+    it('should pass headers to model in tool mode', async () => {
+      const result = await streamObject({
+        model: new MockLanguageModelV1({
+          doStream: async ({ headers }) => {
+            expect(headers).toStrictEqual({
+              'custom-request-header': 'request-header-value',
+            });
+
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call-delta',
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: `{ "content": "headers test" }`,
+                },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'tool',
+        prompt: 'prompt',
+        headers: { 'custom-request-header': 'request-header-value' },
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.partialObjectStream),
+      ).toStrictEqual([{ content: 'headers test' }]);
     });
   });
 
