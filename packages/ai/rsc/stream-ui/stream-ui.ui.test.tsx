@@ -263,3 +263,39 @@ describe('options.headers', () => {
     expect(await simulateFlightServerRender(result.value)).toMatchSnapshot();
   });
 });
+
+describe('options.providerMetadata', () => {
+  it('should pass provider metadata to model', async () => {
+    const result = await streamUI({
+      model: new MockLanguageModelV1({
+        doStream: async ({ providerMetadata }) => {
+          expect(providerMetadata).toStrictEqual({
+            aProvider: { someKey: 'someValue' },
+          });
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'text-delta',
+                textDelta: '{ "content": "provider metadata test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: '',
+      experimental_providerMetadata: {
+        aProvider: { someKey: 'someValue' },
+      },
+    });
+
+    expect(await simulateFlightServerRender(result.value)).toMatchSnapshot();
+  });
+});
