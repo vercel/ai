@@ -25,7 +25,7 @@ object-tool mode.
 @deprecated mode will be removed in v2.
 All necessary settings will be directly supported through the call settings,
 in particular responseFormat, toolChoice, and tools.
-  */
+   */
   mode:
     | {
         // stream text & complete tool calls
