@@ -106,35 +106,35 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       name: 'mode',
       type: "'auto' | 'json' | 'tool'",
       description:
-        'The mode to use for object generation. Not every model supports all modes. ' +
-        "Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. " +
-        "Must be 'json' for 'no-schema' output.",
+        "The mode to use for object generation. Not every model supports all modes. \
+        Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. \
+        Must be 'json' for 'no-schema' output.",
     },
     {
       name: 'schema',
       type: 'Zod Schema | JSON Schema',
       description:
-        'The schema that describes the shape of the object to generate. ' +
-        'It is sent to the model to generate the object and used to validate the output. ' +
-        'You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). ' +
-        'In "array" mode, the schema is used to describe an array element. ' +
-        'Not available with "no-schema" output.',
+        "The schema that describes the shape of the object to generate. \
+        It is sent to the model to generate the object and used to validate the output. \
+        You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). \
+        In 'array' mode, the schema is used to describe an array element. \
+        Not available with 'no-schema' output.",
     },
     {
       name: 'schemaName',
       type: 'string | undefined',
       description:
-        'Optional name of the output that should be generated. ' +
-        'Used by some providers for additional LLM guidance, e.g. via tool or schema name. ' +
-        'Not available with "no-schema" output.',
+        "Optional name of the output that should be generated. \
+        Used by some providers for additional LLM guidance, e.g. via tool or schema name. \
+        Not available with 'no-schema' output.",
     },
     {
       name: 'schemaDescription',
       type: 'string | undefined',
       description:
-        'Optional description of the output that should be generated. ' +
-        'Used by some providers for additional LLM guidance, e.g. via tool or schema name. ' +
-        'Not available with "no-schema" output.',
+        "Optional description of the output that should be generated. \
+        Used by some providers for additional LLM guidance, e.g. via tool or schema name. \
+        Not available with 'no-schema' output.",
     },
     {
       name: 'system',
