@@ -1,10 +1,10 @@
-import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = await generateObject({
-    model: openai('gpt-4o-mini', { structuredOutputs: true }),
+    model: google('gemini-1.5-pro-latest'),
     output: 'enum',
     enum: ['sunny', 'rainy', 'snowy'],
     prompt: 'Choose a random weather condition.',
