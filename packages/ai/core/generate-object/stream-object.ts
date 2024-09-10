@@ -159,6 +159,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: OnFinishCallback<OBJECT>;
@@ -231,6 +238,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: OnFinishCallback<Array<ELEMENT>>;
@@ -280,6 +294,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: OnFinishCallback<JSONValue>;
@@ -308,6 +329,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
+  experimental_providerMetadata: providerMetadata,
   onFinish,
   _internal: {
     generateId = originalGenerateId,
@@ -334,6 +356,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
+    experimental_providerMetadata?: ProviderMetadata;
     onFinish?: OnFinishCallback<RESULT>;
     _internal?: {
       generateId?: () => string;
@@ -434,6 +457,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
               prompt: validatedPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
             }),
+            providerMetadata,
             abortSignal,
             headers,
           };
@@ -479,6 +503,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
               prompt: validatedPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
             }),
+            providerMetadata,
             abortSignal,
             headers,
           };
