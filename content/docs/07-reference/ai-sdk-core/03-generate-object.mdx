@@ -57,7 +57,7 @@ const { object } = await generateObject({
 #### Example: generate an enum
 
 When you want to generate a specific enum value, you can set the output strategy to `enum`
-and provide a list of possible values in the `enum` parameter.
+and provide the list of possible values in the `enum` parameter.
 
 ```ts highlight="5-6"
 import { generateObject } from 'ai';
@@ -457,6 +457,13 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
           ],
         },
       ],
+    },
+    {
+      name: 'experimental_providerMetadata',
+      type: 'Record<string,Record<string,JSONValue>> | undefined',
+      isOptional: true,
+      description:
+        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
   ]}
 />
