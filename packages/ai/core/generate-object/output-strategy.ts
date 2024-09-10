@@ -18,7 +18,7 @@ import {
 import { z } from 'zod';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
-  readonly type: 'object' | 'array' | 'no-schema';
+  readonly type: 'object' | 'array' | 'enum' | 'no-schema';
   readonly jsonSchema: JSONSchema7 | undefined;
 
   validatePartialResult({
@@ -100,7 +100,7 @@ const arrayOutputStrategy = <ELEMENT>(
   const { $schema, ...itemSchema } = schema.jsonSchema;
 
   return {
-    type: 'array',
+    type: 'enum',
 
     // wrap in object that contains array of elements, since most LLMs will not
     // be able to generate an array directly:
@@ -245,18 +245,83 @@ const arrayOutputStrategy = <ELEMENT>(
   };
 };
 
+const enumOutputStrategy = <ENUM extends string>(
+  enumValues: Array<ENUM>,
+): OutputStrategy<ENUM, ENUM, never> => {
+  return {
+    type: 'enum',
+
+    // wrap in object that contains result, since most LLMs will not
+    // be able to generate an enum value directly:
+    // possible future optimization: use enums directly when model supports top-level enums
+    jsonSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        result: { type: 'string', enum: enumValues },
+      },
+      required: ['result'],
+      additionalProperties: false,
+    },
+
+    validateFinalResult(value: JSONValue | undefined): ValidationResult<ENUM> {
+      // check that the value is an object that contains an array of elements:
+      if (!isJSONObject(value) || typeof value.result !== 'string') {
+        return {
+          success: false,
+          error: new TypeValidationError({
+            value,
+            cause:
+              'value must be an object that contains a string in the "result" property.',
+          }),
+        };
+      }
+
+      const result = value.result as string;
+
+      return enumValues.includes(result as ENUM)
+        ? { success: true, value: result as ENUM }
+        : {
+            success: false,
+            error: new TypeValidationError({
+              value,
+              cause: 'value must be a string in the enum',
+            }),
+          };
+    },
+
+    validatePartialResult() {
+      // no streaming in enum mode
+      throw new UnsupportedFunctionalityError({
+        functionality: 'partial results in enum mode',
+      });
+    },
+
+    createElementStream() {
+      // no streaming in enum mode
+      throw new UnsupportedFunctionalityError({
+        functionality: 'element streams in enum mode',
+      });
+    },
+  };
+};
+
 export function getOutputStrategy<SCHEMA>({
   output,
   schema,
+  enumValues,
 }: {
-  output: 'no-schema' | 'object' | 'array';
+  output: 'object' | 'array' | 'enum' | 'no-schema';
   schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
+  enumValues?: Array<SCHEMA>;
 }): OutputStrategy<any, any, any> {
   switch (output) {
     case 'object':
       return objectOutputStrategy(asSchema(schema!));
     case 'array':
       return arrayOutputStrategy(asSchema(schema!));
+    case 'enum':
+      return enumOutputStrategy(enumValues! as Array<string>);
     case 'no-schema':
       return noSchemaOutputStrategy;
     default: {
