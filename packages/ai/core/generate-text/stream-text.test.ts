@@ -2745,6 +2745,42 @@ describe('options.headers', () => {
   });
 });
 
+describe('options.providerMetadata', () => {
+  it('should pass provider metadata to model', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ providerMetadata }) => {
+          expect(providerMetadata).toStrictEqual({
+            aProvider: { someKey: 'someValue' },
+          });
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'provider metadata test' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+      experimental_providerMetadata: {
+        aProvider: { someKey: 'someValue' },
+      },
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.textStream),
+      ['provider metadata test'],
+    );
+  });
+});
+
 describe('telemetry', () => {
   let tracer: MockTracer;
 

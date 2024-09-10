@@ -91,6 +91,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -157,6 +164,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -209,6 +223,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -246,6 +267,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -269,6 +297,7 @@ export async function generateObject<SCHEMA, RESULT>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
+  experimental_providerMetadata: providerMetadata,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -294,6 +323,7 @@ export async function generateObject<SCHEMA, RESULT>({
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
+    experimental_providerMetadata?: ProviderMetadata;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -371,7 +401,7 @@ export async function generateObject<SCHEMA, RESULT>({
       let rawResponse: { headers?: Record<string, string> } | undefined;
       let response: LanguageModelResponseMetadata;
       let logprobs: LogProbs | undefined;
-      let providerMetadata: ProviderMetadata | undefined;
+      let resultProviderMetadata: ProviderMetadata | undefined;
 
       switch (mode) {
         case 'json': {
@@ -438,6 +468,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   ...prepareCallSettings(settings),
                   inputFormat,
                   prompt: promptMessages,
+                  providerMetadata,
                   abortSignal,
                   headers,
                 });
@@ -494,7 +525,7 @@ export async function generateObject<SCHEMA, RESULT>({
           warnings = generateResult.warnings;
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
-          providerMetadata = generateResult.providerMetadata;
+          resultProviderMetadata = generateResult.providerMetadata;
           response = generateResult.responseData;
 
           break;
@@ -559,6 +590,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   ...prepareCallSettings(settings),
                   inputFormat,
                   prompt: promptMessages,
+                  providerMetadata,
                   abortSignal,
                   headers,
                 });
@@ -617,7 +649,7 @@ export async function generateObject<SCHEMA, RESULT>({
           warnings = generateResult.warnings;
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
-          providerMetadata = generateResult.providerMetadata;
+          resultProviderMetadata = generateResult.providerMetadata;
           response = generateResult.responseData;
 
           break;
@@ -681,7 +713,7 @@ export async function generateObject<SCHEMA, RESULT>({
           headers: rawResponse?.headers,
         },
         logprobs,
-        providerMetadata,
+        providerMetadata: resultProviderMetadata,
       });
     },
   });
