@@ -972,6 +972,85 @@ describe('output = "object"', () => {
     });
   });
 
+  describe('options.providerMetadata', () => {
+    it('should pass provider metadata to model in json mode', async () => {
+      const result = await streamObject({
+        model: new MockLanguageModelV1({
+          doStream: async ({ providerMetadata }) => {
+            expect(providerMetadata).toStrictEqual({
+              aProvider: { someKey: 'someValue' },
+            });
+
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'text-delta',
+                  textDelta: `{ "content": "provider metadata test" }`,
+                },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        experimental_providerMetadata: {
+          aProvider: { someKey: 'someValue' },
+        },
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.partialObjectStream),
+      ).toStrictEqual([{ content: 'provider metadata test' }]);
+    });
+
+    it('should pass provider metadata to model in tool mode', async () => {
+      const result = await streamObject({
+        model: new MockLanguageModelV1({
+          doStream: async ({ providerMetadata }) => {
+            expect(providerMetadata).toStrictEqual({
+              aProvider: { someKey: 'someValue' },
+            });
+
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call-delta',
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: `{ "content": "provider metadata test" }`,
+                },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'tool',
+        prompt: 'prompt',
+        experimental_providerMetadata: {
+          aProvider: { someKey: 'someValue' },
+        },
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.partialObjectStream),
+      ).toStrictEqual([{ content: 'provider metadata test' }]);
+    });
+  });
+
   describe('custom schema', () => {
     it('should send object deltas with json mode', async () => {
       const result = await streamObject({
