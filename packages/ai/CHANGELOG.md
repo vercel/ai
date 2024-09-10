@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.32
+
+### Patch Changes
+
+- ce7a4af: feat (ai/core): support providerMetadata in functions
+
 ## 3.3.31
 
 ### Patch Changes
