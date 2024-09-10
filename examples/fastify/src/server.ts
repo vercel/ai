@@ -23,7 +23,7 @@ fastify.post('/', async function (request, reply) {
   reply.header('X-Vercel-AI-Data-Stream', 'v1');
   reply.header('Content-Type', 'text/plain; charset=utf-8');
 
-  return reply.send(result.textStream);
+  return reply.send(result.toDataStream({ data }));
 });
 
 fastify.listen({ port: 8080 });
