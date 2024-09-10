@@ -21,10 +21,11 @@ The model can take this information and e.g. configure json mode, the correct
 low level grammar, etc. It can also be used to optimize the efficiency of the
 streaming, e.g. tool-delta stream parts are only needed in the
 object-tool mode.
-   */
-  // deprecated: mode will be removed in v2.
-  // All necessary settings will be directly supported through the call settings,
-  // in particular responseFormat, toolChoice, and tools.
+
+@deprecated mode will be removed in v2.
+All necessary settings will be directly supported through the call settings,
+in particular responseFormat, toolChoice, and tools.
+  */
   mode:
     | {
         // stream text & complete tool calls
