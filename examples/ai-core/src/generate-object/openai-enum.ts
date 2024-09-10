@@ -6,8 +6,11 @@ async function main() {
   const result = await generateObject({
     model: openai('gpt-4o-mini', { structuredOutputs: true }),
     output: 'enum',
-    enum: ['sunny', 'rainy', 'snowy'],
-    prompt: 'Choose a random weather condition.',
+    enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
+    prompt:
+      'Classify the genre of this movie plot: ' +
+      '"A group of astronauts travel through a wormhole in search of a ' +
+      'new habitable planet for humanity."',
   });
 
   console.log(result.object);
