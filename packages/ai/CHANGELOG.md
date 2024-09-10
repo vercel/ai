@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.31
+
+### Patch Changes
+
+- 561fd7e: feat (ai/core): add output: enum to generateObject
+
 ## 3.3.30
 
 ### Patch Changes
