@@ -18,7 +18,7 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool/tool';
-import { CoreToolChoice, LanguageModel } from '../types';
+import { CoreToolChoice, LanguageModel, ProviderMetadata } from '../types';
 import {
   LanguageModelUsage,
   calculateLanguageModelUsage,
@@ -132,6 +132,13 @@ By default, it's set to 0, which will disable the feature.
      * Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
+
+    /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+    experimental_providerMetadata?: ProviderMetadata;
 
     /**
      * Internal. For test use only. May change without notice.
