@@ -303,13 +303,13 @@ export async function generateObject<SCHEMA, RESULT>({
       currentDate?: () => Date;
     };
   }): Promise<GenerateObjectResult<RESULT>> {
-  // TODO extend validation to support enum output
   validateObjectGenerationInput({
     output,
     mode,
     schema: inputSchema,
     schemaName,
     schemaDescription,
+    enumValues,
   });
 
   const outputStrategy = getOutputStrategy({
