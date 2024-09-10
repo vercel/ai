@@ -87,6 +87,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   experimental_telemetry: telemetry,
+  experimental_providerMetadata,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -247,6 +248,7 @@ functionality that can be fully encapsulated in the provider.
                 ...callSettings,
                 inputFormat: currentInputFormat,
                 prompt: promptMessages,
+                providerMetadata: experimental_providerMetadata,
                 abortSignal,
                 headers,
               });
