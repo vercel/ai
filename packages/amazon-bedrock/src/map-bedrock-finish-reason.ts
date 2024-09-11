@@ -11,6 +11,7 @@ export function mapBedrockFinishReason(
     case 'max_tokens':
       return 'length';
     case 'content_filtered':
+    case 'guardrail_intervened':
       return 'content-filter';
     case 'tool_use':
       return 'tool-calls';
