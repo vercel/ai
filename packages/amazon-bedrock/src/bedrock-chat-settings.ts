@@ -1,5 +1,3 @@
-import { GuardrailConfiguration, GuardrailStreamConfiguration } from '@aws-sdk/client-bedrock-runtime';
-
 // https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html
 export type BedrockChatModelId =
   | 'amazon.titan-tg1-large'
@@ -22,10 +20,6 @@ export type BedrockChatModelId =
   | (string & {});
 
 export interface BedrockChatSettings {
-  /**
-Configuration information for a guardrail that you want to use in the request.
-   */
-  guardrailConfig?: GuardrailConfiguration | GuardrailStreamConfiguration,
   /**
 Additional inference parameters that the model supports,
 beyond the base set of inference parameters that Converse

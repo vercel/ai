@@ -6,6 +6,7 @@ import {
   ConverseCommand,
   ConverseStreamCommand,
   ConverseStreamOutput,
+  ConverseStreamTrace,
   StopReason,
 } from '@aws-sdk/client-bedrock-runtime';
 import {
@@ -28,6 +29,34 @@ const provider = createAmazonBedrock({
 });
 
 const model = provider('anthropic.claude-3-haiku-20240307-v1:0');
+
+const mockTrace = {
+  guardrail: {
+    inputAssessment: {
+      '1abcd2ef34gh': {
+        contentPolicy: {
+          filters: [
+            {
+              action: 'BLOCKED' as const,
+              confidence: 'LOW' as const,
+              type: 'INSULTS' as const,
+            },
+          ],
+        },
+        wordPolicy: {
+          managedWordLists: [
+            {
+              action: 'BLOCKED' as const,
+              match: '<rude word>',
+              type: 'PROFANITY' as const,
+            },
+          ],
+          customWords: undefined,
+        },
+      },
+    },
+  },
+} as ConverseStreamTrace;
 
 describe('doGenerate', () => {
   beforeEach(() => {
@@ -149,39 +178,6 @@ describe('doGenerate', () => {
     ).toBe(1);
   });
 
-  it('should pass guardrailConfig in settings, accepting GuardrailConfiguration', async () => {
-    bedrockMock.on(ConverseCommand).resolves({
-      output: {
-        message: { role: 'assistant', content: [{ text: 'Testing' }] },
-      },
-    });
-
-    await provider('amazon.titan-tg1-large', {
-      guardrailConfig: {
-        guardrailIdentifier: '-1',
-        guardrailVersion: '1',
-        trace: 'enabled',
-      },
-    }).doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(
-      bedrockMock.commandCalls(ConverseCommand, {
-        modelId: 'amazon.titan-tg1-large',
-        messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
-        system: [{ text: 'System Prompt' }],
-        guardrailConfig: {
-          guardrailIdentifier: '-1',
-          guardrailVersion: '1',
-          trace: 'enabled',
-        },
-      }).length,
-    ).toBe(1);
-  });
-
   it('should pass tool specification in object-tool mode', async () => {
     bedrockMock.on(ConverseCommand).resolves({
       output: {
@@ -239,6 +235,57 @@ describe('doGenerate', () => {
       }).length,
     ).toBe(1);
   });
+
+  it('should support guardrails', async () => {
+    bedrockMock.on(ConverseCommand).resolves({
+      output: {
+        message: { role: 'assistant', content: [{ text: 'Testing' }] },
+      },
+    });
+
+    // GuardrailConfiguration
+    const result = await provider('amazon.titan-tg1-large').doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        bedrock: {
+          guardrailConfig: {
+            guardrailIdentifier: '-1',
+            guardrailVersion: '1',
+            trace: 'enabled',
+          },
+        },
+      },
+    });
+
+    expect(
+      bedrockMock.commandCalls(ConverseCommand, {
+        modelId: 'amazon.titan-tg1-large',
+        messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+        system: [{ text: 'System Prompt' }],
+        guardrailConfig: {
+          guardrailIdentifier: '-1',
+          guardrailVersion: '1',
+          trace: 'enabled',
+        },
+      }).length,
+    ).toBe(1);
+  });
+
+  it('should include trace information in providerMetadata', async () => {
+    bedrockMock.on(ConverseCommand).resolves({
+      trace: mockTrace,
+    });
+
+    const response = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response.providerMetadata?.bedrock.trace).toMatchObject(mockTrace);
+  });
 });
 
 describe('doStream', () => {
@@ -282,6 +329,7 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 34 },
+        providerMetadata: undefined,
       },
     ]);
   });
@@ -362,6 +410,7 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: NaN, completionTokens: NaN },
+        providerMetadata: undefined,
       },
     ]);
   });
@@ -403,6 +452,7 @@ describe('doStream', () => {
           completionTokens: NaN,
           promptTokens: NaN,
         },
+        providerMetadata: undefined,
       },
     ]);
   });
@@ -426,22 +476,25 @@ describe('doStream', () => {
     ).toBe(1);
   });
 
-  it('should pass guardrailConfig in settings, accepting GuardrailStreamConfiguration', async () => {
+  it('should support guardrails', async () => {
     bedrockMock.on(ConverseStreamCommand).resolves({
       stream: convertArrayToAsyncIterable([]),
     });
 
-    await provider('amazon.titan-tg1-large', {
-      guardrailConfig: {
-        guardrailIdentifier: '-1',
-        guardrailVersion: '1',
-        trace: 'enabled',
-        streamProcessingMode: 'async',
-      },
-    }).doStream({
+    await provider('amazon.titan-tg1-large').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      providerMetadata: {
+        bedrock: {
+          guardrailConfig: {
+            guardrailIdentifier: '-1',
+            guardrailVersion: '1',
+            trace: 'enabled',
+            streamProcessingMode: 'async',
+          },
+        },
+      },
     });
 
     expect(
@@ -457,5 +510,36 @@ describe('doStream', () => {
         },
       }).length,
     ).toBe(1);
+  });
+
+  it('should include trace information in providerMetadata', async () => {
+    const streamData: ConverseStreamOutput[] = [
+      { contentBlockDelta: { contentBlockIndex: 0, delta: { text: 'Hello' } } },
+      { metadata: { trace: mockTrace } },
+      { messageStop: { stopReason: 'stop_sequence' } },
+    ];
+
+    bedrockMock.on(ConverseStreamCommand).resolves({
+      stream: convertArrayToAsyncIterable(streamData),
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      { type: 'text-delta', textDelta: 'Hello' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: {
+          completionTokens: NaN,
+          promptTokens: NaN,
+        },
+        providerMetadata: { bedrock: { trace: mockTrace } },
+      },
+    ]);
   });
 });

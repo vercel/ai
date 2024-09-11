@@ -176,17 +176,30 @@ Amazon Bedrock language models can also be used in the `streamText` function
 
 ### Guardrails
 
-[Amazon Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/) can be utilized by passing in `guardrailConfig` as an additional setting.
+You can use the `bedrock` provider metadata to utilize [Amazon Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/):
 
 ```ts
-const model = bedrock('anthropic.claude-3-sonnet-20240229-v1:0', {
-  guardrailConfig: {
-    guardrailIdentifier: '1abcd2ef34gh',
-    guardrailVersion: '1',
-    trace: 'disabled' as const,
-    streamProcessingMode: 'async',
-  }
+const result = await generateText({
+  bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
+  experimental_providerMetadata: {
+    bedrock: {
+      guardrailConfig: {
+        guardrailIdentifier: '1abcd2ef34gh',
+        guardrailVersion: '1',
+        trace: 'enabled' as const,
+        streamProcessingMode: 'async',
+      },
+    },
+  },
 });
+```
+
+Tracing information will be returned in the provider metadata if you have tracing enabled.
+
+```ts
+if (result.providerMetadata?.bedrock.trace) {
+  // ...
+}
 ```
 
 See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html) for more information.
