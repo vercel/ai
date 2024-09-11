@@ -97,8 +97,8 @@ export function convertToLanguageModelMessage(
 
       return {
         role: 'user',
-        content: message.content.map(
-          (part): LanguageModelV1TextPart | LanguageModelV1ImagePart => {
+        content: message.content
+          .map((part): LanguageModelV1TextPart | LanguageModelV1ImagePart => {
             switch (part.type) {
               case 'text': {
                 return {
@@ -202,8 +202,9 @@ export function convertToLanguageModelMessage(
                 };
               }
             }
-          },
-        ),
+          })
+          // remove empty text parts:
+          .filter(part => part.type !== 'text' || part.text !== ''),
         providerMetadata: message.experimental_providerMetadata,
       };
     }
