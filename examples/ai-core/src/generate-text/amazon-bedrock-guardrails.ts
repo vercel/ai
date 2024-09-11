@@ -12,7 +12,7 @@ async function main() {
     experimental_providerMetadata: {
       bedrock: {
         guardrailConfig: {
-          guardrailIdentifier: '1abcd2ef34gh',
+          guardrailIdentifier: '<your-guardrail-identifier>',
           guardrailVersion: '1',
           trace: 'enabled' as const,
           streamProcessingMode: 'async',
