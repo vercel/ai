@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.33
+
+### Patch Changes
+
+- cbddc83: fix (ai/core): filter out empty text parts
+
 ## 3.3.32
 
 ### Patch Changes
