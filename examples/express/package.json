@@ -1,0 +1,20 @@
+{
+  "name": "ai-sdk-express-example",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@ai-sdk/openai": "latest",
+    "ai": "latest",
+    "dotenv": "16.4.5",
+    "express": "4.20.0"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/express": "4.17.21",
+    "@types/node": "20.11.20",
+    "tsx": "4.7.1",
+    "typescript": "5.5.4"
+  }
+}
