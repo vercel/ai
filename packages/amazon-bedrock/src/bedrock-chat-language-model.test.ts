@@ -515,7 +515,13 @@ describe('doStream', () => {
   it('should include trace information in providerMetadata', async () => {
     const streamData: ConverseStreamOutput[] = [
       { contentBlockDelta: { contentBlockIndex: 0, delta: { text: 'Hello' } } },
-      { metadata: { trace: mockTrace } },
+      {
+        metadata: {
+          usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+          metrics: { latencyMs: 10 },
+          trace: mockTrace,
+        },
+      },
       { messageStop: { stopReason: 'stop_sequence' } },
     ];
 
@@ -534,10 +540,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: {
-          completionTokens: NaN,
-          promptTokens: NaN,
-        },
+        usage: { completionTokens: 34, promptTokens: 4 },
         providerMetadata: { bedrock: { trace: mockTrace } },
       },
     ]);
