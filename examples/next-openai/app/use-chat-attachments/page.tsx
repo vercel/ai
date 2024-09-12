@@ -6,10 +6,9 @@ import { useChat } from 'ai/react';
 import { useRef, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
-    useChat({
-      api: '/api/chat',
-    });
+  const { messages, input, setInput, append, isLoading } = useChat({
+    api: '/api/chat',
+  });
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,10 +46,17 @@ export default function Page() {
 
       <form
         onSubmit={event => {
-          handleSubmit(event, {
-            experimental_attachments: files,
-          });
+          event.preventDefault();
+
+          append(
+            { role: 'user', content: input },
+            {
+              experimental_attachments: files,
+            },
+          );
+
           setFiles(undefined);
+          setInput('');
 
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -103,7 +109,9 @@ export default function Page() {
         <input
           value={input}
           placeholder="Send message..."
-          onChange={handleInputChange}
+          onChange={event => {
+            setInput(event.target.value);
+          }}
           className="bg-zinc-100 w-full p-2"
           disabled={isLoading}
         />

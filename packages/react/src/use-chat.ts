@@ -440,19 +440,33 @@ By default, it's set to 0, which will disable the feature.
         data,
         headers,
         body,
+        experimental_attachments,
       }: ChatRequestOptions = {},
     ) => {
       if (!message.id) {
         message.id = generateId();
       }
 
+      const attachmentsForRequest = await prepareAttachmentsForRequest(
+        experimental_attachments,
+      );
+
       const requestOptions = {
         headers: headers ?? options?.headers,
         body: body ?? options?.body,
       };
 
+      const messages = messagesRef.current.concat({
+        id: generateId(),
+        createdAt: new Date(),
+        role: 'user',
+        content: message.content,
+        experimental_attachments:
+          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+      });
+
       const chatRequest: ChatRequest = {
-        messages: messagesRef.current.concat(message as Message),
+        messages,
         options: requestOptions,
         headers: requestOptions.headers,
         body: requestOptions.body,
@@ -560,43 +574,9 @@ By default, it's set to 0, which will disable the feature.
         };
       }
 
-      const attachmentsForRequest: Attachment[] = [];
-      const attachmentsFromOptions = options.experimental_attachments;
-
-      if (attachmentsFromOptions) {
-        if (attachmentsFromOptions instanceof FileList) {
-          for (const attachment of Array.from(attachmentsFromOptions)) {
-            const { name, type } = attachment;
-
-            const dataUrl = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = readerEvent => {
-                resolve(readerEvent.target?.result as string);
-              };
-              reader.onerror = error => reject(error);
-              reader.readAsDataURL(attachment);
-            });
-
-            attachmentsForRequest.push({
-              name,
-              contentType: type,
-              url: dataUrl,
-            });
-          }
-        } else if (Array.isArray(attachmentsFromOptions)) {
-          for (const file of attachmentsFromOptions) {
-            const { name, url, contentType } = file;
-
-            attachmentsForRequest.push({
-              name,
-              contentType,
-              url,
-            });
-          }
-        } else {
-          throw new Error('Invalid attachments type');
-        }
-      }
+      const attachmentsForRequest = await prepareAttachmentsForRequest(
+        options.experimental_attachments,
+      );
 
       const requestOptions = {
         headers: options.headers ?? options.options?.headers,
@@ -713,4 +693,47 @@ function countTrailingAssistantMessages(messages: Message[]) {
     }
   }
   return count;
+}
+
+async function prepareAttachmentsForRequest(
+  attachmentsFromOptions: FileList | Array<Attachment> | undefined,
+) {
+  const draftAttachmentsForRequest: Array<Attachment> = [];
+
+  if (attachmentsFromOptions) {
+    if (attachmentsFromOptions instanceof FileList) {
+      for (const attachment of Array.from(attachmentsFromOptions)) {
+        const { name, type } = attachment;
+
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = readerEvent => {
+            resolve(readerEvent.target?.result as string);
+          };
+          reader.onerror = error => reject(error);
+          reader.readAsDataURL(attachment);
+        });
+
+        draftAttachmentsForRequest.push({
+          name,
+          contentType: type,
+          url: dataUrl,
+        });
+      }
+    } else if (Array.isArray(attachmentsFromOptions)) {
+      for (const file of attachmentsFromOptions) {
+        const { name, url, contentType } = file;
+
+        draftAttachmentsForRequest.push({
+          name,
+          contentType,
+          url,
+        });
+      }
+    } else {
+      throw new Error('Invalid attachments type');
+    }
+  }
+
+  return draftAttachmentsForRequest;
 }
