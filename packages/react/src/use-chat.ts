@@ -703,28 +703,26 @@ async function prepareAttachmentsForRequest(
   }
 
   if (attachmentsFromOptions instanceof FileList) {
-    const draftAttachmentsForRequest: Array<Attachment> = [];
+    return Promise.all(
+      Array.from(attachmentsFromOptions).map(async attachment => {
+        const { name, type } = attachment;
 
-    for (const attachment of Array.from(attachmentsFromOptions)) {
-      const { name, type } = attachment;
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = readerEvent => {
+            resolve(readerEvent.target?.result as string);
+          };
+          reader.onerror = error => reject(error);
+          reader.readAsDataURL(attachment);
+        });
 
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = readerEvent => {
-          resolve(readerEvent.target?.result as string);
+        return {
+          name,
+          contentType: type,
+          url: dataUrl,
         };
-        reader.onerror = error => reject(error);
-        reader.readAsDataURL(attachment);
-      });
-
-      draftAttachmentsForRequest.push({
-        name,
-        contentType: type,
-        url: dataUrl,
-      });
-    }
-
-    return draftAttachmentsForRequest;
+      }),
+    );
   }
 
   if (Array.isArray(attachmentsFromOptions)) {
