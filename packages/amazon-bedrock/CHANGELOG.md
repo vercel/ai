@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.24
+
+### Patch Changes
+
+- 01fc6c0: feat (provider/amazon-bedrock): support guardrails
+
 ## 0.0.23
 
 ### Patch Changes
