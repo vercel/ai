@@ -1,5 +1,15 @@
 # ai
 
+## 3.3.34
+
+### Patch Changes
+
+- a0403d6: feat (react): support sending attachments using append
+- 678449a: feat (ai/core): export test helpers
+- ff22fac: fix (ai/rsc): streamUI onFinish is called when tool calls have finished
+- Updated dependencies [a0403d6]
+  - @ai-sdk/react@0.0.56
+
 ## 3.3.33
 
 ### Patch Changes
