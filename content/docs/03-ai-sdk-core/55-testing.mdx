@@ -17,9 +17,13 @@ includes mock providers and test helpers. You can import the following helpers f
 - `mockValues`: Iterates over an array of values with each call. Returns the last value when the array is exhausted.
 - `convertArrayToReadableStream`: Converts an array to a readable stream.
 
+With mock providers and test helpers, you can control the output of the AI SDK
+and test your code in a repeatable and deterministic way without actually calling
+a language model provider.
+
 ## Examples
 
-You can use the test helpers with the AI Core functions:
+You can use the test helpers with the AI Core functions in your unit tests:
 
 ### generateText
 
