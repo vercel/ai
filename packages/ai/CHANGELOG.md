@@ -1,5 +1,17 @@
 # ai
 
+## 3.3.35
+
+### Patch Changes
+
+- 14210d5: feat (ai/core): add sendUsage information to streamText data stream methods
+- Updated dependencies [14210d5]
+  - @ai-sdk/ui-utils@0.0.42
+  - @ai-sdk/react@0.0.57
+  - @ai-sdk/solid@0.0.45
+  - @ai-sdk/svelte@0.0.47
+  - @ai-sdk/vue@0.0.47
+
 ## 3.3.34
 
 ### Patch Changes

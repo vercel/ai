@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.42
+
+### Patch Changes
+
+- 14210d5: feat (ai/core): add sendUsage information to streamText data stream methods
+
 ## 0.0.41
 
 ### Patch Changes
