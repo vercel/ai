@@ -119,6 +119,8 @@ First, you create a streamable UI with an empty state and then update it with a 
 On the client side, you can call the `getWeather` Server Action and render the returned UI like any other React component.
 
 ```tsx filename='app/page.tsx'
+'use client';
+
 import { useState } from 'react';
 import { readStreamableValue } from 'ai/rsc';
 import { getWeather } from '@/actions';
