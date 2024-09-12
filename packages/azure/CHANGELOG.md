@@ -1,5 +1,12 @@
 # @ai-sdk/azure
 
+## 0.0.37
+
+### Patch Changes
+
+- Updated dependencies [a0991ec]
+  - @ai-sdk/openai@0.0.59
+
 ## 0.0.36
 
 ### Patch Changes
