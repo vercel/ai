@@ -105,7 +105,7 @@ export async function getWeather() {
   weatherUI.update(<div style={{ color: 'gray' }}>Loading...</div>);
 
   setTimeout(() => {
-    weatherUI.done(<div>It's a sunny day!</div>);
+    weatherUI.done(<div>It&apos;s a sunny day!</div>);
   }, 1000);
 
   return weatherUI.value;
@@ -119,12 +119,14 @@ First, you create a streamable UI with an empty state and then update it with a 
 On the client side, you can call the `getWeather` Server Action and render the returned UI like any other React component.
 
 ```tsx filename='app/page.tsx'
+'use client';
+
 import { useState } from 'react';
 import { readStreamableValue } from 'ai/rsc';
 import { getWeather } from '@/actions';
 
 export default function Page() {
-  const [weather, setWeather] = useState(null);
+  const [weather, setWeather] = useState<React.ReactNode | null>(null);
 
   return (
     <div>
@@ -134,7 +136,7 @@ export default function Page() {
           setWeather(weatherUI);
         }}
       >
-        What's the weather?
+        What&apos;s the weather?
       </button>
 
       {weather}
