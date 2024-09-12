@@ -370,7 +370,7 @@ const finishMessageStreamPart: StreamPart<
     usage: {
       promptTokens: number;
       completionTokens: number;
-    };
+    } | null;
   }
 > = {
   code: 'd',
@@ -420,7 +420,7 @@ const finishRoundtripStreamPart: StreamPart<
     usage: {
       promptTokens: number;
       completionTokens: number;
-    };
+    } | null;
   }
 > = {
   code: 'e',
