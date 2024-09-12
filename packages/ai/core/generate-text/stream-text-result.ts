@@ -120,12 +120,14 @@ Additional response information.
 
   @param data an optional StreamData object that will be merged into the stream.
   @param getErrorMessage an optional function that converts an error to an error message.
+  @param sendUsage whether to send the usage information to the client. Defaults to true.
 
   @return A data stream.
      */
   toDataStream(options?: {
     data?: StreamData;
     getErrorMessage?: (error: unknown) => string;
+    sendUsage?: boolean; // default to true (change to false in v4: secure by default)
   }): ReadableStream<Uint8Array>;
 
   /**
@@ -158,6 +160,7 @@ Additional response information.
           init?: ResponseInit;
           data?: StreamData;
           getErrorMessage?: (error: unknown) => string;
+          sendUsage?: boolean; // default to true (change to false in v4: secure by default)
         },
   ): void;
 
@@ -202,6 +205,7 @@ Additional response information.
           init?: ResponseInit;
           data?: StreamData;
           getErrorMessage?: (error: unknown) => string;
+          sendUsage?: boolean; // default to true (change to false in v4: secure by default)
         },
   ): Response;
 

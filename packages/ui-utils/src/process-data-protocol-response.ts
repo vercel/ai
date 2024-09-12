@@ -102,14 +102,17 @@ export async function processDataProtocolResponse({
     }
 
     if (type === 'finish_message') {
-      const { completionTokens, promptTokens } = value.usage;
-
       finishReason = value.finishReason;
-      usage = {
-        completionTokens,
-        promptTokens,
-        totalTokens: completionTokens + promptTokens,
-      };
+
+      if (value.usage != null) {
+        const { completionTokens, promptTokens } = value.usage;
+
+        usage = {
+          completionTokens,
+          promptTokens,
+          totalTokens: completionTokens + promptTokens,
+        };
+      }
 
       continue;
     }
