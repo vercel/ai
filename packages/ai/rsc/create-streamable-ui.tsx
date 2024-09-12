@@ -1,6 +1,6 @@
-import { HANGING_STREAM_WARNING_TIME_MS } from '../../util/constants';
-import { createResolvablePromise } from '../../util/create-resolvable-promise';
-import { createSuspendedChunk } from './create-suspended-chunk';
+import { HANGING_STREAM_WARNING_TIME_MS } from './../util/constants';
+import { InternalStreamableUIClient } from './rsc-shared.mjs';
+import { createStreamableValue } from './streamable-value/create-streamable-value';
 
 // It's necessary to define the type manually here, otherwise TypeScript compiler
 // will not be able to infer the correct return type as it's circular.
@@ -53,9 +53,8 @@ type StreamableUIWrapper = {
  * On the client side, it can be rendered as a normal React node.
  */
 function createStreamableUI(initialValue?: React.ReactNode) {
-  let currentValue = initialValue;
+  const innerStreamable = createStreamableValue<React.ReactNode>(initialValue);
   let closed = false;
-  let { row, resolve, reject } = createSuspendedChunk(initialValue);
 
   function assertStream(method: string) {
     if (closed) {
@@ -79,23 +78,11 @@ function createStreamableUI(initialValue?: React.ReactNode) {
   warnUnclosedStream();
 
   const streamable: StreamableUIWrapper = {
-    value: row,
+    value: <InternalStreamableUIClient s={innerStreamable.value} />,
     update(value: React.ReactNode) {
       assertStream('.update()');
 
-      // There is no need to update the value if it's referentially equal.
-      if (value === currentValue) {
-        warnUnclosedStream();
-        return streamable;
-      }
-
-      const resolvable = createResolvablePromise();
-      currentValue = value;
-
-      resolve({ value: currentValue, done: false, next: resolvable.promise });
-      resolve = resolvable.resolve;
-      reject = resolvable.reject;
-
+      innerStreamable.update(value);
       warnUnclosedStream();
 
       return streamable;
@@ -103,13 +90,7 @@ function createStreamableUI(initialValue?: React.ReactNode) {
     append(value: React.ReactNode) {
       assertStream('.append()');
 
-      const resolvable = createResolvablePromise();
-      currentValue = value;
-
-      resolve({ value, done: false, append: true, next: resolvable.promise });
-      resolve = resolvable.resolve;
-      reject = resolvable.reject;
-
+      innerStreamable.append(value);
       warnUnclosedStream();
 
       return streamable;
@@ -121,7 +102,7 @@ function createStreamableUI(initialValue?: React.ReactNode) {
         clearTimeout(warningTimeout);
       }
       closed = true;
-      reject(error);
+      innerStreamable.error(error);
 
       return streamable;
     },
@@ -133,11 +114,11 @@ function createStreamableUI(initialValue?: React.ReactNode) {
       }
       closed = true;
       if (args.length) {
-        resolve({ value: args[0], done: true });
+        innerStreamable.done(args[0]);
         return streamable;
       }
-      resolve({ value: currentValue, done: true });
 
+      innerStreamable.done();
       return streamable;
     },
   };

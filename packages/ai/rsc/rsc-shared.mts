@@ -8,4 +8,5 @@ export {
   useActions,
   useSyncUIState,
   InternalAIProvider,
+  InternalStreamableUIClient,
 } from './shared-client';
