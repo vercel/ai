@@ -17,6 +17,14 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
   },
+  // Test utilities
+  {
+    entry: ['test/index.ts'],
+    outDir: 'test/dist',
+    format: ['cjs', 'esm'],
+    dts: true,
+    sourcemap: true,
+  },
   // React APIs
   {
     entry: ['react/index.ts'],

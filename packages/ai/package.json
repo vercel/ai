@@ -15,8 +15,7 @@
     "solid/dist/**/*",
     "prompts/dist/**/*",
     "rsc/dist/**/*",
-    "google/dist/**/*",
-    "mistral/dist/**/*",
+    "test/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
@@ -44,6 +43,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./test": {
+      "types": "./test/dist/index.d.ts",
+      "import": "./test/dist/index.mjs",
+      "module": "./test/dist/index.mjs",
+      "require": "./test/dist/index.js"
     },
     "./rsc": {
       "types": "./rsc/dist/index.d.ts",
