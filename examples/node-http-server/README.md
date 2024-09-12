@@ -6,7 +6,6 @@
 
 ```sh
 OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
-...
 ```
 
 2. Run the following commands from the root directory of the AI SDK repo:
@@ -16,7 +15,7 @@ pnpm install
 pnpm build
 ```
 
-3. Run any example (from the `examples/ai-core` directory) with the following command:
+3. Run the following command:
 
 ```sh
 pnpm tsx src/server.ts

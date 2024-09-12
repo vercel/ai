@@ -1,0 +1,173 @@
+---
+title: FriendliAI
+description: Learn how to use the Friendli Provider for the Vercel AI SDK.
+---
+
+# Friendli Provider
+
+<Note style={{ paddingTop: 0, paddingBottom: 0 }}>
+  FriendliAI is supported via OpenAI API compatibility - the OpenAI provider is
+  used in the examples below.
+</Note>
+
+The [FriendliAI](https://friendli.ai/) provider contains language model support for the [Friendli Serverless Endpoints](https://friendli.ai/products/serverless-endpoints).  
+It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` functions.
+
+## Setup
+
+The Friendli provider is available via the `@ai-sdk/openai` module as it is compatible with the OpenAI API.
+You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai" dark />
+  </Tab>
+</Tabs>
+
+### Credentials
+
+The tokens required for model usage can be obtained from the [Friendli suite](https://suite.friendli.ai/).
+
+To use the provider, you need to set the `FRIENDLI_TOKEN` environment variable with your personal access token.
+
+```bash
+export FRIENDLI_TOKEN="YOUR_FRIENDLI_TOKEN"
+```
+
+Check the [FriendliAI documentation](https://docs.friendli.ai/guides/personal_access_tokens) for more information.
+
+## Provider Instance
+
+### Using the OpenAI Provider
+
+To use FriendliAI, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const friendliai = createOpenAI({
+  baseURL: 'https://inference.friendli.ai/v1',
+  apiKey: process.env.FRIENDLI_TOKEN,
+});
+```
+
+### Using the `@friendliai/ai-provider` Package
+
+<Note type="warning">
+  **Built-in tools** and `@friendliai/ai-provider` are still in beta. If you
+  encounter problems, please use [`createOpenAI`](#using-the-openai-provider).
+</Note>
+
+You can import the default provider instance `friendliai` from `@friendliai/ai-provider`:
+
+first install the package
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @friendliai/ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @friendliai/ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @friendliai/ai-provider" dark />
+  </Tab>
+</Tabs>
+
+then import the provider
+
+```ts
+import { friendliai } from '@friendliai/ai-provider';
+```
+
+The following optional settings are available for the provider instance:
+
+- **tools** _Array_
+
+- **tools.type** _string_
+
+  Optional. The [built-in tools](https://docs.friendli.ai/guides/serverless_endpoints/tools/built_in_tools) to use with the model.
+
+## Language Models
+
+You can create [FriendliAI models](https://docs.friendli.ai/guides/serverless_endpoints/text_generation#model-supports) using a provider instance.
+The first argument is the model id, e.g. `meta-llama-3.1-8b-instruct`.
+
+```ts
+const model = friendliai('meta-llama-3.1-8b-instruct');
+```
+
+### Example: Generating text
+
+You can use FriendliAI language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai'
+import { generateText } from 'ai'
+
+const friendliai = createOpenAI({
+  baseURL: 'https://inference.friendli.ai/v1',
+  apiKey: process.env.FRIENDLI_TOKEN,
+});
+
+const { text } = await generateText({
+  model: friendliai('meta-llama-3.1-8b-instruct')
+  prompt: 'What is the meaning of life?',
+})
+```
+
+### Example: Using built-in tools
+
+<Note type="warning">
+  **Built-in tools** and `@friendliai/ai-provider` are still in beta. If you
+  encounter problems, please use [`createOpenAI`](#using-the-openai-provider).
+</Note>
+
+If you use `@friendliai/ai-provider`, you can use the [built-in tools](https://docs.friendli.ai/guides/serverless_endpoints/tools/built_in_tools) via the `tools` option.
+
+Built-in tools allow models to use tools to generate better answers. For example, a `web:search` tool can provide up-to-date answers to current questions.
+
+```ts highlight="1,8,9,10,11,12,13,14,15"
+import { friendliai } from '@friendliai/ai-provider';
+import { convertToCoreMessages, streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: friendliai('meta-llama-3.1-8b-instruct', {
+      tools: [
+        { type: 'web:search' },
+        { type: 'math:calculator' },
+        { type: 'code:python-interpreter' }, // and more tools..!!
+      ],
+    }),
+    messages: convertToCoreMessages(messages),
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+FriendliAI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions.
+(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
+### Model Capabilities
+
+| Model                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `meta-llama-3.1-70b-instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama-3.1-8b-instruct`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mixtral-8x7b-instruct-v0-1`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  To access [more models](https://friendli.ai/models), visit the [Friendli
+  Dedicated Endpoints](https://docs.friendli.ai/sdk/integrations/vercel-ai-sdk)
+  documentation to deploy your custom models.
+</Note>

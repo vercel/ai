@@ -91,6 +91,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -157,6 +164,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -165,6 +179,65 @@ Optional telemetry configuration (experimental).
       };
     },
 ): Promise<GenerateObjectResult<Array<ELEMENT>>>;
+/**
+Generate a value from an enum (limited list of string values) using a language model.
+
+This function does not stream the output.
+
+@return
+A result object that contains the generated value, the finish reason, the token usage, and additional information.
+ */
+export async function generateObject<ENUM extends string>(
+  options: Omit<CallSettings, 'stopSequences'> &
+    Prompt & {
+      output: 'enum';
+
+      /**
+The language model to use.
+     */
+      model: LanguageModel;
+
+      /**
+The enum values that the model should use.
+     */
+      enum: Array<ENUM>;
+
+      /**
+The mode to use for object generation.
+
+The schema is converted in a JSON schema and used in one of the following ways
+
+- 'auto': The provider will choose the best mode for the model.
+- 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
+- 'json': The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
+
+Please note that most providers do not support all modes.
+
+Default and recommended: 'auto' (best mode for the model).
+     */
+      mode?: 'auto' | 'json' | 'tool';
+
+      /**
+Optional telemetry configuration (experimental).
+     */
+      experimental_telemetry?: TelemetrySettings;
+
+      /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        generateId?: () => string;
+        currentDate?: () => Date;
+      };
+    },
+): Promise<GenerateObjectResult<ENUM>>;
 /**
 Generate JSON with any schema for a given prompt using a language model.
 
@@ -194,6 +267,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -204,6 +284,7 @@ Optional telemetry configuration (experimental).
 ): Promise<GenerateObjectResult<JSONValue>>;
 export async function generateObject<SCHEMA, RESULT>({
   model,
+  enum: enumValues, // rename bc enum is reserved by typescript
   schema: inputSchema,
   schemaName,
   schemaDescription,
@@ -216,6 +297,7 @@ export async function generateObject<SCHEMA, RESULT>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
+  experimental_providerMetadata: providerMetadata,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -232,14 +314,16 @@ export async function generateObject<SCHEMA, RESULT>({
      *
      * Default is 'object' if not specified.
      */
-    output?: 'object' | 'array' | 'no-schema';
+    output?: 'object' | 'array' | 'enum' | 'no-schema';
 
     model: LanguageModel;
+    enum?: Array<SCHEMA>;
     schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
     schemaName?: string;
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
+    experimental_providerMetadata?: ProviderMetadata;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -255,9 +339,14 @@ export async function generateObject<SCHEMA, RESULT>({
     schema: inputSchema,
     schemaName,
     schemaDescription,
+    enumValues,
   });
 
-  const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
+  const outputStrategy = getOutputStrategy({
+    output,
+    schema: inputSchema,
+    enumValues,
+  });
 
   // automatically set mode to 'json' for no-schema output
   if (outputStrategy.type === 'no-schema' && mode === undefined) {
@@ -312,7 +401,7 @@ export async function generateObject<SCHEMA, RESULT>({
       let rawResponse: { headers?: Record<string, string> } | undefined;
       let response: LanguageModelResponseMetadata;
       let logprobs: LogProbs | undefined;
-      let providerMetadata: ProviderMetadata | undefined;
+      let resultProviderMetadata: ProviderMetadata | undefined;
 
       switch (mode) {
         case 'json': {
@@ -379,6 +468,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   ...prepareCallSettings(settings),
                   inputFormat,
                   prompt: promptMessages,
+                  providerMetadata,
                   abortSignal,
                   headers,
                 });
@@ -435,7 +525,7 @@ export async function generateObject<SCHEMA, RESULT>({
           warnings = generateResult.warnings;
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
-          providerMetadata = generateResult.providerMetadata;
+          resultProviderMetadata = generateResult.providerMetadata;
           response = generateResult.responseData;
 
           break;
@@ -500,6 +590,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   ...prepareCallSettings(settings),
                   inputFormat,
                   prompt: promptMessages,
+                  providerMetadata,
                   abortSignal,
                   headers,
                 });
@@ -558,7 +649,7 @@ export async function generateObject<SCHEMA, RESULT>({
           warnings = generateResult.warnings;
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
-          providerMetadata = generateResult.providerMetadata;
+          resultProviderMetadata = generateResult.providerMetadata;
           response = generateResult.responseData;
 
           break;
@@ -622,7 +713,7 @@ export async function generateObject<SCHEMA, RESULT>({
           headers: rawResponse?.headers,
         },
         logprobs,
-        providerMetadata,
+        providerMetadata: resultProviderMetadata,
       });
     },
   });

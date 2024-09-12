@@ -4,6 +4,7 @@ class MockServerResponse {
   writtenChunks: any[] = [];
   headers = {};
   statusCode = 0;
+  statusMessage = '';
   ended = false;
 
   write(chunk: any): void {
@@ -15,14 +16,43 @@ class MockServerResponse {
     this.ended = true;
   }
 
-  writeHead(statusCode: number, headers: Record<string, string>): void {
+  writeHead(
+    statusCode: number,
+    statusMessage: string,
+    headers: Record<string, string>,
+  ): void {
     this.statusCode = statusCode;
+    this.statusMessage = statusMessage;
     this.headers = headers;
   }
 
   get body() {
     // Combine all written chunks into a single string
     return this.writtenChunks.join('');
+  }
+
+  /**
+   * Get the decoded chunks as strings.
+   */
+  getDecodedChunks() {
+    const decoder = new TextDecoder();
+    return this.writtenChunks.map(chunk => decoder.decode(chunk));
+  }
+
+  /**
+   * Wait for the stream to finish writing to the mock response.
+   */
+  async waitForEnd() {
+    await new Promise(resolve => {
+      const checkIfEnded = () => {
+        if (this.ended) {
+          resolve(undefined);
+        } else {
+          setImmediate(checkIfEnded);
+        }
+      };
+      checkIfEnded();
+    });
   }
 }
 

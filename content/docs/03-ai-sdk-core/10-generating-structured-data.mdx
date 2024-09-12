@@ -65,12 +65,12 @@ You can use `streamObject` to stream generated UIs in combination with React Ser
 
 You can use both functions with different output strategies, e.g. `array`, `object`, or `no-schema`.
 
-### Output Strategy: Object
+### Object
 
 The default output strategy is `object`, which returns the generated data as an object.
 You don't need to specify the output strategy if you want to use the default.
 
-### Output Strategy: Array
+### Array
 
 If you want to generate an array of objects, you can set the output strategy to `array`.
 When you use the `array` output strategy, the schema specifies the shape of an array element.
@@ -99,7 +99,29 @@ for await (const hero of elementStream) {
 }
 ```
 
-### Output Strategy: No Schema
+### Enum
+
+If you want to generate a specific enum value, e.g. for classification tasks,
+you can set the output strategy to `enum`
+and provide a list of possible values in the `enum` parameter.
+
+<Note>Enum output is only available with `generateObject`.</Note>
+
+```ts highlight="5-6"
+import { generateObject } from 'ai';
+
+const { object } = await generateObject({
+  model: yourModel,
+  output: 'enum',
+  enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
+  prompt:
+    'Classify the genre of this movie plot: ' +
+    '"A group of astronauts travel through a wormhole in search of a ' +
+    'new habitable planet for humanity."',
+});
+```
+
+### No Schema
 
 In some cases, you might not want to use a schema,
 for example when the data is a dynamic user request.

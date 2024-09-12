@@ -50,6 +50,8 @@ import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
+import { writeToServerResponse } from '../util/write-to-server-response';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', length: 24 });
 
@@ -157,6 +159,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: OnFinishCallback<OBJECT>;
@@ -229,6 +238,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: OnFinishCallback<Array<ELEMENT>>;
@@ -278,6 +294,13 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+      experimental_providerMetadata?: ProviderMetadata;
+
+      /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: OnFinishCallback<JSONValue>;
@@ -306,6 +329,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
+  experimental_providerMetadata: providerMetadata,
   onFinish,
   _internal: {
     generateId = originalGenerateId,
@@ -332,6 +356,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
+    experimental_providerMetadata?: ProviderMetadata;
     onFinish?: OnFinishCallback<RESULT>;
     _internal?: {
       generateId?: () => string;
@@ -432,6 +457,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
               prompt: validatedPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
             }),
+            providerMetadata,
             abortSignal,
             headers,
           };
@@ -477,6 +503,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
               prompt: validatedPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
             }),
+            providerMetadata,
             abortSignal,
             headers,
           };
@@ -959,34 +986,16 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     });
   }
 
-  pipeTextStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ) {
-    response.writeHead(init?.status ?? 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      ...init?.headers,
+  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
+    writeToServerResponse({
+      response,
+      status: init?.status,
+      statusText: init?.statusText,
+      headers: prepareOutgoingHttpHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
+      stream: this.textStream.pipeThrough(new TextEncoderStream()),
     });
-
-    const reader = this.textStream
-      .pipeThrough(new TextEncoderStream())
-      .getReader();
-
-    const read = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          response.write(value);
-        }
-      } catch (error) {
-        throw error;
-      } finally {
-        response.end();
-      }
-    };
-
-    read();
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {

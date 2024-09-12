@@ -1,5 +1,35 @@
 # ai
 
+## 3.3.33
+
+### Patch Changes
+
+- cbddc83: fix (ai/core): filter out empty text parts
+
+## 3.3.32
+
+### Patch Changes
+
+- ce7a4af: feat (ai/core): support providerMetadata in functions
+
+## 3.3.31
+
+### Patch Changes
+
+- 561fd7e: feat (ai/core): add output: enum to generateObject
+
+## 3.3.30
+
+### Patch Changes
+
+- 6ee1f8e: feat (ai/core): add toDataStream to streamText result
+
+## 3.3.29
+
+### Patch Changes
+
+- 1e3dfd2: feat (ai/core): enhance pipeToData/TextStreamResponse methods
+
 ## 3.3.28
 
 ### Patch Changes

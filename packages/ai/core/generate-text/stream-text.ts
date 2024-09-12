@@ -52,6 +52,8 @@ import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
+import { writeToServerResponse } from '../util/write-to-server-response';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
 
@@ -113,6 +115,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   headers,
   maxToolRoundtrips = 0,
   experimental_telemetry: telemetry,
+  experimental_providerMetadata: providerMetadata,
   experimental_toolCallStreaming: toolCallStreaming = false,
   onChunk,
   onFinish,
@@ -157,6 +160,13 @@ By default, it's set to 0, which will disable the feature.
 Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
+
+    /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+    experimental_providerMetadata?: ProviderMetadata;
 
     /**
 Enable streaming of tool call deltas as they are generated. Disabled by default.
@@ -330,6 +340,7 @@ results that can be fully encapsulated in the provider.
                 ...prepareCallSettings(settings),
                 inputFormat: promptType,
                 prompt: promptMessages,
+                providerMetadata,
                 abortSignal,
                 headers,
               }),
@@ -903,10 +914,10 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toAIStream(callbacks: AIStreamCallbacksAndOptions = {}) {
-    return this.toDataStream({ callbacks });
+    return this.toDataStreamInternal({ callbacks });
   }
 
-  private toDataStream({
+  private toDataStreamInternal({
     callbacks = {},
     getErrorMessage = () => '', // mask error messages for safety by default
   }: {
@@ -1036,66 +1047,79 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   pipeDataStreamToResponse(
     response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
+    options?:
+      | ResponseInit
+      | {
+          init?: ResponseInit;
+          data?: StreamData;
+          getErrorMessage?: (error: unknown) => string;
+        },
   ) {
-    response.writeHead(init?.status ?? 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      ...init?.headers,
+    const init: ResponseInit | undefined =
+      options == null
+        ? undefined
+        : 'init' in options
+        ? options.init
+        : {
+            headers: 'headers' in options ? options.headers : undefined,
+            status: 'status' in options ? options.status : undefined,
+            statusText:
+              'statusText' in options ? options.statusText : undefined,
+          };
+
+    const data: StreamData | undefined =
+      options == null
+        ? undefined
+        : 'data' in options
+        ? options.data
+        : undefined;
+
+    const getErrorMessage: ((error: unknown) => string) | undefined =
+      options == null
+        ? undefined
+        : 'getErrorMessage' in options
+        ? options.getErrorMessage
+        : undefined;
+
+    writeToServerResponse({
+      response,
+      status: init?.status,
+      statusText: init?.statusText,
+      headers: prepareOutgoingHttpHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+        dataStreamVersion: 'v1',
+      }),
+      stream: this.toDataStream({ data, getErrorMessage }),
     });
-
-    const reader = this.toDataStream().getReader();
-
-    const read = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          response.write(value);
-        }
-      } catch (error) {
-        throw error;
-      } finally {
-        response.end();
-      }
-    };
-
-    read();
   }
 
-  pipeTextStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ) {
-    response.writeHead(init?.status ?? 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      ...init?.headers,
+  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
+    writeToServerResponse({
+      response,
+      status: init?.status,
+      statusText: init?.statusText,
+      headers: prepareOutgoingHttpHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
+      stream: this.textStream.pipeThrough(new TextEncoderStream()),
     });
-
-    const reader = this.textStream
-      .pipeThrough(new TextEncoderStream())
-      .getReader();
-
-    const read = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          response.write(value);
-        }
-      } catch (error) {
-        throw error;
-      } finally {
-        response.end();
-      }
-    };
-
-    read();
   }
 
   toAIStreamResponse(
     options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
   ): Response {
     return this.toDataStreamResponse(options);
+  }
+
+  toDataStream(options?: {
+    data?: StreamData;
+    getErrorMessage?: (error: unknown) => string;
+  }) {
+    const stream = this.toDataStreamInternal({
+      getErrorMessage: options?.getErrorMessage,
+    });
+
+    return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
   }
 
   toDataStreamResponse(
@@ -1133,11 +1157,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         ? options.getErrorMessage
         : undefined;
 
-    const stream = data
-      ? mergeStreams(data.stream, this.toDataStream({ getErrorMessage }))
-      : this.toDataStream({ getErrorMessage });
-
-    return new Response(stream, {
+    return new Response(this.toDataStream({ data, getErrorMessage }), {
       status: init?.status ?? 200,
       statusText: init?.statusText,
       headers: prepareResponseHeaders(init, {

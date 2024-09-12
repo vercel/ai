@@ -1,7 +1,9 @@
 import {
+  JSONObject,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -12,6 +14,8 @@ import {
   ConverseCommandInput,
   ConverseStreamCommand,
   ConverseStreamOutput,
+  GuardrailConfiguration,
+  GuardrailStreamConfiguration,
   Tool,
   ToolConfiguration,
   ToolInputSchema,
@@ -61,6 +65,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
+    providerMetadata,
     headers,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -123,6 +128,10 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         stopSequences,
       },
       messages,
+      guardrailConfig: providerMetadata?.bedrock?.guardrailConfig as
+        | GuardrailConfiguration
+        | GuardrailStreamConfiguration
+        | undefined,
     };
 
     switch (type) {
@@ -177,6 +186,10 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
+    const providerMetadata = response.trace
+      ? { bedrock: { trace: response.trace as JSONObject } }
+      : undefined;
+
     return {
       text:
         response.output?.message?.content
@@ -197,6 +210,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       warnings: [],
+      providerMetadata,
     };
   }
 
@@ -216,6 +230,8 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
+    let providerMetadata: LanguageModelV1ProviderMetadata | undefined =
+      undefined;
 
     if (!response.stream) {
       throw new Error('No stream found');
@@ -284,6 +300,14 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
                 completionTokens:
                   value.metadata.usage?.outputTokens ?? Number.NaN,
               };
+
+              if (value.metadata.trace) {
+                providerMetadata = {
+                  bedrock: {
+                    trace: value.metadata.trace as JSONObject,
+                  },
+                };
+              }
             }
 
             if (value.contentBlockDelta?.delta?.text) {
@@ -331,6 +355,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
               type: 'finish',
               finishReason,
               usage,
+              providerMetadata,
             });
           },
         }),

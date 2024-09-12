@@ -1289,34 +1289,172 @@ describe('result.pipeDataStreamToResponse', async () => {
 
     result.pipeDataStreamToResponse(mockResponse);
 
-    // Wait for the stream to finish writing to the mock response
-    await new Promise(resolve => {
-      const checkIfEnded = () => {
-        if (mockResponse.ended) {
-          resolve(undefined);
-        } else {
-          setImmediate(checkIfEnded);
-        }
-      };
-      checkIfEnded();
-    });
+    await mockResponse.waitForEnd();
 
-    const decoder = new TextDecoder();
-
-    assert.strictEqual(mockResponse.statusCode, 200);
-    assert.deepStrictEqual(mockResponse.headers, {
+    expect(mockResponse.statusCode).toBe(200);
+    expect(mockResponse.headers).toEqual({
       'Content-Type': 'text/plain; charset=utf-8',
+      'X-Vercel-AI-Data-Stream': 'v1',
     });
-    assert.deepStrictEqual(
-      mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
-      [
-        '0:"Hello"\n',
-        '0:", "\n',
-        '0:"world!"\n',
-        'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-        'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      ],
-    );
+    expect(mockResponse.getDecodedChunks()).toEqual([
+      '0:"Hello"\n',
+      '0:", "\n',
+      '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+    ]);
+  });
+
+  it('should create a Response with a data stream and custom headers', async () => {
+    const mockResponse = createMockServerResponse();
+
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    result.pipeDataStreamToResponse(mockResponse, {
+      status: 201,
+      statusText: 'foo',
+      headers: {
+        'custom-header': 'custom-value',
+      },
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.statusCode).toBe(201);
+    expect(mockResponse.statusMessage).toBe('foo');
+
+    expect(mockResponse.headers).toEqual({
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Vercel-AI-Data-Stream': 'v1',
+      'custom-header': 'custom-value',
+    });
+
+    expect(mockResponse.getDecodedChunks()).toEqual([
+      '0:"Hello"\n',
+      '0:", "\n',
+      '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+    ]);
+  });
+
+  it('should support merging with existing stream data', async () => {
+    const mockResponse = createMockServerResponse();
+
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const streamData = new StreamData();
+    streamData.append('stream-data-value');
+    streamData.close();
+
+    result.pipeDataStreamToResponse(mockResponse, {
+      data: streamData,
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.statusCode).toBe(200);
+    expect(mockResponse.headers).toEqual({
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Vercel-AI-Data-Stream': 'v1',
+    });
+
+    expect(mockResponse.getDecodedChunks()).toEqual([
+      '2:["stream-data-value"]\n',
+      '0:"Hello"\n',
+      '0:", "\n',
+      '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+    ]);
+  });
+
+  it('should mask error messages by default', async () => {
+    const mockResponse = createMockServerResponse();
+
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    result.pipeDataStreamToResponse(mockResponse);
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.getDecodedChunks()).toEqual([
+      '3:""\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+    ]);
+  });
+
+  it('should support custom error messages', async () => {
+    const mockResponse = createMockServerResponse();
+
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    result.pipeDataStreamToResponse(mockResponse, {
+      getErrorMessage: error => `custom error message: ${error}`,
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.getDecodedChunks()).toEqual([
+      '3:"custom error message: error"\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+    ]);
   });
 });
 
@@ -1342,28 +1480,144 @@ describe('result.pipeTextStreamToResponse', async () => {
 
     result.pipeTextStreamToResponse(mockResponse);
 
-    // Wait for the stream to finish writing to the mock response
-    await new Promise(resolve => {
-      const checkIfEnded = () => {
-        if (mockResponse.ended) {
-          resolve(undefined);
-        } else {
-          setImmediate(checkIfEnded);
-        }
-      };
-      checkIfEnded();
-    });
+    await mockResponse.waitForEnd();
 
-    const decoder = new TextDecoder();
-
-    assert.strictEqual(mockResponse.statusCode, 200);
-    assert.deepStrictEqual(mockResponse.headers, {
+    expect(mockResponse.statusCode).toBe(200);
+    expect(mockResponse.headers).toEqual({
       'Content-Type': 'text/plain; charset=utf-8',
     });
-    assert.deepStrictEqual(
-      mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
-      ['Hello', ', ', 'world!'],
-    );
+    expect(mockResponse.getDecodedChunks()).toEqual(['Hello', ', ', 'world!']);
+  });
+});
+
+describe('result.toDataStream', () => {
+  it('should create a data stream', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const dataStream = result.toDataStream();
+
+    expect(
+      await convertReadableStreamToArray(
+        dataStream.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toEqual([
+      '0:"Hello"\n',
+      '0:", "\n',
+      '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+    ]);
+  });
+
+  it('should support merging with existing stream data', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const streamData = new StreamData();
+    streamData.append('stream-data-value');
+    streamData.close();
+
+    const dataStream = result.toDataStream({ data: streamData });
+
+    expect(
+      await convertReadableStreamToArray(
+        dataStream.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toEqual([
+      '2:["stream-data-value"]\n',
+      '0:"Hello"\n',
+      '0:", "\n',
+      '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+    ]);
+  });
+
+  it('should mask error messages by default', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const dataStream = result.toDataStream();
+
+    expect(
+      await convertReadableStreamToArray(
+        dataStream.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toEqual([
+      '3:""\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+    ]);
+  });
+
+  it('should support custom error messages', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const dataStream = result.toDataStream({
+      getErrorMessage: error => `custom error message: ${error}`,
+    });
+
+    expect(
+      await convertReadableStreamToArray(
+        dataStream.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toEqual([
+      '3:"custom error message: error"\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+    ]);
   });
 });
 
@@ -2487,6 +2741,42 @@ describe('options.headers', () => {
     assert.deepStrictEqual(
       await convertAsyncIterableToArray(result.textStream),
       ['Hello', ', ', 'world!'],
+    );
+  });
+});
+
+describe('options.providerMetadata', () => {
+  it('should pass provider metadata to model', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ providerMetadata }) => {
+          expect(providerMetadata).toStrictEqual({
+            aProvider: { someKey: 'someValue' },
+          });
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'provider metadata test' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+      experimental_providerMetadata: {
+        aProvider: { someKey: 'someValue' },
+      },
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.textStream),
+      ['provider metadata test'],
     );
   });
 });

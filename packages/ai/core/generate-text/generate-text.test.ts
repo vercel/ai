@@ -6,8 +6,6 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
-import { mockId } from '../test/mock-id';
-import { mockValues } from '../test/mock-values';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -628,6 +626,28 @@ describe('options.headers', () => {
     });
 
     assert.deepStrictEqual(result.text, 'Hello, world!');
+  });
+});
+
+describe('options.providerMetadata', () => {
+  it('should pass provider metadata to model', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ providerMetadata }) => {
+          expect(providerMetadata).toStrictEqual({
+            aProvider: { someKey: 'someValue' },
+          });
+
+          return { ...dummyResponseValues, text: 'provider metadata test' };
+        },
+      }),
+      prompt: 'test-input',
+      experimental_providerMetadata: {
+        aProvider: { someKey: 'someValue' },
+      },
+    });
+
+    expect(result.text).toStrictEqual('provider metadata test');
   });
 });
 

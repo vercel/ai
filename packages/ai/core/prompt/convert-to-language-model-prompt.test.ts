@@ -141,6 +141,35 @@ describe('convertToLanguageModelPrompt', () => {
 
 describe('convertToLanguageModelMessage', () => {
   describe('user message', () => {
+    describe('text parts', () => {
+      it('should filter out empty text parts', async () => {
+        const result = convertToLanguageModelMessage(
+          { role: 'user', content: [{ type: 'text', text: '' }] },
+          null,
+        );
+
+        expect(result).toEqual({
+          role: 'user',
+          content: [],
+        });
+      });
+
+      it('should pass through non-empty text parts', async () => {
+        const result = convertToLanguageModelMessage(
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'hello, world!' }],
+          },
+          null,
+        );
+
+        expect(result).toEqual({
+          role: 'user',
+          content: [{ type: 'text', text: 'hello, world!' }],
+        });
+      });
+    });
+
     describe('image parts', () => {
       it('should convert image string https url to URL object', async () => {
         const result = convertToLanguageModelMessage(

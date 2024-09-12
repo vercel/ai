@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`options.headers > should set headers 1`] = `
+exports[`options.headers > should pass headers to model 1`] = `
 {
   "children": {
     "children": {},
@@ -9,30 +9,34 @@ exports[`options.headers > should set headers 1`] = `
       "n": {
         "done": false,
         "next": {
-          "done": false,
-          "next": {
-            "done": false,
-            "next": {
-              "done": false,
-              "next": {
-                "done": false,
-                "next": {
-                  "done": false,
-                  "next": {
-                    "done": true,
-                    "value": "{ "content": "Hello, world!" }",
-                  },
-                  "value": "{ "content": "Hello, world!" }",
-                },
-                "value": "{ "content": "Hello, world!"",
-              },
-              "value": "{ "content": "Hello, world",
-            },
-            "value": "{ "content": "Hello, ",
-          },
-          "value": "{ "content": ",
+          "done": true,
+          "value": "{ "content": "headers test" }",
         },
-        "value": "{ ",
+        "value": "{ "content": "headers test" }",
+      },
+    },
+    "type": "",
+  },
+  "props": {
+    "fallback": undefined,
+  },
+  "type": "Symbol(react.suspense)",
+}
+`;
+
+exports[`options.providerMetadata > should pass provider metadata to model 1`] = `
+{
+  "children": {
+    "children": {},
+    "props": {
+      "c": undefined,
+      "n": {
+        "done": false,
+        "next": {
+          "done": true,
+          "value": "{ "content": "provider metadata test" }",
+        },
+        "value": "{ "content": "provider metadata test" }",
       },
     },
     "type": "",

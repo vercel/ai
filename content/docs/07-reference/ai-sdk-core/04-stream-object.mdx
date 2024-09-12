@@ -106,35 +106,35 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       name: 'mode',
       type: "'auto' | 'json' | 'tool'",
       description:
-        'The mode to use for object generation. Not every model supports all modes. ' +
-        "Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. " +
-        "Must be 'json' for 'no-schema' output.",
+        "The mode to use for object generation. Not every model supports all modes. \
+        Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. \
+        Must be 'json' for 'no-schema' output.",
     },
     {
       name: 'schema',
       type: 'Zod Schema | JSON Schema',
       description:
-        'The schema that describes the shape of the object to generate. ' +
-        'It is sent to the model to generate the object and used to validate the output. ' +
-        'You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). ' +
-        'In "array" mode, the schema is used to describe an array element. ' +
-        'Not available with "no-schema" output.',
+        "The schema that describes the shape of the object to generate. \
+        It is sent to the model to generate the object and used to validate the output. \
+        You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). \
+        In 'array' mode, the schema is used to describe an array element. \
+        Not available with 'no-schema' output.",
     },
     {
       name: 'schemaName',
       type: 'string | undefined',
       description:
-        'Optional name of the output that should be generated. ' +
-        'Used by some providers for additional LLM guidance, e.g. via tool or schema name. ' +
-        'Not available with "no-schema" output.',
+        "Optional name of the output that should be generated. \
+        Used by some providers for additional LLM guidance, e.g. via tool or schema name. \
+        Not available with 'no-schema' output.",
     },
     {
       name: 'schemaDescription',
       type: 'string | undefined',
       description:
-        'Optional description of the output that should be generated. ' +
-        'Used by some providers for additional LLM guidance, e.g. via tool or schema name. ' +
-        'Not available with "no-schema" output.',
+        "Optional description of the output that should be generated. \
+        Used by some providers for additional LLM guidance, e.g. via tool or schema name. \
+        Not available with 'no-schema' output.",
     },
     {
       name: 'system',
@@ -444,6 +444,13 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
           ],
         },
       ],
+    },
+    {
+      name: 'experimental_providerMetadata',
+      type: 'Record<string,Record<string,JSONValue>> | undefined',
+      isOptional: true,
+      description:
+        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
       name: 'onFinish',
@@ -761,15 +768,65 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'pipeTextStreamToResponse',
-      type: '(response: ServerResponse, init?: { headers?: Record<string, string>; status?: number } => void',
+      type: '(response: ServerResponse, init?: ResponseInit => void',
       description:
         'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              optional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              optional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              optional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'toTextStreamResponse',
       type: '(init?: ResponseInit) => Response',
       description:
         'Creates a simple text stream response. Each text delta is encoded as UTF-8 and sent as a separate chunk. Non-text-delta events are ignored.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              optional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              optional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              optional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
     },
   ]}
 />
