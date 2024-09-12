@@ -207,6 +207,14 @@ describe('finish_message stream part', () => {
     );
   });
 
+  it('should format a finish_message stream part without usage information', () => {
+    expect(
+      formatStreamPart('finish_message', {
+        finishReason: 'stop',
+      }),
+    ).toEqual(`d:{"finishReason":"stop"}\n`);
+  });
+
   it('should parse a finish_message stream part', () => {
     const input = `d:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}`;
     expect(parseStreamPart(input)).toEqual({
@@ -228,6 +236,16 @@ describe('finish_message stream part', () => {
       },
     });
   });
+
+  it('should parse a finish_message without usage information', () => {
+    const input = `d:{"finishReason":"stop"}`;
+    expect(parseStreamPart(input)).toEqual({
+      type: 'finish_message',
+      value: {
+        finishReason: 'stop',
+      },
+    });
+  });
 });
 
 describe('finish_roundtrip stream part', () => {
@@ -240,6 +258,14 @@ describe('finish_roundtrip stream part', () => {
     ).toEqual(
       `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n`,
     );
+  });
+
+  it('should format a finish_roundtrip stream part without usage information', () => {
+    expect(
+      formatStreamPart('finish_roundtrip', {
+        finishReason: 'stop',
+      }),
+    ).toEqual(`e:{"finishReason":"stop"}\n`);
   });
 
   it('should parse a finish_roundtrip stream part', () => {
@@ -260,6 +286,16 @@ describe('finish_roundtrip stream part', () => {
       value: {
         finishReason: 'stop',
         usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    });
+  });
+
+  it('should parse a finish_roundtrip without usage information', () => {
+    const input = `e:{"finishReason":"stop","usage":null}`;
+    expect(parseStreamPart(input)).toEqual({
+      type: 'finish_roundtrip',
+      value: {
+        finishReason: 'stop',
       },
     });
   });

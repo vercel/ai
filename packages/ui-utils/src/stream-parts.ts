@@ -367,10 +367,10 @@ const finishMessageStreamPart: StreamPart<
   'finish_message',
   {
     finishReason: LanguageModelV1FinishReason;
-    usage: {
+    usage?: {
       promptTokens: number;
       completionTokens: number;
-    } | null;
+    };
   }
 > = {
   code: 'd',
@@ -380,34 +380,45 @@ const finishMessageStreamPart: StreamPart<
       value == null ||
       typeof value !== 'object' ||
       !('finishReason' in value) ||
-      typeof value.finishReason !== 'string' ||
-      !('usage' in value) ||
-      value.usage == null ||
-      typeof value.usage !== 'object' ||
-      !('promptTokens' in value.usage) ||
-      !('completionTokens' in value.usage)
+      typeof value.finishReason !== 'string'
     ) {
       throw new Error(
-        '"finish_message" parts expect an object with a "finishReason" and "usage" property.',
+        '"finish_message" parts expect an object with a "finishReason" property.',
       );
     }
-    // NaN is JSON parsed as null.
-    if (typeof value.usage.promptTokens !== 'number') {
-      value.usage.promptTokens = Number.NaN;
+
+    const result: {
+      finishReason: LanguageModelV1FinishReason;
+      usage?: {
+        promptTokens: number;
+        completionTokens: number;
+      };
+    } = {
+      finishReason: value.finishReason as LanguageModelV1FinishReason,
+    };
+
+    if (
+      'usage' in value &&
+      value.usage != null &&
+      typeof value.usage === 'object' &&
+      'promptTokens' in value.usage &&
+      'completionTokens' in value.usage
+    ) {
+      result.usage = {
+        promptTokens:
+          typeof value.usage.promptTokens === 'number'
+            ? value.usage.promptTokens
+            : Number.NaN,
+        completionTokens:
+          typeof value.usage.completionTokens === 'number'
+            ? value.usage.completionTokens
+            : Number.NaN,
+      };
     }
-    if (typeof value.usage.completionTokens !== 'number') {
-      value.usage.completionTokens = Number.NaN;
-    }
+
     return {
       type: 'finish_message',
-      value: value as unknown as {
-        finishReason: LanguageModelV1FinishReason;
-        usage: {
-          promptTokens: number;
-          completionTokens: number;
-          totalTokens: number;
-        };
-      },
+      value: result,
     };
   },
 };
@@ -417,10 +428,10 @@ const finishRoundtripStreamPart: StreamPart<
   'finish_roundtrip',
   {
     finishReason: LanguageModelV1FinishReason;
-    usage: {
+    usage?: {
       promptTokens: number;
       completionTokens: number;
-    } | null;
+    };
   }
 > = {
   code: 'e',
@@ -430,34 +441,45 @@ const finishRoundtripStreamPart: StreamPart<
       value == null ||
       typeof value !== 'object' ||
       !('finishReason' in value) ||
-      typeof value.finishReason !== 'string' ||
-      !('usage' in value) ||
-      value.usage == null ||
-      typeof value.usage !== 'object' ||
-      !('promptTokens' in value.usage) ||
-      !('completionTokens' in value.usage)
+      typeof value.finishReason !== 'string'
     ) {
       throw new Error(
-        '"finish_roundtrip" parts expect an object with a "finishReason" and "usage" property.',
+        '"finish_roundtrip" parts expect an object with a "finishReason" property.',
       );
     }
-    // NaN is JSON parsed as null.
-    if (typeof value.usage.promptTokens !== 'number') {
-      value.usage.promptTokens = Number.NaN;
+
+    const result: {
+      finishReason: LanguageModelV1FinishReason;
+      usage?: {
+        promptTokens: number;
+        completionTokens: number;
+      };
+    } = {
+      finishReason: value.finishReason as LanguageModelV1FinishReason,
+    };
+
+    if (
+      'usage' in value &&
+      value.usage != null &&
+      typeof value.usage === 'object' &&
+      'promptTokens' in value.usage &&
+      'completionTokens' in value.usage
+    ) {
+      result.usage = {
+        promptTokens:
+          typeof value.usage.promptTokens === 'number'
+            ? value.usage.promptTokens
+            : Number.NaN,
+        completionTokens:
+          typeof value.usage.completionTokens === 'number'
+            ? value.usage.completionTokens
+            : Number.NaN,
+      };
     }
-    if (typeof value.usage.completionTokens !== 'number') {
-      value.usage.completionTokens = Number.NaN;
-    }
+
     return {
       type: 'finish_roundtrip',
-      value: value as unknown as {
-        finishReason: LanguageModelV1FinishReason;
-        usage: {
-          promptTokens: number;
-          completionTokens: number;
-          totalTokens: number;
-        };
-      },
+      value: result,
     };
   },
 };
