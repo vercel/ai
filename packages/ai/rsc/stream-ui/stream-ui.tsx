@@ -370,6 +370,7 @@ functionality that can be fully encapsulated in the provider.
       }
 
       await finished;
+
       if (finishEvent && onFinish) {
         await onFinish({
           ...finishEvent,
