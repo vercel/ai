@@ -698,42 +698,38 @@ function countTrailingAssistantMessages(messages: Message[]) {
 async function prepareAttachmentsForRequest(
   attachmentsFromOptions: FileList | Array<Attachment> | undefined,
 ) {
-  const draftAttachmentsForRequest: Array<Attachment> = [];
-
-  if (attachmentsFromOptions) {
-    if (attachmentsFromOptions instanceof FileList) {
-      for (const attachment of Array.from(attachmentsFromOptions)) {
-        const { name, type } = attachment;
-
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = readerEvent => {
-            resolve(readerEvent.target?.result as string);
-          };
-          reader.onerror = error => reject(error);
-          reader.readAsDataURL(attachment);
-        });
-
-        draftAttachmentsForRequest.push({
-          name,
-          contentType: type,
-          url: dataUrl,
-        });
-      }
-    } else if (Array.isArray(attachmentsFromOptions)) {
-      for (const file of attachmentsFromOptions) {
-        const { name, url, contentType } = file;
-
-        draftAttachmentsForRequest.push({
-          name,
-          contentType,
-          url,
-        });
-      }
-    } else {
-      throw new Error('Invalid attachments type');
-    }
+  if (attachmentsFromOptions == null) {
+    return [];
   }
 
-  return draftAttachmentsForRequest;
+  if (attachmentsFromOptions instanceof FileList) {
+    const draftAttachmentsForRequest: Array<Attachment> = [];
+
+    for (const attachment of Array.from(attachmentsFromOptions)) {
+      const { name, type } = attachment;
+
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = readerEvent => {
+          resolve(readerEvent.target?.result as string);
+        };
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(attachment);
+      });
+
+      draftAttachmentsForRequest.push({
+        name,
+        contentType: type,
+        url: dataUrl,
+      });
+    }
+
+    return draftAttachmentsForRequest;
+  }
+
+  if (Array.isArray(attachmentsFromOptions)) {
+    return attachmentsFromOptions;
+  }
+
+  throw new Error('Invalid attachments type');
 }
