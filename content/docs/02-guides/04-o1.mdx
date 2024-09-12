@@ -54,36 +54,37 @@ The Vercel AI SDK abstracts away the differences between model providers, elimin
 At the center of the Vercel AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call OpenAI o1-mini with the Vercel AI SDK:
 
 ```tsx
-import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
   model: openai('o1-mini'),
   prompt: 'Explain the concept of quantum entanglement.',
-})
+});
 ```
-<Note>
-  To use the o1 series of models, you must either be using @ai-sdk/openai version 0.0.59 or greater, or set `temperature: 1`.
-</Note>
 
+<Note>
+  To use the o1 series of models, you must either be using @ai-sdk/openai
+  version 0.0.59 or greater, or set `temperature: 1`.
+</Note>
 
 AI SDK Core abstracts away the differences between model providers, allowing you to focus on building great applications. The unified interface also means that you can easily switch between models by changing just one line of code.
 
 ```tsx highlight="5"
-import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
   model: openai('o1-preview'),
   prompt: 'Explain the concept of quantum entanglement.',
-})
+});
 ```
+
 <Note>
   During the beta phase, access to most chat completions parameters is not
   supported for o1 models. Features like streaming, function calling, and image
   inputs are currently unavailable.
 </Note>
-
 
 ### Building Interactive Interfaces
 
@@ -96,32 +97,32 @@ With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useC
 Let's explore building a chatbot with [Next.js](https://nextjs.org), Vercel AI SDK, and OpenAI o1:
 
 ```tsx filename="app/api/chat/route.ts"
-import { convertToCoreMessages, generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { convertToCoreMessages, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 // Allow responses up to 5 minutes
-export const maxDuration = 300
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const { text } = await generateText({
     model: openai('o1-preview'),
     messages: convertToCoreMessages(messages),
-  })
+  });
 
   return new Response(text);
 }
 ```
 
 ```tsx filename="app/page.tsx"
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit, error } = useChat({
-    streamProtocol: "text",
+    streamProtocol: 'text',
   });
 
   return (
@@ -137,7 +138,7 @@ export default function Page() {
         <button type="submit">Submit</button>
       </form>
     </>
-  )
+  );
 }
 ```
 
