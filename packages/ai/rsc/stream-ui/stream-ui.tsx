@@ -334,13 +334,13 @@ export async function streamUI<
           }
 
           case 'finish': {
-              finishEvent = {
-                finishReason: value.finishReason,
-                usage: calculateLanguageModelUsage(value.usage),
-                warnings: result.warnings,
-                rawResponse: result.rawResponse,
-              };
-              break;
+            finishEvent = {
+              finishReason: value.finishReason,
+              usage: calculateLanguageModelUsage(value.usage),
+              warnings: result.warnings,
+              rawResponse: result.rawResponse,
+            };
+            break;
           }
         }
       }
