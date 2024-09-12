@@ -26,6 +26,7 @@ export type {
   StreamPart,
   IdGenerator,
   RequestOptions,
+  Attachment,
 } from '@ai-sdk/ui-utils';
 
 import { generateId as generateIdImpl } from '@ai-sdk/provider-utils';
