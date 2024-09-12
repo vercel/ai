@@ -1,5 +1,68 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`result.responseMessages > single roundtrip > should return information about all roundtrips 1`] = `
+[
+  {
+    "finishReason": "tool-calls",
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "test-id-1-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "text": "",
+    "toolCalls": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+      },
+    ],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 10,
+      "totalTokens": 15,
+    },
+    "warnings": undefined,
+  },
+  {
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "headers": {
+        "custom-response-header": "response-header-value",
+      },
+      "id": "test-id-2-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:10.000Z,
+    },
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
 exports[`telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
 
 exports[`telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
@@ -26,12 +89,17 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.generateText.doGenerate",
       "ai.response.finishReason": "stop",
+      "ai.response.id": "test-id",
+      "ai.response.model": "mock-model-id",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
+      "gen_ai.response.id": "test-id",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 10,
       "gen_ai.usage.output_tokens": 20,
@@ -82,6 +150,9 @@ exports[`telemetry > should record successful tool call 1`] = `
       "ai.prompt.format": "prompt",
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.response.finishReason": "stop",
+      "ai.response.id": "test-id",
+      "ai.response.model": "mock-model-id",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{ \\"value\\": \\"value\\" }"}]",
       "ai.result.toolCalls": "[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{ \\"value\\": \\"value\\" }"}]",
       "ai.usage.completionTokens": 20,
@@ -90,6 +161,8 @@ exports[`telemetry > should record successful tool call 1`] = `
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
+      "gen_ai.response.id": "test-id",
+      "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 10,
       "gen_ai.usage.output_tokens": 20,
@@ -158,7 +231,10 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "ai.request.headers.header1": "value1",
       "ai.request.headers.header2": "value2",
       "ai.response.finishReason": "stop",
+      "ai.response.id": "test-id-from-model",
+      "ai.response.model": "test-response-model-id",
       "ai.response.text": "Hello, world!",
+      "ai.response.timestamp": "1970-01-01T00:00:10.000Z",
       "ai.result.text": "Hello, world!",
       "ai.settings.frequencyPenalty": 0.3,
       "ai.settings.presencePenalty": 0.4,
@@ -185,6 +261,8 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
+      "gen_ai.response.id": "test-id-from-model",
+      "gen_ai.response.model": "test-response-model-id",
       "gen_ai.system": "mock-provider",
       "gen_ai.usage.input_tokens": 10,
       "gen_ai.usage.output_tokens": 20,

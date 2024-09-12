@@ -1,5 +1,27 @@
 # @ai-sdk/openai
 
+## 0.0.58
+
+### Patch Changes
+
+- e0c36bd: feat (provider/openai): support image detail
+
+## 0.0.57
+
+### Patch Changes
+
+- d1aaeae: feat (provider/openai): support ai sdk image download
+
+## 0.0.56
+
+### Patch Changes
+
+- 03313cd: feat (ai): expose response id, response model, response timestamp in telemetry and api
+- Updated dependencies [03313cd]
+- Updated dependencies [3be7c1c]
+  - @ai-sdk/provider-utils@1.0.18
+  - @ai-sdk/provider@0.0.23
+
 ## 0.0.55
 
 ### Patch Changes

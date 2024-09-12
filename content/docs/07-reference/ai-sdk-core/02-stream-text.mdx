@@ -411,6 +411,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Enable streaming of tool call deltas as they are generated. Disabled by default.',
     },
     {
+      name: 'experimental_providerMetadata',
+      type: 'Record<string,Record<string,JSONValue>> | undefined',
+      isOptional: true,
+      description:
+        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+    },
+    {
       name: 'onChunk',
       type: '(event: OnChunkResult) => Promise<void> |void',
       isOptional: true,
@@ -630,18 +637,37 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Warnings from the model provider (e.g. unsupported settings).',
             },
             {
-              name: 'rawResponse',
-              type: 'RawResponse',
-              description: 'Optional raw response data.',
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
               properties: [
                 {
-                  type: 'RawResponse',
+                  type: 'Response',
                   parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
                     {
                       name: 'headers',
                       optional: true,
                       type: 'Record<string, string>',
-                      description: 'Response headers.',
+                      description: 'Optional response headers.',
                     },
                   ],
                 },
@@ -717,19 +743,37 @@ To see `streamText` in action, check out [these examples](#examples).
         'The tool results that have been generated. Resolved when the all tool executions are finished.',
     },
     {
-      name: 'rawResponse',
-      type: 'RawResponse',
+      name: 'response',
+      type: 'Promise<Response>',
       optional: true,
-      description: 'Optional raw response data.',
+      description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
-          type: 'RawResponse',
+          type: 'Response',
           parameters: [
+            {
+              name: 'id',
+              type: 'string',
+              description:
+                'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+            },
+            {
+              name: 'model',
+              type: 'string',
+              description:
+                'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+            },
+            {
+              name: 'timestamp',
+              type: 'Date',
+              description:
+                'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+            },
             {
               name: 'headers',
               optional: true,
               type: 'Record<string, string>',
-              description: 'Response headers.',
+              description: 'Optional response headers.',
             },
           ],
         },
@@ -936,6 +980,37 @@ To see `streamText` in action, check out [these examples](#examples).
                 },
               ],
             },
+            {
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
         {
@@ -979,30 +1054,49 @@ To see `streamText` in action, check out [these examples](#examples).
                 },
               ],
             },
+            {
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
     },
     {
       name: 'pipeDataStreamToResponse',
-      type: '(response: ServerResponse, init?: { headers?: Record<string, string>; status?: number } => void',
+      type: '(response: ServerResponse, options: PipeDataStreamToResponseOptions } => void',
       description:
         'Writes stream data output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each stream data part as a separate chunk.',
-    },
-    {
-      name: 'pipeTextStreamToResponse',
-      type: '(response: ServerResponse, init?: { headers?: Record<string, string>; status?: number } => void',
-      description:
-        'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
-    },
-    {
-      name: 'toDataStreamResponse',
-      type: '(options?: toDataStreamOptions) => Response',
-      description:
-        'Converts the result to a streamed response object with a stream data part stream. It can be used with the `useChat` and `useCompletion` hooks.',
       properties: [
         {
-          type: 'toDataStreamOptions',
+          type: 'PipeDataStreamToResponseOptions',
           parameters: [
             {
               name: 'init',
@@ -1018,6 +1112,125 @@ To see `streamText` in action, check out [these examples](#examples).
                       type: 'number',
                       optional: true,
                       description: 'The response status code.',
+                    },
+                    {
+                      name: 'statusText',
+                      type: 'string',
+                      optional: true,
+                      description: 'The response status text.',
+                    },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      optional: true,
+                      description: 'The response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'data',
+              type: 'StreamData',
+              optional: true,
+              description: 'The stream data object.',
+            },
+            {
+              name: 'getErrorMessage',
+              type: '(error: unknown) => string',
+              description:
+                'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
+              optional: true,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'pipeTextStreamToResponse',
+      type: '(response: ServerResponse, init?: ResponseInit => void',
+      description:
+        'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              optional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              optional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              optional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'toDataStream',
+      type: '(options?: ToDataStreamOptions) => Response',
+      description: 'Converts the result to a data stream.',
+      properties: [
+        {
+          type: 'ToDataStreamOptions',
+          parameters: [
+            {
+              name: 'data',
+              type: 'StreamData',
+              optional: true,
+              description: 'The stream data object.',
+            },
+            {
+              name: 'getErrorMessage',
+              type: '(error: unknown) => string',
+              description:
+                'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
+              optional: true,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'toDataStreamResponse',
+      type: '(options?: ToDataStreamResponseOptions) => Response',
+      description:
+        'Converts the result to a streamed response object with a stream data part stream. It can be used with the `useChat` and `useCompletion` hooks.',
+      properties: [
+        {
+          type: 'ToDataStreamResponseOptions',
+          parameters: [
+            {
+              name: 'init',
+              type: 'ResponseInit',
+              optional: true,
+              description: 'The response init options.',
+              properties: [
+                {
+                  type: 'ResponseInit',
+                  parameters: [
+                    {
+                      name: 'status',
+                      type: 'number',
+                      optional: true,
+                      description: 'The response status code.',
+                    },
+                    {
+                      name: 'statusText',
+                      type: 'string',
+                      optional: true,
+                      description: 'The response status text.',
                     },
                     {
                       name: 'headers',
@@ -1051,6 +1264,31 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(init?: ResponseInit) => Response',
       description:
         'Creates a simple text stream response. Each text delta is encoded as UTF-8 and sent as a separate chunk. Non-text-delta events are ignored.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              optional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              optional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              optional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
     },
   ]}
 />

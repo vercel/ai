@@ -1,5 +1,5 @@
 import { Embedding } from '../types';
-import { EmbeddingTokenUsage } from '../types/token-usage';
+import { EmbeddingModelUsage } from '../types/usage';
 
 /**
 The result of a `embedMany` call.
@@ -19,5 +19,5 @@ export interface EmbedManyResult<VALUE> {
   /**
   The embedding token usage.
     */
-  readonly usage: EmbeddingTokenUsage;
+  readonly usage: EmbeddingModelUsage;
 }

@@ -1,4 +1,7 @@
-export * from './generate-object';
-export * from './generate-object-result';
-export * from './stream-object';
-export * from './stream-object-result';
+export { generateObject, experimental_generateObject } from './generate-object';
+export type { GenerateObjectResult } from './generate-object-result';
+export { streamObject, experimental_streamObject } from './stream-object';
+export type {
+  ObjectStreamPart,
+  StreamObjectResult,
+} from './stream-object-result';

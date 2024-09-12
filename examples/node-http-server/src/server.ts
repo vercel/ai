@@ -1,30 +1,21 @@
 import { openai } from '@ai-sdk/openai';
-import { StreamData, streamText, streamToResponse } from 'ai';
+import { StreamData, streamText } from 'ai';
+import 'dotenv/config';
 import { createServer } from 'http';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 createServer(async (req, res) => {
-  const result = await streamText({
-    model: openai('gpt-4-turbo'),
-    prompt: 'What is the weather in San Francisco?',
-  });
-
-  // use stream data
+  // use stream data (optional):
   const data = new StreamData();
-
   data.append('initialized call');
 
-  streamToResponse(
-    result.toAIStream({
-      onFinal() {
-        data.append('call completed');
-        data.close();
-      },
-    }),
-    res,
-    {},
-    data,
-  );
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+    onFinish() {
+      data.append('call completed');
+      data.close();
+    },
+  });
+
+  result.pipeDataStreamToResponse(res, { data });
 }).listen(8080);

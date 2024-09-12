@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/ui-utils",
-  "version": "0.0.40",
+  "version": "0.0.41",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -37,8 +37,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.22",
-    "@ai-sdk/provider-utils": "1.0.17",
+    "@ai-sdk/provider": "0.0.23",
+    "@ai-sdk/provider-utils": "1.0.18",
     "json-schema": "0.4.0",
     "secure-json-parse": "2.7.0",
     "zod-to-json-schema": "3.23.2"

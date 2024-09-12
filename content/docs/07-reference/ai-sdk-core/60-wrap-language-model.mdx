@@ -1,0 +1,65 @@
+---
+title: wrapLanguageModel
+description: Function for wrapping a language model with middleware (API Reference)
+---
+
+# `wrapLanguageModel()`
+
+<Note type="warning">
+  Language model middleware is an experimental feature.
+</Note>
+
+The `experimental_wrapLanguageModel` function provides a way to enhance the behavior of language models
+by wrapping them with middleware.
+See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more information on middleware.
+
+```ts
+import { experimental_wrapLanguageModel as wrapLanguageModel } from 'ai';
+
+const wrappedLanguageModel = wrapLanguageModel({
+  model: yourModel,
+  middleware: yourLanguageModelMiddleware,
+});
+```
+
+## Import
+
+<Snippet
+  text={`import { experimental_wrapLanguageModel as wrapLanguageModel } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'LanguageModelV1',
+      description: 'The original LanguageModelV1 instance to be wrapped.',
+    },
+    {
+      name: 'middleware',
+      type: 'Experimental_LanguageModelV1Middleware',
+      description: 'The middleware to be applied to the language model.',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description:
+        "Optional custom model ID to override the original model's ID.",
+    },
+    {
+      name: 'providerId',
+      type: 'string',
+      description:
+        "Optional custom provider ID to override the original model's provider.",
+    },
+  ]}
+/>
+
+### Returns
+
+A new `LanguageModelV1` instance with middleware applied.

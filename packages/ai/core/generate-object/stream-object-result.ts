@@ -2,10 +2,12 @@ import { ServerResponse } from 'http';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelResponseMetadata,
+  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 
 /**
@@ -20,7 +22,7 @@ export interface StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   /**
   The token usage of the generated response. Resolved when the response is finished.
      */
-  readonly usage: Promise<CompletionTokenUsage>;
+  readonly usage: Promise<LanguageModelUsage>;
 
   /**
 Additional provider-specific metadata. They are passed through
@@ -30,14 +32,22 @@ results that can be fully encapsulated in the provider.
   readonly experimental_providerMetadata: Promise<ProviderMetadata | undefined>;
 
   /**
-  Optional raw response data.
+Optional raw response data.
+
+@deprecated Use `response` instead.
      */
+  // TODO removed in v4
   readonly rawResponse?: {
     /**
   Response headers.
    */
     headers?: Record<string, string>;
   };
+
+  /**
+Additional response information.
+ */
+  readonly response: Promise<LanguageModelResponseMetadataWithHeaders>;
 
   /**
   The generated object (typed according to the schema). Resolved when the response is finished.
@@ -75,12 +85,9 @@ results that can be fully encapsulated in the provider.
   writes each text delta as a separate chunk.
 
   @param response A Node.js response-like object (ServerResponse).
-  @param init Optional headers and status code.
+  @param init Optional headers, status code, and status text.
      */
-  pipeTextStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ): void;
+  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
 
   /**
   Creates a simple text stream response.
@@ -88,12 +95,20 @@ results that can be fully encapsulated in the provider.
   Each text delta is encoded as UTF-8 and sent as a separate chunk.
   Non-text-delta events are ignored.
 
-  @param init Optional headers and status code.
+  @param init Optional headers, status code, and status text.
      */
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
-export type ObjectStreamInputPart =
+export type ObjectStreamPart<PARTIAL> =
+  | {
+      type: 'object';
+      object: PARTIAL;
+    }
+  | {
+      type: 'text-delta';
+      textDelta: string;
+    }
   | {
       type: 'error';
       error: unknown;
@@ -102,21 +117,7 @@ export type ObjectStreamInputPart =
       type: 'finish';
       finishReason: FinishReason;
       logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
+      usage: LanguageModelUsage;
+      response: LanguageModelResponseMetadata;
       providerMetadata?: ProviderMetadata;
-    };
-
-export type ObjectStreamPart<PARTIAL> =
-  | ObjectStreamInputPart
-  | {
-      type: 'object';
-      object: PARTIAL;
-    }
-  | {
-      type: 'text-delta';
-      textDelta: string;
     };

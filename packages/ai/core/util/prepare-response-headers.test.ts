@@ -1,4 +1,3 @@
-import { expect, it } from 'vitest';
 import { prepareResponseHeaders } from './prepare-response-headers';
 
 it('should set Content-Type header if not present', () => {

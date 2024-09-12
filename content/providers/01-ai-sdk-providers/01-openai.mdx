@@ -186,7 +186,7 @@ The following optional settings are available for OpenAI chat models:
 
 - **parallelToolCalls** _boolean_
 
-  Whether to enable parallel function calling during tool use. Default to true.
+  Whether to enable parallel function calling during tool use. Defaults to `true`.
 
 - **useLegacyFunctionCalls** _boolean_
 
@@ -200,14 +200,21 @@ The following optional settings are available for OpenAI chat models:
 
 - **structuredOutputs** _boolean_
 
-  Whether to use [structured outputs](#structured-outputs). Defaults to false.
+  Whether to use [structured outputs](#structured-outputs). Defaults to `false`.
 
   When enabled, tool calls and object generation will be strict and follow the provided schema.
 
 - **user** _string_
 
   A unique identifier representing your end-user, which can help OpenAI to
-  monitor and detect abuse. Learn more.
+  monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
+
+- **downloadImages** _boolean_
+
+  Automatically download images and pass the image as data to the model.
+  OpenAI supports image URLs for public models, so this is only needed for
+  private models or when the images are not publicly accessible.
+  Defaults to `false`.
 
 #### Structured Outputs
 
@@ -252,6 +259,34 @@ For example, optional schema properties are not supported.
 You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 </Note>
+
+#### Image Detail
+
+You can use the `openai` provider metadata to set the [image generation detail](https://platform.openai.com/docs/guides/vision/low-or-high-fidelity-image-understanding) to `high`, `low`, or `auto`:
+
+```ts highlight="13-16"
+const result = await generateText({
+  model: openai('gpt-4o'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the image in detail.' },
+        {
+          type: 'image',
+          image:
+            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+
+          // OpenAI specific extension - image detail:
+          experimental_providerMetadata: {
+            openai: { imageDetail: 'low' },
+          },
+        },
+      ],
+    },
+  ],
+});
+```
 
 ### Completion Models
 
@@ -318,7 +353,7 @@ The following optional settings are available for OpenAI completion models:
 - **user** _string_
 
   A unique identifier representing your end-user, which can help OpenAI to
-  monitor and detect abuse. Learn more.
+  monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
 
 ## Embedding Models
 
@@ -348,7 +383,7 @@ The following optional settings are available for OpenAI embedding models:
 - **user** _string_
 
   A unique identifier representing your end-user, which can help OpenAI to
-  monitor and detect abuse. Learn more.
+  monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
 
 ### Model Capabilities
 

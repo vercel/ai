@@ -79,9 +79,9 @@ the language model interface.
   prompt: LanguageModelV1Prompt;
 
   /**
-   * Additional provider-specific metadata. They are passed through
-   * to the provider from the AI SDK and enable provider-specific
-   * functionality that can be fully encapsulated in the provider.
+Additional provider-specific metadata.
+The metadata is passed through to the provider from the AI SDK and enables
+provider-specific functionality that can be fully encapsulated in the provider.
    */
   providerMetadata?: LanguageModelV1ProviderMetadata;
 };

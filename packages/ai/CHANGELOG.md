@@ -1,5 +1,57 @@
 # ai
 
+## 3.3.33
+
+### Patch Changes
+
+- cbddc83: fix (ai/core): filter out empty text parts
+
+## 3.3.32
+
+### Patch Changes
+
+- ce7a4af: feat (ai/core): support providerMetadata in functions
+
+## 3.3.31
+
+### Patch Changes
+
+- 561fd7e: feat (ai/core): add output: enum to generateObject
+
+## 3.3.30
+
+### Patch Changes
+
+- 6ee1f8e: feat (ai/core): add toDataStream to streamText result
+
+## 3.3.29
+
+### Patch Changes
+
+- 1e3dfd2: feat (ai/core): enhance pipeToData/TextStreamResponse methods
+
+## 3.3.28
+
+### Patch Changes
+
+- db61c53: feat (ai/core): middleware support
+
+## 3.3.27
+
+### Patch Changes
+
+- 03313cd: feat (ai): expose response id, response model, response timestamp in telemetry and api
+- 3be7c1c: fix (provider/anthropic): support prompt caching on assistant messages
+- Updated dependencies [03313cd]
+- Updated dependencies [3be7c1c]
+  - @ai-sdk/provider-utils@1.0.18
+  - @ai-sdk/provider@0.0.23
+  - @ai-sdk/react@0.0.55
+  - @ai-sdk/solid@0.0.44
+  - @ai-sdk/svelte@0.0.46
+  - @ai-sdk/ui-utils@0.0.41
+  - @ai-sdk/vue@0.0.46
+
 ## 3.3.26
 
 ### Patch Changes
