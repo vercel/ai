@@ -1456,6 +1456,37 @@ describe('result.pipeDataStreamToResponse', async () => {
       'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
     ]);
   });
+
+  it('should suppress usage information when sendUsage is false', async () => {
+    const mockResponse = createMockServerResponse();
+
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    result.pipeDataStreamToResponse(mockResponse, { sendUsage: false });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.getDecodedChunks()).toEqual([
+      '0:"Hello, World!"\n',
+      'e:{"finishReason":"stop"}\n',
+      'd:{"finishReason":"stop"}\n',
+    ]);
+  });
 });
 
 describe('result.pipeTextStreamToResponse', async () => {
@@ -1617,6 +1648,37 @@ describe('result.toDataStream', () => {
       '3:"custom error message: error"\n',
       'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
       'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+    ]);
+  });
+
+  it('should suppress usage information when sendUsage is false', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const dataStream = result.toDataStream({ sendUsage: false });
+
+    expect(
+      await convertReadableStreamToArray(
+        dataStream.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toEqual([
+      '0:"Hello, World!"\n',
+      'e:{"finishReason":"stop"}\n',
+      'd:{"finishReason":"stop"}\n',
     ]);
   });
 });
@@ -1798,6 +1860,33 @@ describe('result.toDataStreamResponse', () => {
       '3:"custom error message: error"\n',
       'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
       'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
+    ]);
+  });
+
+  it('should suppress usage information when sendUsage is false', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const response = result.toDataStreamResponse({ sendUsage: false });
+
+    expect(await convertResponseStreamToArray(response)).toEqual([
+      '0:"Hello, World!"\n',
+      'e:{"finishReason":"stop"}\n',
+      'd:{"finishReason":"stop"}\n',
     ]);
   });
 });

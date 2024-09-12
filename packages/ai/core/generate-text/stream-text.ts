@@ -920,9 +920,11 @@ However, the LLM results are expected to be small enough to not cause issues.
   private toDataStreamInternal({
     callbacks = {},
     getErrorMessage = () => '', // mask error messages for safety by default
+    sendUsage = true,
   }: {
     callbacks?: AIStreamCallbacksAndOptions;
     getErrorMessage?: (error: unknown) => string;
+    sendUsage?: boolean;
   } = {}) {
     let aggregatedResponse = '';
 
@@ -1006,10 +1008,12 @@ However, the LLM results are expected to be small enough to not cause issues.
             controller.enqueue(
               formatStreamPart('finish_roundtrip', {
                 finishReason: chunk.finishReason,
-                usage: {
-                  promptTokens: chunk.usage.promptTokens,
-                  completionTokens: chunk.usage.completionTokens,
-                },
+                usage: sendUsage
+                  ? {
+                      promptTokens: chunk.usage.promptTokens,
+                      completionTokens: chunk.usage.completionTokens,
+                    }
+                  : undefined,
               }),
             );
             break;
@@ -1017,10 +1021,12 @@ However, the LLM results are expected to be small enough to not cause issues.
             controller.enqueue(
               formatStreamPart('finish_message', {
                 finishReason: chunk.finishReason,
-                usage: {
-                  promptTokens: chunk.usage.promptTokens,
-                  completionTokens: chunk.usage.completionTokens,
-                },
+                usage: sendUsage
+                  ? {
+                      promptTokens: chunk.usage.promptTokens,
+                      completionTokens: chunk.usage.completionTokens,
+                    }
+                  : undefined,
               }),
             );
             break;
@@ -1053,6 +1059,7 @@ However, the LLM results are expected to be small enough to not cause issues.
           init?: ResponseInit;
           data?: StreamData;
           getErrorMessage?: (error: unknown) => string;
+          sendUsage?: boolean;
         },
   ) {
     const init: ResponseInit | undefined =
@@ -1081,6 +1088,13 @@ However, the LLM results are expected to be small enough to not cause issues.
         ? options.getErrorMessage
         : undefined;
 
+    const sendUsage: boolean | undefined =
+      options == null
+        ? undefined
+        : 'sendUsage' in options
+        ? options.sendUsage
+        : undefined;
+
     writeToServerResponse({
       response,
       status: init?.status,
@@ -1089,7 +1103,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         contentType: 'text/plain; charset=utf-8',
         dataStreamVersion: 'v1',
       }),
-      stream: this.toDataStream({ data, getErrorMessage }),
+      stream: this.toDataStream({ data, getErrorMessage, sendUsage }),
     });
   }
 
@@ -1114,9 +1128,11 @@ However, the LLM results are expected to be small enough to not cause issues.
   toDataStream(options?: {
     data?: StreamData;
     getErrorMessage?: (error: unknown) => string;
+    sendUsage?: boolean;
   }) {
     const stream = this.toDataStreamInternal({
       getErrorMessage: options?.getErrorMessage,
+      sendUsage: options?.sendUsage,
     });
 
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
@@ -1129,6 +1145,7 @@ However, the LLM results are expected to be small enough to not cause issues.
           init?: ResponseInit;
           data?: StreamData;
           getErrorMessage?: (error: unknown) => string;
+          sendUsage?: boolean;
         },
   ): Response {
     const init: ResponseInit | undefined =
@@ -1157,14 +1174,24 @@ However, the LLM results are expected to be small enough to not cause issues.
         ? options.getErrorMessage
         : undefined;
 
-    return new Response(this.toDataStream({ data, getErrorMessage }), {
-      status: init?.status ?? 200,
-      statusText: init?.statusText,
-      headers: prepareResponseHeaders(init, {
-        contentType: 'text/plain; charset=utf-8',
-        dataStreamVersion: 'v1',
-      }),
-    });
+    const sendUsage: boolean | undefined =
+      options == null
+        ? undefined
+        : 'sendUsage' in options
+        ? options.sendUsage
+        : undefined;
+
+    return new Response(
+      this.toDataStream({ data, getErrorMessage, sendUsage }),
+      {
+        status: init?.status ?? 200,
+        statusText: init?.statusText,
+        headers: prepareResponseHeaders(init, {
+          contentType: 'text/plain; charset=utf-8',
+          dataStreamVersion: 'v1',
+        }),
+      },
+    );
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {
