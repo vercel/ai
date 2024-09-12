@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.56
+
+### Patch Changes
+
+- a0403d6: feat (react): support sending attachments using append
+
 ## 0.0.55
 
 ### Patch Changes
