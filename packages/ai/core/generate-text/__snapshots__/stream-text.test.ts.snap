@@ -68,7 +68,7 @@ exports[`multiple stream consumption > should support text stream, ai stream, fu
 }
 `;
 
-exports[`options.maxToolRoundtrips > 2 roundtrips > onFinish should send correct information 1`] = `
+exports[`options.maxSteps > 2 steps > onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
@@ -79,6 +79,69 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > onFinish should send correct
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
+  "steps": [
+    {
+      "finishReason": "tool-calls",
+      "logprobs": undefined,
+      "rawResponse": undefined,
+      "response": {
+        "id": "id-0",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "text": "",
+      "toolCalls": [
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "toolResults": [
+        {
+          "args": {
+            "value": "value",
+          },
+          "result": "result1",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
+      "warnings": undefined,
+    },
+    {
+      "finishReason": "stop",
+      "logprobs": undefined,
+      "rawResponse": {
+        "headers": {
+          "call": "2",
+        },
+      },
+      "response": {
+        "id": "id-1",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:01.000Z,
+      },
+      "text": "Hello, world!",
+      "toolCalls": [],
+      "toolResults": [],
+      "usage": {
+        "completionTokens": 5,
+        "promptTokens": 1,
+        "totalTokens": 6,
+      },
+      "warnings": undefined,
+    },
+  ],
   "text": "Hello, world!",
   "toolCalls": [],
   "toolResults": [],
@@ -91,7 +154,73 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > onFinish should send correct
 }
 `;
 
-exports[`options.maxToolRoundtrips > 2 roundtrips > should contain assistant response message and tool message from all roundtrips 1`] = `
+exports[`options.maxSteps > 2 steps > should contain all steps 1`] = `
+[
+  {
+    "finishReason": "tool-calls",
+    "logprobs": undefined,
+    "rawResponse": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "text": "",
+    "toolCalls": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
+  },
+  {
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "rawResponse": {
+      "headers": {
+        "call": "2",
+      },
+    },
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 1,
+      "totalTokens": 6,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`options.maxSteps > 2 steps > should contain assistant response message and tool message from all step 1`] = `
 [
   {
     "args": {
@@ -169,7 +298,7 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should contain assistant res
 ]
 `;
 
-exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data for each roundtrip 1`] = `
+exports[`options.maxSteps > 2 steps > should record telemetry data for each step 1`] = `
 [
   {
     "attributes": {
@@ -319,6 +448,50 @@ exports[`options.onFinish should send correct information 1`] = `
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "steps": [
+    {
+      "finishReason": "stop",
+      "logprobs": undefined,
+      "rawResponse": {
+        "headers": {
+          "call": "2",
+        },
+      },
+      "response": {
+        "id": "id-0",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "text": "Hello, world!",
+      "toolCalls": [
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "toolResults": [
+        {
+          "args": {
+            "value": "value",
+          },
+          "result": "value-result",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
+      "warnings": undefined,
+    },
+  ],
   "text": "Hello, world!",
   "toolCalls": [
     {

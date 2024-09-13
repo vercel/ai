@@ -98,15 +98,13 @@ In the above example, there are two steps:
 To access intermediate tool calls and results, you can use the `steps` property in the result object.
 It contains all the text, tool calls, tool results, and more from each step.
 
-<Note>The `steps` result property is only available in `generateText`.</Note>
-
 ### Example: streamText
 
 ```ts highlight="18"
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
-const result = await streamText({
+const { textStream, steps } = await streamText({
   model: yourModel,
   tools: {
     weather: tool({
@@ -124,10 +122,12 @@ const result = await streamText({
   prompt: 'What is the weather in San Francisco?',
 });
 
-for await (const textPart of result.textStream) {
+for await (const textPart of textStream) {
   process.stdout.write(textPart);
 }
 ```
+
+Similar to `generateText`, you can access intermediate tool calls and results using the `steps` property in the result object.
 
 ## Tool Choice
 

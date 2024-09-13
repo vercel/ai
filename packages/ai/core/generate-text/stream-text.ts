@@ -55,6 +55,7 @@ import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { StepResult } from './step-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
 
@@ -249,6 +250,11 @@ Response headers.
 Response metadata.
        */
       response: LanguageModelResponseMetadataWithHeaders;
+
+      /**
+Details for all steps.
+       */
+      steps: StepResult<TOOLS>[];
 
       /**
 Warnings from the model provider (e.g. unsupported settings).
@@ -455,6 +461,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   readonly toolCalls: StreamTextResult<TOOLS>['toolCalls'];
   readonly toolResults: StreamTextResult<TOOLS>['toolResults'];
   readonly response: StreamTextResult<TOOLS>['response'];
+  readonly steps: StreamTextResult<TOOLS>['steps'];
 
   constructor({
     stream,
@@ -519,6 +526,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       createResolvablePromise<ToToolResult<TOOLS>[]>();
     this.toolResults = toolResultsPromise;
 
+    // initialize steps promise
+    const { resolve: resolveSteps, promise: stepsPromise } =
+      createResolvablePromise<StepResult<TOOLS>[]>();
+    this.steps = stepsPromise;
+
     // initialize experimental_providerMetadata promise
     const {
       resolve: resolveProviderMetadata,
@@ -539,6 +551,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     } = createStitchableStream<TextStreamPart<TOOLS>>();
 
     this.originalStream = stitchableStream;
+
+    // collect step results
+    const stepResults: StepResult<TOOLS>[] = [];
 
     const self = this;
 
@@ -701,6 +716,19 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 response: stepResponse,
               });
 
+              // push step to steps array
+              stepResults.push({
+                text: stepText,
+                toolCalls: stepToolCalls,
+                toolResults: stepToolResults,
+                finishReason: stepFinishReason,
+                usage: stepUsage,
+                warnings: self.warnings,
+                logprobs: stepLogProbs,
+                response: stepResponse,
+                rawResponse: self.rawResponse,
+              });
+
               const telemetryToolCalls =
                 stepToolCalls.length > 0
                   ? JSON.stringify(stepToolCalls)
@@ -851,6 +879,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   ...stepResponse,
                   headers: rawResponse?.headers,
                 });
+                resolveSteps(stepResults);
 
                 // call onFinish callback:
                 await onFinish?.({
@@ -870,6 +899,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   },
                   warnings,
                   experimental_providerMetadata: stepProviderMetadata,
+                  steps: stepResults as any, // see tool results comment above
                 });
               } catch (error) {
                 controller.error(error);

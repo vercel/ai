@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`result.responseMessages > single step > should return information about all steps 1`] = `
+exports[`options.maxSteps > 2 steps > should return information about all steps 1`] = `
 [
   {
     "finishReason": "tool-calls",

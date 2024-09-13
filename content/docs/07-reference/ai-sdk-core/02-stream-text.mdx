@@ -673,6 +673,12 @@ To see `streamText` in action, check out [these examples](#examples).
                 },
               ],
             },
+            {
+              name: 'steps',
+              type: 'Array<StepResult>',
+              description:
+                'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
+            },
           ],
         },
       ],
@@ -784,6 +790,111 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'Warning[] | undefined',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'steps',
+      type: 'Promise<Array<StepResult>>',
+      description:
+        'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
+      properties: [
+        {
+          type: 'StepResult',
+          parameters: [
+            {
+              name: 'text',
+              type: 'string',
+              description: 'The generated text by the model.',
+            },
+            {
+              name: 'toolCalls',
+              type: 'array',
+              description: 'A list of tool calls made by the model.',
+            },
+            {
+              name: 'toolResults',
+              type: 'array',
+              description:
+                'A list of tool results returned as responses to earlier tool calls.',
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'usage',
+              type: 'CompletionTokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'CompletionTokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                    {
+                      name: 'headers',
+                      optional: true,
+                      type: 'Record<string, string>',
+                      description: 'Optional response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'textStream',
