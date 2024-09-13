@@ -48,7 +48,7 @@ describe('scenario: simple text response', () => {
     const stream = createDataProtocolStream([
       formatStreamPart('text', 'Hello, '),
       formatStreamPart('text', 'world!'),
-      formatStreamPart('finish_roundtrip', {
+      formatStreamPart('finish_step', {
         finishReason: 'stop',
         usage: { completionTokens: 5, promptTokens: 10 },
       }),
@@ -139,12 +139,12 @@ describe('scenario: server-side tool roundtrip', () => {
         toolCallId: 'tool-call-id',
         result: { weather: 'sunny' },
       }),
-      formatStreamPart('finish_roundtrip', {
+      formatStreamPart('finish_step', {
         finishReason: 'tool-calls',
         usage: { completionTokens: 5, promptTokens: 10 },
       }),
       formatStreamPart('text', 'The weather in London is sunny.'),
-      formatStreamPart('finish_roundtrip', {
+      formatStreamPart('finish_step', {
         finishReason: 'stop',
         usage: { completionTokens: 2, promptTokens: 4 },
       }),

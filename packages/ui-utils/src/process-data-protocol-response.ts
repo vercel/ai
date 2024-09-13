@@ -96,7 +96,7 @@ export async function processDataProtocolResponse({
       throw new Error(value);
     }
 
-    if (type === 'finish_roundtrip') {
+    if (type === 'finish_step') {
       nextPrefixMap = {};
       continue;
     }
