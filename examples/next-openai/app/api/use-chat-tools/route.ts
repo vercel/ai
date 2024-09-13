@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     model: openai('gpt-4-turbo'),
     messages: convertToCoreMessages(messages),
     experimental_toolCallStreaming: true,
-    maxToolRoundtrips: 5, // server-side roundtrips for server-side tools
+    maxSteps: 5, // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {

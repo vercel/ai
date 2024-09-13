@@ -5,7 +5,7 @@ import { useCompletion } from 'ai/react';
 export default function Chat() {
   const { completion, input, handleInputChange, handleSubmit, error, data } =
     useCompletion({
-      api: '/api/use-completion-server-side-roundtrip',
+      api: '/api/use-completion-server-side-multi-step',
     });
 
   return (

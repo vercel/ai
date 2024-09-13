@@ -3,7 +3,7 @@
 
   const { input, handleSubmit, messages, addToolResult } = useChat({
     api: '/api/use-chat-tools',
-    maxToolRoundtrips: 5,
+    maxSteps: 5,
     // run client-side tools that are automatically executed:
 
     async onToolCall({ toolCall }) {
