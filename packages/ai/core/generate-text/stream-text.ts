@@ -252,6 +252,11 @@ Response metadata.
       response: LanguageModelResponseMetadataWithHeaders;
 
       /**
+Details for all steps.
+       */
+      steps: StepResult<TOOLS>[];
+
+      /**
 Warnings from the model provider (e.g. unsupported settings).
        */
       warnings?: CallWarning[];
@@ -894,6 +899,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   },
                   warnings,
                   experimental_providerMetadata: stepProviderMetadata,
+                  steps: stepResults as any, // see tool results comment above
                 });
               } catch (error) {
                 controller.error(error);
