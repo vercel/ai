@@ -201,12 +201,12 @@ Example: `a:{"toolCallId":"call-123","result":"tool output"}\n`
   height={1148}
 />
 
-### Finish Roundtrip Part
+### Finish Step Part
 
-A part indicating the one roundtrip (i.e., one LLM API call in the backend) has been completed.
-This is necessary to correctly process multiple stitched assistant calls, e.g. when calling tools in the backend, and using roundtrips in `useChat` at the same time.
-It includes addition metadata, such as [`FinishReason`](/docs/reference/ai-sdk-ui/use-chat#on-finish-finish-reason) and [`Usage`](/docs/reference/ai-sdk-ui/use-chat#on-finish-usage), for that roundtrip.
-This part needs to come at the end of a roundtrip.
+A part indicating that a step (i.e., one LLM API call in the backend) has been completed.
+This is necessary to correctly process multiple stitched assistant calls, e.g. when calling tools in the backend, and using steps in `useChat` at the same time.
+It includes addition metadata, such as [`FinishReason`](/docs/reference/ai-sdk-ui/use-chat#on-finish-finish-reason) and [`Usage`](/docs/reference/ai-sdk-ui/use-chat#on-finish-usage), for that step.
+This part needs to come at the end of a step.
 
 Format: `e:{finishReason:'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';usage:{promptTokens:number; completionTokens:number;}}\n`
 
