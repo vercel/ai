@@ -347,11 +347,11 @@ To see `generateText` in action, check out [these examples](#examples).
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
-      name: 'maxToolRoundtrips',
+      name: 'maxSteps',
       type: 'number',
       isOptional: true,
       description:
-        'Maximum number of automatic roundtrips for tool calls. An automatic tool call roundtrip is another LLM call with the tool call results when all tool calls of the last assistant message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
+        'Maximal number of sequential LLM calls (steps), e.g. when you use tool calls. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
     },
     {
       name: 'experimental_telemetry',
@@ -519,13 +519,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
     },
     {
-      name: 'roundtrips',
-      type: 'Array<Roundtrip>',
+      name: 'steps',
+      type: 'Array<Step>',
       description:
-        'Response information for every roundtrip. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
+        'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
       properties: [
         {
-          type: 'Roundtrip',
+          type: 'Step',
           parameters: [
             {
               name: 'text',
