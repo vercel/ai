@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "0.0.47",
+  "version": "0.0.48",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -28,7 +28,7 @@
   ],
   "dependencies": {
     "@ai-sdk/provider-utils": "1.0.18",
-    "@ai-sdk/ui-utils": "0.0.42",
+    "@ai-sdk/ui-utils": "0.0.43",
     "sswr": "2.1.0"
   },
   "devDependencies": {

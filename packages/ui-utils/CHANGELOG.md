@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.43
+
+### Patch Changes
+
+- 1f590ef: chore (ai): rename roundtrips to steps
+
 ## 0.0.42
 
 ### Patch Changes
