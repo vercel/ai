@@ -5,7 +5,6 @@
     api: '/api/use-chat-tools',
     maxSteps: 5,
     // run client-side tools that are automatically executed:
-
     async onToolCall({ toolCall }) {
         if (toolCall.toolName === 'getLocation') {
             const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
