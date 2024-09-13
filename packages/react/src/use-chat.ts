@@ -469,10 +469,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
       };
 
       const messages = messagesRef.current.concat({
-        id: generateId(),
-        createdAt: new Date(),
-        role: 'user',
-        content: message.content,
+        ...message,
+        id: message.id ?? generateId(),
+        createdAt: message.createdAt ?? new Date(),
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
       });
