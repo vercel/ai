@@ -520,12 +520,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'steps',
-      type: 'Array<Step>',
+      type: 'Array<StepResult>',
       description:
         'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
       properties: [
         {
-          type: 'Step',
+          type: 'StepResult',
           parameters: [
             {
               name: 'text',
