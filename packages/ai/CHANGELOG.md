@@ -1,5 +1,20 @@
 # ai
 
+## 3.3.36
+
+### Patch Changes
+
+- a3882f5: feat (ai/core): add steps property to streamText result and onFinish callback
+- 1f590ef: chore (ai): rename roundtrips to steps
+- 7e82d36: fix (ai/core): pass topK to providers
+- Updated dependencies [54862e4]
+- Updated dependencies [1f590ef]
+  - @ai-sdk/react@0.0.58
+  - @ai-sdk/ui-utils@0.0.43
+  - @ai-sdk/solid@0.0.46
+  - @ai-sdk/svelte@0.0.48
+  - @ai-sdk/vue@0.0.48
+
 ## 3.3.35
 
 ### Patch Changes
