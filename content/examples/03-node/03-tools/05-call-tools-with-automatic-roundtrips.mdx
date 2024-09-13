@@ -9,7 +9,7 @@ Models call tools to gather information or perform actions that are not directly
 When tool results are available, the model can use them to generate another response.
 
 You can enable multi-step tool calls in `generateText` by setting the `maxSteps` option to
-a number greater than 0.
+a number greater than 1.
 This option specifies the maximum number of steps (i.e., LLM calls) that can be made to prevent infinite loops.
 
 ```ts highlight={"7"}
