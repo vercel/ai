@@ -1023,7 +1023,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
           case 'step-finish': {
             controller.enqueue(
-              formatStreamPart('finish_roundtrip', {
+              formatStreamPart('finish_step', {
                 finishReason: chunk.finishReason,
                 usage: sendUsage
                   ? {

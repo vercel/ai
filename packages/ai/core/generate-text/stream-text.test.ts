@@ -672,24 +672,11 @@ describe('result.toAIStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertReadableStreamToArray(
         result.toAIStream().pipeThrough(new TextDecoderStream()),
       ),
-      [
-        formatStreamPart('text', 'Hello'),
-        formatStreamPart('text', ', '),
-        formatStreamPart('text', 'world!'),
-        formatStreamPart('finish_roundtrip', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-        formatStreamPart('finish_message', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should invoke callback', async () => {
@@ -821,30 +808,11 @@ describe('result.toAIStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertReadableStreamToArray(
         result.toAIStream().pipeThrough(new TextDecoderStream()),
       ),
-      [
-        formatStreamPart('tool_call', {
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        }),
-        formatStreamPart('tool_result', {
-          toolCallId: 'call-1',
-          result: 'value-result',
-        }),
-        formatStreamPart('finish_roundtrip', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-        formatStreamPart('finish_message', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled', async () => {
@@ -917,42 +885,11 @@ describe('result.toAIStream', () => {
       experimental_toolCallStreaming: true,
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertReadableStreamToArray(
         result.toAIStream().pipeThrough(new TextDecoderStream()),
       ),
-      [
-        formatStreamPart('tool_call_streaming_start', {
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-        }),
-        formatStreamPart('tool_call_delta', {
-          toolCallId: 'call-1',
-          argsTextDelta: '{ "value":',
-        }),
-        formatStreamPart('tool_call_delta', {
-          toolCallId: 'call-1',
-          argsTextDelta: ' "value" }',
-        }),
-        formatStreamPart('tool_call', {
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        }),
-        formatStreamPart('tool_result', {
-          toolCallId: 'call-1',
-          result: 'value-result',
-        }),
-        formatStreamPart('finish_roundtrip', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-        formatStreamPart('finish_message', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-      ],
-    );
+    ).toMatchSnapshot();
   });
 });
 
@@ -1649,33 +1586,13 @@ describe('multiple stream consumption', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
-      await convertAsyncIterableToArray(result.textStream),
-      ['Hello', ', ', 'world!'],
-    );
-
-    assert.deepStrictEqual(
-      await convertReadableStreamToArray(
-        result.toAIStream().pipeThrough(new TextDecoderStream()),
+    expect({
+      textStream: await convertAsyncIterableToArray(result.textStream),
+      fullStream: await convertAsyncIterableToArray(result.fullStream),
+      dataStream: await convertReadableStreamToArray(
+        result.toDataStream().pipeThrough(new TextDecoderStream()),
       ),
-      [
-        formatStreamPart('text', 'Hello'),
-        formatStreamPart('text', ', '),
-        formatStreamPart('text', 'world!'),
-        formatStreamPart('finish_roundtrip', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-        formatStreamPart('finish_message', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-      ],
-    );
-
-    expect(
-      await convertAsyncIterableToArray(result.fullStream),
-    ).toMatchSnapshot();
+    }).toMatchSnapshot();
   });
 });
 

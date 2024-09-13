@@ -1,52 +1,71 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`multiple stream consumption > should support text stream, ai stream, full stream on single result object 1`] = `
-[
-  {
-    "textDelta": "Hello",
-    "type": "text-delta",
-  },
-  {
-    "textDelta": ", ",
-    "type": "text-delta",
-  },
-  {
-    "textDelta": "world!",
-    "type": "text-delta",
-  },
-  {
-    "experimental_providerMetadata": undefined,
-    "finishReason": "stop",
-    "logprobs": undefined,
-    "response": {
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
+{
+  "dataStream": [
+    "0:"Hello"
+",
+    "0:", "
+",
+    "0:"world!"
+",
+    "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+    "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+  ],
+  "fullStream": [
+    {
+      "textDelta": "Hello",
+      "type": "text-delta",
     },
-    "type": "step-finish",
-    "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
-      "totalTokens": 13,
+    {
+      "textDelta": ", ",
+      "type": "text-delta",
     },
-  },
-  {
-    "experimental_providerMetadata": undefined,
-    "finishReason": "stop",
-    "logprobs": undefined,
-    "response": {
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
+    {
+      "textDelta": "world!",
+      "type": "text-delta",
     },
-    "type": "finish",
-    "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
-      "totalTokens": 13,
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "stop",
+      "logprobs": undefined,
+      "response": {
+        "id": "id-0",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "type": "step-finish",
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
     },
-  },
-]
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "stop",
+      "logprobs": undefined,
+      "response": {
+        "id": "id-0",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "type": "finish",
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
+    },
+  ],
+  "textStream": [
+    "Hello",
+    ", ",
+    "world!",
+  ],
+}
 `;
 
 exports[`options.maxToolRoundtrips > 2 roundtrips > onFinish should send correct information 1`] = `
@@ -765,6 +784,53 @@ exports[`result.fullStream > should use fallback response metadata when response
       "totalTokens": 13,
     },
   },
+]
+`;
+
+exports[`result.toAIStream > should send tool call and tool result stream parts 1`] = `
+[
+  "9:{"toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}
+",
+  "a:{"toolCallId":"call-1","result":"value-result"}
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toAIStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
+[
+  "b:{"toolCallId":"call-1","toolName":"tool1"}
+",
+  "c:{"toolCallId":"call-1","argsTextDelta":"{ \\"value\\":"}
+",
+  "c:{"toolCallId":"call-1","argsTextDelta":" \\"value\\" }"}
+",
+  "9:{"toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}
+",
+  "a:{"toolCallId":"call-1","result":"value-result"}
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toAIStream > should transform textStream through callbacks and data transformers 1`] = `
+[
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
 ]
 `;
 
