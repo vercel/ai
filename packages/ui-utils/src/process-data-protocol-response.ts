@@ -96,20 +96,23 @@ export async function processDataProtocolResponse({
       throw new Error(value);
     }
 
-    if (type === 'finish_roundtrip') {
+    if (type === 'finish_step') {
       nextPrefixMap = {};
       continue;
     }
 
     if (type === 'finish_message') {
-      const { completionTokens, promptTokens } = value.usage;
-
       finishReason = value.finishReason;
-      usage = {
-        completionTokens,
-        promptTokens,
-        totalTokens: completionTokens + promptTokens,
-      };
+
+      if (value.usage != null) {
+        const { completionTokens, promptTokens } = value.usage;
+
+        usage = {
+          completionTokens,
+          promptTokens,
+          totalTokens: completionTokens + promptTokens,
+        };
+      }
 
       continue;
     }

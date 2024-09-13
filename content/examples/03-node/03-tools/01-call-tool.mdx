@@ -150,4 +150,8 @@ main().catch(console.error);
 
 ## Model Response
 
-When using tools, it's important to note that the model won't respond with the tool call results by default. This is because the model has technically already generated its response to the prompt: the tool call. Many use cases will require the model to summarise the results of the tool call within the context of the original prompt automatically. You can achieve this by [using `maxToolRoundtrips`](/examples/node/tools/call-tools-with-automatic-roundtrips) which will automatically send toolResults to the model to trigger another generation.
+When using tools, it's important to note that the model won't respond with the tool call results by default.
+This is because the model has technically already generated its response to the prompt: the tool call.
+Many use cases will require the model to summarise the results of the tool call within the context of the original prompt automatically.
+You can achieve this by [using `maxSteps`](/examples/node/tools/call-tools-with-automatic-roundtrips)
+which will automatically send toolResults to the model to trigger another generation.

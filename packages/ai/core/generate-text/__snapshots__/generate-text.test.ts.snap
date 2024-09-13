@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`result.responseMessages > single roundtrip > should return information about all roundtrips 1`] = `
+exports[`options.maxSteps > 2 steps > should return information about all steps 1`] = `
 [
   {
     "finishReason": "tool-calls",
@@ -74,7 +74,7 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.generateText",
       "ai.response.finishReason": "stop",
-      "ai.settings.maxToolRoundtrips": 0,
+      "ai.settings.maxSteps": 1,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "operation.name": "ai.generateText",
@@ -133,7 +133,7 @@ exports[`telemetry > should record successful tool call 1`] = `
       "ai.response.finishReason": "stop",
       "ai.response.toolCalls": "[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{ \\"value\\": \\"value\\" }"}]",
       "ai.result.toolCalls": "[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{ \\"value\\": \\"value\\" }"}]",
-      "ai.settings.maxToolRoundtrips": 0,
+      "ai.settings.maxSteps": 1,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "operation.name": "ai.generateText",
@@ -201,7 +201,7 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "ai.response.text": "Hello, world!",
       "ai.result.text": "Hello, world!",
       "ai.settings.frequencyPenalty": 0.3,
-      "ai.settings.maxToolRoundtrips": 0,
+      "ai.settings.maxSteps": 1,
       "ai.settings.presencePenalty": 0.4,
       "ai.settings.stopSequences": [
         "stop",

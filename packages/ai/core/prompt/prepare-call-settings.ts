@@ -8,12 +8,16 @@ export function prepareCallSettings({
   maxTokens,
   temperature,
   topP,
+  topK,
   presencePenalty,
   frequencyPenalty,
   stopSequences,
   seed,
   maxRetries,
-}: CallSettings): CallSettings {
+}: Omit<CallSettings, 'abortSignal' | 'headers'>): Omit<
+  CallSettings,
+  'abortSignal' | 'headers'
+> {
   if (maxTokens != null) {
     if (!Number.isInteger(maxTokens)) {
       throw new InvalidArgumentError({
@@ -46,6 +50,16 @@ export function prepareCallSettings({
     if (typeof topP !== 'number') {
       throw new InvalidArgumentError({
         parameter: 'topP',
+        value: topP,
+        message: 'topP must be a number',
+      });
+    }
+  }
+
+  if (topK != null) {
+    if (typeof topK !== 'number') {
+      throw new InvalidArgumentError({
+        parameter: 'topK',
         value: topP,
         message: 'topP must be a number',
       });
@@ -104,6 +118,7 @@ export function prepareCallSettings({
     maxTokens,
     temperature: temperature ?? 0,
     topP,
+    topK,
     presencePenalty,
     frequencyPenalty,
     stopSequences:

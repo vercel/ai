@@ -1,5 +1,42 @@
 # ai
 
+## 3.3.36
+
+### Patch Changes
+
+- a3882f5: feat (ai/core): add steps property to streamText result and onFinish callback
+- 1f590ef: chore (ai): rename roundtrips to steps
+- 7e82d36: fix (ai/core): pass topK to providers
+- Updated dependencies [54862e4]
+- Updated dependencies [1f590ef]
+  - @ai-sdk/react@0.0.58
+  - @ai-sdk/ui-utils@0.0.43
+  - @ai-sdk/solid@0.0.46
+  - @ai-sdk/svelte@0.0.48
+  - @ai-sdk/vue@0.0.48
+
+## 3.3.35
+
+### Patch Changes
+
+- 14210d5: feat (ai/core): add sendUsage information to streamText data stream methods
+- Updated dependencies [14210d5]
+  - @ai-sdk/ui-utils@0.0.42
+  - @ai-sdk/react@0.0.57
+  - @ai-sdk/solid@0.0.45
+  - @ai-sdk/svelte@0.0.47
+  - @ai-sdk/vue@0.0.47
+
+## 3.3.34
+
+### Patch Changes
+
+- a0403d6: feat (react): support sending attachments using append
+- 678449a: feat (ai/core): export test helpers
+- ff22fac: fix (ai/rsc): streamUI onFinish is called when tool calls have finished
+- Updated dependencies [a0403d6]
+  - @ai-sdk/react@0.0.56
+
 ## 3.3.33
 
 ### Patch Changes

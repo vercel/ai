@@ -2,6 +2,7 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { MockLanguageModelV1 } from '../../core/test/mock-language-model-v1';
 import { streamUI } from './stream-ui';
 import { z } from 'zod';
+import { delay } from '../../util/delay';
 
 async function recursiveResolve(val: any): Promise<any> {
   if (val && typeof val === 'object' && typeof val.then === 'function') {
@@ -127,7 +128,7 @@ describe('result.value', () => {
             value: z.string(),
           }),
           generate: async ({ value }) => {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await delay(100);
             return <div>tool1: {value}</div>;
           },
         },
@@ -150,7 +151,7 @@ describe('result.value', () => {
           }),
           generate: async function* ({ value }) {
             yield <div>Loading...</div>;
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await delay(100);
             return <div>tool: {value}</div>;
           },
         },
@@ -199,7 +200,7 @@ describe('rsc - streamUI() onFinish callback', () => {
             value: z.string(),
           }),
           generate: async ({ value }) => {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await delay(100);
             return <div>tool1: {value}</div>;
           },
         },

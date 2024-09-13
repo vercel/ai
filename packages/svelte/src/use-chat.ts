@@ -19,7 +19,7 @@ export type { CreateMessage, Message };
 
 export type UseChatOptions = SharedUseChatOptions & {
   /**
-  Maximal number of automatic roundtrips for tool calls.
+  Maximum number of automatic roundtrips for tool calls.
 
   An automatic tool call roundtrip is a call to the server with the
   tool call results when all tool calls in the last assistant
@@ -29,8 +29,19 @@ export type UseChatOptions = SharedUseChatOptions & {
   case of misconfigured tools.
 
   By default, it's set to 0, which will disable the feature.
-  */
+
+@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
+     */
   maxToolRoundtrips?: number;
+
+  /**
+Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
+
+A maximum number is required to prevent infinite loops in the case of misconfigured tools.
+
+By default, it's set to 1, which means that only a single LLM call is made.
+ */
+  maxSteps?: number;
 };
 
 export type UseChatHelpers = {
@@ -82,19 +93,6 @@ export type UseChatHelpers = {
 
   /** Additional data added on the server via StreamData */
   data: Readable<JSONValue[] | undefined>;
-  /**
-  Maximal number of automatic roundtrips for tool calls.
-
-  An automatic tool call roundtrip is a call to the server with the
-  tool call results when all tool calls in the last assistant
-  message have results.
-
-  A maximum number is required to prevent infinite loops in the
-  case of misconfigured tools.
-
-  By default, it's set to 0, which will disable the feature.
-  */
-  maxToolRoundtrips?: number;
 };
 
 const getStreamedResponse = async (
@@ -249,6 +247,7 @@ export function useChat({
   fetch,
   keepLastMessageOnError = false,
   maxToolRoundtrips = 0,
+  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
 }: UseChatOptions = {}): UseChatHelpers & {
   addToolResult: ({
     toolCallId,
@@ -362,19 +361,19 @@ export function useChat({
 
     // auto-submit when all tool calls in the last assistant message have results:
     const newMessagesSnapshot = get(messages);
-    const lastMessage = newMessagesSnapshot[newMessagesSnapshot.length - 1];
 
+    const lastMessage = newMessagesSnapshot[newMessagesSnapshot.length - 1];
     if (
       // ensure we actually have new messages (to prevent infinite loops in case of errors):
       newMessagesSnapshot.length > messageCount &&
       // ensure there is a last message:
       lastMessage != null &&
       // check if the feature is enabled:
-      maxToolRoundtrips > 0 &&
-      // check that roundtrip is possible:
+      maxSteps > 1 &&
+      // check that next step is possible:
       isAssistantMessageWithCompletedToolCalls(lastMessage) &&
-      // limit the number of automatic roundtrips:
-      countTrailingAssistantMessages(newMessagesSnapshot) <= maxToolRoundtrips
+      // limit the number of automatic steps:
+      countTrailingAssistantMessages(newMessagesSnapshot) < maxSteps
     ) {
       await triggerRequest({ messages: newMessagesSnapshot });
     }

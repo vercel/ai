@@ -192,6 +192,15 @@ functionality that can be fully encapsulated in the provider.
 
   let finished: Promise<void> | undefined;
 
+  let finishEvent: {
+    finishReason: FinishReason;
+    usage: LanguageModelUsage;
+    warnings?: CallWarning[];
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
+  } | null = null;
+
   async function render({
     args,
     renderer,
@@ -340,13 +349,13 @@ functionality that can be fully encapsulated in the provider.
           }
 
           case 'finish': {
-            onFinish?.({
+            finishEvent = {
               finishReason: value.finishReason,
               usage: calculateLanguageModelUsage(value.usage),
-              value: ui.value,
               warnings: result.warnings,
               rawResponse: result.rawResponse,
-            });
+            };
+            break;
           }
         }
       }
@@ -361,6 +370,13 @@ functionality that can be fully encapsulated in the provider.
       }
 
       await finished;
+
+      if (finishEvent && onFinish) {
+        await onFinish({
+          ...finishEvent,
+          value: ui.value,
+        });
+      }
     } catch (error) {
       // During the stream rendering, we don't want to throw the error to the
       // parent scope but only let the React's error boundary to catch it.

@@ -1,5 +1,26 @@
 # @ai-sdk/react
 
+## 0.0.58
+
+### Patch Changes
+
+- 54862e4: fix (react): restore sending annotations with during submission
+- Updated dependencies [1f590ef]
+  - @ai-sdk/ui-utils@0.0.43
+
+## 0.0.57
+
+### Patch Changes
+
+- Updated dependencies [14210d5]
+  - @ai-sdk/ui-utils@0.0.42
+
+## 0.0.56
+
+### Patch Changes
+
+- a0403d6: feat (react): support sending attachments using append
+
 ## 0.0.55
 
 ### Patch Changes
