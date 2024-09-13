@@ -1654,3 +1654,69 @@ describe('reload', () => {
     ),
   );
 });
+
+describe('test sending additional fields during message submission', () => {
+  const TestComponent = () => {
+    const { messages, append } = useChat();
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+          </div>
+        ))}
+
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({
+              role: 'user',
+              content: 'hi',
+              annotations: ['this is an annotation'],
+            });
+          }}
+        />
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'annotations',
+    withTestServer(
+      [
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['0:"first response"\n'],
+        },
+      ],
+      async ({ call }) => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [
+            {
+              role: 'user',
+              content: 'hi',
+              annotations: ['this is an annotation'],
+            },
+          ],
+        });
+      },
+    ),
+  );
+});

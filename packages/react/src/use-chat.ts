@@ -459,6 +459,7 @@ By default, it's set to 0, which will disable the feature.
       const messages = messagesRef.current.concat({
         ...message,
         id: message.id ?? generateId(),
+        createdAt: message.createdAt ?? new Date(),
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
       });
