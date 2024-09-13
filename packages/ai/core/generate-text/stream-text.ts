@@ -5,6 +5,7 @@ import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
   formatStreamPart,
+  InvalidArgumentError,
   StreamData,
   TextStreamPart,
 } from '../../streams';
@@ -43,7 +44,9 @@ import {
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { mergeStreams } from '../util/merge-streams';
 import { now as originalNow } from '../util/now';
+import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
+import { writeToServerResponse } from '../util/write-to-server-response';
 import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
@@ -52,8 +55,6 @@ import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
-import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
-import { writeToServerResponse } from '../util/write-to-server-response';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
 
@@ -271,6 +272,14 @@ results that can be fully encapsulated in the provider.
       currentDate?: () => Date;
     };
   }): Promise<StreamTextResult<TOOLS>> {
+  if (maxSteps < 1) {
+    throw new InvalidArgumentError({
+      parameter: 'maxSteps',
+      value: maxSteps,
+      message: 'maxSteps must be at least 1',
+    });
+  }
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
