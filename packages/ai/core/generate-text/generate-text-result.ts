@@ -117,7 +117,7 @@ Additional response information.
   }>;
 
   /**
-Response information for every steps.
+Response information for every step.
 You can use this to get information about intermediate steps, such as the tool calls or the response headers.
    */
   readonly steps: Array<{
@@ -182,7 +182,7 @@ Additional response information.
 
   /**
 Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled.
+`undefined` if the mode does not support logprobs or if it was not enabled.
 
 @deprecated Will become a provider extension in the future.
      */
