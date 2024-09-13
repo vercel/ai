@@ -70,7 +70,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@param maxSteps - Maximal number of sequential LLM calls (steps), e.g. when you use tool calls.
+@param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
 
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
