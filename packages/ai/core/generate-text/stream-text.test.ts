@@ -2315,6 +2315,11 @@ describe('options.maxSteps', () => {
       await convertAsyncIterableToArray(result.fullStream); // consume stream
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
+
+    it('should contain all steps', async () => {
+      await convertAsyncIterableToArray(result.fullStream); // consume stream
+      expect(await result.steps).toMatchSnapshot();
+    });
   });
 });
 
