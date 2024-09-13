@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.59
+
+### Patch Changes
+
+- a0991ec: feat (provider/openai): add o1-preview and o1-mini models
+
 ## 0.0.58
 
 ### Patch Changes
