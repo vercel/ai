@@ -598,7 +598,7 @@ describe('result.fullStream', () => {
         tool1: {
           parameters: z.object({ value: z.string() }),
           execute: async ({ value }) => {
-            await delay(50); // delay to show bug where roundtrip finish is sent before tool result
+            await delay(50); // delay to show bug where step finish is sent before tool result
             return `${value}-result`;
           },
         },
@@ -2091,7 +2091,7 @@ it('options.onFinish should send correct information', async () => {
   expect(result!).toMatchSnapshot();
 });
 
-describe('options.maxToolRoundtrips', () => {
+describe('options.maxSteps', () => {
   let result: StreamTextResult<any>;
   let onFinishResult: Parameters<
     Required<Parameters<typeof streamText>[0]>['onFinish']
@@ -2107,7 +2107,7 @@ describe('options.maxToolRoundtrips', () => {
     setTestTracer(undefined);
   });
 
-  describe('2 roundtrips', () => {
+  describe('2 steps', () => {
     beforeEach(async () => {
       result = undefined as any;
       onFinishResult = undefined as any;
@@ -2268,7 +2268,7 @@ describe('options.maxToolRoundtrips', () => {
       });
     });
 
-    it('should contain assistant response message and tool message from all roundtrips', async () => {
+    it('should contain assistant response message and tool message from all step', async () => {
       expect(
         await convertAsyncIterableToArray(result.fullStream),
       ).toMatchSnapshot();
@@ -2279,7 +2279,7 @@ describe('options.maxToolRoundtrips', () => {
         await convertAsyncIterableToArray(result.fullStream); // consume stream
       });
 
-      it('should contain rawSettings from last roundtrips', async () => {
+      it('should contain rawResponse from last step', async () => {
         assert.deepStrictEqual(result.rawResponse, { headers: { call: '2' } });
       });
     });
@@ -2302,16 +2302,16 @@ describe('options.maxToolRoundtrips', () => {
         });
       });
 
-      it('should contain finish reason from final roundtrip', async () => {
+      it('should contain finish reason from final step', async () => {
         assert.strictEqual(await result.finishReason, 'stop');
       });
 
-      it('should contain text from final roundtrip', async () => {
+      it('should contain text from final step', async () => {
         assert.strictEqual(await result.text, 'Hello, world!');
       });
     });
 
-    it('should record telemetry data for each roundtrip', async () => {
+    it('should record telemetry data for each step', async () => {
       await convertAsyncIterableToArray(result.fullStream); // consume stream
       expect(tracer.jsonSpans).toMatchSnapshot();
     });

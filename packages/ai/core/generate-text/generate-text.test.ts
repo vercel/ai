@@ -300,7 +300,7 @@ describe('result.responseMessages', () => {
 });
 
 describe('options.maxSteps', () => {
-  describe('2 steps with tool calls', () => {
+  describe('2 steps', () => {
     let result: GenerateTextResult<any>;
 
     beforeEach(async () => {

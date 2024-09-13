@@ -68,7 +68,7 @@ exports[`multiple stream consumption > should support text stream, ai stream, fu
 }
 `;
 
-exports[`options.maxToolRoundtrips > 2 roundtrips > onFinish should send correct information 1`] = `
+exports[`options.maxSteps > 2 steps > onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
@@ -91,7 +91,7 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > onFinish should send correct
 }
 `;
 
-exports[`options.maxToolRoundtrips > 2 roundtrips > should contain assistant response message and tool message from all roundtrips 1`] = `
+exports[`options.maxSteps > 2 steps > should contain assistant response message and tool message from all step 1`] = `
 [
   {
     "args": {
@@ -169,7 +169,7 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should contain assistant res
 ]
 `;
 
-exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data for each roundtrip 1`] = `
+exports[`options.maxSteps > 2 steps > should record telemetry data for each step 1`] = `
 [
   {
     "attributes": {
