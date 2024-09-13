@@ -1,5 +1,6 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
+import { InvalidArgumentError } from '../../errors';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
@@ -69,7 +70,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@param maxToolRoundtrips - Maximal number of automatic roundtrips for tool calls.
+@param maxSteps - Maximal number of sequential LLM calls (steps), e.g. when you use tool calls.
 
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
@@ -86,6 +87,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   headers,
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
+  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   _internal: {
@@ -126,8 +128,19 @@ A maximum number is required to prevent infinite loops in the
 case of misconfigured tools.
 
 By default, it's set to 0, which will disable the feature.
+
+@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
      */
     maxToolRoundtrips?: number;
+
+    /**
+Maximal number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
+
+A maximum number is required to prevent infinite loops in the case of misconfigured tools.
+
+By default, it's set to 1, which means that only a single LLM call is made.
+     */
+    maxSteps?: number;
 
     /**
      * Optional telemetry configuration (experimental).
@@ -149,6 +162,14 @@ functionality that can be fully encapsulated in the provider.
       currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS>> {
+  if (maxSteps < 1) {
+    throw new InvalidArgumentError({
+      parameter: 'maxSteps',
+      value: maxSteps,
+      message: 'maxSteps must be at least 1',
+    });
+  }
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
@@ -171,7 +192,7 @@ functionality that can be fully encapsulated in the provider.
         'ai.prompt': {
           input: () => JSON.stringify({ system, prompt, messages }),
         },
-        'ai.settings.maxToolRoundtrips': maxToolRoundtrips,
+        'ai.settings.maxSteps': maxSteps,
       },
     }),
     tracer,
@@ -198,10 +219,10 @@ functionality that can be fully encapsulated in the provider.
       > & { response: { id: string; timestamp: Date; modelId: string } };
       let currentToolCalls: ToToolCallArray<TOOLS> = [];
       let currentToolResults: ToToolResultArray<TOOLS> = [];
-      let roundtripCount = 0;
+      let stepCount = 0;
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
-      const roundtrips: GenerateTextResult<TOOLS>['roundtrips'] = [];
+      const steps: GenerateTextResult<TOOLS>['steps'] = [];
       const usage: LanguageModelUsage = {
         completionTokens: 0,
         promptTokens: 0,
@@ -209,9 +230,9 @@ functionality that can be fully encapsulated in the provider.
       };
 
       do {
-        // once we have a roundtrip, we need to switch to messages format:
+        // once we have a 2nd step, we need to switch to messages format:
         const currentInputFormat =
-          roundtripCount === 0 ? validatedPrompt.type : 'messages';
+          stepCount === 0 ? validatedPrompt.type : 'messages';
 
         currentModelResponse = await retry(() =>
           recordSpan({
@@ -328,8 +349,8 @@ functionality that can be fully encapsulated in the provider.
         usage.promptTokens += currentUsage.promptTokens;
         usage.totalTokens += currentUsage.totalTokens;
 
-        // add roundtrip information:
-        roundtrips.push({
+        // add step information:
+        steps.push({
           text: currentModelResponse.text ?? '',
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
@@ -343,7 +364,7 @@ functionality that can be fully encapsulated in the provider.
           },
         });
 
-        // append to messages for potential next roundtrip:
+        // append to messages for potential next step:
         const newResponseMessages = toResponseMessages({
           text: currentModelResponse.text,
           toolCalls: currentToolCalls,
@@ -360,8 +381,8 @@ functionality that can be fully encapsulated in the provider.
         currentToolCalls.length > 0 &&
         // all current tool calls have results:
         currentToolResults.length === currentToolCalls.length &&
-        // the number of roundtrips is less than the maximum:
-        roundtripCount++ < maxToolRoundtrips
+        // the number of steps is less than the maximum:
+        ++stepCount < maxSteps
       );
 
       // Add response information to the span:
@@ -409,7 +430,7 @@ functionality that can be fully encapsulated in the provider.
         },
         logprobs: currentModelResponse.logprobs,
         responseMessages,
-        roundtrips,
+        steps,
         providerMetadata: currentModelResponse.providerMetadata,
       });
     },
@@ -502,6 +523,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
   readonly warnings: GenerateTextResult<TOOLS>['warnings'];
   readonly responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
   readonly roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
+  readonly steps: GenerateTextResult<TOOLS>['steps'];
   readonly rawResponse: GenerateTextResult<TOOLS>['rawResponse'];
   readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
   readonly experimental_providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
@@ -516,7 +538,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     warnings: GenerateTextResult<TOOLS>['warnings'];
     logprobs: GenerateTextResult<TOOLS>['logprobs'];
     responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
-    roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
+    steps: GenerateTextResult<TOOLS>['steps'];
     providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
     response: GenerateTextResult<TOOLS>['response'];
   }) {
@@ -528,7 +550,8 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.warnings = options.warnings;
     this.response = options.response;
     this.responseMessages = options.responseMessages;
-    this.roundtrips = options.roundtrips;
+    this.roundtrips = options.steps;
+    this.steps = options.steps;
     this.experimental_providerMetadata = options.providerMetadata;
 
     // deprecated:

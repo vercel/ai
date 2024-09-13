@@ -298,8 +298,8 @@ describe('result.responseMessages', () => {
     ]);
   });
 
-  describe('options.maxToolRoundtrips', () => {
-    it('should contain assistant response message and tool message from all roundtrips', async () => {
+  describe('options.maxSteps', () => {
+    it('should contain assistant response message and tool message from all steps', async () => {
       let responseCount = 0;
       const result = await generateText({
         model: new MockLanguageModelV1({
@@ -345,7 +345,7 @@ describe('result.responseMessages', () => {
           },
         },
         prompt: 'test-input',
-        maxToolRoundtrips: 2,
+        maxSteps: 3,
       });
 
       assert.deepStrictEqual(result.responseMessages, [
@@ -380,7 +380,7 @@ describe('result.responseMessages', () => {
     });
   });
 
-  describe('single roundtrip', () => {
+  describe('single step', () => {
     let result: GenerateTextResult<any>;
 
     beforeEach(async () => {
@@ -532,19 +532,19 @@ describe('result.responseMessages', () => {
           },
         },
         prompt: 'test-input',
-        maxToolRoundtrips: 2,
+        maxSteps: 3,
       });
     });
 
-    it('should return text from last roundtrip', async () => {
+    it('should return text from last step', async () => {
       assert.deepStrictEqual(result.text, 'Hello, world!');
     });
 
-    it('should return empty tool calls from last roundtrip', async () => {
+    it('should return empty tool calls from last step', async () => {
       assert.deepStrictEqual(result.toolCalls, []);
     });
 
-    it('should return empty tool results from last roundtrip', async () => {
+    it('should return empty tool results from last step', async () => {
       assert.deepStrictEqual(result.toolResults, []);
     });
 
@@ -556,8 +556,8 @@ describe('result.responseMessages', () => {
       });
     });
 
-    it('should return information about all roundtrips', () => {
-      expect(result.roundtrips).toMatchSnapshot();
+    it('should return information about all steps', () => {
+      expect(result.steps).toMatchSnapshot();
     });
   });
 });
