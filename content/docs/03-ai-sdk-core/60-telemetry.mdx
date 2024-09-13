@@ -98,6 +98,7 @@ const result = await generateText({
   - `ai.response.text`: the text that was generated
   - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.response.finishReason`: the reason why the generation finished
+  - `ai.settings.maxSteps`: the maximum number of steps that were set
 
 - `ai.streamText.doStream` (span): a provider doStream call.
   This span contains an `ai.stream.firstChunk` event and `ai.toolCall` spans.

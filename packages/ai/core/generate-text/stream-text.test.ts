@@ -133,38 +133,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        { type: 'text-delta', textDelta: 'Hello' },
-        { type: 'text-delta', textDelta: ', ' },
-        { type: 'text-delta', textDelta: 'world!' },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'response-id',
-            modelId: 'response-model-id',
-            timestamp: new Date(5000),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'response-id',
-            modelId: 'response-model-id',
-            timestamp: new Date(5000),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should use fallback response metadata when response metadata is not provided', async () => {
@@ -203,38 +174,9 @@ describe('result.fullStream', () => {
       },
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        { type: 'text-delta', textDelta: 'Hello' },
-        { type: 'text-delta', textDelta: ', ' },
-        { type: 'text-delta', textDelta: 'world!' },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-2000',
-            modelId: 'mock-model-id',
-            timestamp: new Date(2000),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-2000',
-            modelId: 'mock-model-id',
-            timestamp: new Date(2000),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should send tool calls', async () => {
@@ -298,41 +240,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should not send tool call deltas when toolCallStreaming is disabled', async () => {
@@ -445,41 +355,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        {
-          type: 'tool-call',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          args: { value: 'Sparkle Day' },
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should send tool call deltas when toolCallStreaming is enabled', async () => {
@@ -593,88 +471,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        {
-          type: 'tool-call-streaming-start',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: '{"',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: 'value',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: '":"',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: 'Spark',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: 'le',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: ' Day',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: '"}',
-        },
-        {
-          type: 'tool-call',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          args: { value: 'Sparkle Day' },
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should send tool results', async () => {
@@ -738,48 +537,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        },
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-          result: 'value-result',
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should send delayed asynchronous tool results', async () => {
@@ -846,48 +606,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        },
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-          result: 'value-result',
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should filter out empty text deltas', async () => {
@@ -921,35 +642,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'world!' },
-      {
-        type: 'roundtrip-finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-    ]);
+    expect(
+      await convertAsyncIterableToArray(result.fullStream),
+    ).toMatchSnapshot();
   });
 });
 
@@ -1978,35 +1673,9 @@ describe('multiple stream consumption', () => {
       ],
     );
 
-    expect(await convertAsyncIterableToArray(result.fullStream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'world!' },
-      {
-        type: 'roundtrip-finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-    ]);
+    expect(
+      await convertAsyncIterableToArray(result.fullStream),
+    ).toMatchSnapshot();
   });
 });
 
@@ -2685,73 +2354,7 @@ describe('options.maxToolRoundtrips', () => {
     it('should contain assistant response message and tool message from all roundtrips', async () => {
       expect(
         await convertAsyncIterableToArray(result.fullStream),
-      ).toStrictEqual([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        },
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-          result: 'result1',
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          experimental_providerMetadata: undefined,
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'Hello, ',
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'world!',
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          experimental_providerMetadata: undefined,
-          response: {
-            id: 'id-1',
-            modelId: 'mock-model-id',
-            timestamp: new Date(1000),
-          },
-          usage: {
-            completionTokens: 5,
-            promptTokens: 1,
-            totalTokens: 6,
-          },
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-1',
-            modelId: 'mock-model-id',
-            timestamp: new Date(1000),
-          },
-          usage: { completionTokens: 15, promptTokens: 4, totalTokens: 19 },
-          experimental_providerMetadata: undefined,
-        },
-      ]);
+      ).toMatchSnapshot();
     });
 
     describe('rawSettings', () => {
@@ -3134,37 +2737,8 @@ describe('tools with custom schema', () => {
       },
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream)).toStrictEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'tool1',
-        args: { value: 'value' },
-      },
-      {
-        type: 'roundtrip-finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-    ]);
+    expect(
+      await convertAsyncIterableToArray(result.fullStream),
+    ).toMatchSnapshot();
   });
 });

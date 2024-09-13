@@ -242,7 +242,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       type: 'tool-result';
     } & ToToolResult<TOOLS>)
   | {
-      type: 'roundtrip-finish';
+      type: 'step-finish';
       finishReason: FinishReason;
       logprobs?: LogProbs;
       usage: LanguageModelUsage;
