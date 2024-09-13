@@ -40,9 +40,9 @@ The tool result contains all information about the tool call as well as the resu
 <Note>
   In order to automatically send another request to the server when all tool
   calls are server-side, you need to set
-  [`maxToolRoundtrips`](/docs/reference/ai-sdk-ui/use-chat#max-tool-roundtrips)
-  to a value greater than 0 in the `useChat` options. It is disabled by default
-  for backward compatibility.
+  [`maxSteps`](/docs/reference/ai-sdk-ui/use-chat#max-steps) to a value greater
+  than 1 in the `useChat` options. It is disabled by default for backward
+  compatibility.
 </Note>
 
 ## Example
@@ -116,7 +116,7 @@ There are three things worth mentioning:
    It asks the user for confirmation and displays the result once the user confirms or denies the execution.
    The result is added to the chat using `addToolResult`.
 
-3. The [`maxToolRoundtrips`](/docs/reference/ai-sdk-ui/use-chat#max-tool-roundtrips) option is set to 5.
+3. The [`maxSteps`](/docs/reference/ai-sdk-ui/use-chat#max-steps) option is set to 5.
    This enables several tool use iterations between the client and the server.
 
 ```tsx filename='app/page.tsx' highlight="9,12,31"
@@ -128,7 +128,7 @@ import { Message, useChat } from 'ai/react';
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
-      maxToolRoundtrips: 5,
+      maxSteps: 5,
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {
@@ -245,9 +245,9 @@ export default function Chat() {
 }
 ```
 
-## Server-side roundtrips
+## Server-side Multi-Step Calls
 
-You can also use server-side tool roundtrips with `streamText`.
+You can also use multi-step calls on the server-side with `streamText`.
 This works when all invoked tools have an `execute` function on the server side.
 
 ```tsx filename='app/api/chat/route.ts' highlight="15-21,24"
@@ -274,7 +274,7 @@ export async function POST(req: Request) {
         },
       },
     },
-    maxToolRoundtrips: 5, // server-side roundtrips for server-side tools
+    maxSteps: 5,
   });
 
   return result.toDataStreamResponse();

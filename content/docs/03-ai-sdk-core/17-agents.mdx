@@ -9,7 +9,7 @@ AI agents let the language model execute several steps in a non-deterministic wa
 The model can make decisions based on the context of the conversation and the user's input.
 
 One approach to implementing agents is to allow the LLM to choose the next step in a loop.
-With `generateText`, you can combine [tools](/docs/ai-sdk-core/tools-and-tool-calling) with `maxToolRoundtrips`.
+With `generateText`, you can combine [tools](/docs/ai-sdk-core/tools-and-tool-calling) with `maxSteps`.
 This makes it possible to implement basic agents that reason at each step and make decisions based on the context.
 
 ### Example
@@ -50,24 +50,24 @@ const { text: answer } = await generateText({
       execute: async ({ expression }) => mathjs.evaluate(expression),
     }),
   },
-  maxToolRoundtrips: 10,
+  maxSteps: 10,
 });
 
 console.log(`ANSWER: ${answer}`);
 ```
 
-## Accessing information from all roundtrips
+## Accessing information from all steps
 
-Calling `generateText` with `maxToolRoundtrips` can result in several calls to the LLM (roundtrips).
-You can access information from all roundtrips by using the `roundtrips` property of the response.
+Calling `generateText` with `maxSteps` can result in several calls to the LLM (steps).
+You can access information from all steps by using the `steps` property of the response.
 
 ```ts
-const { roundtrips } = await generateText({
+const { steps } = await generateText({
   model: openai('gpt-4-turbo'),
-  maxToolRoundtrips: 10,
+  maxSteps: 10,
   // ...
 });
 
-// extract all tool calls from the roundtrips:
-const allToolCalls = roundtrips.flatMap(roundtrip => roundtrip.toolCalls);
+// extract all tool calls from the steps:
+const allToolCalls = steps.flatMap(step => step.toolCalls);
 ```

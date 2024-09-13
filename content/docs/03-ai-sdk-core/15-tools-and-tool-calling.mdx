@@ -50,15 +50,15 @@ const result = await generateText({
 Tool calling is not restricted to only text generation.
 You can also use it to render user interfaces with Generative AI.
 
-## Tool Roundtrips
+## Multi-Step Calls
 
 Large language models need to know the tool results before they can continue to generate text.
 This requires sending the tool results back to the model.
-You can enable this feature by setting the `maxToolRoundtrips` setting to a number greater than 0.
+You can enable this feature by setting the `maxSteps` setting to a number greater than 1.
 
-When `maxToolRoundtrips` is set to a number greater than 0, the language model will be called
+When `maxSteps` is set to a number greater than 1, the language model will be called
 in a loop when there are tool calls and for every tool call there is a tool result, until there
-are no further tool calls or the maximum number of tool roundtrips is reached.
+are no further tool calls or the maximum number of tool steps is reached.
 
 ### Example: generateText
 
@@ -66,7 +66,7 @@ are no further tool calls or the maximum number of tool roundtrips is reached.
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
 
-const { text, roundtrips } = await generateText({
+const { text, steps } = await generateText({
   model: yourModel,
   tools: {
     weather: tool({
@@ -80,27 +80,25 @@ const { text, roundtrips } = await generateText({
       }),
     }),
   },
-  maxToolRoundtrips: 5, // allow up to 5 tool roundtrips
+  maxSteps: 5, // allow up to 5 steps
   prompt: 'What is the weather in San Francisco?',
 });
 ```
 
-In the above example, there is a single roundtrip:
+In the above example, there are two steps:
 
-1. **Call 1**
+1. **Step 1**
    1. The prompt `'What is the weather in San Francisco?'` is sent to the model.
    1. The model generates a tool call.
    1. The tool call is executed.
-1. **Call 2 (Roundtrip)**
+1. **Step 2**
    1. The tool result is sent to the model.
    1. The model generates a response considering the tool result.
 
-To access intermediate tool calls and results, you can use the `roundTrips` property in the result object.
-It contains all the text, tool calls, tool results, and more from each roundtrip.
+To access intermediate tool calls and results, you can use the `steps` property in the result object.
+It contains all the text, tool calls, tool results, and more from each step.
 
-<Note>
-  The roundtrips result property is only available in `generateText` .
-</Note>
+<Note>The `steps` result property is only available in `generateText`.</Note>
 
 ### Example: streamText
 
@@ -122,7 +120,7 @@ const result = await streamText({
       }),
     }),
   },
-  maxToolRoundtrips: 5, // allow up to 5 tool roundtrips
+  maxSteps: 5, // allow up to 5 tool steps
   prompt: 'What is the weather in San Francisco?',
 });
 
