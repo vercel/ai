@@ -248,10 +248,10 @@ describe('finish_message stream part', () => {
   });
 });
 
-describe('finish_roundtrip stream part', () => {
-  it('should format a finish_roundtrip stream part', () => {
+describe('finish_step stream part', () => {
+  it('should format a finish_step stream part', () => {
     expect(
-      formatStreamPart('finish_roundtrip', {
+      formatStreamPart('finish_step', {
         finishReason: 'stop',
         usage: { promptTokens: 10, completionTokens: 20 },
       }),
@@ -260,18 +260,18 @@ describe('finish_roundtrip stream part', () => {
     );
   });
 
-  it('should format a finish_roundtrip stream part without usage information', () => {
+  it('should format a finish_step stream part without usage information', () => {
     expect(
-      formatStreamPart('finish_roundtrip', {
+      formatStreamPart('finish_step', {
         finishReason: 'stop',
       }),
     ).toEqual(`e:{"finishReason":"stop"}\n`);
   });
 
-  it('should parse a finish_roundtrip stream part', () => {
+  it('should parse a finish_step stream part', () => {
     const input = `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}`;
     expect(parseStreamPart(input)).toEqual({
-      type: 'finish_roundtrip',
+      type: 'finish_step',
       value: {
         finishReason: 'stop',
         usage: { promptTokens: 10, completionTokens: 20 },
@@ -279,10 +279,10 @@ describe('finish_roundtrip stream part', () => {
     });
   });
 
-  it('should parse a finish_roundtrip with null completion and prompt tokens', () => {
+  it('should parse a finish_step with null completion and prompt tokens', () => {
     const input = `e:{"finishReason":"stop","usage":{"promptTokens":null,"completionTokens":null}}`;
     expect(parseStreamPart(input)).toEqual({
-      type: 'finish_roundtrip',
+      type: 'finish_step',
       value: {
         finishReason: 'stop',
         usage: { promptTokens: NaN, completionTokens: NaN },
@@ -290,10 +290,10 @@ describe('finish_roundtrip stream part', () => {
     });
   });
 
-  it('should parse a finish_roundtrip without usage information', () => {
+  it('should parse a finish_step without usage information', () => {
     const input = `e:{"finishReason":"stop","usage":null}`;
     expect(parseStreamPart(input)).toEqual({
-      type: 'finish_roundtrip',
+      type: 'finish_step',
       value: {
         finishReason: 'stop',
       },

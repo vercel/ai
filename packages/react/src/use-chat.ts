@@ -197,6 +197,7 @@ export function useChat({
   experimental_maxAutomaticRoundtrips = 0,
   maxAutomaticRoundtrips = experimental_maxAutomaticRoundtrips,
   maxToolRoundtrips = maxAutomaticRoundtrips,
+  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
   streamMode,
   streamProtocol,
   onResponse,
@@ -237,7 +238,7 @@ export function useChat({
   }) => JSONValue;
 
   /**
-Maximal number of automatic roundtrips for tool calls.
+Maximum number of automatic roundtrips for tool calls.
 
 An automatic tool call roundtrip is a call to the server with the
 tool call results when all tool calls in the last assistant
@@ -247,8 +248,19 @@ A maximum number is required to prevent infinite loops in the
 case of misconfigured tools.
 
 By default, it's set to 0, which will disable the feature.
-   */
+
+@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
+     */
   maxToolRoundtrips?: number;
+
+  /**
+Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
+
+A maximum number is required to prevent infinite loops in the case of misconfigured tools.
+
+By default, it's set to 1, which means that only a single LLM call is made.
+ */
+  maxSteps?: number;
 } = {}): UseChatHelpers & {
   /**
    * @deprecated Use `addToolResult` instead.
@@ -393,11 +405,11 @@ By default, it's set to 0, which will disable the feature.
         // ensure there is a last message:
         lastMessage != null &&
         // check if the feature is enabled:
-        maxToolRoundtrips > 0 &&
-        // check that roundtrip is possible:
+        maxSteps > 1 &&
+        // check that next step is possible:
         isAssistantMessageWithCompletedToolCalls(lastMessage) &&
-        // limit the number of automatic roundtrips:
-        countTrailingAssistantMessages(messages) <= maxToolRoundtrips
+        // limit the number of automatic steps:
+        countTrailingAssistantMessages(messages) < maxSteps
       ) {
         await triggerRequest({ messages });
       }
@@ -419,7 +431,7 @@ By default, it's set to 0, which will disable the feature.
       experimental_onToolCall,
       experimental_prepareRequestBody,
       onToolCall,
-      maxToolRoundtrips,
+      maxSteps,
       messagesRef,
       abortControllerRef,
       generateId,

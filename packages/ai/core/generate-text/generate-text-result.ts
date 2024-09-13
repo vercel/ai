@@ -56,8 +56,10 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   readonly responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
 
   /**
-  Response information for every roundtrip.
-  You can use this to get information about intermediate steps, such as the tool calls or the response headers.
+Response information for every roundtrip.
+You can use this to get information about intermediate steps, such as the tool calls or the response headers.
+
+@deprecated use `steps` instead.
    */
   readonly roundtrips: Array<{
     /**
@@ -115,6 +117,53 @@ Additional response information.
   }>;
 
   /**
+Response information for every step.
+You can use this to get information about intermediate steps, such as the tool calls or the response headers.
+   */
+  readonly steps: Array<{
+    /**
+The generated text.
+ */
+    readonly text: string;
+
+    /**
+The tool calls that were made during the generation.
+*/
+    readonly toolCalls: ToToolCallArray<TOOLS>;
+
+    /**
+The results of the tool calls.
+*/
+    readonly toolResults: ToToolResultArray<TOOLS>;
+
+    /**
+The reason why the generation finished.
+ */
+    readonly finishReason: FinishReason;
+
+    /**
+The token usage of the generated text.
+*/
+    readonly usage: LanguageModelUsage;
+
+    /**
+Warnings from the model provider (e.g. unsupported settings)
+ */
+    readonly warnings: CallWarning[] | undefined;
+
+    /**
+Logprobs for the completion.
+`undefined` if the mode does not support logprobs or if was not enabled.
+ */
+    readonly logprobs: LogProbs | undefined;
+
+    /**
+Additional response information.
+*/
+    readonly response: LanguageModelResponseMetadataWithHeaders;
+  }>;
+
+  /**
 Optional raw response data.
 
 @deprecated Use `response.headers` instead.
@@ -133,7 +182,7 @@ Additional response information.
 
   /**
 Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled.
+`undefined` if the mode does not support logprobs or if it was not enabled.
 
 @deprecated Will become a provider extension in the future.
      */

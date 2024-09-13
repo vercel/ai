@@ -9,7 +9,7 @@ dotenv.config();
 async function main() {
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    maxToolRoundtrips: 5,
+    maxSteps: 5,
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',
@@ -47,10 +47,10 @@ async function main() {
         break;
       }
 
-      case 'roundtrip-finish': {
+      case 'step-finish': {
         console.log();
         console.log();
-        console.log('ROUNDTRIP FINISH');
+        console.log('STEP FINISH');
         console.log('Finish reason:', chunk.finishReason);
         console.log('Usage:', chunk.usage);
         console.log();
