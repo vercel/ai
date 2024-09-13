@@ -118,7 +118,7 @@ The tool choice strategy. Default: 'auto'.
     maxAutomaticRoundtrips?: number;
 
     /**
-Maximal number of automatic roundtrips for tool calls.
+Maximum number of automatic roundtrips for tool calls.
 
 An automatic tool call roundtrip is another LLM call with the
 tool call results when all tool calls of the last assistant
@@ -134,7 +134,7 @@ By default, it's set to 0, which will disable the feature.
     maxToolRoundtrips?: number;
 
     /**
-Maximal number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
+Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
 
 A maximum number is required to prevent infinite loops in the case of misconfigured tools.
 
