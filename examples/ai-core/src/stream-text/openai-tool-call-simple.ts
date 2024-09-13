@@ -30,7 +30,7 @@ async function main() {
         }),
       }),
     },
-    maxToolRoundtrips: 5,
+    maxSteps: 5,
     prompt: 'What is the weather in my current location?',
   });
 
