@@ -53,7 +53,7 @@ import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', length: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', size: 24 });
 
 type OnFinishCallback<RESULT> = (event: {
   /**
