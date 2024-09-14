@@ -57,7 +57,7 @@ import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
 import { StepResult } from './step-result';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
 /**
 Generate a text and call tools for a given prompt using a language model.
