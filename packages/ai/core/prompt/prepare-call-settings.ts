@@ -60,8 +60,8 @@ export function prepareCallSettings({
     if (typeof topK !== 'number') {
       throw new InvalidArgumentError({
         parameter: 'topK',
-        value: topP,
-        message: 'topP must be a number',
+        value: topK,
+        message: 'topK must be a number',
       });
     }
   }
