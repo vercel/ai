@@ -1,5 +1,7 @@
 import { Validator, validatorSymbol } from '@ai-sdk/provider-utils';
+import { toJsonSchema as valibotToJsonSchema } from '@valibot/to-json-schema';
 import { JSONSchema7 } from 'json-schema';
+import * as v from 'valibot';
 import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
 
@@ -82,4 +84,17 @@ export function zodSchema<OBJECT>(
       },
     },
   );
+}
+
+export function valibotSchema<OBJECT>(
+  valibotSchema: v.GenericSchema<unknown, OBJECT>,
+): Schema<OBJECT> {
+  return jsonSchema(valibotToJsonSchema(valibotSchema), {
+    validate: value => {
+      const result = v.safeParse(valibotSchema, value);
+      return result.success
+        ? { success: true, value: result.output }
+        : { success: false, error: new v.ValiError(result.issues) };
+    },
+  });
 }

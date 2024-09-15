@@ -39,8 +39,10 @@
   "dependencies": {
     "@ai-sdk/provider": "0.0.23",
     "@ai-sdk/provider-utils": "1.0.19",
+    "@valibot/to-json-schema": "^0.2.0",
     "json-schema": "0.4.0",
     "secure-json-parse": "2.7.0",
+    "valibot": "^0.42.0",
     "zod-to-json-schema": "3.23.2"
   },
   "devDependencies": {
