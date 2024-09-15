@@ -19,7 +19,7 @@ async function main() {
     onFinish({ steps }) {
       console.log(JSON.stringify(steps, null, 2));
     },
-    prompt: 'Invent a new holiday and describe its traditions.',
+    prompt: 'What is the current weather in San Francisco?',
   });
 
   for await (const textPart of result.textStream) {
