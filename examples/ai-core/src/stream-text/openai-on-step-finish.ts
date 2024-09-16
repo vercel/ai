@@ -16,8 +16,8 @@ async function main() {
       }),
     },
     maxSteps: 5,
-    onFinish({ steps }) {
-      console.log(JSON.stringify(steps, null, 2));
+    onStepFinish(step) {
+      console.log(JSON.stringify(step, null, 2));
     },
     prompt: 'What is the current weather in San Francisco?',
   });
