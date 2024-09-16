@@ -121,32 +121,46 @@ const getStreamedResponse = async (
   // immediately.
   mutate(chatRequest.messages);
 
-  const constructedMessagesPayload = sendExtraMessageFields
-    ? chatRequest.messages
-    : chatRequest.messages.map(
-        ({
-          role,
-          content,
-          name,
-          data,
-          annotations,
-          function_call,
-          tool_calls,
-          tool_call_id,
-          toolInvocations,
-        }) => ({
-          role,
-          content,
-          ...(name !== undefined && { name }),
-          ...(data !== undefined && { data }),
-          ...(annotations !== undefined && { annotations }),
-          ...(toolInvocations !== undefined && { toolInvocations }),
-          // outdated function/tool call handling (TODO deprecate):
-          tool_call_id,
-          ...(function_call !== undefined && { function_call }),
-          ...(tool_calls !== undefined && { tool_calls }),
-        }),
-      );
+  console.log("🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀");
+  console.log("🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀");
+  console.log("🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀");
+  console.log("🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀");
+  console.log(chatRequest.messages);
+  console.log(JSON.stringify(chatRequest.messages));
+  
+  
+  const constructedMessagesPayload = sendExtraMessageFields ? chatRequest.messages : chatRequest.messages.map(
+    ({
+      role,
+      content,
+      name,
+      data,
+      annotations,
+      function_call,
+      tool_calls,
+      tool_call_id,
+      toolInvocations,
+      experimental_attachments
+    }) => ({
+      role,
+      content,
+      ...name !== void 0 && { name },
+      ...data !== void 0 && { data },
+      ...annotations !== void 0 && { annotations },
+      ...toolInvocations !== void 0 && { toolInvocations },
+      // outdated function/tool call handling (TODO deprecate):
+      tool_call_id,
+      ...function_call !== void 0 && { function_call },
+      ...tool_calls !== void 0 && { tool_calls },
+      ...experimental_attachments !== void 0 && {experimental_attachments}
+    })
+  );
+
+
+  console.log(constructedMessagesPayload);
+  console.log(JSON.stringify(constructedMessagesPayload));
+  
+  
 
   return await callChatApi({
     api,
