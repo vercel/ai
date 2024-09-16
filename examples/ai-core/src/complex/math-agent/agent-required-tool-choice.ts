@@ -12,7 +12,7 @@ const problem =
 async function main() {
   console.log(`PROBLEM: ${problem}\n`);
 
-  const { text } = await generateText({
+  const { toolCalls } = await generateText({
     model: openai('gpt-4o-2024-08-06', { structuredOutputs: true }),
     tools: {
       calculate: tool({
@@ -22,7 +22,21 @@ async function main() {
         parameters: z.object({ expression: z.string() }),
         execute: async ({ expression }) => mathjs.evaluate(expression),
       }),
+      answer: tool({
+        description: 'A tool for providing the final answer.',
+        parameters: z.object({
+          steps: z.array(
+            z.object({
+              calculation: z.string(),
+              reasoning: z.string(),
+            }),
+          ),
+          answer: z.string(),
+        }),
+        // no execute function - invoking it will terminate the agent
+      }),
     },
+    toolChoice: 'required',
     maxSteps: 10,
     onStepFinish: async ({ toolResults }) => {
       console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
@@ -36,7 +50,7 @@ async function main() {
     prompt: problem,
   });
 
-  console.log(`FINAL ANSWER: ${text}`);
+  console.log(`FINAL TOOL CALLS: ${JSON.stringify(toolCalls, null, 2)}`);
 }
 
 main().catch(console.error);
