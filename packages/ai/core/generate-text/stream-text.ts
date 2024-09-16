@@ -98,6 +98,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
 
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
+@param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
 @param onFinish - Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
 
@@ -207,6 +208,8 @@ Callback that is called for each chunk of the stream. The stream processing will
     /**
 Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
+
+The usage is the combined usage of all steps.
      */
     onFinish?: (
       event: StepResult<TOOLS> & {
