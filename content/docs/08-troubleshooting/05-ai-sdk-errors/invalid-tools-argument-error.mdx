@@ -1,0 +1,51 @@
+---
+title: InvalidToolArgumentsError
+description: Error thrown when invalid arguments are provided to a tool
+---
+
+# InvalidToolArgumentsError
+
+## When This Error Occurs
+
+The `InvalidToolArgumentsError` occurs when an AI model attempts to call a tool with invalid arguments. This typically happens when:
+
+1. The arguments provided by the AI model do not match the expected schema for the tool.
+2. Required arguments are missing from the tool call.
+3. The arguments are of the wrong type or format.
+
+## What It Means
+
+This error indicates that there's a mismatch between the tool's expected input and the input provided by the AI model. It could be due to:
+
+- The AI model misunderstanding the tool's requirements
+- A poorly defined tool schema
+- Errors in the prompt or system message that guides the AI's use of tools
+
+## How to Resolve It
+
+To resolve this error:
+
+1. Review the tool's schema definition to ensure it accurately represents the expected input.
+2. Check the error message for details on which arguments were invalid and why.
+3. Adjust your prompt or system message to provide clearer instructions on how to use the tool.
+4. If using a custom model, consider fine-tuning it with examples of correct tool usage.
+5. For debugging, log the full tool call attempts to see what arguments the AI is trying to pass.
+
+## Usage
+
+```ts
+import { InvalidToolArgumentsError } from '@ai-sdk/provider';
+
+try {
+  // Code that may result in tool calls
+} catch (error) {
+  if (InvalidToolArgumentsError.isInstance(error)) {
+    console.error(
+      `Invalid arguments for tool ${error.toolName}:`,
+      error.message,
+    );
+    console.error('Attempted arguments:', error.toolArgs);
+    // Handle the error (e.g., retry with different instructions)
+  }
+}
+```

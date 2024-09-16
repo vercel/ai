@@ -1,0 +1,47 @@
+---
+title: LoadAPIKeyError
+description: Error thrown when there's a problem loading the API key for the AI provider
+---
+
+# LoadAPIKeyError
+
+## When This Error Occurs
+
+This error occurs when the AI SDK is unable to load or retrieve the API key required to authenticate with the AI service. This typically happens during the initialization of the AI provider or when attempting to make API calls.
+
+## What It Means
+
+The LoadAPIKeyError indicates that there's an issue with the API key configuration. This could be due to various reasons, such as:
+
+1. The API key is missing or not set in the environment variables.
+2. The API key is invalid or malformed.
+3. There's a problem accessing the storage location where the API key is kept.
+
+## How to Resolve It
+
+To resolve this error, follow these steps:
+
+1. Check that you have correctly set the API key in your environment variables or configuration files.
+2. Verify that the API key is valid and properly formatted.
+3. Ensure that your application has the necessary permissions to access the API key storage location.
+4. If using environment variables, double-check that they are correctly loaded and available to your application.
+5. Review any recent changes to your API key configuration or storage method.
+
+If the issue persists, consult the documentation for your specific AI provider to ensure you're following the correct process for API key management.
+
+## Usage
+
+The LoadAPIKeyError is part of the Vercel AI SDK error handling system. You can use it in your code as follows:
+
+```typescript
+import { LoadAPIKeyError } from '@vercel/ai';
+
+try {
+  // Code that might throw a LoadAPIKeyError
+} catch (error) {
+  if (LoadAPIKeyError.isInstance(error)) {
+    console.error('Failed to load API key:', error.message);
+    // Handle the error appropriately
+  }
+}
+```

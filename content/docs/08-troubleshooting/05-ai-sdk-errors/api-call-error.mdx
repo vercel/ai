@@ -1,0 +1,60 @@
+---
+title: APICallError
+description: Error thrown during a failed API call
+---
+
+# APICallError
+
+## When This Error Occurs
+
+The `APICallError` occurs when there's an issue during an API call made by the SDK. This can happen in various scenarios, such as:
+
+1. Network connectivity problems
+2. Server-side errors
+3. Rate limiting or request timeouts
+4. Invalid requests or authentication issues
+
+## What It Means
+
+This error provides detailed information about the failed API call, including:
+
+- The URL of the API endpoint
+- The request body values
+- The HTTP status code (if available)
+- Response headers and body (if available)
+- Whether the error is potentially retryable
+
+It helps developers understand what went wrong during the API communication and provides context for debugging and error handling.
+
+## How to Resolve It
+
+To resolve an APICallError:
+
+1. Check the `message` property for a human-readable description of the error.
+2. Examine the `statusCode` to understand the type of HTTP error.
+3. Look at the `url` and `requestBodyValues` to verify the correctness of the API call.
+4. If `isRetryable` is true, consider implementing a retry mechanism with exponential backoff.
+5. For authentication issues, ensure your API key or credentials are correct and properly set.
+6. For rate limiting (status code 429), implement proper rate limiting handling in your application.
+7. For server errors (status codes 500+), you may need to contact the API provider's support.
+
+## Usage
+
+```ts
+import { APICallError } from '@vercel/ai';
+
+try {
+  // Make an API call using the Vercel AI SDK
+} catch (error) {
+  if (APICallError.isInstance(error)) {
+    console.error(`API Call Error: ${error.message}`);
+    console.error(`URL: ${error.url}`);
+    console.error(`Status Code: ${error.statusCode}`);
+    console.error(`Is Retryable: ${error.isRetryable}`);
+
+    if (error.isRetryable) {
+      // Implement retry logic here
+    }
+  }
+}
+```

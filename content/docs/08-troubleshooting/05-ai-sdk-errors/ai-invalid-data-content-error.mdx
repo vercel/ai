@@ -1,10 +1,73 @@
 ---
-title: AI_InvalidDataContentError
-description: How to fix AI_InvalidDataContentError
+title: InvalidDataContentError
+description: Error thrown when invalid data content is provided for image inputs
 ---
 
-# AI_InvalidDataContentError
+# InvalidDataContentError
 
-The data content that you have sent in a multi-modal message part is invalid.
+## When This Error Occurs
 
-Check out the [prompt examples for multi-modal messages](/docs/ai-sdk-core/prompts#multi-modal-messages).
+This error occurs when invalid data content is provided for an image input when using multi-modal capabilities. It happens when the content provided is not in one of the expected formats for image data.
+
+## What It Means
+
+The `InvalidDataContentError` indicates that the image content provided is not in a valid format that can be processed by the AI model. The AI SDK expects image content to be in one of the following [formats](/docs/foundations/prompts#multi-modal-messages):
+
+- A base64-encoded string
+- A Uint8Array
+- An ArrayBuffer
+- A Buffer
+
+When the content does not match any of these expected types, this error is thrown.
+
+## How to Resolve It
+
+To resolve this error:
+
+1. Check the type of data you are providing for the image content.
+2. Ensure the image content is in one of the supported formats:
+   - Convert your image to a base64-encoded string
+   - Use a Uint8Array to represent the image data
+   - Provide the image as an ArrayBuffer
+   - Use a Buffer object for Node.js environments
+3. If you're reading an image file, make sure you're correctly loading it into one of these formats before passing it to the AI SDK.
+4. Double-check that the image data is not corrupted or incomplete.
+
+Example of correct usage:
+
+```ts
+import fs from 'fs';
+
+const imageBuffer = fs.readFileSync('./path/to/image.jpg');
+const base64Image = imageBuffer.toString('base64');
+
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe this image:' },
+        { type: 'image', image: base64Image },
+      ],
+    },
+  ],
+});
+```
+
+## Usage
+
+```ts
+import { InvalidDataContentError } from '@ai-sdk/core';
+
+try {
+  // Code that might throw an InvalidDataContentError
+} catch (error) {
+  if (InvalidDataContentError.isInstance(error)) {
+    console.log('An invalid data content error occurred:', error.message);
+    // Handle the error appropriately
+  } else {
+    // Handle other types of errors
+  }
+}
+```
