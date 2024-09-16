@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.38
+
+### Patch Changes
+
+- 83da52c: feat (ai/core): add onStepFinish callback to streamText
+
 ## 3.3.37
 
 ### Patch Changes
