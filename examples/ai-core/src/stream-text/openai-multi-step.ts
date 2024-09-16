@@ -30,6 +30,10 @@ async function main() {
     },
     maxSteps: 5,
     prompt: 'What is the weather in my current location?',
+
+    onStepFinish: step => {
+      console.log(JSON.stringify(step, null, 2));
+    },
   });
 
   for await (const textPart of result.textStream) {
