@@ -362,6 +362,7 @@ functionality that can be fully encapsulated in the provider.
             ...currentModelResponse.response,
             headers: currentModelResponse.rawResponse?.headers,
           },
+          experimental_providerMetadata: currentModelResponse.providerMetadata,
         });
 
         // append to messages for potential next step:

@@ -3,6 +3,7 @@
 exports[`options.maxSteps > 2 steps > should return information about all steps 1`] = `
 [
   {
+    "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
     "logprobs": undefined,
     "response": {
@@ -40,6 +41,7 @@ exports[`options.maxSteps > 2 steps > should return information about all steps 
     "warnings": undefined,
   },
   {
+    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
     "response": {

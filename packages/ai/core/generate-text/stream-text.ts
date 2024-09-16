@@ -32,7 +32,6 @@ import {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
-  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -51,11 +50,11 @@ import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
+import { StepResult } from './step-result';
 import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
-import { StepResult } from './step-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
@@ -215,13 +214,6 @@ Callback that is called when the LLM response and all request tool executions
 Details for all steps.
        */
         steps: StepResult<TOOLS>[];
-
-        /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-   */
-        readonly experimental_providerMetadata: ProviderMetadata | undefined;
       },
     ) => Promise<void> | void;
 
@@ -739,6 +731,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 logprobs: stepLogProbs,
                 response: stepResponse,
                 rawResponse: self.rawResponse,
+                experimental_providerMetadata: stepProviderMetadata,
               };
 
               stepResults.push(stepResult);
