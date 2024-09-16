@@ -9,9 +9,9 @@ While [large language models (LLMs)](/docs/foundations/overview#large-language-m
 they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather).
 
 Tools are actions that an LLM can invoke.
-The results of these actions can be reported back to the LLM and it can consider them in the next response.
+The results of these actions can be reported back to the LLM to be considered in the next response.
 
-For example, when you ask an LLM for the "weather in London", and there is a weather tool availalbe, it could call a tool
+For example, when you ask an LLM for the "weather in London", and there is a weather tool available, it could call a tool
 with London as the argument. The tool would then fetch the weather data and return it to the LLM. The LLM can then use this
 information in its response.
 
@@ -29,7 +29,7 @@ A tool consists of three properties:
 
 <Note>
   `streamUI` uses UI generator tools with a `generate` function that can return
-  React components, even as a generator function.
+  React components.
 </Note>
 
 If the LLM decides to use a tool, it will generate a tool call.
