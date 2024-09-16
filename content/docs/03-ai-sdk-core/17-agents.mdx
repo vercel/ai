@@ -61,7 +61,7 @@ The answer tool has no `execute` function, so invoking it will terminate the age
 
 ### Example
 
-```ts
+```ts highlight="6,16-29,31,45"
 import { openai } from '@ai-sdk/openai';
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
@@ -114,7 +114,9 @@ console.log(`FINAL TOOL CALLS: ${JSON.stringify(toolCalls, null, 2)}`);
 Calling `generateText` with `maxSteps` can result in several calls to the LLM (steps).
 You can access information from all steps by using the `steps` property of the response.
 
-```ts
+```ts highlight="3,9-10"
+import { generateText } from 'ai';
+
 const { steps } = await generateText({
   model: openai('gpt-4-turbo'),
   maxSteps: 10,
