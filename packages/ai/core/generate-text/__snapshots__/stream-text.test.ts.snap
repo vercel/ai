@@ -82,6 +82,7 @@ exports[`options.maxSteps > 2 steps > callbacks > onFinish should send correct i
   },
   "steps": [
     {
+      "experimental_providerMetadata": undefined,
       "finishReason": "tool-calls",
       "logprobs": undefined,
       "rawResponse": undefined,
@@ -120,6 +121,7 @@ exports[`options.maxSteps > 2 steps > callbacks > onFinish should send correct i
       "warnings": undefined,
     },
     {
+      "experimental_providerMetadata": undefined,
       "finishReason": "stop",
       "logprobs": undefined,
       "rawResponse": {
@@ -158,6 +160,7 @@ exports[`options.maxSteps > 2 steps > callbacks > onFinish should send correct i
 exports[`options.maxSteps > 2 steps > callbacks > onStepFinish should send correct information 1`] = `
 [
   {
+    "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
     "logprobs": undefined,
     "rawResponse": undefined,
@@ -196,6 +199,7 @@ exports[`options.maxSteps > 2 steps > callbacks > onStepFinish should send corre
     "warnings": undefined,
   },
   {
+    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
     "rawResponse": {
@@ -431,6 +435,7 @@ exports[`options.maxSteps > 2 steps > should record telemetry data for each step
 exports[`options.maxSteps > 2 steps > value promises > result.steps should contain all steps 1`] = `
 [
   {
+    "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
     "logprobs": undefined,
     "rawResponse": undefined,
@@ -469,6 +474,7 @@ exports[`options.maxSteps > 2 steps > value promises > result.steps should conta
     "warnings": undefined,
   },
   {
+    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
     "rawResponse": {
@@ -518,6 +524,11 @@ exports[`options.onFinish > options.onFinish should send correct information 1`]
   },
   "steps": [
     {
+      "experimental_providerMetadata": {
+        "testProvider": {
+          "testKey": "testValue",
+        },
+      },
       "finishReason": "stop",
       "logprobs": undefined,
       "rawResponse": {

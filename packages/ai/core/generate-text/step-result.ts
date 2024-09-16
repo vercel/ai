@@ -4,6 +4,7 @@ import {
   FinishReason,
   LanguageModelResponseMetadataWithHeaders,
   LogProbs,
+  ProviderMetadata,
 } from '../types';
 import { LanguageModelUsage } from '../types/usage';
 import { ToToolCallArray } from './tool-call';
@@ -62,4 +63,11 @@ Response headers.
 Additional response information.
 */
   readonly response: LanguageModelResponseMetadataWithHeaders;
+
+  /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+   */
+  readonly experimental_providerMetadata: ProviderMetadata | undefined;
 };
