@@ -6,6 +6,7 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
+import { StepResult } from './step-result';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -302,8 +303,11 @@ describe('result.responseMessages', () => {
 describe('options.maxSteps', () => {
   describe('2 steps', () => {
     let result: GenerateTextResult<any>;
+    let onStepFinishResults: StepResult<any>[];
 
     beforeEach(async () => {
+      onStepFinishResults = [];
+
       let responseCount = 0;
       result = await generateText({
         model: new MockLanguageModelV1({
@@ -453,22 +457,25 @@ describe('options.maxSteps', () => {
         },
         prompt: 'test-input',
         maxSteps: 3,
+        onStepFinish: async event => {
+          onStepFinishResults.push(event);
+        },
       });
     });
 
-    it('should return text from last step', async () => {
+    it('result.text should return text from last step', async () => {
       assert.deepStrictEqual(result.text, 'Hello, world!');
     });
 
-    it('should return empty tool calls from last step', async () => {
+    it('result.toolCalls should return empty tool calls from last step', async () => {
       assert.deepStrictEqual(result.toolCalls, []);
     });
 
-    it('should return empty tool results from last step', async () => {
+    it('result.toolResults should return empty tool results from last step', async () => {
       assert.deepStrictEqual(result.toolResults, []);
     });
 
-    it('should contain responseMessages from all steps', () => {
+    it('result.responseMessages should contain response messages from all steps', () => {
       assert.deepStrictEqual(result.responseMessages, [
         {
           role: 'assistant',
@@ -500,7 +507,7 @@ describe('options.maxSteps', () => {
       ]);
     });
 
-    it('should sum token usage', () => {
+    it('result.usage should sum token usage', () => {
       assert.deepStrictEqual(result.usage, {
         completionTokens: 25,
         promptTokens: 20,
@@ -508,8 +515,12 @@ describe('options.maxSteps', () => {
       });
     });
 
-    it('should return information about all steps', () => {
+    it('result.steps should contain all steps', () => {
       expect(result.steps).toMatchSnapshot();
+    });
+
+    it('onStepFinish should be called for each step', () => {
+      expect(onStepFinishResults).toMatchSnapshot();
     });
   });
 });

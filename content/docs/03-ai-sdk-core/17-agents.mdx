@@ -71,3 +71,22 @@ const { steps } = await generateText({
 // extract all tool calls from the steps:
 const allToolCalls = steps.flatMap(step => step.toolCalls);
 ```
+
+## Getting notified on each completed step
+
+You can use the `onStepFinish` callback to get notified on each completed step.
+It is triggered when a step is finished,
+i.e. all text deltas, tool calls, and tool results for the step are available.
+
+```tsx highlight="6-8"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  maxSteps: 10,
+  onStepFinish({ text, toolCalls, toolResults, finishReason, usage }) {
+    // your own logic, e.g. for saving the chat history or recording usage
+  },
+  // ...
+});
+```

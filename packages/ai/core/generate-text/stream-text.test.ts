@@ -2052,6 +2052,7 @@ describe('options.maxSteps', () => {
       result = undefined as any;
       onFinishResult = undefined as any;
       onStepFinishResults = [];
+
       let responseCount = 0;
       result = await streamText({
         model: new MockLanguageModelV1({
@@ -2204,7 +2205,7 @@ describe('options.maxSteps', () => {
           onStepFinishResults.push(event);
         },
         experimental_telemetry: { isEnabled: true },
-        maxToolRoundtrips: 2,
+        maxSteps: 3,
         _internal: {
           now: mockValues(0, 100, 500, 600, 1000),
         },
