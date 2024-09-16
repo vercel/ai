@@ -1,3 +1,4 @@
+import { ReactElement } from 'react';
 import { isStreamableValue } from './is-streamable-value';
 import { StreamableValue } from './streamable-value';
 
@@ -65,15 +66,29 @@ export function readStreamableValue<T = unknown>(
           if ('curr' in row || row.diff) {
             if (row.diff) {
               // streamable patch (text only):
-              if (row.diff[0] === 0) {
-                if (typeof value !== 'string') {
-                  throw new Error(
-                    'Invalid patch: can only append to string types. This is a bug in the AI SDK.',
-                  );
+              switch (row.diff[0]) {
+                case 0: {
+                  if (typeof value !== 'string') {
+                    throw new Error(
+                      'Invalid patch: can only append to string types. This is a bug in the AI SDK.',
+                    );
+                  }
+
+                  // casting required to remove T & string limitation
+                  (value as string) = value + row.diff[1];
+
+                  break;
                 }
 
-                // casting required to remove T & string limitation
-                (value as string) = value + row.diff[1];
+                case 1: {
+                  (value as ReactElement) = (
+                    <>
+                      {value}
+                      {row.diff[1]}
+                    </>
+                  );
+                  break;
+                }
               }
             } else {
               // replace the value (full new value)

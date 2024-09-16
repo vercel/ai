@@ -1,3 +1,4 @@
+import { isValidElement, ReactElement } from 'react';
 import { HANGING_STREAM_WARNING_TIME_MS } from '../../util/constants';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import {
@@ -223,30 +224,38 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
     append(value: T) {
       assertStream('.append()');
 
-      if (
-        typeof currentValue !== 'string' &&
-        typeof currentValue !== 'undefined'
-      ) {
-        throw new Error(
-          `.append(): The current value is not a string. Received: ${typeof currentValue}`,
+      if (typeof currentValue === 'undefined') {
+        currentPatchValue = undefined;
+        currentValue = value;
+      } else if (typeof currentValue === 'string') {
+        if (typeof value === 'string') {
+          currentPatchValue = [0, value];
+          (currentValue as string) = currentValue + value;
+        } else {
+          currentPatchValue = [1, value as ReactElement];
+          (currentValue as unknown as ReactElement) = (
+            <>
+              {currentValue}
+              {value}
+            </>
+          );
+        }
+      } else if (isValidElement(currentValue)) {
+        currentPatchValue = [1, value as ReactElement];
+        (currentValue as ReactElement) = (
+          <>
+            {currentValue}
+            {value}
+          </>
         );
-      }
-      if (typeof value !== 'string') {
+      } else {
         throw new Error(
-          `.append(): The value is not a string. Received: ${typeof value}`,
+          `.append(): The current value doesn't support appending data. Type: ${typeof currentValue}`,
         );
       }
 
       const resolvePrevious = resolvable.resolve;
       resolvable = createResolvablePromise();
-
-      if (typeof currentValue === 'string') {
-        currentPatchValue = [0, value];
-        (currentValue as string) = currentValue + value;
-      } else {
-        currentPatchValue = undefined;
-        currentValue = value;
-      }
 
       currentPromise = resolvable.promise;
       resolvePrevious(createWrapped());
