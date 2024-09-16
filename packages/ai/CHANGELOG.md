@@ -1,5 +1,12 @@
 # ai
 
+## 3.3.39
+
+### Patch Changes
+
+- 33cf3e1: feat (ai/core): add providerMetadata to StepResult
+- 17ee757: feat (ai/core): add onStepFinish callback to generateText
+
 ## 3.3.38
 
 ### Patch Changes
