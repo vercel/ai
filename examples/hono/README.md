@@ -1,6 +1,6 @@
 # Hono + AI SDK Example
 
-You can use the AI SDK in an [Hono](https://hono.dev/) server to generate and stream text and objects to the client.
+You can use the AI SDK in an [Hono](https://hono.dev/) server to generate and stream text and objects.
 
 ## Usage
 
