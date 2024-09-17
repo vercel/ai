@@ -9,7 +9,7 @@ export interface ProviderV1 {
 Returns the language model with the given id.
 The model id is then passed to the provider function to get the model.
 
-@param {string} id - The id of the model to return.
+@param {string} modelId - The id of the model to return.
 
 @returns {LanguageModel} The language model associated with the id
 
@@ -21,7 +21,7 @@ The model id is then passed to the provider function to get the model.
 Returns the text embedding model with the given id.
 The model id is then passed to the provider function to get the model.
 
-@param {string} id - The id of the model to return.
+@param {string} modelId - The id of the model to return.
 
 @returns {LanguageModel} The language model associated with the id
 
