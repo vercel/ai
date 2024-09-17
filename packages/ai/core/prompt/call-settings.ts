@@ -38,8 +38,6 @@ repeat information that is already in the prompt.
 
 The presence penalty is a number between -1 (increase repetition)
 and 1 (maximum penalty, decrease repetition). 0 means no penalty.
-
-@default 0
    */
   presencePenalty?: number;
 
@@ -49,8 +47,6 @@ to repeatedly use the same words or phrases.
 
 The frequency penalty is a number between -1 (increase repetition)
 and 1 (maximum penalty, decrease repetition). 0 means no penalty.
-
-@default 0
    */
   frequencyPenalty?: number;
 

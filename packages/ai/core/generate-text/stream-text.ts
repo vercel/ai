@@ -1,15 +1,23 @@
+import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
+  CoreAssistantMessage,
+  CoreToolMessage,
+  formatStreamPart,
+  InvalidArgumentError,
   StreamData,
   TextStreamPart,
-  formatStreamPart,
 } from '../../streams';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import {
+  convertToLanguageModelMessage,
+  convertToLanguageModelPrompt,
+} from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
@@ -26,19 +34,31 @@ import {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
+  LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { createStitchableStream } from '../util/create-stitchable-stream';
 import { mergeStreams } from '../util/merge-streams';
+import { now as originalNow } from '../util/now';
+import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
-import { runToolsTransformation } from './run-tools-transformation';
+import { writeToServerResponse } from '../util/write-to-server-response';
+import {
+  runToolsTransformation,
+  SingleRequestTextStreamPart,
+} from './run-tools-transformation';
+import { StepResult } from './step-result';
 import { StreamTextResult } from './stream-text-result';
+import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+
+const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -77,7 +97,10 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
+@param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
+
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
+@param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
 @param onFinish - Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
 
@@ -94,10 +117,19 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   maxRetries,
   abortSignal,
   headers,
+  maxToolRoundtrips = 0,
+  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
   experimental_telemetry: telemetry,
+  experimental_providerMetadata: providerMetadata,
   experimental_toolCallStreaming: toolCallStreaming = false,
   onChunk,
   onFinish,
+  onStepFinish,
+  _internal: {
+    now = originalNow,
+    generateId = originalGenerateId,
+    currentDate = () => new Date(),
+  } = {},
   ...settings
 }: CallSettings &
   Prompt & {
@@ -117,9 +149,41 @@ The tool choice strategy. Default: 'auto'.
     toolChoice?: CoreToolChoice<TOOLS>;
 
     /**
+Maximum number of automatic roundtrips for tool calls.
+
+An automatic tool call roundtrip is another LLM call with the
+tool call results when all tool calls of the last assistant
+message have results.
+
+A maximum number is required to prevent infinite loops in the
+case of misconfigured tools.
+
+By default, it's set to 0, which will disable the feature.
+
+@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
+     */
+    maxToolRoundtrips?: number;
+
+    /**
+Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
+
+A maximum number is required to prevent infinite loops in the case of misconfigured tools.
+
+By default, it's set to 1, which means that only a single LLM call is made.
+ */
+    maxSteps?: number;
+
+    /**
 Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
+
+    /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+    experimental_providerMetadata?: ProviderMetadata;
 
     /**
 Enable streaming of tool call deltas as they are generated. Disabled by default.
@@ -146,56 +210,52 @@ Callback that is called for each chunk of the stream. The stream processing will
     /**
 Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
+
+The usage is the combined usage of all steps.
      */
-    onFinish?: (event: {
-      /**
-The reason why the generation finished.
-       */
-      finishReason: FinishReason;
-
-      /**
-The token usage of the generated response.
- */
-      usage: CompletionTokenUsage;
-
-      /**
-The full text that has been generated.
-       */
-      text: string;
-
-      /**
-The tool calls that have been executed.
-       */
-      toolCalls?: ToToolCall<TOOLS>[];
-
-      /**
-The tool results that have been generated.
-       */
-      toolResults?: ToToolResult<TOOLS>[];
-
-      /**
-Optional raw response data.
-       */
-      rawResponse?: {
+    onFinish?: (
+      event: StepResult<TOOLS> & {
         /**
-Response headers.
-         */
-        headers?: Record<string, string>;
-      };
-
-      /**
-Warnings from the model provider (e.g. unsupported settings).
+Details for all steps.
        */
-      warnings?: CallWarning[];
+        readonly steps: StepResult<TOOLS>[];
 
-      /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-   */
-      readonly experimental_providerMetadata: ProviderMetadata | undefined;
-    }) => Promise<void> | void;
-  }): Promise<DefaultStreamTextResult<TOOLS>> {
+        /**
+The response messages that were generated during the call. It consists of an assistant message,
+potentially containing tool calls.
+
+When there are tool results, there is an additional tool message with the tool results that are available.
+If there are tools that do not have execute functions, they are not included in the tool results and
+need to be added separately.
+     */
+        readonly responseMessages: Array<
+          CoreAssistantMessage | CoreToolMessage
+        >;
+      },
+    ) => Promise<void> | void;
+
+    /**
+    Callback that is called when each step (LLM call) is finished, including intermediate steps.
+    */
+    onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
+
+    /**
+     * Internal. For test use only. May change without notice.
+     */
+    _internal?: {
+      now?: () => number;
+      generateId?: () => string;
+      currentDate?: () => Date;
+    };
+  }): Promise<StreamTextResult<TOOLS>> {
+  if (maxSteps < 1) {
+    throw new InvalidArgumentError({
+      parameter: 'maxSteps',
+      value: maxSteps,
+      message: 'maxSteps must be at least 1',
+    });
+  }
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
@@ -216,102 +276,164 @@ results that can be fully encapsulated in the provider.
         'ai.prompt': {
           input: () => JSON.stringify({ system, prompt, messages }),
         },
+        'ai.settings.maxSteps': maxSteps,
       },
     }),
     tracer,
     endWhenDone: false,
     fn: async rootSpan => {
       const retry = retryWithExponentialBackoff({ maxRetries });
-      const validatedPrompt = validatePrompt({ system, prompt, messages });
+
+      const startStep: StartStepFunction<TOOLS> = async ({
+        promptMessages,
+        promptType,
+      }: {
+        promptMessages: LanguageModelV1Prompt;
+        promptType: 'prompt' | 'messages';
+      }) => {
+        const {
+          result: { stream, warnings, rawResponse },
+          doStreamSpan,
+          startTimestampMs,
+        } = await retry(() =>
+          recordSpan({
+            name: 'ai.streamText.doStream',
+            attributes: selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                ...assembleOperationName({
+                  operationId: 'ai.streamText.doStream',
+                  telemetry,
+                }),
+                ...baseTelemetryAttributes,
+                'ai.prompt.format': {
+                  input: () => promptType,
+                },
+                'ai.prompt.messages': {
+                  input: () => JSON.stringify(promptMessages),
+                },
+
+                // standardized gen-ai llm span attributes:
+                'gen_ai.system': model.provider,
+                'gen_ai.request.model': model.modelId,
+                'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
+                'gen_ai.request.max_tokens': settings.maxTokens,
+                'gen_ai.request.presence_penalty': settings.presencePenalty,
+                'gen_ai.request.stop_sequences': settings.stopSequences,
+                'gen_ai.request.temperature': settings.temperature,
+                'gen_ai.request.top_k': settings.topK,
+                'gen_ai.request.top_p': settings.topP,
+              },
+            }),
+            tracer,
+            endWhenDone: false,
+            fn: async doStreamSpan => ({
+              startTimestampMs: now(), // get before the call
+              doStreamSpan,
+              result: await model.doStream({
+                mode: {
+                  type: 'regular',
+                  ...prepareToolsAndToolChoice({ tools, toolChoice }),
+                },
+                ...prepareCallSettings(settings),
+                inputFormat: promptType,
+                prompt: promptMessages,
+                providerMetadata,
+                abortSignal,
+                headers,
+              }),
+            }),
+          }),
+        );
+
+        return {
+          result: {
+            stream: runToolsTransformation({
+              tools,
+              generatorStream: stream,
+              toolCallStreaming,
+              tracer,
+              telemetry,
+            }),
+            warnings,
+            rawResponse,
+          },
+          doStreamSpan,
+          startTimestampMs,
+        };
+      };
+
       const promptMessages = await convertToLanguageModelPrompt({
-        prompt: validatedPrompt,
+        prompt: validatePrompt({ system, prompt, messages }),
         modelSupportsImageUrls: model.supportsImageUrls,
       });
 
       const {
         result: { stream, warnings, rawResponse },
         doStreamSpan,
-        startTimestamp,
-      } = await retry(() =>
-        recordSpan({
-          name: 'ai.streamText.doStream',
-          attributes: selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              ...assembleOperationName({
-                operationId: 'ai.streamText.doStream',
-                telemetry,
-              }),
-              ...baseTelemetryAttributes,
-              'ai.prompt.format': {
-                input: () => validatedPrompt.type,
-              },
-              'ai.prompt.messages': {
-                input: () => JSON.stringify(promptMessages),
-              },
-
-              // standardized gen-ai llm span attributes:
-              'gen_ai.request.model': model.modelId,
-              'gen_ai.system': model.provider,
-              'gen_ai.request.max_tokens': settings.maxTokens,
-              'gen_ai.request.temperature': settings.temperature,
-              'gen_ai.request.top_p': settings.topP,
-            },
-          }),
-          tracer,
-          endWhenDone: false,
-          fn: async doStreamSpan => ({
-            startTimestamp: performance.now(), // get before the call
-            doStreamSpan,
-            result: await model.doStream({
-              mode: {
-                type: 'regular',
-                ...prepareToolsAndToolChoice({ tools, toolChoice }),
-              },
-              ...prepareCallSettings(settings),
-              inputFormat: validatedPrompt.type,
-              prompt: promptMessages,
-              abortSignal,
-              headers,
-            }),
-          }),
-        }),
-      );
+        startTimestampMs,
+      } = await startStep({
+        promptType: validatePrompt({ system, prompt, messages }).type,
+        promptMessages,
+      });
 
       return new DefaultStreamTextResult({
-        stream: runToolsTransformation({
-          tools,
-          generatorStream: stream,
-          toolCallStreaming,
-          tracer,
-          telemetry,
-        }),
+        stream,
         warnings,
         rawResponse,
         onChunk,
         onFinish,
+        onStepFinish,
         rootSpan,
         doStreamSpan,
         telemetry,
-        startTimestamp,
+        startTimestampMs,
+        maxSteps,
+        startStep,
+        promptMessages,
+        modelId: model.modelId,
+        now,
+        currentDate,
+        generateId,
       });
     },
   });
 }
+
+type StartStepFunction<TOOLS extends Record<string, CoreTool>> = (options: {
+  promptMessages: LanguageModelV1Prompt;
+  promptType: 'prompt' | 'messages';
+}) => Promise<{
+  result: {
+    stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
+    warnings?: CallWarning[] | undefined;
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
+  };
+  doStreamSpan: Span;
+  startTimestampMs: number;
+}>;
 
 class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   implements StreamTextResult<TOOLS>
 {
   private originalStream: ReadableStream<TextStreamPart<TOOLS>>;
 
-  readonly warnings: StreamTextResult<TOOLS>['warnings'];
+  // TODO needs to be changed to readonly async in v4 (and only return value from last step)
+  // (can't change before v4 because of backwards compatibility)
+  warnings: StreamTextResult<TOOLS>['warnings'];
+  rawResponse: StreamTextResult<TOOLS>['rawResponse'];
+
   readonly usage: StreamTextResult<TOOLS>['usage'];
   readonly finishReason: StreamTextResult<TOOLS>['finishReason'];
   readonly experimental_providerMetadata: StreamTextResult<TOOLS>['experimental_providerMetadata'];
   readonly text: StreamTextResult<TOOLS>['text'];
   readonly toolCalls: StreamTextResult<TOOLS>['toolCalls'];
   readonly toolResults: StreamTextResult<TOOLS>['toolResults'];
-  readonly rawResponse: StreamTextResult<TOOLS>['rawResponse'];
+  readonly response: StreamTextResult<TOOLS>['response'];
+  readonly steps: StreamTextResult<TOOLS>['steps'];
+  readonly responseMessages: StreamTextResult<TOOLS>['responseMessages'];
 
   constructor({
     stream,
@@ -319,27 +441,52 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     rawResponse,
     onChunk,
     onFinish,
+    onStepFinish,
     rootSpan,
     doStreamSpan,
     telemetry,
-    startTimestamp,
+    startTimestampMs,
+    maxSteps,
+    startStep,
+    promptMessages,
+    modelId,
+    now,
+    currentDate,
+    generateId,
   }: {
-    stream: ReadableStream<TextStreamPart<TOOLS>>;
+    stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
     warnings: StreamTextResult<TOOLS>['warnings'];
     rawResponse: StreamTextResult<TOOLS>['rawResponse'];
     onChunk: Parameters<typeof streamText>[0]['onChunk'];
-    onFinish: Parameters<typeof streamText>[0]['onFinish'];
+    onFinish:
+      | ((
+          event: StepResult<TOOLS> & {
+            steps: StepResult<TOOLS>[];
+            responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
+          },
+        ) => Promise<void> | void)
+      | undefined;
+    onStepFinish:
+      | ((event: StepResult<TOOLS>) => Promise<void> | void)
+      | undefined;
     rootSpan: Span;
     doStreamSpan: Span;
     telemetry: TelemetrySettings | undefined;
-    startTimestamp: number; // performance.now() timestamp
+    startTimestampMs: number;
+    maxSteps: number;
+    startStep: StartStepFunction<TOOLS>;
+    promptMessages: LanguageModelV1Prompt;
+    modelId: string;
+    now: () => number;
+    currentDate: () => Date;
+    generateId: () => string;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
 
     // initialize usage promise
     const { resolve: resolveUsage, promise: usagePromise } =
-      createResolvablePromise<CompletionTokenUsage>();
+      createResolvablePromise<LanguageModelUsage>();
     this.usage = usagePromise;
 
     // initialize finish reason promise
@@ -362,6 +509,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       createResolvablePromise<ToToolResult<TOOLS>[]>();
     this.toolResults = toolResultsPromise;
 
+    // initialize steps promise
+    const { resolve: resolveSteps, promise: stepsPromise } =
+      createResolvablePromise<StepResult<TOOLS>[]>();
+    this.steps = stepsPromise;
+
     // initialize experimental_providerMetadata promise
     const {
       resolve: resolveProviderMetadata,
@@ -369,167 +521,420 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     } = createResolvablePromise<ProviderMetadata | undefined>();
     this.experimental_providerMetadata = providerMetadataPromise;
 
-    // store information for onFinish callback:
-    let finishReason: FinishReason | undefined;
-    let usage: CompletionTokenUsage | undefined;
-    let providerMetadata: ProviderMetadata | undefined;
-    let text = '';
-    const toolCalls: ToToolCall<TOOLS>[] = [];
-    const toolResults: ToToolResult<TOOLS>[] = [];
-    let firstChunk = true;
+    // initialize response promise
+    const { resolve: resolveResponse, promise: responsePromise } =
+      createResolvablePromise<Awaited<StreamTextResult<TOOLS>['response']>>();
+    this.response = responsePromise;
 
-    // pipe chunks through a transformation stream that extracts metadata:
-    this.originalStream = stream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
-        async transform(chunk, controller): Promise<void> {
-          // Telemetry for first chunk:
-          if (firstChunk) {
-            const msToFirstChunk = performance.now() - startTimestamp;
+    // initialize responseMessages promise
+    const {
+      resolve: resolveResponseMessages,
+      promise: responseMessagesPromise,
+    } =
+      createResolvablePromise<Array<CoreAssistantMessage | CoreToolMessage>>();
+    this.responseMessages = responseMessagesPromise;
 
-            firstChunk = false;
+    // create a stitchable stream to send steps in a single response stream
+    const {
+      stream: stitchableStream,
+      addStream,
+      close: closeStitchableStream,
+    } = createStitchableStream<TextStreamPart<TOOLS>>();
 
-            doStreamSpan.addEvent('ai.stream.firstChunk', {
-              'ai.stream.msToFirstChunk': msToFirstChunk,
-            });
+    this.originalStream = stitchableStream;
 
-            doStreamSpan.setAttributes({
-              'ai.stream.msToFirstChunk': msToFirstChunk,
-            });
-          }
+    // collect step results
+    const stepResults: StepResult<TOOLS>[] = [];
 
-          // Filter out empty text deltas
-          if (chunk.type === 'text-delta' && chunk.textDelta.length === 0) {
-            return;
-          }
+    const self = this;
 
-          controller.enqueue(chunk);
+    // add the steps stream
+    function addStepStream({
+      stream,
+      startTimestamp,
+      doStreamSpan,
+      currentStep,
+      promptMessages,
+      usage = {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+      },
+    }: {
+      stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
+      startTimestamp: number;
+      doStreamSpan: Span;
+      currentStep: number;
+      promptMessages: LanguageModelV1Prompt;
+      usage: LanguageModelUsage | undefined;
+    }) {
+      const stepToolCalls: ToToolCall<TOOLS>[] = [];
+      const stepToolResults: ToToolResult<TOOLS>[] = [];
+      let stepFinishReason: FinishReason = 'unknown';
+      let stepUsage: LanguageModelUsage = {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+      };
+      let stepProviderMetadata: ProviderMetadata | undefined;
+      let stepFirstChunk = true;
+      let stepText = '';
+      let stepLogProbs: LogProbs | undefined;
+      let stepResponse: { id: string; timestamp: Date; modelId: string } = {
+        id: generateId(),
+        timestamp: currentDate(),
+        modelId,
+      };
 
-          const chunkType = chunk.type;
-          switch (chunkType) {
-            case 'text-delta':
-              // create the full text from text deltas (for onFinish callback and text promise):
-              text += chunk.textDelta;
-              await onChunk?.({ chunk });
-              break;
+      addStream(
+        stream.pipeThrough(
+          new TransformStream<
+            SingleRequestTextStreamPart<TOOLS>,
+            TextStreamPart<TOOLS>
+          >({
+            async transform(chunk, controller): Promise<void> {
+              // Telemetry for first chunk:
+              if (stepFirstChunk) {
+                const msToFirstChunk = now() - startTimestamp;
 
-            case 'tool-call':
-              // store tool calls for onFinish callback and toolCalls promise:
-              toolCalls.push(chunk);
-              await onChunk?.({ chunk });
-              break;
+                stepFirstChunk = false;
 
-            case 'tool-result':
-              // store tool results for onFinish callback and toolResults promise:
-              toolResults.push(chunk);
-              // as any needed, bc type inferences mixed up tool-result with tool-call
-              await onChunk?.({ chunk: chunk as any });
-              break;
+                doStreamSpan.addEvent('ai.stream.firstChunk', {
+                  'ai.response.msToFirstChunk': msToFirstChunk,
 
-            case 'finish':
-              // Note: tool executions might not be finished yet when the finish event is emitted.
-              // store usage and finish reason for promises and onFinish callback:
-              usage = chunk.usage;
-              finishReason = chunk.finishReason;
-              providerMetadata = chunk.experimental_providerMetadata;
+                  // deprecated:
+                  'ai.stream.msToFirstChunk': msToFirstChunk,
+                });
 
-              // resolve promises that can be resolved now:
-              resolveUsage(usage);
-              resolveFinishReason(finishReason);
-              resolveText(text);
-              resolveToolCalls(toolCalls);
-              resolveProviderMetadata(providerMetadata);
-              break;
+                doStreamSpan.setAttributes({
+                  'ai.response.msToFirstChunk': msToFirstChunk,
 
-            case 'tool-call-streaming-start':
-            case 'tool-call-delta': {
-              await onChunk?.({ chunk });
-              break;
-            }
+                  // deprecated:
+                  'ai.stream.msToFirstChunk': msToFirstChunk,
+                });
+              }
 
-            case 'error':
-              // ignored
-              break;
+              // Filter out empty text deltas
+              if (chunk.type === 'text-delta' && chunk.textDelta.length === 0) {
+                return;
+              }
 
-            default: {
-              const exhaustiveCheck: never = chunkType;
-              throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
-            }
-          }
-        },
+              const chunkType = chunk.type;
+              switch (chunkType) {
+                case 'text-delta': {
+                  controller.enqueue(chunk);
+                  // create the full text from text deltas (for onFinish callback and text promise):
+                  stepText += chunk.textDelta;
+                  await onChunk?.({ chunk });
+                  break;
+                }
 
-        // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
-        async flush(controller) {
-          try {
-            const finalUsage = usage ?? {
-              promptTokens: NaN,
-              completionTokens: NaN,
-              totalTokens: NaN,
-            };
-            const finalFinishReason = finishReason ?? 'unknown';
-            const telemetryToolCalls =
-              toolCalls.length > 0 ? JSON.stringify(toolCalls) : undefined;
+                case 'tool-call': {
+                  controller.enqueue(chunk);
+                  // store tool calls for onFinish callback and toolCalls promise:
+                  stepToolCalls.push(chunk);
+                  await onChunk?.({ chunk });
+                  break;
+                }
 
-            doStreamSpan.setAttributes(
-              selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.finishReason': finalFinishReason,
-                  'ai.usage.promptTokens': finalUsage.promptTokens,
-                  'ai.usage.completionTokens': finalUsage.completionTokens,
-                  'ai.result.text': { output: () => text },
-                  'ai.result.toolCalls': { output: () => telemetryToolCalls },
+                case 'tool-result': {
+                  controller.enqueue(chunk);
+                  // store tool results for onFinish callback and toolResults promise:
+                  stepToolResults.push(chunk);
+                  // as any needed, bc type inferences mixed up tool-result with tool-call
+                  await onChunk?.({ chunk: chunk as any });
+                  break;
+                }
 
-                  // standardized gen-ai llm span attributes:
-                  'gen_ai.response.finish_reasons': [finalFinishReason],
-                  'gen_ai.usage.prompt_tokens': finalUsage.promptTokens,
-                  'gen_ai.usage.completion_tokens': finalUsage.completionTokens,
-                },
-              }),
-            );
+                case 'response-metadata': {
+                  stepResponse = {
+                    id: chunk.id ?? stepResponse.id,
+                    timestamp: chunk.timestamp ?? stepResponse.timestamp,
+                    modelId: chunk.modelId ?? stepResponse.modelId,
+                  };
+                  break;
+                }
 
-            // finish doStreamSpan before other operations for correct timing:
-            doStreamSpan.end();
+                case 'finish': {
+                  // Note: tool executions might not be finished yet when the finish event is emitted.
+                  // store usage and finish reason for promises and onFinish callback:
+                  stepUsage = chunk.usage;
+                  stepFinishReason = chunk.finishReason;
+                  stepProviderMetadata = chunk.experimental_providerMetadata;
+                  stepLogProbs = chunk.logprobs;
 
-            // Add response information to the root span:
-            rootSpan.setAttributes(
-              selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.finishReason': finalFinishReason,
-                  'ai.usage.promptTokens': finalUsage.promptTokens,
-                  'ai.usage.completionTokens': finalUsage.completionTokens,
-                  'ai.result.text': { output: () => text },
-                  'ai.result.toolCalls': { output: () => telemetryToolCalls },
-                },
-              }),
-            );
+                  // Telemetry for finish event timing
+                  // (since tool executions can take longer and distort calculations)
+                  const msToFinish = now() - startTimestamp;
+                  doStreamSpan.addEvent('ai.stream.finish');
+                  doStreamSpan.setAttributes({
+                    'ai.response.msToFinish': msToFinish,
+                    'ai.response.avgCompletionTokensPerSecond':
+                      (1000 * stepUsage.completionTokens) / msToFinish,
+                  });
 
-            // resolve toolResults promise:
-            resolveToolResults(toolResults);
+                  break;
+                }
 
-            // call onFinish callback:
-            await onFinish?.({
-              finishReason: finalFinishReason,
-              usage: finalUsage,
-              text,
-              toolCalls,
-              // The tool results are inferred as a never[] type, because they are
-              // optional and the execute method with an inferred result type is
-              // optional as well. Therefore we need to cast the toolResults to any.
-              // The type exposed to the users will be correctly inferred.
-              toolResults: toolResults as any,
-              rawResponse,
-              warnings,
-              experimental_providerMetadata: providerMetadata,
-            });
-          } catch (error) {
-            controller.error(error);
-          } finally {
-            rootSpan.end();
-          }
-        },
-      }),
-    );
+                case 'tool-call-streaming-start':
+                case 'tool-call-delta': {
+                  controller.enqueue(chunk);
+                  await onChunk?.({ chunk });
+                  break;
+                }
+
+                case 'error': {
+                  controller.enqueue(chunk);
+                  stepFinishReason = 'error';
+                  break;
+                }
+
+                default: {
+                  const exhaustiveCheck: never = chunkType;
+                  throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+                }
+              }
+            },
+
+            // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
+            async flush(controller) {
+              const stepToolCallsJson =
+                stepToolCalls.length > 0
+                  ? JSON.stringify(stepToolCalls)
+                  : undefined;
+
+              // record telemetry information first to ensure best effort timing
+              try {
+                doStreamSpan.setAttributes(
+                  selectTelemetryAttributes({
+                    telemetry,
+                    attributes: {
+                      'ai.response.finishReason': stepFinishReason,
+                      'ai.response.text': { output: () => stepText },
+                      'ai.response.toolCalls': {
+                        output: () => stepToolCallsJson,
+                      },
+                      'ai.response.id': stepResponse.id,
+                      'ai.response.model': stepResponse.modelId,
+                      'ai.response.timestamp':
+                        stepResponse.timestamp.toISOString(),
+
+                      'ai.usage.promptTokens': stepUsage.promptTokens,
+                      'ai.usage.completionTokens': stepUsage.completionTokens,
+
+                      // deprecated
+                      'ai.finishReason': stepFinishReason,
+                      'ai.result.text': { output: () => stepText },
+                      'ai.result.toolCalls': {
+                        output: () => stepToolCallsJson,
+                      },
+
+                      // standardized gen-ai llm span attributes:
+                      'gen_ai.response.finish_reasons': [stepFinishReason],
+                      'gen_ai.response.id': stepResponse.id,
+                      'gen_ai.response.model': stepResponse.modelId,
+                      'gen_ai.usage.input_tokens': stepUsage.promptTokens,
+                      'gen_ai.usage.output_tokens': stepUsage.completionTokens,
+                    },
+                  }),
+                );
+              } catch (error) {
+                // ignore error setting telemetry attributes
+              } finally {
+                // finish doStreamSpan before other operations for correct timing:
+                doStreamSpan.end();
+              }
+
+              controller.enqueue({
+                type: 'step-finish',
+                finishReason: stepFinishReason,
+                usage: stepUsage,
+                experimental_providerMetadata: stepProviderMetadata,
+                logprobs: stepLogProbs,
+                response: stepResponse,
+              });
+
+              const stepResult: StepResult<TOOLS> = {
+                text: stepText,
+                toolCalls: stepToolCalls,
+                toolResults: stepToolResults,
+                finishReason: stepFinishReason,
+                usage: stepUsage,
+                warnings: self.warnings,
+                logprobs: stepLogProbs,
+                response: stepResponse,
+                rawResponse: self.rawResponse,
+                experimental_providerMetadata: stepProviderMetadata,
+              };
+
+              stepResults.push(stepResult);
+
+              await onStepFinish?.(stepResult);
+
+              const combinedUsage = {
+                promptTokens: usage.promptTokens + stepUsage.promptTokens,
+                completionTokens:
+                  usage.completionTokens + stepUsage.completionTokens,
+                totalTokens: usage.totalTokens + stepUsage.totalTokens,
+              };
+
+              // check if another tool step is needed:
+              if (
+                // there are tool calls:
+                stepToolCalls.length > 0 &&
+                // all current tool calls have results:
+                stepToolResults.length === stepToolCalls.length &&
+                // the number of steps is less than the maximum:
+                currentStep + 1 < maxSteps
+              ) {
+                // append to messages for potential next step:
+                promptMessages.push(
+                  ...toResponseMessages({
+                    text: stepText,
+                    toolCalls: stepToolCalls,
+                    toolResults: stepToolResults,
+                  }).map(message =>
+                    convertToLanguageModelMessage(message, null),
+                  ),
+                );
+
+                // create call and doStream span:
+                const {
+                  result,
+                  doStreamSpan,
+                  startTimestampMs: startTimestamp,
+                } = await startStep({
+                  promptType: 'messages',
+                  promptMessages,
+                });
+
+                // update warnings and rawResponse:
+                self.warnings = result.warnings;
+                self.rawResponse = result.rawResponse;
+
+                // needs to add to stitchable stream
+                addStepStream({
+                  stream: result.stream,
+                  startTimestamp,
+                  doStreamSpan,
+                  currentStep: currentStep + 1,
+                  promptMessages,
+                  usage: combinedUsage,
+                });
+
+                return;
+              }
+
+              try {
+                // enqueue the finish chunk:
+                controller.enqueue({
+                  type: 'finish',
+                  finishReason: stepFinishReason,
+                  usage: combinedUsage,
+                  experimental_providerMetadata: stepProviderMetadata,
+                  logprobs: stepLogProbs,
+                  response: stepResponse,
+                });
+
+                // close the stitchable stream
+                closeStitchableStream();
+
+                // Add response information to the root span:
+                rootSpan.setAttributes(
+                  selectTelemetryAttributes({
+                    telemetry,
+                    attributes: {
+                      'ai.response.finishReason': stepFinishReason,
+                      'ai.response.text': { output: () => stepText },
+                      'ai.response.toolCalls': {
+                        output: () => stepToolCallsJson,
+                      },
+
+                      'ai.usage.promptTokens': combinedUsage.promptTokens,
+                      'ai.usage.completionTokens':
+                        combinedUsage.completionTokens,
+
+                      // deprecated
+                      'ai.finishReason': stepFinishReason,
+                      'ai.result.text': { output: () => stepText },
+                      'ai.result.toolCalls': {
+                        output: () => stepToolCallsJson,
+                      },
+                    },
+                  }),
+                );
+
+                // Collect responseMessages from all steps:
+                const responseMessages = stepResults.reduce<
+                  Array<CoreAssistantMessage | CoreToolMessage>
+                >(
+                  (responseMessages, step) => [
+                    ...responseMessages,
+                    ...toResponseMessages({
+                      text: step.text,
+                      toolCalls: step.toolCalls,
+                      toolResults: step.toolResults,
+                    }),
+                  ],
+                  [],
+                );
+
+                // resolve promises:
+                resolveUsage(combinedUsage);
+                resolveFinishReason(stepFinishReason!);
+                resolveText(stepText);
+                resolveToolCalls(stepToolCalls);
+                resolveProviderMetadata(stepProviderMetadata);
+                resolveToolResults(stepToolResults);
+                resolveResponse({
+                  ...stepResponse,
+                  headers: rawResponse?.headers,
+                });
+                resolveSteps(stepResults);
+                resolveResponseMessages(responseMessages);
+
+                // call onFinish callback:
+                await onFinish?.({
+                  finishReason: stepFinishReason,
+                  logprobs: stepLogProbs,
+                  usage: combinedUsage,
+                  text: stepText,
+                  toolCalls: stepToolCalls,
+                  // The tool results are inferred as a never[] type, because they are
+                  // optional and the execute method with an inferred result type is
+                  // optional as well. Therefore we need to cast the toolResults to any.
+                  // The type exposed to the users will be correctly inferred.
+                  toolResults: stepToolResults as any,
+                  rawResponse,
+                  response: {
+                    ...stepResponse,
+                    headers: rawResponse?.headers,
+                  },
+                  warnings,
+                  experimental_providerMetadata: stepProviderMetadata,
+                  steps: stepResults,
+                  responseMessages,
+                });
+              } catch (error) {
+                controller.error(error);
+              } finally {
+                rootSpan.end();
+              }
+            },
+          }),
+        ),
+      );
+    }
+
+    // add the initial stream to the stitchable stream
+    addStepStream({
+      stream,
+      startTimestamp: startTimestampMs,
+      doStreamSpan,
+      currentStep: 0,
+      promptMessages,
+      usage: undefined,
+    });
   }
 
   /**
@@ -567,15 +972,17 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toAIStream(callbacks: AIStreamCallbacksAndOptions = {}) {
-    return this.toDataStream({ callbacks });
+    return this.toDataStreamInternal({ callbacks });
   }
 
-  private toDataStream({
+  private toDataStreamInternal({
     callbacks = {},
     getErrorMessage = () => '', // mask error messages for safety by default
+    sendUsage = true,
   }: {
     callbacks?: AIStreamCallbacksAndOptions;
     getErrorMessage?: (error: unknown) => string;
+    sendUsage?: boolean;
   } = {}) {
     let aggregatedResponse = '';
 
@@ -614,10 +1021,12 @@ However, the LLM results are expected to be small enough to not cause issues.
       transform: async (chunk, controller) => {
         const chunkType = chunk.type;
         switch (chunkType) {
-          case 'text-delta':
+          case 'text-delta': {
             controller.enqueue(formatStreamPart('text', chunk.textDelta));
             break;
-          case 'tool-call-streaming-start':
+          }
+
+          case 'tool-call-streaming-start': {
             controller.enqueue(
               formatStreamPart('tool_call_streaming_start', {
                 toolCallId: chunk.toolCallId,
@@ -625,7 +1034,9 @@ However, the LLM results are expected to be small enough to not cause issues.
               }),
             );
             break;
-          case 'tool-call-delta':
+          }
+
+          case 'tool-call-delta': {
             controller.enqueue(
               formatStreamPart('tool_call_delta', {
                 toolCallId: chunk.toolCallId,
@@ -633,7 +1044,9 @@ However, the LLM results are expected to be small enough to not cause issues.
               }),
             );
             break;
-          case 'tool-call':
+          }
+
+          case 'tool-call': {
             controller.enqueue(
               formatStreamPart('tool_call', {
                 toolCallId: chunk.toolCallId,
@@ -642,7 +1055,9 @@ However, the LLM results are expected to be small enough to not cause issues.
               }),
             );
             break;
-          case 'tool-result':
+          }
+
+          case 'tool-result': {
             controller.enqueue(
               formatStreamPart('tool_result', {
                 toolCallId: chunk.toolCallId,
@@ -650,22 +1065,45 @@ However, the LLM results are expected to be small enough to not cause issues.
               }),
             );
             break;
-          case 'error':
+          }
+
+          case 'error': {
             controller.enqueue(
               formatStreamPart('error', getErrorMessage(chunk.error)),
             );
             break;
-          case 'finish':
+          }
+
+          case 'step-finish': {
             controller.enqueue(
-              formatStreamPart('finish_message', {
+              formatStreamPart('finish_step', {
                 finishReason: chunk.finishReason,
-                usage: {
-                  promptTokens: chunk.usage.promptTokens,
-                  completionTokens: chunk.usage.completionTokens,
-                },
+                usage: sendUsage
+                  ? {
+                      promptTokens: chunk.usage.promptTokens,
+                      completionTokens: chunk.usage.completionTokens,
+                    }
+                  : undefined,
               }),
             );
             break;
+          }
+
+          case 'finish': {
+            controller.enqueue(
+              formatStreamPart('finish_message', {
+                finishReason: chunk.finishReason,
+                usage: sendUsage
+                  ? {
+                      promptTokens: chunk.usage.promptTokens,
+                      completionTokens: chunk.usage.completionTokens,
+                    }
+                  : undefined,
+              }),
+            );
+            break;
+          }
+
           default: {
             const exhaustiveCheck: never = chunkType;
             throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
@@ -689,66 +1127,89 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   pipeDataStreamToResponse(
     response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
+    options?:
+      | ResponseInit
+      | {
+          init?: ResponseInit;
+          data?: StreamData;
+          getErrorMessage?: (error: unknown) => string;
+          sendUsage?: boolean;
+        },
   ) {
-    response.writeHead(init?.status ?? 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      ...init?.headers,
+    const init: ResponseInit | undefined =
+      options == null
+        ? undefined
+        : 'init' in options
+        ? options.init
+        : {
+            headers: 'headers' in options ? options.headers : undefined,
+            status: 'status' in options ? options.status : undefined,
+            statusText:
+              'statusText' in options ? options.statusText : undefined,
+          };
+
+    const data: StreamData | undefined =
+      options == null
+        ? undefined
+        : 'data' in options
+        ? options.data
+        : undefined;
+
+    const getErrorMessage: ((error: unknown) => string) | undefined =
+      options == null
+        ? undefined
+        : 'getErrorMessage' in options
+        ? options.getErrorMessage
+        : undefined;
+
+    const sendUsage: boolean | undefined =
+      options == null
+        ? undefined
+        : 'sendUsage' in options
+        ? options.sendUsage
+        : undefined;
+
+    writeToServerResponse({
+      response,
+      status: init?.status,
+      statusText: init?.statusText,
+      headers: prepareOutgoingHttpHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+        dataStreamVersion: 'v1',
+      }),
+      stream: this.toDataStream({ data, getErrorMessage, sendUsage }),
     });
-
-    const reader = this.toDataStream().getReader();
-
-    const read = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          response.write(value);
-        }
-      } catch (error) {
-        throw error;
-      } finally {
-        response.end();
-      }
-    };
-
-    read();
   }
 
-  pipeTextStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ) {
-    response.writeHead(init?.status ?? 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      ...init?.headers,
+  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
+    writeToServerResponse({
+      response,
+      status: init?.status,
+      statusText: init?.statusText,
+      headers: prepareOutgoingHttpHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
+      stream: this.textStream.pipeThrough(new TextEncoderStream()),
     });
-
-    const reader = this.textStream
-      .pipeThrough(new TextEncoderStream())
-      .getReader();
-
-    const read = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          response.write(value);
-        }
-      } catch (error) {
-        throw error;
-      } finally {
-        response.end();
-      }
-    };
-
-    read();
   }
 
   toAIStreamResponse(
     options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
   ): Response {
     return this.toDataStreamResponse(options);
+  }
+
+  toDataStream(options?: {
+    data?: StreamData;
+    getErrorMessage?: (error: unknown) => string;
+    sendUsage?: boolean;
+  }) {
+    const stream = this.toDataStreamInternal({
+      getErrorMessage: options?.getErrorMessage,
+      sendUsage: options?.sendUsage,
+    });
+
+    return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
   }
 
   toDataStreamResponse(
@@ -758,6 +1219,7 @@ However, the LLM results are expected to be small enough to not cause issues.
           init?: ResponseInit;
           data?: StreamData;
           getErrorMessage?: (error: unknown) => string;
+          sendUsage?: boolean;
         },
   ): Response {
     const init: ResponseInit | undefined =
@@ -786,18 +1248,24 @@ However, the LLM results are expected to be small enough to not cause issues.
         ? options.getErrorMessage
         : undefined;
 
-    const stream = data
-      ? mergeStreams(data.stream, this.toDataStream({ getErrorMessage }))
-      : this.toDataStream({ getErrorMessage });
+    const sendUsage: boolean | undefined =
+      options == null
+        ? undefined
+        : 'sendUsage' in options
+        ? options.sendUsage
+        : undefined;
 
-    return new Response(stream, {
-      status: init?.status ?? 200,
-      statusText: init?.statusText,
-      headers: prepareResponseHeaders(init, {
-        contentType: 'text/plain; charset=utf-8',
-        dataStreamVersion: 'v1',
-      }),
-    });
+    return new Response(
+      this.toDataStream({ data, getErrorMessage, sendUsage }),
+      {
+        status: init?.status ?? 200,
+        statusText: init?.statusText,
+        headers: prepareResponseHeaders(init, {
+          contentType: 'text/plain; charset=utf-8',
+          dataStreamVersion: 'v1',
+        }),
+      },
+    );
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {

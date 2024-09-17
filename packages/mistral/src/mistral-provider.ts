@@ -1,4 +1,9 @@
 import {
+  EmbeddingModelV1,
+  LanguageModelV1,
+  ProviderV1,
+} from '@ai-sdk/provider';
+import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
@@ -14,11 +19,11 @@ import {
   MistralEmbeddingSettings,
 } from './mistral-embedding-settings';
 
-export interface MistralProvider {
+export interface MistralProvider extends ProviderV1 {
   (
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
-  ): MistralChatLanguageModel;
+  ): LanguageModelV1;
 
   /**
 Creates a model for text generation.
@@ -26,7 +31,7 @@ Creates a model for text generation.
   languageModel(
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
-  ): MistralChatLanguageModel;
+  ): LanguageModelV1;
 
   /**
 Creates a model for text generation.
@@ -34,23 +39,28 @@ Creates a model for text generation.
   chat(
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
-  ): MistralChatLanguageModel;
+  ): LanguageModelV1;
 
   /**
-Creates a model for text embeddings.
+@deprecated Use `textEmbeddingModel()` instead.
    */
   embedding(
     modelId: MistralEmbeddingModelId,
     settings?: MistralEmbeddingSettings,
-  ): MistralEmbeddingModel;
+  ): EmbeddingModelV1<string>;
 
   /**
-Creates a model for text embeddings.
+@deprecated Use `textEmbeddingModel()` instead.
    */
   textEmbedding(
     modelId: MistralEmbeddingModelId,
     settings?: MistralEmbeddingSettings,
-  ): MistralEmbeddingModel;
+  ): EmbeddingModelV1<string>;
+
+  textEmbeddingModel: (
+    modelId: MistralEmbeddingModelId,
+    settings?: MistralEmbeddingSettings,
+  ) => EmbeddingModelV1<string>;
 }
 
 export interface MistralProviderSettings {
@@ -141,6 +151,7 @@ export function createMistral(
   provider.chat = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
 
   return provider as MistralProvider;
 }

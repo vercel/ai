@@ -1,5 +1,42 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.25
+
+### Patch Changes
+
+- Updated dependencies [273f696]
+  - @ai-sdk/provider-utils@1.0.19
+
+## 0.0.24
+
+### Patch Changes
+
+- 01fc6c0: feat (provider/amazon-bedrock): support guardrails
+
+## 0.0.23
+
+### Patch Changes
+
+- Updated dependencies [03313cd]
+- Updated dependencies [3be7c1c]
+  - @ai-sdk/provider-utils@1.0.18
+  - @ai-sdk/provider@0.0.23
+
+## 0.0.22
+
+### Patch Changes
+
+- c434799: feat (provider/bedrock): support multiple leading system messages
+
+## 0.0.21
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+
 ## 0.0.20
 
 ### Patch Changes

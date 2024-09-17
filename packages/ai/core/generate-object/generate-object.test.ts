@@ -222,6 +222,81 @@ describe('output = "object"', () => {
     });
   });
 
+  describe('result.response', () => {
+    it('should contain response information with json mode', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+            response: {
+              id: 'test-id-from-model',
+              timestamp: new Date(10000),
+              modelId: 'test-response-model-id',
+            },
+            rawResponse: {
+              headers: {
+                'custom-response-header': 'response-header-value',
+              },
+            },
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+      });
+
+      expect(result.response).toStrictEqual({
+        id: 'test-id-from-model',
+        timestamp: new Date(10000),
+        modelId: 'test-response-model-id',
+        headers: {
+          'custom-response-header': 'response-header-value',
+        },
+      });
+    });
+
+    it('should contain response information with tool mode', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                args: `{ "content": "Hello, world!" }`,
+              },
+            ],
+            response: {
+              id: 'test-id-from-model',
+              timestamp: new Date(10000),
+              modelId: 'test-response-model-id',
+            },
+            rawResponse: {
+              headers: {
+                'custom-response-header': 'response-header-value',
+              },
+            },
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'tool',
+        prompt: 'prompt',
+      });
+
+      expect(result.response).toStrictEqual({
+        id: 'test-id-from-model',
+        timestamp: new Date(10000),
+        modelId: 'test-response-model-id',
+        headers: {
+          'custom-response-header': 'response-header-value',
+        },
+      });
+    });
+  });
+
   describe('zod schema', () => {
     it('should generate object when using zod transform', async () => {
       const result = await generateObject({
@@ -421,17 +496,17 @@ describe('output = "object"', () => {
   });
 
   describe('options.headers', () => {
-    it('should set headers', async () => {
+    it('should pass headers to model in json mode', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV1({
           doGenerate: async ({ headers }) => {
-            assert.deepStrictEqual(headers, {
+            expect(headers).toStrictEqual({
               'custom-request-header': 'request-header-value',
             });
 
             return {
               ...dummyResponseValues,
-              text: `{ "content": "Hello, world!" }`,
+              text: `{ "content": "headers test" }`,
             };
           },
         }),
@@ -441,8 +516,218 @@ describe('output = "object"', () => {
         headers: { 'custom-request-header': 'request-header-value' },
       });
 
-      assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+      expect(result.object).toStrictEqual({ content: 'headers test' });
     });
+
+    it('should pass headers to model in tool mode', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({ headers }) => {
+            expect(headers).toStrictEqual({
+              'custom-request-header': 'request-header-value',
+            });
+
+            return {
+              ...dummyResponseValues,
+              toolCalls: [
+                {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  args: `{ "content": "headers test" }`,
+                },
+              ],
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'tool',
+        prompt: 'prompt',
+        headers: { 'custom-request-header': 'request-header-value' },
+      });
+
+      expect(result.object).toStrictEqual({ content: 'headers test' });
+    });
+  });
+
+  describe('options.providerMetadata', () => {
+    it('should pass provider metadata to model in json mode', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({ providerMetadata }) => {
+            expect(providerMetadata).toStrictEqual({
+              aProvider: { someKey: 'someValue' },
+            });
+
+            return {
+              ...dummyResponseValues,
+              text: `{ "content": "provider metadata test" }`,
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        experimental_providerMetadata: {
+          aProvider: { someKey: 'someValue' },
+        },
+      });
+
+      expect(result.object).toStrictEqual({
+        content: 'provider metadata test',
+      });
+    });
+
+    it('should pass provider metadata to model in tool mode', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({ providerMetadata }) => {
+            expect(providerMetadata).toStrictEqual({
+              aProvider: { someKey: 'someValue' },
+            });
+
+            return {
+              ...dummyResponseValues,
+              toolCalls: [
+                {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  args: `{ "content": "provider metadata test" }`,
+                },
+              ],
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'tool',
+        prompt: 'prompt',
+        experimental_providerMetadata: {
+          aProvider: { someKey: 'someValue' },
+        },
+      });
+
+      expect(result.object).toStrictEqual({
+        content: 'provider metadata test',
+      });
+    });
+  });
+});
+
+describe('output = "array"', () => {
+  it('should generate an array with 3 elements', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            name: undefined,
+            description: undefined,
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: {
+                elements: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: { content: { type: 'string' } },
+                    required: ['content'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ['elements'],
+              type: 'object',
+            },
+          });
+
+          assert.deepStrictEqual(prompt, [
+            {
+              role: 'system',
+              content:
+                'JSON schema:\n' +
+                `{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"elements\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false}}},\"required\":[\"elements\"],\"additionalProperties\":false}` +
+                `\n` +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+            },
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: JSON.stringify({
+              elements: [
+                { content: 'element 1' },
+                { content: 'element 2' },
+                { content: 'element 3' },
+              ],
+            }),
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      output: 'array',
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, [
+      { content: 'element 1' },
+      { content: 'element 2' },
+      { content: 'element 3' },
+    ]);
+  });
+});
+
+describe('output = "enum"', () => {
+  it('should generate an enum value', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          expect(mode).toEqual({
+            type: 'object-json',
+            name: undefined,
+            description: undefined,
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: {
+                result: {
+                  type: 'string',
+                  enum: ['sunny', 'rainy', 'snowy'],
+                },
+              },
+              required: ['result'],
+              type: 'object',
+            },
+          });
+
+          expect(prompt).toEqual([
+            {
+              role: 'system',
+              content:
+                'JSON schema:\n' +
+                `{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"string\",\"enum\":[\"sunny\",\"rainy\",\"snowy\"]}},\"required\":[\"result\"],\"additionalProperties\":false}` +
+                `\n` +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+            },
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: JSON.stringify({ result: 'sunny' }),
+          };
+        },
+      }),
+      output: 'enum',
+      enum: ['sunny', 'rainy', 'snowy'],
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    expect(result.object).toEqual('sunny');
   });
 });
 
@@ -511,6 +796,11 @@ describe('telemetry', () => {
         doGenerate: async () => ({
           ...dummyResponseValues,
           text: `{ "content": "Hello, world!" }`,
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
         }),
       }),
       schema: z.object({ content: z.string() }),
@@ -518,6 +808,11 @@ describe('telemetry', () => {
       schemaDescription: 'test description',
       mode: 'json',
       prompt: 'prompt',
+      topK: 0.1,
+      topP: 0.2,
+      frequencyPenalty: 0.3,
+      presencePenalty: 0.4,
+      temperature: 0.5,
       headers: {
         header1: 'value1',
         header2: 'value2',
@@ -532,68 +827,7 @@ describe('telemetry', () => {
       },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
-      {
-        name: 'ai.generateObject',
-        attributes: {
-          'operation.name': 'ai.generateObject test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.generateObject',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt': '{"prompt":"prompt"}',
-          'ai.result.object': '{"content":"Hello, world!"}',
-          'ai.schema':
-            '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
-          'ai.schema.name': 'test-name',
-          'ai.schema.description': 'test description',
-          'ai.settings.mode': 'json',
-          'ai.settings.output': 'object',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.request.headers.header1': 'value1',
-          'ai.request.headers.header2': 'value2',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.generateObject.doGenerate',
-        attributes: {
-          'operation.name': 'ai.generateObject.doGenerate test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.generateObject.doGenerate',
-          'ai.settings.mode': 'json',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt.format': 'prompt',
-          'ai.prompt.messages':
-            '[{"role":"system","content":"JSON schema:\\n{\\"type\\":\\"object\\",' +
-            '\\"properties\\":{\\"content\\":{\\"type\\":\\"string\\"}},\\"required\\":' +
-            '[\\"content\\"],\\"additionalProperties\\":false,\\"$schema\\":\\"http://json-schema.org/draft-07/schema#\\"}' +
-            '\\nYou MUST answer with a JSON object that matches the JSON schema above."},' +
-            '{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
-          'ai.result.object': '{ "content": "Hello, world!" }',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.request.headers.header1': 'value1',
-          'ai.request.headers.header2': 'value2',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'gen_ai.request.model': 'mock-model-id',
-          'gen_ai.response.finish_reasons': ['stop'],
-          'gen_ai.system': 'mock-provider',
-          'gen_ai.usage.completion_tokens': 20,
-          'gen_ai.usage.prompt_tokens': 10,
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should record telemetry data when enabled with mode "tool"', async () => {
@@ -609,6 +843,11 @@ describe('telemetry', () => {
               args: `{ "content": "Hello, world!" }`,
             },
           ],
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
         }),
       }),
       schema: z.object({ content: z.string() }),
@@ -616,6 +855,11 @@ describe('telemetry', () => {
       schemaDescription: 'test description',
       mode: 'tool',
       prompt: 'prompt',
+      topK: 0.1,
+      topP: 0.2,
+      frequencyPenalty: 0.3,
+      presencePenalty: 0.4,
+      temperature: 0.5,
       headers: {
         header1: 'value1',
         header2: 'value2',
@@ -630,64 +874,7 @@ describe('telemetry', () => {
       },
     });
 
-    expect(tracer.jsonSpans).toStrictEqual([
-      {
-        name: 'ai.generateObject',
-        attributes: {
-          'operation.name': 'ai.generateObject test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.generateObject',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt': '{"prompt":"prompt"}',
-          'ai.result.object': '{"content":"Hello, world!"}',
-          'ai.schema':
-            '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
-          'ai.schema.name': 'test-name',
-          'ai.schema.description': 'test description',
-          'ai.settings.mode': 'tool',
-          'ai.settings.output': 'object',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'ai.request.headers.header1': 'value1',
-          'ai.request.headers.header2': 'value2',
-        },
-        events: [],
-      },
-      {
-        name: 'ai.generateObject.doGenerate',
-        attributes: {
-          'operation.name': 'ai.generateObject.doGenerate test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.generateObject.doGenerate',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt.format': 'prompt',
-          'ai.prompt.messages':
-            '[{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
-          'ai.result.object': '{ "content": "Hello, world!" }',
-          'ai.settings.mode': 'tool',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'ai.request.headers.header1': 'value1',
-          'ai.request.headers.header2': 'value2',
-          'gen_ai.request.model': 'mock-model-id',
-          'gen_ai.response.finish_reasons': ['stop'],
-          'gen_ai.system': 'mock-provider',
-          'gen_ai.usage.completion_tokens': 20,
-          'gen_ai.usage.prompt_tokens': 10,
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should not record telemetry inputs / outputs when disabled with mode "json"', async () => {
@@ -696,6 +883,11 @@ describe('telemetry', () => {
         doGenerate: async () => ({
           ...dummyResponseValues,
           text: `{ "content": "Hello, world!" }`,
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
         }),
       }),
       schema: z.object({ content: z.string() }),
@@ -708,42 +900,7 @@ describe('telemetry', () => {
       },
     });
 
-    expect(tracer.jsonSpans).toStrictEqual([
-      {
-        name: 'ai.generateObject',
-        attributes: {
-          'operation.name': 'ai.generateObject',
-          'ai.operationId': 'ai.generateObject',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.settings.mode': 'json',
-          'ai.settings.output': 'object',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.generateObject.doGenerate',
-        attributes: {
-          'operation.name': 'ai.generateObject.doGenerate',
-          'ai.operationId': 'ai.generateObject.doGenerate',
-          'ai.settings.mode': 'json',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'gen_ai.request.model': 'mock-model-id',
-          'gen_ai.response.finish_reasons': ['stop'],
-          'gen_ai.system': 'mock-provider',
-          'gen_ai.usage.completion_tokens': 20,
-          'gen_ai.usage.prompt_tokens': 10,
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should not record telemetry inputs / outputs when disabled with mode "tool"', async () => {
@@ -759,6 +916,11 @@ describe('telemetry', () => {
               args: `{ "content": "Hello, world!" }`,
             },
           ],
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
         }),
       }),
       schema: z.object({ content: z.string() }),
@@ -771,41 +933,6 @@ describe('telemetry', () => {
       },
     });
 
-    expect(tracer.jsonSpans).toStrictEqual([
-      {
-        name: 'ai.generateObject',
-        attributes: {
-          'operation.name': 'ai.generateObject',
-          'ai.operationId': 'ai.generateObject',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.settings.mode': 'tool',
-          'ai.settings.output': 'object',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.generateObject.doGenerate',
-        attributes: {
-          'operation.name': 'ai.generateObject.doGenerate',
-          'ai.operationId': 'ai.generateObject.doGenerate',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.settings.mode': 'tool',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'gen_ai.request.model': 'mock-model-id',
-          'gen_ai.response.finish_reasons': ['stop'],
-          'gen_ai.system': 'mock-provider',
-          'gen_ai.usage.completion_tokens': 20,
-          'gen_ai.usage.prompt_tokens': 10,
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });

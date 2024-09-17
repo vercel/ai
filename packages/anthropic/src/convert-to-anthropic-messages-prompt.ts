@@ -72,13 +72,13 @@ export function convertToAnthropicMessagesPrompt({
           const { role, content } = message;
           switch (role) {
             case 'user': {
-              for (let i = 0; i < content.length; i++) {
-                const part = content[i];
+              for (let j = 0; j < content.length; j++) {
+                const part = content[j];
 
                 // cache control: first add cache control from part.
                 // for the last part of a message,
                 // check also if the message has cache control.
-                const isLastPart = i === content.length - 1;
+                const isLastPart = j === content.length - 1;
 
                 const cacheControl =
                   getCacheControl(part.providerMetadata) ??
@@ -162,9 +162,23 @@ export function convertToAnthropicMessagesPrompt({
         // combines multiple assistant messages in this block into a single message:
         const anthropicContent: AnthropicAssistantMessage['content'] = [];
 
-        for (const { content } of block.messages) {
+        for (const message of block.messages) {
+          const { content } = message;
+
           for (let j = 0; j < content.length; j++) {
             const part = content[j];
+
+            // cache control: first add cache control from part.
+            // for the last part of a message,
+            // check also if the message has cache control.
+            const isLastPart = j === content.length - 1;
+
+            const cacheControl =
+              getCacheControl(part.providerMetadata) ??
+              (isLastPart
+                ? getCacheControl(message.providerMetadata)
+                : undefined);
+
             switch (part.type) {
               case 'text': {
                 anthropicContent.push({
@@ -177,7 +191,7 @@ export function convertToAnthropicMessagesPrompt({
                       ? part.text.trim()
                       : part.text,
 
-                  cache_control: undefined, // not used in assistant messages
+                  cache_control: cacheControl,
                 });
                 break;
               }
@@ -188,6 +202,7 @@ export function convertToAnthropicMessagesPrompt({
                   id: part.toolCallId,
                   name: part.toolName,
                   input: part.args,
+                  cache_control: cacheControl,
                 });
                 break;
               }

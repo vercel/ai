@@ -6,6 +6,8 @@ export {
   InvalidResponseDataError,
   JSONParseError,
   LoadAPIKeyError,
+  NoContentGeneratedError,
+  NoSuchModelError,
   TypeValidationError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -17,5 +19,6 @@ export { NoSuchToolError } from './no-such-tool-error';
 export { NoObjectGeneratedError } from '../core/generate-object/no-object-generated-error';
 export { InvalidDataContentError } from '../core/prompt/invalid-data-content-error';
 export { InvalidMessageRoleError } from '../core/prompt/invalid-message-role-error';
+export { MessageConversionError } from '../core/prompt/message-conversion-error';
 export { DownloadError } from '../util/download-error';
 export { RetryError } from '../util/retry-error';

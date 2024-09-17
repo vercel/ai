@@ -3,7 +3,7 @@ export {
   formatStreamPart,
   parseStreamPart,
   readDataStream,
-  parseComplexResponse,
+  processDataProtocolResponse,
 } from '@ai-sdk/ui-utils';
 export type {
   AssistantStatus,
@@ -26,6 +26,7 @@ export type {
   StreamPart,
   IdGenerator,
   RequestOptions,
+  Attachment,
 } from '@ai-sdk/ui-utils';
 
 import { generateId as generateIdImpl } from '@ai-sdk/provider-utils';

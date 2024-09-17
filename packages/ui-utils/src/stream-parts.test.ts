@@ -207,6 +207,14 @@ describe('finish_message stream part', () => {
     );
   });
 
+  it('should format a finish_message stream part without usage information', () => {
+    expect(
+      formatStreamPart('finish_message', {
+        finishReason: 'stop',
+      }),
+    ).toEqual(`d:{"finishReason":"stop"}\n`);
+  });
+
   it('should parse a finish_message stream part', () => {
     const input = `d:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}`;
     expect(parseStreamPart(input)).toEqual({
@@ -225,6 +233,69 @@ describe('finish_message stream part', () => {
       value: {
         finishReason: 'stop',
         usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    });
+  });
+
+  it('should parse a finish_message without usage information', () => {
+    const input = `d:{"finishReason":"stop"}`;
+    expect(parseStreamPart(input)).toEqual({
+      type: 'finish_message',
+      value: {
+        finishReason: 'stop',
+      },
+    });
+  });
+});
+
+describe('finish_step stream part', () => {
+  it('should format a finish_step stream part', () => {
+    expect(
+      formatStreamPart('finish_step', {
+        finishReason: 'stop',
+        usage: { promptTokens: 10, completionTokens: 20 },
+      }),
+    ).toEqual(
+      `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n`,
+    );
+  });
+
+  it('should format a finish_step stream part without usage information', () => {
+    expect(
+      formatStreamPart('finish_step', {
+        finishReason: 'stop',
+      }),
+    ).toEqual(`e:{"finishReason":"stop"}\n`);
+  });
+
+  it('should parse a finish_step stream part', () => {
+    const input = `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}`;
+    expect(parseStreamPart(input)).toEqual({
+      type: 'finish_step',
+      value: {
+        finishReason: 'stop',
+        usage: { promptTokens: 10, completionTokens: 20 },
+      },
+    });
+  });
+
+  it('should parse a finish_step with null completion and prompt tokens', () => {
+    const input = `e:{"finishReason":"stop","usage":{"promptTokens":null,"completionTokens":null}}`;
+    expect(parseStreamPart(input)).toEqual({
+      type: 'finish_step',
+      value: {
+        finishReason: 'stop',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    });
+  });
+
+  it('should parse a finish_step without usage information', () => {
+    const input = `e:{"finishReason":"stop","usage":null}`;
+    expect(parseStreamPart(input)).toEqual({
+      type: 'finish_step',
+      value: {
+        finishReason: 'stop',
       },
     });
   });

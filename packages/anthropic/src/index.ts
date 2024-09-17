@@ -1,2 +1,6 @@
 export * from './anthropic-facade';
-export * from './anthropic-provider';
+export { anthropic, createAnthropic } from './anthropic-provider';
+export type {
+  AnthropicProvider,
+  AnthropicProviderSettings,
+} from './anthropic-provider';

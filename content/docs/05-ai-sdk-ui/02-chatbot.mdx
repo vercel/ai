@@ -358,6 +358,94 @@ export async function POST(req: Request) {
 }
 ```
 
+## Controlling the response stream
+
+With `streamText`, you can control how error messages and usage information are sent back to the client.
+
+### Error Messages
+
+By default, the error message is suppressed for security reasons. You can forward it or send your own error message by providing a `getErrorMessage` function:
+
+```ts filename="app/api/chat/route.ts" highlight="13-27"
+import { openai } from '@ai-sdk/openai';
+import { convertToCoreMessages, streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    messages: convertToCoreMessages(messages),
+  });
+
+  return result.toDataStreamResponse({
+    getErrorMessage: error => {
+      if (error == null) {
+        return 'unknown error';
+      }
+
+      if (typeof error === 'string') {
+        return error;
+      }
+
+      if (error instanceof Error) {
+        return error.message;
+      }
+
+      return JSON.stringify(error);
+    },
+  });
+}
+```
+
+### Usage Information
+
+By default, the usage information is sent back to the client. You can disable it by setting the `sendUsage` option to `false`:
+
+```ts filename="app/api/chat/route.ts" highlight="13"
+import { openai } from '@ai-sdk/openai';
+import { convertToCoreMessages, streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    messages: convertToCoreMessages(messages),
+  });
+
+  return result.toDataStreamResponse({
+    sendUsage: false,
+  });
+}
+```
+
+### Text Streams
+
+`useChat` can handle plain text streams by setting the `streamProtocol` option to `text`:
+
+```tsx filename="app/page.tsx" highlight="7"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages } = useChat({
+    streamProtocol: 'text',
+  });
+
+  return <>...</>;
+}
+```
+
+This configuration also works with other backend servers that stream plain text.
+Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more information.
+
+<Note>
+  When using `streamProtocol: 'text'`, tool calls, usage information and finish
+  reasons are not available.
+</Note>
+
 ## Empty Submissions
 
 You can configure the `useChat` hook to allow empty submissions by setting the `allowEmptySubmit` option to `true`.

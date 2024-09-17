@@ -1,5 +1,69 @@
 # @ai-sdk/react
 
+## 0.0.59
+
+### Patch Changes
+
+- Updated dependencies [273f696]
+  - @ai-sdk/provider-utils@1.0.19
+  - @ai-sdk/ui-utils@0.0.44
+
+## 0.0.58
+
+### Patch Changes
+
+- 54862e4: fix (react): restore sending annotations with during submission
+- Updated dependencies [1f590ef]
+  - @ai-sdk/ui-utils@0.0.43
+
+## 0.0.57
+
+### Patch Changes
+
+- Updated dependencies [14210d5]
+  - @ai-sdk/ui-utils@0.0.42
+
+## 0.0.56
+
+### Patch Changes
+
+- a0403d6: feat (react): support sending attachments using append
+
+## 0.0.55
+
+### Patch Changes
+
+- Updated dependencies [03313cd]
+  - @ai-sdk/provider-utils@1.0.18
+  - @ai-sdk/ui-utils@0.0.41
+
+## 0.0.54
+
+### Patch Changes
+
+- 4ab883f: fix (ai/react): useObject error handling
+
+## 0.0.53
+
+### Patch Changes
+
+- Updated dependencies [aa2dc58]
+  - @ai-sdk/ui-utils@0.0.40
+
+## 0.0.52
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.17
+- @ai-sdk/ui-utils@0.0.39
+
+## 0.0.51
+
+### Patch Changes
+
+- Updated dependencies [d151349]
+  - @ai-sdk/ui-utils@0.0.38
+
 ## 0.0.50
 
 ### Patch Changes

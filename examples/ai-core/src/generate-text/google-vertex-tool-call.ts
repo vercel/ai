@@ -24,7 +24,7 @@ async function main() {
         },
       }),
     },
-    maxToolRoundtrips: 5,
+    maxSteps: 5,
   });
 
   console.log(text);

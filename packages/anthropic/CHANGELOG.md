@@ -1,5 +1,32 @@
 # @ai-sdk/anthropic
 
+## 0.0.50
+
+### Patch Changes
+
+- Updated dependencies [273f696]
+  - @ai-sdk/provider-utils@1.0.19
+
+## 0.0.49
+
+### Patch Changes
+
+- 03313cd: feat (ai): expose response id, response model, response timestamp in telemetry and api
+- 3be7c1c: fix (provider/anthropic): support prompt caching on assistant messages
+- Updated dependencies [03313cd]
+- Updated dependencies [3be7c1c]
+  - @ai-sdk/provider-utils@1.0.18
+  - @ai-sdk/provider@0.0.23
+
+## 0.0.48
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+
 ## 0.0.47
 
 ### Patch Changes

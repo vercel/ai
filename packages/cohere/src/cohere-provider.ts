@@ -1,4 +1,9 @@
 import {
+  EmbeddingModelV1,
+  LanguageModelV1,
+  ProviderV1,
+} from '@ai-sdk/provider';
+import {
   FetchFunction,
   generateId,
   loadApiKey,
@@ -6,12 +11,14 @@ import {
 } from '@ai-sdk/provider-utils';
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
 import { CohereChatModelId, CohereChatSettings } from './cohere-chat-settings';
+import { CohereEmbeddingModel } from './cohere-embedding-model';
+import {
+  CohereEmbeddingModelId,
+  CohereEmbeddingSettings,
+} from './cohere-embedding-settings';
 
-export interface CohereProvider {
-  (
-    modelId: CohereChatModelId,
-    settings?: CohereChatSettings,
-  ): CohereChatLanguageModel;
+export interface CohereProvider extends ProviderV1 {
+  (modelId: CohereChatModelId, settings?: CohereChatSettings): LanguageModelV1;
 
   /**
 Creates a model for text generation.
@@ -19,7 +26,17 @@ Creates a model for text generation.
   languageModel(
     modelId: CohereChatModelId,
     settings?: CohereChatSettings,
-  ): CohereChatLanguageModel;
+  ): LanguageModelV1;
+
+  embedding(
+    modelId: CohereEmbeddingModelId,
+    settings?: CohereEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
+
+  textEmbeddingModel(
+    modelId: CohereEmbeddingModelId,
+    settings?: CohereEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
 }
 
 export interface CohereProviderSettings {
@@ -79,6 +96,17 @@ export function createCohere(
       fetch: options.fetch,
     });
 
+  const createTextEmbeddingModel = (
+    modelId: CohereEmbeddingModelId,
+    settings: CohereEmbeddingSettings = {},
+  ) =>
+    new CohereEmbeddingModel(modelId, settings, {
+      provider: 'cohere.textEmbedding',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (
     modelId: CohereChatModelId,
     settings?: CohereChatSettings,
@@ -93,6 +121,8 @@ export function createCohere(
   };
 
   provider.languageModel = createChatModel;
+  provider.embedding = createTextEmbeddingModel;
+  provider.textEmbeddingModel = createTextEmbeddingModel;
 
   return provider as CohereProvider;
 }

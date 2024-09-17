@@ -1,5 +1,7 @@
 // https://platform.openai.com/docs/models
 export type OpenAIChatModelId =
+  | 'o1-preview'
+  | 'o1-mini'
   | 'gpt-4o'
   | 'gpt-4o-2024-05-13'
   | 'gpt-4o-2024-08-06'
@@ -77,4 +79,13 @@ A unique identifier representing your end-user, which can help OpenAI to
 monitor and detect abuse. Learn more.
 */
   user?: string;
+
+  /**
+Automatically download images and pass the image as data to the model.
+OpenAI supports image URLs for public models, so this is only needed for
+private models or when the images are not publicly accessible.
+
+Defaults to `false`.
+   */
+  downloadImages?: boolean;
 }

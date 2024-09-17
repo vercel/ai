@@ -165,7 +165,7 @@ Agents use LLMs to choose the next step in a problem-solving process. They can r
 
 ### Implementing Agents with the Vercel AI SDK
 
-The Vercel AI SDK supports agent implementation through the `maxToolRoundtrips` parameter. This allows the model to make multiple decisions and tool calls in a single interaction.
+The Vercel AI SDK supports agent implementation through the `maxSteps` parameter. This allows the model to make multiple decisions and tool calls in a single interaction.
 
 Here's an example of an agent that solves math problems:
 
@@ -195,7 +195,7 @@ const { text: answer } = await generateText({
       execute: async ({ expression }) => mathjs.evaluate(expression),
     }),
   },
-  maxToolRoundtrips: 5,
+  maxSteps: 5,
 });
 ```
 

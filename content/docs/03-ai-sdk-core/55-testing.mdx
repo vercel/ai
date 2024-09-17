@@ -1,0 +1,127 @@
+---
+title: Testing
+description: Learn how to use AI SDK Core mock providers for testing.
+---
+
+# Testing
+
+Testing language models can be challenging, because they are non-deterministic
+and calling them is slow and expensive.
+
+To enable you to unit test your code that uses the AI SDK, the AI SDK Core
+includes mock providers and test helpers. You can import the following helpers from `ai/test`:
+
+- `MockEmbeddingModelV1`: A mock embedding model using the [embedding model v1 specification](https://github.com/vercel/ai/blob/main/packages/provider/src/embedding-model/v1/embedding-model-v1.ts).
+- `MockLanguageModelV1`: A mock language model using the [language model v1 specification](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v1/language-model-v1.ts).
+- `mockId`: Provides an incrementing integer ID.
+- `mockValues`: Iterates over an array of values with each call. Returns the last value when the array is exhausted.
+- `convertArrayToReadableStream`: Converts an array to a readable stream.
+
+With mock providers and test helpers, you can control the output of the AI SDK
+and test your code in a repeatable and deterministic way without actually calling
+a language model provider.
+
+## Examples
+
+You can use the test helpers with the AI Core functions in your unit tests:
+
+### generateText
+
+```ts
+import { generateText } from 'ai';
+import { MockLanguageModelV1 } from 'ai/test';
+
+const result = await generateText({
+  model: new MockLanguageModelV1({
+    doGenerate: async () => ({
+      rawCall: { rawPrompt: null, rawSettings: {} },
+      finishReason: 'stop',
+      usage: { promptTokens: 10, completionTokens: 20 },
+      text: `Hello, world!`,
+    }),
+  }),
+  prompt: 'Hello, test!',
+});
+```
+
+### streamText
+
+```ts
+import { streamText } from 'ai';
+import { convertArrayToReadableStream, MockLanguageModelV1 } from 'ai/test';
+
+const result = await streamText({
+  model: new MockLanguageModelV1({
+    doStream: async () => ({
+      stream: convertArrayToReadableStream([
+        { type: 'text-delta', textDelta: 'Hello' },
+        { type: 'text-delta', textDelta: ', ' },
+        { type: 'text-delta', textDelta: `world!` },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3 },
+        },
+      ]),
+      rawCall: { rawPrompt: null, rawSettings: {} },
+    }),
+  }),
+  prompt: 'Hello, test!',
+});
+```
+
+### generateObject
+
+```ts
+import { generateObject } from 'ai';
+import { MockLanguageModelV1 } from 'ai/test';
+import { z } from 'zod';
+
+const result = await generateObject({
+  model: new MockLanguageModelV1({
+    defaultObjectGenerationMode: 'json',
+    doGenerate: async () => ({
+      rawCall: { rawPrompt: null, rawSettings: {} },
+      finishReason: 'stop',
+      usage: { promptTokens: 10, completionTokens: 20 },
+      text: `{"content":"Hello, world!"}`,
+    }),
+  }),
+  schema: z.object({ content: z.string() }),
+  prompt: 'Hello, test!',
+});
+```
+
+### streamObject
+
+```ts
+import { streamObject } from 'ai';
+import { convertArrayToReadableStream, MockLanguageModelV1 } from 'ai/test';
+import { z } from 'zod';
+
+const result = await streamObject({
+  model: new MockLanguageModelV1({
+    defaultObjectGenerationMode: 'json',
+    doStream: async () => ({
+      stream: convertArrayToReadableStream([
+        { type: 'text-delta', textDelta: '{ ' },
+        { type: 'text-delta', textDelta: '"content": ' },
+        { type: 'text-delta', textDelta: `"Hello, ` },
+        { type: 'text-delta', textDelta: `world` },
+        { type: 'text-delta', textDelta: `!"` },
+        { type: 'text-delta', textDelta: ' }' },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3 },
+        },
+      ]),
+      rawCall: { rawPrompt: null, rawSettings: {} },
+    }),
+  }),
+  schema: z.object({ content: z.string() }),
+  prompt: 'Hello, test!',
+});
+```

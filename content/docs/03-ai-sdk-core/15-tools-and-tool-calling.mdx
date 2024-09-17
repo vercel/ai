@@ -6,12 +6,16 @@ description: Learn about tool calling with Vercel AI SDK Core.
 # Tool Calling
 
 As covered under Foundations, [tools](/docs/foundations/tools) are objects that can be called by the model to perform a specific task.
-
-When used with AI SDK Core, tools contain three elements:
+AI SDK Core tools contain three elements:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
-- **`parameters`**: A [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
+- **`parameters`**: A [Zod schema](/docs/foundations/tools#schemas) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
 - **`execute`**: An optional async function that is called with the arguments from the tool call. It produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
+
+<Note className="mb-2">
+  You can use the [`tool`](/docs/reference/ai-sdk-core/tool) helper function to
+  infer the types of the `execute` parameters.
+</Note>
 
 The `tools` parameter of `generateText` and `streamText` is an object that has the tool names as keys and the tools as values:
 
@@ -33,15 +37,9 @@ const result = await generateText({
       }),
     }),
   },
-  prompt:
-    'What is the weather in San Francisco and what attractions should I visit?',
+  prompt: 'What is the weather in San Francisco?',
 });
 ```
-
-<Note className="mb-2">
-  You can use the [`tool`](/docs/reference/ai-sdk-core/tool) helper function to
-  infer the types of the `execute` parameters.
-</Note>
 
 <Note>
   When a model uses a tool, it is called a "tool call" and the output of the
@@ -49,7 +47,100 @@ const result = await generateText({
 </Note>
 
 Tool calling is not restricted to only text generation.
-You can also use it to render user interfaces with Generative AI.
+You can also use it to render user interfaces (Generative UI).
+
+## Multi-Step Calls
+
+Large language models need to know the tool results before they can continue to generate text.
+This requires sending the tool results back to the model.
+You can enable this feature by setting the `maxSteps` setting to a number greater than 1.
+
+When `maxSteps` is set to a number greater than 1, the language model will be called
+in a loop when there are tool calls and for every tool call there is a tool result, until there
+are no further tool calls or the maximum number of tool steps is reached.
+
+### Example
+
+In the following example, there are two steps:
+
+1. **Step 1**
+   1. The prompt `'What is the weather in San Francisco?'` is sent to the model.
+   1. The model generates a tool call.
+   1. The tool call is executed.
+1. **Step 2**
+   1. The tool result is sent to the model.
+   1. The model generates a response considering the tool result.
+
+```ts highlight="18"
+import { z } from 'zod';
+import { generateText, tool } from 'ai';
+
+const { text, steps } = await generateText({
+  model: yourModel,
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+  maxSteps: 5, // allow up to 5 steps
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+<Note>You can use `streamText` in a similar way.</Note>
+
+### Steps
+
+To access intermediate tool calls and results, you can use the `steps` property in the result object
+or the `streamText` `onFinish` callback.
+It contains all the text, tool calls, tool results, and more from each step.
+
+#### Example: Extract tool results from all steps
+
+```ts highlight="3,9-10"
+import { generateText } from 'ai';
+
+const { steps } = await generateText({
+  model: openai('gpt-4-turbo'),
+  maxSteps: 10,
+  // ...
+});
+
+// extract all tool calls from the steps:
+const allToolCalls = steps.flatMap(step => step.toolCalls);
+```
+
+### Response Messages
+
+When you run multi-step tool calls, multiple assistant and tool messages will be executed.
+To help you keep a consistent conversation history, you can use the `responseMessages` property
+on the result object or the `streamText` `onFinish` callback.
+It contains all the assistant and tool messages that have been generated.
+
+### `onStepFinish` callback
+
+When using `generateText` or `streamText`, you can provide an `onStepFinish` callback that
+is triggered when a step is finished,
+i.e. all text deltas, tool calls, and tool results for the step are available.
+When you have multiple steps, the callback is triggered for each step.
+
+```tsx highlight="5-7"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  // ...
+  onStepFinish({ text, toolCalls, toolResults, finishReason, usage }) {
+    // your own logic, e.g. for saving the chat history or recording usage
+  },
+});
+```
 
 ## Tool Choice
 
@@ -80,56 +171,9 @@ const result = await generateText({
     }),
   },
   toolChoice: 'required', // force the model to call a tool
-  prompt:
-    'What is the weather in San Francisco and what attractions should I visit?',
+  prompt: 'What is the weather in San Francisco?',
 });
 ```
-
-## Tool Roundtrips
-
-<Note>Tool roundtrips are currently only supported by `generateText`.</Note>
-
-The large language model needs to know the tool results before it can continue generating text.
-This requires sending the tool results back to the model.
-You can enable this feature by setting the `maxToolRoundtrips` setting to a number greater than 0.
-
-```ts highlight="18"
-import { z } from 'zod';
-import { generateText, tool } from 'ai';
-
-const result = await generateText({
-  model: yourModel,
-  tools: {
-    weather: tool({
-      description: 'Get the weather in a location',
-      parameters: z.object({
-        location: z.string().describe('The location to get the weather for'),
-      }),
-      execute: async ({ location }) => ({
-        location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10,
-      }),
-    }),
-  },
-  maxToolRoundtrips: 5, // allow up to 5 tool roundtrips
-  prompt:
-    'What is the weather in San Francisco and what attractions should I visit?',
-});
-```
-
-## Pre-Built Tools
-
-When you work with tools, you typically need a mix of application specific tools and general purpose tools.
-There are several providers that offer pre-built tools that you can use out of the box:
-
-- **[agentic](https://github.com/transitive-bullshit/agentic)** - A collection of 20+ tools. Most tools connect to access external APIs such as [Exa](https://exa.ai/) or [E2B](https://e2b.dev/).
-- **[browserbase](https://github.com/browserbase/js-sdk?tab=readme-ov-file#vercel-ai-sdk-integration)** - Browser tool that runs a headless browser
-
-<Note>
-  Do you have open source tools or tool libraries that are compatible with the
-  Vercel AI SDK? Please [file a pull
-  request](https://github.com/vercel/ai/pulls) to add them to this list.
-</Note>
 
 ## Prompt Engineering with Tools
 

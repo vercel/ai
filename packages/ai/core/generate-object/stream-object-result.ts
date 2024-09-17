@@ -1,18 +1,19 @@
-import { DeepPartial } from '@ai-sdk/ui-utils';
 import { ServerResponse } from 'http';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelResponseMetadata,
+  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { CompletionTokenUsage } from '../types/token-usage';
+import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 
 /**
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
-export interface StreamObjectResult<T> {
+export interface StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   /**
   Warnings from the model provider (e.g. unsupported settings)
      */
@@ -21,7 +22,7 @@ export interface StreamObjectResult<T> {
   /**
   The token usage of the generated response. Resolved when the response is finished.
      */
-  readonly usage: Promise<CompletionTokenUsage>;
+  readonly usage: Promise<LanguageModelUsage>;
 
   /**
 Additional provider-specific metadata. They are passed through
@@ -31,8 +32,11 @@ results that can be fully encapsulated in the provider.
   readonly experimental_providerMetadata: Promise<ProviderMetadata | undefined>;
 
   /**
-  Optional raw response data.
+Optional raw response data.
+
+@deprecated Use `response` instead.
      */
+  // TODO removed in v4
   readonly rawResponse?: {
     /**
   Response headers.
@@ -41,9 +45,14 @@ results that can be fully encapsulated in the provider.
   };
 
   /**
+Additional response information.
+ */
+  readonly response: Promise<LanguageModelResponseMetadataWithHeaders>;
+
+  /**
   The generated object (typed according to the schema). Resolved when the response is finished.
      */
-  readonly object: Promise<T>;
+  readonly object: Promise<RESULT>;
 
   /**
   Stream of partial objects. It gets more complete as the stream progresses.
@@ -51,7 +60,12 @@ results that can be fully encapsulated in the provider.
   Note that the partial object is not validated.
   If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.
      */
-  readonly partialObjectStream: AsyncIterableStream<DeepPartial<T>>;
+  readonly partialObjectStream: AsyncIterableStream<PARTIAL>;
+
+  /**
+   * Stream over complete array elements. Only available if the output strategy is set to `array`.
+   */
+  readonly elementStream: ELEMENT_STREAM;
 
   /**
   Text stream of the JSON representation of the generated object. It contains text chunks.
@@ -63,7 +77,7 @@ results that can be fully encapsulated in the provider.
   Stream of different types of events, including partial objects, errors, and finish events.
   Only errors that stop the stream, such as network errors, are thrown.
      */
-  readonly fullStream: AsyncIterableStream<ObjectStreamPart<T>>;
+  readonly fullStream: AsyncIterableStream<ObjectStreamPart<PARTIAL>>;
 
   /**
   Writes text delta output to a Node.js response-like object.
@@ -71,12 +85,9 @@ results that can be fully encapsulated in the provider.
   writes each text delta as a separate chunk.
 
   @param response A Node.js response-like object (ServerResponse).
-  @param init Optional headers and status code.
+  @param init Optional headers, status code, and status text.
      */
-  pipeTextStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ): void;
+  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
 
   /**
   Creates a simple text stream response.
@@ -84,12 +95,20 @@ results that can be fully encapsulated in the provider.
   Each text delta is encoded as UTF-8 and sent as a separate chunk.
   Non-text-delta events are ignored.
 
-  @param init Optional headers and status code.
+  @param init Optional headers, status code, and status text.
      */
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
-export type ObjectStreamInputPart =
+export type ObjectStreamPart<PARTIAL> =
+  | {
+      type: 'object';
+      object: PARTIAL;
+    }
+  | {
+      type: 'text-delta';
+      textDelta: string;
+    }
   | {
       type: 'error';
       error: unknown;
@@ -98,21 +117,7 @@ export type ObjectStreamInputPart =
       type: 'finish';
       finishReason: FinishReason;
       logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
+      usage: LanguageModelUsage;
+      response: LanguageModelResponseMetadata;
       providerMetadata?: ProviderMetadata;
-    };
-
-export type ObjectStreamPart<T> =
-  | ObjectStreamInputPart
-  | {
-      type: 'object';
-      object: DeepPartial<T>;
-    }
-  | {
-      type: 'text-delta';
-      textDelta: string;
     };

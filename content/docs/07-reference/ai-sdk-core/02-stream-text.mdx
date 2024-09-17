@@ -349,6 +349,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
+      name: 'maxSteps',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
+    },
+    {
       name: 'experimental_telemetry',
       type: 'TelemetrySettings',
       isOptional: true,
@@ -402,6 +409,13 @@ To see `streamText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Enable streaming of tool call deltas as they are generated. Disabled by default.',
+    },
+    {
+      name: 'experimental_providerMetadata',
+      type: 'Record<string,Record<string,JSONValue>> | undefined',
+      isOptional: true,
+      description:
+        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
       name: 'onChunk',
@@ -553,6 +567,118 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'onStepFinish',
+      type: '(result: onStepFinishResult) => Promise<void> | void',
+      isOptional: true,
+      description: 'Callback that is called when a step is finished.',
+      properties: [
+        {
+          type: 'onStepFinishResult',
+          parameters: [
+            {
+              name: 'finishReason',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              description:
+                'The reason the model finished generating the text for the step.',
+            },
+            {
+              name: 'usage',
+              type: 'TokenUsage',
+              description: 'The token usage of the step.',
+              properties: [
+                {
+                  type: 'TokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'text',
+              type: 'string',
+              description: 'The full text that has been generated.',
+            },
+            {
+              name: 'toolCalls',
+              type: 'ToolCall[]',
+              description: 'The tool calls that have been executed.',
+            },
+            {
+              name: 'toolResults',
+              type: 'ToolResult[]',
+              description: 'The tool results that have been generated.',
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                    {
+                      name: 'headers',
+                      optional: true,
+                      type: 'Record<string, string>',
+                      description: 'Optional response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'experimental_providerMetadata',
+              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              isOptional: true,
+              description:
+                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'onFinish',
       type: '(result: OnFinishResult) => Promise<void> | void',
       isOptional: true,
@@ -623,22 +749,53 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Warnings from the model provider (e.g. unsupported settings).',
             },
             {
-              name: 'rawResponse',
-              type: 'RawResponse',
-              description: 'Optional raw response data.',
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
               properties: [
                 {
-                  type: 'RawResponse',
+                  type: 'Response',
                   parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
                     {
                       name: 'headers',
                       optional: true,
                       type: 'Record<string, string>',
-                      description: 'Response headers.',
+                      description: 'Optional response headers.',
                     },
                   ],
                 },
               ],
+            },
+            {
+              name: 'steps',
+              type: 'Array<StepResult>',
+              description:
+                'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
+            },
+            {
+              name: 'responseMessages',
+              type: 'Array<CoreAssistantMessage | CoreToolMessage>',
+              description:
+                'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
             },
           ],
         },
@@ -692,6 +849,12 @@ To see `streamText` in action, check out [these examples](#examples).
         'Optional metadata from the provider. Resolved whe the response is finished. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
+      name: 'responseMessages',
+      type: 'Promise<Array<CoreAssistantMessage | CoreToolMessage>>',
+      description:
+        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately. Resolved when the response is finished.',
+    },
+    {
       name: 'text',
       type: 'Promise<string>',
       description:
@@ -710,19 +873,37 @@ To see `streamText` in action, check out [these examples](#examples).
         'The tool results that have been generated. Resolved when the all tool executions are finished.',
     },
     {
-      name: 'rawResponse',
-      type: 'RawResponse',
+      name: 'response',
+      type: 'Promise<Response>',
       optional: true,
-      description: 'Optional raw response data.',
+      description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
-          type: 'RawResponse',
+          type: 'Response',
           parameters: [
+            {
+              name: 'id',
+              type: 'string',
+              description:
+                'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+            },
+            {
+              name: 'model',
+              type: 'string',
+              description:
+                'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+            },
+            {
+              name: 'timestamp',
+              type: 'Date',
+              description:
+                'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+            },
             {
               name: 'headers',
               optional: true,
               type: 'Record<string, string>',
-              description: 'Response headers.',
+              description: 'Optional response headers.',
             },
           ],
         },
@@ -733,6 +914,118 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'Warning[] | undefined',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'steps',
+      type: 'Promise<Array<StepResult>>',
+      description:
+        'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
+      properties: [
+        {
+          type: 'StepResult',
+          parameters: [
+            {
+              name: 'text',
+              type: 'string',
+              description: 'The generated text by the model.',
+            },
+            {
+              name: 'toolCalls',
+              type: 'array',
+              description: 'A list of tool calls made by the model.',
+            },
+            {
+              name: 'toolResults',
+              type: 'array',
+              description:
+                'A list of tool results returned as responses to earlier tool calls.',
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'usage',
+              type: 'CompletionTokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'CompletionTokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                    {
+                      name: 'headers',
+                      optional: true,
+                      type: 'Record<string, string>',
+                      description: 'Optional response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
+              name: 'experimental_providerMetadata',
+              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              isOptional: true,
+              description:
+                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'textStream',
@@ -892,6 +1185,80 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'type',
+              type: "'step-finish'",
+              description: 'The type to identify the object as step finish.',
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'usage',
+              type: 'TokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'TokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
               type: "'finish'",
               description: 'The type to identify the object as finish.',
             },
@@ -928,30 +1295,49 @@ To see `streamText` in action, check out [these examples](#examples).
                 },
               ],
             },
+            {
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
     },
     {
       name: 'pipeDataStreamToResponse',
-      type: '(response: ServerResponse, init?: { headers?: Record<string, string>; status?: number } => void',
+      type: '(response: ServerResponse, options: PipeDataStreamToResponseOptions } => void',
       description:
         'Writes stream data output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each stream data part as a separate chunk.',
-    },
-    {
-      name: 'pipeTextStreamToResponse',
-      type: '(response: ServerResponse, init?: { headers?: Record<string, string>; status?: number } => void',
-      description:
-        'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
-    },
-    {
-      name: 'toDataStreamResponse',
-      type: '(options?: toDataStreamOptions) => Response',
-      description:
-        'Converts the result to a streamed response object with a stream data part stream. It can be used with the `useChat` and `useCompletion` hooks.',
       properties: [
         {
-          type: 'toDataStreamOptions',
+          type: 'PipeDataStreamToResponseOptions',
           parameters: [
             {
               name: 'init',
@@ -967,6 +1353,12 @@ To see `streamText` in action, check out [these examples](#examples).
                       type: 'number',
                       optional: true,
                       description: 'The response status code.',
+                    },
+                    {
+                      name: 'statusText',
+                      type: 'string',
+                      optional: true,
+                      description: 'The response status text.',
                     },
                     {
                       name: 'headers',
@@ -991,6 +1383,140 @@ To see `streamText` in action, check out [these examples](#examples).
                 'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
               optional: true,
             },
+            {
+              name: 'sendUsage',
+              type: 'boolean',
+              optional: true,
+              description:
+                'Whether to send the usage information in the stream. Defaults to true.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'pipeTextStreamToResponse',
+      type: '(response: ServerResponse, init?: ResponseInit => void',
+      description:
+        'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              optional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              optional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              optional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'toDataStream',
+      type: '(options?: ToDataStreamOptions) => Response',
+      description: 'Converts the result to a data stream.',
+      properties: [
+        {
+          type: 'ToDataStreamOptions',
+          parameters: [
+            {
+              name: 'data',
+              type: 'StreamData',
+              optional: true,
+              description: 'The stream data object.',
+            },
+            {
+              name: 'getErrorMessage',
+              type: '(error: unknown) => string',
+              description:
+                'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
+              optional: true,
+            },
+            {
+              name: 'sendUsage',
+              type: 'boolean',
+              optional: true,
+              description:
+                'Whether to send the usage information in the stream. Defaults to true.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'toDataStreamResponse',
+      type: '(options?: ToDataStreamResponseOptions) => Response',
+      description:
+        'Converts the result to a streamed response object with a stream data part stream. It can be used with the `useChat` and `useCompletion` hooks.',
+      properties: [
+        {
+          type: 'ToDataStreamResponseOptions',
+          parameters: [
+            {
+              name: 'init',
+              type: 'ResponseInit',
+              optional: true,
+              description: 'The response init options.',
+              properties: [
+                {
+                  type: 'ResponseInit',
+                  parameters: [
+                    {
+                      name: 'status',
+                      type: 'number',
+                      optional: true,
+                      description: 'The response status code.',
+                    },
+                    {
+                      name: 'statusText',
+                      type: 'string',
+                      optional: true,
+                      description: 'The response status text.',
+                    },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      optional: true,
+                      description: 'The response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'data',
+              type: 'StreamData',
+              optional: true,
+              description: 'The stream data object.',
+            },
+            {
+              name: 'getErrorMessage',
+              type: '(error: unknown) => string',
+              description:
+                'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
+              optional: true,
+            },
+            {
+              name: 'sendUsage',
+              type: 'boolean',
+              optional: true,
+              description:
+                'Whether to send the usage information in the stream. Defaults to true.',
+            },
           ],
         },
       ],
@@ -1000,6 +1526,31 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(init?: ResponseInit) => Response',
       description:
         'Creates a simple text stream response. Each text delta is encoded as UTF-8 and sent as a separate chunk. Non-text-delta events are ignored.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              optional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              optional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              optional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
     },
   ]}
 />

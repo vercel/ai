@@ -2,6 +2,7 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { MockLanguageModelV1 } from '../../core/test/mock-language-model-v1';
 import { streamUI } from './stream-ui';
 import { z } from 'zod';
+import { delay } from '../../util/delay';
 
 async function recursiveResolve(val: any): Promise<any> {
   if (val && typeof val === 'object' && typeof val.then === 'function') {
@@ -127,7 +128,7 @@ describe('result.value', () => {
             value: z.string(),
           }),
           generate: async ({ value }) => {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await delay(100);
             return <div>tool1: {value}</div>;
           },
         },
@@ -150,7 +151,7 @@ describe('result.value', () => {
           }),
           generate: async function* ({ value }) {
             yield <div>Loading...</div>;
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await delay(100);
             return <div>tool: {value}</div>;
           },
         },
@@ -199,7 +200,7 @@ describe('rsc - streamUI() onFinish callback', () => {
             value: z.string(),
           }),
           generate: async ({ value }) => {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await delay(100);
             return <div>tool1: {value}</div>;
           },
         },
@@ -231,22 +232,20 @@ describe('rsc - streamUI() onFinish callback', () => {
 });
 
 describe('options.headers', () => {
-  it('should set headers', async () => {
+  it('should pass headers to model', async () => {
     const result = await streamUI({
       model: new MockLanguageModelV1({
         doStream: async ({ headers }) => {
-          assert.deepStrictEqual(headers, {
+          expect(headers).toStrictEqual({
             'custom-request-header': 'request-header-value',
           });
 
           return {
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"content": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'text-delta',
+                textDelta: '{ "content": "headers test" }',
+              },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -262,7 +261,42 @@ describe('options.headers', () => {
       headers: { 'custom-request-header': 'request-header-value' },
     });
 
-    const rendered = await simulateFlightServerRender(result.value);
-    expect(rendered).toMatchSnapshot();
+    expect(await simulateFlightServerRender(result.value)).toMatchSnapshot();
+  });
+});
+
+describe('options.providerMetadata', () => {
+  it('should pass provider metadata to model', async () => {
+    const result = await streamUI({
+      model: new MockLanguageModelV1({
+        doStream: async ({ providerMetadata }) => {
+          expect(providerMetadata).toStrictEqual({
+            aProvider: { someKey: 'someValue' },
+          });
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'text-delta',
+                textDelta: '{ "content": "provider metadata test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: '',
+      experimental_providerMetadata: {
+        aProvider: { someKey: 'someValue' },
+      },
+    });
+
+    expect(await simulateFlightServerRender(result.value)).toMatchSnapshot();
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "3.3.16",
+  "version": "3.3.40",
   "description": "Vercel AI SDK - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -15,8 +15,8 @@
     "solid/dist/**/*",
     "prompts/dist/**/*",
     "rsc/dist/**/*",
-    "google/dist/**/*",
-    "mistral/dist/**/*"
+    "test/dist/**/*",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
@@ -43,6 +43,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./test": {
+      "types": "./test/dist/index.d.ts",
+      "import": "./test/dist/index.mjs",
+      "module": "./test/dist/index.mjs",
+      "require": "./test/dist/index.js"
     },
     "./rsc": {
       "types": "./rsc/dist/index.d.ts",
@@ -77,13 +83,13 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.21",
-    "@ai-sdk/provider-utils": "1.0.16",
-    "@ai-sdk/react": "0.0.50",
-    "@ai-sdk/solid": "0.0.40",
-    "@ai-sdk/svelte": "0.0.42",
-    "@ai-sdk/ui-utils": "0.0.37",
-    "@ai-sdk/vue": "0.0.42",
+    "@ai-sdk/provider": "0.0.23",
+    "@ai-sdk/provider-utils": "1.0.19",
+    "@ai-sdk/react": "0.0.59",
+    "@ai-sdk/solid": "0.0.47",
+    "@ai-sdk/svelte": "0.0.49",
+    "@ai-sdk/ui-utils": "0.0.44",
+    "@ai-sdk/vue": "0.0.49",
     "@opentelemetry/api": "1.9.0",
     "eventsource-parser": "1.1.2",
     "jsondiffpatch": "0.6.0",

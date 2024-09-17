@@ -8,11 +8,16 @@ import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../../core/prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../../core/prompt/prompt';
 import { validatePrompt } from '../../core/prompt/validate-prompt';
-import { CallWarning, CoreToolChoice, FinishReason } from '../../core/types';
 import {
-  CompletionTokenUsage,
-  calculateCompletionTokenUsage,
-} from '../../core/types/token-usage';
+  CallWarning,
+  CoreToolChoice,
+  FinishReason,
+  ProviderMetadata,
+} from '../../core/types';
+import {
+  LanguageModelUsage,
+  calculateLanguageModelUsage,
+} from '../../core/types/usage';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
@@ -90,6 +95,7 @@ export async function streamUI<
   headers,
   initial,
   text,
+  experimental_providerMetadata: providerMetadata,
   onFinish,
   ...settings
 }: CallSettings &
@@ -113,6 +119,14 @@ export async function streamUI<
 
     text?: RenderText;
     initial?: ReactNode;
+
+    /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+    experimental_providerMetadata?: ProviderMetadata;
+
     /**
      * Callback that is called when the LLM response and the final object validation are finished.
      */
@@ -124,7 +138,7 @@ export async function streamUI<
       /**
        * The token usage of the generated response.
        */
-      usage: CompletionTokenUsage;
+      usage: LanguageModelUsage;
       /**
        * The final ui node that was generated.
        */
@@ -177,6 +191,15 @@ export async function streamUI<
   const textRender = text || defaultTextRenderer;
 
   let finished: Promise<void> | undefined;
+
+  let finishEvent: {
+    finishReason: FinishReason;
+    usage: LanguageModelUsage;
+    warnings?: CallWarning[];
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
+  } | null = null;
 
   async function render({
     args,
@@ -242,6 +265,7 @@ export async function streamUI<
         prompt: validatedPrompt,
         modelSupportsImageUrls: model.supportsImageUrls,
       }),
+      providerMetadata,
       abortSignal,
       headers,
     }),
@@ -325,13 +349,13 @@ export async function streamUI<
           }
 
           case 'finish': {
-            onFinish?.({
+            finishEvent = {
               finishReason: value.finishReason,
-              usage: calculateCompletionTokenUsage(value.usage),
-              value: ui.value,
+              usage: calculateLanguageModelUsage(value.usage),
               warnings: result.warnings,
               rawResponse: result.rawResponse,
-            });
+            };
+            break;
           }
         }
       }
@@ -346,6 +370,13 @@ export async function streamUI<
       }
 
       await finished;
+
+      if (finishEvent && onFinish) {
+        await onFinish({
+          ...finishEvent,
+          value: ui.value,
+        });
+      }
     } catch (error) {
       // During the stream rendering, we don't want to throw the error to the
       // parent scope but only let the React's error boundary to catch it.

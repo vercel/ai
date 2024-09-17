@@ -26,6 +26,7 @@ import {
   openAIErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
+import { getResponseMetadata } from './get-response-metadata';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -63,6 +64,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  get supportsImageUrls(): boolean {
+    // image urls can be sent if downloadImages is disabled (default):
+    return !this.settings.downloadImages;
   }
 
   private getArgs({
@@ -156,6 +162,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         useLegacyFunctionCalling,
       }),
     };
+
+    // reasoning models have fixed params:
+    if (this.modelId === 'o1-preview' || this.modelId === 'o1-mini') {
+      baseArgs.temperature = 1;
+      baseArgs.top_p = 1;
+      baseArgs.frequency_penalty = 0;
+      baseArgs.presence_penalty = 0;
+    }
 
     switch (type) {
       case 'regular': {
@@ -289,6 +303,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      response: getResponseMetadata(response),
       warnings,
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
     };
@@ -343,6 +358,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       completionTokens: undefined,
     };
     let logprobs: LanguageModelV1LogProbs;
+    let isFirstChunk = true;
 
     const { useLegacyFunctionCalling } = this.settings;
 
@@ -367,6 +383,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               finishReason = 'error';
               controller.enqueue({ type: 'error', error: value.error });
               return;
+            }
+
+            if (isFirstChunk) {
+              isFirstChunk = false;
+
+              controller.enqueue({
+                type: 'response-metadata',
+                ...getResponseMetadata(value),
+              });
             }
 
             if (value.usage != null) {
@@ -453,29 +478,32 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
                   const toolCall = toolCalls[index];
 
-                  // check if tool call is complete (some providers send the full tool call in one chunk)
                   if (
                     toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null &&
-                    isParsableJson(toolCall.function.arguments)
+                    toolCall.function?.arguments != null
                   ) {
-                    // send delta
-                    controller.enqueue({
-                      type: 'tool-call-delta',
-                      toolCallType: 'function',
-                      toolCallId: toolCall.id,
-                      toolName: toolCall.function.name,
-                      argsTextDelta: toolCall.function.arguments,
-                    });
+                    // send delta if the argument text has already started:
+                    if (toolCall.function.arguments.length > 0) {
+                      controller.enqueue({
+                        type: 'tool-call-delta',
+                        toolCallType: 'function',
+                        toolCallId: toolCall.id,
+                        toolName: toolCall.function.name,
+                        argsTextDelta: toolCall.function.arguments,
+                      });
+                    }
 
-                    // send tool call
-                    controller.enqueue({
-                      type: 'tool-call',
-                      toolCallType: 'function',
-                      toolCallId: toolCall.id ?? generateId(),
-                      toolName: toolCall.function.name,
-                      args: toolCall.function.arguments,
-                    });
+                    // check if tool call is complete
+                    // (some providers send the full tool call in one chunk):
+                    if (isParsableJson(toolCall.function.arguments)) {
+                      controller.enqueue({
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: toolCall.id ?? generateId(),
+                        toolName: toolCall.function.name,
+                        args: toolCall.function.arguments,
+                      });
+                    }
                   }
 
                   continue;
@@ -546,6 +574,9 @@ const openAITokenUsageSchema = z
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openAIChatResponseSchema = z.object({
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
   choices: z.array(
     z.object({
       message: z.object({
@@ -599,6 +630,9 @@ const openAIChatResponseSchema = z.object({
 // this approach limits breakages when the API changes and increases efficiency
 const openaiChatChunkSchema = z.union([
   z.object({
+    id: z.string().nullish(),
+    created: z.number().nullish(),
+    model: z.string().nullish(),
     choices: z.array(
       z.object({
         delta: z

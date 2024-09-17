@@ -61,9 +61,8 @@ regardless of this flag, but might send different prompts and
 use further optimizations if this flag is set to `true`.
 
 Defaults to `false`.
-
-TODO rename to supportsGrammarGuidedGeneration in v2
 */
+  // TODO rename to supportsGrammarGuidedGeneration in v2
   readonly supportsStructuredOutputs?: boolean;
 
   /**
@@ -116,13 +115,31 @@ settings.
     };
 
     /**
-Optional raw response information for debugging purposes.
+Optional response information for telemetry and debugging purposes.
      */
+    // TODO rename to `response` in v2
     rawResponse?: {
       /**
 Response headers.
       */
       headers?: Record<string, string>;
+    };
+
+    response?: {
+      /**
+ID for the generated response, if the provider sends one.
+     */
+      id?: string;
+
+      /**
+Timestamp for the start of the generated response, if the provider sends one.
+     */
+      timestamp?: Date;
+
+      /**
+The ID of the response model that was used to generate the response, if the provider sends one.
+     */
+      modelId?: string;
     };
 
     warnings?: LanguageModelV1CallWarning[];
@@ -135,8 +152,10 @@ results that can be fully encapsulated in the provider.
     providerMetadata?: LanguageModelV1ProviderMetadata;
 
     /**
-  Logprobs for the completion.
-  `undefined` if the mode does not support logprobs or if was not enabled
+Logprobs for the completion.
+`undefined` if the mode does not support logprobs or if was not enabled
+
+@deprecated will be changed into a provider-specific extension in v2
      */
     logprobs?: LanguageModelV1LogProbs;
   }>;
@@ -200,17 +219,26 @@ export type LanguageModelV1StreamPart =
       argsTextDelta: string;
     }
 
+  // metadata for the response.
+  // separate stream part so it can be sent once it is available.
+  | {
+      type: 'response-metadata';
+      id?: string;
+      timestamp?: Date;
+      modelId?: string;
+    }
+
   // the usage stats, finish reason and logprobs should be the last part of the
   // stream:
   | {
       type: 'finish';
       finishReason: LanguageModelV1FinishReason;
-      logprobs?: LanguageModelV1LogProbs;
       providerMetadata?: LanguageModelV1ProviderMetadata;
       usage: { promptTokens: number; completionTokens: number };
+
+      // @deprecated - will be changed into a provider-specific extension in v2
+      logprobs?: LanguageModelV1LogProbs;
     }
 
   // error parts are streamed, allowing for multiple errors
   | { type: 'error'; error: unknown };
-
-export type LanguageModelV1ResponseMetadata = {};

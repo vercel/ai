@@ -1,0 +1,20 @@
+{
+  "name": "ai-sdk-hono-example",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@ai-sdk/openai": "latest",
+    "@hono/node-server": "1.12.2",
+    "ai": "latest",
+    "dotenv": "16.4.5",
+    "hono": "4.5.11"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.20",
+    "tsx": "4.7.1",
+    "typescript": "5.5.4"
+  }
+}

@@ -97,8 +97,8 @@ export function convertToLanguageModelMessage(
 
       return {
         role: 'user',
-        content: message.content.map(
-          (part): LanguageModelV1TextPart | LanguageModelV1ImagePart => {
+        content: message.content
+          .map((part): LanguageModelV1TextPart | LanguageModelV1ImagePart => {
             switch (part.type) {
               case 'text': {
                 return {
@@ -202,8 +202,9 @@ export function convertToLanguageModelMessage(
                 };
               }
             }
-          },
-        ),
+          })
+          // remove empty text parts:
+          .filter(part => part.type !== 'text' || part.text !== ''),
         providerMetadata: message.experimental_providerMetadata,
       };
     }
@@ -219,10 +220,18 @@ export function convertToLanguageModelMessage(
 
       return {
         role: 'assistant',
-        content: message.content.filter(
-          // remove empty text parts:
-          part => part.type !== 'text' || part.text !== '',
-        ),
+        content: message.content
+          .filter(
+            // remove empty text parts:
+            part => part.type !== 'text' || part.text !== '',
+          )
+          .map(part => {
+            const { experimental_providerMetadata, ...rest } = part;
+            return {
+              ...rest,
+              providerMetadata: experimental_providerMetadata,
+            };
+          }),
         providerMetadata: message.experimental_providerMetadata,
       };
     }

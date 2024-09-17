@@ -26,6 +26,7 @@ import {
   openAIErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
+import { getResponseMetadata } from './get-response-metadata';
 
 type OpenAICompletionConfig = {
   provider: string;
@@ -198,6 +199,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      response: getResponseMetadata(response),
       warnings,
     };
   }
@@ -239,6 +241,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       completionTokens: Number.NaN,
     };
     let logprobs: LanguageModelV1LogProbs;
+    let isFirstChunk = true;
 
     return {
       stream: response.pipeThrough(
@@ -261,6 +264,15 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
               finishReason = 'error';
               controller.enqueue({ type: 'error', error: value.error });
               return;
+            }
+
+            if (isFirstChunk) {
+              isFirstChunk = false;
+
+              controller.enqueue({
+                type: 'response-metadata',
+                ...getResponseMetadata(value),
+              });
             }
 
             if (value.usage != null) {
@@ -312,6 +324,9 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openAICompletionResponseSchema = z.object({
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
   choices: z.array(
     z.object({
       text: z.string(),
@@ -322,8 +337,7 @@ const openAICompletionResponseSchema = z.object({
           token_logprobs: z.array(z.number()),
           top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
         })
-        .nullable()
-        .optional(),
+        .nullish(),
     }),
   ),
   usage: z.object({
@@ -336,6 +350,9 @@ const openAICompletionResponseSchema = z.object({
 // this approach limits breakages when the API changes and increases efficiency
 const openaiCompletionChunkSchema = z.union([
   z.object({
+    id: z.string().nullish(),
+    created: z.number().nullish(),
+    model: z.string().nullish(),
     choices: z.array(
       z.object({
         text: z.string(),
@@ -347,8 +364,7 @@ const openaiCompletionChunkSchema = z.union([
             token_logprobs: z.array(z.number()),
             top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
           })
-          .nullable()
-          .optional(),
+          .nullish(),
       }),
     ),
     usage: z
@@ -356,8 +372,7 @@ const openaiCompletionChunkSchema = z.union([
         prompt_tokens: z.number(),
         completion_tokens: z.number(),
       })
-      .optional()
-      .nullable(),
+      .nullish(),
   }),
   openAIErrorDataSchema,
 ]);

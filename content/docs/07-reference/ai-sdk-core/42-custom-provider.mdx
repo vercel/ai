@@ -1,0 +1,91 @@
+---
+title: customProvider
+description: Custom provider that uses models from a different provider (API Reference)
+---
+
+# `customProvider()`
+
+<Note type="warning">Provider management is an experimental feature.</Note>
+
+With a custom provider, you can map ids to any model.
+This allows you to set up custom model configurations, alias names, and more.
+The custom provider also supports a fallback provider, which is useful for
+wrapping existing providers and adding additional functionality.
+
+### Example: custom model settings
+
+You can create a custom provider using `experiental_createCustomProvider`.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_customProvider as customProvider } from 'ai';
+
+// custom provider with different model settings:
+export const myOpenAI = customProvider({
+  languageModels: {
+    // replacement model with custom settings:
+    'gpt-4': openai('gpt-4', { structuredOutputs: true }),
+    // alias model with custom settings:
+    'gpt-4o-structured': openai('gpt-4o', { structuredOutputs: true }),
+  },
+  fallbackProvider: openai,
+});
+```
+
+## Import
+
+<Snippet
+  text={`import { experimental_customProvider as customProvider } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'languageModels',
+      type: 'Record<string, LanguageModel>',
+      isOptional: true,
+      description:
+        'A record of language models, where keys are model IDs and values are LanguageModel instances.',
+    },
+    {
+      name: 'textEmbeddingModels',
+      type: 'Record<string, EmbeddingModelV1<string>>',
+      isOptional: true,
+      description:
+        'A record of text embedding models, where keys are model IDs and values are EmbeddingModel<string> instances.',
+    },
+    {
+      name: 'fallbackProvider',
+      type: 'Provider',
+      isOptional: true,
+      description:
+        'An optional fallback provider to use when a requested model is not found in the custom provider.',
+    },
+  ]}
+/>
+
+### Returns
+
+The `createCustomProvider` function returns a `Provider` instance. It has the following methods:
+
+<PropertiesTable
+  content={[
+    {
+      name: 'languageModel',
+      type: '(id: string) => LanguageModel',
+      description:
+        'A function that returns a language model by its id (format: providerId:modelId)',
+    },
+    {
+      name: 'textEmbeddingModel',
+      type: '(id: string) => EmbeddingModel<string>',
+      description:
+        'A function that returns a text embedding model by its id (format: providerId:modelId)',
+    },
+  ]}
+/>

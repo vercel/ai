@@ -2,6 +2,7 @@ import { JSONSchema7 } from 'json-schema';
 import { LanguageModelV1CallSettings } from './language-model-v1-call-settings';
 import { LanguageModelV1FunctionTool } from './language-model-v1-function-tool';
 import { LanguageModelV1Prompt } from './language-model-v1-prompt';
+import { LanguageModelV1ProviderMetadata } from './language-model-v1-provider-metadata';
 import { LanguageModelV1ToolChoice } from './language-model-v1-tool-choice';
 
 export type LanguageModelV1CallOptions = LanguageModelV1CallSettings & {
@@ -76,4 +77,11 @@ That approach allows us to evolve the user  facing prompts without breaking
 the language model interface.
    */
   prompt: LanguageModelV1Prompt;
+
+  /**
+Additional provider-specific metadata.
+The metadata is passed through to the provider from the AI SDK and enables
+provider-specific functionality that can be fully encapsulated in the provider.
+   */
+  providerMetadata?: LanguageModelV1ProviderMetadata;
 };

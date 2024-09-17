@@ -163,7 +163,7 @@ const [store, setStore] = createStore<Record<string, Message[]>>({});
 
 export type UseChatOptions = SharedUseChatOptions & {
   /**
-Maximal number of automatic roundtrips for tool calls.
+Maximum number of automatic roundtrips for tool calls.
 
 An automatic tool call roundtrip is a call to the server with the
 tool call results when all tool calls in the last assistant
@@ -173,8 +173,19 @@ A maximum number is required to prevent infinite loops in the
 case of misconfigured tools.
 
 By default, it's set to 0, which will disable the feature.
- */
+
+@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
+     */
   maxToolRoundtrips?: number;
+
+  /**
+Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
+
+A maximum number is required to prevent infinite loops in the case of misconfigured tools.
+
+By default, it's set to 1, which means that only a single LLM call is made.
+*/
+  maxSteps?: number;
 };
 
 export function useChat(
@@ -295,7 +306,9 @@ export function useChat(
       setIsLoading(false);
     }
 
-    const maxToolRoundtrips = useChatOptions().maxToolRoundtrips?.() ?? 0;
+    const maxSteps =
+      useChatOptions().maxSteps?.() ??
+      (useChatOptions().maxToolRoundtrips?.() ?? 0) + 1;
     // auto-submit when all tool calls in the last assistant message have results:
     const messages = messagesRef;
     const lastMessage = messages[messages.length - 1];
@@ -305,11 +318,11 @@ export function useChat(
       // ensure there is a last message:
       lastMessage != null &&
       // check if the feature is enabled:
-      maxToolRoundtrips > 0 &&
-      // check that roundtrip is possible:
+      maxSteps > 1 &&
+      // check that next step is possible:
       isAssistantMessageWithCompletedToolCalls(lastMessage) &&
-      // limit the number of automatic roundtrips:
-      countTrailingAssistantMessages(messages) <= maxToolRoundtrips
+      // limit the number of automatic steps:
+      countTrailingAssistantMessages(messages) < maxSteps
     ) {
       await triggerRequest({ messages });
     }

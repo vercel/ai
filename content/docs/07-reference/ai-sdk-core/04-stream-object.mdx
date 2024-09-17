@@ -9,7 +9,7 @@ Streams a typed, structured object for a given prompt and schema using a languag
 
 It can be used to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
 
-#### Example with a schema
+#### Example: stream an object using a schema
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -34,7 +34,35 @@ for await (const partialObject of partialObjectStream) {
 }
 ```
 
-#### Example without a schema
+#### Example: stream an array using a schema
+
+For arrays, you specify the schema of the array items.
+You can use `elementStream` to get the stream of complete array elements.
+
+```ts highlight="7,18"
+import { openai } from '@ai-sdk/openai';
+import { streamObject } from 'ai';
+import { z } from 'zod';
+
+const { elementStream } = await streamObject({
+  model: openai('gpt-4-turbo'),
+  output: 'array',
+  schema: z.object({
+    name: z.string(),
+    class: z
+      .string()
+      .describe('Character class, e.g. warrior, mage, or thief.'),
+    description: z.string(),
+  }),
+  prompt: 'Generate 3 hero descriptions for a fantasy role playing game.',
+});
+
+for await (const hero of elementStream) {
+  console.log(hero);
+}
+```
+
+#### Example: generate JSON without a schema
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -71,41 +99,42 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'output',
-      type: "'object' | 'no-schema' | undefined",
+      type: "'object' | 'array' | 'no-schema' | undefined",
       description: "The type of output to generate. Defaults to 'object'.",
     },
     {
       name: 'mode',
       type: "'auto' | 'json' | 'tool'",
       description:
-        'The mode to use for object generation. Not every model supports all modes. ' +
-        "Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. " +
-        "Must be 'json' for 'no-schema' output.",
+        "The mode to use for object generation. Not every model supports all modes. \
+        Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. \
+        Must be 'json' for 'no-schema' output.",
     },
     {
       name: 'schema',
       type: 'Zod Schema | JSON Schema',
       description:
-        'The schema that describes the shape of the object to generate. ' +
-        'It is sent to the model to generate the object and used to validate the output. ' +
-        'You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). ' +
-        'Not available with "no-schema" output.',
+        "The schema that describes the shape of the object to generate. \
+        It is sent to the model to generate the object and used to validate the output. \
+        You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). \
+        In 'array' mode, the schema is used to describe an array element. \
+        Not available with 'no-schema' output.",
     },
     {
       name: 'schemaName',
       type: 'string | undefined',
       description:
-        'Optional name of the output that should be generated. ' +
-        'Used by some providers for additional LLM guidance, e.g. via tool or schema name. ' +
-        'Not available with "no-schema" output.',
+        "Optional name of the output that should be generated. \
+        Used by some providers for additional LLM guidance, e.g. via tool or schema name. \
+        Not available with 'no-schema' output.",
     },
     {
       name: 'schemaDescription',
       type: 'string | undefined',
       description:
-        'Optional description of the output that should be generated. ' +
-        'Used by some providers for additional LLM guidance, e.g. via tool or schema name. ' +
-        'Not available with "no-schema" output.',
+        "Optional description of the output that should be generated. \
+        Used by some providers for additional LLM guidance, e.g. via tool or schema name. \
+        Not available with 'no-schema' output.",
     },
     {
       name: 'system',
@@ -417,6 +446,13 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       ],
     },
     {
+      name: 'experimental_providerMetadata',
+      type: 'Record<string,Record<string,JSONValue>> | undefined',
+      isOptional: true,
+      description:
+        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+    },
+    {
       name: 'onFinish',
       type: '(result: OnFinishResult) => void',
       isOptional: true,
@@ -479,18 +515,37 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                 'Warnings from the model provider (e.g. unsupported settings).',
             },
             {
-              name: 'rawResponse',
-              type: 'RawResponse',
-              description: 'Optional raw response data.',
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
               properties: [
                 {
-                  type: 'RawResponse',
+                  type: 'Response',
                   parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
                     {
                       name: 'headers',
                       optional: true,
                       type: 'Record<string, string>',
-                      description: 'Response headers.',
+                      description: 'Optional response headers.',
                     },
                   ],
                 },
@@ -552,6 +607,11 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       type: 'AsyncIterableStream<DeepPartial<T>>',
       description:
         'Stream of partial objects. It gets more complete as the stream progresses. Note that the partial object is not validated. If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.',
+    },
+    {
+      name: 'elementStream',
+      type: 'AsyncIterableStream<ELEMENT>',
+      description: 'Stream of array elements. Only available in "array" mode.',
     },
     {
       name: 'textStream',
@@ -628,24 +688,73 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
               type: 'Usage',
               description: 'Token usage.',
             },
+            {
+              name: 'response',
+              type: 'Response',
+              optional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
     },
     {
-      name: 'rawResponse',
-      type: 'RawResponse',
+      name: 'response',
+      type: 'Promise<Response>',
       optional: true,
-      description: 'Optional raw response data.',
+      description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
-          type: 'RawResponse',
+          type: 'Response',
           parameters: [
+            {
+              name: 'id',
+              type: 'string',
+              description:
+                'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+            },
+            {
+              name: 'model',
+              type: 'string',
+              description:
+                'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+            },
+            {
+              name: 'timestamp',
+              type: 'Date',
+              description:
+                'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+            },
             {
               name: 'headers',
               optional: true,
               type: 'Record<string, string>',
-              description: 'Response headers.',
+              description: 'Optional response headers.',
             },
           ],
         },
@@ -659,15 +768,65 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'pipeTextStreamToResponse',
-      type: '(response: ServerResponse, init?: { headers?: Record<string, string>; status?: number } => void',
+      type: '(response: ServerResponse, init?: ResponseInit => void',
       description:
         'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              optional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              optional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              optional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'toTextStreamResponse',
       type: '(init?: ResponseInit) => Response',
       description:
         'Creates a simple text stream response. Each text delta is encoded as UTF-8 and sent as a separate chunk. Non-text-delta events are ignored.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              optional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              optional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              optional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
     },
   ]}
 />

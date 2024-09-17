@@ -1,4 +1,6 @@
-# Node.js Http Server + Vercel AI SDK Example
+# Node.js Http Server + AI SDK Example
+
+You can use the AI SDK in a simple Node.js HTTP server to generate and stream text and objects.
 
 ## Usage
 
@@ -6,7 +8,6 @@
 
 ```sh
 OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
-...
 ```
 
 2. Run the following commands from the root directory of the AI SDK repo:
@@ -16,7 +17,7 @@ pnpm install
 pnpm build
 ```
 
-3. Run any example (from the `examples/ai-core` directory) with the following command:
+3. Run the following command:
 
 ```sh
 pnpm tsx src/server.ts

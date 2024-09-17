@@ -1,5 +1,208 @@
 # ai
 
+## 3.3.40
+
+### Patch Changes
+
+- a91c308: feat (ai/core): add responseMessages to streamText
+
+## 3.3.39
+
+### Patch Changes
+
+- 33cf3e1: feat (ai/core): add providerMetadata to StepResult
+- 17ee757: feat (ai/core): add onStepFinish callback to generateText
+
+## 3.3.38
+
+### Patch Changes
+
+- 83da52c: feat (ai/core): add onStepFinish callback to streamText
+
+## 3.3.37
+
+### Patch Changes
+
+- Updated dependencies [273f696]
+  - @ai-sdk/provider-utils@1.0.19
+  - @ai-sdk/react@0.0.59
+  - @ai-sdk/solid@0.0.47
+  - @ai-sdk/svelte@0.0.49
+  - @ai-sdk/ui-utils@0.0.44
+  - @ai-sdk/vue@0.0.49
+
+## 3.3.36
+
+### Patch Changes
+
+- a3882f5: feat (ai/core): add steps property to streamText result and onFinish callback
+- 1f590ef: chore (ai): rename roundtrips to steps
+- 7e82d36: fix (ai/core): pass topK to providers
+- Updated dependencies [54862e4]
+- Updated dependencies [1f590ef]
+  - @ai-sdk/react@0.0.58
+  - @ai-sdk/ui-utils@0.0.43
+  - @ai-sdk/solid@0.0.46
+  - @ai-sdk/svelte@0.0.48
+  - @ai-sdk/vue@0.0.48
+
+## 3.3.35
+
+### Patch Changes
+
+- 14210d5: feat (ai/core): add sendUsage information to streamText data stream methods
+- Updated dependencies [14210d5]
+  - @ai-sdk/ui-utils@0.0.42
+  - @ai-sdk/react@0.0.57
+  - @ai-sdk/solid@0.0.45
+  - @ai-sdk/svelte@0.0.47
+  - @ai-sdk/vue@0.0.47
+
+## 3.3.34
+
+### Patch Changes
+
+- a0403d6: feat (react): support sending attachments using append
+- 678449a: feat (ai/core): export test helpers
+- ff22fac: fix (ai/rsc): streamUI onFinish is called when tool calls have finished
+- Updated dependencies [a0403d6]
+  - @ai-sdk/react@0.0.56
+
+## 3.3.33
+
+### Patch Changes
+
+- cbddc83: fix (ai/core): filter out empty text parts
+
+## 3.3.32
+
+### Patch Changes
+
+- ce7a4af: feat (ai/core): support providerMetadata in functions
+
+## 3.3.31
+
+### Patch Changes
+
+- 561fd7e: feat (ai/core): add output: enum to generateObject
+
+## 3.3.30
+
+### Patch Changes
+
+- 6ee1f8e: feat (ai/core): add toDataStream to streamText result
+
+## 3.3.29
+
+### Patch Changes
+
+- 1e3dfd2: feat (ai/core): enhance pipeToData/TextStreamResponse methods
+
+## 3.3.28
+
+### Patch Changes
+
+- db61c53: feat (ai/core): middleware support
+
+## 3.3.27
+
+### Patch Changes
+
+- 03313cd: feat (ai): expose response id, response model, response timestamp in telemetry and api
+- 3be7c1c: fix (provider/anthropic): support prompt caching on assistant messages
+- Updated dependencies [03313cd]
+- Updated dependencies [3be7c1c]
+  - @ai-sdk/provider-utils@1.0.18
+  - @ai-sdk/provider@0.0.23
+  - @ai-sdk/react@0.0.55
+  - @ai-sdk/solid@0.0.44
+  - @ai-sdk/svelte@0.0.46
+  - @ai-sdk/ui-utils@0.0.41
+  - @ai-sdk/vue@0.0.46
+
+## 3.3.26
+
+### Patch Changes
+
+- Updated dependencies [4ab883f]
+  - @ai-sdk/react@0.0.54
+
+## 3.3.25
+
+### Patch Changes
+
+- 4f1530f: feat (ai/core): add OpenTelemetry Semantic Conventions for GenAI operations to v1.27.0 of standard
+- dad775f: feat (ai/core): add finish event and avg output tokens per second (telemetry)
+
+## 3.3.24
+
+### Patch Changes
+
+- d87a655: fix (ai/core): provide fallback when globalThis.performance is not available
+
+## 3.3.23
+
+### Patch Changes
+
+- b55e6f7: fix (ai/core): streamObject text stream in array mode must not include elements: prefix.
+
+## 3.3.22
+
+### Patch Changes
+
+- a5a56fd: fix (ai/core): only send roundtrip-finish event after async tool calls are done
+
+## 3.3.21
+
+### Patch Changes
+
+- aa2dc58: feat (ai/core): add maxToolRoundtrips to streamText
+- Updated dependencies [aa2dc58]
+  - @ai-sdk/ui-utils@0.0.40
+  - @ai-sdk/react@0.0.53
+  - @ai-sdk/solid@0.0.43
+  - @ai-sdk/svelte@0.0.45
+  - @ai-sdk/vue@0.0.45
+
+## 3.3.20
+
+### Patch Changes
+
+- 7807677: fix (rsc): Deep clone currentState in getMutableState()
+
+## 3.3.19
+
+### Patch Changes
+
+- 7235de0: fix (ai/core): convertToCoreMessages accepts Message[]
+
+## 3.3.18
+
+### Patch Changes
+
+- 9e3b5a5: feat (ai/core): add experimental_customProvider
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+  - @ai-sdk/ui-utils@0.0.39
+  - @ai-sdk/react@0.0.52
+  - @ai-sdk/solid@0.0.42
+  - @ai-sdk/svelte@0.0.44
+  - @ai-sdk/vue@0.0.44
+
+## 3.3.17
+
+### Patch Changes
+
+- d151349: feat (ai/core): array output for generateObject / streamObject
+- Updated dependencies [d151349]
+  - @ai-sdk/ui-utils@0.0.38
+  - @ai-sdk/react@0.0.51
+  - @ai-sdk/solid@0.0.41
+  - @ai-sdk/svelte@0.0.43
+  - @ai-sdk/vue@0.0.43
+
 ## 3.3.16
 
 ### Patch Changes

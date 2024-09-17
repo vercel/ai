@@ -367,7 +367,7 @@ const finishMessageStreamPart: StreamPart<
   'finish_message',
   {
     finishReason: LanguageModelV1FinishReason;
-    usage: {
+    usage?: {
       promptTokens: number;
       completionTokens: number;
     };
@@ -380,34 +380,106 @@ const finishMessageStreamPart: StreamPart<
       value == null ||
       typeof value !== 'object' ||
       !('finishReason' in value) ||
-      typeof value.finishReason !== 'string' ||
-      !('usage' in value) ||
-      value.usage == null ||
-      typeof value.usage !== 'object' ||
-      !('promptTokens' in value.usage) ||
-      !('completionTokens' in value.usage)
+      typeof value.finishReason !== 'string'
     ) {
       throw new Error(
-        '"finish_message" parts expect an object with a "finishReason" and "usage" property.',
+        '"finish_message" parts expect an object with a "finishReason" property.',
       );
     }
-    // NaN is JSON parsed as null.
-    if (typeof value.usage.promptTokens !== 'number') {
-      value.usage.promptTokens = Number.NaN;
+
+    const result: {
+      finishReason: LanguageModelV1FinishReason;
+      usage?: {
+        promptTokens: number;
+        completionTokens: number;
+      };
+    } = {
+      finishReason: value.finishReason as LanguageModelV1FinishReason,
+    };
+
+    if (
+      'usage' in value &&
+      value.usage != null &&
+      typeof value.usage === 'object' &&
+      'promptTokens' in value.usage &&
+      'completionTokens' in value.usage
+    ) {
+      result.usage = {
+        promptTokens:
+          typeof value.usage.promptTokens === 'number'
+            ? value.usage.promptTokens
+            : Number.NaN,
+        completionTokens:
+          typeof value.usage.completionTokens === 'number'
+            ? value.usage.completionTokens
+            : Number.NaN,
+      };
     }
-    if (typeof value.usage.completionTokens !== 'number') {
-      value.usage.completionTokens = Number.NaN;
-    }
+
     return {
       type: 'finish_message',
-      value: value as unknown as {
-        finishReason: LanguageModelV1FinishReason;
-        usage: {
-          promptTokens: number;
-          completionTokens: number;
-          totalTokens: number;
-        };
-      },
+      value: result,
+    };
+  },
+};
+
+const finishStepStreamPart: StreamPart<
+  'e',
+  'finish_step',
+  {
+    finishReason: LanguageModelV1FinishReason;
+    usage?: {
+      promptTokens: number;
+      completionTokens: number;
+    };
+  }
+> = {
+  code: 'e',
+  name: 'finish_step',
+  parse: (value: JSONValue) => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('finishReason' in value) ||
+      typeof value.finishReason !== 'string'
+    ) {
+      throw new Error(
+        '"finish_step" parts expect an object with a "finishReason" property.',
+      );
+    }
+
+    const result: {
+      finishReason: LanguageModelV1FinishReason;
+      usage?: {
+        promptTokens: number;
+        completionTokens: number;
+      };
+    } = {
+      finishReason: value.finishReason as LanguageModelV1FinishReason,
+    };
+
+    if (
+      'usage' in value &&
+      value.usage != null &&
+      typeof value.usage === 'object' &&
+      'promptTokens' in value.usage &&
+      'completionTokens' in value.usage
+    ) {
+      result.usage = {
+        promptTokens:
+          typeof value.usage.promptTokens === 'number'
+            ? value.usage.promptTokens
+            : Number.NaN,
+        completionTokens:
+          typeof value.usage.completionTokens === 'number'
+            ? value.usage.completionTokens
+            : Number.NaN,
+      };
+    }
+
+    return {
+      type: 'finish_step',
+      value: result,
     };
   },
 };
@@ -427,6 +499,7 @@ const streamParts = [
   toolCallStreamingStartStreamPart,
   toolCallDeltaStreamPart,
   finishMessageStreamPart,
+  finishStepStreamPart,
 ] as const;
 
 // union type of all stream parts
@@ -444,7 +517,8 @@ type StreamParts =
   | typeof toolResultStreamPart
   | typeof toolCallStreamingStartStreamPart
   | typeof toolCallDeltaStreamPart
-  | typeof finishMessageStreamPart;
+  | typeof finishMessageStreamPart
+  | typeof finishStepStreamPart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -467,7 +541,8 @@ export type StreamPartType =
   | ReturnType<typeof toolResultStreamPart.parse>
   | ReturnType<typeof toolCallStreamingStartStreamPart.parse>
   | ReturnType<typeof toolCallDeltaStreamPart.parse>
-  | ReturnType<typeof finishMessageStreamPart.parse>;
+  | ReturnType<typeof finishMessageStreamPart.parse>
+  | ReturnType<typeof finishStepStreamPart.parse>;
 
 export const streamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -484,6 +559,7 @@ export const streamPartsByCode = {
   [toolCallStreamingStartStreamPart.code]: toolCallStreamingStartStreamPart,
   [toolCallDeltaStreamPart.code]: toolCallDeltaStreamPart,
   [finishMessageStreamPart.code]: finishMessageStreamPart,
+  [finishStepStreamPart.code]: finishStepStreamPart,
 } as const;
 
 /**
@@ -524,6 +600,7 @@ export const StreamStringPrefixes = {
     toolCallStreamingStartStreamPart.code,
   [toolCallDeltaStreamPart.name]: toolCallDeltaStreamPart.code,
   [finishMessageStreamPart.name]: finishMessageStreamPart.code,
+  [finishStepStreamPart.name]: finishStepStreamPart.code,
 } as const;
 
 export const validCodes = streamParts.map(part => part.code);

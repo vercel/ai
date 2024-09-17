@@ -631,7 +631,15 @@ describe('prepareRequestBody', () => {
         expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
         expect(bodyOptions).toStrictEqual({
-          messages: [{ role: 'user', content: 'hi', id: expect.any(String) }],
+          messages: [
+            {
+              role: 'user',
+              content: 'hi',
+              id: expect.any(String),
+              experimental_attachments: undefined,
+              createdAt: expect.any(Date),
+            },
+          ],
           requestData: { 'test-data-key': 'test-data-value' },
           requestBody: { 'request-body-key': 'request-body-value' },
         });
@@ -1452,6 +1460,112 @@ describe('attachments with empty submit', () => {
   );
 });
 
+describe('should append message with attachments', () => {
+  const TestComponent = () => {
+    const { messages, append } = useChat();
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+            {m.experimental_attachments?.map(attachment => (
+              <img
+                key={attachment.name}
+                src={attachment.url}
+                alt={attachment.name}
+                data-testid={`attachment-${idx}`}
+              />
+            ))}
+          </div>
+        ))}
+
+        <form
+          onSubmit={event => {
+            event.preventDefault();
+
+            append(
+              {
+                role: 'user',
+                content: 'Message with image attachment',
+              },
+              {
+                experimental_attachments: [
+                  {
+                    name: 'test.png',
+                    contentType: 'image/png',
+                    url: 'https://example.com/image.png',
+                  },
+                ],
+              },
+            );
+          }}
+          data-testid="chat-form"
+        >
+          <button type="submit" data-testid="submit-button">
+            Send
+          </button>
+        </form>
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'should handle image file attachment and submission',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Response to message with image attachment"\n'],
+      },
+      async ({ call }) => {
+        const submitButton = screen.getByTestId('submit-button');
+        await userEvent.click(submitButton);
+
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent(
+          'User: Message with image attachment',
+        );
+
+        await screen.findByTestId('attachment-0');
+        expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+          'src',
+          expect.stringContaining('https://example.com/image.png'),
+        );
+
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
+
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [
+            {
+              role: 'user',
+              content: 'Message with image attachment',
+              experimental_attachments: [
+                {
+                  name: 'test.png',
+                  contentType: 'image/png',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          ],
+        });
+      },
+    ),
+  );
+});
+
 describe('reload', () => {
   const TestComponent = () => {
     const { messages, append, reload } = useChat();
@@ -1536,6 +1650,72 @@ describe('reload', () => {
         expect(screen.getByTestId('message-1')).toHaveTextContent(
           'AI: second response',
         );
+      },
+    ),
+  );
+});
+
+describe('test sending additional fields during message submission', () => {
+  const TestComponent = () => {
+    const { messages, append } = useChat();
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+          </div>
+        ))}
+
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({
+              role: 'user',
+              content: 'hi',
+              annotations: ['this is an annotation'],
+            });
+          }}
+        />
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'annotations',
+    withTestServer(
+      [
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['0:"first response"\n'],
+        },
+      ],
+      async ({ call }) => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [
+            {
+              role: 'user',
+              content: 'hi',
+              annotations: ['this is an annotation'],
+            },
+          ],
+        });
       },
     ),
   );

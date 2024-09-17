@@ -1,0 +1,19 @@
+{
+  "name": "ai-sdk-fastify-example",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@ai-sdk/openai": "latest",
+    "ai": "latest",
+    "dotenv": "16.4.5",
+    "fastify": "4.28.1"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.20",
+    "tsx": "4.7.1",
+    "typescript": "5.5.4"
+  }
+}

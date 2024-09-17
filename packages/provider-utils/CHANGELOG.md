@@ -1,5 +1,27 @@
 # @ai-sdk/provider-utils
 
+## 1.0.19
+
+### Patch Changes
+
+- 273f696: fix (ai/provider-utils): expose size argument in generateId
+
+## 1.0.18
+
+### Patch Changes
+
+- 03313cd: feat (ai): expose response id, response model, response timestamp in telemetry and api
+- Updated dependencies [03313cd]
+- Updated dependencies [3be7c1c]
+  - @ai-sdk/provider@0.0.23
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+
 ## 1.0.16
 
 ### Patch Changes

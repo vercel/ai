@@ -8,15 +8,15 @@ export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, isLoading } =
     useChat({
       streamProtocol: 'data',
-      maxToolRoundtrips: 2,
+      maxSteps: 3,
     });
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-col p-4 gap-2">
+      <div className="flex flex-col gap-2 p-4">
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
-            <div className="w-24 text-zinc-500 flex-shrink-0">{`${message.role}: `}</div>
+            <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
 
             <div className="flex flex-col gap-2">
               {message.content && <div>{message.content}</div>}
@@ -44,13 +44,13 @@ export default function Page() {
 
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col fixed bottom-0 w-full border-t"
+        className="fixed bottom-0 flex flex-col w-full border-t"
       >
         <input
           value={input}
           placeholder="What's the weather in San Francisco?"
           onChange={handleInputChange}
-          className="w-full p-4 outline-none bg-transparent"
+          className="w-full p-4 bg-transparent outline-none"
           disabled={isLoading}
         />
       </form>
