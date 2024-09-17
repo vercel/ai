@@ -7,7 +7,13 @@ import {
 } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
-import { cleanup, findByText, render, screen, waitFor } from '@testing-library/vue';
+import {
+  cleanup,
+  findByText,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/vue';
 import TestChatComponent from './TestChatComponent.vue';
 import TestChatCustomMetadataComponent from './TestChatCustomMetadataComponent.vue';
 import TestChatFormComponent from './TestChatFormComponent.vue';
@@ -463,7 +469,7 @@ describe('onToolCall', () => {
           toolCallId: 'tool-call-0',
           toolName: 'client-tool',
           args: { testArg: 'test-value' },
-        })
+        }),
       ],
     });
 
@@ -475,7 +481,7 @@ describe('onToolCall', () => {
       'test-tool-response: client-tool tool-call-0 {"testArg":"test-value"}',
     );
   });
-})
+});
 
 describe('tool invocations', () => {
   beforeEach(() => {
@@ -487,10 +493,11 @@ describe('tool invocations', () => {
     cleanup();
   });
 
-  it('should display partial tool call, tool call, and tool result',
-    withTestServer({ url: '/api/chat', type: 'controlled-stream' },
+  it(
+    'should display partial tool call, tool call, and tool result',
+    withTestServer(
+      { url: '/api/chat', type: 'controlled-stream' },
       async ({ streamController }) => {
-
         const firstInput = screen.getByTestId('do-input');
         await userEvent.type(firstInput, 'hi');
         await userEvent.keyboard('{Enter}');
@@ -508,7 +515,7 @@ describe('tool invocations', () => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
             '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool"}',
           );
-        })
+        });
 
         streamController.enqueue(
           formatStreamPart('tool_call_delta', {
@@ -563,14 +570,15 @@ describe('tool invocations', () => {
             'test-result',
           );
         });
-      }
-    )
-  )
+      },
+    ),
+  );
 
-  it('should display partial tool call and tool result (when there is no tool call streaming)',
-    withTestServer({ url: '/api/chat', type: 'controlled-stream' },
+  it(
+    'should display partial tool call and tool result (when there is no tool call streaming)',
+    withTestServer(
+      { url: '/api/chat', type: 'controlled-stream' },
       async ({ streamController }) => {
-
         const firstInput = screen.getByTestId('do-input');
         await userEvent.type(firstInput, 'hi');
         await userEvent.keyboard('{Enter}');
@@ -602,7 +610,7 @@ describe('tool invocations', () => {
             'test-result',
           );
         });
-      }
-    )
-  )
-})
+      },
+    ),
+  );
+});

@@ -78,36 +78,38 @@ let uniqueId = 0;
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv;
 const store: Record<string, Message[] | undefined> = {};
 
-export function useChat({
-  api = '/api/chat',
-  id,
-  initialMessages = [],
-  initialInput = '',
-  sendExtraMessageFields,
-  experimental_onFunctionCall,
-  streamMode,
-  streamProtocol,
-  onResponse,
-  onFinish,
-  onError,
-  credentials,
-  headers: metadataHeaders,
-  body: metadataBody,
-  generateId = generateIdFunc,
-  onToolCall,
-  fetch,
-  keepLastMessageOnError = false,
-  maxSteps,
-}: UseChatOptions & {
+export function useChat(
+  {
+    api = '/api/chat',
+    id,
+    initialMessages = [],
+    initialInput = '',
+    sendExtraMessageFields,
+    experimental_onFunctionCall,
+    streamMode,
+    streamProtocol,
+    onResponse,
+    onFinish,
+    onError,
+    credentials,
+    headers: metadataHeaders,
+    body: metadataBody,
+    generateId = generateIdFunc,
+    onToolCall,
+    fetch,
+    keepLastMessageOnError = false,
+    maxSteps,
+  }: UseChatOptions & {
     /**
      * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
      * A maximum number is required to prevent infinite loops in the case of misconfigured tools.
      * By default, it's set to 1, which means that only a single LLM call is made.
      */
-  maxSteps?: number;
-} = {
-  maxSteps: 0,
-}): UseChatHelpers {
+    maxSteps?: number;
+  } = {
+    maxSteps: 0,
+  },
+): UseChatHelpers {
   // streamMode is deprecated, use streamProtocol instead.
   if (streamMode) {
     streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
@@ -264,7 +266,6 @@ export function useChat({
       mutateLoading(() => false);
     }
 
-
     // auto-submit when all tool calls in the last assistant message have results:
     const lastMessage = messages.value[messages.value.length - 1];
     if (
@@ -273,7 +274,8 @@ export function useChat({
       // ensure there is a last message:
       lastMessage != null &&
       // check if the feature is enabled:
-      maxSteps && maxSteps > 0 &&
+      maxSteps &&
+      maxSteps > 0 &&
       // check that next step is possible:
       isAssistantMessageWithCompletedToolCalls(lastMessage) &&
       // limit the number of automatic steps:
@@ -347,7 +349,6 @@ export function useChat({
     input.value = '';
   };
 
-
   const addToolResult = ({
     toolCallId,
     result,
@@ -369,7 +370,7 @@ export function useChat({
             ),
           }
         : message,
-    )
+    );
 
     mutate(updatedMessages);
 
@@ -380,7 +381,6 @@ export function useChat({
       triggerRequest(updatedMessages);
     }
   };
-
 
   return {
     messages,
@@ -393,10 +393,9 @@ export function useChat({
     handleSubmit,
     isLoading,
     data: streamData as Ref<undefined | JSONValue[]>,
-    addToolResult
+    addToolResult,
   };
 }
-
 
 /**
 Check if the message is an assistant message with completed tool calls.
@@ -411,7 +410,6 @@ function isAssistantMessageWithCompletedToolCalls(message: Message) {
     message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
   );
 }
-
 
 /**
 Returns the number of trailing assistant messages in the array.

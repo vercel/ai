@@ -2,7 +2,7 @@
 import { useChat } from './use-chat';
 
 const { messages, handleSubmit, input } = useChat({
-  onToolCall({ toolCall, }) {
+  onToolCall({ toolCall }) {
     if (toolCall.toolName === 'client-tool') {
       return `test-tool-response: ${toolCall.toolName} ${
         toolCall.toolCallId
@@ -24,10 +24,10 @@ const { messages, handleSubmit, input } = useChat({
 
       <div v-for="invocation in m.toolInvocations" :key="invocation.toolCallId">
         <template v-if="invocation.state === 'result'">
-          {{ invocation.result  }}
+          {{ invocation.result }}
         </template>
         <template v-else>
-          {{ JSON.stringify(invocation)  }}
+          {{ JSON.stringify(invocation) }}
         </template>
       </div>
     </div>
