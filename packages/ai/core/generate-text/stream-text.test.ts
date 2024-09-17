@@ -2030,6 +2030,72 @@ describe('options.onFinish', () => {
   });
 });
 
+describe('result.responseMessages', () => {
+  it('should contain assistant response message when there are no tool calls', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    await convertAsyncIterableToArray(result.textStream); // consume stream
+
+    expect(await result.responseMessages).toMatchSnapshot();
+  });
+
+  it('should contain assistant response message and tool message when there are tool calls with results', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async args => {
+            assert.deepStrictEqual(args, { value: 'value' });
+            return 'result1';
+          },
+        },
+      },
+      prompt: 'test-input',
+    });
+
+    await convertAsyncIterableToArray(result.textStream); // consume stream
+
+    expect(await result.responseMessages).toMatchSnapshot();
+  });
+});
+
 describe('options.maxSteps', () => {
   let result: StreamTextResult<any>;
   let onFinishResult: Parameters<
@@ -2259,6 +2325,10 @@ describe('options.maxSteps', () => {
 
       it('result.rawResponse should contain rawResponse from last step', async () => {
         assert.deepStrictEqual(result.rawResponse, { headers: { call: '2' } });
+      });
+
+      it('result.responseMessages should contain response messages from all steps', async () => {
+        expect(await result.responseMessages).toMatchSnapshot();
       });
     });
 
