@@ -1,6 +1,6 @@
-# Express.js + Vercel AI SDK Example
+# Express.js + AI SDK Example
 
-You can use the Vercel AI SDK in an [Express.js](https://expressjs.com/) server to generate and stream text and objects to the client.
+You can use the AI SDK in an [Express.js](https://expressjs.com/) server to generate and stream text and objects to the client.
 
 ## Usage
 
