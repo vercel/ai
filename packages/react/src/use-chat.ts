@@ -634,8 +634,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
     toolCallId: string;
     result: any;
   }) => {
-
-
     const updatedMessages = messagesRef.current.map((message, index, arr) =>
       // update the tool calls in the last assistant message:
       index === arr.length - 1 &&
