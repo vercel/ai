@@ -26,7 +26,7 @@ curl -X POST http://localhost:8080
 
 You can use the `pipeDataStreamToResponse` method to pipe the stream data to the server response.
 
-```ts file='index.ts'
+```ts filename='index.ts'
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import express, { Request, Response } from 'express';
@@ -51,7 +51,7 @@ app.listen(8080, () => {
 
 `pipeDataStreamToResponse` can be used with `StreamData` to send additional data to the client.
 
-```ts file='index.ts' highlight="8-10,15-18,21"
+```ts filename='index.ts' highlight="8-10,15-18,21"
 import { openai } from '@ai-sdk/openai';
 import { StreamData, streamText } from 'ai';
 import express, { Request, Response } from 'express';
@@ -84,7 +84,7 @@ app.listen(8080, () => {
 
 You can send a text stream to the client using `pipeTextStreamToResponse`.
 
-```ts file='index.ts' highlight="13"
+```ts filename='index.ts' highlight="13"
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import express, { Request, Response } from 'express';
