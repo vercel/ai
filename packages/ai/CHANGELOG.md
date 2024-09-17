@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.40
+
+### Patch Changes
+
+- a91c308: feat (ai/core): add responseMessages to streamText
+
 ## 3.3.39
 
 ### Patch Changes
