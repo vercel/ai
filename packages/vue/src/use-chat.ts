@@ -97,23 +97,16 @@ export function useChat({
   onToolCall,
   fetch,
   keepLastMessageOnError = false,
-  maxToolRoundtrips,
+  maxSteps,
 }: UseChatOptions & {
     /**
-  Maximal number of automatic roundtrips for tool calls.
-
-  An automatic tool call roundtrip is a call to the server with the
-  tool call results when all tool calls in the last assistant
-  message have results.
-
-  A maximum number is required to prevent infinite loops in the
-  case of misconfigured tools.
-
-  By default, it's set to 0, which will disable the feature.
-    */
-  maxToolRoundtrips?: number;
+     * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
+     * A maximum number is required to prevent infinite loops in the case of misconfigured tools.
+     * By default, it's set to 1, which means that only a single LLM call is made.
+     */
+  maxSteps?: number;
 } = {
-  maxToolRoundtrips: 0,
+  maxSteps: 0,
 }): UseChatHelpers {
   // streamMode is deprecated, use streamProtocol instead.
   if (streamMode) {
@@ -280,11 +273,11 @@ export function useChat({
       // ensure there is a last message:
       lastMessage != null &&
       // check if the feature is enabled:
-      maxToolRoundtrips && maxToolRoundtrips > 0 &&
-      // check that roundtrip is possible:
+      maxSteps && maxSteps > 0 &&
+      // check that next step is possible:
       isAssistantMessageWithCompletedToolCalls(lastMessage) &&
-      // limit the number of automatic roundtrips:
-      countTrailingAssistantMessages(messages.value) <= maxToolRoundtrips
+      // limit the number of automatic steps:
+      countTrailingAssistantMessages(messages.value) <= maxSteps
     ) {
       await triggerRequest(messages.value);
     }
