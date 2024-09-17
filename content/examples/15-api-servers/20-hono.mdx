@@ -1,11 +1,11 @@
 ---
 title: Hono
-description: Example of using Vercel AI SDK in a Hono server.
+description: Example of using the AI SDK in a Hono server.
 ---
 
 # Hono
 
-You can use the Vercel AI SDK in a [Hono](https://hono.dev/) server to generate and stream text and objects to the client.
+You can use the AI SDK in a [Hono](https://hono.dev/) server to generate and stream text and objects to the client.
 
 ## Examples
 
@@ -20,11 +20,13 @@ curl -X POST http://localhost:8080
   set in the `OPENAI_API_KEY` environment variable.
 </Note>
 
+**Full example**: [github.com/vercel/ai/examples/hono](https://github.com/vercel/ai/tree/main/examples/hono)
+
 ### Data Stream
 
 You can use the `toDataStream` method to get a data stream from the result and then pipe it to the response.
 
-```ts file='index.ts'
+```ts filename='index.ts'
 import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
 import { streamText } from 'ai';
@@ -55,7 +57,7 @@ serve({ fetch: app.fetch, port: 8080 });
 
 `toDataStream` can be used with `StreamData` to send additional data to the client.
 
-```ts file='index.ts' highlight="11-13,18-21,28"
+```ts filename='index.ts' highlight="11-13,18-21,28"
 import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
 import { StreamData, streamText } from 'ai';
@@ -94,7 +96,7 @@ serve({ fetch: app.fetch, port: 8080 });
 
 You can use the `textStream` property to get a text stream from the result and then pipe it to the response.
 
-```ts file='index.ts' highlight="18"
+```ts filename='index.ts' highlight="18"
 import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
 import { streamText } from 'ai';

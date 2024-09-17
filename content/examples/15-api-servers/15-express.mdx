@@ -1,11 +1,11 @@
 ---
 title: Express
-description: Example of using Vercel AI SDK in an Express server.
+description: Example of using the AI SDK in an Express server.
 ---
 
 # Express
 
-You can use the Vercel AI SDK in an [Express](https://expressjs.com/) server to generate and stream text and objects to the client.
+You can use the AI SDK in an [Express](https://expressjs.com/) server to generate and stream text and objects to the client.
 
 ## Examples
 
@@ -20,11 +20,13 @@ curl -X POST http://localhost:8080
   set in the `OPENAI_API_KEY` environment variable.
 </Note>
 
+**Full example**: [github.com/vercel/ai/examples/express](https://github.com/vercel/ai/tree/main/examples/express)
+
 ### Data Stream
 
 You can use the `pipeDataStreamToResponse` method to pipe the stream data to the server response.
 
-```ts file='index.ts'
+```ts filename='index.ts'
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import express, { Request, Response } from 'express';
@@ -49,7 +51,7 @@ app.listen(8080, () => {
 
 `pipeDataStreamToResponse` can be used with `StreamData` to send additional data to the client.
 
-```ts file='index.ts' highlight="8-10,15-18,21"
+```ts filename='index.ts' highlight="8-10,15-18,21"
 import { openai } from '@ai-sdk/openai';
 import { StreamData, streamText } from 'ai';
 import express, { Request, Response } from 'express';
@@ -82,7 +84,7 @@ app.listen(8080, () => {
 
 You can send a text stream to the client using `pipeTextStreamToResponse`.
 
-```ts file='index.ts' highlight="13"
+```ts filename='index.ts' highlight="13"
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import express, { Request, Response } from 'express';

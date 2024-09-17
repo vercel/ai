@@ -1,5 +1,10 @@
 import { ServerResponse } from 'node:http';
-import { AIStreamCallbacksAndOptions, StreamData } from '../../streams';
+import {
+  AIStreamCallbacksAndOptions,
+  CoreAssistantMessage,
+  CoreToolMessage,
+  StreamData,
+} from '../../streams';
 import { CoreTool } from '../tool';
 import {
   CallWarning,
@@ -80,6 +85,20 @@ Optional raw response data.
        */
     headers?: Record<string, string>;
   };
+
+  /**
+The response messages that were generated during the call. It consists of an assistant message,
+potentially containing tool calls.
+
+When there are tool results, there is an additional tool message with the tool results that are available.
+If there are tools that do not have execute functions, they are not included in the tool results and
+need to be added separately.
+
+Resolved when the response is finished.
+     */
+  readonly responseMessages: Promise<
+    Array<CoreAssistantMessage | CoreToolMessage>
+  >;
 
   /**
 Details for all steps.

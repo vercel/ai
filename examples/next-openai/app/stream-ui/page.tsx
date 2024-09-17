@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import type { AI } from './actions';
+import type { AI } from './ai';
 import { useActions } from 'ai/rsc';
 
 import { useAIState, useUIState } from 'ai/rsc';
