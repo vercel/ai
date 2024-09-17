@@ -43,7 +43,7 @@ The turn-by-turn implementation is the simplest form of multistep interfaces. In
 In the following example, you specify two tools (`searchFlights` and `lookupFlight`) that the model can use to search for flights and lookup details for a specific flight.
 
 ```tsx filename="app/actions.tsx"
-import { createAI, streamUI } from 'ai/rsc';
+import { streamUI } from 'ai/rsc';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -126,6 +126,13 @@ export async function submitUserMessage(input: string) {
 
   return ui.value;
 }
+```
+
+Next, create an AI context that will hold the UI State and AI State.
+
+```ts filename='app/ai.ts'
+import { createAI } from 'ai/rsc';
+import { submitUserMessage } from './actions';
 
 export const AI = createAI<any[], React.ReactNode[]>({
   initialUIState: [],
@@ -140,7 +147,7 @@ Next, wrap your application with your newly created context.
 
 ```tsx filename='app/layout.tsx'
 import { type ReactNode } from 'react';
-import { AI } from './actions';
+import { AI } from './ai';
 
 export default function RootLayout({
   children,
@@ -161,7 +168,7 @@ To call your Server Action, update your root page with the following:
 'use client';
 
 import { useState } from 'react';
-import { AI } from './actions';
+import { AI } from './ai';
 import { useActions, useUIState } from 'ai/rsc';
 
 export default function Page() {

@@ -194,11 +194,14 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
 
 ```tsx filename="app/ai.ts"
 import { createAI } from 'ai/rsc';
+import { submitMessage } from './actions';
 
 export const AI = createAI({
   actions: {
     submitMessage,
   },
+  initialAIState: [],
+  initialUIState: [],
 });
 ```
 
