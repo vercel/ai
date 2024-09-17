@@ -1,7 +1,7 @@
 'use server';
 
 import { generateId } from 'ai';
-import { createAI, createStreamableUI, createStreamableValue } from 'ai/rsc';
+import { createStreamableUI, createStreamableValue } from 'ai/rsc';
 import { OpenAI } from 'openai';
 import { ReactNode } from 'react';
 import { Message } from './message';
@@ -93,9 +93,3 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
     text: textUIStream.value,
   };
 }
-
-export const AI = createAI({
-  actions: {
-    submitMessage,
-  },
-});
