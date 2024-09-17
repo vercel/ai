@@ -104,12 +104,17 @@ It contains all the text, tool calls, tool results, and more from each step.
 
 #### Example: Extract tool results from all steps
 
-```ts highlight="5"
-const result = await generateText({
+```ts highlight="3,9-10"
+import { generateText } from 'ai';
+
+const { steps } = await generateText({
+  model: openai('gpt-4-turbo'),
+  maxSteps: 10,
   // ...
 });
 
-const allToolResults = result.steps.flatMap(step => step.toolResults);
+// extract all tool calls from the steps:
+const allToolCalls = steps.flatMap(step => step.toolCalls);
 ```
 
 ### Response Messages
