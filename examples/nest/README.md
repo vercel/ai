@@ -1,6 +1,6 @@
-# Fastify + AI SDK Example
+# Nest.js + AI SDK Example
 
-You can use the AI SDK in an [Fastify](https://fastify.dev/) server to generate and stream text and objects.
+You can use the AI SDK in an [Nest.js](https://nestjs.com/) server to generate and stream text and objects.
 
 ## Usage
 
@@ -14,13 +14,12 @@ OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
 
 ```sh
 pnpm install
-pnpm build
 ```
 
 3. Run the following command:
 
 ```sh
-pnpm tsx src/server.ts
+pnpm run start:dev
 ```
 
 4. Test the endpoint with Curl:
