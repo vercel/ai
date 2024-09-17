@@ -1,5 +1,30 @@
 # ai
 
+## 3.3.39
+
+### Patch Changes
+
+- 33cf3e1: feat (ai/core): add providerMetadata to StepResult
+- 17ee757: feat (ai/core): add onStepFinish callback to generateText
+
+## 3.3.38
+
+### Patch Changes
+
+- 83da52c: feat (ai/core): add onStepFinish callback to streamText
+
+## 3.3.37
+
+### Patch Changes
+
+- Updated dependencies [273f696]
+  - @ai-sdk/provider-utils@1.0.19
+  - @ai-sdk/react@0.0.59
+  - @ai-sdk/solid@0.0.47
+  - @ai-sdk/svelte@0.0.49
+  - @ai-sdk/ui-utils@0.0.44
+  - @ai-sdk/vue@0.0.49
+
 ## 3.3.36
 
 ### Patch Changes

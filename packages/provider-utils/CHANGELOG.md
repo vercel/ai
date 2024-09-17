@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 1.0.19
+
+### Patch Changes
+
+- 273f696: fix (ai/provider-utils): expose size argument in generateId
+
 ## 1.0.18
 
 ### Patch Changes

@@ -28,8 +28,9 @@ import { GenerateTextResult } from './generate-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
+import { StepResult } from './step-result';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -72,6 +73,8 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
 
+@param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
+
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
  */
@@ -94,6 +97,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
     generateId = originalGenerateId,
     currentDate = () => new Date(),
   } = {},
+  onStepFinish,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -153,6 +157,11 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
     experimental_providerMetadata?: ProviderMetadata;
+
+    /**
+    Callback that is called when each step (LLM call) is finished, including intermediate steps.
+    */
+    onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -349,8 +358,8 @@ functionality that can be fully encapsulated in the provider.
         usage.promptTokens += currentUsage.promptTokens;
         usage.totalTokens += currentUsage.totalTokens;
 
-        // add step information:
-        steps.push({
+        // Add step information:
+        const currentStep: StepResult<TOOLS> = {
           text: currentModelResponse.text ?? '',
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
@@ -362,7 +371,10 @@ functionality that can be fully encapsulated in the provider.
             ...currentModelResponse.response,
             headers: currentModelResponse.rawResponse?.headers,
           },
-        });
+          experimental_providerMetadata: currentModelResponse.providerMetadata,
+        };
+        steps.push(currentStep);
+        await onStepFinish?.(currentStep);
 
         // append to messages for potential next step:
         const newResponseMessages = toResponseMessages({

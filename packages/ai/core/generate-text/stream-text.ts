@@ -32,7 +32,6 @@ import {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
-  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -51,13 +50,13 @@ import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
+import { StepResult } from './step-result';
 import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
-import { StepResult } from './step-result';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', length: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -99,6 +98,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
 
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
+@param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
 @param onFinish - Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
 
@@ -122,6 +122,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   experimental_toolCallStreaming: toolCallStreaming = false,
   onChunk,
   onFinish,
+  onStepFinish,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -207,67 +208,22 @@ Callback that is called for each chunk of the stream. The stream processing will
     /**
 Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
+
+The usage is the combined usage of all steps.
      */
-    onFinish?: (event: {
-      /**
-The reason why the generation finished.
-       */
-      finishReason: FinishReason;
-
-      /**
-The token usage of the generated response.
- */
-      usage: LanguageModelUsage;
-
-      /**
-The full text that has been generated.
-       */
-      text: string;
-
-      /**
-The tool calls that have been executed.
-       */
-      toolCalls?: ToToolCall<TOOLS>[];
-
-      /**
-The tool results that have been generated.
-       */
-      toolResults?: ToToolResult<TOOLS>[];
-
-      /**
-Optional raw response data.
-
-@deprecated Use `response` instead.
-       */
-      rawResponse?: {
+    onFinish?: (
+      event: StepResult<TOOLS> & {
         /**
-Response headers.
-         */
-        headers?: Record<string, string>;
-      };
-
-      /**
-Response metadata.
-       */
-      response: LanguageModelResponseMetadataWithHeaders;
-
-      /**
 Details for all steps.
        */
-      steps: StepResult<TOOLS>[];
+        steps: StepResult<TOOLS>[];
+      },
+    ) => Promise<void> | void;
 
-      /**
-Warnings from the model provider (e.g. unsupported settings).
-       */
-      warnings?: CallWarning[];
-
-      /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-   */
-      readonly experimental_providerMetadata: ProviderMetadata | undefined;
-    }) => Promise<void> | void;
+    /**
+    Callback that is called when each step (LLM call) is finished, including intermediate steps.
+    */
+    onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -413,6 +369,7 @@ results that can be fully encapsulated in the provider.
         rawResponse,
         onChunk,
         onFinish,
+        onStepFinish,
         rootSpan,
         doStreamSpan,
         telemetry,
@@ -469,6 +426,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     rawResponse,
     onChunk,
     onFinish,
+    onStepFinish,
     rootSpan,
     doStreamSpan,
     telemetry,
@@ -486,6 +444,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     rawResponse: StreamTextResult<TOOLS>['rawResponse'];
     onChunk: Parameters<typeof streamText>[0]['onChunk'];
     onFinish: Parameters<typeof streamText>[0]['onFinish'];
+    onStepFinish:
+      | ((event: StepResult<TOOLS>) => Promise<void> | void)
+      | undefined;
     rootSpan: Span;
     doStreamSpan: Span;
     telemetry: TelemetrySettings | undefined;
@@ -707,33 +668,12 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
             // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
             async flush(controller) {
-              controller.enqueue({
-                type: 'step-finish',
-                finishReason: stepFinishReason,
-                usage: stepUsage,
-                experimental_providerMetadata: stepProviderMetadata,
-                logprobs: stepLogProbs,
-                response: stepResponse,
-              });
-
-              // push step to steps array
-              stepResults.push({
-                text: stepText,
-                toolCalls: stepToolCalls,
-                toolResults: stepToolResults,
-                finishReason: stepFinishReason,
-                usage: stepUsage,
-                warnings: self.warnings,
-                logprobs: stepLogProbs,
-                response: stepResponse,
-                rawResponse: self.rawResponse,
-              });
-
-              const telemetryToolCalls =
+              const stepToolCallsJson =
                 stepToolCalls.length > 0
                   ? JSON.stringify(stepToolCalls)
                   : undefined;
 
+              // record telemetry information first to ensure best effort timing
               try {
                 doStreamSpan.setAttributes(
                   selectTelemetryAttributes({
@@ -742,7 +682,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.response.finishReason': stepFinishReason,
                       'ai.response.text': { output: () => stepText },
                       'ai.response.toolCalls': {
-                        output: () => telemetryToolCalls,
+                        output: () => stepToolCallsJson,
                       },
                       'ai.response.id': stepResponse.id,
                       'ai.response.model': stepResponse.modelId,
@@ -756,7 +696,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.finishReason': stepFinishReason,
                       'ai.result.text': { output: () => stepText },
                       'ai.result.toolCalls': {
-                        output: () => telemetryToolCalls,
+                        output: () => stepToolCallsJson,
                       },
 
                       // standardized gen-ai llm span attributes:
@@ -774,6 +714,32 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 // finish doStreamSpan before other operations for correct timing:
                 doStreamSpan.end();
               }
+
+              controller.enqueue({
+                type: 'step-finish',
+                finishReason: stepFinishReason,
+                usage: stepUsage,
+                experimental_providerMetadata: stepProviderMetadata,
+                logprobs: stepLogProbs,
+                response: stepResponse,
+              });
+
+              const stepResult: StepResult<TOOLS> = {
+                text: stepText,
+                toolCalls: stepToolCalls,
+                toolResults: stepToolResults,
+                finishReason: stepFinishReason,
+                usage: stepUsage,
+                warnings: self.warnings,
+                logprobs: stepLogProbs,
+                response: stepResponse,
+                rawResponse: self.rawResponse,
+                experimental_providerMetadata: stepProviderMetadata,
+              };
+
+              stepResults.push(stepResult);
+
+              await onStepFinish?.(stepResult);
 
               const combinedUsage = {
                 promptTokens: usage.promptTokens + stepUsage.promptTokens,
@@ -851,7 +817,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.response.finishReason': stepFinishReason,
                       'ai.response.text': { output: () => stepText },
                       'ai.response.toolCalls': {
-                        output: () => telemetryToolCalls,
+                        output: () => stepToolCallsJson,
                       },
 
                       'ai.usage.promptTokens': combinedUsage.promptTokens,
@@ -862,7 +828,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.finishReason': stepFinishReason,
                       'ai.result.text': { output: () => stepText },
                       'ai.result.toolCalls': {
-                        output: () => telemetryToolCalls,
+                        output: () => stepToolCallsJson,
                       },
                     },
                   }),
@@ -884,6 +850,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 // call onFinish callback:
                 await onFinish?.({
                   finishReason: stepFinishReason,
+                  logprobs: stepLogProbs,
                   usage: combinedUsage,
                   text: stepText,
                   toolCalls: stepToolCalls,

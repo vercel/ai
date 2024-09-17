@@ -5,24 +5,26 @@ import { customAlphabet } from 'nanoid/non-secure';
  *
  * @param alphabet - The alphabet to use for the ID. Default: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.
  * @param prefix - The prefix of the ID to generate. Default: ''.
- * @param length - The length of the random part of the ID to generate. Default: 7.
+ * @param size - The size of the random part of the ID to generate. Default: 7.
  */
-// TODO change length to 16 in 4.0
+//TODO change default size to 16 in 4.0
 export const createIdGenerator = ({
   prefix = '',
-  length = 7,
+  size: defaultSize = 7,
   alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 }: {
   prefix?: string;
-  length?: number;
+  size?: number;
   alphabet?: string;
-} = {}): (() => string) => {
-  const generator = customAlphabet(alphabet, length);
-  return () => `${prefix}${generator()}`;
+} = {}): ((size?: number) => string) => {
+  const generator = customAlphabet(alphabet, defaultSize);
+  return size => `${prefix}${generator(size)}`;
 };
 
 /**
  * Generates a 7-character random string to use for IDs. Not secure.
+ *
+ * @param size - The size of the ID to generate. Default: 7.
  */
-//TODO change length to 16 in 4.0
+//TODO change default size to 16 in 4.0
 export const generateId = createIdGenerator();

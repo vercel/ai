@@ -1,13 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
-import dotenv from 'dotenv';
+import { generateText, tool } from 'ai';
+import 'dotenv/config';
 import { z } from 'zod';
 
-dotenv.config();
-
 async function main() {
-  const result = await streamText({
-    model: openai('gpt-4-turbo'),
+  const { text, usage } = await generateText({
+    model: openai('gpt-4o-2024-08-06', { structuredOutputs: true }),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',
@@ -32,11 +30,11 @@ async function main() {
     },
     maxSteps: 5,
     prompt: 'What is the weather in my current location?',
-  });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
+    onStepFinish: step => {
+      console.log(JSON.stringify(step, null, 2));
+    },
+  });
 }
 
 main().catch(console.error);
