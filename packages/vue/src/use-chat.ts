@@ -107,7 +107,7 @@ export function useChat(
      */
     maxSteps?: number;
   } = {
-    maxSteps: 0,
+    maxSteps: 1,
   },
 ): UseChatHelpers {
   // streamMode is deprecated, use streamProtocol instead.
