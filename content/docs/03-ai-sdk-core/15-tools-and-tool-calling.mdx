@@ -102,6 +102,16 @@ To access intermediate tool calls and results, you can use the `steps` property 
 or the `streamText` `onFinish` callback.
 It contains all the text, tool calls, tool results, and more from each step.
 
+#### Example: Extract all tool results from all steps
+
+```ts highlight="5"
+const result = await generateText({
+  // ...
+});
+
+const allToolResults = result.steps.flatMap(step => step.toolResults);
+```
+
 ### Response Messages
 
 When you run multi-step tool calls, multiple assistant and tool messages will be executed.
