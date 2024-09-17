@@ -80,6 +80,45 @@ exports[`options.maxSteps > 2 steps > callbacks > onFinish should send correct i
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
+  "responseMessages": [
+    {
+      "content": [
+        {
+          "text": "",
+          "type": "text",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "role": "assistant",
+    },
+    {
+      "content": [
+        {
+          "result": "result1",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "role": "tool",
+    },
+    {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+  ],
   "steps": [
     {
       "experimental_providerMetadata": undefined,
@@ -564,6 +603,36 @@ exports[`options.onFinish > options.onFinish should send correct information 1`]
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "responseMessages": [
+    {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "role": "assistant",
+    },
+    {
+      "content": [
+        {
+          "result": "value-result",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "role": "tool",
+    },
+  ],
   "steps": [
     {
       "experimental_providerMetadata": {

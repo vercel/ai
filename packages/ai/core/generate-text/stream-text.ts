@@ -218,7 +218,19 @@ The usage is the combined usage of all steps.
         /**
 Details for all steps.
        */
-        steps: StepResult<TOOLS>[];
+        readonly steps: StepResult<TOOLS>[];
+
+        /**
+The response messages that were generated during the call. It consists of an assistant message,
+potentially containing tool calls.
+
+When there are tool results, there is an additional tool message with the tool results that are available.
+If there are tools that do not have execute functions, they are not included in the tool results and
+need to be added separately.
+     */
+        readonly responseMessages: Array<
+          CoreAssistantMessage | CoreToolMessage
+        >;
       },
     ) => Promise<void> | void;
 
@@ -446,7 +458,14 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     warnings: StreamTextResult<TOOLS>['warnings'];
     rawResponse: StreamTextResult<TOOLS>['rawResponse'];
     onChunk: Parameters<typeof streamText>[0]['onChunk'];
-    onFinish: Parameters<typeof streamText>[0]['onFinish'];
+    onFinish:
+      | ((
+          event: StepResult<TOOLS> & {
+            steps: StepResult<TOOLS>[];
+            responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
+          },
+        ) => Promise<void> | void)
+      | undefined;
     onStepFinish:
       | ((event: StepResult<TOOLS>) => Promise<void> | void)
       | undefined;
@@ -845,6 +864,21 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   }),
                 );
 
+                // Collect responseMessages from all steps:
+                const responseMessages = stepResults.reduce<
+                  Array<CoreAssistantMessage | CoreToolMessage>
+                >(
+                  (responseMessages, step) => [
+                    ...responseMessages,
+                    ...toResponseMessages({
+                      text: step.text,
+                      toolCalls: step.toolCalls,
+                      toolResults: step.toolResults,
+                    }),
+                  ],
+                  [],
+                );
+
                 // resolve promises:
                 resolveUsage(combinedUsage);
                 resolveFinishReason(stepFinishReason!);
@@ -857,22 +891,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   headers: rawResponse?.headers,
                 });
                 resolveSteps(stepResults);
-                resolveResponseMessages(
-                  // Collect responseMessages from all steps:
-                  stepResults.reduce<
-                    Array<CoreAssistantMessage | CoreToolMessage>
-                  >(
-                    (responseMessages, step) => [
-                      ...responseMessages,
-                      ...toResponseMessages({
-                        text: step.text,
-                        toolCalls: step.toolCalls,
-                        toolResults: step.toolResults,
-                      }),
-                    ],
-                    [],
-                  ),
-                );
+                resolveResponseMessages(responseMessages);
 
                 // call onFinish callback:
                 await onFinish?.({
@@ -893,7 +912,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   },
                   warnings,
                   experimental_providerMetadata: stepProviderMetadata,
-                  steps: stepResults as any, // see tool results comment above
+                  steps: stepResults,
+                  responseMessages,
                 });
               } catch (error) {
                 controller.error(error);
