@@ -80,6 +80,45 @@ exports[`options.maxSteps > 2 steps > callbacks > onFinish should send correct i
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
+  "responseMessages": [
+    {
+      "content": [
+        {
+          "text": "",
+          "type": "text",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "role": "assistant",
+    },
+    {
+      "content": [
+        {
+          "result": "result1",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "role": "tool",
+    },
+    {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+  ],
   "steps": [
     {
       "experimental_providerMetadata": undefined,
@@ -432,6 +471,48 @@ exports[`options.maxSteps > 2 steps > should record telemetry data for each step
 ]
 `;
 
+exports[`options.maxSteps > 2 steps > value promises > result.responseMessages should contain response messages from all steps 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "",
+        "type": "text",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+  },
+]
+`;
+
 exports[`options.maxSteps > 2 steps > value promises > result.steps should contain all steps 1`] = `
 [
   {
@@ -522,6 +603,36 @@ exports[`options.onFinish > options.onFinish should send correct information 1`]
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "responseMessages": [
+    {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "role": "assistant",
+    },
+    {
+      "content": [
+        {
+          "result": "value-result",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "role": "tool",
+    },
+  ],
   "steps": [
     {
       "experimental_providerMetadata": {
@@ -1035,6 +1146,53 @@ exports[`result.fullStream > should use fallback response metadata when response
       "promptTokens": 3,
       "totalTokens": 13,
     },
+  },
+]
+`;
+
+exports[`result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "role": "tool",
+  },
+]
+`;
+
+exports[`result.responseMessages > should contain assistant response message when there are no tool calls 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
   },
 ]
 `;

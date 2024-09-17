@@ -220,7 +220,7 @@ describe('result.responseMessages', () => {
   it('should contain assistant response message when there are no tool calls', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
-        doGenerate: async ({}) => ({
+        doGenerate: async () => ({
           ...dummyResponseValues,
           text: 'Hello, world!',
         }),
@@ -228,18 +228,13 @@ describe('result.responseMessages', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(result.responseMessages, [
-      {
-        role: 'assistant',
-        content: [{ type: 'text', text: 'Hello, world!' }],
-      },
-    ]);
+    expect(result.responseMessages).toMatchSnapshot();
   });
 
   it('should contain assistant response message and tool message when there are tool calls with results', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
-        doGenerate: async ({}) => ({
+        doGenerate: async () => ({
           ...dummyResponseValues,
           text: 'Hello, world!',
           toolCalls: [
@@ -272,31 +267,7 @@ describe('result.responseMessages', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(result.responseMessages, [
-      {
-        role: 'assistant',
-        content: [
-          { type: 'text', text: 'Hello, world!' },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            args: { value: 'value' },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            result: 'result1',
-          },
-        ],
-      },
-    ]);
+    expect(result.responseMessages).toMatchSnapshot();
   });
 });
 
@@ -476,35 +447,7 @@ describe('options.maxSteps', () => {
     });
 
     it('result.responseMessages should contain response messages from all steps', () => {
-      assert.deepStrictEqual(result.responseMessages, [
-        {
-          role: 'assistant',
-          content: [
-            { type: 'text', text: '' },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: { value: 'value' },
-            },
-          ],
-        },
-        {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              result: 'result1',
-            },
-          ],
-        },
-        {
-          role: 'assistant',
-          content: [{ type: 'text', text: 'Hello, world!' }],
-        },
-      ]);
+      expect(result.responseMessages).toMatchSnapshot();
     });
 
     it('result.usage should sum token usage', () => {
