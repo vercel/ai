@@ -1,0 +1,77 @@
+---
+title: Remix
+---
+
+# Remix
+
+This is an example of using the AI SDK and OpenAI's completion service with [Remix](https://remix.run/).
+
+## UI Route
+
+In the UI route module, you can use the `useChat` hook from `ai/react` just like in the Next.js.
+
+```typescript
+// /app/routes/_index.tsx
+import { useChat } from 'ai/react';
+
+export default function Index() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.length > 0
+        ? messages.map(m => (
+            <div key={m.id} className="whitespace-pre-wrap">
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))
+        : null}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+## API Endpoint
+
+By default, the `useChat` hook will send data to `/api/chat` endpoint. So we need to create an API route in `app/routes/api.chat.ts` to handle the form submission and connect to OpenAI.
+
+```typescript
+// app/routes/api.chat.ts
+
+import type { ActionFunctionArgs } from '@vercel/remix';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
+import OpenAI from 'openai';
+
+export const config = { runtime: 'edge' };
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export async function action({ request }: ActionFunctionArgs) {
+  const { messages } = await request.json();
+  const response = await openai.chat.completions.create({
+    model: 'gpt-3.5-turbo',
+    stream: true,
+    messages,
+  });
+
+  // Convert the response into a friendly text-stream
+  const stream = OpenAIStream(response);
+  // Respond with the stream
+  return new StreamingTextResponse(stream);
+}
+```
+
+## Examples
+
+- [Remix-openai](https://github.com/vercel/ai/tree/main/examples/remix-openai)
