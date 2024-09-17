@@ -148,6 +148,13 @@ async function submitMessage() {
     ui: stream.value,
   };
 }
+```
+
+###### @/app/ai.ts (Next.js App Router)
+
+```tsx
+import { createAI } from 'ai/rsc';
+import { submitMessage } from '@/app/actions';
 
 export const AI = createAI({
   initialAIState: {},
@@ -162,7 +169,7 @@ export const AI = createAI({
 
 ```tsx
 import { ReactNode } from 'react';
-import { AI } from '@/app/actions';
+import { AI } from '@/app/ai';
 
 export default function Layout({ children }: { children: ReactNode }) {
   <AI>{children}</AI>;
