@@ -1,10 +1,8 @@
 import { generateText, tool } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-
-dotenv.config();
 
 async function main() {
   const result = await generateText({

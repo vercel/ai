@@ -1,10 +1,8 @@
 import { openai } from '@ai-sdk/openai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
-
-dotenv.config();
 
 async function main() {
   const result = await streamText({

@@ -1,8 +1,6 @@
 import { azure } from '@ai-sdk/azure';
 import { embedMany } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 async function main() {
   const { embeddings, usage } = await embedMany({

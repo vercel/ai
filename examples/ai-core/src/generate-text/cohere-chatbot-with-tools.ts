@@ -1,10 +1,8 @@
 import { CoreMessage, generateText } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
 import { cohere } from '@ai-sdk/cohere';
-
-dotenv.config();
 
 const terminal = readline.createInterface({
   input: process.stdin,

@@ -1,9 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import fs from 'node:fs';
-
-dotenv.config();
 
 async function main() {
   const result = await generateText({
