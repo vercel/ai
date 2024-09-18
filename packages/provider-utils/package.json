@@ -45,7 +45,7 @@
   "devDependencies": {
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
-    "msw": "2.3.1",
+    "msw": "2.4.8",
     "tsup": "^8",
     "typescript": "5.5.4",
     "zod": "3.23.8"

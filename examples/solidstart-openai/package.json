@@ -17,10 +17,10 @@
     "@ai-sdk/openai": "latest",
     "@ai-sdk/solid": "latest",
     "@solidjs/meta": "0.29.4",
-    "@solidjs/router": "^0.13.6",
-    "@solidjs/start": "^1.0.4",
+    "@solidjs/router": "0.14.5",
+    "@solidjs/start": "1.0.6",
     "ai": "latest",
-    "solid-js": "^1.8.17",
+    "solid-js": "1.8.22",
     "zod": "^3.23.8"
   },
   "engines": {
