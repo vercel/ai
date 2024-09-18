@@ -1,7 +1,7 @@
 {
   "name": "ai",
   "version": "3.3.41",
-  "description": "Vercel AI SDK - The AI Toolkit for TypeScript and JavaScript",
+  "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",

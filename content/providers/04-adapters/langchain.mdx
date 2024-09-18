@@ -1,6 +1,6 @@
 ---
 title: LangChain
-description: Learn how to use LangChain with the Vercel AI SDK.
+description: Learn how to use LangChain with the AI SDK.
 ---
 
 # LangChain
@@ -11,7 +11,7 @@ However, LangChain does not provide a way to easily build UIs or a standard way 
 
 ## Example: Completion
 
-Here is a basic example that uses both Vercel AI SDK and LangChain together with the [Next.js](https://nextjs.org/docs) App Router.
+Here is a basic example that uses both the AI SDK and LangChain together with the [Next.js](https://nextjs.org/docs) App Router.
 
 The AI SDK [`LangChainAdapter`](/docs/reference/stream-helpers/langchain-adapter) uses the result from [LangChain ExpressionLanguage streaming](https://js.langchain.com/docs/expression_language/streaming) to pipe text to the client.
 `LangChainAdapter.toDataStreamResponse()` is compatible with the LangChain Expression Language `.stream()` function response.
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 }
 ```
 
-Then, we use the Vercel AI SDK's [`useCompletion`](/docs/ai-sdk-ui/completion) method in the page component to handle the completion:
+Then, we use the AI SDK's [`useCompletion`](/docs/ai-sdk-ui/completion) method in the page component to handle the completion:
 
 ```tsx filename="app/page.tsx"
 'use client';
@@ -60,4 +60,4 @@ export default function Chat() {
 
 ## More Examples
 
-You can find additional examples in the Vercel AI SDK [examples/next-langchain](https://github.com/vercel/ai/tree/main/examples/next-langchain) folder.
+You can find additional examples in the AI SDK [examples/next-langchain](https://github.com/vercel/ai/tree/main/examples/next-langchain) folder.

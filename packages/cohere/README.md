@@ -1,6 +1,6 @@
-# Vercel AI SDK - Cohere Provider
+# AI SDK - Cohere Provider
 
-The **[Cohere provider](https://sdk.vercel.ai/providers/ai-sdk-providers/cohere)** for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the Cohere API.
+The **[Cohere provider](https://sdk.vercel.ai/providers/ai-sdk-providers/cohere)** for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the Cohere API.
 
 ## Setup
 

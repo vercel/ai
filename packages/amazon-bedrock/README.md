@@ -1,6 +1,6 @@
-# Vercel AI SDK - Amazon Bedrock Provider
+# AI SDK - Amazon Bedrock Provider
 
-The **[Amazon Bedrock provider](https://sdk.vercel.ai/providers/ai-sdk-providers/amazon-bedrock)** for the [Vercel AI SDK](https://sdk.vercel.ai/docs)
+The **[Amazon Bedrock provider](https://sdk.vercel.ai/providers/ai-sdk-providers/amazon-bedrock)** for the [AI SDK](https://sdk.vercel.ai/docs)
 contains language model support for the Amazon Bedrock [converse API](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html).
 
 ## Setup
