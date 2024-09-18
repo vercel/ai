@@ -32,7 +32,7 @@ async function main() {
     }
     process.stdout.write('\n\n');
 
-    messages.push({ role: 'assistant', content: fullResponse });
+    messages.push(...(await result.responseMessages));
   }
 }
 

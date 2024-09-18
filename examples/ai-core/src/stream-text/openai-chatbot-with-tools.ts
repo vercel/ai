@@ -69,14 +69,7 @@ async function main() {
     }
     process.stdout.write('\n\n');
 
-    messages.push({
-      role: 'assistant',
-      content: [{ type: 'text', text: fullResponse }, ...toolCalls],
-    });
-
-    if (toolResponses.length > 0) {
-      messages.push({ role: 'tool', content: toolResponses });
-    }
+    messages.push(...(await result.responseMessages));
 
     toolResponseAvailable = toolCalls.length > 0;
   }

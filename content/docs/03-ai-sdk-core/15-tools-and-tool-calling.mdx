@@ -117,13 +117,6 @@ const { steps } = await generateText({
 const allToolCalls = steps.flatMap(step => step.toolCalls);
 ```
 
-### Response Messages
-
-When you run multi-step tool calls, multiple assistant and tool messages will be executed.
-To help you keep a consistent conversation history, you can use the `responseMessages` property
-on the result object or the `streamText` `onFinish` callback.
-It contains all the assistant and tool messages that have been generated.
-
 ### `onStepFinish` callback
 
 When using `generateText` or `streamText`, you can provide an `onStepFinish` callback that
@@ -140,6 +133,33 @@ const result = await generateText({
     // your own logic, e.g. for saving the chat history or recording usage
   },
 });
+```
+
+## Response Messages
+
+Adding the generated assistant and tool messages to your conversation history is a common task,
+especially if you are using multi-step tool calls.
+
+Both `generateText` and `streamText` have a `responseMessages` property that you can use to
+add the assistant and tool messages to your conversation history.
+It is also available in the `onFinish` callback of `streamText`.
+
+The `responseMessages` property contains an array of `CoreMessage` objects that you can add to your conversation history:
+
+```ts
+import { generateText } from 'ai';
+
+const messages: CoreMessage[] = [
+  // ...
+];
+
+const { responseMessages } = await generateText({
+  // ...
+  messages,
+});
+
+// add the response messages to your conversation history:
+messages.push(...responseMessages); // streamText: ...(await responseMessages)
 ```
 
 ## Tool Choice
