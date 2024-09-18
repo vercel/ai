@@ -27,27 +27,6 @@ describe('tool calls', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: '',
-        tool_calls: [
-          {
-            type: 'function',
-            id: 'tool-call-id-1',
-            function: {
-              name: 'tool-1',
-              arguments: JSON.stringify({ key: 'arg-value' }),
-            },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: JSON.stringify({ key: 'result-value' }),
-        name: 'tool-1',
-        tool_call_id: 'tool-call-id-1',
-      },
-    ]);
+    expect(result).toMatchSnapshot();
   });
 });
