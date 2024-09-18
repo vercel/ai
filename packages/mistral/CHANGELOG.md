@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 0.0.41
+
+### Patch Changes
+
+- 518c276: feat (provider/mistral): image support
+
 ## 0.0.40
 
 ### Patch Changes
