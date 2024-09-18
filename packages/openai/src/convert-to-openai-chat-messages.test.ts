@@ -1,7 +1,7 @@
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 
 describe('user messages', () => {
-  it('should convert messages with image parts to multiple parts', async () => {
+  it('should convert messages with image parts', async () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
         {

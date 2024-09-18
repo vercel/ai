@@ -1,5 +1,36 @@
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 
+describe('user messages', () => {
+  it('should convert messages with image parts', async () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'image',
+            image: new Uint8Array([0, 1, 2, 3]),
+            mimeType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'image_url',
+            image_url: 'data:image/png;base64,AAECAw==',
+          },
+        ],
+      },
+    ]);
+  });
+});
+
 describe('tool calls', () => {
   it('should stringify arguments to tool calls', () => {
     const result = convertToMistralChatMessages([
@@ -27,27 +58,6 @@ describe('tool calls', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: '',
-        tool_calls: [
-          {
-            type: 'function',
-            id: 'tool-call-id-1',
-            function: {
-              name: 'tool-1',
-              arguments: JSON.stringify({ key: 'arg-value' }),
-            },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: JSON.stringify({ key: 'result-value' }),
-        name: 'tool-1',
-        tool_call_id: 'tool-call-id-1',
-      },
-    ]);
+    expect(result).toMatchSnapshot();
   });
 });
