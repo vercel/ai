@@ -948,13 +948,20 @@ importers:
         version: 5.5.4
 
   examples/nuxt-openai:
-    devDependencies:
+    dependencies:
       '@ai-sdk/openai':
         specifier: latest
         version: link:../../packages/openai
       '@ai-sdk/vue':
         specifier: latest
         version: link:../../packages/vue
+      ai:
+        specifier: latest
+        version: link:../../packages/ai
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+    devDependencies:
       '@nuxt/devtools':
         specifier: 1.3.9
         version: 1.3.9(vite@5.3.3)
@@ -979,9 +986,6 @@ importers:
       '@vue/shared':
         specifier: ^3.4.31
         version: 3.4.31
-      ai:
-        specifier: latest
-        version: link:../../packages/ai
       nuxt:
         specifier: ^3.12.3
         version: 3.12.3(@opentelemetry/api@1.9.0)(@types/node@18.18.9)(eslint@7.32.0)(vite@5.3.3)
