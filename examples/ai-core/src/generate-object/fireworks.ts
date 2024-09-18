@@ -1,9 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { z } from 'zod';
-
-dotenv.config();
 
 const fireworks = createOpenAI({
   apiKey: process.env.FIREWORKS_API_KEY ?? '',

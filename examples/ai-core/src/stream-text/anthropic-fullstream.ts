@@ -1,10 +1,8 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
-
-dotenv.config();
 
 async function main() {
   const result = await streamText({

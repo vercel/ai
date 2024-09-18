@@ -1,8 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 const anthropic = createAnthropic({
   // example fetch wrapper that logs the URL:

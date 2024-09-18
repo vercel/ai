@@ -4,10 +4,8 @@ import {
   experimental_createProviderRegistry as createProviderRegistry,
   experimental_customProvider as customProvider,
 } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { mistral } from '@ai-sdk/mistral';
-
-dotenv.config();
 
 // custom provider setup
 const groq = createOpenAI({
