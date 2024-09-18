@@ -1,8 +1,6 @@
 import { google } from '@ai-sdk/google';
 import { embed } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 async function main() {
   const { embedding, usage } = await embed({

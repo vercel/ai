@@ -1,7 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 async function main() {
   const result = await openai('gpt-4-turbo').doStream({
