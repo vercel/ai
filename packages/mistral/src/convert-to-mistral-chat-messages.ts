@@ -1,9 +1,6 @@
-import {
-  LanguageModelV1Prompt,
-  UnsupportedFunctionalityError,
-} from '@ai-sdk/provider';
-import { MistralChatPrompt } from './mistral-chat-prompt';
+import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import { MistralChatPrompt } from './mistral-chat-prompt';
 
 export function convertToMistralChatMessages(
   prompt: LanguageModelV1Prompt,
@@ -28,14 +25,12 @@ export function convertToMistralChatMessages(
               case 'image': {
                 return {
                   type: 'image_url',
-                  image_url: {
-                    url:
-                      part.image instanceof URL
-                        ? part.image.toString()
-                        : `data:${
-                            part.mimeType ?? 'image/jpeg'
-                          };base64,${convertUint8ArrayToBase64(part.image)}`,
-                  },
+                  image_url:
+                    part.image instanceof URL
+                      ? part.image.toString()
+                      : `data:${
+                          part.mimeType ?? 'image/jpeg'
+                        };base64,${convertUint8ArrayToBase64(part.image)}`,
                 };
               }
             }

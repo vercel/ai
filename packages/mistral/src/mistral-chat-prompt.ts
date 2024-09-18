@@ -22,7 +22,7 @@ export type MistralUserMessageContent =
 
 export interface MistralUserMessageImageContent {
   type: 'image_url';
-  image_url: { url: string };
+  image_url: string;
 }
 
 export interface MistralUserMessageTextContent {

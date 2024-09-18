@@ -23,7 +23,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'image_url',
-            image_url: { url: 'data:image/png;base64,AAECAw==' },
+            image_url: 'data:image/png;base64,AAECAw==',
           },
         ],
       },
