@@ -1,8 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { jsonSchema, streamText, tool } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 async function main() {
   const result = await streamText({

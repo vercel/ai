@@ -1,8 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';

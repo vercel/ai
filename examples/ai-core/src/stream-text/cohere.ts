@@ -1,8 +1,6 @@
 import { cohere } from '@ai-sdk/cohere';
 import { streamText } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 async function main() {
   const result = await streamText({
