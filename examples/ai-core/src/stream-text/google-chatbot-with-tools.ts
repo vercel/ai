@@ -1,10 +1,8 @@
 import { google } from '@ai-sdk/google';
 import { CoreMessage, ToolCallPart, ToolResultPart, streamText } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
-
-dotenv.config();
 
 const terminal = readline.createInterface({
   input: process.stdin,

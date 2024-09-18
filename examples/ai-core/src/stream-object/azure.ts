@@ -1,9 +1,7 @@
 import { azure } from '@ai-sdk/azure';
 import { streamObject } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { z } from 'zod';
-
-dotenv.config();
 
 async function main() {
   const result = await streamObject({
