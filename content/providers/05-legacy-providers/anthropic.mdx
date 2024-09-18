@@ -1,6 +1,6 @@
 ---
 title: Anthropic
-description: Learn how to use Anthropic with the Vercel AI SDK.
+description: Learn how to use Anthropic with the AI SDK.
 ---
 
 # Anthropic
@@ -11,7 +11,7 @@ description: Learn how to use Anthropic with the Vercel AI SDK.
   Provider](../ai-sdk-providers/anthropic) instead.
 </Note>
 
-Vercel AI SDK provides a set of utilities to make it easy to use Anthropic's API. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
+The AI SDK provides a set of utilities to make it easy to use Anthropic's API. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
 
 ## Guide: Chat Bot
 
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
 }
 ```
 
-> Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
+> The AI SDK provides 2 utility helpers to make the above seamless: First, we
 > pass the streaming `response` we receive from Anthropic's TypeScript SDK to
 > [`AnthropicStream`](/docs/reference/stream-helpers/anthropic-stream). This
 > utility class decodes/extracts the text tokens in the response and then

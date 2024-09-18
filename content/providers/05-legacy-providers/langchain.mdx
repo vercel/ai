@@ -1,6 +1,6 @@
 ---
 title: LangChain
-description: Learn how to use LangChain with the Vercel AI SDK.
+description: Learn how to use LangChain with the AI SDK.
 ---
 
 # LangChain
@@ -17,13 +17,13 @@ However, LangChain does not provide a way to easily build UIs or a standard way 
 
 ## Example
 
-Here is an example implementation of a chat application that uses both Vercel AI SDK and a composed LangChain chain together with the
+Here is an example implementation of a chat application that uses both the AI SDK and a composed LangChain chain together with the
 [Next.js](https://nextjs.org/docs) App Router. It includes a LangChain [`PromptTemplate`](https://js.langchain.com/docs/modules/model_io/prompts/quick_start/)
 to pass input into a [`ChatOpenAI`](https://js.langchain.com/docs/modules/model_io/models/chat/integrations/openai) model wrapper,
 then streams the result through an encoding output parser.
 
-It takes this stream and uses Vercel AI SDK's [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response)
-to pipe text to the client and then Vercel AI SDK's `useChat` to handle the chat UI.
+It takes this stream and uses the AI SDK's [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response)
+to pipe text to the client and then the AI SDK's `useChat` to handle the chat UI.
 
 ```tsx filename="app/api/chat/route.ts"
 import { NextRequest } from 'next/server';
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
 }
 ```
 
-Then, we use the Vercel AI SDK's [`useChat`](/docs/reference/ai-sdk-ui/use-chat) method:
+Then, we use the AI SDK's [`useChat`](/docs/reference/ai-sdk-ui/use-chat) method:
 
 ```tsx filename="app/page.tsx"
 'use client';
