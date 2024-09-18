@@ -1,5 +1,11 @@
 # @ai-sdk/vue
 
+## 0.0.50
+
+### Patch Changes
+
+- 692e265: feat (ui/vue): add multi-step support to useChat
+
 ## 0.0.49
 
 ### Patch Changes
