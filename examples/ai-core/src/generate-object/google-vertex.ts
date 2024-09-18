@@ -1,9 +1,7 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateObject } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { z } from 'zod';
-
-dotenv.config();
 
 async function main() {
   const result = await generateObject({

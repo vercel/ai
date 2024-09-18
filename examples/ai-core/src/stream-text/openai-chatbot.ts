@@ -1,9 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { CoreMessage, streamText } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import * as readline from 'node:readline/promises';
-
-dotenv.config();
 
 const terminal = readline.createInterface({
   input: process.stdin,

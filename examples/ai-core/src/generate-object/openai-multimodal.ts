@@ -1,10 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import fs from 'node:fs';
 import { z } from 'zod';
-
-dotenv.config();
 
 async function main() {
   const { object } = await generateObject({
