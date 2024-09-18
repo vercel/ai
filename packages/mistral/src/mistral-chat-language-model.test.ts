@@ -191,7 +191,7 @@ describe('doGenerate', () => {
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'mistral-small-latest',
-      messages: [{ role: 'user', content: 'Hello' }],
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     });
   });
 
@@ -225,7 +225,7 @@ describe('doGenerate', () => {
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'mistral-small-latest',
-      messages: [{ role: 'user', content: 'Hello' }],
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       tools: [
         {
           type: 'function',
@@ -433,7 +433,7 @@ describe('doStream', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       stream: true,
       model: 'mistral-small-latest',
-      messages: [{ role: 'user', content: 'Hello' }],
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     });
   });
 
