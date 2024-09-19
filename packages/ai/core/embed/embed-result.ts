@@ -2,7 +2,7 @@ import { Embedding } from '../types';
 import { EmbeddingModelUsage } from '../types/usage';
 
 /**
-The result of a `embed` call.
+The result of an `embed` call.
 It contains the embedding, the value, and additional information.
  */
 export interface EmbedResult<VALUE> {

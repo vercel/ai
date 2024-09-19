@@ -27,7 +27,7 @@ export interface GenerateObjectResult<T> {
   readonly usage: LanguageModelUsage;
 
   /**
-  Warnings from the model provider (e.g. unsupported settings)
+  Warnings from the model provider (e.g. unsupported settings).
      */
   readonly warnings: CallWarning[] | undefined;
 
