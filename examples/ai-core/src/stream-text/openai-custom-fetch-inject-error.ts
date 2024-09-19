@@ -1,8 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 const openai = createOpenAI({
   // example fetch wrapper that injects an error after 1000 characters:

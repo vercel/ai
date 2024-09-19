@@ -1,10 +1,8 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { CoreMessage, generateText } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
-
-dotenv.config();
 
 const terminal = readline.createInterface({
   input: process.stdin,

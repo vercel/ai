@@ -1,6 +1,6 @@
 ---
 title: Mistral AI
-description: Learn how to use Mistral with the Vercel AI SDK.
+description: Learn how to use Mistral with the AI SDK.
 ---
 
 # Mistral
@@ -11,7 +11,7 @@ description: Learn how to use Mistral with the Vercel AI SDK.
   Provider](../ai-sdk-providers/mistral) instead.
 </Note>
 
-Vercel AI SDK provides a set of utilities to make it easy to use [Mistral](https://mistral.ai/)'s APIs and models. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
+The AI SDK provides a set of utilities to make it easy to use [Mistral](https://mistral.ai/)'s APIs and models. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
 
 ## Guide: Mistral Chatbot
 
@@ -19,7 +19,7 @@ Vercel AI SDK provides a set of utilities to make it easy to use [Mistral](https
 
 ### Create a Next.js app
 
-Create a Next.js application and install `ai` and `@mistralai/mistralai`, the Vercel AI SDK and Mistral API client respectively.
+Create a Next.js application and install `ai` and `@mistralai/mistralai`, the AI SDK and Mistral API client respectively.
 
 ```shell
 pnpm dlx create-next-app my-ai-app
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
   });
 
   // Convert the response into a friendly text-stream. The Mistral client responses are
-  // compatible with the Vercel AI SDK MistralStream adapter.
+  // compatible with the AI SDK MistralStream adapter.
   const stream = MistralStream(response);
 
   // Respond with the stream
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
 ```
 
 <Note>
-  Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
+  The AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from Mistral to the
   [`MistralStream`](/docs/reference/stream-helpers/mistral-stream). This method
   decodes/extracts the text tokens in the response and then re-encodes them

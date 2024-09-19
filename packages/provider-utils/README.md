@@ -1,1 +1,1 @@
-# Vercel AI SDK - Provider Implementation Utilities
+# AI SDK - Provider Implementation Utilities

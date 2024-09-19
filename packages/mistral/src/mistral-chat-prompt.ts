@@ -13,7 +13,21 @@ export interface MistralSystemMessage {
 
 export interface MistralUserMessage {
   role: 'user';
-  content: string;
+  content: Array<MistralUserMessageContent>;
+}
+
+export type MistralUserMessageContent =
+  | MistralUserMessageTextContent
+  | MistralUserMessageImageContent;
+
+export interface MistralUserMessageImageContent {
+  type: 'image_url';
+  image_url: string;
+}
+
+export interface MistralUserMessageTextContent {
+  type: 'text';
+  text: string;
 }
 
 export interface MistralAssistantMessage {

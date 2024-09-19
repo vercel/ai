@@ -1,6 +1,6 @@
-# Vercel AI SDK - Google Generative AI Provider
+# AI SDK - Google Generative AI Provider
 
-The **[Google Generative AI provider](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai)** for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Generative AI](https://ai.google/discover/generativeai/) APIs.
+The **[Google Generative AI provider](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai)** for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Generative AI](https://ai.google/discover/generativeai/) APIs.
 
 ## Setup
 

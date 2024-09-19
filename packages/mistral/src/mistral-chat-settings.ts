@@ -4,8 +4,8 @@ export type MistralChatModelId =
   | 'open-mixtral-8x7b'
   | 'open-mixtral-8x22b'
   | 'open-mistral-nemo'
+  | 'pixtral-12b-2409'
   | 'mistral-small-latest'
-  | 'mistral-medium-latest'
   | 'mistral-large-latest'
   | (string & {});
 

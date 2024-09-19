@@ -1,4 +1,4 @@
-# Contributing to the Vercel AI SDK
+# Contributing to the AI SDK
 
 We deeply appreciate your interest in contributing to our repository! Whether you're reporting bugs, suggesting enhancements, improving docs, or submitting pull requests, your contributions help improve the project for everyone.
 

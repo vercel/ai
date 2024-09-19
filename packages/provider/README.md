@@ -1,1 +1,1 @@
-# Vercel AI SDK - Provider Language Model Specification
+# AI SDK - Provider Language Model Specification

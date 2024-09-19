@@ -1,8 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 const deepSeek = createOpenAI({
   baseURL: 'https://api.deepseek.com',

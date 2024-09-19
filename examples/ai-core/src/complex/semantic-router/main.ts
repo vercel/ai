@@ -1,8 +1,6 @@
 import { openai } from '@ai-sdk/openai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { SemanticRouter } from './semantic-router';
-
-dotenv.config();
 
 async function main() {
   const router = new SemanticRouter({
