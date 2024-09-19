@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Add support for LlamaIndex
+feat (ai): Add support for LlamaIndex
