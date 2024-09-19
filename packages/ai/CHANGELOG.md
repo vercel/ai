@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.43
+
+### Patch Changes
+
+- fea6bec: fix (ai/core): support tool calls without arguments
+
 ## 3.3.42
 
 ### Patch Changes
