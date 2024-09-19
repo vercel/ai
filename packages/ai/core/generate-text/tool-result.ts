@@ -3,7 +3,7 @@ import { inferParameters } from '../tool/tool';
 import { ValueOf } from '../util/value-of';
 
 /**
-Typed tool result that is returned by generateText and streamText.
+Typed tool result that is returned by `generateText` and `streamText`.
 It contains the tool call ID, the tool name, the tool arguments, and the tool result.
  */
 export interface ToolResult<NAME extends string, ARGS, RESULT> {

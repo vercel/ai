@@ -37,7 +37,7 @@ The token usage of the generated text.
   readonly usage: LanguageModelUsage;
 
   /**
-Warnings from the model provider (e.g. unsupported settings)
+Warnings from the model provider (e.g. unsupported settings).
 */
   readonly warnings: CallWarning[] | undefined;
 

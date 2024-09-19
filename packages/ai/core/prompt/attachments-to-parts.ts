@@ -9,7 +9,7 @@ type ContentPart = TextPart | ImagePart;
 
 /**
  * Converts a list of attachments to a list of content parts
- * for consumption by ai/core functions.
+ * for consumption by `ai/core` functions.
  * Currently only supports images and text attachments.
  */
 export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
