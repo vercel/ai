@@ -8,13 +8,14 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
 import {
-  LanguageModelUsage,
   FinishReason,
+  LanguageModelUsage,
   LogProbs,
   ProviderMetadata,
 } from '../types';
 import { calculateLanguageModelUsage } from '../types/usage';
-import { parseToolCall, ToToolCall } from './tool-call';
+import { parseToolCall } from './parse-tool-call';
+import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
 
 export type SingleRequestTextStreamPart<
