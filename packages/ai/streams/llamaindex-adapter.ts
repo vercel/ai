@@ -7,7 +7,7 @@ import {
   trimStartOfStreamHelper,
 } from './ai-stream';
 
-export type EngineResponse = {
+type EngineResponse = {
   delta: string;
 };
 
@@ -15,7 +15,7 @@ export function toDataStream(
   stream: AsyncIterable<EngineResponse>,
   callbacks?: AIStreamCallbacksAndOptions,
 ) {
-  return createReadableStream(stream)
+  return toReadableStream(stream)
     .pipeThrough(createCallbacksTransformer(callbacks))
     .pipeThrough(createStreamDataTransformer());
 }
@@ -44,7 +44,7 @@ export function toDataStreamResponse(
   });
 }
 
-function createReadableStream(res: AsyncIterable<EngineResponse>) {
+function toReadableStream(res: AsyncIterable<EngineResponse>) {
   const it = res[Symbol.asyncIterator]();
   const trimStartOfStream = trimStartOfStreamHelper();
 
