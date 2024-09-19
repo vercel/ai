@@ -5,24 +5,23 @@ import { parseToolCall } from './parse-tool-call';
 import { tool } from '../tool';
 import { z } from 'zod';
 
-const mockTools = {
-  testTool: tool({
-    parameters: z.object({
-      param1: z.string(),
-      param2: z.number(),
-    }),
-  }),
-} as const;
-
 it('should successfully parse a valid tool call', () => {
-  const toolCall: LanguageModelV1FunctionToolCall = {
-    toolCallType: 'function',
-    toolName: 'testTool',
-    toolCallId: '123',
-    args: '{"param1": "test", "param2": 42}',
-  };
-
-  const result = parseToolCall({ toolCall, tools: mockTools });
+  const result = parseToolCall({
+    toolCall: {
+      toolCallType: 'function',
+      toolName: 'testTool',
+      toolCallId: '123',
+      args: '{"param1": "test", "param2": 42}',
+    },
+    tools: {
+      testTool: tool({
+        parameters: z.object({
+          param1: z.string(),
+          param2: z.number(),
+        }),
+      }),
+    } as const,
+  });
 
   expect(result).toEqual({
     type: 'tool-call',
@@ -33,40 +32,57 @@ it('should successfully parse a valid tool call', () => {
 });
 
 it('should throw NoSuchToolError when tools is null', () => {
-  const toolCall: LanguageModelV1FunctionToolCall = {
-    toolCallType: 'function',
-    toolName: 'testTool',
-    toolCallId: '123',
-    args: '{}',
-  };
-
-  expect(() => parseToolCall({ toolCall, tools: undefined })).toThrow(
-    NoSuchToolError,
-  );
+  expect(() =>
+    parseToolCall({
+      toolCall: {
+        toolCallType: 'function',
+        toolName: 'testTool',
+        toolCallId: '123',
+        args: '{}',
+      },
+      tools: undefined,
+    }),
+  ).toThrow(NoSuchToolError);
 });
 
 it('should throw NoSuchToolError when tool is not found', () => {
-  const toolCall: LanguageModelV1FunctionToolCall = {
-    toolCallType: 'function',
-    toolName: 'nonExistentTool',
-    toolCallId: '123',
-    args: '{}',
-  };
-
-  expect(() => parseToolCall({ toolCall, tools: mockTools })).toThrow(
-    NoSuchToolError,
-  );
+  expect(() =>
+    parseToolCall({
+      toolCall: {
+        toolCallType: 'function',
+        toolName: 'nonExistentTool',
+        toolCallId: '123',
+        args: '{}',
+      },
+      tools: {
+        testTool: tool({
+          parameters: z.object({
+            param1: z.string(),
+            param2: z.number(),
+          }),
+        }),
+      } as const,
+    }),
+  ).toThrow(NoSuchToolError);
 });
 
 it('should throw InvalidToolArgumentsError when args are invalid', () => {
-  const toolCall: LanguageModelV1FunctionToolCall = {
-    toolCallType: 'function',
-    toolName: 'testTool',
-    toolCallId: '123',
-    args: '{"param1": "test"}', // Missing required param2
-  };
-
-  expect(() => parseToolCall({ toolCall, tools: mockTools })).toThrow(
-    InvalidToolArgumentsError,
-  );
+  expect(() =>
+    parseToolCall({
+      toolCall: {
+        toolCallType: 'function',
+        toolName: 'testTool',
+        toolCallId: '123',
+        args: '{"param1": "test"}', // Missing required param2
+      },
+      tools: {
+        testTool: tool({
+          parameters: z.object({
+            param1: z.string(),
+            param2: z.number(),
+          }),
+        }),
+      } as const,
+    }),
+  ).toThrow(InvalidToolArgumentsError);
 });
