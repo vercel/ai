@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.42
+
+### Patch Changes
+
+- de37aee: feat (ai): Add support for LlamaIndex
+
 ## 3.3.41
 
 ### Patch Changes
