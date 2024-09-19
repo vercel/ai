@@ -246,9 +246,14 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       },
     });
 
-    let toolName = '';
-    let toolCallId = '';
-    let toolCallArgs = '';
+    const toolCallContentBlocks: Record<
+      number,
+      {
+        toolCallId: string;
+        toolName: string;
+        jsonText: string;
+      }
+    > = {};
 
     return {
       stream: stream.pipeThrough(
@@ -317,36 +322,50 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
               });
             }
 
-            if (value.contentBlockStart?.start?.toolUse) {
-              // store the tool name and id for the next chunk
-              const toolUse = value.contentBlockStart.start.toolUse;
-              toolName = toolUse.name ?? '';
-              toolCallId = toolUse.toolUseId ?? '';
+            const contentBlockStart = value.contentBlockStart;
+            if (contentBlockStart?.start?.toolUse != null) {
+              const toolUse = contentBlockStart.start.toolUse;
+              toolCallContentBlocks[contentBlockStart.contentBlockIndex!] = {
+                toolCallId: toolUse.toolUseId!,
+                toolName: toolUse.name!,
+                jsonText: '',
+              };
             }
 
-            if (value.contentBlockDelta?.delta?.toolUse) {
-              // continue to get the chunks of the tool call args
-              toolCallArgs += value.contentBlockDelta.delta.toolUse.input ?? '';
+            const contentBlockDelta = value.contentBlockDelta;
+            if (contentBlockDelta?.delta?.toolUse) {
+              const contentBlock =
+                toolCallContentBlocks[contentBlockDelta.contentBlockIndex!];
+              const delta = contentBlockDelta.delta.toolUse.input ?? '';
 
               controller.enqueue({
                 type: 'tool-call-delta',
                 toolCallType: 'function',
-                toolCallId,
-                toolName,
-                argsTextDelta:
-                  value.contentBlockDelta.delta.toolUse.input ?? '',
+                toolCallId: contentBlock.toolCallId,
+                toolName: contentBlock.toolName,
+                argsTextDelta: delta,
               });
+
+              contentBlock.jsonText += delta;
             }
 
-            // if the content is done and a tool call was made, send it
-            if (value.contentBlockStop && toolCallArgs.length > 0) {
-              controller.enqueue({
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId,
-                toolName,
-                args: toolCallArgs,
-              });
+            const contentBlockStop = value.contentBlockStop;
+            if (contentBlockStop != null) {
+              const index = contentBlockStop.contentBlockIndex!;
+              const contentBlock = toolCallContentBlocks[index];
+
+              // when finishing a tool call block, send the full tool call:
+              if (contentBlock != null) {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: contentBlock.toolCallId,
+                  toolName: contentBlock.toolName,
+                  args: contentBlock.jsonText,
+                });
+
+                delete toolCallContentBlocks[index];
+              }
             }
           },
 
