@@ -1,5 +1,5 @@
 import { LanguageModelV1FunctionToolCall } from '@ai-sdk/provider';
-import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
 import { Schema, asSchema } from '@ai-sdk/ui-utils';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
@@ -29,12 +29,16 @@ export function parseToolCall<TOOLS extends Record<string, CoreTool>>({
     });
   }
 
-  const parseResult = safeParseJSON({
-    text: toolCall.args,
-    schema: asSchema(tool.parameters) as Schema<
-      inferParameters<TOOLS[keyof TOOLS]['parameters']>
-    >,
-  });
+  const schema = asSchema(tool.parameters) as Schema<
+    inferParameters<TOOLS[keyof TOOLS]['parameters']>
+  >;
+
+  // when the tool call has no arguments, we try passing an empty object to the schema
+  // (many LLMs generate empty strings for tool calls with no arguments)
+  const parseResult =
+    toolCall.args.trim() === ''
+      ? safeValidateTypes({ value: {}, schema })
+      : safeParseJSON({ text: toolCall.args, schema });
 
   if (parseResult.success === false) {
     throw new InvalidToolArgumentsError({
