@@ -1,9 +1,8 @@
-import { LanguageModelV1FunctionToolCall } from '@ai-sdk/provider';
+import { z } from 'zod';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
-import { parseToolCall } from './parse-tool-call';
 import { tool } from '../tool';
-import { z } from 'zod';
+import { parseToolCall } from './parse-tool-call';
 
 it('should successfully parse a valid tool call', () => {
   const result = parseToolCall({
