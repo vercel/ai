@@ -83,6 +83,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
+    providerMetadata,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -152,6 +153,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       stop: stopSequences,
       seed,
 
+      // openai specific settings:
+      max_completion_tokens:
+        providerMetadata?.openai?.maxCompletionTokens ?? undefined,
+
       // response format:
       response_format:
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
@@ -163,12 +168,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       }),
     };
 
-    // reasoning models have fixed params:
+    // reasoning models have fixed params, remove them if they are set:
     if (this.modelId === 'o1-preview' || this.modelId === 'o1-mini') {
-      baseArgs.temperature = 1;
-      baseArgs.top_p = 1;
-      baseArgs.frequency_penalty = 0;
-      baseArgs.presence_penalty = 0;
+      baseArgs.temperature = undefined;
+      baseArgs.top_p = undefined;
+      baseArgs.frequency_penalty = undefined;
+      baseArgs.presence_penalty = undefined;
     }
 
     switch (type) {
@@ -278,6 +283,16 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
 
+    const providerMetadata =
+      response.usage?.completion_tokens_details?.reasoning_tokens != null
+        ? {
+            openai: {
+              reasoningTokens:
+                response.usage?.completion_tokens_details?.reasoning_tokens,
+            },
+          }
+        : undefined;
+
     return {
       text: choice.message.content ?? undefined,
       toolCalls:
@@ -306,6 +321,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       response: getResponseMetadata(response),
       warnings,
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
+      providerMetadata,
     };
   }
 
@@ -568,6 +584,11 @@ const openAITokenUsageSchema = z
   .object({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
+    completion_tokens_details: z
+      .object({
+        reasoning_tokens: z.number().nullish(),
+      })
+      .nullish(),
   })
   .nullish();
 

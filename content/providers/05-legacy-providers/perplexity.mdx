@@ -1,6 +1,6 @@
 ---
 title: Perplexity
-description: Learn how to use Perplexity with the Vercel AI SDK.
+description: Learn how to use Perplexity with the AI SDK.
 ---
 
 # Perplexity
@@ -11,7 +11,7 @@ description: Learn how to use Perplexity with the Vercel AI SDK.
   Provider](../ai-sdk-providers/perplexity) instead.
 </Note>
 
-Vercel AI SDK provides a set of utilities to make it easy to use [Perplexity](https://perplexity.ai)'s APIs and models. In this guide, we'll walk through how to use the utilities to create a chat bot.
+The AI SDK provides a set of utilities to make it easy to use [Perplexity](https://perplexity.ai)'s APIs and models. In this guide, we'll walk through how to use the utilities to create a chat bot.
 
 <Note>
   Perplexity's REST APIs are compatible with OpenAI so we will use OpenAI's
@@ -25,7 +25,7 @@ Vercel AI SDK provides a set of utilities to make it easy to use [Perplexity](ht
 
 ### Create a Next.js app
 
-Create a Next.js application and install `ai` and `openai`, the Vercel AI SDK and OpenAI API client respectively. Perplexity's REST APIs are compatible with OpenAI's so we will use OpenAI's JavaScript SDK to make the requests.
+Create a Next.js application and install `ai` and `openai`, the AI SDK and OpenAI API client respectively. Perplexity's REST APIs are compatible with OpenAI's so we will use OpenAI's JavaScript SDK to make the requests.
 
 ```shell
 pnpm dlx create-next-app my-ai-app
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
 ```
 
 <Note>
-  Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
+  The AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from Perplexity to
   [`OpenAIStream`](/docs/reference/stream-helpers/openai-stream). This method
   decodes/extracts the text tokens in the response and then re-encodes them

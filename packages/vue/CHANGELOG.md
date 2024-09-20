@@ -1,5 +1,17 @@
 # @ai-sdk/vue
 
+## 0.0.51
+
+### Patch Changes
+
+- d3933e0: fix (ui/vue): keep intermediate assistant messages
+
+## 0.0.50
+
+### Patch Changes
+
+- 692e265: feat (ui/vue): add multi-step support to useChat
+
 ## 0.0.49
 
 ### Patch Changes

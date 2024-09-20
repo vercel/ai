@@ -1,6 +1,6 @@
 ---
 title: Generating Structured Data
-description: Learn how to generate structured data with the Vercel AI SDK.
+description: Learn how to generate structured data with the AI SDK.
 ---
 
 # Generating Structured Data
@@ -11,7 +11,7 @@ For example, you might want to extract information from text, classify data, or 
 Many language models are capable of generating structured data, often defined as using "JSON modes" or "tools".
 However, you need to manually provide schemas and then validate the generated data as LLMs can produce incorrect or incomplete structured data.
 
-The Vercel AI SDK standardises structured object generation across model providers
+The AI SDK standardises structured object generation across model providers
 with the [`generateObject`](/docs/reference/ai-sdk-core/generate-object)
 and [`streamObject`](/docs/reference/ai-sdk-core/stream-object) functions.
 You can use both functions with different output strategies, e.g. `array`, `object`, or `no-schema`,

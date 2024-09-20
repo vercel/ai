@@ -7,7 +7,13 @@ import {
 } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
-import { cleanup, findByText, render, screen } from '@testing-library/vue';
+import {
+  cleanup,
+  findByText,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/vue';
 import TestChatComponent from './TestChatComponent.vue';
 import TestChatCustomMetadataComponent from './TestChatCustomMetadataComponent.vue';
 import TestChatFormComponent from './TestChatFormComponent.vue';
@@ -128,11 +134,16 @@ describe('stream data stream', () => {
       async () => {
         await userEvent.click(screen.getByTestId('do-append'));
 
-        await screen.findByTestId('message-1');
+        await waitFor(() => {
+          const element = screen.getByTestId('on-finish-calls');
+          expect(element.textContent?.trim() ?? '').not.toBe('');
+        });
 
-        const onFinishCalls = screen.getByTestId('on-finish-calls');
-        const onFinishCallsText = onFinishCalls.textContent ?? '';
-        expect(JSON.parse(onFinishCallsText)).toStrictEqual([
+        const value = JSON.parse(
+          screen.getByTestId('on-finish-calls').textContent ?? '',
+        );
+
+        expect(value).toStrictEqual([
           {
             message: {
               id: expect.any(String),
@@ -193,12 +204,16 @@ describe('text stream', () => {
       async () => {
         await userEvent.click(screen.getByTestId('do-append'));
 
-        await screen.findByTestId('message-1');
+        await waitFor(() => {
+          const element = screen.getByTestId('on-finish-calls');
+          expect(element.textContent?.trim() ?? '').not.toBe('');
+        });
 
-        const onFinishCalls = screen.getByTestId('on-finish-calls');
-        const onFinishCallsText = onFinishCalls.textContent ?? '';
+        const value = JSON.parse(
+          screen.getByTestId('on-finish-calls').textContent ?? '',
+        );
 
-        expect(JSON.parse(onFinishCallsText)).toStrictEqual([
+        expect(value).toStrictEqual([
           {
             message: {
               id: expect.any(String),
@@ -440,6 +455,170 @@ describe('reload', () => {
         expect(screen.getByTestId('message-1')).toHaveTextContent(
           'AI: second response',
         );
+      },
+    ),
+  );
+});
+
+describe('onToolCall', () => {
+  beforeEach(() => {
+    render(TestChatFormComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should invoke onToolCall when a tool call is received from the servers response', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: [
+        formatStreamPart('tool_call', {
+          toolCallId: 'tool-call-0',
+          toolName: 'client-tool',
+          args: { testArg: 'test-value' },
+        }),
+      ],
+    });
+
+    const firstInput = screen.getByTestId('do-input');
+    await userEvent.type(firstInput, 'hi');
+    await userEvent.keyboard('{Enter}');
+
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'test-tool-response: client-tool tool-call-0 {"testArg":"test-value"}',
+    );
+  });
+});
+
+describe('tool invocations', () => {
+  beforeEach(() => {
+    render(TestChatFormComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'should display partial tool call, tool call, and tool result',
+    withTestServer(
+      { url: '/api/chat', type: 'controlled-stream' },
+      async ({ streamController }) => {
+        const firstInput = screen.getByTestId('do-input');
+        await userEvent.type(firstInput, 'hi');
+        await userEvent.keyboard('{Enter}');
+
+        streamController.enqueue(
+          formatStreamPart('tool_call_streaming_start', {
+            toolCallId: 'tool-call-0',
+            toolName: 'test-tool',
+          }),
+        );
+
+        expect(screen.getByTestId('message-0')).toHaveTextContent('hi');
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool"}',
+          );
+        });
+
+        streamController.enqueue(
+          formatStreamPart('tool_call_delta', {
+            toolCallId: 'tool-call-0',
+            argsTextDelta: '{"testArg":"t',
+          }),
+        );
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
+          );
+        });
+
+        streamController.enqueue(
+          formatStreamPart('tool_call_delta', {
+            toolCallId: 'tool-call-0',
+            argsTextDelta: 'est-value"}}',
+          }),
+        );
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+          );
+        });
+
+        streamController.enqueue(
+          formatStreamPart('tool_call', {
+            toolCallId: 'tool-call-0',
+            toolName: 'test-tool',
+            args: { testArg: 'test-value' },
+          }),
+        );
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+          );
+        });
+
+        streamController.enqueue(
+          formatStreamPart('tool_result', {
+            toolCallId: 'tool-call-0',
+            result: 'test-result',
+          }),
+        );
+        streamController.close();
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            'test-result',
+          );
+        });
+      },
+    ),
+  );
+
+  it(
+    'should display partial tool call and tool result (when there is no tool call streaming)',
+    withTestServer(
+      { url: '/api/chat', type: 'controlled-stream' },
+      async ({ streamController }) => {
+        const firstInput = screen.getByTestId('do-input');
+        await userEvent.type(firstInput, 'hi');
+        await userEvent.keyboard('{Enter}');
+
+        streamController.enqueue(
+          formatStreamPart('tool_call', {
+            toolCallId: 'tool-call-0',
+            toolName: 'test-tool',
+            args: { testArg: 'test-value' },
+          }),
+        );
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+          );
+        });
+
+        streamController.enqueue(
+          formatStreamPart('tool_result', {
+            toolCallId: 'tool-call-0',
+            result: 'test-result',
+          }),
+        );
+        streamController.close();
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            'test-result',
+          );
+        });
       },
     ),
   );

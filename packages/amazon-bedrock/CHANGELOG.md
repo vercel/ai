@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.26
+
+### Patch Changes
+
+- 8f080f4: fix (provider/bedrock): support parallel tool calls in streaming mode
+
 ## 0.0.25
 
 ### Patch Changes

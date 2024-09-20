@@ -1,38 +1,30 @@
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, ToolCallPart, ToolResultPart, streamText } from 'ai';
-import dotenv from 'dotenv';
+import { CoreMessage, streamText } from 'ai';
+import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
 
-dotenv.config();
-
-const terminal = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-const messages: CoreMessage[] = [];
-
 async function main() {
-  let toolResponseAvailable = false;
+  const terminal = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  const messages: CoreMessage[] = [];
 
   while (true) {
-    if (!toolResponseAvailable) {
-      const userInput = await terminal.question('You: ');
-      messages.push({ role: 'user', content: userInput });
-    }
+    const userInput = await terminal.question('You: ');
+    messages.push({ role: 'user', content: userInput });
 
     const result = await streamText({
       model: openai('gpt-3.5-turbo'),
       tools: { weatherTool },
+      maxSteps: 5,
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
     });
 
-    toolResponseAvailable = false;
     let fullResponse = '';
-    const toolCalls: ToolCallPart[] = [];
-    const toolResponses: ToolResultPart[] = [];
 
     for await (const delta of result.fullStream) {
       switch (delta.type) {
@@ -47,8 +39,6 @@ async function main() {
         }
 
         case 'tool-call': {
-          toolCalls.push(delta);
-
           process.stdout.write(
             `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.args)}`,
           );
@@ -56,8 +46,6 @@ async function main() {
         }
 
         case 'tool-result': {
-          toolResponses.push(delta);
-
           process.stdout.write(
             `\nTool response: '${delta.toolName}' ${JSON.stringify(
               delta.result,
@@ -67,18 +55,10 @@ async function main() {
         }
       }
     }
+
     process.stdout.write('\n\n');
 
-    messages.push({
-      role: 'assistant',
-      content: [{ type: 'text', text: fullResponse }, ...toolCalls],
-    });
-
-    if (toolResponses.length > 0) {
-      messages.push({ role: 'tool', content: toolResponses });
-    }
-
-    toolResponseAvailable = toolCalls.length > 0;
+    messages.push(...(await result.responseMessages));
   }
 }
 

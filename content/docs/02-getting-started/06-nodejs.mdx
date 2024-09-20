@@ -1,6 +1,6 @@
 ---
 title: Node.js
-description: Welcome to the Vercel AI SDK documentation!
+description: Welcome to the AI SDK documentation!
 ---
 
 # Node.js Quickstart
@@ -19,7 +19,7 @@ To follow this quickstart, you'll need:
 If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
 
 <Note>
-  Vercel AI SDK is designed to be a unified interface to interact with any large
+  The AI SDK is designed to be a unified interface to interact with any large
   language model. This means that you can change model and providers with just
   one line of code! Learn more about [available providers](/providers) and
   [building custom providers](/providers/community-providers/custom-providers)
@@ -49,7 +49,7 @@ pnpm add -D @types/node tsx typescript
   Make sure you are using `ai` version 3.1 or higher.
 </Note>
 
-The `ai` and `@ai-sdk/openai` packages contain the Vercel AI SDK and the [ Vercel AI SDK OpenAI provider](/providers/ai-sdk-providers/openai), respectively. You will use `zod` to define type-safe schemas that you will pass to the large language model (LLM). You will use `dotenv` to access environment variables (your OpenAI key) within your application. There are also three development dependencies, installed with the `-D` flag, that are necessary to run your Typescript code.
+The `ai` and `@ai-sdk/openai` packages contain the AI SDK and the [ AI SDK OpenAI provider](/providers/ai-sdk-providers/openai), respectively. You will use `zod` to define type-safe schemas that you will pass to the large language model (LLM). You will use `dotenv` to access environment variables (your OpenAI key) within your application. There are also three development dependencies, installed with the `-D` flag, that are necessary to run your Typescript code.
 
 ### Configure OpenAI API key
 
@@ -64,7 +64,7 @@ OPENAI_API_KEY=xxxxxxxxx
 Replace `xxxxxxxxx` with your actual OpenAI API key.
 
 <Note className="mb-4">
-  Vercel AI SDK's OpenAI Provider will default to using the `OPENAI_API_KEY`
+  The AI SDK's OpenAI Provider will default to using the `OPENAI_API_KEY`
   environment variable.
 </Note>
 
@@ -72,7 +72,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 
 Now that your project is configured, it’s time to start building.
 
-In this quickstart guide, you will explore the fundamental concepts behind Vercel AI SDK by building a Node.js chatbot that will run in your terminal.
+In this quickstart guide, you will explore the fundamental concepts behind the AI SDK by building a Node.js chatbot that will run in your terminal.
 
 First, create an `index.ts` file in the root of your project and add the following code:
 
@@ -144,6 +144,6 @@ Type in a message and hit enter. You should see the model's response stream in a
 
 ## Where to Next?
 
-You've built an AI chatbot using the Vercel AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-core/tools-and-tool-calling) or [generating structured data](/docs/ai-sdk-core/generating-structured-data).
+You've built an AI chatbot using the AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-core/tools-and-tool-calling) or [generating structured data](/docs/ai-sdk-core/generating-structured-data).
 
 If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.

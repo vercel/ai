@@ -25,10 +25,11 @@ import {
   calculateLanguageModelUsage,
 } from '../types/usage';
 import { GenerateTextResult } from './generate-text-result';
-import { toResponseMessages } from './to-response-messages';
-import { ToToolCallArray, parseToolCall } from './tool-call';
-import { ToToolResultArray } from './tool-result';
+import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
+import { toResponseMessages } from './to-response-messages';
+import { ToToolCallArray } from './tool-call';
+import { ToToolResultArray } from './tool-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 

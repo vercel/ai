@@ -1,11 +1,11 @@
 ---
 title: Hugging Face
-description: Learn how to use Hugging Face with the Vercel AI SDK.
+description: Learn how to use Hugging Face with the AI SDK.
 ---
 
 # Hugging Face
 
-Vercel AI SDK provides a set of utilities to make it easy to use Hugging Face's APIs. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app. Hugging Face offers two API services:
+The AI SDK provides a set of utilities to make it easy to use Hugging Face's APIs. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app. Hugging Face offers two API services:
 
 - **Free Inference API:** Use over 100k+ models out of the box. Ideal for quick exploration of models.
 - **Inference Endpoints:** Production-ready service with autoscaling, dedicated infra and flexibility.
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
 ```
 
 <Note>
-  Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
+  The AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from `Hf.textGenerationStream` to
   [`HuggingFaceStream`](/docs/reference/stream-helpers/hugging-face-stream).
   This method decodes/extracts the text tokens in the response and then

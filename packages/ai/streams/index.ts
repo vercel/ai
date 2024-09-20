@@ -50,6 +50,7 @@ export * from './google-generative-ai-stream';
 export * from './huggingface-stream';
 export * from './inkeep-stream';
 export * as LangChainAdapter from './langchain-adapter';
+export * as LlamaIndexAdapter from './llamaindex-adapter';
 export * from './langchain-stream';
 export * from './mistral-stream';
 export * from './openai-stream';

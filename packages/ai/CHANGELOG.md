@@ -1,5 +1,31 @@
 # ai
 
+## 3.3.44
+
+### Patch Changes
+
+- Updated dependencies [d3933e0]
+  - @ai-sdk/vue@0.0.51
+
+## 3.3.43
+
+### Patch Changes
+
+- fea6bec: fix (ai/core): support tool calls without arguments
+
+## 3.3.42
+
+### Patch Changes
+
+- de37aee: feat (ai): Add support for LlamaIndex
+
+## 3.3.41
+
+### Patch Changes
+
+- Updated dependencies [692e265]
+  - @ai-sdk/vue@0.0.50
+
 ## 3.3.40
 
 ### Patch Changes

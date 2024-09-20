@@ -1,11 +1,11 @@
 ---
 title: Backpressure
-description: How to handle backpressure and cancellation when working with the Vercel AI SDK
+description: How to handle backpressure and cancellation when working with the AI SDK
 ---
 
 # Stream Back-pressure and Cancellation
 
-This page focuses on understanding back-pressure and cancellation when working with streams. You do not need to know this information to use the Vercel AI SDK, but for those interested, it offers a deeper dive on why and how the SDK optimally streams responses.
+This page focuses on understanding back-pressure and cancellation when working with streams. You do not need to know this information to use the AI SDK, but for those interested, it offers a deeper dive on why and how the SDK optimally streams responses.
 
 In the following sections, we'll explore back-pressure and cancellation in the context of a simple example program. We'll discuss the issues that can arise from an eager approach and demonstrate how a lazy approach can resolve them.
 
@@ -168,6 +168,6 @@ After a few seconds, the user gets bored and navigates away. Or maybe you're doi
 
 If you used the eager `for await (...)` approach, then the connection is still running and your server is asking for more and more data from AIBot. Our server spawned a "thread" and there's no signal when we can end the eager pulls. Eventually, the server is going to run out of memory (remember, there's no active fetch connection to read the buffering responses and free them).
 
-{/* When we started writing the streaming code for the Vercel AI SDK, we confirm aborting a fetch will end a streamed response from Next.js */}
+{/* When we started writing the streaming code for the AI SDK, we confirm aborting a fetch will end a streamed response from Next.js */}
 
 With the lazy approach, this is taken care of for you. Because the stream will only request new data from AIBot when the consumer requests it, navigating away from the page naturally frees all resources. The fetch connection aborts and the server can clean up the response. The `ReadableStream` tied to that response can now be garbage collected. When that happens, the connection it holds to AIBot can then be freed.

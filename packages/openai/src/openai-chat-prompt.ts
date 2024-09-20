@@ -23,9 +23,7 @@ export type ChatCompletionContentPart =
 
 export interface ChatCompletionContentPartImage {
   type: 'image_url';
-  image_url: {
-    url: string;
-  };
+  image_url: { url: string };
 }
 
 export interface ChatCompletionContentPartText {

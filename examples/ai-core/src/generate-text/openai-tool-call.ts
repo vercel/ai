@@ -1,10 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, tool } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
-
-dotenv.config();
 
 async function main() {
   const result = await generateText({

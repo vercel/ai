@@ -1,8 +1,6 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 const google = createGoogleGenerativeAI({
   // example fetch wrapper that logs the input to the API call:

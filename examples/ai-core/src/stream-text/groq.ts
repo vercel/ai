@@ -1,8 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 const groq = createOpenAI({
   apiKey: process.env.GROQ_API_KEY ?? '',

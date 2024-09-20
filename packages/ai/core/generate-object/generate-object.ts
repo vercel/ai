@@ -72,11 +72,11 @@ via tool or schema description.
       /**
 The mode to use for object generation.
 
-The schema is converted in a JSON schema and used in one of the following ways
+The schema is converted into a JSON schema and used in one of the following ways
 
 - 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
+- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
+- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
 
 Please note that most providers do not support all modes.
 
@@ -146,11 +146,11 @@ via tool or schema description.
       /**
 The mode to use for object generation.
 
-The schema is converted in a JSON schema and used in one of the following ways
+The schema is converted into a JSON schema and used in one of the following ways
 
 - 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
+- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
+- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
 
 Please note that most providers do not support all modes.
 
@@ -205,11 +205,11 @@ The enum values that the model should use.
       /**
 The mode to use for object generation.
 
-The schema is converted in a JSON schema and used in one of the following ways
+The schema is converted into a JSON schema and used in one of the following ways
 
 - 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
+- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
+- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
 
 Please note that most providers do not support all modes.
 
