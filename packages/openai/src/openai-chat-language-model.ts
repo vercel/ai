@@ -278,7 +278,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
 
-    console.log(response.usage?.completion_tokens_details);
+    const providerMetadata =
+      response.usage?.completion_tokens_details?.reasoning_tokens != null
+        ? {
+            openai: {
+              usage: {
+                reasoningTokens:
+                  response.usage?.completion_tokens_details?.reasoning_tokens,
+              },
+            },
+          }
+        : undefined;
 
     return {
       text: choice.message.content ?? undefined,
@@ -308,6 +318,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       response: getResponseMetadata(response),
       warnings,
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
+      providerMetadata,
     };
   }
 

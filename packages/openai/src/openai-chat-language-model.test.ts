@@ -173,6 +173,9 @@ describe('doGenerate', () => {
       prompt_tokens?: number;
       total_tokens?: number;
       completion_tokens?: number;
+      completion_tokens_details?: {
+        reasoning_tokens?: number;
+      };
     };
     logprobs?: {
       content:
@@ -856,6 +859,35 @@ describe('doGenerate', () => {
         model: 'o1-preview',
         messages: [{ role: 'user', content: 'Hello' }],
       });
+    });
+  });
+
+  it('should return the reasoning tokens in the provider metadata', async () => {
+    prepareJsonResponse({
+      usage: {
+        prompt_tokens: 15,
+        completion_tokens: 20,
+        total_tokens: 35,
+        completion_tokens_details: {
+          reasoning_tokens: 10,
+        },
+      },
+    });
+
+    const model = provider.chat('o1-preview');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      openai: {
+        usage: {
+          reasoningTokens: 10,
+        },
+      },
     });
   });
 });
