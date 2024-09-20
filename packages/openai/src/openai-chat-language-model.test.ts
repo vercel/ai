@@ -173,6 +173,9 @@ describe('doGenerate', () => {
       prompt_tokens?: number;
       total_tokens?: number;
       completion_tokens?: number;
+      completion_tokens_details?: {
+        reasoning_tokens?: number;
+      };
     };
     logprobs?: {
       content:
@@ -834,6 +837,79 @@ describe('doGenerate', () => {
         toolName: 'test-tool',
       },
     ]);
+  });
+
+  describe('reasoning models', () => {
+    it('should clear out temperature, top_p, frequency_penalty, presence_penalty', async () => {
+      prepareJsonResponse();
+
+      const model = provider.chat('o1-preview');
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        frequencyPenalty: 0.2,
+        presencePenalty: 0.3,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'o1-preview',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+    });
+  });
+
+  it('should return the reasoning tokens in the provider metadata', async () => {
+    prepareJsonResponse({
+      usage: {
+        prompt_tokens: 15,
+        completion_tokens: 20,
+        total_tokens: 35,
+        completion_tokens_details: {
+          reasoning_tokens: 10,
+        },
+      },
+    });
+
+    const model = provider.chat('o1-preview');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      openai: {
+        reasoningTokens: 10,
+      },
+    });
+  });
+
+  it('should send max_completion_tokens extension setting', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('o1-preview');
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: {
+          maxCompletionTokens: 255,
+        },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1-preview',
+      messages: [{ role: 'user', content: 'Hello' }],
+      max_completion_tokens: 255,
+    });
   });
 });
 
