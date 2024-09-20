@@ -835,6 +835,29 @@ describe('doGenerate', () => {
       },
     ]);
   });
+
+  describe('reasoning models', () => {
+    it('should clear out temperature, top_p, frequency_penalty, presence_penalty', async () => {
+      prepareJsonResponse();
+
+      const model = provider.chat('o1-preview');
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        frequencyPenalty: 0.2,
+        presencePenalty: 0.3,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'o1-preview',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+    });
+  });
 });
 
 describe('doStream', () => {
