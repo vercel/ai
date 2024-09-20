@@ -134,11 +134,16 @@ describe('stream data stream', () => {
       async () => {
         await userEvent.click(screen.getByTestId('do-append'));
 
-        await screen.findByTestId('message-1');
+        await waitFor(() => {
+          const element = screen.getByTestId('on-finish-calls');
+          expect(element.textContent?.trim() ?? '').not.toBe('');
+        });
 
-        const onFinishCalls = screen.getByTestId('on-finish-calls');
-        const onFinishCallsText = onFinishCalls.textContent ?? '';
-        expect(JSON.parse(onFinishCallsText)).toStrictEqual([
+        const value = JSON.parse(
+          screen.getByTestId('on-finish-calls').textContent ?? '',
+        );
+
+        expect(value).toStrictEqual([
           {
             message: {
               id: expect.any(String),
@@ -199,12 +204,16 @@ describe('text stream', () => {
       async () => {
         await userEvent.click(screen.getByTestId('do-append'));
 
-        await screen.findByTestId('message-1');
+        await waitFor(() => {
+          const element = screen.getByTestId('on-finish-calls');
+          expect(element.textContent?.trim() ?? '').not.toBe('');
+        });
 
-        const onFinishCalls = screen.getByTestId('on-finish-calls');
-        const onFinishCallsText = onFinishCalls.textContent ?? '';
+        const value = JSON.parse(
+          screen.getByTestId('on-finish-calls').textContent ?? '',
+        );
 
-        expect(JSON.parse(onFinishCallsText)).toStrictEqual([
+        expect(value).toStrictEqual([
           {
             message: {
               id: expect.any(String),

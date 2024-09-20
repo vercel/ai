@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useChat } from './use-chat';
+import { reactive } from 'vue';
+import { Message, useChat } from './use-chat';
 
 const onFinishCalls: Array<{
   message: Message;
@@ -11,7 +12,7 @@ const onFinishCalls: Array<{
       totalTokens: number;
     };
   };
-}> = [];
+}> = reactive([]);
 
 const { messages, append } = useChat({
   streamProtocol: 'text',
