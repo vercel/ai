@@ -278,6 +278,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
 
+    console.log(response.usage?.completion_tokens_details);
+
     return {
       text: choice.message.content ?? undefined,
       toolCalls:
@@ -568,6 +570,11 @@ const openAITokenUsageSchema = z
   .object({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
+    completion_tokens_details: z
+      .object({
+        reasoning_tokens: z.number().nullish(),
+      })
+      .nullish(),
   })
   .nullish();
 
