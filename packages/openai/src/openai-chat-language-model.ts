@@ -163,12 +163,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       }),
     };
 
-    // reasoning models have fixed params:
+    // reasoning models have fixed params, remove them if they are set:
     if (this.modelId === 'o1-preview' || this.modelId === 'o1-mini') {
-      baseArgs.temperature = 1;
-      baseArgs.top_p = 1;
-      baseArgs.frequency_penalty = 0;
-      baseArgs.presence_penalty = 0;
+      baseArgs.temperature = undefined;
+      baseArgs.top_p = undefined;
+      baseArgs.frequency_penalty = undefined;
+      baseArgs.presence_penalty = undefined;
     }
 
     switch (type) {
