@@ -884,9 +884,7 @@ describe('doGenerate', () => {
 
     expect(result.providerMetadata).toStrictEqual({
       openai: {
-        usage: {
-          reasoningTokens: 10,
-        },
+        reasoningTokens: 10,
       },
     });
   });

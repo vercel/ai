@@ -287,10 +287,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       response.usage?.completion_tokens_details?.reasoning_tokens != null
         ? {
             openai: {
-              usage: {
-                reasoningTokens:
-                  response.usage?.completion_tokens_details?.reasoning_tokens,
-              },
+              reasoningTokens:
+                response.usage?.completion_tokens_details?.reasoning_tokens,
             },
           }
         : undefined;
