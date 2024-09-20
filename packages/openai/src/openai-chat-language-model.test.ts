@@ -890,6 +890,29 @@ describe('doGenerate', () => {
       },
     });
   });
+
+  it('should send max_completion_tokens extension setting', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('o1-preview');
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: {
+          maxCompletionTokens: 255,
+        },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1-preview',
+      messages: [{ role: 'user', content: 'Hello' }],
+      max_completion_tokens: 255,
+    });
+  });
 });
 
 describe('doStream', () => {

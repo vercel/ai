@@ -83,6 +83,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
+    providerMetadata,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -151,6 +152,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       presence_penalty: presencePenalty,
       stop: stopSequences,
       seed,
+
+      // openai specific settings:
+      max_completion_tokens:
+        providerMetadata?.openai?.maxCompletionTokens ?? undefined,
 
       // response format:
       response_format:
