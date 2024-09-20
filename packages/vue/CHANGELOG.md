@@ -1,5 +1,11 @@
 # @ai-sdk/vue
 
+## 0.0.51
+
+### Patch Changes
+
+- d3933e0: fix (ui/vue): keep intermediate assistant messages
+
 ## 0.0.50
 
 ### Patch Changes

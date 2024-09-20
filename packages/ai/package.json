@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "3.3.43",
+  "version": "3.3.44",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -89,7 +89,7 @@
     "@ai-sdk/solid": "0.0.47",
     "@ai-sdk/svelte": "0.0.49",
     "@ai-sdk/ui-utils": "0.0.44",
-    "@ai-sdk/vue": "0.0.50",
+    "@ai-sdk/vue": "0.0.51",
     "@opentelemetry/api": "1.9.0",
     "eventsource-parser": "1.1.2",
     "jsondiffpatch": "0.6.0",
