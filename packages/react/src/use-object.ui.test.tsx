@@ -15,7 +15,7 @@ describe('text stream', () => {
     error: Error | undefined;
   }> = [];
 
-  const TestComponent = () => {
+  const TestComponent = ({ headers }: { headers?: HeadersInit }) => {
     const { object, error, submit, isLoading, stop } = experimental_useObject({
       api: '/api/use-object',
       schema: z.object({ content: z.string() }),
@@ -25,6 +25,7 @@ describe('text stream', () => {
       onFinish(event) {
         onFinishCalls.push(event);
       },
+      headers,
     });
 
     return (
@@ -194,6 +195,42 @@ describe('text stream', () => {
           expect(onFinishCalls).toStrictEqual([
             { object: { content: 'Hello, world!' }, error: undefined },
           ]);
+        },
+      ),
+    );
+  });
+
+  describe('custom headers', () => {
+    it(
+      'should send custom headers',
+      withTestServer(
+        {
+          url: '/api/use-object',
+          type: 'stream-values',
+          content: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+        },
+        async ({ call }) => {
+          cleanup();
+
+          const customHeaders = {
+            Authorization: 'Bearer TEST_TOKEN',
+            'X-Custom-Header': 'CustomValue',
+          };
+
+          render(<TestComponent headers={customHeaders} />);
+
+          await userEvent.click(screen.getByTestId('submit-button'));
+
+          const requestHeaders = await call(0).getRequestHeaders();
+          const lowerCaseHeaders = Object.fromEntries(
+            Object.entries(requestHeaders).map(([k, v]) => [
+              k.toLowerCase(),
+              v,
+            ]),
+          );
+
+          expect(lowerCaseHeaders['authorization']).toBe('Bearer TEST_TOKEN');
+          expect(lowerCaseHeaders['x-custom-header']).toBe('CustomValue');
         },
       ),
     );
