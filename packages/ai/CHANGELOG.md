@@ -1,5 +1,12 @@
 # ai
 
+## 3.4.1
+
+### Patch Changes
+
+- Updated dependencies [7e7104f]
+  - @ai-sdk/react@0.0.60
+
 ## 3.4.0
 
 ### Minor Changes

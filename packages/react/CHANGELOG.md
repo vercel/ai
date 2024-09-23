@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.60
+
+### Patch Changes
+
+- 7e7104f: feat (ai/react): add headers option to useObject
+
 ## 0.0.59
 
 ### Patch Changes
