@@ -82,7 +82,12 @@ The result object contains several helper functions to make the integration into
 - `result.toTextStreamResponse()`: Creates a simple text stream HTTP response.
 - `result.pipeTextStreamToResponse()`: Writes text delta output to a Node.js response-like object.
 
-It also provides several promises that resolve when all required data is available:
+<Note>
+  `streamText` is using backpressure and only generates tokens as they are
+  requested. You need to consume the stream in order for it to finish.
+</Note>
+
+It also provides several promises that resolve when the stream is finished:
 
 - `result.text`: The generated text.
 - `result.finishReason`: The reason the model finished generating text.
@@ -130,6 +135,65 @@ const result = await streamText({
     // your own logic, e.g. for saving the chat history or recording usage
   },
 });
+```
+
+### `fullStream` property
+
+You can read a stream with all events using the `fullStream` property.
+This can be useful if you want to implement your own UI or handle the stream in a different way.
+Here is an example of how to use the `fullStream` property:
+
+```tsx
+import { streamText } from 'ai';
+import { z } from 'zod';
+
+const result = await streamText({
+  model: yourModel,
+  tools: {
+    cityAttractions: {
+      parameters: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({
+        attractions: ['attraction1', 'attraction2', 'attraction3'],
+      }),
+    },
+  },
+  prompt: 'What are some San Francisco tourist attractions?',
+});
+
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'text-delta': {
+      // handle text delta here
+      break;
+    }
+    case 'tool-call': {
+      switch (part.toolName) {
+        case 'cityAttractions': {
+          // handle tool call here
+          break;
+        }
+      }
+      break;
+    }
+    case 'tool-result': {
+      switch (part.toolName) {
+        case 'cityAttractions': {
+          // handle tool result here
+          break;
+        }
+      }
+      break;
+    }
+    case 'finish': {
+      // handle finish here
+      break;
+    }
+    case 'error': {
+      // handle error here
+      break;
+    }
+  }
+}
 ```
 
 ## Examples
