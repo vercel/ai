@@ -65,21 +65,28 @@ export default function Page() {
     {
       name: 'initialValue?',
       type: 'DeepPartial<RESULT> | undefined',
-      description: 'An optional value for the initial object.',
+      description: 'An value for the initial object. Optional.',
     },
     {
-      name: 'fetch',
+      name: 'fetch?',
       type: 'FetchFunction',
       optional: true,
       description:
-        'Optional. A custom fetch function to be used for the API call. Defaults to the global fetch function.',
+        'A custom fetch function to be used for the API call. Defaults to the global fetch function. Optional.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string> | Headers',
+      optional: true,
+      description:
+        'A headers object to be passed to the API endpoint. Optional.',
     },
     {
       name: 'onError',
       type: '(error: Error) => void',
       optional: true,
       description:
-        'Optional. Callback function to be called when an error is encountered.',
+        'Callback function to be called when an error is encountered. Optional.',
     },
     {
       name: 'onFinish',
