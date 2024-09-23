@@ -66,6 +66,11 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
    * Callback function to be called when an error is encountered.
    */
   onError?: (error: Error) => void;
+
+  /**
+   * Additional HTTP headers to be included in the request.
+   */
+  headers?: Record<string, string> | Headers;
 };
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
@@ -108,6 +113,7 @@ function useObject<RESULT, INPUT = any>({
   fetch,
   onError,
   onFinish,
+  headers,
 }: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
   RESULT,
   INPUT
@@ -151,7 +157,10 @@ function useObject<RESULT, INPUT = any>({
       const actualFetch = fetch ?? getOriginalFetch();
       const response = await actualFetch(api, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
         signal: abortController.signal,
         body: JSON.stringify(input),
       });

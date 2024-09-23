@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/solid",
-  "version": "0.0.45",
+  "version": "0.0.47",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,8 +29,8 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@ai-sdk/provider-utils": "1.0.18",
-    "@ai-sdk/ui-utils": "0.0.42"
+    "@ai-sdk/provider-utils": "1.0.19",
+    "@ai-sdk/ui-utils": "0.0.44"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.5",

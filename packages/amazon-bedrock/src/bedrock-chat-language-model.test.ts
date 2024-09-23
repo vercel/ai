@@ -344,17 +344,17 @@ describe('doStream', () => {
       },
       {
         contentBlockDelta: {
-          contentBlockIndex: 1,
+          contentBlockIndex: 0,
           delta: { toolUse: { input: '{"value":' } },
         },
       },
       {
         contentBlockDelta: {
-          contentBlockIndex: 2,
+          contentBlockIndex: 0,
           delta: { toolUse: { input: '"Sparkle Day"}' } },
         },
       },
-      { contentBlockStop: { contentBlockIndex: 3 } },
+      { contentBlockStop: { contentBlockIndex: 0 } },
       { messageStop: { stopReason: 'tool_use' } },
     ];
 
@@ -405,6 +405,142 @@ describe('doStream', () => {
         toolCallType: 'function',
         toolName: 'test-tool',
         args: '{"value":"Sparkle Day"}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'tool-calls',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+        providerMetadata: undefined,
+      },
+    ]);
+  });
+
+  it('should stream parallel tool calls', async () => {
+    const streamData: ConverseStreamOutput[] = [
+      {
+        contentBlockStart: {
+          contentBlockIndex: 0,
+          start: {
+            toolUse: { toolUseId: 'tool-use-id-1', name: 'test-tool-1' },
+          },
+        },
+      },
+      {
+        contentBlockDelta: {
+          contentBlockIndex: 0,
+          delta: { toolUse: { input: '{"value1":' } },
+        },
+      },
+      {
+        contentBlockStart: {
+          contentBlockIndex: 1,
+          start: {
+            toolUse: { toolUseId: 'tool-use-id-2', name: 'test-tool-2' },
+          },
+        },
+      },
+      {
+        contentBlockDelta: {
+          contentBlockIndex: 1,
+          delta: { toolUse: { input: '{"value2":' } },
+        },
+      },
+      {
+        contentBlockDelta: {
+          contentBlockIndex: 1,
+          delta: { toolUse: { input: '"Sparkle Day"}' } },
+        },
+      },
+      {
+        contentBlockDelta: {
+          contentBlockIndex: 0,
+          delta: { toolUse: { input: '"Sparkle Day"}' } },
+        },
+      },
+      { contentBlockStop: { contentBlockIndex: 0 } },
+      { contentBlockStop: { contentBlockIndex: 1 } },
+      { messageStop: { stopReason: 'tool_use' } },
+    ];
+
+    bedrockMock.on(ConverseStreamCommand).resolves({
+      stream: convertArrayToAsyncIterable(streamData),
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool-1',
+            parameters: {
+              type: 'object',
+              properties: { value1: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+          {
+            type: 'function',
+            name: 'test-tool-2',
+            parameters: {
+              type: 'object',
+              properties: { value2: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'test-tool' },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'tool-use-id-1',
+        toolCallType: 'function',
+        toolName: 'test-tool-1',
+        argsTextDelta: '{"value1":',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'tool-use-id-2',
+        toolCallType: 'function',
+        toolName: 'test-tool-2',
+        argsTextDelta: '{"value2":',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'tool-use-id-2',
+        toolCallType: 'function',
+        toolName: 'test-tool-2',
+        argsTextDelta: '"Sparkle Day"}',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'tool-use-id-1',
+        toolCallType: 'function',
+        toolName: 'test-tool-1',
+        argsTextDelta: '"Sparkle Day"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'tool-use-id-1',
+        toolCallType: 'function',
+        toolName: 'test-tool-1',
+        args: '{"value1":"Sparkle Day"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'tool-use-id-2',
+        toolCallType: 'function',
+        toolName: 'test-tool-2',
+        args: '{"value2":"Sparkle Day"}',
       },
       {
         type: 'finish',

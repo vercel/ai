@@ -1,11 +1,11 @@
 ---
 title: Inkeep
-description: Learn how to use Inkeep with the Vercel AI SDK.
+description: Learn how to use Inkeep with the AI SDK.
 ---
 
 # Inkeep
 
-Vercel AI SDK provides a set of utilities to make it easy to use [Inkeep](https://inkeep.com/)'s AI chat APIs to create chat experiences **powered by your own content**.
+The AI SDK provides a set of utilities to make it easy to use [Inkeep](https://inkeep.com/)'s AI chat APIs to create chat experiences **powered by your own content**.
 
 In this guide, we'll walk through how to create a Q&A support bot powered by Inkeep.
 
@@ -20,7 +20,7 @@ In this guide, we'll walk through how to create a Q&A support bot powered by Ink
 
 ### Create a Next.js app
 
-Create a Next.js application, install `ai`, the Vercel AI SDK, as well as [`@inkeep/ai-api`](https://github.com/inkeep/ai-api-ts), the Inkeep API SDK.
+Create a Next.js application, install `ai`, the AI SDK, as well as [`@inkeep/ai-api`](https://github.com/inkeep/ai-api-ts), the Inkeep API SDK.
 
 ```shell
 pnpm dlx create-next-app my-rag-app
@@ -125,13 +125,13 @@ export async function POST(req: Request) {
 }
 ```
 
-This example leverages a few utilities provided by the Vercel AI SDK:
+This example leverages a few utilities provided by the AI SDK:
 
 1. First, we pass the streaming `response` we receive from the Inkeep API to the
    [`InkeepStream`](/docs/reference/stream-helpers/inkeep-stream). This
    method decodes/extracts the content of the message from Inkeep's server-side events response and then re-encodes them into a standard [ReadableStream](https://developer.mozilla.org/docs/Web/API/ReadableStream).
 
-2. We then pass that stream directly to the Vercel AI SDK's [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response).
+2. We then pass that stream directly to the AI SDK's [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response).
    This is another utility class that extends the normal Node/Edge Runtime `Response`
    class with the default headers you probably want (hint: `'Content-Type':
 'text/plain; charset=utf-8'` is already set for you). This will provide the streamed content to the client.

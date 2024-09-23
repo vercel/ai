@@ -1,6 +1,6 @@
 ---
 title: Google
-description: Learn how to use Google's Generative AI SDK with the Vercel AI SDK.
+description: Learn how to use Google's Generative AI SDK with the AI SDK.
 ---
 
 # Google
@@ -12,7 +12,7 @@ description: Learn how to use Google's Generative AI SDK with the Vercel AI SDK.
   Vertex Provider](../ai-sdk-providers/google-vertex) instead.
 </Note>
 
-Vercel AI SDK provides a set of utilities to make it easy to use [Google's Generative AI SDK](https://github.com/google/generative-ai-js)
+The AI SDK provides a set of utilities to make it easy to use [Google's Generative AI SDK](https://github.com/google/generative-ai-js)
 that enables you to build apps using [Google Gemini](https://ai.google.dev/).
 In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
 
@@ -50,7 +50,7 @@ import { GoogleGenerativeAIStream, Message, StreamingTextResponse } from 'ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
-// convert messages from the Vercel AI SDK Format to the format
+// convert messages from the AI SDK Format to the format
 // that is expected by the Google GenAI SDK
 const buildGoogleGenAIPrompt = (messages: Message[]) => ({
   contents: messages
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
 ```
 
 <Note>
-  Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
+  The AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from Google's Generative AI SDK to
   [`GoogleGenerativeAIStream`](/docs/reference/stream-helpers/google-generative-ai-stream).
   This utility class decodes/extracts the text tokens in the response and then

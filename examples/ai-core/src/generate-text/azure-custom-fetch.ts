@@ -1,8 +1,6 @@
 import { createAzure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 const azure = createAzure({
   // example fetch wrapper that logs the input to the API call:

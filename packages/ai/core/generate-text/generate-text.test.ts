@@ -6,6 +6,7 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
+import { StepResult } from './step-result';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -219,7 +220,7 @@ describe('result.responseMessages', () => {
   it('should contain assistant response message when there are no tool calls', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
-        doGenerate: async ({}) => ({
+        doGenerate: async () => ({
           ...dummyResponseValues,
           text: 'Hello, world!',
         }),
@@ -227,18 +228,13 @@ describe('result.responseMessages', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(result.responseMessages, [
-      {
-        role: 'assistant',
-        content: [{ type: 'text', text: 'Hello, world!' }],
-      },
-    ]);
+    expect(result.responseMessages).toMatchSnapshot();
   });
 
   it('should contain assistant response message and tool message when there are tool calls with results', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
-        doGenerate: async ({}) => ({
+        doGenerate: async () => ({
           ...dummyResponseValues,
           text: 'Hello, world!',
           toolCalls: [
@@ -271,119 +267,18 @@ describe('result.responseMessages', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(result.responseMessages, [
-      {
-        role: 'assistant',
-        content: [
-          { type: 'text', text: 'Hello, world!' },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            args: { value: 'value' },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            result: 'result1',
-          },
-        ],
-      },
-    ]);
+    expect(result.responseMessages).toMatchSnapshot();
   });
+});
 
-  describe('options.maxToolRoundtrips', () => {
-    it('should contain assistant response message and tool message from all roundtrips', async () => {
-      let responseCount = 0;
-      const result = await generateText({
-        model: new MockLanguageModelV1({
-          doGenerate: async ({}) => {
-            switch (responseCount++) {
-              case 0:
-                return {
-                  ...dummyResponseValues,
-                  toolCalls: [
-                    {
-                      toolCallType: 'function',
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      args: `{ "value": "value" }`,
-                    },
-                  ],
-                  toolResults: [
-                    {
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      args: { value: 'value' },
-                      result: 'result1',
-                    },
-                  ],
-                };
-              case 1:
-                return {
-                  ...dummyResponseValues,
-                  text: 'Hello, world!',
-                };
-              default:
-                throw new Error(`Unexpected response count: ${responseCount}`);
-            }
-          },
-        }),
-        tools: {
-          tool1: {
-            parameters: z.object({ value: z.string() }),
-            execute: async args => {
-              assert.deepStrictEqual(args, { value: 'value' });
-              return 'result1';
-            },
-          },
-        },
-        prompt: 'test-input',
-        maxToolRoundtrips: 2,
-      });
-
-      assert.deepStrictEqual(result.responseMessages, [
-        {
-          role: 'assistant',
-          content: [
-            { type: 'text', text: '' },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: { value: 'value' },
-            },
-          ],
-        },
-        {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              result: 'result1',
-            },
-          ],
-        },
-        {
-          role: 'assistant',
-          content: [{ type: 'text', text: 'Hello, world!' }],
-        },
-      ]);
-    });
-  });
-
-  describe('single roundtrip', () => {
+describe('options.maxSteps', () => {
+  describe('2 steps', () => {
     let result: GenerateTextResult<any>;
+    let onStepFinishResults: StepResult<any>[];
 
     beforeEach(async () => {
+      onStepFinishResults = [];
+
       let responseCount = 0;
       result = await generateText({
         model: new MockLanguageModelV1({
@@ -532,23 +427,30 @@ describe('result.responseMessages', () => {
           },
         },
         prompt: 'test-input',
-        maxToolRoundtrips: 2,
+        maxSteps: 3,
+        onStepFinish: async event => {
+          onStepFinishResults.push(event);
+        },
       });
     });
 
-    it('should return text from last roundtrip', async () => {
+    it('result.text should return text from last step', async () => {
       assert.deepStrictEqual(result.text, 'Hello, world!');
     });
 
-    it('should return empty tool calls from last roundtrip', async () => {
+    it('result.toolCalls should return empty tool calls from last step', async () => {
       assert.deepStrictEqual(result.toolCalls, []);
     });
 
-    it('should return empty tool results from last roundtrip', async () => {
+    it('result.toolResults should return empty tool results from last step', async () => {
       assert.deepStrictEqual(result.toolResults, []);
     });
 
-    it('should sum token usage', () => {
+    it('result.responseMessages should contain response messages from all steps', () => {
+      expect(result.responseMessages).toMatchSnapshot();
+    });
+
+    it('result.usage should sum token usage', () => {
       assert.deepStrictEqual(result.usage, {
         completionTokens: 25,
         promptTokens: 20,
@@ -556,8 +458,12 @@ describe('result.responseMessages', () => {
       });
     });
 
-    it('should return information about all roundtrips', () => {
-      expect(result.roundtrips).toMatchSnapshot();
+    it('result.steps should contain all steps', () => {
+      expect(result.steps).toMatchSnapshot();
+    });
+
+    it('onStepFinish should be called for each step', () => {
+      expect(onStepFinishResults).toMatchSnapshot();
     });
   });
 });

@@ -1,6 +1,6 @@
 ---
 title: Anthropic
-description: Learn how to use the Anthropic provider for the Vercel AI SDK.
+description: Learn how to use the Anthropic provider for the AI SDK.
 ---
 
 # Anthropic Provider
@@ -143,6 +143,33 @@ const result = await generateText({
 console.log(result.text);
 console.log(result.experimental_providerMetadata?.anthropic);
 // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
+```
+
+You can also use cache control on system messages by providing multiple system messages at the head of your messages array:
+
+```ts highlight="3,9-11"
+const result = await generateText({
+  model: anthropic('claude-3-5-sonnet-20240620', {
+    cacheControl: true,
+  }),
+  messages: [
+    {
+      role: 'system',
+      content: 'Cached system message part',
+      experimental_providerMetadata: {
+        anthropic: { cacheControl: { type: 'ephemeral' } },
+      },
+    },
+    {
+      role: 'system',
+      content: 'Uncached system message part',
+    },
+    {
+      role: 'user',
+      content: 'User prompt',
+    },
+  ],
+});
 ```
 
 ### Model Capabilities

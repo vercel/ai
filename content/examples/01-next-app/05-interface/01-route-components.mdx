@@ -1,6 +1,6 @@
 ---
 title: Route Components
-description: Learn to route components using the Vercel AI SDK in your Next.js App Router application
+description: Learn to route components using the AI SDK in your Next.js App Router application
 ---
 
 # Route Components
@@ -111,7 +111,7 @@ export async function Flight({ flightNumber }) {
 ```tsx filename='app/actions.tsx'
 'use server';
 
-import { createAI, getMutableAIState, streamUI } from 'ai/rsc';
+import { getMutableAIState, streamUI } from 'ai/rsc';
 import { openai } from '@ai-sdk/openai';
 import { ReactNode } from 'react';
 import { z } from 'zod';
@@ -202,6 +202,11 @@ export async function continueConversation(
     display: result.value,
   };
 }
+```
+
+```typescript filename='app/ai.ts'
+import { createAI } from 'ai/rsc';
+import { ServerMessage, ClientMessage, continueConversation } from './actions';
 
 export const AI = createAI<ServerMessage[], ClientMessage[]>({
   actions: {

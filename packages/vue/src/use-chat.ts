@@ -62,6 +62,14 @@ export type UseChatHelpers = {
 
   /** Additional data added on the server via StreamData */
   data: Ref<JSONValue[] | undefined>;
+
+  addToolResult: ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => void;
 };
 
 let uniqueId = 0;
@@ -70,25 +78,38 @@ let uniqueId = 0;
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv;
 const store: Record<string, Message[] | undefined> = {};
 
-export function useChat({
-  api = '/api/chat',
-  id,
-  initialMessages = [],
-  initialInput = '',
-  sendExtraMessageFields,
-  experimental_onFunctionCall,
-  streamMode,
-  streamProtocol,
-  onResponse,
-  onFinish,
-  onError,
-  credentials,
-  headers: metadataHeaders,
-  body: metadataBody,
-  generateId = generateIdFunc,
-  fetch,
-  keepLastMessageOnError = false,
-}: UseChatOptions = {}): UseChatHelpers {
+export function useChat(
+  {
+    api = '/api/chat',
+    id,
+    initialMessages = [],
+    initialInput = '',
+    sendExtraMessageFields,
+    experimental_onFunctionCall,
+    streamMode,
+    streamProtocol,
+    onResponse,
+    onFinish,
+    onError,
+    credentials,
+    headers: metadataHeaders,
+    body: metadataBody,
+    generateId = generateIdFunc,
+    onToolCall,
+    fetch,
+    keepLastMessageOnError = false,
+    maxSteps,
+  }: UseChatOptions & {
+    /**
+     * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
+     * A maximum number is required to prevent infinite loops in the case of misconfigured tools.
+     * By default, it's set to 1, which means that only a single LLM call is made.
+     */
+    maxSteps?: number;
+  } = {
+    maxSteps: 1,
+  },
+): UseChatHelpers {
   // streamMode is deprecated, use streamProtocol instead.
   if (streamMode) {
     streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
@@ -131,6 +152,8 @@ export function useChat({
     messagesSnapshot: Message[],
     { options, data, headers, body }: ChatRequestOptions = {},
   ) {
+    const messageCount = messages.value.length;
+
     try {
       error.value = undefined;
       mutateLoading(() => true);
@@ -168,6 +191,7 @@ export function useChat({
                   name,
                   data,
                   annotations,
+                  toolInvocations,
                   function_call,
                 }) => ({
                   role,
@@ -175,6 +199,7 @@ export function useChat({
                   ...(name !== undefined && { name }),
                   ...(data !== undefined && { data }),
                   ...(annotations !== undefined && { annotations }),
+                  ...(toolInvocations !== undefined && { toolInvocations }),
                   // outdated function/tool call handling (TODO deprecate):
                   ...(function_call !== undefined && { function_call }),
                 }),
@@ -200,12 +225,7 @@ export function useChat({
               mutate([...chatRequest.messages, ...merged]);
               streamData.value = [...existingData, ...(data ?? [])];
             },
-            onFinish(message, options) {
-              // workaround: sometimes the last chunk is not shown in the UI.
-              // push it twice to make sure it's displayed.
-              mutate([...chatRequest.messages, message]);
-              onFinish?.(message, options);
-            },
+            onFinish,
             restoreMessagesOnFailure() {
               // Restore the previous messages if the request fails.
               if (!keepLastMessageOnError) {
@@ -213,7 +233,7 @@ export function useChat({
               }
             },
             generateId,
-            onToolCall: undefined, // not implemented yet
+            onToolCall,
             fetch,
           });
         },
@@ -239,6 +259,24 @@ export function useChat({
       error.value = err as Error;
     } finally {
       mutateLoading(() => false);
+    }
+
+    // auto-submit when all tool calls in the last assistant message have results:
+    const lastMessage = messages.value[messages.value.length - 1];
+    if (
+      // ensure we actually have new messages (to prevent infinite loops in case of errors):
+      messages.value.length > messageCount &&
+      // ensure there is a last message:
+      lastMessage != null &&
+      // check if the feature is enabled:
+      maxSteps &&
+      maxSteps > 0 &&
+      // check that next step is possible:
+      isAssistantMessageWithCompletedToolCalls(lastMessage) &&
+      // limit the number of automatic steps:
+      countTrailingAssistantMessages(messages.value) <= maxSteps
+    ) {
+      await triggerRequest(messages.value);
     }
   }
 
@@ -306,6 +344,39 @@ export function useChat({
     input.value = '';
   };
 
+  const addToolResult = ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => {
+    const updatedMessages = messages.value.map((message, index, arr) =>
+      // update the tool calls in the last assistant message:
+      index === arr.length - 1 &&
+      message.role === 'assistant' &&
+      message.toolInvocations
+        ? {
+            ...message,
+            toolInvocations: message.toolInvocations.map(toolInvocation =>
+              toolInvocation.toolCallId === toolCallId
+                ? { ...toolInvocation, result }
+                : toolInvocation,
+            ),
+          }
+        : message,
+    );
+
+    mutate(updatedMessages);
+
+    // auto-submit when all tool calls in the last assistant message have results:
+    const lastMessage = updatedMessages[updatedMessages.length - 1];
+
+    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
+      triggerRequest(updatedMessages);
+    }
+  };
+
   return {
     messages,
     append,
@@ -317,5 +388,35 @@ export function useChat({
     handleSubmit,
     isLoading,
     data: streamData as Ref<undefined | JSONValue[]>,
+    addToolResult,
   };
+}
+
+/**
+Check if the message is an assistant message with completed tool calls.
+The message must have at least one tool invocation and all tool invocations
+must have a result.
+ */
+function isAssistantMessageWithCompletedToolCalls(message: Message) {
+  return (
+    message.role === 'assistant' &&
+    message.toolInvocations &&
+    message.toolInvocations.length > 0 &&
+    message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
+  );
+}
+
+/**
+Returns the number of trailing assistant messages in the array.
+ */
+function countTrailingAssistantMessages(messages: Message[]) {
+  let count = 0;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') {
+      count++;
+    } else {
+      break;
+    }
+  }
+  return count;
 }

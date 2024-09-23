@@ -1,5 +1,83 @@
 # ai
 
+## 3.4.0
+
+### Minor Changes
+
+- c0cea03: release (ai): 3.4
+
+## 3.3.44
+
+### Patch Changes
+
+- Updated dependencies [d3933e0]
+  - @ai-sdk/vue@0.0.51
+
+## 3.3.43
+
+### Patch Changes
+
+- fea6bec: fix (ai/core): support tool calls without arguments
+
+## 3.3.42
+
+### Patch Changes
+
+- de37aee: feat (ai): Add support for LlamaIndex
+
+## 3.3.41
+
+### Patch Changes
+
+- Updated dependencies [692e265]
+  - @ai-sdk/vue@0.0.50
+
+## 3.3.40
+
+### Patch Changes
+
+- a91c308: feat (ai/core): add responseMessages to streamText
+
+## 3.3.39
+
+### Patch Changes
+
+- 33cf3e1: feat (ai/core): add providerMetadata to StepResult
+- 17ee757: feat (ai/core): add onStepFinish callback to generateText
+
+## 3.3.38
+
+### Patch Changes
+
+- 83da52c: feat (ai/core): add onStepFinish callback to streamText
+
+## 3.3.37
+
+### Patch Changes
+
+- Updated dependencies [273f696]
+  - @ai-sdk/provider-utils@1.0.19
+  - @ai-sdk/react@0.0.59
+  - @ai-sdk/solid@0.0.47
+  - @ai-sdk/svelte@0.0.49
+  - @ai-sdk/ui-utils@0.0.44
+  - @ai-sdk/vue@0.0.49
+
+## 3.3.36
+
+### Patch Changes
+
+- a3882f5: feat (ai/core): add steps property to streamText result and onFinish callback
+- 1f590ef: chore (ai): rename roundtrips to steps
+- 7e82d36: fix (ai/core): pass topK to providers
+- Updated dependencies [54862e4]
+- Updated dependencies [1f590ef]
+  - @ai-sdk/react@0.0.58
+  - @ai-sdk/ui-utils@0.0.43
+  - @ai-sdk/solid@0.0.46
+  - @ai-sdk/svelte@0.0.48
+  - @ai-sdk/vue@0.0.48
+
 ## 3.3.35
 
 ### Patch Changes

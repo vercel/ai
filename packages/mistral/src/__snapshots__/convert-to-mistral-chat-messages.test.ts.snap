@@ -1,0 +1,26 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`tool calls > should stringify arguments to tool calls 1`] = `
+[
+  {
+    "content": "",
+    "role": "assistant",
+    "tool_calls": [
+      {
+        "function": {
+          "arguments": "{"key":"arg-value"}",
+          "name": "tool-1",
+        },
+        "id": "tool-call-id-1",
+        "type": "function",
+      },
+    ],
+  },
+  {
+    "content": "{"key":"result-value"}",
+    "name": "tool-1",
+    "role": "tool",
+    "tool_call_id": "tool-call-id-1",
+  },
+]
+`;

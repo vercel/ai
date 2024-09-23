@@ -1,6 +1,6 @@
 ---
 title: RAG Chatbot
-description: Learn how to build a RAG Chatbot with the Vercel AI SDK and Next.js
+description: Learn how to build a RAG Chatbot with the AI SDK and Next.js
 ---
 
 # RAG Chatbot Guide
@@ -106,7 +106,7 @@ In this project, you will build a chatbot that will only respond with informatio
 This project will use the following stack:
 
 - [Next.js](https://nextjs.org) 14 (App Router)
-- [ Vercel AI SDK ](https://sdk.vercel.ai/docs)
+- [ AI SDK ](https://sdk.vercel.ai/docs)
 - [OpenAI](https://openai.com)
 - [ Drizzle ORM ](https://orm.drizzle.team)
 - [ Postgres ](https://www.postgresql.org/) with [ pgvector ](https://github.com/pgvector/pgvector)
@@ -250,14 +250,14 @@ This function will take an input string and split it by periods, filtering out a
 
 ### Install AI SDK
 
-You will use the Vercel AI SDK to create embeddings. This will require two more dependencies, which you can install by running the following command:
+You will use the AI SDK to create embeddings. This will require two more dependencies, which you can install by running the following command:
 
 <Snippet text="pnpm add ai @ai-sdk/openai" />
 
-This will install the [Vercel AI SDK](https://sdk.vercel.ai/docs) and the [OpenAI provider](/providers/ai-sdk-providers/openai).
+This will install the [AI SDK](https://sdk.vercel.ai/docs) and the [OpenAI provider](/providers/ai-sdk-providers/openai).
 
 <Note>
-  Vercel AI SDK is designed to be a unified interface to interact with any large
+  The AI SDK is designed to be a unified interface to interact with any large
   language model. This means that you can change model and providers with just
   one line of code! Learn more about [available providers](/providers) and
   [building custom providers](/providers/community-providers/custom-providers)
@@ -295,7 +295,7 @@ export const generateEmbeddings = async (
 
 In this code, you first define the model you want to use for the embeddings. In this example, you are using OpenAI’s `text-embedding-ada-002` embedding model.
 
-Next, you create an asynchronous function called `generateEmbeddings`. This function will take in the source material (`value`) as an input and return a promise of an array of objects, each containing an embedding and content. Within the function, you first generate chunks for the input. Then, you pass those chunks to the [`embedMany`](/docs/reference/ai-sdk-core/embed-many) function imported from the Vercel AI SDK which will return embeddings of the chunks you passed in. Finally, you map over and return the embeddings in a format that is ready to save in the database.
+Next, you create an asynchronous function called `generateEmbeddings`. This function will take in the source material (`value`) as an input and return a promise of an array of objects, each containing an embedding and content. Within the function, you first generate chunks for the input. Then, you pass those chunks to the [`embedMany`](/docs/reference/ai-sdk-core/embed-many) function imported from the AI SDK which will return embeddings of the chunks you passed in. Finally, you map over and return the embeddings in a format that is ready to save in the database.
 
 ### Update Server Action
 
@@ -374,7 +374,7 @@ First, you call the `generateEmbeddings` function created in the previous step, 
 
 ### Create Root Page
 
-Great! Let's build the frontend. Vercel AI SDK’s [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook allows you to easily create a conversational user interface for your chatbot application.
+Great! Let's build the frontend. The AI SDK’s [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook allows you to easily create a conversational user interface for your chatbot application.
 
 Replace your root page (`app/page.tsx`) with the following code.
 
@@ -450,7 +450,7 @@ export async function POST(req: Request) {
 }
 ```
 
-In this code, you declare and export an asynchronous function called POST. You retrieve the `messages` from the request body and then pass them to the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function imported from the Vercel AI SDK, alongside the model you would like to use. Finally, you return the model’s response in `AIStreamResponse` format.
+In this code, you declare and export an asynchronous function called POST. You retrieve the `messages` from the request body and then pass them to the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function imported from the AI SDK, alongside the model you would like to use. Finally, you return the model’s response in `AIStreamResponse` format.
 
 Head back to the browser and try to send a message again. You should see a response from the model streamed directly in!
 
@@ -596,11 +596,11 @@ export default function Chat() {
 
 With this change, you now conditionally render the tool that has been called directly in the UI. Save the file and head back to browser. Tell the model your favorite movie. You should see which tool is called in place of the model’s typical text response.
 
-### Improving UX with Tool Roundtrips
+### Improving UX with Multi-Step Calls
 
 It would be nice if the model could summarize the action too. However, technically, once the model calls a tool, it has completed its generation as it ‘generated’ a tool call. How could you achieve this desired behaviour?
 
-The AI SDK has a feature called [`maxToolCallRoundtrips`](/docs/ai-sdk-core/tools-and-tool-calling#tool-roundtrips) which will automatically send tool call results back to the model!
+The AI SDK has a feature called [`maxSteps`](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) which will automatically send tool call results back to the model!
 
 Open your root page (`app/page.tsx`) and add the following key to the `useChat` configuration object:
 
@@ -608,7 +608,7 @@ Open your root page (`app/page.tsx`) and add the following key to the `useChat` 
 // ... Rest of your code
 
 const { messages, input, handleInputChange, handleSubmit } = useChat({
-  maxToolRoundtrips: 2,
+  maxSteps: 3,
 });
 
 // ... Rest of your code

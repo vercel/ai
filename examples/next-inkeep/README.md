@@ -1,6 +1,6 @@
-# Vercel AI SDK, Next.js, and Inkeep Chat Example
+# AI SDK, Next.js, and Inkeep Chat Example
 
-This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) and [Inkeep's Managed AI Chat Service](https://docs.inkeep.com/claude/reference/getting-started-with-the-api) to create an LLM-powered chat bot on your content.
+This example shows how to use the [AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) and [Inkeep's Managed AI Chat Service](https://docs.inkeep.com/claude/reference/getting-started-with-the-api) to create an LLM-powered chat bot on your content.
 
 ## Deploy your own
 
@@ -33,9 +33,9 @@ To run the example locally you need to:
 
 ## Learn More
 
-To learn more about OpenAI, Next.js, and the Vercel AI SDK take a look at the following resources:
+To learn more about OpenAI, Next.js, and the AI SDK take a look at the following resources:
 
-- [Vercel AI SDK docs](https://sdk.vercel.ai/docs)
+- [AI SDK docs](https://sdk.vercel.ai/docs)
 - [Vercel AI Playground](https://play.vercel.ai)
 - [Inkeep Documentation](https://docs.inkeep.com) - learn about Inkeep features and API.
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.

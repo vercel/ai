@@ -1,6 +1,6 @@
-# Vercel AI SDK - Mistral Provider
+# AI SDK - Mistral Provider
 
-The **[Mistral provider](https://sdk.vercel.ai/providers/ai-sdk-providers/mistral)** for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the Mistral chat API.
+The **[Mistral provider](https://sdk.vercel.ai/providers/ai-sdk-providers/mistral)** for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the Mistral chat API.
 
 ## Setup
 

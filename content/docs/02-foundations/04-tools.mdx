@@ -1,6 +1,6 @@
 ---
 title: Tools
-description: Learn about tools with the Vercel AI SDK.
+description: Learn about tools with the AI SDK.
 ---
 
 # Tools
@@ -8,65 +8,43 @@ description: Learn about tools with the Vercel AI SDK.
 While [large language models (LLMs)](/docs/foundations/overview#large-language-models) have incredible generation capabilities,
 they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather).
 
-Tools can be thought of as programs you give to a model which can be run as and when the model deems applicable.
+Tools are actions that an LLM can invoke.
+The results of these actions can be reported back to the LLM to be considered in the next response.
+
+For example, when you ask an LLM for the "weather in London", and there is a weather tool available, it could call a tool
+with London as the argument. The tool would then fetch the weather data and return it to the LLM. The LLM can then use this
+information in its response.
 
 ## What is a tool?
 
 A tool is an object that can be called by the model to perform a specific task.
-You can use tools with functions across the AI SDK (like [`generateText`](/docs/reference/ai-sdk-core/generate-text) or [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui)) by passing a tool(s) to the `tools` parameter.
+You can use tools with functions across the AI SDK (like [`generateText`](/docs/reference/ai-sdk-core/generate-text)
+or [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui)) by passing one or more tools to the `tools` parameter.
 
-There are three elements of a tool, a description, parameters, and an optional `execute` or `generate` function (dependent on the SDK function).
+A tool consists of three properties:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
 - **`parameters`**: A [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
-- **`execute`** or **`generate`**: An optional async or generator function that is called with the arguments from the tool call.
+- **`execute`**: An optional async function that is called with the arguments from the tool call.
 
-## Tool Calls
+<Note>
+  `streamUI` uses UI generator tools with a `generate` function that can return
+  React components.
+</Note>
 
 If the LLM decides to use a tool, it will generate a tool call.
-Tools with an `execute` or `generate` function are run automatically when these calls are generated.
+Tools with an `execute` function are run automatically when these calls are generated.
 The results of the tool calls are returned using tool result objects.
-Each tool result object has a `toolCallId`, a `toolName`, a typed `args` object, and a typed `result`.
 
-## Tool Choice
+You can automatically pass tool results back to the LLM
+using [multi-step calls](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) with `streamText` and `generateText`.
 
-You can use the `toolChoice` setting to influence when a tool is selected.
-It supports the following settings:
+## Schemas
 
-- `auto` (default): the model can choose whether and which tools to call.
-- `required`: the model must call a tool. It can choose which tool to call.
-- `none`: the model must not call tools
-- `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
+Schemas are used to define the parameters for tools and to validate the [tool calls](/docs/ai-sdk-core/tools-and-tool-calling).
 
-```ts highlight="18"
-import { z } from 'zod';
-import { generateText, tool } from 'ai';
-
-const result = await generateText({
-  model: yourModel,
-  tools: {
-    weather: tool({
-      description: 'Get the weather in a location',
-      parameters: z.object({
-        location: z.string().describe('The location to get the weather for'),
-      }),
-      execute: async ({ location }) => ({
-        location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10,
-      }),
-    }),
-  },
-  toolChoice: 'required', // force the model to call a tool
-  prompt:
-    'What is the weather in San Francisco and what attractions should I visit?',
-});
-```
-
-## Schema Specification and Validation with Zod
-
-Tool usage and structured object generation require the specification of schemas.
-The AI SDK uses [Zod](https://zod.dev/), the most popular JavaScript schema validation library, for schema specification and validation.
-
+The AI SDK supports both raw JSON schemas (using the `jsonSchema` function) and [Zod](https://zod.dev/) schemas.
+[Zod](https://zod.dev/) is the most popular JavaScript schema validation library.
 You can install Zod with:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
@@ -81,7 +59,7 @@ You can install Zod with:
   </Tab>
 </Tabs>
 
-You can then specify schemas, for example:
+You can then specify a Zod schema, for example:
 
 ```ts
 import z from 'zod';
@@ -100,9 +78,27 @@ const recipeSchema = z.object({
 });
 ```
 
-These schemas can be used to define parameters for tool calls and generated structured objects with [`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object).
+<Note>
+  You can also use schemas for structured output generation with
+  [`generateObject`](/docs/reference/ai-sdk-core/generate-object) and
+  [`streamObject`](/docs/reference/ai-sdk-core/stream-object).
+</Note>
+
+## Toolkits
+
+When you work with tools, you typically need a mix of application specific tools and general purpose tools.
+There are several providers that offer pre-built tools as **toolkits** that you can use out of the box:
+
+- **[agentic](https://github.com/transitive-bullshit/agentic)** - A collection of 20+ tools. Most tools connect to access external APIs such as [Exa](https://exa.ai/) or [E2B](https://e2b.dev/).
+- **[browserbase](https://github.com/browserbase/js-sdk?tab=readme-ov-file#vercel-ai-sdk-integration)** - Browser tool that runs a headless browser
 
 <Note>
-  You can also use a JSON schema without Zod using the `jsonSchema` function to
-  define the schema.
+  Do you have open source tools or tool libraries that are compatible with the
+  AI SDK? Please [file a pull request](https://github.com/vercel/ai/pulls) to
+  add them to this list.
 </Note>
+
+## Learn more
+
+The AI SDK Core [Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling)
+and [Agents](/docs/ai-sdk-core/agents) documentation has more information about tools and tool calling.

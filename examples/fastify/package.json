@@ -6,7 +6,7 @@
     "@ai-sdk/openai": "latest",
     "ai": "latest",
     "dotenv": "16.4.5",
-    "fastify": "4.28.1"
+    "fastify": "5.0.0"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

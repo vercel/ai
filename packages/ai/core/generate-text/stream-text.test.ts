@@ -10,7 +10,6 @@ import {
   StreamData,
   StreamTextResult,
   TextStreamPart,
-  formatStreamPart,
   jsonSchema,
 } from '../../streams';
 import { delay } from '../../util/delay';
@@ -19,6 +18,7 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
+import { StepResult } from './step-result';
 import { streamText } from './stream-text';
 
 describe('result.textStream', () => {
@@ -133,38 +133,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        { type: 'text-delta', textDelta: 'Hello' },
-        { type: 'text-delta', textDelta: ', ' },
-        { type: 'text-delta', textDelta: 'world!' },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'response-id',
-            modelId: 'response-model-id',
-            timestamp: new Date(5000),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'response-id',
-            modelId: 'response-model-id',
-            timestamp: new Date(5000),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should use fallback response metadata when response metadata is not provided', async () => {
@@ -203,38 +174,9 @@ describe('result.fullStream', () => {
       },
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        { type: 'text-delta', textDelta: 'Hello' },
-        { type: 'text-delta', textDelta: ', ' },
-        { type: 'text-delta', textDelta: 'world!' },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-2000',
-            modelId: 'mock-model-id',
-            timestamp: new Date(2000),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-2000',
-            modelId: 'mock-model-id',
-            timestamp: new Date(2000),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should send tool calls', async () => {
@@ -298,41 +240,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should not send tool call deltas when toolCallStreaming is disabled', async () => {
@@ -445,41 +355,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        {
-          type: 'tool-call',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          args: { value: 'Sparkle Day' },
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should send tool call deltas when toolCallStreaming is enabled', async () => {
@@ -593,88 +471,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        {
-          type: 'tool-call-streaming-start',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: '{"',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: 'value',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: '":"',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: 'Spark',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: 'le',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: ' Day',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          argsTextDelta: '"}',
-        },
-        {
-          type: 'tool-call',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-          args: { value: 'Sparkle Day' },
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should send tool results', async () => {
@@ -738,48 +537,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        },
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-          result: 'value-result',
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should send delayed asynchronous tool results', async () => {
@@ -838,7 +598,7 @@ describe('result.fullStream', () => {
         tool1: {
           parameters: z.object({ value: z.string() }),
           execute: async ({ value }) => {
-            await delay(50); // delay to show bug where roundtrip finish is sent before tool result
+            await delay(50); // delay to show bug where step finish is sent before tool result
             return `${value}-result`;
           },
         },
@@ -846,48 +606,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
+    expect(
       await convertAsyncIterableToArray(result.fullStream),
-      [
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        },
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-          result: 'value-result',
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-          experimental_providerMetadata: undefined,
-        },
-      ],
-    );
+    ).toMatchSnapshot();
   });
 
   it('should filter out empty text deltas', async () => {
@@ -921,343 +642,9 @@ describe('result.fullStream', () => {
       prompt: 'test-input',
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'world!' },
-      {
-        type: 'roundtrip-finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-    ]);
-  });
-});
-
-describe('result.toAIStream', () => {
-  it('should transform textStream through callbacks and data transformers', async () => {
-    const result = await streamText({
-      model: new MockLanguageModelV1({
-        doStream: async () => {
-          return {
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: 'world!' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          };
-        },
-      }),
-      prompt: 'test-input',
-    });
-
-    assert.deepStrictEqual(
-      await convertReadableStreamToArray(
-        result.toAIStream().pipeThrough(new TextDecoderStream()),
-      ),
-      [
-        formatStreamPart('text', 'Hello'),
-        formatStreamPart('text', ', '),
-        formatStreamPart('text', 'world!'),
-        formatStreamPart('finish_roundtrip', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-        formatStreamPart('finish_message', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-      ],
-    );
-  });
-
-  it('should invoke callback', async () => {
-    const result = await streamText({
-      model: new MockLanguageModelV1({
-        doStream: async () => {
-          return {
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: 'world!' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          };
-        },
-      }),
-      prompt: 'test-input',
-    });
-
-    const events: string[] = [];
-
-    await convertReadableStreamToArray(
-      result
-        .toAIStream({
-          onStart() {
-            events.push('start');
-          },
-          onToken(token) {
-            events.push(`token:${token}`);
-          },
-          onText(text) {
-            events.push(`text:${text}`);
-          },
-          onCompletion(completion) {
-            events.push(`completion:${completion}`);
-          },
-          onFinal(completion) {
-            events.push(`final:${completion}`);
-          },
-        })
-        .pipeThrough(new TextDecoderStream()),
-    );
-
-    assert.deepStrictEqual(events, [
-      'start',
-      'token:Hello',
-      'text:Hello',
-      'token:, ',
-      'text:, ',
-      'token:world!',
-      'text:world!',
-      'completion:Hello, world!',
-      'final:Hello, world!',
-    ]);
-  });
-
-  it('should send tool call and tool result stream parts', async () => {
-    const result = await streamText({
-      model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
-            type: 'regular',
-            tools: [
-              {
-                type: 'function',
-                name: 'tool1',
-                description: undefined,
-                parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { value: { type: 'string' } },
-                  required: ['value'],
-                  type: 'object',
-                },
-              },
-            ],
-            toolChoice: { type: 'auto' },
-          });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
-          ]);
-
-          return {
-            stream: convertArrayToReadableStream([
-              {
-                type: 'tool-call-delta',
-                toolCallId: 'call-1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: '{ "value":',
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallId: 'call-1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: ' "value" }',
-              },
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
-              },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          };
-        },
-      }),
-      tools: {
-        tool1: {
-          parameters: z.object({ value: z.string() }),
-          execute: async ({ value }) => `${value}-result`,
-        },
-      },
-      prompt: 'test-input',
-    });
-
-    assert.deepStrictEqual(
-      await convertReadableStreamToArray(
-        result.toAIStream().pipeThrough(new TextDecoderStream()),
-      ),
-      [
-        formatStreamPart('tool_call', {
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        }),
-        formatStreamPart('tool_result', {
-          toolCallId: 'call-1',
-          result: 'value-result',
-        }),
-        formatStreamPart('finish_roundtrip', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-        formatStreamPart('finish_message', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-      ],
-    );
-  });
-
-  it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled', async () => {
-    const result = await streamText({
-      model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
-            type: 'regular',
-            tools: [
-              {
-                type: 'function',
-                name: 'tool1',
-                description: undefined,
-                parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { value: { type: 'string' } },
-                  required: ['value'],
-                  type: 'object',
-                },
-              },
-            ],
-            toolChoice: { type: 'auto' },
-          });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
-          ]);
-
-          return {
-            stream: convertArrayToReadableStream([
-              {
-                type: 'tool-call-delta',
-                toolCallId: 'call-1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: '{ "value":',
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallId: 'call-1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: ' "value" }',
-              },
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
-              },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          };
-        },
-      }),
-      tools: {
-        tool1: {
-          parameters: z.object({ value: z.string() }),
-          execute: async ({ value }) => `${value}-result`,
-        },
-      },
-      prompt: 'test-input',
-      experimental_toolCallStreaming: true,
-    });
-
-    assert.deepStrictEqual(
-      await convertReadableStreamToArray(
-        result.toAIStream().pipeThrough(new TextDecoderStream()),
-      ),
-      [
-        formatStreamPart('tool_call_streaming_start', {
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-        }),
-        formatStreamPart('tool_call_delta', {
-          toolCallId: 'call-1',
-          argsTextDelta: '{ "value":',
-        }),
-        formatStreamPart('tool_call_delta', {
-          toolCallId: 'call-1',
-          argsTextDelta: ' "value" }',
-        }),
-        formatStreamPart('tool_call', {
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        }),
-        formatStreamPart('tool_result', {
-          toolCallId: 'call-1',
-          result: 'value-result',
-        }),
-        formatStreamPart('finish_roundtrip', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-        formatStreamPart('finish_message', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-      ],
-    );
+    expect(
+      await convertAsyncIterableToArray(result.fullStream),
+    ).toMatchSnapshot();
   });
 });
 
@@ -1521,6 +908,96 @@ describe('result.pipeTextStreamToResponse', async () => {
   });
 });
 
+describe('result.toAIStream', () => {
+  it('should transform textStream through callbacks and data transformers', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    expect(
+      await convertReadableStreamToArray(
+        result.toAIStream().pipeThrough(new TextDecoderStream()),
+      ),
+    ).toMatchSnapshot();
+  });
+
+  it('should invoke callback', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: 'world!' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    const events: string[] = [];
+
+    await convertReadableStreamToArray(
+      result
+        .toAIStream({
+          onStart() {
+            events.push('start');
+          },
+          onToken(token) {
+            events.push(`token:${token}`);
+          },
+          onText(text) {
+            events.push(`text:${text}`);
+          },
+          onCompletion(completion) {
+            events.push(`completion:${completion}`);
+          },
+          onFinal(completion) {
+            events.push(`final:${completion}`);
+          },
+        })
+        .pipeThrough(new TextDecoderStream()),
+    );
+
+    assert.deepStrictEqual(events, [
+      'start',
+      'token:Hello',
+      'text:Hello',
+      'token:, ',
+      'text:, ',
+      'token:world!',
+      'text:world!',
+      'completion:Hello, world!',
+      'final:Hello, world!',
+    ]);
+  });
+});
+
 describe('result.toDataStream', () => {
   it('should create a data stream', async () => {
     const result = await streamText({
@@ -1548,13 +1025,7 @@ describe('result.toDataStream', () => {
       await convertReadableStreamToArray(
         dataStream.pipeThrough(new TextDecoderStream()),
       ),
-    ).toEqual([
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    ).toMatchSnapshot();
   });
 
   it('should support merging with existing stream data', async () => {
@@ -1587,14 +1058,112 @@ describe('result.toDataStream', () => {
       await convertReadableStreamToArray(
         dataStream.pipeThrough(new TextDecoderStream()),
       ),
-    ).toEqual([
-      '2:["stream-data-value"]\n',
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    ).toMatchSnapshot();
+  });
+
+  it('should send tool call and tool result stream parts', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call-1',
+              toolCallType: 'function',
+              toolName: 'tool1',
+              argsTextDelta: '{ "value":',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call-1',
+              toolCallType: 'function',
+              toolName: 'tool1',
+              argsTextDelta: ' "value" }',
+            },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      prompt: 'test-input',
+    });
+
+    expect(
+      await convertReadableStreamToArray(
+        result.toDataStream().pipeThrough(new TextDecoderStream()),
+      ),
+    ).toMatchSnapshot();
+  });
+
+  it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call-1',
+              toolCallType: 'function',
+              toolName: 'tool1',
+              argsTextDelta: '{ "value":',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call-1',
+              toolCallType: 'function',
+              toolName: 'tool1',
+              argsTextDelta: ' "value" }',
+            },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      prompt: 'test-input',
+      experimental_toolCallStreaming: true,
+    });
+
+    expect(
+      await convertReadableStreamToArray(
+        result.toDataStream().pipeThrough(new TextDecoderStream()),
+      ),
+    ).toMatchSnapshot();
   });
 
   it('should mask error messages by default', async () => {
@@ -1954,59 +1523,13 @@ describe('multiple stream consumption', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(
-      await convertAsyncIterableToArray(result.textStream),
-      ['Hello', ', ', 'world!'],
-    );
-
-    assert.deepStrictEqual(
-      await convertReadableStreamToArray(
-        result.toAIStream().pipeThrough(new TextDecoderStream()),
+    expect({
+      textStream: await convertAsyncIterableToArray(result.textStream),
+      fullStream: await convertAsyncIterableToArray(result.fullStream),
+      dataStream: await convertReadableStreamToArray(
+        result.toDataStream().pipeThrough(new TextDecoderStream()),
       ),
-      [
-        formatStreamPart('text', 'Hello'),
-        formatStreamPart('text', ', '),
-        formatStreamPart('text', 'world!'),
-        formatStreamPart('finish_roundtrip', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-        formatStreamPart('finish_message', {
-          finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10 },
-        }),
-      ],
-    );
-
-    expect(await convertAsyncIterableToArray(result.fullStream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'world!' },
-      {
-        type: 'roundtrip-finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-    ]);
+    }).toMatchSnapshot();
   });
 });
 
@@ -2449,67 +1972,136 @@ describe('options.onChunk', () => {
   });
 });
 
-it('options.onFinish should send correct information', async () => {
-  let result: Parameters<
-    Required<Parameters<typeof streamText>[0]>['onFinish']
-  >[0];
+describe('options.onFinish', () => {
+  it('options.onFinish should send correct information', async () => {
+    let result: Parameters<
+      Required<Parameters<typeof streamText>[0]>['onFinish']
+    >[0];
 
-  const { textStream } = await streamText({
-    model: new MockLanguageModelV1({
-      doStream: async ({}) => ({
-        stream: convertArrayToReadableStream([
-          {
-            type: 'response-metadata',
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          { type: 'text-delta', textDelta: 'Hello' },
-          { type: 'text-delta', textDelta: ', ' },
-          {
-            type: 'tool-call',
-            toolCallType: 'function',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            args: `{ "value": "value" }`,
-          },
-          { type: 'text-delta', textDelta: `world!` },
-          {
-            type: 'finish',
-            finishReason: 'stop',
-            logprobs: undefined,
-            usage: { completionTokens: 10, promptTokens: 3 },
-            providerMetadata: {
-              testProvider: { testKey: 'testValue' },
+    const { textStream } = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({}) => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
             },
-          },
-        ]),
-        rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-        rawResponse: { headers: { call: '2' } },
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            { type: 'text-delta', textDelta: `world!` },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+              providerMetadata: {
+                testProvider: { testKey: 'testValue' },
+              },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          rawResponse: { headers: { call: '2' } },
+        }),
       }),
-    }),
-    tools: {
-      tool1: {
-        parameters: z.object({ value: z.string() }),
-        execute: async ({ value }) => `${value}-result`,
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
       },
-    },
-    prompt: 'test-input',
-    onFinish: async event => {
-      result = event as unknown as typeof result;
-    },
+      prompt: 'test-input',
+      onFinish: async event => {
+        result = event as unknown as typeof result;
+      },
+    });
+
+    await convertAsyncIterableToArray(textStream); // consume stream
+
+    expect(result!).toMatchSnapshot();
   });
-
-  await convertAsyncIterableToArray(textStream); // consume stream
-
-  expect(result!).toMatchSnapshot();
 });
 
-describe('options.maxToolRoundtrips', () => {
+describe('result.responseMessages', () => {
+  it('should contain assistant response message when there are no tool calls', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    await convertAsyncIterableToArray(result.textStream); // consume stream
+
+    expect(await result.responseMessages).toMatchSnapshot();
+  });
+
+  it('should contain assistant response message and tool message when there are tool calls with results', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async args => {
+            assert.deepStrictEqual(args, { value: 'value' });
+            return 'result1';
+          },
+        },
+      },
+      prompt: 'test-input',
+    });
+
+    await convertAsyncIterableToArray(result.textStream); // consume stream
+
+    expect(await result.responseMessages).toMatchSnapshot();
+  });
+});
+
+describe('options.maxSteps', () => {
   let result: StreamTextResult<any>;
   let onFinishResult: Parameters<
     Required<Parameters<typeof streamText>[0]>['onFinish']
   >[0];
+  let onStepFinishResults: StepResult<any>[];
   let tracer: MockTracer;
 
   beforeEach(() => {
@@ -2521,10 +2113,11 @@ describe('options.maxToolRoundtrips', () => {
     setTestTracer(undefined);
   });
 
-  describe('2 roundtrips', () => {
+  describe('2 steps', () => {
     beforeEach(async () => {
       result = undefined as any;
       onFinishResult = undefined as any;
+      onStepFinishResults = [];
 
       let responseCount = 0;
       result = await streamText({
@@ -2674,99 +2267,35 @@ describe('options.maxToolRoundtrips', () => {
           expect(onFinishResult).to.be.undefined;
           onFinishResult = event as unknown as typeof onFinishResult;
         },
+        onStepFinish: async event => {
+          onStepFinishResults.push(event);
+        },
         experimental_telemetry: { isEnabled: true },
-        maxToolRoundtrips: 2,
+        maxSteps: 3,
         _internal: {
           now: mockValues(0, 100, 500, 600, 1000),
         },
       });
     });
 
-    it('should contain assistant response message and tool message from all roundtrips', async () => {
+    it('should contain assistant response message and tool message from all step', async () => {
       expect(
         await convertAsyncIterableToArray(result.fullStream),
-      ).toStrictEqual([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        },
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-          result: 'result1',
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'tool-calls',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          experimental_providerMetadata: undefined,
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'Hello, ',
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'world!',
-        },
-        {
-          type: 'roundtrip-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          experimental_providerMetadata: undefined,
-          response: {
-            id: 'id-1',
-            modelId: 'mock-model-id',
-            timestamp: new Date(1000),
-          },
-          usage: {
-            completionTokens: 5,
-            promptTokens: 1,
-            totalTokens: 6,
-          },
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-1',
-            modelId: 'mock-model-id',
-            timestamp: new Date(1000),
-          },
-          usage: { completionTokens: 15, promptTokens: 4, totalTokens: 19 },
-          experimental_providerMetadata: undefined,
-        },
-      ]);
+      ).toMatchSnapshot();
     });
 
-    describe('rawSettings', () => {
+    describe('callbacks', () => {
       beforeEach(async () => {
         await convertAsyncIterableToArray(result.fullStream); // consume stream
       });
 
-      it('should contain rawSettings from last roundtrips', async () => {
-        assert.deepStrictEqual(result.rawResponse, { headers: { call: '2' } });
+      it('onFinish should send correct information', async () => {
+        expect(onFinishResult).toMatchSnapshot();
       });
-    });
 
-    it('onFinish should send correct information', async () => {
-      await convertAsyncIterableToArray(result.fullStream); // consume stream
-      expect(onFinishResult).toMatchSnapshot();
+      it('onStepFinish should send correct information', async () => {
+        expect(onStepFinishResults).toMatchSnapshot();
+      });
     });
 
     describe('value promises', () => {
@@ -2774,7 +2303,7 @@ describe('options.maxToolRoundtrips', () => {
         await convertAsyncIterableToArray(result.fullStream); // consume stream
       });
 
-      it('should contain total token usage', async () => {
+      it('result.usage should contain total token usage', async () => {
         assert.deepStrictEqual(await result.usage, {
           completionTokens: 15,
           promptTokens: 4,
@@ -2782,16 +2311,28 @@ describe('options.maxToolRoundtrips', () => {
         });
       });
 
-      it('should contain finish reason from final roundtrip', async () => {
+      it('result.finishReason should contain finish reason from final step', async () => {
         assert.strictEqual(await result.finishReason, 'stop');
       });
 
-      it('should contain text from final roundtrip', async () => {
+      it('result.text should contain text from final step', async () => {
         assert.strictEqual(await result.text, 'Hello, world!');
+      });
+
+      it('result.steps should contain all steps', async () => {
+        expect(await result.steps).toMatchSnapshot();
+      });
+
+      it('result.rawResponse should contain rawResponse from last step', async () => {
+        assert.deepStrictEqual(result.rawResponse, { headers: { call: '2' } });
+      });
+
+      it('result.responseMessages should contain response messages from all steps', async () => {
+        expect(await result.responseMessages).toMatchSnapshot();
       });
     });
 
-    it('should record telemetry data for each roundtrip', async () => {
+    it('should record telemetry data for each step', async () => {
       await convertAsyncIterableToArray(result.fullStream); // consume stream
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
@@ -3134,37 +2675,8 @@ describe('tools with custom schema', () => {
       },
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream)).toStrictEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'tool1',
-        args: { value: 'value' },
-      },
-      {
-        type: 'roundtrip-finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        logprobs: undefined,
-        response: {
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-        },
-        usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-        experimental_providerMetadata: undefined,
-      },
-    ]);
+    expect(
+      await convertAsyncIterableToArray(result.fullStream),
+    ).toMatchSnapshot();
   });
 });

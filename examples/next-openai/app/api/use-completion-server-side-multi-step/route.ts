@@ -23,7 +23,7 @@ export async function POST(req: Request) {
         }),
       }),
     },
-    maxToolRoundtrips: 3,
+    maxSteps: 4,
     prompt,
   });
 

@@ -423,9 +423,9 @@ const finishMessageStreamPart: StreamPart<
   },
 };
 
-const finishRoundtripStreamPart: StreamPart<
+const finishStepStreamPart: StreamPart<
   'e',
-  'finish_roundtrip',
+  'finish_step',
   {
     finishReason: LanguageModelV1FinishReason;
     usage?: {
@@ -435,7 +435,7 @@ const finishRoundtripStreamPart: StreamPart<
   }
 > = {
   code: 'e',
-  name: 'finish_roundtrip',
+  name: 'finish_step',
   parse: (value: JSONValue) => {
     if (
       value == null ||
@@ -444,7 +444,7 @@ const finishRoundtripStreamPart: StreamPart<
       typeof value.finishReason !== 'string'
     ) {
       throw new Error(
-        '"finish_roundtrip" parts expect an object with a "finishReason" property.',
+        '"finish_step" parts expect an object with a "finishReason" property.',
       );
     }
 
@@ -478,7 +478,7 @@ const finishRoundtripStreamPart: StreamPart<
     }
 
     return {
-      type: 'finish_roundtrip',
+      type: 'finish_step',
       value: result,
     };
   },
@@ -499,7 +499,7 @@ const streamParts = [
   toolCallStreamingStartStreamPart,
   toolCallDeltaStreamPart,
   finishMessageStreamPart,
-  finishRoundtripStreamPart,
+  finishStepStreamPart,
 ] as const;
 
 // union type of all stream parts
@@ -518,7 +518,7 @@ type StreamParts =
   | typeof toolCallStreamingStartStreamPart
   | typeof toolCallDeltaStreamPart
   | typeof finishMessageStreamPart
-  | typeof finishRoundtripStreamPart;
+  | typeof finishStepStreamPart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -542,7 +542,7 @@ export type StreamPartType =
   | ReturnType<typeof toolCallStreamingStartStreamPart.parse>
   | ReturnType<typeof toolCallDeltaStreamPart.parse>
   | ReturnType<typeof finishMessageStreamPart.parse>
-  | ReturnType<typeof finishRoundtripStreamPart.parse>;
+  | ReturnType<typeof finishStepStreamPart.parse>;
 
 export const streamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -559,7 +559,7 @@ export const streamPartsByCode = {
   [toolCallStreamingStartStreamPart.code]: toolCallStreamingStartStreamPart,
   [toolCallDeltaStreamPart.code]: toolCallDeltaStreamPart,
   [finishMessageStreamPart.code]: finishMessageStreamPart,
-  [finishRoundtripStreamPart.code]: finishRoundtripStreamPart,
+  [finishStepStreamPart.code]: finishStepStreamPart,
 } as const;
 
 /**
@@ -600,7 +600,7 @@ export const StreamStringPrefixes = {
     toolCallStreamingStartStreamPart.code,
   [toolCallDeltaStreamPart.name]: toolCallDeltaStreamPart.code,
   [finishMessageStreamPart.name]: finishMessageStreamPart.code,
-  [finishRoundtripStreamPart.name]: finishRoundtripStreamPart.code,
+  [finishStepStreamPart.name]: finishStepStreamPart.code,
 } as const;
 
 export const validCodes = streamParts.map(part => part.code);

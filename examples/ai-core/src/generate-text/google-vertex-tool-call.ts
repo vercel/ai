@@ -1,9 +1,7 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText, tool } from 'ai';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { z } from 'zod';
-
-dotenv.config();
 
 async function main() {
   const { text } = await generateText({
@@ -24,7 +22,7 @@ async function main() {
         },
       }),
     },
-    maxToolRoundtrips: 5,
+    maxSteps: 5,
   });
 
   console.log(text);

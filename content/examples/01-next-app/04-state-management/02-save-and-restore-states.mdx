@@ -1,6 +1,6 @@
 ---
 title: Save and Restore States
-description: Learn to save and restore AI and UI states with onGetUIState and onSetAIState using the Vercel AI SDK in your Next.js App Router application
+description: Learn to save and restore AI and UI states with onGetUIState and onSetAIState using the AI SDK in your Next.js App Router application
 ---
 
 # Save and Restore AI State
@@ -12,7 +12,8 @@ Sometimes conversations with language models can get interesting and you might w
 ## Client
 
 ```tsx filename='app/layout.tsx'
-import { AI, ServerMessage } from './actions';
+import { ServerMessage } from './actions';
+import { AI } from './ai';
 
 export default function RootLayout({
   children,
@@ -98,7 +99,7 @@ We will use the callback function to listen to state changes and save the conver
 ```tsx filename='app/actions.tsx'
 'use server';
 
-import { createAI, getAIState, getMutableAIState, streamUI } from 'ai/rsc';
+import { getAIState, getMutableAIState, streamUI } from 'ai/rsc';
 import { openai } from '@ai-sdk/openai';
 import { ReactNode } from 'react';
 import { z } from 'zod';
@@ -171,6 +172,11 @@ export async function continueConversation(
     display: result.value,
   };
 }
+```
+
+```ts filename='app/ai.ts'
+import { createAI } from 'ai/rsc';
+import { ServerMessage, ClientMessage, continueConversation } from './actions';
 
 export const AI = createAI<ServerMessage[], ClientMessage[]>({
   actions: {

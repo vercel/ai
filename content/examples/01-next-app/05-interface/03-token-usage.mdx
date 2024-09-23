@@ -144,6 +144,11 @@ export async function continueConversation(
     display: result.value,
   };
 }
+```
+
+```typescript filename='app/ai.ts'
+import { createAI } from 'ai/rsc';
+import { ServerMessage, ClientMessage, continueConversation } from './actions';
 
 export const AI = createAI<ServerMessage[], ClientMessage[]>({
   actions: {

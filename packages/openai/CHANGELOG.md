@@ -1,5 +1,18 @@
 # @ai-sdk/openai
 
+## 0.0.61
+
+### Patch Changes
+
+- 8132a60: feat (provider/openai): support reasoning token usage and max_completion_tokens
+
+## 0.0.60
+
+### Patch Changes
+
+- Updated dependencies [273f696]
+  - @ai-sdk/provider-utils@1.0.19
+
 ## 0.0.59
 
 ### Patch Changes

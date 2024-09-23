@@ -1,9 +1,78 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`options.maxToolRoundtrips > 2 roundtrips > onFinish should send correct information 1`] = `
+exports[`multiple stream consumption > should support text stream, ai stream, full stream on single result object 1`] = `
+{
+  "dataStream": [
+    "0:"Hello"
+",
+    "0:", "
+",
+    "0:"world!"
+",
+    "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+    "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+  ],
+  "fullStream": [
+    {
+      "textDelta": "Hello",
+      "type": "text-delta",
+    },
+    {
+      "textDelta": ", ",
+      "type": "text-delta",
+    },
+    {
+      "textDelta": "world!",
+      "type": "text-delta",
+    },
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "stop",
+      "logprobs": undefined,
+      "response": {
+        "id": "id-0",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "type": "step-finish",
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
+    },
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "stop",
+      "logprobs": undefined,
+      "response": {
+        "id": "id-0",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "type": "finish",
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
+    },
+  ],
+  "textStream": [
+    "Hello",
+    ", ",
+    "world!",
+  ],
+}
+`;
+
+exports[`options.maxSteps > 2 steps > callbacks > onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
+  "logprobs": undefined,
   "rawResponse": undefined,
   "response": {
     "headers": undefined,
@@ -11,6 +80,110 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > onFinish should send correct
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
+  "responseMessages": [
+    {
+      "content": [
+        {
+          "text": "",
+          "type": "text",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "role": "assistant",
+    },
+    {
+      "content": [
+        {
+          "result": "result1",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "role": "tool",
+    },
+    {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+  ],
+  "steps": [
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "tool-calls",
+      "logprobs": undefined,
+      "rawResponse": undefined,
+      "response": {
+        "id": "id-0",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "text": "",
+      "toolCalls": [
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "toolResults": [
+        {
+          "args": {
+            "value": "value",
+          },
+          "result": "result1",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
+      "warnings": undefined,
+    },
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "stop",
+      "logprobs": undefined,
+      "rawResponse": {
+        "headers": {
+          "call": "2",
+        },
+      },
+      "response": {
+        "id": "id-1",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:01.000Z,
+      },
+      "text": "Hello, world!",
+      "toolCalls": [],
+      "toolResults": [],
+      "usage": {
+        "completionTokens": 5,
+        "promptTokens": 1,
+        "totalTokens": 6,
+      },
+      "warnings": undefined,
+    },
+  ],
   "text": "Hello, world!",
   "toolCalls": [],
   "toolResults": [],
@@ -23,7 +196,153 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > onFinish should send correct
 }
 `;
 
-exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data for each roundtrip 1`] = `
+exports[`options.maxSteps > 2 steps > callbacks > onStepFinish should send correct information 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "tool-calls",
+    "logprobs": undefined,
+    "rawResponse": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "text": "",
+    "toolCalls": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "rawResponse": {
+      "headers": {
+        "call": "2",
+      },
+    },
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 1,
+      "totalTokens": 6,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`options.maxSteps > 2 steps > should contain assistant response message and tool message from all step 1`] = `
+[
+  {
+    "args": {
+      "value": "value",
+    },
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+  {
+    "args": {
+      "value": "value",
+    },
+    "result": "result1",
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-result",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "tool-calls",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+  {
+    "textDelta": "Hello, ",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": "world!",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 1,
+      "totalTokens": 6,
+    },
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 15,
+      "promptTokens": 4,
+      "totalTokens": 19,
+    },
+  },
+]
+`;
+
+exports[`options.maxSteps > 2 steps > should record telemetry data for each step 1`] = `
 [
   {
     "attributes": {
@@ -35,6 +354,7 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
       "ai.response.finishReason": "stop",
       "ai.response.text": "Hello, world!",
       "ai.result.text": "Hello, world!",
+      "ai.settings.maxSteps": 3,
       "ai.usage.completionTokens": 15,
       "ai.usage.promptTokens": 4,
       "operation.name": "ai.streamText",
@@ -151,7 +471,117 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
 ]
 `;
 
-exports[`options.onFinish should send correct information 1`] = `
+exports[`options.maxSteps > 2 steps > value promises > result.responseMessages should contain response messages from all steps 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "",
+        "type": "text",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`options.maxSteps > 2 steps > value promises > result.steps should contain all steps 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "tool-calls",
+    "logprobs": undefined,
+    "rawResponse": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "text": "",
+    "toolCalls": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "rawResponse": {
+      "headers": {
+        "call": "2",
+      },
+    },
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 1,
+      "totalTokens": 6,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`options.onFinish > options.onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": {
     "testProvider": {
@@ -159,6 +589,7 @@ exports[`options.onFinish should send correct information 1`] = `
     },
   },
   "finishReason": "stop",
+  "logprobs": undefined,
   "rawResponse": {
     "headers": {
       "call": "2",
@@ -172,6 +603,85 @@ exports[`options.onFinish should send correct information 1`] = `
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "responseMessages": [
+    {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "role": "assistant",
+    },
+    {
+      "content": [
+        {
+          "result": "value-result",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "role": "tool",
+    },
+  ],
+  "steps": [
+    {
+      "experimental_providerMetadata": {
+        "testProvider": {
+          "testKey": "testValue",
+        },
+      },
+      "finishReason": "stop",
+      "logprobs": undefined,
+      "rawResponse": {
+        "headers": {
+          "call": "2",
+        },
+      },
+      "response": {
+        "id": "id-0",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "text": "Hello, world!",
+      "toolCalls": [
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "toolResults": [
+        {
+          "args": {
+            "value": "value",
+          },
+          "result": "value-result",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
+      "warnings": undefined,
+    },
+  ],
   "text": "Hello, world!",
   "toolCalls": [
     {
@@ -203,6 +713,569 @@ exports[`options.onFinish should send correct information 1`] = `
 }
 `;
 
+exports[`result.fullStream > should filter out empty text deltas 1`] = `
+[
+  {
+    "textDelta": "Hello",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": ", ",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": "world!",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+]
+`;
+
+exports[`result.fullStream > should not send tool call deltas when toolCallStreaming is disabled 1`] = `
+[
+  {
+    "args": {
+      "value": "Sparkle Day",
+    },
+    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+    "toolName": "test-tool",
+    "type": "tool-call",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "tool-calls",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 17,
+      "promptTokens": 53,
+      "totalTokens": 70,
+    },
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "tool-calls",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 17,
+      "promptTokens": 53,
+      "totalTokens": 70,
+    },
+  },
+]
+`;
+
+exports[`result.fullStream > should send delayed asynchronous tool results 1`] = `
+[
+  {
+    "args": {
+      "value": "value",
+    },
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+  {
+    "args": {
+      "value": "value",
+    },
+    "result": "value-result",
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-result",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+]
+`;
+
+exports[`result.fullStream > should send text deltas 1`] = `
+[
+  {
+    "textDelta": "Hello",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": ", ",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": "world!",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "response-id",
+      "modelId": "response-model-id",
+      "timestamp": 1970-01-01T00:00:05.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "response-id",
+      "modelId": "response-model-id",
+      "timestamp": 1970-01-01T00:00:05.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+]
+`;
+
+exports[`result.fullStream > should send tool call deltas when toolCallStreaming is enabled 1`] = `
+[
+  {
+    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+    "toolName": "test-tool",
+    "type": "tool-call-streaming-start",
+  },
+  {
+    "argsTextDelta": "{"",
+    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+    "toolName": "test-tool",
+    "type": "tool-call-delta",
+  },
+  {
+    "argsTextDelta": "value",
+    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+    "toolName": "test-tool",
+    "type": "tool-call-delta",
+  },
+  {
+    "argsTextDelta": "":"",
+    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+    "toolName": "test-tool",
+    "type": "tool-call-delta",
+  },
+  {
+    "argsTextDelta": "Spark",
+    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+    "toolName": "test-tool",
+    "type": "tool-call-delta",
+  },
+  {
+    "argsTextDelta": "le",
+    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+    "toolName": "test-tool",
+    "type": "tool-call-delta",
+  },
+  {
+    "argsTextDelta": " Day",
+    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+    "toolName": "test-tool",
+    "type": "tool-call-delta",
+  },
+  {
+    "argsTextDelta": ""}",
+    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+    "toolName": "test-tool",
+    "type": "tool-call-delta",
+  },
+  {
+    "args": {
+      "value": "Sparkle Day",
+    },
+    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+    "toolName": "test-tool",
+    "type": "tool-call",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "tool-calls",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 17,
+      "promptTokens": 53,
+      "totalTokens": 70,
+    },
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "tool-calls",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 17,
+      "promptTokens": 53,
+      "totalTokens": 70,
+    },
+  },
+]
+`;
+
+exports[`result.fullStream > should send tool calls 1`] = `
+[
+  {
+    "args": {
+      "value": "value",
+    },
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+]
+`;
+
+exports[`result.fullStream > should send tool results 1`] = `
+[
+  {
+    "args": {
+      "value": "value",
+    },
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+  {
+    "args": {
+      "value": "value",
+    },
+    "result": "value-result",
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-result",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+]
+`;
+
+exports[`result.fullStream > should use fallback response metadata when response metadata is not provided 1`] = `
+[
+  {
+    "textDelta": "Hello",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": ", ",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": "world!",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-2000",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:02.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-2000",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:02.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+]
+`;
+
+exports[`result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "role": "tool",
+  },
+]
+`;
+
+exports[`result.responseMessages > should contain assistant response message when there are no tool calls 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`result.toAIStream > should transform textStream through callbacks and data transformers 1`] = `
+[
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toDataStream > should create a data stream 1`] = `
+[
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toDataStream > should send tool call and tool result stream parts 1`] = `
+[
+  "9:{"toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}
+",
+  "a:{"toolCallId":"call-1","result":"value-result"}
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toDataStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
+[
+  "b:{"toolCallId":"call-1","toolName":"tool1"}
+",
+  "c:{"toolCallId":"call-1","argsTextDelta":"{ \\"value\\":"}
+",
+  "c:{"toolCallId":"call-1","argsTextDelta":" \\"value\\" }"}
+",
+  "9:{"toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}
+",
+  "a:{"toolCallId":"call-1","result":"value-result"}
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toDataStream > should support merging with existing stream data 1`] = `
+[
+  "2:["stream-data-value"]
+",
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
 exports[`telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
 
 exports[`telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
@@ -214,6 +1287,7 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText",
       "ai.response.finishReason": "stop",
+      "ai.settings.maxSteps": 1,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "operation.name": "ai.streamText",
@@ -290,6 +1364,7 @@ exports[`telemetry > should record successful tool call 1`] = `
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.result.text": "",
       "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.settings.maxSteps": 1,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "operation.name": "ai.streamText",
@@ -375,6 +1450,7 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "ai.response.text": "Hello, world!",
       "ai.result.text": "Hello, world!",
       "ai.settings.frequencyPenalty": 0.3,
+      "ai.settings.maxSteps": 1,
       "ai.settings.presencePenalty": 0.4,
       "ai.settings.stopSequences": [
         "stop",
@@ -460,6 +1536,51 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       },
     ],
     "name": "ai.streamText.doStream",
+  },
+]
+`;
+
+exports[`tools with custom schema > should send tool calls 1`] = `
+[
+  {
+    "args": {
+      "value": "value",
+    },
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
   },
 ]
 `;

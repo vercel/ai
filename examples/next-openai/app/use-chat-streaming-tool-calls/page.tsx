@@ -6,7 +6,7 @@ import { Message, useChat } from 'ai/react';
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     api: '/api/use-chat-streaming-tool-calls',
-    maxToolRoundtrips: 5,
+    maxSteps: 5,
 
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {

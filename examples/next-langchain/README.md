@@ -1,6 +1,6 @@
-# Vercel AI SDK, Next.js, LangChain, OpenAI Chat Example
+# AI SDK, Next.js, LangChain, OpenAI Chat Example
 
-This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/), [LangChain](https://js.langchain.com), and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot.
+This example shows how to use the [AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/), [LangChain](https://js.langchain.com), and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot.
 
 ## Deploy your own
 
@@ -34,9 +34,9 @@ To run the example locally you need to:
 
 ## Learn More
 
-To learn more about LangChain, OpenAI, Next.js, and the Vercel AI SDK take a look at the following resources:
+To learn more about LangChain, OpenAI, Next.js, and the AI SDK take a look at the following resources:
 
-- [Vercel AI SDK docs](https://sdk.vercel.ai/docs) - learn mode about the Vercel AI SDK
+- [AI SDK docs](https://sdk.vercel.ai/docs) - learn mode about the AI SDK
 - [Vercel AI Playground](https://play.vercel.ai) - compare and tune 20+ AI models side-by-side
 - [LangChain Documentation](https://js.langchain.com/docs) - learn about LangChain
 - [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.

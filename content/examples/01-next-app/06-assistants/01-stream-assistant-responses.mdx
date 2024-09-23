@@ -1,6 +1,6 @@
 ---
 title: Stream Assistant Responses
-description: Learn to stream assistant responses using the Vercel AI SDK in your Next.js App Router application
+description: Learn to stream assistant responses using the AI SDK in your Next.js App Router application
 ---
 
 # Stream Assistant Responses
@@ -98,7 +98,7 @@ In your server action, you will create a function called `submitMessage` that ad
 'use server';
 
 import { generateId } from 'ai';
-import { createAI, createStreamableUI, createStreamableValue } from 'ai/rsc';
+import { createStreamableUI, createStreamableValue } from 'ai/rsc';
 import { OpenAI } from 'openai';
 import { ReactNode } from 'react';
 import { Message } from './message';
@@ -190,11 +190,18 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
     text: textUIStream.value,
   };
 }
+```
+
+```tsx filename="app/ai.ts"
+import { createAI } from 'ai/rsc';
+import { submitMessage } from './actions';
 
 export const AI = createAI({
   actions: {
     submitMessage,
   },
+  initialAIState: [],
+  initialUIState: [],
 });
 ```
 
@@ -202,7 +209,7 @@ And finally, make sure to update your layout component to wrap the children with
 
 ```tsx filename="app/layout.tsx"
 import { ReactNode } from 'react';
-import { AI } from './actions';
+import { AI } from './ai';
 
 export default function Layout({ children }: { children: ReactNode }) {
   return <AI>{children}</AI>;

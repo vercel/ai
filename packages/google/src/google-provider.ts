@@ -60,9 +60,6 @@ export interface GoogleGenerativeAIProvider extends ProviderV1 {
     settings?: GoogleGenerativeAIEmbeddingSettings,
   ): EmbeddingModelV1<string>;
 
-  /**
-@deprecated Use `textEmbeddingModel()` instead.
- */
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
     settings?: GoogleGenerativeAIEmbeddingSettings,

@@ -69,6 +69,11 @@ export const sendMessage = async (input: string): Promise<ClientMessage> => {
   "use server"
   ...
 }
+```
+
+```tsx filename='app/ai.ts'
+import { createAI } from 'ai/rsc';
+import { ClientMessage, ServerMessage, sendMessage } from './actions';
 
 export type AIState = ServerMessage[];
 export type UIState = ClientMessage[];
@@ -91,7 +96,7 @@ Next, wrap your application with your newly created context. With that, you can 
 
 ```tsx filename='app/layout.tsx'
 import { type ReactNode } from 'react';
-import { AI } from './actions';
+import { AI } from './ai';
 
 export default function RootLayout({
   children,
@@ -216,7 +221,7 @@ To call the `sendMessage` action from the client, you can use the [`useActions`]
 'use client';
 
 import { useActions, useUIState } from 'ai/rsc';
-import { AI } from './actions';
+import { AI } from './ai';
 
 export default function Page() {
   const { sendMessage } = useActions<typeof AI>();

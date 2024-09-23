@@ -1,13 +1,13 @@
 ---
 title: Get started with Llama 3.1
-description: Get started with Llama 3.1 using the Vercel AI SDK.
+description: Get started with Llama 3.1 using the AI SDK.
 ---
 
 # Get started with Llama 3.1
 
 With the [release of Llama 3.1](https://ai.meta.com/blog/meta-llama-3-1/), there has never been a better time to start building AI applications.
 
-The [Vercel AI SDK](/) is a powerful TypeScript toolkit for building AI application with large language models (LLMs) like Llama 3.1 alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more
+The [AI SDK](/) is a powerful TypeScript toolkit for building AI application with large language models (LLMs) like Llama 3.1 alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more
 
 ## Llama 3.1
 
@@ -26,13 +26,13 @@ Llama 3.1 includes a new 405B parameter model, becoming the largest open-source 
 
 When choosing between the different sizes of Llama 3.1 models (405B, 70B, 8B), consider the trade-off between performance and computational requirements. The 405B model offers the highest accuracy and capability for complex tasks but requires significant computational resources. The 70B model provides a good balance of performance and efficiency for most applications, while the 8B model is suitable for simpler tasks or resource-constrained environments where speed and lower computational overhead are priorities.
 
-## Getting Started with the Vercel AI SDK
+## Getting Started with the AI SDK
 
-The Vercel AI SDK is the TypeScript toolkit designed to help developers build AI-powered applications with React, Next.js, Vue, Svelte, Node.js, and more. Integrating LLMs into applications is complicated and heavily dependent on the specific model provider you use.
+The AI SDK is the TypeScript toolkit designed to help developers build AI-powered applications with React, Next.js, Vue, Svelte, Node.js, and more. Integrating LLMs into applications is complicated and heavily dependent on the specific model provider you use.
 
-The Vercel AI SDK abstracts away the differences between model providers, eliminates boilerplate code for building chatbots, and allows you to go beyond text output to generate rich, interactive components.
+The AI SDK abstracts away the differences between model providers, eliminates boilerplate code for building chatbots, and allows you to go beyond text output to generate rich, interactive components.
 
-At the center of the Vercel AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call Llama 3.1 (using [Groq](https://groq.com)) with the Vercel AI SDK:
+At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call Llama 3.1 (using [Groq](https://groq.com)) with the AI SDK:
 
 ```tsx
 import { generateText } from 'ai';
@@ -121,11 +121,11 @@ This code snippet will generate a type-safe recipe that conforms to the specifie
 
 While LLMs have incredible generation capabilities, they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather). The solution: tools, which are like programs that you provide to the model, which it can choose to call as necessary.
 
-### Using Tools with the Vercel AI SDK
+### Using Tools with the AI SDK
 
-The Vercel AI SDK supports tool usage across several of its functions, including [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui). By passing one or more tools to the `tools` parameter, you can extend the capabilities of LLMs, allowing them to perform discrete tasks and interact with external systems.
+The AI SDK supports tool usage across several of its functions, including [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui). By passing one or more tools to the `tools` parameter, you can extend the capabilities of LLMs, allowing them to perform discrete tasks and interact with external systems.
 
-Here's an example of how you can use a tool with the Vercel AI SDK and Llama 3.1:
+Here's an example of how you can use a tool with the AI SDK and Llama 3.1:
 
 ```tsx
 import { generateText, tool } from 'ai';
@@ -163,9 +163,9 @@ Agents take your AI applications a step further by allowing models to execute mu
 
 Agents use LLMs to choose the next step in a problem-solving process. They can reason at each step and make decisions based on the evolving context.
 
-### Implementing Agents with the Vercel AI SDK
+### Implementing Agents with the AI SDK
 
-The Vercel AI SDK supports agent implementation through the `maxToolRoundtrips` parameter. This allows the model to make multiple decisions and tool calls in a single interaction.
+The AI SDK supports agent implementation through the `maxSteps` parameter. This allows the model to make multiple decisions and tool calls in a single interaction.
 
 Here's an example of an agent that solves math problems:
 
@@ -195,7 +195,7 @@ const { text: answer } = await generateText({
       execute: async ({ expression }) => mathjs.evaluate(expression),
     }),
   },
-  maxToolRoundtrips: 5,
+  maxSteps: 5,
 });
 ```
 
@@ -203,13 +203,13 @@ In this example, the agent can use the calculator tool multiple times if needed,
 
 ### Building Interactive Interfaces
 
-AI SDK Core can be paired with [AI SDK UI](/docs/ai-sdk-ui/overview), another powerful component of the Vercel AI SDK, to streamline the process of building chat, completion, and assistant interfaces with popular frameworks like Next.js, Nuxt, SvelteKit, and SolidStart.
+AI SDK Core can be paired with [AI SDK UI](/docs/ai-sdk-ui/overview), another powerful component of the AI SDK, to streamline the process of building chat, completion, and assistant interfaces with popular frameworks like Next.js, Nuxt, SvelteKit, and SolidStart.
 
 AI SDK UI provides robust abstractions that simplify the complex tasks of managing chat streams and UI updates on the frontend, enabling you to develop dynamic AI-driven interfaces more efficiently.
 
 With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion), [`useObject`](/docs/reference/ai-sdk-ui/use-object), and [`useAssistant`](/docs/reference/ai-sdk-ui/use-assistant) — you can incorporate real-time chat capabilities, text completions, streamed JSON, and interactive assistant features into your app.
 
-Let's explore building a chatbot with [Next.js](https://nextjs.org), Vercel AI SDK, and Llama 3.1 (via [Groq](https://groq.com/)):
+Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and Llama 3.1 (via [Groq](https://groq.com/)):
 
 ```tsx filename="app/api/chat/route.ts"
 import { convertToCoreMessages, streamText } from 'ai';
@@ -267,7 +267,7 @@ This enables a seamless chat experience where the user can see the AI response a
 
 ### Going Beyond Text
 
-The Vercel AI SDK's React Server Components (RSC) API enables you to create rich, interactive interfaces that go beyond simple text generation. With the [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui) function, you can dynamically stream React components from the server to the client.
+The AI SDK's React Server Components (RSC) API enables you to create rich, interactive interfaces that go beyond simple text generation. With the [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui) function, you can dynamically stream React components from the server to the client.
 
 Let's dive into how you can leverage tools with [AI SDK RSC](/docs/ai-sdk-rsc/overview) to build a generative user interface with Next.js (App Router).
 
@@ -343,7 +343,7 @@ To see AI SDK RSC in action, check out our open-source [Next.js Gemini Chatbot](
 
 ## Migrate from OpenAI
 
-One of the key advantages of the Vercel AI SDK is its unified API, which makes it incredibly easy to switch between different AI models and providers. This flexibility is particularly useful when you want to migrate from one model to another, such as moving from OpenAI's GPT models to Meta's Llama models hosted on Groq.
+One of the key advantages of the AI SDK is its unified API, which makes it incredibly easy to switch between different AI models and providers. This flexibility is particularly useful when you want to migrate from one model to another, such as moving from OpenAI's GPT models to Meta's Llama models hosted on Groq.
 
 Here's how simple the migration process can be:
 
@@ -381,7 +381,7 @@ Thanks to the unified API, the core structure of the code remains the same. The 
 1. Creating a Groq client
 2. Changing the model name from `openai("gpt-4-turbo")` to `groq("llama-3.1-70b-versatile")`.
 
-With just these few changes, you've migrated from using OpenAI's GPT-4-Turbo to Meta's Llama 3.1 hosted on Groq. The `generateText` function and its usage remain identical, showcasing the power of the Vercel AI SDK's unified API.
+With just these few changes, you've migrated from using OpenAI's GPT-4-Turbo to Meta's Llama 3.1 hosted on Groq. The `generateText` function and its usage remain identical, showcasing the power of the AI SDK's unified API.
 
 This feature allows you to easily experiment with different models, compare their performance, and choose the best one for your specific use case without having to rewrite large portions of your codebase.
 
@@ -412,13 +412,13 @@ To learn more about fine-tuning Llama models, check out these resources:
 
 ## Conclusion
 
-The Vercel AI SDK offers a powerful and flexible way to integrate cutting-edge AI models like Llama 3.1 into your applications. With AI SDK Core, you can seamlessly switch between different AI models and providers by changing just two lines of code. This flexibility allows for quick experimentation and adaptation, reducing the time required to change models from days to minutes.
+The AI SDK offers a powerful and flexible way to integrate cutting-edge AI models like Llama 3.1 into your applications. With AI SDK Core, you can seamlessly switch between different AI models and providers by changing just two lines of code. This flexibility allows for quick experimentation and adaptation, reducing the time required to change models from days to minutes.
 
-The Vercel AI SDK ensures that your application remains clean and modular, accelerating development and future-proofing against the rapidly evolving landscape.
+The AI SDK ensures that your application remains clean and modular, accelerating development and future-proofing against the rapidly evolving landscape.
 
 Ready to get started? Here's how you can dive in:
 
-1. Explore the documentation at [sdk.vercel.ai/docs](/docs) to understand the full capabilities of the Vercel AI SDK.
+1. Explore the documentation at [sdk.vercel.ai/docs](/docs) to understand the full capabilities of the AI SDK.
 2. Check out practical examples at [sdk.vercel.ai/examples](/examples) to see the SDK in action and get inspired for your own projects.
 3. Dive deeper with advanced guides on topics like Retrieval-Augmented Generation (RAG) and multi-modal chat at [sdk.vercel.ai/docs/guides](/docs/guides).
 4. Check out ready-to-deploy AI templates at [vercel.com/templates?type=ai](https://vercel.com/templates?type=ai).

@@ -1,6 +1,6 @@
 ---
 title: Call Tools in Parallel
-description: Learn to call tools in parallel using the Vercel AI SDK in your Next.js Pages Router application
+description: Learn to call tools in parallel using the AI SDK in your Next.js Pages Router application
 ---
 
 # Call Tools in Parallel
@@ -29,7 +29,7 @@ Some language models support calling tools in parallel. This is particularly use
 
 Let's create a React component that imports the `useChat` hook from the `ai/react` module. The `useChat` hook will call the `/api/chat` endpoint when the user sends a message. The endpoint will generate the assistant's response based on the conversation history and stream it to the client. If the assistant responds with a tool call, the hook will automatically display them as well.
 
-You will use the `maxToolRoundtrips` to specify the maximum number of consecutive tool calls that can made before the model or the user responds with a text message. In this example, you will set it to `1` to allow for one round trip to happen.
+You will use the `maxSteps` to specify the maximum number of steps that can made before the model or the user responds with a text message. In this example, you will set it to `2` to allow for another call with the tool result to happen.
 
 ```tsx filename='pages/index.tsx'
 import { useChat } from 'ai/react';
@@ -37,7 +37,7 @@ import { useChat } from 'ai/react';
 export default function Page() {
   const { messages, input, setInput, append } = useChat({
     api: '/api/chat',
-    maxToolRoundtrips: 1,
+    maxSteps: 2,
   });
 
   return (

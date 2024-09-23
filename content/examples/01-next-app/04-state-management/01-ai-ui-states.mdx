@@ -1,6 +1,6 @@
 ---
 title: AI and UI States
-description: Learn to manage AI and UI states using the Vercel AI SDK in your Next.js App Router application
+description: Learn to manage AI and UI states using the AI SDK in your Next.js App Router application
 ---
 
 # AI and UI States
@@ -15,7 +15,7 @@ Let's use layout to wrap the children components of page with the AI context pro
 
 ```tsx filename='app/layout.tsx'
 import { ReactNode } from 'react';
-import { AI } from './actions';
+import { AI } from './ai';
 
 export default function RootLayout({
   children,
@@ -92,7 +92,7 @@ export default function Home() {
 ```tsx filename='app/actions.tsx'
 'use server';
 
-import { createAI, getMutableAIState, streamUI } from 'ai/rsc';
+import { getMutableAIState, streamUI } from 'ai/rsc';
 import { openai } from '@ai-sdk/openai';
 import { ReactNode } from 'react';
 import { z } from 'zod';
@@ -163,6 +163,13 @@ export async function continueConversation(
     display: result.value,
   };
 }
+```
+
+Finally, create the AI context provider.
+
+```typescript filename='app/ai.ts'
+import { createAI } from 'ai/rsc';
+import { ServerMessage, ClientMessage, continueConversation } from './actions';
 
 export const AI = createAI<ServerMessage[], ClientMessage[]>({
   actions: {

@@ -1,4 +1,6 @@
-# Node.js Http Server + Vercel AI SDK Example
+# Node.js Http Server + AI SDK Example
+
+You can use the AI SDK in a simple Node.js HTTP server to generate and stream text and objects.
 
 ## Usage
 

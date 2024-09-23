@@ -1,11 +1,11 @@
 ---
 title: Next.js Pages Router
-description: Welcome to the Vercel AI SDK documentation!
+description: Welcome to the AI SDK documentation!
 ---
 
 # Next.js Pages Router Quickstart
 
-The Vercel AI SDK is a powerful Typescript library designed to help developers build AI-powered applications.
+The AI SDK is a powerful Typescript library designed to help developers build AI-powered applications.
 
 In this quickstart tutorial, you'll build a simple AI-chatbot with a streaming user interface. Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
 
@@ -38,10 +38,10 @@ Navigate to the newly created directory:
 
 ### Install dependencies
 
-Install `ai` and `@ai-sdk/openai`, Vercel AI SDK's OpenAI provider.
+Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider.
 
 <Note>
-  Vercel AI SDK is designed to be a unified interface to interact with any large
+  The AI SDK is designed to be a unified interface to interact with any large
   language model. This means that you can change model and providers with just
   one line of code! Learn more about [available providers](/providers) and
   [building custom providers](/providers/community-providers/custom-providers)
@@ -80,7 +80,7 @@ OPENAI_API_KEY=xxxxxxxxx
 Replace `xxxxxxxxx` with your actual OpenAI API key.
 
 <Note className="mb-4">
-  Vercel AI SDK's OpenAI Provider will default to using the `OPENAI_API_KEY`
+  The AI SDK's OpenAI Provider will default to using the `OPENAI_API_KEY`
   environment variable.
 </Note>
 
@@ -124,7 +124,7 @@ This Route Handler creates a POST request endpint at `/api/chat`.
 
 ## Wire up the UI
 
-Now that you have an API route that can query an LLM, it's time to setup your frontend. Vercel AI SDK's [ UI ](/docs/ai-sdk-ui) package abstract the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+Now that you have an API route that can query an LLM, it's time to setup your frontend. The AI SDK's [ UI ](/docs/ai-sdk-ui) package abstract the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
 
 Update your root page (`pages/index.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
@@ -168,7 +168,7 @@ With that, you have built everything you need for your chatbot! To start your ap
 
 <Snippet text="pnpm run dev" />
 
-Head to your browser and open http://localhost:3000. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time! Vercel AI SDK makes it fast and easy to build AI chat interfaces with Next.js.
+Head to your browser and open http://localhost:3000. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time! The AI SDK makes it fast and easy to build AI chat interfaces with Next.js.
 
 ## Stream Data Alongside Response
 
@@ -246,6 +246,6 @@ Head back to your browser (http://localhost:3000) and enter a new message. You s
 
 ## Where to Next?
 
-You've built an AI chatbot using the Vercel AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-ui/chatbot-with-tool-calling) or [persisting chat history](/docs/ai-sdk-ui/storing-messages).
+You've built an AI chatbot using the AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-ui/chatbot-with-tool-calling) or [persisting chat history](/docs/ai-sdk-ui/storing-messages).
 
 If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.
