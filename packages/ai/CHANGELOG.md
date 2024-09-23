@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.0
+
+### Minor Changes
+
+- c0cea03: release (ai): 3.4
+
 ## 3.3.44
 
 ### Patch Changes
