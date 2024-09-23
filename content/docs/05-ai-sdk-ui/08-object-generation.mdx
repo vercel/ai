@@ -237,3 +237,17 @@ export default function Page() {
   );
 }
 ```
+
+## Configure Request Options
+
+You can configure the API endpoint and optional headers using the `api` and `headers` settings.
+
+```tsx highlight="2-5"
+const { submit, object } = useObject({
+  api: '/api/use-object',
+  headers: {
+    'X-Custom-Header': 'CustomValue',
+  },
+  schema: yourSchema,
+});
+```
