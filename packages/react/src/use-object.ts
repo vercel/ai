@@ -70,7 +70,7 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
   /**
    * Additional HTTP headers to be included in the request.
    */
-  headers?: HeadersInit;
+  headers?: Record<string, string> | Headers;
 };
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
