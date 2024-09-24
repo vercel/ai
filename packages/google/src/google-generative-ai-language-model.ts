@@ -414,7 +414,7 @@ const responseSchema = z.object({
   usageMetadata: z
     .object({
       promptTokenCount: z.number(),
-      candidatesTokenCount: z.number(),
+      candidatesTokenCount: z.number().nullish(),
       totalTokenCount: z.number(),
     })
     .optional(),
@@ -432,7 +432,7 @@ const chunkSchema = z.object({
   usageMetadata: z
     .object({
       promptTokenCount: z.number(),
-      candidatesTokenCount: z.number(),
+      candidatesTokenCount: z.number().nullish(),
       totalTokenCount: z.number(),
     })
     .optional(),
