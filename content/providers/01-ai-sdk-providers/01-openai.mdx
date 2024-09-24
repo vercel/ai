@@ -295,8 +295,13 @@ const result = await generateText({
 OpenAI has introduced the `o1` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
 Currently, `o1-mini` and `o1-preview` are available.
 
-Reasoning models currently have several limitations and are only supported using `generateText`.
-They support two additional options:
+Reasoning models currently only generate text, have several limitations, and are only supported using `generateText` and `streamText`.
+
+<Note>
+  Streaming is simulated and all stream chunks will returned at the same time.
+</Note>
+
+Reasoning models support two additional options:
 
 - You can use request `experimental_providerMetadata` to set the `maxCompletionTokens` option, which determines the maximum number
   of both reasoning and output tokens that the model generates.
