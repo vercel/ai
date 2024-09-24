@@ -890,7 +890,7 @@ describe('doGenerate', () => {
   });
 
   it('should send max_completion_tokens extension setting', async () => {
-    prepareJsonResponse();
+    prepareJsonResponse({ model: 'o1-preview' });
 
     const model = provider.chat('o1-preview');
 
@@ -910,6 +910,39 @@ describe('doGenerate', () => {
       messages: [{ role: 'user', content: 'Hello' }],
       max_completion_tokens: 255,
     });
+  });
+
+  describe('should simulate streaming for reasoning models', () => {
+    it('should stream text delta', async () => {
+      prepareJsonResponse({ content: 'Hello, World!', model: 'o1-preview' });
+
+      const model = provider.chat('o1-preview');
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        {
+          type: 'response-metadata',
+          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+          modelId: 'o1-preview',
+          timestamp: expect.any(Date),
+        },
+        { type: 'text-delta', textDelta: 'Hello, World!' },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 4, completionTokens: 30 },
+          logprobs: undefined,
+        },
+      ]);
+    });
+
+    // TODO tool calls
+    // TODO reasoning_tokens
   });
 });
 
