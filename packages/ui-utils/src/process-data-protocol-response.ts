@@ -134,17 +134,31 @@ export async function processDataProtocolResponse({
 
     if (type === 'text') {
       if (prefixMap['text']) {
+        if (typeof value !== 'string') {
+          throw new TypeError(
+            'Expected text to be a string except for the first chunk',
+          );
+        }
         prefixMap['text'] = {
           ...prefixMap['text'],
           content: (prefixMap['text'].content || '') + value,
         };
       } else {
-        prefixMap['text'] = {
-          id: generateId(),
-          role: 'assistant',
-          content: value,
-          createdAt,
-        };
+        if (typeof value === 'string') {
+          prefixMap['text'] = {
+            id: generateId(),
+            role: 'assistant',
+            content: value,
+            createdAt,
+          };
+        } else {
+          prefixMap['text'] = {
+            id: value.id,
+            role: 'assistant',
+            content: value.text,
+            createdAt,
+          };
+        }
       }
     }
 

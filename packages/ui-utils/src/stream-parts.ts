@@ -18,11 +18,36 @@ export interface StreamPart<CODE extends string, NAME extends string, TYPE> {
   parse: (value: JSONValue) => { type: NAME; value: TYPE };
 }
 
-const textStreamPart: StreamPart<'0', 'text', string> = {
+const textStreamPart: StreamPart<
+  '0',
+  'text',
+  | string
+  | {
+      text: string;
+      id: string;
+    }
+> = {
   code: '0',
   name: 'text',
   parse: (value: JSONValue) => {
     if (typeof value !== 'string') {
+      if (
+        value != null &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        'id' in value &&
+        typeof value.id === 'string' &&
+        'text' in value &&
+        typeof value.text === 'string'
+      ) {
+        return {
+          type: 'text',
+          value: {
+            text: value.text,
+            id: value.id,
+          },
+        };
+      }
       throw new Error('"text" parts expect a string value.');
     }
     return { type: 'text', value };
