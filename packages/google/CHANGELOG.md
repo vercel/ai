@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 0.0.49
+
+### Patch Changes
+
+- 2e32bd0: fix (provider/google): deal with empty candidatesTokenCount
+- 2e32bd0: feat (provider/google): add new models
+
 ## 0.0.48
 
 ### Patch Changes
