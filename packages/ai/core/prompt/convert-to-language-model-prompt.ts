@@ -131,6 +131,10 @@ export function convertToLanguageModelMessage(
 
                 // try to convert string image parts to urls
                 if (typeof part.image === 'string') {
+                  const invalidUrlPattern = /\s/;
+                  if (invalidUrlPattern.test(part.image)) {
+                    throw new Error(`Invalid Image URL: ${part.image}`);
+                  }
                   try {
                     const url = new URL(part.image);
 
@@ -146,7 +150,8 @@ export function convertToLanguageModelMessage(
                               part.experimental_providerMetadata,
                           };
                         } else {
-                          const downloadedImage = downloadedImages[part.image];
+                          const downloadedImage =
+                            downloadedImages[url.toString()];
                           return {
                             type: 'image',
                             image: downloadedImage.data,
