@@ -12,9 +12,9 @@ The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications wi
 <Note>
   OpenAI o1 models are currently [in beta with limited
   features](https://platform.openai.com/docs/guides/reasoning/beta-limitations).
-  Access is restricted to developers in tier 5, with low rate limits (20 RPM).
-  OpenAI is working on adding more features, increasing rate limits, and
-  expanding access to more developers in the coming weeks.
+  Access is restricted to developers in tier 5 and tier 4, with low rate limits
+  (20 RPM). OpenAI is working on adding more features, increasing rate limits,
+  and expanding access to more developers in the coming weeks.
 </Note>
 
 ## OpenAI o1
@@ -82,8 +82,8 @@ const { text } = await generateText({
 
 <Note>
   During the beta phase, access to most chat completions parameters is not
-  supported for o1 models. Features like streaming, function calling, and image
-  inputs are currently unavailable.
+  supported for o1 models. Features like function calling and image inputs are
+  currently unavailable, and streaming is simulated.
 </Note>
 
 ### Building Interactive Interfaces
