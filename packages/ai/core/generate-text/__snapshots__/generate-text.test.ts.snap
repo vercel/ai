@@ -1,139 +1,5 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`options.maxSteps > 2 steps: initial, continuation > onStepFinish should be called for each step 1`] = `
-[
-  {
-    "experimental_providerMetadata": undefined,
-    "finishReason": "length",
-    "logprobs": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "test-id-1-from-model",
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "text": "part-1",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "completionTokens": 20,
-      "promptTokens": 10,
-      "totalTokens": 30,
-    },
-    "warnings": undefined,
-  },
-  {
-    "experimental_providerMetadata": undefined,
-    "finishReason": "length",
-    "logprobs": undefined,
-    "response": {
-      "headers": {
-        "custom-response-header": "response-header-value",
-      },
-      "id": "test-id-2-from-model",
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:10.000Z,
-    },
-    "text": "part-2",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "completionTokens": 5,
-      "promptTokens": 30,
-      "totalTokens": 35,
-    },
-    "warnings": undefined,
-  },
-  {
-    "experimental_providerMetadata": undefined,
-    "finishReason": "stop",
-    "logprobs": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "test-id-3-from-model",
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:20.000Z,
-    },
-    "text": "part-3",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "completionTokens": 2,
-      "promptTokens": 3,
-      "totalTokens": 5,
-    },
-    "warnings": undefined,
-  },
-]
-`;
-
-exports[`options.maxSteps > 2 steps: initial, continuation > result.steps should contain all steps 1`] = `
-[
-  {
-    "experimental_providerMetadata": undefined,
-    "finishReason": "length",
-    "logprobs": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "test-id-1-from-model",
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "text": "part-1",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "completionTokens": 20,
-      "promptTokens": 10,
-      "totalTokens": 30,
-    },
-    "warnings": undefined,
-  },
-  {
-    "experimental_providerMetadata": undefined,
-    "finishReason": "length",
-    "logprobs": undefined,
-    "response": {
-      "headers": {
-        "custom-response-header": "response-header-value",
-      },
-      "id": "test-id-2-from-model",
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:10.000Z,
-    },
-    "text": "part-2",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "completionTokens": 5,
-      "promptTokens": 30,
-      "totalTokens": 35,
-    },
-    "warnings": undefined,
-  },
-  {
-    "experimental_providerMetadata": undefined,
-    "finishReason": "stop",
-    "logprobs": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "test-id-3-from-model",
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:20.000Z,
-    },
-    "text": "part-3",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "completionTokens": 2,
-      "promptTokens": 3,
-      "totalTokens": 5,
-    },
-    "warnings": undefined,
-  },
-]
-`;
-
 exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should be called for each step 1`] = `
 [
   {
@@ -300,6 +166,140 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
       "completionTokens": 20,
       "promptTokens": 10,
       "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`options.maxSteps > 3 steps: initial, continuation, continuation > onStepFinish should be called for each step 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "test-id-1-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "text": "part-1",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "logprobs": undefined,
+    "response": {
+      "headers": {
+        "custom-response-header": "response-header-value",
+      },
+      "id": "test-id-2-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:10.000Z,
+    },
+    "text": "part-2",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 30,
+      "totalTokens": 35,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "test-id-3-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:20.000Z,
+    },
+    "text": "part-3",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 2,
+      "promptTokens": 3,
+      "totalTokens": 5,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`options.maxSteps > 3 steps: initial, continuation, continuation > result.steps should contain all steps 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "test-id-1-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "text": "part-1",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "logprobs": undefined,
+    "response": {
+      "headers": {
+        "custom-response-header": "response-header-value",
+      },
+      "id": "test-id-2-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:10.000Z,
+    },
+    "text": "part-2",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 30,
+      "totalTokens": 35,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "test-id-3-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:20.000Z,
+    },
+    "text": "part-3",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 2,
+      "promptTokens": 3,
+      "totalTokens": 5,
     },
     "warnings": undefined,
   },

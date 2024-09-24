@@ -467,7 +467,7 @@ describe('options.maxSteps', () => {
     });
   });
 
-  describe('2 steps: initial, continuation', () => {
+  describe('3 steps: initial, continuation, continuation', () => {
     let result: GenerateTextResult<any>;
     let onStepFinishResults: StepResult<any>[];
 
