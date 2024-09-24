@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.2
+
+### Patch Changes
+
+- e6c7e98: feat (ai/core): add continuationSteps to generateText
+
 ## 3.4.1
 
 ### Patch Changes
