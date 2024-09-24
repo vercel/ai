@@ -534,7 +534,7 @@ describe('options.maxSteps', () => {
                 return {
                   ...dummyResponseValues,
                   text: 'part-2',
-                  finishReason: 'stop',
+                  finishReason: 'length',
                   response: {
                     id: 'test-id-2-from-model',
                     timestamp: new Date(10000),
@@ -552,13 +552,57 @@ describe('options.maxSteps', () => {
                     },
                   },
                 };
+              case 2:
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: undefined,
+                  tools: undefined,
+                });
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'part-1',
+                        providerMetadata: undefined,
+                      },
+                      {
+                        type: 'text',
+                        text: ' part-2',
+                        providerMetadata: undefined,
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  ...dummyResponseValues,
+                  text: 'part-3',
+                  finishReason: 'stop',
+                  response: {
+                    id: 'test-id-3-from-model',
+                    timestamp: new Date(20000),
+                    modelId: 'test-response-model-id',
+                  },
+                  usage: {
+                    completionTokens: 2,
+                    promptTokens: 3,
+                    totalTokens: 5,
+                  },
+                };
               default:
                 throw new Error(`Unexpected response count: ${responseCount}`);
             }
           },
         }),
         prompt: 'test-input',
-        maxSteps: 3,
+        maxSteps: 5,
         experimental_continuationSteps: true,
         onStepFinish: async event => {
           onStepFinishResults.push(event);
@@ -567,7 +611,7 @@ describe('options.maxSteps', () => {
     });
 
     it('result.text should return text from both steps separated by space', async () => {
-      assert.deepStrictEqual(result.text, 'part-1 part-2');
+      assert.deepStrictEqual(result.text, 'part-1 part-2 part-3');
     });
 
     it('result.responseMessages should contain an assistant message with the combined text', () => {
@@ -582,6 +626,10 @@ describe('options.maxSteps', () => {
               text: ' part-2',
               type: 'text',
             },
+            {
+              text: ' part-3',
+              type: 'text',
+            },
           ],
           role: 'assistant',
         },
@@ -590,9 +638,9 @@ describe('options.maxSteps', () => {
 
     it('result.usage should sum token usage', () => {
       assert.deepStrictEqual(result.usage, {
-        completionTokens: 25,
-        promptTokens: 40,
-        totalTokens: 65,
+        completionTokens: 27,
+        promptTokens: 43,
+        totalTokens: 70,
       });
     });
 

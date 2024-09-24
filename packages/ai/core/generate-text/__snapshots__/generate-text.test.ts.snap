@@ -24,7 +24,7 @@ exports[`options.maxSteps > 2 steps: initial, continuation > onStepFinish should
   },
   {
     "experimental_providerMetadata": undefined,
-    "finishReason": "stop",
+    "finishReason": "length",
     "logprobs": undefined,
     "response": {
       "headers": {
@@ -41,6 +41,26 @@ exports[`options.maxSteps > 2 steps: initial, continuation > onStepFinish should
       "completionTokens": 5,
       "promptTokens": 30,
       "totalTokens": 35,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "test-id-3-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:20.000Z,
+    },
+    "text": "part-3",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 2,
+      "promptTokens": 3,
+      "totalTokens": 5,
     },
     "warnings": undefined,
   },
@@ -71,7 +91,7 @@ exports[`options.maxSteps > 2 steps: initial, continuation > result.steps should
   },
   {
     "experimental_providerMetadata": undefined,
-    "finishReason": "stop",
+    "finishReason": "length",
     "logprobs": undefined,
     "response": {
       "headers": {
@@ -88,6 +108,26 @@ exports[`options.maxSteps > 2 steps: initial, continuation > result.steps should
       "completionTokens": 5,
       "promptTokens": 30,
       "totalTokens": 35,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "test-id-3-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:20.000Z,
+    },
+    "text": "part-3",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 2,
+      "promptTokens": 3,
+      "totalTokens": 5,
     },
     "warnings": undefined,
   },
