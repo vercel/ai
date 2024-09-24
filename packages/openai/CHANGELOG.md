@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.62
+
+### Patch Changes
+
+- 7efa867: feat (provider/openai): simulated streaming for reasoning models
+
 ## 0.0.61
 
 ### Patch Changes
