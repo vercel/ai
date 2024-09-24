@@ -8,7 +8,8 @@ async function main() {
     maxSteps: 5,
     experimental_continuationSteps: true,
     prompt:
-      'Write a book about the Roman history, from the founding of the city ' +
+      'Write a book about Roman history, ' +
+      'from the founding of the city of Rome ' +
       'to the fall of the Western Roman Empire. ' +
       'Each chapter MUST HAVE at least 1000 words.',
   });

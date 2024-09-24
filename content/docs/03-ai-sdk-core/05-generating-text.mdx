@@ -66,10 +66,11 @@ const {
   usage, // combined usage of all steps
 } = await generateText({
   model: openai('gpt-4o'), // 4096 output tokens
-  maxSteps: 5,
+  maxSteps: 5, // enable multi-step calls
   experimental_continuationSteps: true,
   prompt:
-    'Write a book about the Roman history, from the founding of the city ' +
+    'Write a book about Roman history, ' +
+    'from the founding of the city of Rome ' +
     'to the fall of the Western Roman Empire. ' +
     'Each chapter MUST HAVE at least 1000 words.',
 });
