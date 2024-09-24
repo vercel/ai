@@ -937,6 +937,7 @@ describe('doGenerate', () => {
           finishReason: 'stop',
           usage: { promptTokens: 4, completionTokens: 30 },
           logprobs: undefined,
+          providerMetadata: undefined,
         },
       ]);
     });
@@ -998,11 +999,54 @@ describe('doGenerate', () => {
           finishReason: 'stop',
           usage: { promptTokens: 4, completionTokens: 30 },
           logprobs: undefined,
+          providerMetadata: undefined,
         },
       ]);
     });
 
-    // TODO reasoning_tokens
+    it('should send reasoning tokens', async () => {
+      prepareJsonResponse({
+        content: 'Hello, World!',
+        model: 'o1-preview',
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          completion_tokens_details: {
+            reasoning_tokens: 10,
+          },
+        },
+      });
+
+      const model = provider.chat('o1-preview');
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        {
+          type: 'response-metadata',
+          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+          modelId: 'o1-preview',
+          timestamp: expect.any(Date),
+        },
+        { type: 'text-delta', textDelta: 'Hello, World!' },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 15, completionTokens: 20 },
+          logprobs: undefined,
+          providerMetadata: {
+            openai: {
+              reasoningTokens: 10,
+            },
+          },
+        },
+      ]);
+    });
   });
 });
 

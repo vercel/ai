@@ -357,6 +357,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
             finishReason: result.finishReason,
             usage: result.usage,
             logprobs: result.logprobs,
+            providerMetadata: result.providerMetadata,
           });
 
           controller.close();
