@@ -92,7 +92,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
-  experimental_continuation: continuation = false,
+  experimental_continuationSteps: continuationSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   _internal: {
@@ -148,7 +148,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
      */
     maxSteps?: number;
 
-    experimental_continuation?: boolean;
+    experimental_continuationSteps?: boolean;
 
     /**
      * Optional telemetry configuration (experimental).
@@ -437,7 +437,7 @@ functionality that can be fully encapsulated in the provider.
           // only use continuation when there are no tool calls:
           currentToolCalls.length === 0 &&
           currentStep.finishReason === 'length' &&
-          continuation === true
+          continuationSteps === true
         ) {
           stepType = 'continuation';
         } else if (

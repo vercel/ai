@@ -559,10 +559,10 @@ describe('options.maxSteps', () => {
         }),
         prompt: 'test-input',
         maxSteps: 3,
+        experimental_continuationSteps: true,
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
-        experimental_continuation: true,
       });
     });
 
