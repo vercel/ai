@@ -92,6 +92,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
+  experimental_continuationSteps: continuationSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   _internal: {
@@ -146,6 +147,8 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
      */
     maxSteps?: number;
+
+    experimental_continuationSteps?: boolean;
 
     /**
      * Optional telemetry configuration (experimental).
@@ -232,12 +235,16 @@ functionality that can be fully encapsulated in the provider.
       let stepCount = 0;
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
+      let text = '';
       const steps: GenerateTextResult<TOOLS>['steps'] = [];
       const usage: LanguageModelUsage = {
         completionTokens: 0,
         promptTokens: 0,
         totalTokens: 0,
       };
+
+      let stepType: 'initial' | 'tool-result' | 'continuation' | 'done' =
+        'initial';
 
       do {
         // once we have a 2nd step, we need to switch to messages format:
@@ -359,6 +366,13 @@ functionality that can be fully encapsulated in the provider.
         usage.promptTokens += currentUsage.promptTokens;
         usage.totalTokens += currentUsage.totalTokens;
 
+        // text
+        if (stepType === 'continuation') {
+          text += ' ' + (currentModelResponse.text ?? '');
+        } else {
+          text = currentModelResponse.text ?? '';
+        }
+
         // Add step information:
         const currentStep: StepResult<TOOLS> = {
           text: currentModelResponse.text ?? '',
@@ -378,25 +392,65 @@ functionality that can be fully encapsulated in the provider.
         await onStepFinish?.(currentStep);
 
         // append to messages for potential next step:
-        const newResponseMessages = toResponseMessages({
-          text: currentModelResponse.text,
-          toolCalls: currentToolCalls,
-          toolResults: currentToolResults,
-        });
-        responseMessages.push(...newResponseMessages);
-        promptMessages.push(
-          ...newResponseMessages.map(message =>
-            convertToLanguageModelMessage(message, null),
-          ),
-        );
-      } while (
-        // there are tool calls:
-        currentToolCalls.length > 0 &&
-        // all current tool calls have results:
-        currentToolResults.length === currentToolCalls.length &&
-        // the number of steps is less than the maximum:
-        ++stepCount < maxSteps
-      );
+        if (stepType === 'continuation') {
+          // continuation step: update the last assistant message
+          // continuation is only possible when there are no tool calls,
+          // so we can assume that there is a single last assistant message:
+          const lastResponseMessage =
+            responseMessages.pop() as CoreAssistantMessage;
+          promptMessages.pop();
+
+          if (typeof lastResponseMessage.content === 'string') {
+            lastResponseMessage.content = text;
+          } else {
+            lastResponseMessage.content.push({
+              text: ' ' + currentModelResponse.text,
+              type: 'text',
+            });
+          }
+
+          responseMessages.push(lastResponseMessage);
+          promptMessages.push(
+            convertToLanguageModelMessage(lastResponseMessage, null),
+          );
+        } else {
+          // tool result step
+          // add the assistant message with the tool calls
+          // and the tool result messages:
+          const newResponseMessages = toResponseMessages({
+            text: currentModelResponse.text,
+            toolCalls: currentToolCalls,
+            toolResults: currentToolResults,
+          });
+          responseMessages.push(...newResponseMessages);
+          promptMessages.push(
+            ...newResponseMessages.map(message =>
+              convertToLanguageModelMessage(message, null),
+            ),
+          );
+        }
+
+        // figure out next step type
+        if (++stepCount >= maxSteps) {
+          stepType = 'done';
+        } else if (
+          continuationSteps === true &&
+          currentStep.finishReason === 'length' &&
+          // only use continuation when there are no tool calls:
+          currentToolCalls.length === 0
+        ) {
+          stepType = 'continuation';
+        } else if (
+          // there are tool calls:
+          currentToolCalls.length > 0 &&
+          // all current tool calls have results:
+          currentToolResults.length === currentToolCalls.length
+        ) {
+          stepType = 'tool-result';
+        } else {
+          stepType = 'done';
+        }
+      } while (stepType !== 'done');
 
       // Add response information to the span:
       span.setAttributes(
@@ -428,10 +482,7 @@ functionality that can be fully encapsulated in the provider.
       );
 
       return new DefaultGenerateTextResult({
-        // Always return a string so that the caller doesn't have to check for undefined.
-        // If they need to check if the model did not return any text,
-        // they can check the length of the string:
-        text: currentModelResponse.text ?? '',
+        text,
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
