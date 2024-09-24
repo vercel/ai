@@ -272,7 +272,7 @@ describe('result.responseMessages', () => {
 });
 
 describe('options.maxSteps', () => {
-  describe('2 steps', () => {
+  describe('2 steps: initial, tool-result', () => {
     let result: GenerateTextResult<any>;
     let onStepFinishResults: StepResult<any>[];
 
@@ -455,6 +455,144 @@ describe('options.maxSteps', () => {
         completionTokens: 25,
         promptTokens: 20,
         totalTokens: 45,
+      });
+    });
+
+    it('result.steps should contain all steps', () => {
+      expect(result.steps).toMatchSnapshot();
+    });
+
+    it('onStepFinish should be called for each step', () => {
+      expect(onStepFinishResults).toMatchSnapshot();
+    });
+  });
+
+  describe('2 steps: initial, continuation', () => {
+    let result: GenerateTextResult<any>;
+    let onStepFinishResults: StepResult<any>[];
+
+    beforeEach(async () => {
+      onStepFinishResults = [];
+
+      let responseCount = 0;
+      result = await generateText({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({ prompt, mode }) => {
+            switch (responseCount++) {
+              case 0:
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: undefined,
+                  tools: undefined,
+                });
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                ]);
+
+                return {
+                  ...dummyResponseValues,
+                  text: 'part-1',
+                  finishReason: 'length', // trigger continuation
+                  usage: {
+                    completionTokens: 20,
+                    promptTokens: 10,
+                    totalTokens: 30,
+                  },
+                  response: {
+                    id: 'test-id-1-from-model',
+                    timestamp: new Date(0),
+                    modelId: 'test-response-model-id',
+                  },
+                };
+              case 1:
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: undefined,
+                  tools: undefined,
+                });
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'part-1',
+                        providerMetadata: undefined,
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  ...dummyResponseValues,
+                  text: 'part-2',
+                  finishReason: 'stop',
+                  response: {
+                    id: 'test-id-2-from-model',
+                    timestamp: new Date(10000),
+                    modelId: 'test-response-model-id',
+                  },
+                  usage: {
+                    completionTokens: 5,
+                    promptTokens: 30,
+                    totalTokens: 35,
+                  },
+                  // test handling of custom response headers:
+                  rawResponse: {
+                    headers: {
+                      'custom-response-header': 'response-header-value',
+                    },
+                  },
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        prompt: 'test-input',
+        maxSteps: 3,
+        onStepFinish: async event => {
+          onStepFinishResults.push(event);
+        },
+        experimental_continuation: true,
+      });
+    });
+
+    it('result.text should return text from both steps separated by space', async () => {
+      assert.deepStrictEqual(result.text, 'part-1 part-2');
+    });
+
+    it('result.responseMessages should contain an assistant message with the combined text', () => {
+      expect(result.responseMessages).toStrictEqual([
+        {
+          content: [
+            {
+              text: 'part-1',
+              type: 'text',
+            },
+            {
+              text: ' part-2',
+              type: 'text',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+    });
+
+    it('result.usage should sum token usage', () => {
+      assert.deepStrictEqual(result.usage, {
+        completionTokens: 25,
+        promptTokens: 40,
+        totalTokens: 65,
       });
     });
 
