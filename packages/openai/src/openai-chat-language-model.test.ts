@@ -941,7 +941,67 @@ describe('doGenerate', () => {
       ]);
     });
 
-    // TODO tool calls
+    it('should stream tool calls', async () => {
+      prepareJsonResponse({
+        model: 'o1-preview',
+        tool_calls: [
+          {
+            id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+            type: 'function',
+            function: {
+              name: 'test-tool',
+              arguments: '{"value":"Sparkle Day"}',
+            },
+          },
+        ],
+      });
+
+      const model = provider.chat('o1-preview');
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'regular',
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        {
+          type: 'response-metadata',
+          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+          modelId: 'o1-preview',
+          timestamp: expect.any(Date),
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolCallType: 'function',
+          toolName: 'test-tool',
+          args: '{"value":"Sparkle Day"}',
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 4, completionTokens: 30 },
+          logprobs: undefined,
+        },
+      ]);
+    });
+
     // TODO reasoning_tokens
   });
 });
