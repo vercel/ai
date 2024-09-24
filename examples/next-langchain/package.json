@@ -15,7 +15,7 @@
     "ai": "latest",
     "langchain": "0.1.36",
     "next": "latest",
-    "react": "^18",
+    "react": "^19.0.0-rc-04bd67a4-20240924",
     "react-dom": "^18"
   },
   "devDependencies": {

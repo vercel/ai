@@ -12,7 +12,7 @@
     "@ai-sdk/react": "latest",
     "ai": "latest",
     "next": "latest",
-    "react": "^18",
+    "react": "^19.0.0-rc-04bd67a4-20240924",
     "react-dom": "^18",
     "replicate": "^0.20.1"
   },
