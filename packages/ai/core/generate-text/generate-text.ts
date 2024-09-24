@@ -434,10 +434,10 @@ functionality that can be fully encapsulated in the provider.
         if (++stepCount >= maxSteps) {
           stepType = 'done';
         } else if (
-          // only use continuation when there are no tool calls:
-          currentToolCalls.length === 0 &&
+          continuationSteps === true &&
           currentStep.finishReason === 'length' &&
-          continuationSteps === true
+          // only use continuation when there are no tool calls:
+          currentToolCalls.length === 0
         ) {
           stepType = 'continuation';
         } else if (
