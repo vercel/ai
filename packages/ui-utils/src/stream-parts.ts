@@ -18,36 +18,11 @@ export interface StreamPart<CODE extends string, NAME extends string, TYPE> {
   parse: (value: JSONValue) => { type: NAME; value: TYPE };
 }
 
-const textStreamPart: StreamPart<
-  '0',
-  'text',
-  | string
-  | {
-      text: string;
-      id: string;
-    }
-> = {
+const textStreamPart: StreamPart<'0', 'text', string> = {
   code: '0',
   name: 'text',
   parse: (value: JSONValue) => {
     if (typeof value !== 'string') {
-      if (
-        value != null &&
-        typeof value === 'object' &&
-        !Array.isArray(value) &&
-        'id' in value &&
-        typeof value.id === 'string' &&
-        'text' in value &&
-        typeof value.text === 'string'
-      ) {
-        return {
-          type: 'text',
-          value: {
-            text: value.text,
-            id: value.id,
-          },
-        };
-      }
       throw new Error('"text" parts expect a string value.');
     }
     return { type: 'text', value };
@@ -509,6 +484,17 @@ const finishStepStreamPart: StreamPart<
   },
 };
 
+const idStreamPart: StreamPart<'f', 'id', string> = {
+  code: 'f',
+  name: 'id',
+  parse: (value: JSONValue) => {
+    if (typeof value !== 'string') {
+      throw new Error('"id" parts expect a string value.');
+    }
+    return { type: 'id', value };
+  },
+};
+
 const streamParts = [
   textStreamPart,
   functionCallStreamPart,
@@ -525,6 +511,7 @@ const streamParts = [
   toolCallDeltaStreamPart,
   finishMessageStreamPart,
   finishStepStreamPart,
+  idStreamPart,
 ] as const;
 
 // union type of all stream parts
@@ -543,7 +530,8 @@ type StreamParts =
   | typeof toolCallStreamingStartStreamPart
   | typeof toolCallDeltaStreamPart
   | typeof finishMessageStreamPart
-  | typeof finishStepStreamPart;
+  | typeof finishStepStreamPart
+  | typeof idStreamPart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -567,7 +555,8 @@ export type StreamPartType =
   | ReturnType<typeof toolCallStreamingStartStreamPart.parse>
   | ReturnType<typeof toolCallDeltaStreamPart.parse>
   | ReturnType<typeof finishMessageStreamPart.parse>
-  | ReturnType<typeof finishStepStreamPart.parse>;
+  | ReturnType<typeof finishStepStreamPart.parse>
+  | ReturnType<typeof idStreamPart.parse>;
 
 export const streamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -585,11 +574,12 @@ export const streamPartsByCode = {
   [toolCallDeltaStreamPart.code]: toolCallDeltaStreamPart,
   [finishMessageStreamPart.code]: finishMessageStreamPart,
   [finishStepStreamPart.code]: finishStepStreamPart,
+  [idStreamPart.code]: idStreamPart,
 } as const;
 
 /**
  * The map of prefixes for data in the stream
- *
+ * - f: ID
  * - 0: Text from the LLM response
  * - 1: (OpenAI) function_call responses
  * - 2: custom JSON added by the user using `Data`
@@ -597,6 +587,7 @@ export const streamPartsByCode = {
  *
  * Example:
  * ```
+ * f:V1StGXR8_Z5jdHi6B-myT
  * 0:Vercel
  * 0:'s
  * 0: AI
@@ -626,6 +617,7 @@ export const StreamStringPrefixes = {
   [toolCallDeltaStreamPart.name]: toolCallDeltaStreamPart.code,
   [finishMessageStreamPart.name]: finishMessageStreamPart.code,
   [finishStepStreamPart.name]: finishStepStreamPart.code,
+  [idStreamPart.name]: idStreamPart.code,
 } as const;
 
 export const validCodes = streamParts.map(part => part.code);
