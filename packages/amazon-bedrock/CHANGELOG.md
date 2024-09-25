@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.27
+
+### Patch Changes
+
+- 8a15307: fix (provider/bedrock): support assistant messages with trailing whitespace
+
 ## 0.0.26
 
 ### Patch Changes
