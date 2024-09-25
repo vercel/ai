@@ -1,4 +1,7 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import {
+  LanguageModelV1Message,
+  LanguageModelV1Prompt,
+} from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -119,6 +122,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   headers,
   maxToolRoundtrips = 0,
   maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
+  experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   experimental_toolCallStreaming: toolCallStreaming = false,
@@ -174,6 +178,13 @@ By default, it's set to 1, which means that only a single LLM call is made.
     maxSteps?: number;
 
     /**
+When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
+
+By default, it's set to false.
+     */
+    experimental_continueSteps?: boolean;
+
+    /**
 Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
@@ -214,7 +225,7 @@ Callback that is called when the LLM response and all request tool executions
 The usage is the combined usage of all steps.
      */
     onFinish?: (
-      event: StepResult<TOOLS> & {
+      event: Omit<StepResult<TOOLS>, 'stepType'> & {
         /**
 Details for all steps.
        */
@@ -389,6 +400,7 @@ need to be added separately.
         telemetry,
         startTimestampMs,
         maxSteps,
+        continueSteps,
         startStep,
         promptMessages,
         modelId: model.modelId,
@@ -447,6 +459,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     telemetry,
     startTimestampMs,
     maxSteps,
+    continueSteps,
     startStep,
     promptMessages,
     modelId,
@@ -460,7 +473,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     onChunk: Parameters<typeof streamText>[0]['onChunk'];
     onFinish:
       | ((
-          event: StepResult<TOOLS> & {
+          event: Omit<StepResult<TOOLS>, 'stepType'> & {
             steps: StepResult<TOOLS>[];
             responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
           },
@@ -474,6 +487,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     telemetry: TelemetrySettings | undefined;
     startTimestampMs: number;
     maxSteps: number;
+    continueSteps: boolean;
     startStep: StartStepFunction<TOOLS>;
     promptMessages: LanguageModelV1Prompt;
     modelId: string;
@@ -560,6 +574,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         completionTokens: 0,
         totalTokens: 0,
       },
+      stepType,
+      previousStepText = '',
     }: {
       stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
       startTimestamp: number;
@@ -567,6 +583,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       currentStep: number;
       promptMessages: LanguageModelV1Prompt;
       usage: LanguageModelUsage | undefined;
+      stepType: 'initial' | 'continue' | 'tool-result';
+      previousStepText?: string;
     }) {
       const stepToolCalls: ToToolCall<TOOLS>[] = [];
       const stepToolResults: ToToolResult<TOOLS>[] = [];
@@ -579,6 +597,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       let stepProviderMetadata: ProviderMetadata | undefined;
       let stepFirstChunk = true;
       let stepText = '';
+      let fullStepText = stepType === 'continue' ? previousStepText : '';
       let stepLogProbs: LogProbs | undefined;
       let stepResponse: { id: string; timestamp: Date; modelId: string } = {
         id: generateId(),
@@ -625,6 +644,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   controller.enqueue(chunk);
                   // create the full text from text deltas (for onFinish callback and text promise):
                   stepText += chunk.textDelta;
+                  fullStepText += chunk.textDelta;
                   await onChunk?.({ chunk });
                   break;
                 }
@@ -755,6 +775,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
               });
 
               const stepResult: StepResult<TOOLS> = {
+                stepType,
                 text: stepText,
                 toolCalls: stepToolCalls,
                 toolResults: stepToolResults,
@@ -778,25 +799,57 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 totalTokens: usage.totalTokens + stepUsage.totalTokens,
               };
 
+              // check if another step is needed:
+              let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
+              if (currentStep + 1 < maxSteps) {
+                if (
+                  continueSteps &&
+                  stepFinishReason === 'length' &&
+                  // only use continue when there are no tool calls:
+                  stepToolCalls.length === 0
+                ) {
+                  nextStepType = 'continue';
+                } else if (
+                  // there are tool calls:
+                  stepToolCalls.length > 0 &&
+                  // all current tool calls have results:
+                  stepToolResults.length === stepToolCalls.length
+                ) {
+                  nextStepType = 'tool-result';
+                }
+              }
+
               // check if another tool step is needed:
-              if (
-                // there are tool calls:
-                stepToolCalls.length > 0 &&
-                // all current tool calls have results:
-                stepToolResults.length === stepToolCalls.length &&
-                // the number of steps is less than the maximum:
-                currentStep + 1 < maxSteps
-              ) {
-                // append to messages for potential next step:
-                promptMessages.push(
-                  ...toResponseMessages({
+              if (nextStepType !== 'done') {
+                // append to messages for the next step:
+                if (stepType === 'continue') {
+                  // continue step: update the last assistant message
+                  // continue is only possible when there are no tool calls,
+                  // so we can assume that there is a single last assistant message:
+                  const lastPromptMessage = promptMessages[
+                    promptMessages.length - 1
+                  ] as LanguageModelV1Message & {
+                    role: 'assistant';
+                  };
+
+                  lastPromptMessage.content.push({
                     text: stepText,
-                    toolCalls: stepToolCalls,
-                    toolResults: stepToolResults,
-                  }).map(message =>
-                    convertToLanguageModelMessage(message, null),
-                  ),
-                );
+                    type: 'text',
+                  });
+                } else {
+                  // tool result step
+                  // add the assistant message with the tool calls
+                  // and the tool result messages:
+                  promptMessages.push(
+                    ...toResponseMessages({
+                      text: stepText,
+                      toolCalls: stepToolCalls,
+                      toolResults: stepToolResults,
+                    }).map(message =>
+                      convertToLanguageModelMessage(message, null),
+                    ),
+                  );
+                }
 
                 // create call and doStream span:
                 const {
@@ -820,6 +873,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   currentStep: currentStep + 1,
                   promptMessages,
                   usage: combinedUsage,
+                  stepType: nextStepType,
+                  previousStepText: fullStepText,
                 });
 
                 return;
@@ -845,7 +900,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     telemetry,
                     attributes: {
                       'ai.response.finishReason': stepFinishReason,
-                      'ai.response.text': { output: () => stepText },
+                      'ai.response.text': { output: () => fullStepText },
                       'ai.response.toolCalls': {
                         output: () => stepToolCallsJson,
                       },
@@ -856,7 +911,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                       // deprecated
                       'ai.finishReason': stepFinishReason,
-                      'ai.result.text': { output: () => stepText },
+                      'ai.result.text': { output: () => fullStepText },
                       'ai.result.toolCalls': {
                         output: () => stepToolCallsJson,
                       },
@@ -867,22 +922,40 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 // Collect responseMessages from all steps:
                 const responseMessages = stepResults.reduce<
                   Array<CoreAssistantMessage | CoreToolMessage>
-                >(
-                  (responseMessages, step) => [
+                >((responseMessages, step) => {
+                  if (step.stepType === 'continue') {
+                    // continue step: update the last assistant message
+                    // continue is only possible when there are no tool calls,
+                    // so we can assume that there is a single last assistant message:
+                    const lastResponseMessage =
+                      responseMessages.pop() as CoreAssistantMessage;
+
+                    if (typeof lastResponseMessage.content === 'string') {
+                      lastResponseMessage.content += step.text;
+                    } else {
+                      lastResponseMessage.content.push({
+                        text: step.text,
+                        type: 'text',
+                      });
+                    }
+
+                    return [...responseMessages, lastResponseMessage];
+                  }
+
+                  return [
                     ...responseMessages,
                     ...toResponseMessages({
                       text: step.text,
                       toolCalls: step.toolCalls,
                       toolResults: step.toolResults,
                     }),
-                  ],
-                  [],
-                );
+                  ];
+                }, []);
 
                 // resolve promises:
                 resolveUsage(combinedUsage);
                 resolveFinishReason(stepFinishReason!);
-                resolveText(stepText);
+                resolveText(fullStepText);
                 resolveToolCalls(stepToolCalls);
                 resolveProviderMetadata(stepProviderMetadata);
                 resolveToolResults(stepToolResults);
@@ -898,7 +971,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   finishReason: stepFinishReason,
                   logprobs: stepLogProbs,
                   usage: combinedUsage,
-                  text: stepText,
+                  text: fullStepText,
                   toolCalls: stepToolCalls,
                   // The tool results are inferred as a never[] type, because they are
                   // optional and the execute method with an inferred result type is
@@ -934,6 +1007,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       currentStep: 0,
       promptMessages,
       usage: undefined,
+      stepType: 'initial',
     });
   }
 

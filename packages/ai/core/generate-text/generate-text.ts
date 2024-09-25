@@ -92,7 +92,9 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
-  experimental_continuationSteps: continuationSteps = false,
+  experimental_continuationSteps,
+  experimental_continueSteps: continueSteps = experimental_continuationSteps ??
+    false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   _internal: {
@@ -148,10 +150,20 @@ By default, it's set to 1, which means that only a single LLM call is made.
      */
     maxSteps?: number;
 
+    /**
+@deprecated Use `experimental_continueSteps` instead.
+     */
     experimental_continuationSteps?: boolean;
 
     /**
-     * Optional telemetry configuration (experimental).
+When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
+
+By default, it's set to false.
+     */
+    experimental_continueSteps?: boolean;
+
+    /**
+Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
 
@@ -243,8 +255,7 @@ functionality that can be fully encapsulated in the provider.
         totalTokens: 0,
       };
 
-      let stepType: 'initial' | 'tool-result' | 'continuation' | 'done' =
-        'initial';
+      let stepType: 'initial' | 'tool-result' | 'continue' | 'done' = 'initial';
 
       do {
         // once we have a 2nd step, we need to switch to messages format:
@@ -366,15 +377,16 @@ functionality that can be fully encapsulated in the provider.
         usage.promptTokens += currentUsage.promptTokens;
         usage.totalTokens += currentUsage.totalTokens;
 
-        // text
-        if (stepType === 'continuation') {
-          text += ' ' + (currentModelResponse.text ?? '');
+        // text:
+        if (stepType === 'continue') {
+          text += currentModelResponse.text ?? '';
         } else {
           text = currentModelResponse.text ?? '';
         }
 
         // Add step information:
         const currentStep: StepResult<TOOLS> = {
+          stepType,
           text: currentModelResponse.text ?? '',
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
@@ -392,9 +404,9 @@ functionality that can be fully encapsulated in the provider.
         await onStepFinish?.(currentStep);
 
         // append to messages for potential next step:
-        if (stepType === 'continuation') {
-          // continuation step: update the last assistant message
-          // continuation is only possible when there are no tool calls,
+        if (stepType === 'continue') {
+          // continue step: update the last assistant message
+          // continue is only possible when there are no tool calls,
           // so we can assume that there is a single last assistant message:
           const lastResponseMessage =
             responseMessages.pop() as CoreAssistantMessage;
@@ -404,7 +416,7 @@ functionality that can be fully encapsulated in the provider.
             lastResponseMessage.content = text;
           } else {
             lastResponseMessage.content.push({
-              text: ' ' + currentModelResponse.text,
+              text: currentModelResponse.text ?? '',
               type: 'text',
             });
           }
@@ -430,16 +442,16 @@ functionality that can be fully encapsulated in the provider.
           );
         }
 
-        // figure out next step type
+        // check if another step is needed:
         if (++stepCount >= maxSteps) {
           stepType = 'done';
         } else if (
-          continuationSteps === true &&
+          continueSteps &&
           currentStep.finishReason === 'length' &&
-          // only use continuation when there are no tool calls:
+          // only use continue when there are no tool calls:
           currentToolCalls.length === 0
         ) {
-          stepType = 'continuation';
+          stepType = 'continue';
         } else if (
           // there are tool calls:
           currentToolCalls.length > 0 &&
