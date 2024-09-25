@@ -2338,7 +2338,7 @@ describe('options.maxSteps', () => {
     });
   });
 
-  describe('3 steps: initial, continuation, continuation', () => {
+  describe('3 steps: initial, continue, continue', () => {
     beforeEach(async () => {
       result = undefined as any;
       onFinishResult = undefined as any;

@@ -815,7 +815,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 if (
                   continueSteps &&
                   stepFinishReason === 'length' &&
-                  // only use continuation when there are no tool calls:
+                  // only use continue when there are no tool calls:
                   stepToolCalls.length === 0
                 ) {
                   nextStepType = 'continue';
@@ -833,8 +833,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
               if (nextStepType !== 'done') {
                 // append to messages for the next step:
                 if (stepType === 'continue') {
-                  // continuation step: update the last assistant message
-                  // continuation is only possible when there are no tool calls,
+                  // continue step: update the last assistant message
+                  // continue is only possible when there are no tool calls,
                   // so we can assume that there is a single last assistant message:
                   const lastPromptMessage = promptMessages[
                     promptMessages.length - 1
@@ -934,8 +934,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   Array<CoreAssistantMessage | CoreToolMessage>
                 >((responseMessages, step) => {
                   if (step.stepType === 'continue') {
-                    // continuation step: update the last assistant message
-                    // continuation is only possible when there are no tool calls,
+                    // continue step: update the last assistant message
+                    // continue is only possible when there are no tool calls,
                     // so we can assume that there is a single last assistant message:
                     const lastResponseMessage =
                       responseMessages.pop() as CoreAssistantMessage;

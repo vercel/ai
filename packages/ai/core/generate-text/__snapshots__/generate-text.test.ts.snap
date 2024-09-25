@@ -176,7 +176,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
 ]
 `;
 
-exports[`options.maxSteps > 3 steps: initial, continuation, continuation > onStepFinish should be called for each step 1`] = `
+exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish should be called for each step 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
@@ -246,7 +246,7 @@ exports[`options.maxSteps > 3 steps: initial, continuation, continuation > onSte
 ]
 `;
 
-exports[`options.maxSteps > 3 steps: initial, continuation, continuation > result.steps should contain all steps 1`] = `
+exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps should contain all steps 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,

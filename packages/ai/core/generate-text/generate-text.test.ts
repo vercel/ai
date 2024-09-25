@@ -463,7 +463,7 @@ describe('options.maxSteps', () => {
     });
   });
 
-  describe('3 steps: initial, continuation, continuation', () => {
+  describe('3 steps: initial, continue, continue', () => {
     let result: GenerateTextResult<any>;
     let onStepFinishResults: StepResult<any>[];
 
@@ -491,7 +491,7 @@ describe('options.maxSteps', () => {
                 return {
                   ...dummyResponseValues,
                   text: 'part-1',
-                  finishReason: 'length', // trigger continuation
+                  finishReason: 'length', // trigger continue
                   usage: { completionTokens: 20, promptTokens: 10 },
                   response: {
                     id: 'test-id-1-from-model',
@@ -587,7 +587,7 @@ describe('options.maxSteps', () => {
         }),
         prompt: 'test-input',
         maxSteps: 5,
-        experimental_continuationSteps: true,
+        experimental_continueSteps: true,
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },

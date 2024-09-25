@@ -92,7 +92,9 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
-  experimental_continuationSteps: continuationSteps = false,
+  experimental_continuationSteps,
+  experimental_continueSteps: continueSteps = experimental_continuationSteps ??
+    false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   _internal: {
@@ -149,11 +151,16 @@ By default, it's set to 1, which means that only a single LLM call is made.
     maxSteps?: number;
 
     /**
+@deprecated Use `experimental_continueSteps` instead.
+     */
+    experimental_continuationSteps?: boolean;
+
+    /**
 When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
 
 By default, it's set to false.
      */
-    experimental_continuationSteps?: boolean;
+    experimental_continueSteps?: boolean;
 
     /**
 Optional telemetry configuration (experimental).
@@ -398,8 +405,8 @@ functionality that can be fully encapsulated in the provider.
 
         // append to messages for potential next step:
         if (stepType === 'continue') {
-          // continuation step: update the last assistant message
-          // continuation is only possible when there are no tool calls,
+          // continue step: update the last assistant message
+          // continue is only possible when there are no tool calls,
           // so we can assume that there is a single last assistant message:
           const lastResponseMessage =
             responseMessages.pop() as CoreAssistantMessage;
@@ -439,9 +446,9 @@ functionality that can be fully encapsulated in the provider.
         if (++stepCount >= maxSteps) {
           stepType = 'done';
         } else if (
-          continuationSteps &&
+          continueSteps &&
           currentStep.finishReason === 'length' &&
-          // only use continuation when there are no tool calls:
+          // only use continue when there are no tool calls:
           currentToolCalls.length === 0
         ) {
           stepType = 'continue';

@@ -587,7 +587,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
 ]
 `;
 
-exports[`options.maxSteps > 3 steps: initial, continuation, continuation > callbacks > onFinish should send correct information 1`] = `
+exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
@@ -699,7 +699,7 @@ exports[`options.maxSteps > 3 steps: initial, continuation, continuation > callb
 }
 `;
 
-exports[`options.maxSteps > 3 steps: initial, continuation, continuation > callbacks > onStepFinish should send correct information 1`] = `
+exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > onStepFinish should send correct information 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
@@ -771,7 +771,7 @@ exports[`options.maxSteps > 3 steps: initial, continuation, continuation > callb
 ]
 `;
 
-exports[`options.maxSteps > 3 steps: initial, continuation, continuation > should contain text deltas from all steps 1`] = `
+exports[`options.maxSteps > 3 steps: initial, continue, continue > should contain text deltas from all steps 1`] = `
 [
   {
     "textDelta": "part-",
@@ -872,7 +872,7 @@ exports[`options.maxSteps > 3 steps: initial, continuation, continuation > shoul
 ]
 `;
 
-exports[`options.maxSteps > 3 steps: initial, continuation, continuation > should record telemetry data for each step 1`] = `
+exports[`options.maxSteps > 3 steps: initial, continue, continue > should record telemetry data for each step 1`] = `
 [
   {
     "attributes": {
@@ -1033,7 +1033,7 @@ exports[`options.maxSteps > 3 steps: initial, continuation, continuation > shoul
 ]
 `;
 
-exports[`options.maxSteps > 3 steps: initial, continuation, continuation > value promises > result.steps should contain all steps 1`] = `
+exports[`options.maxSteps > 3 steps: initial, continue, continue > value promises > result.steps should contain all steps 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
