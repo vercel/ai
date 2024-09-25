@@ -63,3 +63,87 @@ describe('user messages', () => {
     expect(system).toEqual('Hello');
   });
 });
+
+describe('assistant messages', () => {
+  it('should remove trailing whitespace from last assistant message when there is no further user message', async () => {
+    const result = convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'user content' }],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'assistant content  ' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ text: 'assistant content' }],
+        },
+      ],
+      system: undefined,
+    });
+  });
+
+  it('should keep trailing whitespace from assistant message when there is a further user message', async () => {
+    const result = convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'user content' }],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'assistant content  ' }],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'user content 2' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ text: 'assistant content  ' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'user content 2' }],
+        },
+      ],
+      system: undefined,
+    });
+  });
+
+  it('should combine multiple sequential assistant messages into a single message', async () => {
+    const result = convertToBedrockChatMessages([
+      { role: 'user', content: [{ type: 'text', text: 'Hi!' }] },
+      { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
+      { role: 'assistant', content: [{ type: 'text', text: 'World' }] },
+      { role: 'assistant', content: [{ type: 'text', text: '!' }] },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        { role: 'user', content: [{ text: 'Hi!' }] },
+        {
+          role: 'assistant',
+          content: [{ text: 'Hello' }, { text: 'World' }, { text: '!' }],
+        },
+      ],
+      system: undefined,
+    });
+  });
+});

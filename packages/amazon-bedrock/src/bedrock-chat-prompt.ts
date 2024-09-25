@@ -5,18 +5,16 @@ export type BedrockMessagesPrompt = {
   messages: BedrockMessages;
 };
 
-export type BedrockMessages = Array<ChatCompletionMessageParam>;
+export type BedrockMessages = Array<BedrockMessage>;
 
-export type ChatCompletionMessageParam =
-  | ChatCompletionUserMessageParam
-  | ChatCompletionAssistantMessageParam;
+export type BedrockMessage = BedrockUserMessage | BedrockAssistantMessage;
 
-export interface ChatCompletionUserMessageParam {
+export interface BedrockUserMessage {
   role: 'user';
   content: Array<ContentBlock>;
 }
 
-export interface ChatCompletionAssistantMessageParam {
+export interface BedrockAssistantMessage {
   role: 'assistant';
   content: Array<ContentBlock>;
 }
