@@ -119,6 +119,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   headers,
   maxToolRoundtrips = 0,
   maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
+  experimental_continuationSteps: continuationSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   experimental_toolCallStreaming: toolCallStreaming = false,
@@ -172,6 +173,13 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
  */
     maxSteps?: number;
+
+    /**
+When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
+
+By default, it's set to false.
+     */
+    experimental_continuationSteps?: boolean;
 
     /**
 Optional telemetry configuration (experimental).

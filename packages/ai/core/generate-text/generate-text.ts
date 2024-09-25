@@ -148,10 +148,15 @@ By default, it's set to 1, which means that only a single LLM call is made.
      */
     maxSteps?: number;
 
+    /**
+When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
+
+By default, it's set to false.
+     */
     experimental_continuationSteps?: boolean;
 
     /**
-     * Optional telemetry configuration (experimental).
+Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
 
