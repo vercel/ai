@@ -130,6 +130,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "stepType": "initial",
       "text": "",
       "toolCalls": [
         {
@@ -173,6 +174,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
+      "stepType": "tool-result",
       "text": "Hello, world!",
       "toolCalls": [],
       "toolResults": [],
@@ -208,6 +210,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFi
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "stepType": "initial",
     "text": "",
     "toolCalls": [
       {
@@ -251,6 +254,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFi
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
     "toolResults": [],
@@ -264,7 +268,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFi
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > should contain assistant response message and tool message from all step 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > should contain assistant response message and tool message from all steps 1`] = `
 [
   {
     "args": {
@@ -525,6 +529,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "stepType": "initial",
     "text": "",
     "toolCalls": [
       {
@@ -568,6 +573,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
     "toolResults": [],
@@ -575,6 +581,524 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
       "completionTokens": 5,
       "promptTokens": 1,
       "totalTokens": 6,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`options.maxSteps > 3 steps: initial, continuation, continuation > callbacks > onFinish should send correct information 1`] = `
+{
+  "experimental_providerMetadata": undefined,
+  "finishReason": "stop",
+  "logprobs": undefined,
+  "rawResponse": undefined,
+  "response": {
+    "headers": undefined,
+    "id": "id-1",
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:01.000Z,
+  },
+  "responseMessages": [
+    {
+      "content": [
+        {
+          "text": "part-1",
+          "type": "text",
+        },
+        {
+          "text": " part-2",
+          "type": "text",
+        },
+        {
+          "text": " part-3",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+  ],
+  "steps": [
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "length",
+      "logprobs": undefined,
+      "rawResponse": undefined,
+      "response": {
+        "id": "id-0",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "stepType": "initial",
+      "text": "part-1",
+      "toolCalls": [],
+      "toolResults": [],
+      "usage": {
+        "completionTokens": 20,
+        "promptTokens": 10,
+        "totalTokens": 30,
+      },
+      "warnings": undefined,
+    },
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "length",
+      "logprobs": undefined,
+      "rawResponse": undefined,
+      "response": {
+        "id": "id-1",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:01.000Z,
+      },
+      "stepType": "continue",
+      "text": "part-2",
+      "toolCalls": [],
+      "toolResults": [],
+      "usage": {
+        "completionTokens": 5,
+        "promptTokens": 30,
+        "totalTokens": 35,
+      },
+      "warnings": undefined,
+    },
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "stop",
+      "logprobs": undefined,
+      "rawResponse": {
+        "headers": {
+          "call": "3",
+        },
+      },
+      "response": {
+        "id": "id-1",
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:01.000Z,
+      },
+      "stepType": "continue",
+      "text": "part-3",
+      "toolCalls": [],
+      "toolResults": [],
+      "usage": {
+        "completionTokens": 2,
+        "promptTokens": 3,
+        "totalTokens": 5,
+      },
+      "warnings": undefined,
+    },
+  ],
+  "text": "part-1 part-2 part-3",
+  "toolCalls": [],
+  "toolResults": [],
+  "usage": {
+    "completionTokens": 27,
+    "promptTokens": 43,
+    "totalTokens": 70,
+  },
+  "warnings": undefined,
+}
+`;
+
+exports[`options.maxSteps > 3 steps: initial, continuation, continuation > callbacks > onStepFinish should send correct information 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "logprobs": undefined,
+    "rawResponse": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "stepType": "initial",
+    "text": "part-1",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "logprobs": undefined,
+    "rawResponse": undefined,
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "stepType": "continue",
+    "text": "part-2",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 30,
+      "totalTokens": 35,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "rawResponse": {
+      "headers": {
+        "call": "3",
+      },
+    },
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "stepType": "continue",
+    "text": "part-3",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 2,
+      "promptTokens": 3,
+      "totalTokens": 5,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`options.maxSteps > 3 steps: initial, continuation, continuation > should contain text deltas from all steps 1`] = `
+[
+  {
+    "textDelta": "part-",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": "1",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+  },
+  {
+    "textDelta": " ",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": "part-",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": "2",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 30,
+      "totalTokens": 35,
+    },
+  },
+  {
+    "textDelta": " ",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": "part-",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": "3",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 2,
+      "promptTokens": 3,
+      "totalTokens": 5,
+    },
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 27,
+      "promptTokens": 43,
+      "totalTokens": 70,
+    },
+  },
+]
+`;
+
+exports[`options.maxSteps > 3 steps: initial, continuation, continuation > should record telemetry data for each step 1`] = `
+[
+  {
+    "attributes": {
+      "ai.finishReason": "stop",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText",
+      "ai.prompt": "{"prompt":"test-input"}",
+      "ai.response.finishReason": "stop",
+      "ai.response.text": "part-1 part-2 part-3",
+      "ai.result.text": "part-1 part-2 part-3",
+      "ai.settings.maxSteps": 5,
+      "ai.usage.completionTokens": 27,
+      "ai.usage.promptTokens": 43,
+      "operation.name": "ai.streamText",
+    },
+    "events": [],
+    "name": "ai.streamText",
+  },
+  {
+    "attributes": {
+      "ai.finishReason": "length",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.format": "prompt",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+      "ai.response.avgCompletionTokensPerSecond": 40,
+      "ai.response.finishReason": "length",
+      "ai.response.id": "id-0",
+      "ai.response.model": "mock-model-id",
+      "ai.response.msToFinish": 500,
+      "ai.response.msToFirstChunk": 100,
+      "ai.response.text": "part-1",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+      "ai.result.text": "part-1",
+      "ai.stream.msToFirstChunk": 100,
+      "ai.usage.completionTokens": 20,
+      "ai.usage.promptTokens": 10,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "length",
+      ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 10,
+      "gen_ai.usage.output_tokens": 20,
+      "operation.name": "ai.streamText.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.response.msToFirstChunk": 100,
+          "ai.stream.msToFirstChunk": 100,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+      {
+        "attributes": undefined,
+        "name": "ai.stream.finish",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+  {
+    "attributes": {
+      "ai.finishReason": "length",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.format": "messages",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"text","text":"part-1"}]}]",
+      "ai.response.avgCompletionTokensPerSecond": 12.5,
+      "ai.response.finishReason": "length",
+      "ai.response.id": "id-1",
+      "ai.response.model": "mock-model-id",
+      "ai.response.msToFinish": 400,
+      "ai.response.msToFirstChunk": 400,
+      "ai.response.text": "part-2",
+      "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
+      "ai.result.text": "part-2",
+      "ai.stream.msToFirstChunk": 400,
+      "ai.usage.completionTokens": 5,
+      "ai.usage.promptTokens": 30,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "length",
+      ],
+      "gen_ai.response.id": "id-1",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 30,
+      "gen_ai.usage.output_tokens": 5,
+      "operation.name": "ai.streamText.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.response.msToFirstChunk": 400,
+          "ai.stream.msToFirstChunk": 400,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+      {
+        "attributes": undefined,
+        "name": "ai.stream.finish",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+  {
+    "attributes": {
+      "ai.finishReason": "stop",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.format": "messages",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"text","text":"part-1"},{"text":" part-2","type":"text"}]}]",
+      "ai.response.avgCompletionTokensPerSecond": Infinity,
+      "ai.response.finishReason": "stop",
+      "ai.response.id": "id-1",
+      "ai.response.model": "mock-model-id",
+      "ai.response.msToFinish": 0,
+      "ai.response.msToFirstChunk": 0,
+      "ai.response.text": "part-3",
+      "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
+      "ai.result.text": "part-3",
+      "ai.stream.msToFirstChunk": 0,
+      "ai.usage.completionTokens": 2,
+      "ai.usage.promptTokens": 3,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.response.id": "id-1",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 2,
+      "operation.name": "ai.streamText.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.response.msToFirstChunk": 0,
+          "ai.stream.msToFirstChunk": 0,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+      {
+        "attributes": undefined,
+        "name": "ai.stream.finish",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+]
+`;
+
+exports[`options.maxSteps > 3 steps: initial, continuation, continuation > value promises > result.steps should contain all steps 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "logprobs": undefined,
+    "rawResponse": undefined,
+    "response": {
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "stepType": "initial",
+    "text": "part-1",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "logprobs": undefined,
+    "rawResponse": undefined,
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "stepType": "continue",
+    "text": "part-2",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 30,
+      "totalTokens": 35,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "rawResponse": {
+      "headers": {
+        "call": "3",
+      },
+    },
+    "response": {
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "stepType": "continue",
+    "text": "part-3",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 2,
+      "promptTokens": 3,
+      "totalTokens": 5,
     },
     "warnings": undefined,
   },
@@ -652,6 +1176,7 @@ exports[`options.onFinish > options.onFinish should send correct information 1`]
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "stepType": "initial",
       "text": "Hello, world!",
       "toolCalls": [
         {

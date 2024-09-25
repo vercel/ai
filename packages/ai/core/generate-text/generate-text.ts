@@ -248,8 +248,7 @@ functionality that can be fully encapsulated in the provider.
         totalTokens: 0,
       };
 
-      let stepType: 'initial' | 'tool-result' | 'continuation' | 'done' =
-        'initial';
+      let stepType: 'initial' | 'tool-result' | 'continue' | 'done' = 'initial';
 
       do {
         // once we have a 2nd step, we need to switch to messages format:
@@ -371,8 +370,8 @@ functionality that can be fully encapsulated in the provider.
         usage.promptTokens += currentUsage.promptTokens;
         usage.totalTokens += currentUsage.totalTokens;
 
-        // text
-        if (stepType === 'continuation') {
+        // text:
+        if (stepType === 'continue') {
           text += ' ' + (currentModelResponse.text ?? '');
         } else {
           text = currentModelResponse.text ?? '';
@@ -380,6 +379,7 @@ functionality that can be fully encapsulated in the provider.
 
         // Add step information:
         const currentStep: StepResult<TOOLS> = {
+          stepType,
           text: currentModelResponse.text ?? '',
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
@@ -397,7 +397,7 @@ functionality that can be fully encapsulated in the provider.
         await onStepFinish?.(currentStep);
 
         // append to messages for potential next step:
-        if (stepType === 'continuation') {
+        if (stepType === 'continue') {
           // continuation step: update the last assistant message
           // continuation is only possible when there are no tool calls,
           // so we can assume that there is a single last assistant message:
@@ -444,7 +444,7 @@ functionality that can be fully encapsulated in the provider.
           // only use continuation when there are no tool calls:
           currentToolCalls.length === 0
         ) {
-          stepType = 'continuation';
+          stepType = 'continue';
         } else if (
           // there are tool calls:
           currentToolCalls.length > 0 &&

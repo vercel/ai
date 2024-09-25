@@ -2278,7 +2278,7 @@ describe('options.maxSteps', () => {
       });
     });
 
-    it('should contain assistant response message and tool message from all step', async () => {
+    it('should contain assistant response message and tool message from all steps', async () => {
       expect(
         await convertAsyncIterableToArray(result.fullStream),
       ).toMatchSnapshot();
@@ -2329,6 +2329,241 @@ describe('options.maxSteps', () => {
 
       it('result.responseMessages should contain response messages from all steps', async () => {
         expect(await result.responseMessages).toMatchSnapshot();
+      });
+    });
+
+    it('should record telemetry data for each step', async () => {
+      await convertAsyncIterableToArray(result.fullStream); // consume stream
+      expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+  });
+
+  describe('3 steps: initial, continuation, continuation', () => {
+    beforeEach(async () => {
+      result = undefined as any;
+      onFinishResult = undefined as any;
+      onStepFinishResults = [];
+
+      let responseCount = 0;
+      result = await streamText({
+        model: new MockLanguageModelV1({
+          doStream: async ({ prompt, mode }) => {
+            switch (responseCount++) {
+              case 0:
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: undefined,
+                  tools: undefined,
+                });
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    { type: 'text-delta', textDelta: 'part-' },
+                    { type: 'text-delta', textDelta: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: 'length',
+                      logprobs: undefined,
+                      usage: { completionTokens: 20, promptTokens: 10 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                };
+              case 1:
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: undefined,
+                  tools: undefined,
+                });
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'part-1',
+                        providerMetadata: undefined,
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-delta', textDelta: 'part-' },
+                    { type: 'text-delta', textDelta: '2' },
+                    {
+                      type: 'finish',
+                      finishReason: 'length',
+                      logprobs: undefined,
+                      usage: { completionTokens: 5, promptTokens: 30 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                };
+              case 2: {
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: undefined,
+                  tools: undefined,
+                });
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'part-1',
+                        providerMetadata: undefined,
+                      },
+                      {
+                        type: 'text',
+                        text: ' part-2',
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-delta', textDelta: 'part-' },
+                    { type: 'text-delta', textDelta: '3' },
+                    {
+                      type: 'finish',
+                      finishReason: 'stop',
+                      logprobs: undefined,
+                      usage: { completionTokens: 2, promptTokens: 3 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                  rawResponse: { headers: { call: '3' } },
+                };
+              }
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        prompt: 'test-input',
+        maxSteps: 5,
+        experimental_continueSteps: true,
+        onFinish: async event => {
+          expect(onFinishResult).to.be.undefined;
+          onFinishResult = event as unknown as typeof onFinishResult;
+        },
+        onStepFinish: async event => {
+          onStepFinishResults.push(event);
+        },
+        experimental_telemetry: { isEnabled: true },
+        _internal: {
+          now: mockValues(0, 100, 500, 600, 1000),
+        },
+      });
+    });
+
+    it('should contain text deltas from all steps', async () => {
+      expect(
+        await convertAsyncIterableToArray(result.fullStream),
+      ).toMatchSnapshot();
+    });
+
+    describe('callbacks', () => {
+      beforeEach(async () => {
+        await convertAsyncIterableToArray(result.fullStream); // consume stream
+      });
+
+      it('onFinish should send correct information', async () => {
+        expect(onFinishResult).toMatchSnapshot();
+      });
+
+      it('onStepFinish should send correct information', async () => {
+        expect(onStepFinishResults).toMatchSnapshot();
+      });
+    });
+
+    describe('value promises', () => {
+      beforeEach(async () => {
+        await convertAsyncIterableToArray(result.fullStream); // consume stream
+      });
+
+      it('result.usage should contain total token usage', async () => {
+        expect(await result.usage).toStrictEqual({
+          completionTokens: 27,
+          promptTokens: 43,
+          totalTokens: 70,
+        });
+      });
+
+      it('result.finishReason should contain finish reason from final step', async () => {
+        assert.strictEqual(await result.finishReason, 'stop');
+      });
+
+      it('result.text should contain combined text from all steps', async () => {
+        assert.strictEqual(await result.text, 'part-1 part-2 part-3');
+      });
+
+      it('result.steps should contain all steps', async () => {
+        expect(await result.steps).toMatchSnapshot();
+      });
+
+      it('result.rawResponse should contain rawResponse from last step', async () => {
+        assert.deepStrictEqual(result.rawResponse, { headers: { call: '3' } });
+      });
+
+      it('result.responseMessages should contain an assistant message with the combined text', async () => {
+        expect(await result.responseMessages).toStrictEqual([
+          {
+            content: [
+              {
+                text: 'part-1',
+                type: 'text',
+              },
+              {
+                text: ' part-2',
+                type: 'text',
+              },
+              {
+                text: ' part-3',
+                type: 'text',
+              },
+            ],
+            role: 'assistant',
+          },
+        ]);
       });
     });
 
