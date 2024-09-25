@@ -6,7 +6,7 @@ async function main() {
   const { text, usage, steps } = await generateText({
     model: openai('gpt-4o'), // 4096 output tokens
     maxSteps: 5,
-    experimental_continuationSteps: true,
+    experimental_continueSteps: true,
     prompt:
       'Write a book about Roman history, ' +
       'from the founding of the city of Rome ' +

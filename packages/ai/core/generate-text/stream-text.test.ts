@@ -2445,7 +2445,7 @@ describe('options.maxSteps', () => {
                       },
                       {
                         type: 'text',
-                        text: ' part-2',
+                        text: 'part-2',
                       },
                     ],
                     providerMetadata: undefined,
@@ -2533,7 +2533,7 @@ describe('options.maxSteps', () => {
       });
 
       it('result.text should contain combined text from all steps', async () => {
-        assert.strictEqual(await result.text, 'part-1 part-2 part-3');
+        assert.strictEqual(await result.text, 'part-1part-2part-3');
       });
 
       it('result.steps should contain all steps', async () => {
@@ -2553,11 +2553,11 @@ describe('options.maxSteps', () => {
                 type: 'text',
               },
               {
-                text: ' part-2',
+                text: 'part-2',
                 type: 'text',
               },
               {
-                text: ' part-3',
+                text: 'part-3',
                 type: 'text',
               },
             ],

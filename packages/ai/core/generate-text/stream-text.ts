@@ -631,16 +631,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   // deprecated:
                   'ai.stream.msToFirstChunk': msToFirstChunk,
                 });
-
-                // when we are in a continue step, inject whitespace before the first text delta
-                if (stepType === 'continue') {
-                  controller.enqueue({
-                    type: 'text-delta',
-                    textDelta: ' ',
-                  });
-
-                  fullStepText += ' ';
-                }
               }
 
               // Filter out empty text deltas
@@ -843,7 +833,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   };
 
                   lastPromptMessage.content.push({
-                    text: ' ' + stepText,
+                    text: stepText,
                     type: 'text',
                   });
                 } else {
@@ -941,10 +931,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       responseMessages.pop() as CoreAssistantMessage;
 
                     if (typeof lastResponseMessage.content === 'string') {
-                      lastResponseMessage.content += ' ' + step.text;
+                      lastResponseMessage.content += step.text;
                     } else {
                       lastResponseMessage.content.push({
-                        text: ' ' + step.text,
+                        text: step.text,
                         type: 'text',
                       });
                     }

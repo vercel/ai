@@ -561,7 +561,7 @@ describe('options.maxSteps', () => {
                       },
                       {
                         type: 'text',
-                        text: ' part-2',
+                        text: 'part-2',
                         providerMetadata: undefined,
                       },
                     ],
@@ -595,7 +595,7 @@ describe('options.maxSteps', () => {
     });
 
     it('result.text should return text from both steps separated by space', async () => {
-      expect(result.text).toStrictEqual('part-1 part-2 part-3');
+      expect(result.text).toStrictEqual('part-1part-2part-3');
     });
 
     it('result.responseMessages should contain an assistant message with the combined text', () => {
@@ -607,11 +607,11 @@ describe('options.maxSteps', () => {
               type: 'text',
             },
             {
-              text: ' part-2',
+              text: 'part-2',
               type: 'text',
             },
             {
-              text: ' part-3',
+              text: 'part-3',
               type: 'text',
             },
           ],

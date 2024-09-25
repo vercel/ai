@@ -379,7 +379,7 @@ functionality that can be fully encapsulated in the provider.
 
         // text:
         if (stepType === 'continue') {
-          text += ' ' + (currentModelResponse.text ?? '');
+          text += currentModelResponse.text ?? '';
         } else {
           text = currentModelResponse.text ?? '';
         }
@@ -416,7 +416,7 @@ functionality that can be fully encapsulated in the provider.
             lastResponseMessage.content = text;
           } else {
             lastResponseMessage.content.push({
-              text: ' ' + currentModelResponse.text,
+              text: currentModelResponse.text ?? '',
               type: 'text',
             });
           }

@@ -607,11 +607,11 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
           "type": "text",
         },
         {
-          "text": " part-2",
+          "text": "part-2",
           "type": "text",
         },
         {
-          "text": " part-3",
+          "text": "part-3",
           "type": "text",
         },
       ],
@@ -687,7 +687,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
       "warnings": undefined,
     },
   ],
-  "text": "part-1 part-2 part-3",
+  "text": "part-1part-2part-3",
   "toolCalls": [],
   "toolResults": [],
   "usage": {
@@ -798,10 +798,6 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > should contai
     },
   },
   {
-    "textDelta": " ",
-    "type": "text-delta",
-  },
-  {
     "textDelta": "part-",
     "type": "text-delta",
   },
@@ -824,10 +820,6 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > should contai
       "promptTokens": 30,
       "totalTokens": 35,
     },
-  },
-  {
-    "textDelta": " ",
-    "type": "text-delta",
   },
   {
     "textDelta": "part-",
@@ -882,8 +874,8 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > should record
       "ai.operationId": "ai.streamText",
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.response.finishReason": "stop",
-      "ai.response.text": "part-1 part-2 part-3",
-      "ai.result.text": "part-1 part-2 part-3",
+      "ai.response.text": "part-1part-2part-3",
+      "ai.result.text": "part-1part-2part-3",
       "ai.settings.maxSteps": 5,
       "ai.usage.completionTokens": 27,
       "ai.usage.promptTokens": 43,
@@ -991,7 +983,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > should record
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
       "ai.prompt.format": "messages",
-      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"text","text":"part-1"},{"text":" part-2","type":"text"}]}]",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"text","text":"part-1"},{"text":"part-2","type":"text"}]}]",
       "ai.response.avgCompletionTokensPerSecond": Infinity,
       "ai.response.finishReason": "stop",
       "ai.response.id": "id-1",
