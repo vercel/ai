@@ -356,6 +356,12 @@ To see `streamText` in action, check out [these examples](#examples).
         'Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
     },
     {
+      name: 'experimental_continueSteps',
+      type: 'boolean',
+      isOptional: true,
+      description: 'Enable or disable continue steps. Disabled by default.',
+    },
+    {
       name: 'experimental_telemetry',
       type: 'TelemetrySettings',
       isOptional: true,
@@ -575,6 +581,12 @@ To see `streamText` in action, check out [these examples](#examples).
         {
           type: 'onStepFinishResult',
           parameters: [
+            {
+              name: 'stepType',
+              type: '"initial" | "continue" | "tool-result"',
+              description:
+                'The type of step. The first step is always an "initial" step, and subsequent steps are either "continue" steps or "tool-result" steps.',
+            },
             {
               name: 'finishReason',
               type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
@@ -924,6 +936,12 @@ To see `streamText` in action, check out [these examples](#examples).
         {
           type: 'StepResult',
           parameters: [
+            {
+              name: 'stepType',
+              type: '"initial" | "continue" | "tool-result"',
+              description:
+                'The type of step. The first step is always an "initial" step, and subsequent steps are either "continue" steps or "tool-result" steps.',
+            },
             {
               name: 'text',
               type: 'string',
