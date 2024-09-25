@@ -118,7 +118,7 @@ export function convertToBedrockChatMessages(
                 bedrockContent.push({
                   text:
                     // trim the last text part if it's the last message in the block
-                    // because Anthropic does not allow trailing whitespace
+                    // because Bedrock does not allow trailing whitespace
                     // in pre-filled assistant responses
                     i === blocks.length - 1 && j === block.messages.length - 1
                       ? part.text.trim()
