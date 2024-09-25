@@ -330,11 +330,7 @@ describe('options.maxSteps', () => {
                     },
                   ],
                   finishReason: 'tool-calls',
-                  usage: {
-                    completionTokens: 5,
-                    promptTokens: 10,
-                    totalTokens: 15,
-                  },
+                  usage: { completionTokens: 5, promptTokens: 10 },
                   response: {
                     id: 'test-id-1-from-model',
                     timestamp: new Date(0),
@@ -496,11 +492,7 @@ describe('options.maxSteps', () => {
                   ...dummyResponseValues,
                   text: 'part-1',
                   finishReason: 'length', // trigger continuation
-                  usage: {
-                    completionTokens: 20,
-                    promptTokens: 10,
-                    totalTokens: 30,
-                  },
+                  usage: { completionTokens: 20, promptTokens: 10 },
                   response: {
                     id: 'test-id-1-from-model',
                     timestamp: new Date(0),
@@ -540,11 +532,7 @@ describe('options.maxSteps', () => {
                     timestamp: new Date(10000),
                     modelId: 'test-response-model-id',
                   },
-                  usage: {
-                    completionTokens: 5,
-                    promptTokens: 30,
-                    totalTokens: 35,
-                  },
+                  usage: { completionTokens: 5, promptTokens: 30 },
                   // test handling of custom response headers:
                   rawResponse: {
                     headers: {
@@ -590,11 +578,7 @@ describe('options.maxSteps', () => {
                     timestamp: new Date(20000),
                     modelId: 'test-response-model-id',
                   },
-                  usage: {
-                    completionTokens: 2,
-                    promptTokens: 3,
-                    totalTokens: 5,
-                  },
+                  usage: { completionTokens: 2, promptTokens: 3 },
                 };
               default:
                 throw new Error(`Unexpected response count: ${responseCount}`);
@@ -611,7 +595,7 @@ describe('options.maxSteps', () => {
     });
 
     it('result.text should return text from both steps separated by space', async () => {
-      assert.deepStrictEqual(result.text, 'part-1 part-2 part-3');
+      expect(result.text).toStrictEqual('part-1 part-2 part-3');
     });
 
     it('result.responseMessages should contain an assistant message with the combined text', () => {
@@ -637,7 +621,7 @@ describe('options.maxSteps', () => {
     });
 
     it('result.usage should sum token usage', () => {
-      assert.deepStrictEqual(result.usage, {
+      expect(result.usage).toStrictEqual({
         completionTokens: 27,
         promptTokens: 43,
         totalTokens: 70,

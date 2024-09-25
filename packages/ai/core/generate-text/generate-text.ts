@@ -435,11 +435,11 @@ functionality that can be fully encapsulated in the provider.
           );
         }
 
-        // figure out next step type
+        // check if another step is needed:
         if (++stepCount >= maxSteps) {
           stepType = 'done';
         } else if (
-          continuationSteps === true &&
+          continuationSteps &&
           currentStep.finishReason === 'length' &&
           // only use continuation when there are no tool calls:
           currentToolCalls.length === 0
