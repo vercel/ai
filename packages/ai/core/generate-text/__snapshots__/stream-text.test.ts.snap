@@ -68,7 +68,7 @@ exports[`multiple stream consumption > should support text stream, ai stream, fu
 }
 `;
 
-exports[`options.maxSteps > 2 steps > callbacks > onFinish should send correct information 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
@@ -196,7 +196,7 @@ exports[`options.maxSteps > 2 steps > callbacks > onFinish should send correct i
 }
 `;
 
-exports[`options.maxSteps > 2 steps > callbacks > onStepFinish should send correct information 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFinish should send correct information 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
@@ -264,7 +264,7 @@ exports[`options.maxSteps > 2 steps > callbacks > onStepFinish should send corre
 ]
 `;
 
-exports[`options.maxSteps > 2 steps > should contain assistant response message and tool message from all step 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > should contain assistant response message and tool message from all step 1`] = `
 [
   {
     "args": {
@@ -342,7 +342,7 @@ exports[`options.maxSteps > 2 steps > should contain assistant response message 
 ]
 `;
 
-exports[`options.maxSteps > 2 steps > should record telemetry data for each step 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > should record telemetry data for each step 1`] = `
 [
   {
     "attributes": {
@@ -471,7 +471,7 @@ exports[`options.maxSteps > 2 steps > should record telemetry data for each step
 ]
 `;
 
-exports[`options.maxSteps > 2 steps > value promises > result.responseMessages should contain response messages from all steps 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > result.responseMessages should contain response messages from all steps 1`] = `
 [
   {
     "content": [
@@ -513,7 +513,7 @@ exports[`options.maxSteps > 2 steps > value promises > result.responseMessages s
 ]
 `;
 
-exports[`options.maxSteps > 2 steps > value promises > result.steps should contain all steps 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > result.steps should contain all steps 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,

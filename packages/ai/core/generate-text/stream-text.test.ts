@@ -2113,7 +2113,7 @@ describe('options.maxSteps', () => {
     setTestTracer(undefined);
   });
 
-  describe('2 steps', () => {
+  describe('2 steps: initial, tool-result', () => {
     beforeEach(async () => {
       result = undefined as any;
       onFinishResult = undefined as any;
