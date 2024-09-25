@@ -1,5 +1,12 @@
 # ai
 
+## 3.4.3
+
+### Patch Changes
+
+- b270ae3: feat (ai/core): streamText continueSteps (experimental)
+- b270ae3: chore (ai/core): rename generateText continuationSteps to continueSteps
+
 ## 3.4.2
 
 ### Patch Changes
