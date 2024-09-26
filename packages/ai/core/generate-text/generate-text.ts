@@ -24,13 +24,13 @@ import {
   LanguageModelUsage,
   calculateLanguageModelUsage,
 } from '../types/usage';
+import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
 import { GenerateTextResult } from './generate-text-result';
 import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray } from './tool-call';
 import { ToToolResultArray } from './tool-result';
-import { removeTextAfterLastWhitespace } from './remove-text-after-last-whitespace';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
@@ -378,8 +378,37 @@ functionality that can be fully encapsulated in the provider.
         usage.promptTokens += currentUsage.promptTokens;
         usage.totalTokens += currentUsage.totalTokens;
 
+        // check if another step is needed:
+        let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
+        if (++stepCount < maxSteps) {
+          if (
+            continueSteps &&
+            currentModelResponse.finishReason === 'length' &&
+            // only use continue when there are no tool calls:
+            currentToolCalls.length === 0
+          ) {
+            nextStepType = 'continue';
+          } else if (
+            // there are tool calls:
+            currentToolCalls.length > 0 &&
+            // all current tool calls have results:
+            currentToolResults.length === currentToolCalls.length
+          ) {
+            nextStepType = 'tool-result';
+          }
+        }
+
         // text:
-        const stepText = currentModelResponse.text ?? '';
+        const stepText =
+          nextStepType === 'continue'
+            ? removeTextAfterLastWhitespace(currentModelResponse.text ?? '')
+            : currentModelResponse.text ?? '';
+
+        // text updates
+        text =
+          nextStepType === 'continue' || stepType === 'continue'
+            ? text + stepText
+            : stepText;
 
         // Add step information:
         const currentStep: StepResult<TOOLS> = {
@@ -399,34 +428,6 @@ functionality that can be fully encapsulated in the provider.
         };
         steps.push(currentStep);
         await onStepFinish?.(currentStep);
-
-        // check if another step is needed:
-        let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
-        if (++stepCount < maxSteps) {
-          if (
-            continueSteps &&
-            currentStep.finishReason === 'length' &&
-            // only use continue when there are no tool calls:
-            currentToolCalls.length === 0
-          ) {
-            nextStepType = 'continue';
-          } else if (
-            // there are tool calls:
-            currentToolCalls.length > 0 &&
-            // all current tool calls have results:
-            currentToolResults.length === currentToolCalls.length
-          ) {
-            nextStepType = 'tool-result';
-          }
-        }
-
-        // text updates
-        text =
-          nextStepType === 'continue'
-            ? text + removeTextAfterLastWhitespace(stepText)
-            : stepType === 'continue'
-            ? text + stepText
-            : stepText;
 
         // append to messages for potential next step:
         if (stepType === 'continue') {

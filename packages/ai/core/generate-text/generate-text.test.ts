@@ -571,7 +571,7 @@ describe('options.maxSteps', () => {
 
                 return {
                   ...dummyResponseValues,
-                  text: ' final value keep all whitespace\n end',
+                  text: 'final value keep all whitespace\n end',
                   finishReason: 'stop',
                   response: {
                     id: 'test-id-3-from-model',
@@ -596,7 +596,7 @@ describe('options.maxSteps', () => {
 
     it('result.text should return text from both steps separated by space', async () => {
       expect(result.text).toStrictEqual(
-        'part 1 \n no-whitespace final value keep all whitespace\n end',
+        'part 1 \n no-whitespacefinal value keep all whitespace\n end',
       );
     });
 
@@ -613,7 +613,7 @@ describe('options.maxSteps', () => {
               type: 'text',
             },
             {
-              text: ' final value keep all whitespace\n end',
+              text: 'final value keep all whitespace\n end',
               type: 'text',
             },
           ],
