@@ -1,22 +1,22 @@
 import { removeTextAfterLastWhitespace } from './remove-text-after-last-whitespace';
 
-it('should split text with a single space in the middle', () => {
+it('should return text up to the last space', () => {
   expect(removeTextAfterLastWhitespace('hello world')).toBe('hello ');
 });
 
-it('should split text with multiple spaces in the middle', () => {
+it('should return text up to the last space, preserving multiple spaces', () => {
   expect(removeTextAfterLastWhitespace('hello   world')).toBe('hello   ');
 });
 
-it('should split text with tabs', () => {
+it('should return text up to the last tab', () => {
   expect(removeTextAfterLastWhitespace('hello\tworld')).toBe('hello\t');
 });
 
-it('should split text with newlines', () => {
+it('should return text up to the last newline', () => {
   expect(removeTextAfterLastWhitespace('hello\nworld')).toBe('hello\n');
 });
 
-it('should split text with multiple whitespace characters', () => {
+it('should return text up to the last whitespace, preserving multiple types', () => {
   expect(removeTextAfterLastWhitespace('hello \t\n world')).toBe('hello \t\n ');
 });
 
@@ -24,11 +24,11 @@ it('should return the original text for input with no whitespace', () => {
   expect(removeTextAfterLastWhitespace('helloworld')).toBe('helloworld');
 });
 
-it('should split text starting with whitespace', () => {
+it('should return text up to the last whitespace for input starting with whitespace', () => {
   expect(removeTextAfterLastWhitespace('  hello world')).toBe('  hello ');
 });
 
-it('should split text ending with whitespace', () => {
+it('should return the entire input for text ending with whitespace', () => {
   expect(removeTextAfterLastWhitespace('hello world  ')).toBe('hello world  ');
 });
 
@@ -44,33 +44,31 @@ it('should return a single whitespace character', () => {
   expect(removeTextAfterLastWhitespace(' ')).toBe(' ');
 });
 
-it('should split text with non-breaking space', () => {
+it('should return text up to the last non-breaking space', () => {
   expect(removeTextAfterLastWhitespace('hello\u00A0world')).toBe('hello\u00A0');
 });
 
-it('should split text with multiple consecutive whitespace sequences', () => {
-  expect(removeTextAfterLastWhitespace('hello   world  again')).toBe(
-    'hello   world  ',
-  );
+it('should return text up to the last Unicode whitespace character', () => {
+  expect(removeTextAfterLastWhitespace('hello\u2003world')).toBe('hello\u2003');
 });
 
-it('should split text with Unicode whitespace character', () => {
-  expect(removeTextAfterLastWhitespace('hello\u2003world')).toBe('hello\u2003');
+it('should return text up to the last embedded Unicode whitespace', () => {
+  expect(removeTextAfterLastWhitespace('hello\u2009world')).toBe('hello\u2009');
 });
 
 it('should return the original text for input with special characters but no whitespace', () => {
   expect(removeTextAfterLastWhitespace('hello-world')).toBe('hello-world');
 });
 
-it('should split text with trailing newline character', () => {
+it('should return the entire input for text with trailing newline character', () => {
   expect(removeTextAfterLastWhitespace('hello world\n')).toBe('hello world\n');
 });
 
-it('should split text with whitespace before punctuation', () => {
+it('should return text up to the last whitespace before punctuation', () => {
   expect(removeTextAfterLastWhitespace('hello world !')).toBe('hello world ');
 });
 
-it('should split text with multiple types of whitespace at the end', () => {
+it('should return the entire input for text with multiple types of whitespace at the end', () => {
   expect(removeTextAfterLastWhitespace('hello world \t\n')).toBe(
     'hello world \t\n',
   );
@@ -82,7 +80,7 @@ it('should return the original text for long input with no whitespace', () => {
   );
 });
 
-it('should split text with leading and trailing whitespace', () => {
+it('should return the entire input for text with leading and trailing whitespace', () => {
   expect(removeTextAfterLastWhitespace('  hello world  ')).toBe(
     '  hello world  ',
   );
@@ -92,20 +90,10 @@ it('should return all whitespace characters', () => {
   expect(removeTextAfterLastWhitespace('\t \n')).toBe('\t \n');
 });
 
-it('should split text with embedded Unicode whitespace', () => {
-  expect(removeTextAfterLastWhitespace('hello\u2009world')).toBe('hello\u2009');
-});
-
-it('should split text with multiple words and varied whitespace', () => {
-  expect(removeTextAfterLastWhitespace('start middle    end')).toBe(
-    'start middle    ',
-  );
-});
-
-it('should split text with non-ASCII characters and whitespace', () => {
+it('should return text up to the last whitespace with non-ASCII characters', () => {
   expect(removeTextAfterLastWhitespace('こんにちは 世界')).toBe('こんにちは ');
 });
 
-it('should split text with whitespace at the beginning and special characters', () => {
+it('should return text up to the last whitespace with leading special characters', () => {
   expect(removeTextAfterLastWhitespace('\n!@#$%^&*()')).toBe('\n');
 });
