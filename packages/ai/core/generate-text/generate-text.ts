@@ -402,7 +402,7 @@ functionality that can be fully encapsulated in the provider.
 
         // check if another step is needed:
         let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
-        if (stepCount + 1 < maxSteps) {
+        if (++stepCount < maxSteps) {
           if (
             continueSteps &&
             currentStep.finishReason === 'length' &&
