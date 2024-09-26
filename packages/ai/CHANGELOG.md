@@ -1,5 +1,12 @@
 # ai
 
+## 3.4.4
+
+### Patch Changes
+
+- 4db074b: fix (ai/core): correct whitespace in generateText continueSteps
+- 1297e1b: fix (ai/core): correct whitespace in streamText continueSteps
+
 ## 3.4.3
 
 ### Patch Changes
