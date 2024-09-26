@@ -234,7 +234,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
     "stepType": "continue",
-    "text": " final value keep all whitespace
+    "text": "final value keep all whitespace
  end",
     "toolCalls": [],
     "toolResults": [],
@@ -306,7 +306,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
     "stepType": "continue",
-    "text": " final value keep all whitespace
+    "text": "final value keep all whitespace
  end",
     "toolCalls": [],
     "toolResults": [],
