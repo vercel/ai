@@ -224,6 +224,12 @@ const {
 });
 ```
 
+<Note>
+  When `experimental_continueSteps` is enabled, only full words are streamed in
+  `streamText`, and both `generateText` and `streamText` might drop the trailing
+  tokens of some calls to prevent whitespace issues.
+</Note>
+
 ## Examples
 
 You can see `generateText` and `streamText` in action using various frameworks in the following examples:
