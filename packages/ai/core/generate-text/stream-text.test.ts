@@ -2370,8 +2370,12 @@ describe('options.maxSteps', () => {
                       modelId: 'mock-model-id',
                       timestamp: new Date(0),
                     },
-                    { type: 'text-delta', textDelta: 'part-' },
-                    { type: 'text-delta', textDelta: '1' },
+                    { type: 'text-delta', textDelta: 'pa' },
+                    { type: 'text-delta', textDelta: 'rt ' },
+                    { type: 'text-delta', textDelta: '1 \n' },
+                    { type: 'text-delta', textDelta: ' to-be' },
+                    { type: 'text-delta', textDelta: '-discar' },
+                    { type: 'text-delta', textDelta: 'ded' },
                     {
                       type: 'finish',
                       finishReason: 'length',
@@ -2397,7 +2401,7 @@ describe('options.maxSteps', () => {
                     content: [
                       {
                         type: 'text',
-                        text: 'part-1',
+                        text: 'part 1 \n ',
                         providerMetadata: undefined,
                       },
                     ],
@@ -2413,8 +2417,8 @@ describe('options.maxSteps', () => {
                       modelId: 'mock-model-id',
                       timestamp: new Date(1000),
                     },
-                    { type: 'text-delta', textDelta: 'part-' },
-                    { type: 'text-delta', textDelta: '2' },
+                    { type: 'text-delta', textDelta: 'no-' },
+                    { type: 'text-delta', textDelta: 'whitespace' },
                     {
                       type: 'finish',
                       finishReason: 'length',
@@ -2440,12 +2444,12 @@ describe('options.maxSteps', () => {
                     content: [
                       {
                         type: 'text',
-                        text: 'part-1',
+                        text: 'part 1 \n ',
                         providerMetadata: undefined,
                       },
                       {
                         type: 'text',
-                        text: 'part-2',
+                        text: 'no-whitespace',
                       },
                     ],
                     providerMetadata: undefined,
@@ -2460,8 +2464,13 @@ describe('options.maxSteps', () => {
                       modelId: 'mock-model-id',
                       timestamp: new Date(1000),
                     },
-                    { type: 'text-delta', textDelta: 'part-' },
-                    { type: 'text-delta', textDelta: '3' },
+                    { type: 'text-delta', textDelta: 'final' },
+                    { type: 'text-delta', textDelta: ' va' },
+                    { type: 'text-delta', textDelta: 'lue keep all w' },
+                    { type: 'text-delta', textDelta: 'hitespace' },
+                    { type: 'text-delta', textDelta: '\n ' },
+                    { type: 'text-delta', textDelta: 'en' },
+                    { type: 'text-delta', textDelta: 'd' },
                     {
                       type: 'finish',
                       finishReason: 'stop',
@@ -2498,7 +2507,104 @@ describe('options.maxSteps', () => {
     it('should contain text deltas from all steps', async () => {
       expect(
         await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      ).toStrictEqual([
+        {
+          textDelta: 'part ',
+          type: 'text-delta',
+        },
+        {
+          textDelta: '1 \n',
+          type: 'text-delta',
+        },
+        {
+          textDelta: ' ',
+          type: 'text-delta',
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'length',
+          logprobs: undefined,
+          response: {
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          type: 'step-finish',
+          usage: {
+            completionTokens: 20,
+            promptTokens: 10,
+            totalTokens: 30,
+          },
+        },
+        {
+          textDelta: 'no-whitespace',
+          type: 'text-delta',
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'length',
+          logprobs: undefined,
+          response: {
+            id: 'id-1',
+            modelId: 'mock-model-id',
+            timestamp: new Date(1000),
+          },
+          type: 'step-finish',
+          usage: {
+            completionTokens: 5,
+            promptTokens: 30,
+            totalTokens: 35,
+          },
+        },
+        {
+          textDelta: 'final ',
+          type: 'text-delta',
+        },
+        {
+          textDelta: 'value keep all ',
+          type: 'text-delta',
+        },
+        {
+          textDelta: 'whitespace\n ',
+          type: 'text-delta',
+        },
+        {
+          textDelta: 'end',
+          type: 'text-delta',
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'stop',
+          logprobs: undefined,
+          response: {
+            id: 'id-1',
+            modelId: 'mock-model-id',
+            timestamp: new Date(1000),
+          },
+          type: 'step-finish',
+          usage: {
+            completionTokens: 2,
+            promptTokens: 3,
+            totalTokens: 5,
+          },
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'stop',
+          logprobs: undefined,
+          response: {
+            id: 'id-1',
+            modelId: 'mock-model-id',
+            timestamp: new Date(1000),
+          },
+          type: 'finish',
+          usage: {
+            completionTokens: 27,
+            promptTokens: 43,
+            totalTokens: 70,
+          },
+        },
+      ]);
     });
 
     describe('callbacks', () => {
@@ -2533,7 +2639,10 @@ describe('options.maxSteps', () => {
       });
 
       it('result.text should contain combined text from all steps', async () => {
-        assert.strictEqual(await result.text, 'part-1part-2part-3');
+        assert.strictEqual(
+          await result.text,
+          'part 1 \n no-whitespacefinal value keep all whitespace\n end',
+        );
       });
 
       it('result.steps should contain all steps', async () => {
@@ -2549,15 +2658,15 @@ describe('options.maxSteps', () => {
           {
             content: [
               {
-                text: 'part-1',
+                text: 'part 1 \n ',
                 type: 'text',
               },
               {
-                text: 'part-2',
+                text: 'no-whitespace',
                 type: 'text',
               },
               {
-                text: 'part-3',
+                text: 'final value keep all whitespace\n end',
                 type: 'text',
               },
             ],

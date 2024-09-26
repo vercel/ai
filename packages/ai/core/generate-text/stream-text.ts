@@ -50,6 +50,7 @@ import { mergeStreams } from '../util/merge-streams';
 import { now as originalNow } from '../util/now';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
+import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import {
   runToolsTransformation,
@@ -605,6 +606,26 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         modelId,
       };
 
+      // chunk buffer when using continue:
+      let chunkBuffer = '';
+      let chunkTextPublished = false;
+
+      async function publishTextChunk({
+        controller,
+        chunk,
+      }: {
+        controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>;
+        chunk: TextStreamPart<TOOLS> & { type: 'text-delta' };
+      }) {
+        controller.enqueue(chunk);
+
+        stepText += chunk.textDelta;
+        fullStepText += chunk.textDelta;
+        chunkTextPublished = true;
+
+        await onChunk?.({ chunk });
+      }
+
       addStream(
         stream.pipeThrough(
           new TransformStream<
@@ -641,11 +662,27 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
               const chunkType = chunk.type;
               switch (chunkType) {
                 case 'text-delta': {
-                  controller.enqueue(chunk);
-                  // create the full text from text deltas (for onFinish callback and text promise):
-                  stepText += chunk.textDelta;
-                  fullStepText += chunk.textDelta;
-                  await onChunk?.({ chunk });
+                  if (continueSteps) {
+                    chunkBuffer += chunk.textDelta;
+
+                    const split = splitOnLastWhitespace(chunkBuffer);
+
+                    // publish the text until the last whitespace:
+                    if (split != null) {
+                      chunkBuffer = split.suffix;
+
+                      await publishTextChunk({
+                        controller,
+                        chunk: {
+                          type: 'text-delta',
+                          textDelta: split.prefix + split.whitespace,
+                        },
+                      });
+                    }
+                  } else {
+                    await publishTextChunk({ controller, chunk });
+                  }
+
                   break;
                 }
 
@@ -765,6 +802,44 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 doStreamSpan.end();
               }
 
+              // determine the next step type
+              let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
+              if (currentStep + 1 < maxSteps) {
+                if (
+                  continueSteps &&
+                  stepFinishReason === 'length' &&
+                  // only use continue when there are no tool calls:
+                  stepToolCalls.length === 0
+                ) {
+                  nextStepType = 'continue';
+                } else if (
+                  // there are tool calls:
+                  stepToolCalls.length > 0 &&
+                  // all current tool calls have results:
+                  stepToolResults.length === stepToolCalls.length
+                ) {
+                  nextStepType = 'tool-result';
+                }
+              }
+
+              // when using continuation, publish buffer on final step or if there
+              // was no whitespace in the step:
+              if (
+                continueSteps &&
+                chunkBuffer.length > 0 &&
+                ((stepType === 'continue' && nextStepType === 'done') ||
+                  (stepType === 'continue' && !chunkTextPublished))
+              ) {
+                await publishTextChunk({
+                  controller,
+                  chunk: {
+                    type: 'text-delta',
+                    textDelta: chunkBuffer,
+                  },
+                });
+                chunkBuffer = '';
+              }
+
               controller.enqueue({
                 type: 'step-finish',
                 finishReason: stepFinishReason,
@@ -799,27 +874,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 totalTokens: usage.totalTokens + stepUsage.totalTokens,
               };
 
-              // check if another step is needed:
-              let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
-              if (currentStep + 1 < maxSteps) {
-                if (
-                  continueSteps &&
-                  stepFinishReason === 'length' &&
-                  // only use continue when there are no tool calls:
-                  stepToolCalls.length === 0
-                ) {
-                  nextStepType = 'continue';
-                } else if (
-                  // there are tool calls:
-                  stepToolCalls.length > 0 &&
-                  // all current tool calls have results:
-                  stepToolResults.length === stepToolCalls.length
-                ) {
-                  nextStepType = 'tool-result';
-                }
-              }
-
-              // check if another tool step is needed:
               if (nextStepType !== 'done') {
                 // append to messages for the next step:
                 if (stepType === 'continue') {
