@@ -24,13 +24,13 @@ import {
   LanguageModelUsage,
   calculateLanguageModelUsage,
 } from '../types/usage';
+import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
 import { GenerateTextResult } from './generate-text-result';
 import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray } from './tool-call';
 import { ToToolResultArray } from './tool-result';
-import { removeTextAfterLastWhitespace } from './remove-text-after-last-whitespace';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
