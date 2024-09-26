@@ -30,6 +30,7 @@ import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray } from './tool-call';
 import { ToToolResultArray } from './tool-result';
+import { removeTextAfterLastWhitespace } from './remove-text-after-last-whitespace';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
@@ -378,16 +379,12 @@ functionality that can be fully encapsulated in the provider.
         usage.totalTokens += currentUsage.totalTokens;
 
         // text:
-        if (stepType === 'continue') {
-          text += currentModelResponse.text ?? '';
-        } else {
-          text = currentModelResponse.text ?? '';
-        }
+        const stepText = currentModelResponse.text ?? '';
 
         // Add step information:
         const currentStep: StepResult<TOOLS> = {
           stepType,
-          text: currentModelResponse.text ?? '',
+          text: stepText,
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
           finishReason: currentModelResponse.finishReason,
@@ -403,6 +400,34 @@ functionality that can be fully encapsulated in the provider.
         steps.push(currentStep);
         await onStepFinish?.(currentStep);
 
+        // check if another step is needed:
+        let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
+        if (++stepCount < maxSteps) {
+          if (
+            continueSteps &&
+            currentStep.finishReason === 'length' &&
+            // only use continue when there are no tool calls:
+            currentToolCalls.length === 0
+          ) {
+            nextStepType = 'continue';
+          } else if (
+            // there are tool calls:
+            currentToolCalls.length > 0 &&
+            // all current tool calls have results:
+            currentToolResults.length === currentToolCalls.length
+          ) {
+            nextStepType = 'tool-result';
+          }
+        }
+
+        // text updates
+        text =
+          nextStepType === 'continue'
+            ? text + removeTextAfterLastWhitespace(stepText)
+            : stepType === 'continue'
+            ? text + stepText
+            : stepText;
+
         // append to messages for potential next step:
         if (stepType === 'continue') {
           // continue step: update the last assistant message
@@ -411,29 +436,39 @@ functionality that can be fully encapsulated in the provider.
           const lastResponseMessage =
             responseMessages.pop() as CoreAssistantMessage;
           promptMessages.pop();
-
           if (typeof lastResponseMessage.content === 'string') {
             lastResponseMessage.content = text;
           } else {
             lastResponseMessage.content.push({
-              text: currentModelResponse.text ?? '',
+              text: stepText,
               type: 'text',
             });
           }
-
           responseMessages.push(lastResponseMessage);
           promptMessages.push(
             convertToLanguageModelMessage(lastResponseMessage, null),
           );
+        } else if (nextStepType === 'continue') {
+          const newResponseMessages = toResponseMessages({
+            text,
+            toolCalls: currentToolCalls,
+            toolResults: currentToolResults,
+          });
+
+          responseMessages.push(...newResponseMessages);
+          promptMessages.push(
+            ...newResponseMessages.map(message =>
+              convertToLanguageModelMessage(message, null),
+            ),
+          );
         } else {
-          // tool result step
-          // add the assistant message with the tool calls
-          // and the tool result messages:
+          // next step is either done or tool-result:
           const newResponseMessages = toResponseMessages({
             text: currentModelResponse.text,
             toolCalls: currentToolCalls,
             toolResults: currentToolResults,
           });
+
           responseMessages.push(...newResponseMessages);
           promptMessages.push(
             ...newResponseMessages.map(message =>
@@ -442,26 +477,7 @@ functionality that can be fully encapsulated in the provider.
           );
         }
 
-        // check if another step is needed:
-        if (++stepCount >= maxSteps) {
-          stepType = 'done';
-        } else if (
-          continueSteps &&
-          currentStep.finishReason === 'length' &&
-          // only use continue when there are no tool calls:
-          currentToolCalls.length === 0
-        ) {
-          stepType = 'continue';
-        } else if (
-          // there are tool calls:
-          currentToolCalls.length > 0 &&
-          // all current tool calls have results:
-          currentToolResults.length === currentToolCalls.length
-        ) {
-          stepType = 'tool-result';
-        } else {
-          stepType = 'done';
-        }
+        stepType = nextStepType;
       } while (stepType !== 'done');
 
       // Add response information to the span:
