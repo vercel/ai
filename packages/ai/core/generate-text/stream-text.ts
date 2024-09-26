@@ -760,6 +760,44 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   ? JSON.stringify(stepToolCalls)
                   : undefined;
 
+              // determine the next step type
+              let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
+              if (currentStep + 1 < maxSteps) {
+                if (
+                  continueSteps &&
+                  stepFinishReason === 'length' &&
+                  // only use continue when there are no tool calls:
+                  stepToolCalls.length === 0
+                ) {
+                  nextStepType = 'continue';
+                } else if (
+                  // there are tool calls:
+                  stepToolCalls.length > 0 &&
+                  // all current tool calls have results:
+                  stepToolResults.length === stepToolCalls.length
+                ) {
+                  nextStepType = 'tool-result';
+                }
+              }
+
+              // when using continuation, publish buffer on final step or if there
+              // was no whitespace in the step:
+              if (
+                continueSteps &&
+                chunkBuffer.length > 0 &&
+                ((stepType === 'continue' && nextStepType === 'done') ||
+                  (stepType === 'continue' && !chunkTextPublished))
+              ) {
+                await publishTextChunk({
+                  controller,
+                  chunk: {
+                    type: 'text-delta',
+                    textDelta: chunkBuffer,
+                  },
+                });
+                chunkBuffer = '';
+              }
+
               // record telemetry information first to ensure best effort timing
               try {
                 doStreamSpan.setAttributes(
@@ -800,44 +838,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
               } finally {
                 // finish doStreamSpan before other operations for correct timing:
                 doStreamSpan.end();
-              }
-
-              // determine the next step type
-              let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
-              if (currentStep + 1 < maxSteps) {
-                if (
-                  continueSteps &&
-                  stepFinishReason === 'length' &&
-                  // only use continue when there are no tool calls:
-                  stepToolCalls.length === 0
-                ) {
-                  nextStepType = 'continue';
-                } else if (
-                  // there are tool calls:
-                  stepToolCalls.length > 0 &&
-                  // all current tool calls have results:
-                  stepToolResults.length === stepToolCalls.length
-                ) {
-                  nextStepType = 'tool-result';
-                }
-              }
-
-              // when using continuation, publish buffer on final step or if there
-              // was no whitespace in the step:
-              if (
-                continueSteps &&
-                chunkBuffer.length > 0 &&
-                ((stepType === 'continue' && nextStepType === 'done') ||
-                  (stepType === 'continue' && !chunkTextPublished))
-              ) {
-                await publishTextChunk({
-                  controller,
-                  chunk: {
-                    type: 'text-delta',
-                    textDelta: chunkBuffer,
-                  },
-                });
-                chunkBuffer = '';
               }
 
               controller.enqueue({
