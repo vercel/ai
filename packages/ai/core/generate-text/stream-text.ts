@@ -785,8 +785,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
               if (
                 continueSteps &&
                 chunkBuffer.length > 0 &&
-                ((stepType === 'continue' && nextStepType === 'done') ||
-                  (stepType === 'continue' && !chunkTextPublished))
+                (nextStepType !== 'continue' || // when the next step is a regular step, publish the buffer
+                  (stepType === 'continue' && !chunkTextPublished)) // when the next step is a continue step, publish the buffer if no text was published in the step
               ) {
                 await publishTextChunk({
                   controller,
