@@ -490,7 +490,7 @@ describe('options.maxSteps', () => {
 
                 return {
                   ...dummyResponseValues,
-                  text: 'part-1',
+                  text: 'part 1 \n to-be-discarded',
                   finishReason: 'length', // trigger continue
                   usage: { completionTokens: 20, promptTokens: 10 },
                   response: {
@@ -515,7 +515,7 @@ describe('options.maxSteps', () => {
                     content: [
                       {
                         type: 'text',
-                        text: 'part-1',
+                        text: 'part 1 \n ',
                         providerMetadata: undefined,
                       },
                     ],
@@ -525,7 +525,7 @@ describe('options.maxSteps', () => {
 
                 return {
                   ...dummyResponseValues,
-                  text: 'part-2',
+                  text: 'no-whitespace',
                   finishReason: 'length',
                   response: {
                     id: 'test-id-2-from-model',
@@ -556,12 +556,12 @@ describe('options.maxSteps', () => {
                     content: [
                       {
                         type: 'text',
-                        text: 'part-1',
+                        text: 'part 1 \n ',
                         providerMetadata: undefined,
                       },
                       {
                         type: 'text',
-                        text: 'part-2',
+                        text: 'no-whitespace',
                         providerMetadata: undefined,
                       },
                     ],
@@ -571,7 +571,7 @@ describe('options.maxSteps', () => {
 
                 return {
                   ...dummyResponseValues,
-                  text: 'part-3',
+                  text: ' final value keep all whitespace\n end',
                   finishReason: 'stop',
                   response: {
                     id: 'test-id-3-from-model',
@@ -595,7 +595,9 @@ describe('options.maxSteps', () => {
     });
 
     it('result.text should return text from both steps separated by space', async () => {
-      expect(result.text).toStrictEqual('part-1part-2part-3');
+      expect(result.text).toStrictEqual(
+        'part 1 \n no-whitespace final value keep all whitespace\n end',
+      );
     });
 
     it('result.responseMessages should contain an assistant message with the combined text', () => {
@@ -603,15 +605,15 @@ describe('options.maxSteps', () => {
         {
           content: [
             {
-              text: 'part-1',
+              text: 'part 1 \n ',
               type: 'text',
             },
             {
-              text: 'part-2',
+              text: 'no-whitespace',
               type: 'text',
             },
             {
-              text: 'part-3',
+              text: ' final value keep all whitespace\n end',
               type: 'text',
             },
           ],

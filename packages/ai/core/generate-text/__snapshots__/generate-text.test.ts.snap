@@ -189,7 +189,8 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "stepType": "initial",
-    "text": "part-1",
+    "text": "part 1 
+ to-be-discarded",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
@@ -212,7 +213,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
     "stepType": "continue",
-    "text": "part-2",
+    "text": "no-whitespace",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
@@ -233,7 +234,8 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
     "stepType": "continue",
-    "text": "part-3",
+    "text": " final value keep all whitespace
+ end",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
@@ -259,7 +261,8 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "stepType": "initial",
-    "text": "part-1",
+    "text": "part 1 
+ to-be-discarded",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
@@ -282,7 +285,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
     "stepType": "continue",
-    "text": "part-2",
+    "text": "no-whitespace",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
@@ -303,7 +306,8 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
     "stepType": "continue",
-    "text": "part-3",
+    "text": " final value keep all whitespace
+ end",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
