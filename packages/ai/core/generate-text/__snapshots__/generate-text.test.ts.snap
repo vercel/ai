@@ -190,7 +190,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
     },
     "stepType": "initial",
     "text": "part 1 
- to-be-discarded",
+ ",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
@@ -262,7 +262,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
     },
     "stepType": "initial",
     "text": "part 1 
- to-be-discarded",
+ ",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
