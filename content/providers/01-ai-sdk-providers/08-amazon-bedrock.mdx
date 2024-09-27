@@ -121,8 +121,11 @@ You can use the following optional settings to customize the Amazon Bedrock prov
 
 - **sessionToken** _string_
 
-  Optional. The AWS session token that you want to use for the API calls.
-  It uses the `AWS_SESSION_TOKEN` environment variable by default.
+  Optional. The AWS session token that you want to use for the API calls. Note
+  this does **not** use the `AWS_SESSION_TOKEN` environment variable by default.
+  That variable is sometimes pre-populated with alternate credentials, e.g. when
+  running within an AWS serverless function, and so default use risks
+  conflicting in a non-obvious manner with any other credential settings.
 
 - **bedrockOptions** _object_
 
@@ -135,7 +138,7 @@ You can use the following optional settings to customize the Amazon Bedrock prov
   - **credentials** _object_
     The AWS credentials that you want to use for the API calls.
 
-  When `bedrockOptions` are provided, the `region`, `accessKeyId`, and `secretAccessKey` settings are ignored.
+  When `bedrockOptions` are provided, the `region`, `accessKeyId`, `secretAccessKey`, and `sessionToken` settings are ignored.
 
 ## Language Models
 
