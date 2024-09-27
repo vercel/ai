@@ -5,25 +5,26 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
   NoContentGeneratedError,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertAsyncGeneratorToReadableStream } from '@ai-sdk/provider-utils';
 import {
+  FunctionCallingMode,
+  FunctionDeclarationSchema,
   GenerateContentResponse,
   GenerationConfig,
   Part,
   SafetySetting,
+  Tool,
+  ToolConfig,
   VertexAI,
-  Tool as GoogleTool,
 } from '@google-cloud/vertexai';
+import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
 import {
   GoogleVertexModelId,
   GoogleVertexSettings,
 } from './google-vertex-settings';
 import { mapGoogleVertexFinishReason } from './map-google-vertex-finish-reason';
-import { prepareFunctionDeclarationSchema } from './prepare-function-declaration-schema';
-
 type GoogleVertexAIConfig = {
   vertexAI: VertexAI;
   generateId: () => string;
@@ -32,7 +33,7 @@ type GoogleVertexAIConfig = {
 export class GoogleVertexLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly provider = 'google-vertex';
-  readonly defaultObjectGenerationMode = 'json';
+  readonly defaultObjectGenerationMode = 'tool';
   readonly supportsImageUrls = false;
 
   readonly modelId: GoogleVertexModelId;
@@ -105,10 +106,10 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const conf = {
+        const configuration = {
           model: this.modelId,
           generationConfig,
-          tools: prepareTools({
+          ...prepareToolsAndToolConfig({
             mode,
             useSearchGrounding: this.settings.useSearchGrounding ?? false,
           }),
@@ -118,7 +119,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
         };
 
         return {
-          model: this.config.vertexAI.getGenerativeModel(conf),
+          model: this.config.vertexAI.getGenerativeModel(configuration),
           contentRequest: convertToGoogleVertexContentRequest(prompt),
           warnings,
         };
@@ -142,9 +143,35 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-tool mode',
-        });
+        const configuration = {
+          model: this.modelId,
+          generationConfig,
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: mode.tool.name,
+                  description: mode.tool.description ?? '',
+                  parameters: convertJSONSchemaToOpenAPISchema(
+                    mode.tool.parameters,
+                  ) as FunctionDeclarationSchema,
+                },
+              ],
+            },
+          ],
+          toolConfig: {
+            functionCallingConfig: { mode: FunctionCallingMode.ANY },
+          },
+          safetySettings: this.settings.safetySettings as
+            | undefined
+            | Array<SafetySetting>,
+        };
+
+        return {
+          model: this.config.vertexAI.getGenerativeModel(configuration),
+          contentRequest: convertToGoogleVertexContentRequest(prompt),
+          warnings,
+        };
       }
 
       default: {
@@ -291,7 +318,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   }
 }
 
-function prepareTools({
+function prepareToolsAndToolConfig({
   useSearchGrounding,
   mode,
 }: {
@@ -299,40 +326,82 @@ function prepareTools({
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
   };
-}): GoogleTool[] | undefined {
+}): {
+  tools: Tool[] | undefined;
+  toolConfig: ToolConfig | undefined;
+} {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
+
+  const mappedTools: Tool[] =
+    tools == null
+      ? []
+      : [
+          {
+            functionDeclarations: tools.map(tool => ({
+              name: tool.name,
+              description: tool.description ?? '',
+              parameters: convertJSONSchemaToOpenAPISchema(
+                tool.parameters,
+              ) as FunctionDeclarationSchema,
+            })),
+          },
+        ];
+
+  if (useSearchGrounding) {
+    mappedTools.push({ googleSearchRetrieval: {} });
+  }
+
+  const finalTools = mappedTools.length > 0 ? mappedTools : undefined;
+
   const toolChoice = mode.toolChoice;
 
-  if (toolChoice?.type === 'none') {
-    return undefined;
+  if (toolChoice == null) {
+    return {
+      tools: finalTools,
+      toolConfig: undefined,
+    };
   }
 
-  if (toolChoice == null || toolChoice.type === 'auto') {
-    const mappedTools: GoogleTool[] =
-      tools != null
-        ? [
-            {
-              functionDeclarations: tools.map(tool => ({
-                name: tool.name,
-                description: tool.description ?? '',
-                parameters: prepareFunctionDeclarationSchema(tool.parameters),
-              })),
-            },
-          ]
-        : [];
+  const type = toolChoice.type;
 
-    if (useSearchGrounding) {
-      mappedTools.push({ googleSearchRetrieval: {} });
+  switch (type) {
+    case 'auto':
+      return {
+        tools: finalTools,
+        toolConfig: {
+          functionCallingConfig: { mode: FunctionCallingMode.AUTO },
+        },
+      };
+    case 'none':
+      return {
+        tools: finalTools,
+        toolConfig: {
+          functionCallingConfig: { mode: FunctionCallingMode.NONE },
+        },
+      };
+    case 'required':
+      return {
+        tools: finalTools,
+        toolConfig: {
+          functionCallingConfig: { mode: FunctionCallingMode.ANY },
+        },
+      };
+    case 'tool':
+      return {
+        tools: finalTools,
+        toolConfig: {
+          functionCallingConfig: {
+            mode: FunctionCallingMode.ANY,
+            allowedFunctionNames: [toolChoice.toolName],
+          },
+        },
+      };
+    default: {
+      const _exhaustiveCheck: never = type;
+      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
     }
-
-    return mappedTools.length > 0 ? mappedTools : undefined;
   }
-
-  // forcing tool calls or a specific tool call is not supported by Vertex:
-  throw new UnsupportedFunctionalityError({
-    functionality: `toolChoice: ${toolChoice.type}`,
-  });
 }
 
 function getToolCallsFromParts({
