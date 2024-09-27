@@ -683,13 +683,7 @@ describe('result.pipeDataStreamToResponse', async () => {
       'Content-Type': 'text/plain; charset=utf-8',
       'X-Vercel-AI-Data-Stream': 'v1',
     });
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 
   it('should create a Response with a data stream and custom headers', async () => {
@@ -733,13 +727,7 @@ describe('result.pipeDataStreamToResponse', async () => {
       'custom-header': 'custom-value',
     });
 
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 
   it('should support merging with existing stream data', async () => {
@@ -780,14 +768,7 @@ describe('result.pipeDataStreamToResponse', async () => {
       'X-Vercel-AI-Data-Stream': 'v1',
     });
 
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '2:["stream-data-value"]\n',
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 
   it('should mask error messages by default', async () => {
@@ -809,11 +790,7 @@ describe('result.pipeDataStreamToResponse', async () => {
 
     await mockResponse.waitForEnd();
 
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '3:""\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 
   it('should support custom error messages', async () => {
@@ -837,11 +814,7 @@ describe('result.pipeDataStreamToResponse', async () => {
 
     await mockResponse.waitForEnd();
 
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '3:"custom error message: error"\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 
   it('should suppress usage information when sendUsage is false', async () => {
@@ -868,11 +841,7 @@ describe('result.pipeDataStreamToResponse', async () => {
 
     await mockResponse.waitForEnd();
 
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '0:"Hello, World!"\n',
-      'e:{"finishReason":"stop"}\n',
-      'd:{"finishReason":"stop"}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 });
 
@@ -1185,11 +1154,7 @@ describe('result.toDataStream', () => {
       await convertReadableStreamToArray(
         dataStream.pipeThrough(new TextDecoderStream()),
       ),
-    ).toEqual([
-      '3:""\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    ).toMatchSnapshot();
   });
 
   it('should support custom error messages', async () => {
@@ -1213,11 +1178,7 @@ describe('result.toDataStream', () => {
       await convertReadableStreamToArray(
         dataStream.pipeThrough(new TextDecoderStream()),
       ),
-    ).toEqual([
-      '3:"custom error message: error"\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    ).toMatchSnapshot();
   });
 
   it('should suppress usage information when sendUsage is false', async () => {
@@ -1244,11 +1205,7 @@ describe('result.toDataStream', () => {
       await convertReadableStreamToArray(
         dataStream.pipeThrough(new TextDecoderStream()),
       ),
-    ).toEqual([
-      '0:"Hello, World!"\n',
-      'e:{"finishReason":"stop"}\n',
-      'd:{"finishReason":"stop"}\n',
-    ]);
+    ).toMatchSnapshot();
   });
 });
 
@@ -1287,13 +1244,7 @@ describe('result.toDataStreamResponse', () => {
       'text/plain; charset=utf-8',
     );
 
-    assert.deepStrictEqual(await convertResponseStreamToArray(response), [
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 
   it('should create a Response with a data stream and custom headers', async () => {
@@ -1333,13 +1284,7 @@ describe('result.toDataStreamResponse', () => {
       'custom-header': 'custom-value',
     });
 
-    assert.deepStrictEqual(await convertResponseStreamToArray(response), [
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 
   it('should support merging with existing stream data', async () => {
@@ -1374,16 +1319,7 @@ describe('result.toDataStreamResponse', () => {
       'text/plain; charset=utf-8',
     );
 
-    const chunks = await convertResponseStreamToArray(response);
-
-    assert.deepStrictEqual(chunks, [
-      '2:["stream-data-value"]\n',
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 
   it('should mask error messages by default', async () => {
@@ -1401,11 +1337,7 @@ describe('result.toDataStreamResponse', () => {
 
     const response = result.toDataStreamResponse();
 
-    assert.deepStrictEqual(await convertResponseStreamToArray(response), [
-      '3:""\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 
   it('should support custom error messages', async () => {
@@ -1425,11 +1357,7 @@ describe('result.toDataStreamResponse', () => {
       getErrorMessage: error => `custom error message: ${error}`,
     });
 
-    assert.deepStrictEqual(await convertResponseStreamToArray(response), [
-      '3:"custom error message: error"\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 
   it('should suppress usage information when sendUsage is false', async () => {
@@ -1452,11 +1380,7 @@ describe('result.toDataStreamResponse', () => {
 
     const response = result.toDataStreamResponse({ sendUsage: false });
 
-    expect(await convertResponseStreamToArray(response)).toEqual([
-      '0:"Hello, World!"\n',
-      'e:{"finishReason":"stop"}\n',
-      'd:{"finishReason":"stop"}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 });
 
@@ -2535,6 +2459,7 @@ describe('options.maxSteps', () => {
             promptTokens: 10,
             totalTokens: 30,
           },
+          isContinued: true,
         },
         {
           textDelta: 'no-whitespace',
@@ -2555,6 +2480,7 @@ describe('options.maxSteps', () => {
             promptTokens: 30,
             totalTokens: 35,
           },
+          isContinued: true,
         },
         {
           textDelta: 'final ',
@@ -2587,6 +2513,7 @@ describe('options.maxSteps', () => {
             promptTokens: 3,
             totalTokens: 5,
           },
+          isContinued: false,
         },
         {
           experimental_providerMetadata: undefined,
@@ -2679,6 +2606,16 @@ describe('options.maxSteps', () => {
     it('should record telemetry data for each step', async () => {
       await convertAsyncIterableToArray(result.fullStream); // consume stream
       expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+
+    it('should generate correct data stream', async () => {
+      const dataStream = result.toDataStream();
+
+      expect(
+        await convertReadableStreamToArray(
+          dataStream.pipeThrough(new TextDecoderStream()),
+        ),
+      ).toMatchSnapshot();
     });
   });
 });

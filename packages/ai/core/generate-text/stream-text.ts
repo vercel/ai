@@ -226,7 +226,7 @@ Callback that is called when the LLM response and all request tool executions
 The usage is the combined usage of all steps.
      */
     onFinish?: (
-      event: Omit<StepResult<TOOLS>, 'stepType'> & {
+      event: Omit<StepResult<TOOLS>, 'stepType' | 'isContinued'> & {
         /**
 Details for all steps.
        */
@@ -474,7 +474,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     onChunk: Parameters<typeof streamText>[0]['onChunk'];
     onFinish:
       | ((
-          event: Omit<StepResult<TOOLS>, 'stepType'> & {
+          event: Omit<StepResult<TOOLS>, 'stepType' | 'isContinued'> & {
             steps: StepResult<TOOLS>[];
             responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
           },
@@ -847,6 +847,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 experimental_providerMetadata: stepProviderMetadata,
                 logprobs: stepLogProbs,
                 response: stepResponse,
+                isContinued: nextStepType === 'continue',
               });
 
               const stepResult: StepResult<TOOLS> = {
@@ -861,6 +862,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 response: stepResponse,
                 rawResponse: self.rawResponse,
                 experimental_providerMetadata: stepProviderMetadata,
+                isContinued: nextStepType === 'continue',
               };
 
               stepResults.push(stepResult);
@@ -1212,6 +1214,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                       completionTokens: chunk.usage.completionTokens,
                     }
                   : undefined,
+                isContinued: chunk.isContinued,
               }),
             );
             break;

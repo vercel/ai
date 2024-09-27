@@ -425,6 +425,7 @@ functionality that can be fully encapsulated in the provider.
             headers: currentModelResponse.rawResponse?.headers,
           },
           experimental_providerMetadata: currentModelResponse.providerMetadata,
+          isContinued: nextStepType === 'continue',
         };
         steps.push(currentStep);
         await onStepFinish?.(currentStep);

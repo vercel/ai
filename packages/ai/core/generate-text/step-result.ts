@@ -77,4 +77,9 @@ an "initial" step, and subsequent steps are either "continue" steps
 or "tool-result" steps.
    */
   readonly stepType: 'initial' | 'continue' | 'tool-result';
+
+  /**
+True when there will be a continuation step with a continuation text.
+   */
+  readonly isContinued: boolean;
 };
