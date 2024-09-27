@@ -1407,8 +1407,8 @@ importers:
         version: 0.4.0
     devDependencies:
       '@google-cloud/vertexai':
-        specifier: ^1.4.0
-        version: 1.4.0
+        specifier: ^1.6.0
+        version: 1.8.1
       '@types/json-schema':
         specifier: 7.0.15
         version: 7.0.15
@@ -5590,8 +5590,8 @@ packages:
     resolution: {integrity: sha512-fZDjR2BdAqmauEbTjcIT62zYzbOgDa5+IQH34D2k8Pxmy1T815mAqQkZciWZVQ9dc/BgdTtTUV9HJ2ulBNwchg==}
     dev: true
 
-  /@google-cloud/vertexai@1.4.0:
-    resolution: {integrity: sha512-3D06+qlpbotQINBUbxC5c9zuv5nM5VLnaQZCcktfvSHnue3jsQ1sG1+/ZSkx8E9OidpVNAh5iCcAEZd8N7hPnQ==}
+  /@google-cloud/vertexai@1.8.1:
+    resolution: {integrity: sha512-E6GLYby+jKmS315LARO7TMB4o4aD88GSatJimmQ8xBRFx2dFp9B2vIWFfAY/I5aBusPRumUlsbNLeU2h+MbZLA==}
     engines: {node: '>=18.0.0'}
     dependencies:
       google-auth-library: 9.10.0
