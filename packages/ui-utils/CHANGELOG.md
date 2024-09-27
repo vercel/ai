@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.45
+
+### Patch Changes
+
+- cd77c5d: feat (ai/core): add isContinued to steps
+
 ## 0.0.44
 
 ### Patch Changes
