@@ -13,6 +13,7 @@ export async function POST(req: Request) {
     maxTokens: 256, // artificial limit for demo purposes
     maxSteps: 10,
     experimental_continueSteps: true,
+    system: 'Stop when sufficient information is provided.',
     messages: convertToCoreMessages(messages),
   });
 
