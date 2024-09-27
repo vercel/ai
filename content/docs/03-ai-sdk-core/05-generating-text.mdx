@@ -230,6 +230,12 @@ const {
   tokens of some calls to prevent whitespace issues.
 </Note>
 
+<Note type="warning">
+  Some models might always not stop correctly on their own and keep generating
+  until `maxSteps` is reached. You can hint the model to stop by e.g. using a
+  system message such as "Stop when sufficient information was provided."
+</Note>
+
 ## Examples
 
 You can see `generateText` and `streamText` in action using various frameworks in the following examples:
