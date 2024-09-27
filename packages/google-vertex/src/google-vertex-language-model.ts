@@ -66,13 +66,6 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   }: LanguageModelV1CallOptions) {
     const warnings: LanguageModelV1CallWarning[] = [];
 
-    if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
-    }
-
     if (presencePenalty != null) {
       warnings.push({
         type: 'unsupported-setting',
@@ -100,6 +93,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
 
       // standardized settings:
       maxOutputTokens: maxTokens,
+      frequencyPenalty,
       temperature,
       topP,
       stopSequences,

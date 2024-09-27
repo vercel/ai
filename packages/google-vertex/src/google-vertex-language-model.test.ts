@@ -150,6 +150,7 @@ describe('doGenerate', () => {
     expect(mockVertexAI.lastModelParams).toStrictEqual({
       model: 'gemini-1.0-pro-002',
       generationConfig: {
+        frequencyPenalty: undefined,
         maxOutputTokens: undefined,
         responseMimeType: undefined,
         temperature: undefined,
@@ -227,6 +228,7 @@ describe('doGenerate', () => {
       maxTokens: 100,
       topP: 0.9,
       stopSequences: ['abc', 'def'],
+      frequencyPenalty: 0.15,
     });
 
     expect(mockVertexAI.lastModelParams).toStrictEqual({
@@ -237,6 +239,7 @@ describe('doGenerate', () => {
         temperature: 0.5,
         topK: 0.1,
         topP: 0.9,
+        frequencyPenalty: 0.15,
         stopSequences: ['abc', 'def'],
       },
       tools: undefined,
@@ -262,6 +265,7 @@ describe('doGenerate', () => {
     expect(mockVertexAI.lastModelParams).toStrictEqual({
       model: 'test-model',
       generationConfig: {
+        frequencyPenalty: undefined,
         maxOutputTokens: undefined,
         responseMimeType: undefined,
         stopSequences: undefined,
@@ -345,6 +349,7 @@ describe('doGenerate', () => {
     expect(mockVertexAI.lastModelParams).toStrictEqual({
       model: 'test-model',
       generationConfig: {
+        frequencyPenalty: undefined,
         maxOutputTokens: undefined,
         responseMimeType: 'application/json',
         stopSequences: undefined,
