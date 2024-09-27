@@ -45,6 +45,35 @@ describe('user message', () => {
     ]);
   });
 
+  it('should handle user message with attachments (file)', () => {
+    const attachment: Attachment = {
+      contentType: 'application/pdf',
+      url: 'https://example.com/document.pdf',
+    };
+
+    const result = convertToCoreMessages([
+      {
+        role: 'user',
+        content: 'Check this document',
+        experimental_attachments: [attachment],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Check this document' },
+          {
+            type: 'file',
+            data: new URL('https://example.com/document.pdf'),
+            mimeType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should handle user message with attachment URLs', () => {
     const attachment: Attachment = {
       contentType: 'image/jpeg',
@@ -65,6 +94,35 @@ describe('user message', () => {
         content: [
           { type: 'text', text: 'Check this image' },
           { type: 'image', image: new Uint8Array([116, 101, 115, 116]) },
+        ],
+      },
+    ]);
+  });
+
+  it('should handle user message with attachment URLs (file)', () => {
+    const attachment: Attachment = {
+      contentType: 'application/pdf',
+      url: 'data:application/pdf;base64,dGVzdA==',
+    };
+
+    const result = convertToCoreMessages([
+      {
+        role: 'user',
+        content: 'Check this document',
+        experimental_attachments: [attachment],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Check this document' },
+          {
+            type: 'file',
+            data: 'dGVzdA==',
+            mimeType: 'application/pdf',
+          },
         ],
       },
     ]);

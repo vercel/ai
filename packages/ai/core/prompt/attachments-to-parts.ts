@@ -82,7 +82,7 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
 
           parts.push({
             type: 'file',
-            data: convertDataContentToUint8Array(base64Content),
+            data: base64Content,
             mimeType: attachment.contentType,
           });
         }
