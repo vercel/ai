@@ -1,5 +1,19 @@
 # ai
 
+## 3.4.6
+
+### Patch Changes
+
+- d595d0d: feat (ai/core): file content parts
+- Updated dependencies [d595d0d]
+  - @ai-sdk/provider@0.0.24
+  - @ai-sdk/provider-utils@1.0.20
+  - @ai-sdk/ui-utils@0.0.46
+  - @ai-sdk/react@0.0.62
+  - @ai-sdk/solid@0.0.49
+  - @ai-sdk/svelte@0.0.51
+  - @ai-sdk/vue@0.0.53
+
 ## 3.4.5
 
 ### Patch Changes

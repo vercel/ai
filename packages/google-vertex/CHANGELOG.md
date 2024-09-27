@@ -1,5 +1,14 @@
 # @ai-sdk/google-vertex
 
+## 0.0.38
+
+### Patch Changes
+
+- d595d0d: feat (ai/core): file content parts
+- Updated dependencies [d595d0d]
+  - @ai-sdk/provider@0.0.24
+  - @ai-sdk/provider-utils@1.0.20
+
 ## 0.0.37
 
 ### Patch Changes
