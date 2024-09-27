@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 0.0.39
+
+### Patch Changes
+
+- 465189a: feat (provider/vertex): add schema support
+- 33ba542: feat (provider/vertex): support frequencyPenalty setting
+- 20ffa73: feat (provider/vertex): tool choice support & object generation with tool mode
+
 ## 0.0.38
 
 ### Patch Changes
