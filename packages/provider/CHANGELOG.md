@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.24
+
+### Patch Changes
+
+- d595d0d: feat (ai/core): file content parts
+
 ## 0.0.23
 
 ### Patch Changes

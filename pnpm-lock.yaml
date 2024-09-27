@@ -1103,25 +1103,25 @@ importers:
   packages/ai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 0.0.61
+        specifier: 0.0.62
         version: link:../react
       '@ai-sdk/solid':
-        specifier: 0.0.48
+        specifier: 0.0.49
         version: link:../solid
       '@ai-sdk/svelte':
-        specifier: 0.0.50
+        specifier: 0.0.51
         version: link:../svelte
       '@ai-sdk/ui-utils':
-        specifier: 0.0.45
+        specifier: 0.0.46
         version: link:../ui-utils
       '@ai-sdk/vue':
-        specifier: 0.0.52
+        specifier: 0.0.53
         version: link:../vue
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1254,10 +1254,10 @@ importers:
   packages/amazon-bedrock:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
       '@aws-sdk/client-bedrock-runtime':
         specifier: 3.602.0
@@ -1288,10 +1288,10 @@ importers:
   packages/anthropic:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1313,13 +1313,13 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 0.0.62
+        specifier: 0.0.63
         version: link:../openai
       '@ai-sdk/provider':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1341,10 +1341,10 @@ importers:
   packages/cohere:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1366,10 +1366,10 @@ importers:
   packages/google:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
       json-schema:
         specifier: 0.4.0
@@ -1397,10 +1397,10 @@ importers:
   packages/google-vertex:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
       json-schema:
         specifier: 0.4.0
@@ -1428,10 +1428,10 @@ importers:
   packages/mistral:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1453,10 +1453,10 @@ importers:
   packages/openai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1500,7 +1500,7 @@ importers:
   packages/provider-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../provider
       eventsource-parser:
         specifier: 1.1.2
@@ -1534,10 +1534,10 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.45
+        specifier: 0.0.46
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19
@@ -1595,10 +1595,10 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.45
+        specifier: 0.0.46
         version: link:../ui-utils
       solid-js:
         specifier: ^1.7.7
@@ -1647,10 +1647,10 @@ importers:
   packages/svelte:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.45
+        specifier: 0.0.46
         version: link:../ui-utils
       sswr:
         specifier: 2.1.0
@@ -1681,10 +1681,10 @@ importers:
   packages/ui-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
       json-schema:
         specifier: 0.4.0
@@ -1721,10 +1721,10 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.19
+        specifier: 1.0.20
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.45
+        specifier: 0.0.46
         version: link:../ui-utils
       swrv:
         specifier: 1.0.4
