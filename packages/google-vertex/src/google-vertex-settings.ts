@@ -19,6 +19,16 @@ Models running with nucleus sampling don't allow topK setting.
   topK?: number;
 
   /**
+   * Optional. Enable structured output. Default is true.
+   *
+   * This is useful when the JSON Schema contains elements that are
+   * not supported by the OpenAPI schema version that
+   * Google Generative AI uses. You can use this to disable
+   * structured outputs if you need to.
+   */
+  structuredOutputs?: boolean;
+
+  /**
 Optional. A list of unique safety settings for blocking unsafe content.
    */
   safetySettings?: Array<{

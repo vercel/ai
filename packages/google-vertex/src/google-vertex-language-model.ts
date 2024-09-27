@@ -13,6 +13,7 @@ import {
   GenerateContentResponse,
   GenerationConfig,
   Part,
+  ResponseSchema,
   SafetySetting,
   Tool,
   ToolConfig,
@@ -33,8 +34,12 @@ type GoogleVertexAIConfig = {
 export class GoogleVertexLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly provider = 'google-vertex';
-  readonly defaultObjectGenerationMode = 'tool';
+  readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
+
+  get supportsObjectGeneration() {
+    return this.settings.structuredOutputs !== false;
+  }
 
   readonly modelId: GoogleVertexModelId;
   readonly settings: GoogleVertexSettings;
@@ -98,8 +103,20 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       temperature,
       topP,
       stopSequences,
+
+      // response format:
       responseMimeType:
         responseFormat?.type === 'json' ? 'application/json' : undefined,
+      responseSchema:
+        responseFormat?.type === 'json' &&
+        responseFormat.schema != null &&
+        // Google Vertex does not support all OpenAPI Schema features,
+        // so this is needed as an escape hatch:
+        this.supportsObjectGeneration
+          ? (convertJSONSchemaToOpenAPISchema(
+              responseFormat.schema,
+            ) as ResponseSchema)
+          : undefined,
     };
 
     const type = mode.type;
@@ -132,6 +149,15 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
             generationConfig: {
               ...generationConfig,
               responseMimeType: 'application/json',
+              responseSchema:
+                mode.schema != null &&
+                // Google Vertex does not support all OpenAPI Schema features,
+                // so this is needed as an escape hatch:
+                this.supportsObjectGeneration
+                  ? (convertJSONSchemaToOpenAPISchema(
+                      mode.schema,
+                    ) as ResponseSchema)
+                  : undefined,
             },
             safetySettings: this.settings.safetySettings as
               | undefined
