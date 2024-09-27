@@ -165,21 +165,19 @@ describe('doGenerate', () => {
               description: '',
               name: 'test-tool',
               parameters: {
-                description: undefined,
                 properties: {
                   value: {
-                    description: undefined,
-                    required: undefined,
-                    type: 'STRING',
+                    type: 'string',
                   },
                 },
                 required: ['value'],
-                type: 'OBJECT',
+                type: 'object',
               },
             },
           ],
         },
       ],
+      toolConfig: undefined,
       safetySettings: undefined,
     });
 
@@ -243,6 +241,7 @@ describe('doGenerate', () => {
         stopSequences: ['abc', 'def'],
       },
       tools: undefined,
+      toolConfig: undefined,
       safetySettings: undefined,
     });
   });
@@ -274,6 +273,7 @@ describe('doGenerate', () => {
         topP: undefined,
       },
       tools: [{ googleSearchRetrieval: {} }],
+      toolConfig: undefined,
       safetySettings: undefined,
     });
   });
@@ -361,6 +361,84 @@ describe('doGenerate', () => {
     });
 
     expect(response.text).toStrictEqual('{"value":"Spark"}');
+  });
+
+  it('should support object-tool mode', async () => {
+    const { model, mockVertexAI } = createModel({
+      generateContent: prepareResponse({
+        parts: [
+          {
+            functionCall: {
+              name: 'test-tool',
+              args: { value: 'Spark' },
+            },
+          },
+        ],
+      }),
+    });
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-tool',
+        tool: {
+          type: 'function',
+          name: 'test-tool',
+          description: 'test description',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(mockVertexAI.lastModelParams).toStrictEqual({
+      model: 'gemini-1.0-pro-002',
+      generationConfig: {
+        frequencyPenalty: undefined,
+        maxOutputTokens: undefined,
+        responseMimeType: undefined,
+        temperature: undefined,
+        topK: undefined,
+        topP: undefined,
+        stopSequences: undefined,
+      },
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              description: 'test description',
+              name: 'test-tool',
+              parameters: {
+                properties: {
+                  value: {
+                    type: 'string',
+                  },
+                },
+                required: ['value'],
+                type: 'object',
+              },
+            },
+          ],
+        },
+      ],
+      toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+      safetySettings: undefined,
+    });
+
+    expect(result.toolCalls).toStrictEqual([
+      {
+        args: '{"value":"Spark"}',
+        toolCallId: 'test-id',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+      },
+    ]);
   });
 });
 
