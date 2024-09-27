@@ -5,16 +5,20 @@ import {
   LanguageModelV1Prompt,
   LanguageModelV1TextPart,
 } from '@ai-sdk/provider';
-import { getErrorMessage } from '@ai-sdk/provider-utils';
+import {
+  convertUint8ArrayToBase64,
+  getErrorMessage,
+} from '@ai-sdk/provider-utils';
 import { download } from '../../util/download';
 import { CoreMessage } from '../prompt/message';
 import { detectImageMimeType } from '../util/detect-image-mimetype';
-import { ImagePart, TextPart } from './content-part';
+import { FilePart, ImagePart, TextPart } from './content-part';
 import {
   convertDataContentToBase64String,
   convertDataContentToUint8Array,
 } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
+import { splitDataUrl } from './split-data-url';
 import { ValidatedPrompt } from './validate-prompt';
 
 export async function convertToLanguageModelPrompt({
@@ -32,10 +36,10 @@ export async function convertToLanguageModelPrompt({
     languageModelMessages.push({ role: 'system', content: prompt.system });
   }
 
-  const downloadedImages =
+  const downloadedAssets =
     modelSupportsImageUrls || prompt.messages == null
       ? null
-      : await downloadImages(prompt.messages, downloadImplementation);
+      : await downloadAssets(prompt.messages, downloadImplementation);
 
   const promptType = prompt.type;
   switch (promptType) {
@@ -51,7 +55,7 @@ export async function convertToLanguageModelPrompt({
       languageModelMessages.push(
         ...prompt.messages.map(
           (message): LanguageModelV1Message =>
-            convertToLanguageModelMessage(message, downloadedImages),
+            convertToLanguageModelMessage(message, downloadedAssets),
         ),
       );
       break;
@@ -70,12 +74,12 @@ export async function convertToLanguageModelPrompt({
  * Convert a CoreMessage to a LanguageModelV1Message.
  *
  * @param message The CoreMessage to convert.
- * @param downloadedImages A map of image URLs to their downloaded data. Only
- *   available if the model does not support image URLs, null otherwise.
+ * @param downloadedAssets A map of URLs to their downloaded data. Only
+ *   available if the model does not support URLs, null otherwise.
  */
 export function convertToLanguageModelMessage(
   message: CoreMessage,
-  downloadedImages: Record<
+  downloadedAssets: Record<
     string,
     { mimeType: string | undefined; data: Uint8Array }
   > | null,
@@ -120,7 +124,7 @@ export function convertToLanguageModelMessage(
 
                 case 'image': {
                   if (part.image instanceof URL) {
-                    if (downloadedImages == null) {
+                    if (downloadedAssets == null) {
                       return {
                         type: 'image',
                         image: part.image,
@@ -129,7 +133,7 @@ export function convertToLanguageModelMessage(
                       };
                     } else {
                       const downloadedImage =
-                        downloadedImages[part.image.toString()];
+                        downloadedAssets[part.image.toString()];
                       return {
                         type: 'image',
                         image: downloadedImage.data,
@@ -147,7 +151,7 @@ export function convertToLanguageModelMessage(
                       switch (url.protocol) {
                         case 'http:':
                         case 'https:': {
-                          if (downloadedImages == null) {
+                          if (downloadedAssets == null) {
                             return {
                               type: 'image',
                               image: url,
@@ -157,7 +161,7 @@ export function convertToLanguageModelMessage(
                             };
                           } else {
                             const downloadedImage =
-                              downloadedImages[part.image];
+                              downloadedAssets[url.toString()];
                             return {
                               type: 'image',
                               image: downloadedImage.data,
@@ -170,9 +174,9 @@ export function convertToLanguageModelMessage(
                         }
                         case 'data:': {
                           try {
-                            const [header, base64Content] =
-                              part.image.split(',');
-                            const mimeType = header.split(';')[0].split(':')[1];
+                            const { mimeType, base64Content } = splitDataUrl(
+                              part.image,
+                            );
 
                             if (mimeType == null || base64Content == null) {
                               throw new Error('Invalid data URL format');
@@ -194,11 +198,6 @@ export function convertToLanguageModelMessage(
                             );
                           }
                         }
-                        default: {
-                          throw new Error(
-                            `Unsupported URL protocol: ${url.protocol}`,
-                          );
-                        }
                       }
                     } catch (_ignored) {
                       // not a URL
@@ -217,12 +216,87 @@ export function convertToLanguageModelMessage(
 
                 case 'file': {
                   if (part.data instanceof URL) {
-                    return {
-                      type: 'file',
-                      data: part.data,
-                      mimeType: part.mimeType,
-                      providerMetadata: part.experimental_providerMetadata,
-                    };
+                    if (downloadedAssets == null) {
+                      return {
+                        type: 'file',
+                        data: part.data,
+                        mimeType: part.mimeType,
+                        providerMetadata: part.experimental_providerMetadata,
+                      };
+                    } else {
+                      const downloadedImage =
+                        downloadedAssets[part.data.toString()];
+                      return {
+                        type: 'file',
+                        data: convertUint8ArrayToBase64(downloadedImage.data),
+                        mimeType: part.mimeType ?? downloadedImage.mimeType,
+                        providerMetadata: part.experimental_providerMetadata,
+                      };
+                    }
+                  }
+
+                  // try to convert string image parts to urls
+                  if (typeof part.data === 'string') {
+                    try {
+                      const url = new URL(part.data);
+
+                      switch (url.protocol) {
+                        case 'http:':
+                        case 'https:': {
+                          if (downloadedAssets == null) {
+                            return {
+                              type: 'file',
+                              data: url,
+                              mimeType: part.mimeType,
+                              providerMetadata:
+                                part.experimental_providerMetadata,
+                            };
+                          } else {
+                            const downloadedImage =
+                              downloadedAssets[url.toString()];
+                            return {
+                              type: 'file',
+                              data: convertUint8ArrayToBase64(
+                                downloadedImage.data,
+                              ),
+                              mimeType:
+                                part.mimeType ?? downloadedImage.mimeType,
+                              providerMetadata:
+                                part.experimental_providerMetadata,
+                            };
+                          }
+                        }
+                        case 'data:': {
+                          try {
+                            const { mimeType, base64Content } = splitDataUrl(
+                              part.data,
+                            );
+
+                            if (mimeType == null || base64Content == null) {
+                              throw new Error('Invalid data URL format');
+                            }
+
+                            return {
+                              type: 'file',
+                              data: convertDataContentToBase64String(
+                                base64Content,
+                              ),
+                              mimeType,
+                              providerMetadata:
+                                part.experimental_providerMetadata,
+                            };
+                          } catch (error) {
+                            throw new Error(
+                              `Error processing data URL: ${getErrorMessage(
+                                message,
+                              )}`,
+                            );
+                          }
+                        }
+                      }
+                    } catch (_ignored) {
+                      // not a URL
+                    }
                   }
 
                   const imageBase64 = convertDataContentToBase64String(
@@ -293,21 +367,27 @@ export function convertToLanguageModelMessage(
   }
 }
 
-async function downloadImages(
+/**
+ * Downloads images and files from URLs in the messages.
+ */
+async function downloadAssets(
   messages: CoreMessage[],
   downloadImplementation: typeof download,
 ): Promise<Record<string, { mimeType: string | undefined; data: Uint8Array }>> {
   const urls = messages
     .filter(message => message.role === 'user')
     .map(message => message.content)
-    .filter((content): content is Array<TextPart | ImagePart> =>
+    .filter((content): content is Array<TextPart | ImagePart | FilePart> =>
       Array.isArray(content),
     )
     .flat()
-    .filter((part): part is ImagePart => part.type === 'image')
-    .map(part => part.image)
+    .filter(
+      (part): part is ImagePart | FilePart =>
+        part.type === 'image' || part.type === 'file',
+    )
+    .map(part => (part.type === 'image' ? part.image : part.data))
     .map(part =>
-      // support string urls in image parts:
+      // support string urls:
       typeof part === 'string' &&
       (part.startsWith('http:') || part.startsWith('https:'))
         ? new URL(part)
@@ -315,7 +395,7 @@ async function downloadImages(
     )
     .filter((image): image is URL => image instanceof URL);
 
-  // download images in parallel:
+  // download in parallel:
   const downloadedImages = await Promise.all(
     urls.map(async url => ({
       url,
