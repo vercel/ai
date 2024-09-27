@@ -211,8 +211,8 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                     },
                     {
                       name: 'mimeType',
-                      type: 'string?',
-                      optional: true,
+                      type: 'string',
+                      isOptional: true,
                       description: 'The mime type of the image. Optional.',
                     },
                   ],
@@ -544,7 +544,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -570,7 +570,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                     },
                     {
                       name: 'headers',
-                      optional: true,
+                      isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
                     },
@@ -708,7 +708,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'logprobs',
               type: 'Logprobs',
-              optional: true,
+              isOptional: true,
             },
             {
               name: 'usage',
@@ -718,7 +718,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -753,7 +753,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     {
       name: 'response',
       type: 'Promise<Response>',
-      optional: true,
+      isOptional: true,
       description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
@@ -779,7 +779,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             },
             {
               name: 'headers',
-              optional: true,
+              isOptional: true,
               type: 'Record<string, string>',
               description: 'Optional response headers.',
             },
@@ -805,19 +805,19 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'status',
               type: 'number',
-              optional: true,
+              isOptional: true,
               description: 'The response status code.',
             },
             {
               name: 'statusText',
               type: 'string',
-              optional: true,
+              isOptional: true,
               description: 'The response status text.',
             },
             {
               name: 'headers',
               type: 'Record<string, string>',
-              optional: true,
+              isOptional: true,
               description: 'The response headers.',
             },
           ],
@@ -836,19 +836,19 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'status',
               type: 'number',
-              optional: true,
+              isOptional: true,
               description: 'The response status code.',
             },
             {
               name: 'statusText',
               type: 'string',
-              optional: true,
+              isOptional: true,
               description: 'The response status text.',
             },
             {
               name: 'headers',
               type: 'Record<string, string>',
-              optional: true,
+              isOptional: true,
               description: 'The response headers.',
             },
           ],

@@ -115,8 +115,8 @@ To see `streamText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'mimeType',
-                      type: 'string?',
-                      optional: true,
+                      type: 'string',
+                      isOptional: true,
                       description: 'The mime type of the image. Optional.',
                     },
                   ],
@@ -672,7 +672,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -698,7 +698,7 @@ To see `streamText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'headers',
-                      optional: true,
+                      isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
                     },
@@ -796,7 +796,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -822,7 +822,7 @@ To see `streamText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'headers',
-                      optional: true,
+                      isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
                     },
@@ -920,7 +920,7 @@ To see `streamText` in action, check out [these examples](#examples).
     {
       name: 'response',
       type: 'Promise<Response>',
-      optional: true,
+      isOptional: true,
       description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
@@ -946,7 +946,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'headers',
-              optional: true,
+              isOptional: true,
               type: 'Record<string, string>',
               description: 'Optional response headers.',
             },
@@ -1027,7 +1027,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -1053,7 +1053,7 @@ To see `streamText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'headers',
-                      optional: true,
+                      isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
                     },
@@ -1287,7 +1287,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -1361,7 +1361,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -1405,7 +1405,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'init',
               type: 'ResponseInit',
-              optional: true,
+              isOptional: true,
               description: 'The response init options.',
               properties: [
                 {
@@ -1414,19 +1414,19 @@ To see `streamText` in action, check out [these examples](#examples).
                     {
                       name: 'status',
                       type: 'number',
-                      optional: true,
+                      isOptional: true,
                       description: 'The response status code.',
                     },
                     {
                       name: 'statusText',
                       type: 'string',
-                      optional: true,
+                      isOptional: true,
                       description: 'The response status text.',
                     },
                     {
                       name: 'headers',
                       type: 'Record<string, string>',
-                      optional: true,
+                      isOptional: true,
                       description: 'The response headers.',
                     },
                   ],
@@ -1436,7 +1436,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'data',
               type: 'StreamData',
-              optional: true,
+              isOptional: true,
               description: 'The stream data object.',
             },
             {
@@ -1444,12 +1444,12 @@ To see `streamText` in action, check out [these examples](#examples).
               type: '(error: unknown) => string',
               description:
                 'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
-              optional: true,
+              isOptional: true,
             },
             {
               name: 'sendUsage',
               type: 'boolean',
-              optional: true,
+              isOptional: true,
               description:
                 'Whether to send the usage information in the stream. Defaults to true.',
             },
@@ -1469,19 +1469,19 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'status',
               type: 'number',
-              optional: true,
+              isOptional: true,
               description: 'The response status code.',
             },
             {
               name: 'statusText',
               type: 'string',
-              optional: true,
+              isOptional: true,
               description: 'The response status text.',
             },
             {
               name: 'headers',
               type: 'Record<string, string>',
-              optional: true,
+              isOptional: true,
               description: 'The response headers.',
             },
           ],
@@ -1499,7 +1499,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'data',
               type: 'StreamData',
-              optional: true,
+              isOptional: true,
               description: 'The stream data object.',
             },
             {
@@ -1507,12 +1507,12 @@ To see `streamText` in action, check out [these examples](#examples).
               type: '(error: unknown) => string',
               description:
                 'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
-              optional: true,
+              isOptional: true,
             },
             {
               name: 'sendUsage',
               type: 'boolean',
-              optional: true,
+              isOptional: true,
               description:
                 'Whether to send the usage information in the stream. Defaults to true.',
             },
@@ -1532,7 +1532,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'init',
               type: 'ResponseInit',
-              optional: true,
+              isOptional: true,
               description: 'The response init options.',
               properties: [
                 {
@@ -1541,19 +1541,19 @@ To see `streamText` in action, check out [these examples](#examples).
                     {
                       name: 'status',
                       type: 'number',
-                      optional: true,
+                      isOptional: true,
                       description: 'The response status code.',
                     },
                     {
                       name: 'statusText',
                       type: 'string',
-                      optional: true,
+                      isOptional: true,
                       description: 'The response status text.',
                     },
                     {
                       name: 'headers',
                       type: 'Record<string, string>',
-                      optional: true,
+                      isOptional: true,
                       description: 'The response headers.',
                     },
                   ],
@@ -1563,7 +1563,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'data',
               type: 'StreamData',
-              optional: true,
+              isOptional: true,
               description: 'The stream data object.',
             },
             {
@@ -1571,12 +1571,12 @@ To see `streamText` in action, check out [these examples](#examples).
               type: '(error: unknown) => string',
               description:
                 'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
-              optional: true,
+              isOptional: true,
             },
             {
               name: 'sendUsage',
               type: 'boolean',
-              optional: true,
+              isOptional: true,
               description:
                 'Whether to send the usage information in the stream. Defaults to true.',
             },
@@ -1596,19 +1596,19 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'status',
               type: 'number',
-              optional: true,
+              isOptional: true,
               description: 'The response status code.',
             },
             {
               name: 'statusText',
               type: 'string',
-              optional: true,
+              isOptional: true,
               description: 'The response status text.',
             },
             {
               name: 'headers',
               type: 'Record<string, string>',
-              optional: true,
+              isOptional: true,
               description: 'The response headers.',
             },
           ],

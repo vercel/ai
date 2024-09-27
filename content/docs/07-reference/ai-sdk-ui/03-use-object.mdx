@@ -63,29 +63,29 @@ export default function Page() {
         'A unique identifier. If not provided, a random one will be generated. When provided, the `useObject` hook with the same `id` will have shared states across components.',
     },
     {
-      name: 'initialValue?',
+      name: 'initialValue',
       type: 'DeepPartial<RESULT> | undefined',
-      optional: true,
+      isOptional: true,
       description: 'An value for the initial object. Optional.',
     },
     {
-      name: 'fetch?',
+      name: 'fetch',
       type: 'FetchFunction',
-      optional: true,
+      isOptional: true,
       description:
         'A custom fetch function to be used for the API call. Defaults to the global fetch function. Optional.',
     },
     {
       name: 'headers',
       type: 'Record<string, string> | Headers',
-      optional: true,
+      isOptional: true,
       description:
         'A headers object to be passed to the API endpoint. Optional.',
     },
     {
       name: 'onError',
       type: '(error: Error) => void',
-      optional: true,
+      isOptional: true,
       description:
         'Callback function to be called when an error is encountered. Optional.',
     },

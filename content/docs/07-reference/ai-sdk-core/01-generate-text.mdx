@@ -113,8 +113,8 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'mimeType',
-                      type: 'string?',
-                      optional: true,
+                      type: 'string',
+                      isOptional: true,
                       description: 'The mime type of the image. Optional.',
                     },
                   ],
@@ -514,7 +514,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -540,7 +540,7 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'headers',
-                      optional: true,
+                      isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
                     },
@@ -623,7 +623,7 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'response',
       type: 'Response',
-      optional: true,
+      isOptional: true,
       description: 'Response metadata.',
       properties: [
         {
@@ -649,7 +649,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'headers',
-              optional: true,
+              isOptional: true,
               type: 'Record<string, string>',
               description: 'Optional response headers.',
             },
@@ -742,7 +742,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -768,7 +768,7 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'headers',
-                      optional: true,
+                      isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
                     },

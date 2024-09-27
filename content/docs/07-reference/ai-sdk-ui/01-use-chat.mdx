@@ -168,21 +168,21 @@ Allows you to easily create a conversational user interface for your chatbot app
     {
       name: 'streamProtocol',
       type: "'text' | 'data'",
-      optional: true,
+      isOptional: true,
       description:
         'An optional literal that sets the type of stream to be used. Defaults to `data`. If set to `text`, the stream will be treated as a text stream.',
     },
     {
       name: 'fetch',
       type: 'FetchFunction',
-      optional: true,
+      isOptional: true,
       description:
         'Optional. A custom fetch function to be used for the API call. Defaults to the global fetch function.',
     },
     {
       name: 'experimental_prepareRequestBody',
       type: '(options: { messages: Message[]; requestData?: JSONValue; requestBody?: object }) => JSONValue',
-      optional: true,
+      isOptional: true,
       description:
         'Experimental (React only). When a function is provided, it will be used to prepare the request body for the chat API. This can be useful for customizing the request body based on the messages and data in the chat.',
     },

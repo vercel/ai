@@ -103,8 +103,8 @@ To see `streamUI` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'mimeType',
-                      type: 'string?',
-                      optional: true,
+                      type: 'string',
+                      isOptional: true,
                       description: 'The mime type of the image. Optional.',
                     },
                   ],
@@ -449,7 +449,7 @@ To see `streamUI` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'headers',
-                      optional: true,
+                      isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Response headers.',
                     },
@@ -476,7 +476,7 @@ To see `streamUI` in action, check out [these examples](#examples).
     {
       name: 'rawResponse',
       type: 'RawResponse',
-      optional: true,
+      isOptional: true,
       description: 'Optional raw response data.',
       properties: [
         {
@@ -484,7 +484,7 @@ To see `streamUI` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'headers',
-              optional: true,
+              isOptional: true,
               type: 'Record<string, string>',
               description: 'Response headers.',
             },
