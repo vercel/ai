@@ -1243,13 +1243,13 @@ importers:
         version: link:../../..
       next:
         specifier: canary
-        version: 15.0.0-canary.171(@playwright/test@1.46.0)(react-dom@19.0.0-rc-67fee58b-20240926)(react@19.0.0-rc-67fee58b-20240926)
+        version: 15.0.0-canary.171(@playwright/test@1.46.0)(react-dom@19.0.0-rc-04bd67a4-20240924)(react@19.0.0-rc-04bd67a4-20240924)
       react:
         specifier: rc
-        version: 19.0.0-rc-67fee58b-20240926
+        version: 19.0.0-rc-04bd67a4-20240924
       react-dom:
         specifier: rc
-        version: 19.0.0-rc-67fee58b-20240926(react@19.0.0-rc-67fee58b-20240926)
+        version: 19.0.0-rc-04bd67a4-20240924(react@19.0.0-rc-04bd67a4-20240924)
 
   packages/amazon-bedrock:
     dependencies:
@@ -20166,7 +20166,7 @@ packages:
       - babel-plugin-macros
     dev: false
 
-  /next@15.0.0-canary.171(@playwright/test@1.46.0)(react-dom@19.0.0-rc-67fee58b-20240926)(react@19.0.0-rc-67fee58b-20240926):
+  /next@15.0.0-canary.171(@playwright/test@1.46.0)(react-dom@19.0.0-rc-04bd67a4-20240924)(react@19.0.0-rc-04bd67a4-20240924):
     resolution: {integrity: sha512-Yic4FzN0CiJrCRI++FAkONZsen0vY5XYe9UkliEFGAmbO9oVx24opzC/JA0N36dTjYtsLFVxcRafoT1dTlJmwg==}
     engines: {node: '>=18.18.0'}
     hasBin: true
@@ -20194,9 +20194,9 @@ packages:
       busboy: 1.6.0
       caniuse-lite: 1.0.30001649
       postcss: 8.4.31
-      react: 19.0.0-rc-67fee58b-20240926
-      react-dom: 19.0.0-rc-67fee58b-20240926(react@19.0.0-rc-67fee58b-20240926)
-      styled-jsx: 5.1.6(react@19.0.0-rc-67fee58b-20240926)
+      react: 19.0.0-rc-04bd67a4-20240924
+      react-dom: 19.0.0-rc-04bd67a4-20240924(react@19.0.0-rc-04bd67a4-20240924)
+      styled-jsx: 5.1.6(react@19.0.0-rc-04bd67a4-20240924)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.0.0-canary.171
       '@next/swc-darwin-x64': 15.0.0-canary.171
@@ -22210,13 +22210,13 @@ packages:
       react: 18.3.1
       scheduler: 0.23.2
 
-  /react-dom@19.0.0-rc-67fee58b-20240926(react@19.0.0-rc-67fee58b-20240926):
-    resolution: {integrity: sha512-fyLfI8S7pXwVguPdS9z8gY8SWOLP3ZiraOAYM0mAeMrjeU2PbN2lXx4huN5WlbBkCMCKNxTkLJpOpWfJ0Gi2jw==}
+  /react-dom@19.0.0-rc-04bd67a4-20240924(react@19.0.0-rc-04bd67a4-20240924):
+    resolution: {integrity: sha512-9MbUcK/HGBwzdDsbgHO6TtSMBO4/lUPyxVhTuKz2shznd4t7T17ObtM7m39JhPaz0uCdlOeErWkzzCKNxt57/g==}
     peerDependencies:
-      react: 19.0.0-rc-67fee58b-20240926
+      react: 19.0.0-rc-04bd67a4-20240924
     dependencies:
-      react: 19.0.0-rc-67fee58b-20240926
-      scheduler: 0.25.0-rc-67fee58b-20240926
+      react: 19.0.0-rc-04bd67a4-20240924
+      scheduler: 0.25.0-rc-04bd67a4-20240924
     dev: false
 
   /react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607):
@@ -22271,8 +22271,8 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /react@19.0.0-rc-67fee58b-20240926:
-    resolution: {integrity: sha512-VCp63TASDf1XDh+oGCV0kV/jTFOn2sxg5HrbuMyjbZXHdTzcNvUw/sEbrtC1QoU+vledZiR4AV7wQW7Ka9qruw==}
+  /react@19.0.0-rc-04bd67a4-20240924:
+    resolution: {integrity: sha512-oldOS+RU4b0cXzOxK0TuJXVhcMMtsjEFew0GQFsRTcYH1vwlWnwcAEBwRRWczZfhykpA1VFcCzS6+sZ3qdnBzw==}
     engines: {node: '>=0.10.0'}
     dev: false
 
@@ -22747,8 +22747,8 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /scheduler@0.25.0-rc-67fee58b-20240926:
-    resolution: {integrity: sha512-saTMMKVkRbIoAyrqnFgRa864RnAxiU85yXZaBXBAXQDaXPz+EdtjZy8BQCnSRZwq8CHvXvzDI8Ox9icBftZ/nw==}
+  /scheduler@0.25.0-rc-04bd67a4-20240924:
+    resolution: {integrity: sha512-gAD5Ob6qimTeOixl9Icmzrgs6572HsxD3AoK/b6VAMKgoDhIa/NXSD8Po1f4SFNysAXVBDCpT1CSvFwy8MtpRQ==}
     dev: false
 
   /scheduler@0.25.0-rc-cc1ec60d0d-20240607:
@@ -23536,7 +23536,7 @@ packages:
       react: 18.3.1
     dev: false
 
-  /styled-jsx@5.1.6(react@19.0.0-rc-67fee58b-20240926):
+  /styled-jsx@5.1.6(react@19.0.0-rc-04bd67a4-20240924):
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
     engines: {node: '>= 12.0.0'}
     peerDependencies:
@@ -23550,7 +23550,7 @@ packages:
         optional: true
     dependencies:
       client-only: 0.0.1
-      react: 19.0.0-rc-67fee58b-20240926
+      react: 19.0.0-rc-04bd67a4-20240924
     dev: false
 
   /styled-jsx@5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607):

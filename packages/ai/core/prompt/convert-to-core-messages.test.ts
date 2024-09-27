@@ -87,6 +87,24 @@ describe('user message', () => {
     }).toThrow('Invalid URL: invalid-url');
   });
 
+  it('should throw an error for file attachments without contentType', () => {
+    const attachment: Attachment = {
+      url: 'data:application/pdf;base64,dGVzdA==',
+    };
+
+    expect(() => {
+      convertToCoreMessages([
+        {
+          role: 'user',
+          content: 'Check this file',
+          experimental_attachments: [attachment],
+        },
+      ]);
+    }).toThrow(
+      'If the attachment is not an image or text, it must specify a content type',
+    );
+  });
+
   it('should throw an error for invalid data URL format', () => {
     const attachment: Attachment = {
       contentType: 'image/jpeg',
