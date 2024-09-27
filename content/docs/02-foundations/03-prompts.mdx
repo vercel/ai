@@ -11,7 +11,7 @@ It's like when you ask someone for directions; the clearer your question, the be
 Many LLM providers offer complex interfaces for specifying prompts. They involve different roles and message types.
 While these interfaces are powerful, they can be hard to use and understand.
 
-In order to simplify prompting across compatible providers, the AI SDK offers two categories of prompts: text prompts and message prompts.
+In order to simplify prompting, the AI SDK support text, message, and system prompts.
 
 ## Text Prompts
 
@@ -40,10 +40,35 @@ const result = await generateText({
 });
 ```
 
+## System Prompts
+
+System prompts are the initial set of instructions given to models that help guide and constrain the models' behaviors and responses.
+You can set system prompts using the `system` property.
+System prompts work with both the `prompt` and the `messages` properties.
+
+```ts highlight="3-6"
+const result = await generateText({
+  model: yourModel,
+  system:
+    `You help planning travel itineraries. ` +
+    `Respond to the users' request with a list ` +
+    `of the best stops to make in their destination.`,
+  prompt:
+    `I am planning a trip to ${destination} for ${lengthOfStay} days. ` +
+    `Please suggest the best tourist activities for me to do.`,
+});
+```
+
+<Note>
+  When you use a message prompt, you can also use system messages instead of a
+  system prompt.
+</Note>
+
 ## Message Prompts
 
 A message prompt is an array of user, assistant, and tool messages.
 They are great for chat interfaces and more complex, multi-modal prompts.
+You can use the `messages` property to set message prompts.
 
 Each message has a `role` and a `content` property. The content can either be text (for user and assistant messages), or an array of relevant parts (data) for that message type.
 
@@ -58,6 +83,8 @@ const result = await streamUI({
 });
 ```
 
+Instead of sending a text in the `content` property, you can send an array of parts that includes a mix of text and other content parts.
+
 <Note type="warning">
   Not all language models support all message and content types. For example,
   some models might not be capable of handling multi-modal inputs or tool
@@ -65,17 +92,35 @@ const result = await streamUI({
   models](./providers-and-models#model-capabilities).
 </Note>
 
-### Multi-modal messages
+### User Messages
 
-<Note>
-  Multi-modal refers to interacting with a model across different data types
-  such as text, image, or audio data.
-</Note>
+#### Text Parts
 
-Instead of sending a text in the `content` property, you can send an array of parts that include text and other data types.
-Currently image and text parts are supported.
+Text content is the most common type of content. It is a string that is passed to the model.
 
-For models that support multi-modal inputs, user messages can include images. An `image` can be one of the following:
+If you only need to send text content in a message, the `content` property can be a string,
+but you can also use the `parts` property to send multiple parts of content.
+
+```ts highlight="7"
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Where can I buy the best Currywurst in Berlin?',
+        },
+      ],
+    },
+  ],
+});
+```
+
+#### Image Parts
+
+User messages can include image parts. An image can be one of the following:
 
 - base64-encoded image:
   - `string` with base-64 encoded content
@@ -88,14 +133,7 @@ For models that support multi-modal inputs, user messages can include images. An
   - http(s) URL `string`, e.g. `https://example.com/image.png`
   - `URL` object, e.g. `new URL('https://example.com/image.png')`
 
-It is possible to mix text and multiple images.
-
-<Note type="warning">
-  Not all models support all types of multi-modal inputs. Check the model's
-  capabilities before using this feature.
-</Note>
-
-#### Example: Binary image (Buffer)
+##### Example: Binary image (Buffer)
 
 ```ts highlight="8-11"
 const result = await generateText({
@@ -115,7 +153,7 @@ const result = await generateText({
 });
 ```
 
-#### Example: Base-64 encoded image (string)
+##### Example: Base-64 encoded image (string)
 
 ```ts highlight="8-11"
 const result = await generateText({
@@ -135,7 +173,7 @@ const result = await generateText({
 });
 ```
 
-#### Example: Image URL (string)
+##### Example: Image URL (string)
 
 ```ts highlight="8-12"
 const result = await generateText({
@@ -151,6 +189,82 @@ const result = await generateText({
             'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
         },
       ],
+    },
+  ],
+});
+```
+
+#### File Parts
+
+<Note type="warning">
+  Only a few providers currently support file parts. If you want to explore this
+  feature, check out the [Google Generative AI
+  provider](/providers/ai-sdk-providers/google-generative-ai) or the [Google
+  Vertex AI provider](/providers/ai-sdk-providers/google-vertex).
+</Note>
+
+User messages can include file parts. A file can be one of the following:
+
+- base64-encoded file:
+  - `string` with base-64 encoded content
+  - data URL `string`, e.g. `data:image/png;base64,...`
+- binary data:
+  - `ArrayBuffer`
+  - `Uint8Array`
+  - `Buffer`
+- URL:
+  - http(s) URL `string`, e.g. `https://example.com/some.pdf`
+  - `URL` object, e.g. `new URL('https://example.com/some.pdf')`
+
+##### Example: Binary file (Buffer)
+
+```ts highlight="8-11"
+const result = await generateText({
+  model,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is the file about?' },
+        {
+          type: 'file',
+          data: fs.readFileSync('./data/some.pdf'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+### Assistant Messages
+
+Assistant messages are messages that have a role of `assistant`.
+They are typically previous responses from the assistant and can contain text and tool call parts.
+
+#### Example: Assistant message with text
+
+```ts highlight="5"
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    { role: 'user', content: 'Hi!' },
+    { role: 'assistant', content: 'Hello, how can I help?' },
+  ],
+});
+```
+
+#### Example: Assistant message with tool call
+
+```ts highlight="5-10"
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    { role: 'user', content: 'How many calories are in this block of cheese?' },
+    {
+      type: 'tool-call',
+      toolCallId: '12345',
+      toolName: 'get-nutrition-data',
+      args: { cheese: 'Roquefort' },
     },
   ],
 });
@@ -215,21 +329,21 @@ const result = await generateText({
 });
 ```
 
-## System Messages
+### System Messages
 
-System messages are the initial set of instructions given to models that help guide and constrain the models' behaviors and responses.
-You can set system prompts using the `system` property.
-System messages work with both the `prompt` and the `messages` properties.
+System messages are messages that are sent to the model before the user messages to guide the assistant's behavior.
+You can alternatively use the `system` property.
 
-```ts highlight="3-6"
+```ts highlight="4"
 const result = await generateText({
   model: yourModel,
-  system:
-    `You help planning travel itineraries. ` +
-    `Respond to the users' request with a list ` +
-    `of the best stops to make in their destination.`,
-  prompt:
-    `I am planning a trip to ${destination} for ${lengthOfStay} days. ` +
-    `Please suggest the best tourist activities for me to do.`,
+  messages: [
+    { role: 'system', content: 'You help planning travel itineraries.' },
+    {
+      role: 'user',
+      content:
+        'I am planning a trip to Berlin for 3 days. Please suggest the best tourist activities for me to do.',
+    },
+  ],
 });
 ```
