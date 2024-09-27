@@ -1,5 +1,17 @@
 # ai
 
+## 3.4.5
+
+### Patch Changes
+
+- cd77c5d: feat (ai/core): add isContinued to steps
+- Updated dependencies [cd77c5d]
+  - @ai-sdk/ui-utils@0.0.45
+  - @ai-sdk/react@0.0.61
+  - @ai-sdk/solid@0.0.48
+  - @ai-sdk/svelte@0.0.50
+  - @ai-sdk/vue@0.0.52
+
 ## 3.4.4
 
 ### Patch Changes
