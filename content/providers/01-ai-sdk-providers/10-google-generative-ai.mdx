@@ -75,6 +75,11 @@ The models support tool calls and some have multi-modal capabilities.
 const model = google('gemini-1.5-pro-latest');
 ```
 
+<Note>
+  You can use fine-tuned models by prefixing the model id with `tunedModels/`,
+  e.g. `tunedModels/my-model`.
+</Note>
+
 Google Generative AI models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
