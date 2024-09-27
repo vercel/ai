@@ -63,10 +63,7 @@ export function convertToGoogleVertexContentRequest(
               }
 
               parts.push({
-                inlineData: {
-                  mimeType: part.mimeType,
-                  data: part.data,
-                },
+                inlineData: { mimeType: part.mimeType, data: part.data },
               });
 
               break;
