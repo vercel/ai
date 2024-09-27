@@ -1,5 +1,12 @@
 # ai
 
+## 3.4.7
+
+### Patch Changes
+
+- db04700: feat (core): support converting attachments to file parts
+- 988707c: feat (ai/core): automatically download files from urls
+
 ## 3.4.6
 
 ### Patch Changes
