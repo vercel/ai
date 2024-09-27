@@ -1,4 +1,5 @@
 import {
+  LanguageModelV1FilePart,
   LanguageModelV1ImagePart,
   LanguageModelV1Message,
   LanguageModelV1Prompt,
@@ -9,7 +10,10 @@ import { download } from '../../util/download';
 import { CoreMessage } from '../prompt/message';
 import { detectImageMimeType } from '../util/detect-image-mimetype';
 import { ImagePart, TextPart } from './content-part';
-import { convertDataContentToUint8Array } from './data-content';
+import {
+  convertDataContentToBase64String,
+  convertDataContentToUint8Array,
+} from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { ValidatedPrompt } from './validate-prompt';
 
@@ -98,111 +102,143 @@ export function convertToLanguageModelMessage(
       return {
         role: 'user',
         content: message.content
-          .map((part): LanguageModelV1TextPart | LanguageModelV1ImagePart => {
-            switch (part.type) {
-              case 'text': {
-                return {
-                  type: 'text',
-                  text: part.text,
-                  providerMetadata: part.experimental_providerMetadata,
-                };
-              }
-
-              case 'image': {
-                if (part.image instanceof URL) {
-                  if (downloadedImages == null) {
-                    return {
-                      type: 'image',
-                      image: part.image,
-                      mimeType: part.mimeType,
-                      providerMetadata: part.experimental_providerMetadata,
-                    };
-                  } else {
-                    const downloadedImage =
-                      downloadedImages[part.image.toString()];
-                    return {
-                      type: 'image',
-                      image: downloadedImage.data,
-                      mimeType: part.mimeType ?? downloadedImage.mimeType,
-                      providerMetadata: part.experimental_providerMetadata,
-                    };
-                  }
+          .map(
+            (
+              part,
+            ):
+              | LanguageModelV1TextPart
+              | LanguageModelV1ImagePart
+              | LanguageModelV1FilePart => {
+              switch (part.type) {
+                case 'text': {
+                  return {
+                    type: 'text',
+                    text: part.text,
+                    providerMetadata: part.experimental_providerMetadata,
+                  };
                 }
 
-                // try to convert string image parts to urls
-                if (typeof part.image === 'string') {
-                  try {
-                    const url = new URL(part.image);
+                case 'image': {
+                  if (part.image instanceof URL) {
+                    if (downloadedImages == null) {
+                      return {
+                        type: 'image',
+                        image: part.image,
+                        mimeType: part.mimeType,
+                        providerMetadata: part.experimental_providerMetadata,
+                      };
+                    } else {
+                      const downloadedImage =
+                        downloadedImages[part.image.toString()];
+                      return {
+                        type: 'image',
+                        image: downloadedImage.data,
+                        mimeType: part.mimeType ?? downloadedImage.mimeType,
+                        providerMetadata: part.experimental_providerMetadata,
+                      };
+                    }
+                  }
 
-                    switch (url.protocol) {
-                      case 'http:':
-                      case 'https:': {
-                        if (downloadedImages == null) {
-                          return {
-                            type: 'image',
-                            image: url,
-                            mimeType: part.mimeType,
-                            providerMetadata:
-                              part.experimental_providerMetadata,
-                          };
-                        } else {
-                          const downloadedImage = downloadedImages[part.image];
-                          return {
-                            type: 'image',
-                            image: downloadedImage.data,
-                            mimeType: part.mimeType ?? downloadedImage.mimeType,
-                            providerMetadata:
-                              part.experimental_providerMetadata,
-                          };
-                        }
-                      }
-                      case 'data:': {
-                        try {
-                          const [header, base64Content] = part.image.split(',');
-                          const mimeType = header.split(';')[0].split(':')[1];
+                  // try to convert string image parts to urls
+                  if (typeof part.image === 'string') {
+                    try {
+                      const url = new URL(part.image);
 
-                          if (mimeType == null || base64Content == null) {
-                            throw new Error('Invalid data URL format');
+                      switch (url.protocol) {
+                        case 'http:':
+                        case 'https:': {
+                          if (downloadedImages == null) {
+                            return {
+                              type: 'image',
+                              image: url,
+                              mimeType: part.mimeType,
+                              providerMetadata:
+                                part.experimental_providerMetadata,
+                            };
+                          } else {
+                            const downloadedImage =
+                              downloadedImages[part.image];
+                            return {
+                              type: 'image',
+                              image: downloadedImage.data,
+                              mimeType:
+                                part.mimeType ?? downloadedImage.mimeType,
+                              providerMetadata:
+                                part.experimental_providerMetadata,
+                            };
                           }
+                        }
+                        case 'data:': {
+                          try {
+                            const [header, base64Content] =
+                              part.image.split(',');
+                            const mimeType = header.split(';')[0].split(':')[1];
 
-                          return {
-                            type: 'image',
-                            image:
-                              convertDataContentToUint8Array(base64Content),
-                            mimeType,
-                            providerMetadata:
-                              part.experimental_providerMetadata,
-                          };
-                        } catch (error) {
+                            if (mimeType == null || base64Content == null) {
+                              throw new Error('Invalid data URL format');
+                            }
+
+                            return {
+                              type: 'image',
+                              image:
+                                convertDataContentToUint8Array(base64Content),
+                              mimeType,
+                              providerMetadata:
+                                part.experimental_providerMetadata,
+                            };
+                          } catch (error) {
+                            throw new Error(
+                              `Error processing data URL: ${getErrorMessage(
+                                message,
+                              )}`,
+                            );
+                          }
+                        }
+                        default: {
                           throw new Error(
-                            `Error processing data URL: ${getErrorMessage(
-                              message,
-                            )}`,
+                            `Unsupported URL protocol: ${url.protocol}`,
                           );
                         }
                       }
-                      default: {
-                        throw new Error(
-                          `Unsupported URL protocol: ${url.protocol}`,
-                        );
-                      }
+                    } catch (_ignored) {
+                      // not a URL
                     }
-                  } catch (_ignored) {
-                    // not a URL
                   }
+
+                  const imageUint8 = convertDataContentToUint8Array(part.image);
+
+                  return {
+                    type: 'image',
+                    image: imageUint8,
+                    mimeType: part.mimeType ?? detectImageMimeType(imageUint8),
+                    providerMetadata: part.experimental_providerMetadata,
+                  };
                 }
 
-                const imageUint8 = convertDataContentToUint8Array(part.image);
+                case 'file': {
+                  if (part.data instanceof URL) {
+                    return {
+                      type: 'file',
+                      data: part.data,
+                      mimeType: part.mimeType,
+                      providerMetadata: part.experimental_providerMetadata,
+                    };
+                  }
 
-                return {
-                  type: 'image',
-                  image: imageUint8,
-                  mimeType: part.mimeType ?? detectImageMimeType(imageUint8),
-                  providerMetadata: part.experimental_providerMetadata,
-                };
+                  const imageBase64 = convertDataContentToBase64String(
+                    part.data,
+                  );
+
+                  return {
+                    type: 'file',
+                    data: imageBase64,
+                    mimeType: part.mimeType,
+                    providerMetadata: part.experimental_providerMetadata,
+                  };
+                }
               }
-            }
-          })
+            },
+          )
           // remove empty text parts:
           .filter(part => part.type !== 'text' || part.text !== ''),
         providerMetadata: message.experimental_providerMetadata,
