@@ -44,6 +44,7 @@ Flag whether this model supports image URLs. Default is `true`.
 When the flag is set to `false`, the AI SDK will download the image and
 pass the image data to the model.
    */
+  // TODO generalize to file urls in language model v2
   readonly supportsImageUrls?: boolean;
 
   /**
