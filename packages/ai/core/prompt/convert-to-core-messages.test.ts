@@ -45,6 +45,35 @@ describe('user message', () => {
     ]);
   });
 
+  it('should handle user message with attachments (file)', () => {
+    const attachment: Attachment = {
+      contentType: 'application/pdf',
+      url: 'https://example.com/document.pdf',
+    };
+
+    const result = convertToCoreMessages([
+      {
+        role: 'user',
+        content: 'Check this document',
+        experimental_attachments: [attachment],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Check this document' },
+          {
+            type: 'file',
+            data: new URL('https://example.com/document.pdf'),
+            mimeType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should handle user message with attachment URLs', () => {
     const attachment: Attachment = {
       contentType: 'image/jpeg',
@@ -70,6 +99,35 @@ describe('user message', () => {
     ]);
   });
 
+  it('should handle user message with attachment URLs (file)', () => {
+    const attachment: Attachment = {
+      contentType: 'application/pdf',
+      url: 'data:application/pdf;base64,dGVzdA==',
+    };
+
+    const result = convertToCoreMessages([
+      {
+        role: 'user',
+        content: 'Check this document',
+        experimental_attachments: [attachment],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Check this document' },
+          {
+            type: 'file',
+            data: 'dGVzdA==',
+            mimeType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should throw an error for invalid attachment URLs', () => {
     const attachment: Attachment = {
       contentType: 'image/jpeg',
@@ -85,6 +143,24 @@ describe('user message', () => {
         },
       ]);
     }).toThrow('Invalid URL: invalid-url');
+  });
+
+  it('should throw an error for file attachments without contentType', () => {
+    const attachment: Attachment = {
+      url: 'data:application/pdf;base64,dGVzdA==',
+    };
+
+    expect(() => {
+      convertToCoreMessages([
+        {
+          role: 'user',
+          content: 'Check this file',
+          experimental_attachments: [attachment],
+        },
+      ]);
+    }).toThrow(
+      'If the attachment is not an image or text, it must specify a content type',
+    );
   });
 
   it('should throw an error for invalid data URL format', () => {
