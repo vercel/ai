@@ -153,6 +153,7 @@ describe('doGenerate', () => {
         frequencyPenalty: undefined,
         maxOutputTokens: undefined,
         responseMimeType: undefined,
+        responseSchema: undefined,
         temperature: undefined,
         topK: undefined,
         topP: undefined,
@@ -234,6 +235,7 @@ describe('doGenerate', () => {
       generationConfig: {
         maxOutputTokens: 100,
         responseMimeType: undefined,
+        responseSchema: undefined,
         temperature: 0.5,
         topK: 0.1,
         topP: 0.9,
@@ -267,6 +269,7 @@ describe('doGenerate', () => {
         frequencyPenalty: undefined,
         maxOutputTokens: undefined,
         responseMimeType: undefined,
+        responseSchema: undefined,
         stopSequences: undefined,
         temperature: undefined,
         topK: undefined,
@@ -321,46 +324,102 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should set name & description in object-json mode', async () => {
+  it('should pass specification in object-json mode with structuredOutputs = true (default)', async () => {
     const { model, mockVertexAI } = createModel({
-      modelId: 'test-model',
       generateContent: prepareResponse({
-        parts: [{ text: '{"value":"Spark"}' }],
+        text: '{"property1":"value1","property2":"value2"}',
       }),
     });
 
-    const response = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       mode: {
         type: 'object-json',
-        name: 'test-name',
-        description: 'test description',
         schema: {
           type: 'object',
-          properties: { value: { type: 'string' } },
-          required: ['value'],
+          properties: {
+            property1: { type: 'string' },
+            property2: { type: 'number' },
+          },
+          required: ['property1', 'property2'],
           additionalProperties: false,
-          $schema: 'http://json-schema.org/draft-07/schema#',
         },
       },
       prompt: TEST_PROMPT,
     });
 
     expect(mockVertexAI.lastModelParams).toStrictEqual({
-      model: 'test-model',
       generationConfig: {
         frequencyPenalty: undefined,
         maxOutputTokens: undefined,
         responseMimeType: 'application/json',
+        responseSchema: {
+          properties: {
+            property1: { type: 'string' },
+            property2: { type: 'number' },
+          },
+          required: ['property1', 'property2'],
+          type: 'object',
+        },
         stopSequences: undefined,
         temperature: undefined,
         topK: undefined,
         topP: undefined,
       },
+      model: 'gemini-1.0-pro-002',
       safetySettings: undefined,
     });
 
-    expect(response.text).toStrictEqual('{"value":"Spark"}');
+    expect(result.text).toStrictEqual(
+      '{"property1":"value1","property2":"value2"}',
+    );
+  });
+
+  it('should not pass specification in object-json mode with structuredOutputs = false', async () => {
+    const { model, mockVertexAI } = createModel({
+      generateContent: prepareResponse({
+        text: '{"property1":"value1","property2":"value2"}',
+      }),
+      settings: {
+        structuredOutputs: false,
+      },
+    });
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-json',
+        schema: {
+          type: 'object',
+          properties: {
+            property1: { type: 'string' },
+            property2: { type: 'number' },
+          },
+          required: ['property1', 'property2'],
+          additionalProperties: false,
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(mockVertexAI.lastModelParams).toStrictEqual({
+      generationConfig: {
+        frequencyPenalty: undefined,
+        maxOutputTokens: undefined,
+        responseMimeType: 'application/json',
+        responseSchema: undefined,
+        stopSequences: undefined,
+        temperature: undefined,
+        topK: undefined,
+        topP: undefined,
+      },
+      model: 'gemini-1.0-pro-002',
+      safetySettings: undefined,
+    });
+
+    expect(result.text).toStrictEqual(
+      '{"property1":"value1","property2":"value2"}',
+    );
   });
 
   it('should support object-tool mode', async () => {
@@ -403,6 +462,7 @@ describe('doGenerate', () => {
         frequencyPenalty: undefined,
         maxOutputTokens: undefined,
         responseMimeType: undefined,
+        responseSchema: undefined,
         temperature: undefined,
         topK: undefined,
         topP: undefined,
