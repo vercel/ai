@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: vertex('gemini-1.0-pro-vision'),
+    model: vertex('gemini-1.5-flash'),
     messages: [
       {
         role: 'user',

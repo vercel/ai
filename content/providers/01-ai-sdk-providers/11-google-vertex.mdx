@@ -139,7 +139,7 @@ The following optional settings are available for Google Vertex models:
 
   Optional. When enabled, the model will [use Google search to ground the response](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview).
 
-### Example: generating text
+### Example: Generate Text
 
 You can use Google Vertex language models to generate text with the `generateText` function:
 
@@ -156,7 +156,38 @@ const { text } = await generateText({
 Google Vertex language models can also be used in the `streamText` and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
-### Example: using search grounding
+### Example: File input (PDF)
+
+The Google Vertex provider supports file inputs, e.g. PDF files.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertex('gemini-1.5-pro'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'What is an embedding model according to this document?',
+        },
+        {
+          type: 'file',
+          data: fs.readFileSync('./data/ai.pdf'),
+          mimeType: 'application/pdf',
+        },
+      ],
+    },
+  ],
+});
+```
+
+See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
+
+### Example: Search Grounding
 
 With [search grounding](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview),
 the model has access to the latest information using Google search.

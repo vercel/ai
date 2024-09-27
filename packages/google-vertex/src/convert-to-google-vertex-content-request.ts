@@ -54,6 +54,21 @@ export function convertToGoogleVertexContentRequest(
               break;
             }
 
+            case 'file': {
+              if (part.data instanceof URL) {
+                // The AI SDK automatically downloads files for user file parts with URLs
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'File URLs in user messages',
+                });
+              }
+
+              parts.push({
+                inlineData: { mimeType: part.mimeType, data: part.data },
+              });
+
+              break;
+            }
+
             default: {
               const _exhaustiveCheck: never = part;
               throw new UnsupportedFunctionalityError({

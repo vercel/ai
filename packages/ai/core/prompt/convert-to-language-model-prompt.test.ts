@@ -89,6 +89,115 @@ describe('convertToLanguageModelPrompt', () => {
       });
     });
 
+    describe('file parts', () => {
+      it('should handle file parts with URL data', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            type: 'messages',
+            prompt: undefined,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: new URL('https://example.com/document.pdf'),
+                    mimeType: 'application/pdf',
+                  },
+                ],
+              },
+            ],
+          },
+          modelSupportsImageUrls: true,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: new URL('https://example.com/document.pdf'),
+                mimeType: 'application/pdf',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should handle file parts with base64 string data', async () => {
+        const base64Data = 'SGVsbG8sIFdvcmxkIQ=='; // "Hello, World!" in base64
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            type: 'messages',
+            prompt: undefined,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: base64Data,
+                    mimeType: 'text/plain',
+                  },
+                ],
+              },
+            ],
+          },
+          modelSupportsImageUrls: true,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: base64Data,
+                mimeType: 'text/plain',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should handle file parts with Uint8Array data', async () => {
+        const uint8Data = new Uint8Array([72, 101, 108, 108, 111]); // "Hello" in ASCII
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            type: 'messages',
+            prompt: undefined,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: uint8Data,
+                    mimeType: 'text/plain',
+                  },
+                ],
+              },
+            ],
+          },
+          modelSupportsImageUrls: true,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'SGVsbG8=', // base64 encoded "Hello"
+                mimeType: 'text/plain',
+              },
+            ],
+          },
+        ]);
+      });
+    });
+
     describe('provider metadata', async () => {
       it('should add provider metadata to messages', async () => {
         const result = await convertToLanguageModelPrompt({

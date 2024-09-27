@@ -1,4 +1,7 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import {
+  LanguageModelV1Prompt,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { MistralChatPrompt } from './mistral-chat-prompt';
 
@@ -32,6 +35,11 @@ export function convertToMistralChatMessages(
                           part.mimeType ?? 'image/jpeg'
                         };base64,${convertUint8ArrayToBase64(part.image)}`,
                 };
+              }
+              case 'file': {
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'File content parts in user messages',
+                });
               }
             }
           }),
