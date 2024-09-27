@@ -79,7 +79,7 @@ or "tool-result" steps.
   readonly stepType: 'initial' | 'continue' | 'tool-result';
 
   /**
-Indicates if there will be a continuation step with a continuation text.
+True when there will be a continuation step with a continuation text.
    */
   readonly isContinued: boolean;
 };

@@ -680,6 +680,12 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
+              name: 'isContinued',
+              type: 'boolean',
+              description:
+                'True when there will be a continuation step with a continuation text.',
+            },
+            {
               name: 'experimental_providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               isOptional: true,
@@ -1035,6 +1041,12 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Warnings from the model provider (e.g. unsupported settings).',
             },
             {
+              name: 'isContinued',
+              type: 'boolean',
+              description:
+                'True when there will be a continuation step with a continuation text.',
+            },
+            {
               name: 'experimental_providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               isOptional: true,
@@ -1238,6 +1250,12 @@ To see `streamText` in action, check out [these examples](#examples).
                   ],
                 },
               ],
+            },
+            {
+              name: 'isContinued',
+              type: 'boolean',
+              description:
+                'True when there will be a continuation step with a continuation text.',
             },
             {
               name: 'response',
