@@ -124,6 +124,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
     {
       "experimental_providerMetadata": undefined,
       "finishReason": "tool-calls",
+      "isContinued": false,
       "logprobs": undefined,
       "rawResponse": undefined,
       "response": {
@@ -164,6 +165,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
     {
       "experimental_providerMetadata": undefined,
       "finishReason": "stop",
+      "isContinued": false,
       "logprobs": undefined,
       "rawResponse": {
         "headers": {
@@ -204,6 +206,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFi
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
+    "isContinued": false,
     "logprobs": undefined,
     "rawResponse": undefined,
     "response": {
@@ -244,6 +247,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFi
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "rawResponse": {
       "headers": {
@@ -525,6 +529,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
+    "isContinued": false,
     "logprobs": undefined,
     "rawResponse": undefined,
     "response": {
@@ -565,6 +570,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "rawResponse": {
       "headers": {
@@ -627,6 +633,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
     {
       "experimental_providerMetadata": undefined,
       "finishReason": "length",
+      "isContinued": true,
       "logprobs": undefined,
       "rawResponse": undefined,
       "response": {
@@ -649,6 +656,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
     {
       "experimental_providerMetadata": undefined,
       "finishReason": "length",
+      "isContinued": true,
       "logprobs": undefined,
       "rawResponse": undefined,
       "response": {
@@ -670,6 +678,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
     {
       "experimental_providerMetadata": undefined,
       "finishReason": "stop",
+      "isContinued": false,
       "logprobs": undefined,
       "rawResponse": {
         "headers": {
@@ -713,6 +722,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "length",
+    "isContinued": true,
     "logprobs": undefined,
     "rawResponse": undefined,
     "response": {
@@ -735,6 +745,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "length",
+    "isContinued": true,
     "logprobs": undefined,
     "rawResponse": undefined,
     "response": {
@@ -756,6 +767,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "rawResponse": {
       "headers": {
@@ -985,6 +997,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > value promise
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "length",
+    "isContinued": true,
     "logprobs": undefined,
     "rawResponse": undefined,
     "response": {
@@ -1007,6 +1020,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > value promise
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "length",
+    "isContinued": true,
     "logprobs": undefined,
     "rawResponse": undefined,
     "response": {
@@ -1028,6 +1042,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > value promise
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "rawResponse": {
       "headers": {
@@ -1114,6 +1129,7 @@ exports[`options.onFinish > options.onFinish should send correct information 1`]
         },
       },
       "finishReason": "stop",
+      "isContinued": false,
       "logprobs": undefined,
       "rawResponse": {
         "headers": {
