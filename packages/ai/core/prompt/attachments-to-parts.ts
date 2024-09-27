@@ -32,7 +32,7 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
         } else {
           if (!attachment.contentType) {
             throw new Error(
-              'If the attachment is not an image or text, it must specify a content type',
+              'If the attachment is not an image, it must specify a content type',
             );
           }
 
