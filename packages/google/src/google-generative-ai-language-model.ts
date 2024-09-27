@@ -15,6 +15,7 @@ import {
 import { z } from 'zod';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
+import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
@@ -22,7 +23,6 @@ import {
   GoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
-import { getModelPath } from './get-model-path';
 
 type GoogleGenerativeAIConfig = {
   provider: string;
