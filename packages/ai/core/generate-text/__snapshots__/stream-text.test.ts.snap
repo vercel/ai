@@ -9,7 +9,7 @@ exports[`multiple stream consumption > should support text stream, ai stream, fu
 ",
     "0:"world!"
 ",
-    "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+    "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
     "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
 ",
@@ -30,6 +30,7 @@ exports[`multiple stream consumption > should support text stream, ai stream, fu
     {
       "experimental_providerMetadata": undefined,
       "finishReason": "stop",
+      "isContinued": false,
       "logprobs": undefined,
       "response": {
         "id": "id-0",
@@ -290,6 +291,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should contain assis
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "id": "id-0",
@@ -314,6 +316,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should contain assis
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "id": "id-1",
@@ -779,6 +782,35 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
 ]
 `;
 
+exports[`options.maxSteps > 3 steps: initial, continue, continue > should generate correct data stream 1`] = `
+[
+  "0:"part "
+",
+  "0:"1 \\n"
+",
+  "0:" "
+",
+  "e:{"finishReason":"length","usage":{"promptTokens":10,"completionTokens":20},"isContinued":true}
+",
+  "0:"no-whitespace"
+",
+  "e:{"finishReason":"length","usage":{"promptTokens":30,"completionTokens":5},"isContinued":true}
+",
+  "0:"final "
+",
+  "0:"value keep all "
+",
+  "0:"whitespace\\n "
+",
+  "0:"end"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":2},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":43,"completionTokens":27}}
+",
+]
+`;
+
 exports[`options.maxSteps > 3 steps: initial, continue, continue > should record telemetry data for each step 1`] = `
 [
   {
@@ -1172,6 +1204,7 @@ exports[`result.fullStream > should filter out empty text deltas 1`] = `
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "id": "id-0",
@@ -1217,6 +1250,7 @@ exports[`result.fullStream > should not send tool call deltas when toolCallStrea
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "id": "id-0",
@@ -1271,6 +1305,7 @@ exports[`result.fullStream > should send delayed asynchronous tool results 1`] =
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "id": "id-0",
@@ -1320,6 +1355,7 @@ exports[`result.fullStream > should send text deltas 1`] = `
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "id": "response-id",
@@ -1412,6 +1448,7 @@ exports[`result.fullStream > should send tool call deltas when toolCallStreaming
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "id": "id-0",
@@ -1457,6 +1494,7 @@ exports[`result.fullStream > should send tool calls 1`] = `
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "id": "id-0",
@@ -1511,6 +1549,7 @@ exports[`result.fullStream > should send tool results 1`] = `
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "id": "id-0",
@@ -1560,6 +1599,7 @@ exports[`result.fullStream > should use fallback response metadata when response
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "id": "id-2000",
@@ -1589,6 +1629,86 @@ exports[`result.fullStream > should use fallback response metadata when response
       "totalTokens": 13,
     },
   },
+]
+`;
+
+exports[`result.pipeDataStreamToResponse > should create a Response with a data stream and custom headers 1`] = `
+[
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.pipeDataStreamToResponse > should mask error messages by default 1`] = `
+[
+  "3:""
+",
+  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+",
+]
+`;
+
+exports[`result.pipeDataStreamToResponse > should support custom error messages 1`] = `
+[
+  "3:"custom error message: error"
+",
+  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+",
+]
+`;
+
+exports[`result.pipeDataStreamToResponse > should support merging with existing stream data 1`] = `
+[
+  "2:["stream-data-value"]
+",
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.pipeDataStreamToResponse > should suppress usage information when sendUsage is false 1`] = `
+[
+  "0:"Hello, World!"
+",
+  "e:{"finishReason":"stop","isContinued":false}
+",
+  "d:{"finishReason":"stop"}
+",
+]
+`;
+
+exports[`result.pipeDataStreamToResponse > should write data stream parts to a Node.js response-like object 1`] = `
+[
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
 ]
 `;
 
@@ -1647,7 +1767,7 @@ exports[`result.toAIStream > should transform textStream through callbacks and d
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
   "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
 ",
@@ -1662,9 +1782,20 @@ exports[`result.toDataStream > should create a data stream 1`] = `
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
   "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toDataStream > should mask error messages by default 1`] = `
+[
+  "3:""
+",
+  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
 ",
 ]
 `;
@@ -1675,7 +1806,7 @@ exports[`result.toDataStream > should send tool call and tool result stream part
 ",
   "a:{"toolCallId":"call-1","result":"value-result"}
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
   "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
 ",
@@ -1694,9 +1825,20 @@ exports[`result.toDataStream > should send tool call, tool call stream start, to
 ",
   "a:{"toolCallId":"call-1","result":"value-result"}
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
   "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toDataStream > should support custom error messages 1`] = `
+[
+  "3:"custom error message: error"
+",
+  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
 ",
 ]
 `;
@@ -1711,9 +1853,100 @@ exports[`result.toDataStream > should support merging with existing stream data 
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
   "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toDataStream > should suppress usage information when sendUsage is false 1`] = `
+[
+  "0:"Hello, World!"
+",
+  "e:{"finishReason":"stop","isContinued":false}
+",
+  "d:{"finishReason":"stop"}
+",
+]
+`;
+
+exports[`result.toDataStreamResponse > should create a Response with a data stream 1`] = `
+[
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toDataStreamResponse > should create a Response with a data stream and custom headers 1`] = `
+[
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toDataStreamResponse > should mask error messages by default 1`] = `
+[
+  "3:""
+",
+  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+",
+]
+`;
+
+exports[`result.toDataStreamResponse > should support custom error messages 1`] = `
+[
+  "3:"custom error message: error"
+",
+  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+",
+]
+`;
+
+exports[`result.toDataStreamResponse > should support merging with existing stream data 1`] = `
+[
+  "2:["stream-data-value"]
+",
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`result.toDataStreamResponse > should suppress usage information when sendUsage is false 1`] = `
+[
+  "0:"Hello, World!"
+",
+  "e:{"finishReason":"stop","isContinued":false}
+",
+  "d:{"finishReason":"stop"}
 ",
 ]
 `;
@@ -1995,6 +2228,7 @@ exports[`tools with custom schema > should send tool calls 1`] = `
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "id": "id-0",

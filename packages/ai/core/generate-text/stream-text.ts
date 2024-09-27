@@ -847,6 +847,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 experimental_providerMetadata: stepProviderMetadata,
                 logprobs: stepLogProbs,
                 response: stepResponse,
+                isContinued: nextStepType === 'continue',
               });
 
               const stepResult: StepResult<TOOLS> = {
@@ -1212,6 +1213,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                       completionTokens: chunk.usage.completionTokens,
                     }
                   : undefined,
+                isContinued: chunk.isContinued,
               }),
             );
             break;
