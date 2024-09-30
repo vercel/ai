@@ -146,6 +146,7 @@ export function convertToLanguageModelMessage(
                               part.experimental_providerMetadata,
                           };
                         } else {
+                          const downloadedImage = downloadedImages[part.image];
                           return {
                             type: 'image',
                             image: downloadedImage.data,
