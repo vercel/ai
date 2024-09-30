@@ -23,6 +23,7 @@ describe('stream data stream', () => {
           <div data-testid={`message-${idx}`} key={idx}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
             {m.content}
+            {m.createdAt && ` (Created at: ${m.createdAt})`}
           </div>
         ))}
 
@@ -75,6 +76,91 @@ describe('stream data stream', () => {
     expect(screen.getByTestId('message-1')).toHaveTextContent(
       'AI: Hello, world.',
     );
+
+    // check that correct information was sent to the server:
+    expect(await requestBody).toStrictEqual(
+      JSON.stringify({
+        threadId: null,
+        message: 'hi',
+      }),
+    );
+  });
+
+  it('should show streamed response with createdAt', async () => {
+    const { requestBody } = mockFetchDataStream({
+      url: 'https://example.com/api/assistant',
+      chunks: [
+        formatStreamPart('assistant_control_data', {
+          threadId: 't0',
+          messageId: 'm0',
+        }),
+        formatStreamPart('assistant_message', {
+          id: 'm0',
+          role: 'assistant',
+          createdAt: new Date(1727703377 * 1000),
+          content: [{ type: 'text', text: { value: '' } }],
+        }),
+        // text parts:
+        '0:"Hello"\n',
+        '0:","\n',
+        '0:" world"\n',
+        '0:"."\n',
+      ],
+    });
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await screen.findByTestId('message-1');
+    const messageContent = screen.getByTestId('message-1').textContent;
+    console.log(messageContent);
+
+    expect(messageContent).toContain('AI: Hello, world.');
+    expect(messageContent).toContain(`Created at: ${new Date(1727703377 * 1000).toISOString()}`);
+
+    // check that correct information was sent to the server:
+    expect(await requestBody).toStrictEqual(
+      JSON.stringify({
+        threadId: null,
+        message: 'hi',
+      }),
+    );
+  });
+
+  it('should show streamed response without createdAt', async () => {
+    const { requestBody } = mockFetchDataStream({
+      url: 'https://example.com/api/assistant',
+      chunks: [
+        formatStreamPart('assistant_control_data', {
+          threadId: 't0',
+          messageId: 'm0',
+        }),
+        formatStreamPart('assistant_message', {
+          id: 'm0',
+          role: 'assistant',
+          content: [{ type: 'text', text: { value: '' } }],
+        }),
+        // text parts:
+        '0:"Hello"\n',
+        '0:","\n',
+        '0:" world"\n',
+        '0:"."\n',
+      ],
+    });
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await screen.findByTestId('message-1');
+    const messageContent = screen.getByTestId('message-1').textContent;
+    console.log(messageContent);
+
+    expect(messageContent).toContain('AI: Hello, world.');
+    expect(messageContent).not.toContain('Created at:');
 
     // check that correct information was sent to the server:
     expect(await requestBody).toStrictEqual(

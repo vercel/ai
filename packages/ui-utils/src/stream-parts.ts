@@ -121,7 +121,7 @@ const assistantMessageStreamPart: StreamPart<
 
     return {
       type: 'assistant_message',
-      value: value as AssistantMessage,
+      value: value as unknown as AssistantMessage,
     };
   },
 };

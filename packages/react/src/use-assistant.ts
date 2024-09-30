@@ -186,6 +186,7 @@ export function useAssistant({
               {
                 id: value.id,
                 role: value.role,
+                createdAt: value.createdAt,
                 content: value.content[0].text.value,
               },
             ]);
@@ -201,6 +202,7 @@ export function useAssistant({
                 {
                   id: lastMessage.id,
                   role: lastMessage.role,
+                  createdAt: lastMessage.createdAt,
                   content: lastMessage.content + value,
                 },
               ];
