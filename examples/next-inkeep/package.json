@@ -13,7 +13,7 @@
     "@inkeep/ai-api": "^0.1.8",
     "ai": "latest",
     "next": "latest",
-    "react": "^18",
+    "react": "^19.0.0-rc-2d16326d-20240930",
     "react-dom": "^18"
   },
   "devDependencies": {
