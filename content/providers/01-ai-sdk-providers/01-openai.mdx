@@ -326,6 +326,33 @@ console.log('Usage:', {
 });
 ```
 
+#### Prompt Caching
+OpenAI has introduced [Prompt Caching](https://platform.openai.com/docs/guides/prompt-caching) for supported models
+including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
+
+- Prompt caching is automatically enabled for these models, when the prompt is 1024 tokens or longer. It does
+not need to be explicitly enabled.
+- You can use response `experimental_providerMetadata` to access the number of prompt tokens that were a cache hit.
+- Note that caching behavior is dependent on load on OpenAI's infrastructure. Prompt prefixes generally remain in the
+cache following 5-10 minutes of inactivity before they are evicted, but during off-peak periods they may persist for up
+to an hour.
+
+```ts highlight="11"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const {text, usage, experimental_providerMetadata} = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: `A 1024-token or longer prompt...`,
+})
+
+console.log(`usage:`, {
+  ...usage,
+  cachedPromptTokens: experimental_providerMetadata?.openai?.cachedPromptTokens
+})
+```
+
+
 ### Completion Models
 
 You can create models that call the [OpenAI completions API](https://platform.openai.com/docs/api-reference/completions) using the `.completion()` factory method.
