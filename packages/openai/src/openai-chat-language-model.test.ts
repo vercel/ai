@@ -176,6 +176,9 @@ describe('doGenerate', () => {
       completion_tokens_details?: {
         reasoning_tokens?: number;
       };
+      prompt_tokens_details?: {
+        cached_tokens?: number;
+      };
     };
     logprobs?: {
       content:
@@ -837,6 +840,36 @@ describe('doGenerate', () => {
         toolName: 'test-tool',
       },
     ]);
+  });
+
+  it('should return cached_tokens in prompt_details_tokens', async () => {
+    // Difficult to test due to non-deterministic behavior of caching and eviction
+    // relates to when OpenAI has load
+
+    prepareJsonResponse({
+      usage: {
+        prompt_tokens: 15,
+        completion_tokens: 20,
+        total_tokens: 35,
+        prompt_tokens_details: {
+          cached_tokens: 1152,
+        },
+      },
+    });
+
+    const model = provider.chat('gpt-4o-mini');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      openai: {
+        cachedPromptTokens: 1152,
+      },
+    });
   });
 
   describe('reasoning models', () => {

@@ -106,7 +106,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           response.usage?.completion_tokens_details?.reasoning_tokens;
       }
       if (response.usage?.prompt_tokens_details?.cached_tokens) {
-        providerMetadata.openai.cachedTokens =
+        providerMetadata.openai.cachedPromptTokens =
           response.usage?.prompt_tokens_details?.cached_tokens;
       }
     }
