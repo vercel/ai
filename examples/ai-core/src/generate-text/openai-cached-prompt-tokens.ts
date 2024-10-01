@@ -154,6 +154,11 @@ async function main() {
   const { text, usage, experimental_providerMetadata } = await runCompletion();
   let end = performance.now();
 
+  console.log(
+    `PLEASE NOTE caching behavior is transparent and difficult to test. 
+    If you don't get a cache hit the first time, try several additional times.`,
+  );
+
   console.log(`First pass text:`, text);
   console.log(`First pass usage:`, usage);
   console.log(`First pass provider metadata:`, experimental_providerMetadata);
@@ -161,7 +166,7 @@ async function main() {
 
   console.log();
 
-  await setTimeout(1000); // wait for it to be cached?
+  await setTimeout(1000); // wait for it to be cached?g
 
   start = performance.now();
   const {
