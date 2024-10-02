@@ -270,7 +270,7 @@ export function useChat(
       lastMessage != null &&
       // check if the feature is enabled:
       maxSteps &&
-      maxSteps > 0 &&
+      maxSteps > 1 &&
       // check that next step is possible:
       isAssistantMessageWithCompletedToolCalls(lastMessage) &&
       // limit the number of automatic steps:
