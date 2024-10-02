@@ -121,11 +121,11 @@ Let's take a look at what is happening in this code:
 2. Initialize an array called `messages` to store the history of your conversation. This history allows the model to maintain context in ongoing dialogues.
 3. In the `main` function:
 
-  - Prompt for and capture user input, storing it in `userInput`.
-  - Add user input to the `messages` array as a user message.
-  - Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider and `messages`.
-  - Iterate over the text stream returned by the `streamText` function (`result.textStream`) and print the contents of the stream to the terminal.
-  - Add the assistant's response to the `messages` array.
+- Prompt for and capture user input, storing it in `userInput`.
+- Add user input to the `messages` array as a user message.
+- Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider and `messages`.
+- Iterate over the text stream returned by the `streamText` function (`result.textStream`) and print the contents of the stream to the terminal.
+- Add the assistant's response to the `messages` array.
 
 ## Running Your Application
 
@@ -221,8 +221,8 @@ In this updated code:
 
 1. You've added two tools: `convertCelsiusToFahrenheit` and `weather`.
 
-  - The `convertCelsiusToFahrenheit` tool converts temperatures from Celsius to Fahrenheit.
-  - The `weather` tool simulates getting weather information (in Celsius) for a specific location.
+- The `convertCelsiusToFahrenheit` tool converts temperatures from Celsius to Fahrenheit.
+- The `weather` tool simulates getting weather information (in Celsius) for a specific location.
 
 2. You've enabled multi-step interactions by setting `maxSteps: 5`. This allows the model to make up to 5 tool calls in a single interaction.
 
