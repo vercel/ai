@@ -429,6 +429,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     const { useLegacyFunctionCalling } = this.settings;
 
+    let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -466,6 +467,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 promptTokens: value.usage.prompt_tokens ?? undefined,
                 completionTokens: value.usage.completion_tokens ?? undefined,
               };
+              if (value.usage.prompt_tokens_details?.cached_tokens != null) {
+                providerMetadata = {
+                  openai: {
+                    cachedPromptTokens: value.usage.prompt_tokens_details?.cached_tokens
+                  }
+                }
+              }
             }
 
             const choice = value.choices[0];
@@ -620,6 +628,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 promptTokens: usage.promptTokens ?? NaN,
                 completionTokens: usage.completionTokens ?? NaN,
               },
+              ...(providerMetadata != null ? {providerMetadata} : {})
             });
           },
         }),
