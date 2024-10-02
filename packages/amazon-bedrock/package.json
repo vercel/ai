@@ -32,7 +32,7 @@
   "dependencies": {
     "@ai-sdk/provider": "0.0.24",
     "@ai-sdk/provider-utils": "1.0.20",
-    "@aws-sdk/client-bedrock-runtime": "3.602.0"
+    "@aws-sdk/client-bedrock-runtime": "^3.602.0"
   },
   "devDependencies": {
     "@smithy/types": "^3.1.0",
