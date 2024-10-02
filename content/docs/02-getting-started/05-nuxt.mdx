@@ -242,6 +242,47 @@ Now your chatbot can "fetch" weather information for any location the user asks 
 
 Try asking something like "What's the weather in New York?" and see how the model uses the new tool.
 
+Notice the blank response in the UI? This is because instead of generating a text response, the model generated a tool call. You can access the tool call and subsequent tool result in the `toolInvocations` key of the message object.
+
+### Update the UI
+
+To display the tool invocations in your UI, update your `pages/index.vue` file:
+
+```typescript filename="pages/index.vue" highlight="11-15"
+<script setup lang="ts">
+import { useChat } from '@ai-sdk/vue';
+
+const { messages, input, handleSubmit } = useChat();
+</script>
+
+<template>
+  <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+    <div v-for="m in messages" :key="m.id" class="whitespace-pre-wrap">
+      {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
+      <template v-if="m.toolInvocations">
+        <pre>{{ JSON.stringify(m.toolInvocations, null, 2) }}</pre>
+      </template>
+      <template v-else>
+        <p>{{ m.content }}</p>
+      </template>
+    </div>
+
+    <form @submit="handleSubmit">
+      <input
+        class="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+        v-model="input"
+        placeholder="Say something..."
+      />
+    </form>
+  </div>
+</template>
+```
+
+With this change, you check each message for any tool calls (`toolInvocations`). These tool calls will be displayed as stringified JSON. Otherwise, you show the message content as before.
+
+Now, when you ask about the weather, you'll see the tool invocation and its result displayed in your chat interface.
+
+
 ## Enabling Multi-Step Tool Calls
 
 You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
