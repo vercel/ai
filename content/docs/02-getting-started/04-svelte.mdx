@@ -105,6 +105,11 @@ export const POST = (async ({ request }) => {
 }) satisfies RequestHandler;
 ```
 
+<Note>
+  You may see an error with the `./$types` import. This will be resolved as soon
+  as you run the dev server.
+</Note>
+
 Let's take a look at what is happening in this code:
 
 1. Create an OpenAI provider instance with the `createOpenAI` function from the `@ai-sdk/openai` package.
@@ -144,7 +149,6 @@ This page utilizes the `useChat` hook, which will, by default, use the `POST` ro
 - `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
 - `input` - the current value of the user's input field.
 - `handleSubmit` - function to handle form submission.
-- `isLoading` - boolean that indicates whether the API request is in progress.
 
 ## Running Your Application
 
@@ -220,13 +224,50 @@ Now your chatbot can "fetch" weather information for any location the user asks 
 
 Try asking something like "What's the weather in New York?" and see how the model uses the new tool.
 
+Notice the blank response in the UI? This is because instead of generating a text response, the model generated a tool call. You can access the tool call and subsequent tool result in the `toolInvocations` key of the message object.
+
+### Update the UI
+
+To display the tool invocations in your UI, update your `src/routes/+page.svelte` file:
+
+```svelte filename="src/routes/+page.svelte"
+<script>
+  import { useChat } from '@ai-sdk/svelte';
+
+  const { input, handleSubmit, messages } = useChat();
+</script>
+
+<main>
+  <ul>
+    {#each $messages as message}
+      <li>
+        {message.role}:
+        {#if message.toolInvocations}
+          <pre>{JSON.stringify(message.toolInvocations, null, 2)}</pre>
+        {:else}
+          {message.content}
+        {/if}
+      </li>
+    {/each}
+  </ul>
+  <form on:submit={handleSubmit}>
+    <input bind:value={$input} />
+    <button type="submit">Send</button>
+  </form>
+</main>
+```
+
+With this change, you check each message for any tool calls (`toolInvocations`). These tool calls will be displayed as stringified JSON. Otherwise, you show the message content as before.
+
+Now, when you ask about the weather, you'll see the tool invocation and its result displayed in your chat interface.
+
 ## Enabling Multi-Step Tool Calls
 
 You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
 To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `useChat` hook. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
 
-### Update Your Client-Side Code
+### Update Your UI
 
 Modify your `src/routes/+page.svelte` file to include the `maxSteps` option:
 
@@ -264,7 +305,7 @@ export const POST = (async ({ request }) => {
   const { messages } = await request.json();
 
   const result = await streamText({
-    model: openai('gpt-4-turbo-preview'),
+    model: openai('gpt-4-turbo'),
     messages: convertToCoreMessages(messages),
     tools: {
       weather: tool({
