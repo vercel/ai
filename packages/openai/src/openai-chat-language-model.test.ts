@@ -843,8 +843,7 @@ describe('doGenerate', () => {
   });
 
   it('should return cached_tokens in prompt_details_tokens', async () => {
-    // Difficult to test due to non-deterministic behavior of caching and eviction
-    // relates to when OpenAI has load
+
 
     prepareJsonResponse({
       usage: {
