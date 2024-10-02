@@ -843,8 +843,6 @@ describe('doGenerate', () => {
   });
 
   it('should return cached_tokens in prompt_details_tokens', async () => {
-
-
     prepareJsonResponse({
       usage: {
         prompt_tokens: 15,
@@ -1104,6 +1102,9 @@ describe('doStream', () => {
       prompt_tokens: number;
       total_tokens: number;
       completion_tokens: number;
+      prompt_tokens_details?: {
+        cached_tokens?: number;
+      };
     };
     logprobs?: {
       content:
@@ -1711,5 +1712,50 @@ describe('doStream', () => {
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
     });
+  });
+
+  it('Should handle cached tokens in experimental_providerMetadata', async () => {
+    prepareStreamResponse({
+      content: [],
+      usage: {
+        prompt_tokens: 15,
+        completion_tokens: 20,
+        total_tokens: 35,
+        prompt_tokens_details: {
+          cached_tokens: 1152,
+        },
+      },
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      stream: true,
+      stream_options: { include_usage: true },
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+
+    const chunksArr = await convertReadableStreamToArray(stream)
+    expect(chunksArr[chunksArr.length - 1]).toHaveProperty('providerMetadata')
+    expect(chunksArr[chunksArr.length - 1].type).toEqual('finish')
+    expect(chunksArr[chunksArr.length - 1]).toStrictEqual({
+      type: 'finish',
+      finishReason: 'stop',
+      logprobs: undefined,
+      usage: {
+        promptTokens: 15,
+        completionTokens: 20
+      },
+      providerMetadata: {
+        openai: {cachedPromptTokens: 1152}
+      },
+    })
+
+
   });
 });
