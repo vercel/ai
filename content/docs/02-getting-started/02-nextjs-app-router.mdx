@@ -277,9 +277,9 @@ Now, when you ask about the weather, you'll see the tool invocation and its resu
 
 ## Enabling Multi-Step Tool Calls
 
-You may have noticed that while we can now see the tool results in our chat interface, the AI isn't necessarily using this information to answer our original query. This is because once the model generates a tool call, it has techincally completed its generation.
+You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has techincally completed its generation.
 
-To solve this, we can enable multi-step tool calls using the `maxSteps` option in our `useChat` hook. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, we want the AI to answer the user's question using the results from the weather tool.
+To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `useChat` hook. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer the your question using the results from the weather tool.
 
 ### Update Your Client-Side Code
 
@@ -301,7 +301,7 @@ export default function Chat() {
 
 Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 
-By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the AI to gather and process information over several steps if needed. We can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
+By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the AI to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
 
 ### Update Your Route Handler
 
@@ -370,6 +370,6 @@ This simple example demonstrates how tools can expand your model's capabilities.
 
 You've built an AI chatbot using the AI SDK! From here, you have several paths to explore:
 
-- If you're interested in building an AI-powered knowledge base, check out our [RAG (Retrieval-Augmented Generation) guide](/docs/guides/rag).
-- For quick starts on various AI applications, explore our [templates](https://vercel.com/templates?type=ai) to jumpstart your next project.
-- To learn more about the AI SDK, check out our [documentation](/docs).
+- If you're interested in building an AI-powered knowledge base, check out the [RAG (Retrieval-Augmented Generation) guide](/docs/guides/rag).
+- For quick starts on various AI applications, explore [templates](https://vercel.com/templates?type=ai) to jumpstart your next project.
+- To learn more about the AI SDK, check out the [documentation](/docs).
