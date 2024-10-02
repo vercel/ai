@@ -1,6 +1,6 @@
 ---
 title: Node.js
-description: Welcome to the AI SDK documentation!
+description: Welcome to the AI SDK quickstart guide for Node.js!
 ---
 
 # Node.js Quickstart
@@ -18,17 +18,9 @@ To follow this quickstart, you'll need:
 
 If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
 
-<Note>
-  The AI SDK is designed to be a unified interface to interact with any large
-  language model. This means that you can change model and providers with just
-  one line of code! Learn more about [available providers](/providers) and
-  [building custom providers](/providers/community-providers/custom-providers)
-  in the [providers](/providers) section.
-</Note>
-
 ## Setup Your Application
 
-Start by creating a new directory using the `mkdir` command. Change into your new directory and then run the `pnpm init` command. This will create a a `package.json` in your new directory.
+Start by creating a new directory using the `mkdir` command. Change into your new directory and then run the `pnpm init` command. This will create a `package.json` in your new directory.
 
 ```bash
 mkdir my-ai-app
@@ -36,9 +28,17 @@ cd my-ai-app
 pnpm init
 ```
 
-### Install dependencies
+### Install Dependencies
 
-In your new directory, install the following dependencies:
+Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider, along with other necessary dependencies.
+
+<Note>
+  The AI SDK is designed to be a unified interface to interact with any large
+  language model. This means that you can change model and providers with just
+  one line of code! Learn more about [available providers](/providers) and
+  [building custom providers](/providers/community-providers/custom-providers)
+  in the [providers](/providers) section.
+</Note>
 
 ```bash
 pnpm add ai @ai-sdk/openai zod dotenv
@@ -57,6 +57,8 @@ Create a `.env` file in your project root and add your OpenAI API Key. This key 
 
 <Snippet text="touch .env" />
 
+Edit the `.env` file:
+
 ```env filename=".env"
 OPENAI_API_KEY=xxxxxxxxx
 ```
@@ -68,16 +70,12 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
   environment variable.
 </Note>
 
-## Build Your Application
+## Create Your Application
 
-Now that your project is configured, it’s time to start building.
+Create an `index.ts` file in the root of your project and add the following code:
 
-In this quickstart guide, you will explore the fundamental concepts behind the AI SDK by building a Node.js chatbot that will run in your terminal.
-
-First, create an `index.ts` file in the root of your project and add the following code:
-
-```ts filename="src/index.ts"
-import { openai } from '@ai-sdk/openai';
+```ts filename="index.ts"
+import { createOpenAI } from '@ai-sdk/openai';
 import { CoreMessage, streamText } from 'ai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
@@ -99,7 +97,6 @@ async function main() {
 
     const result = await streamText({
       model: openai('gpt-4-turbo'),
-      system: `You are a helpful, respectful and honest assistant.`,
       messages,
     });
 
@@ -118,32 +115,144 @@ async function main() {
 main().catch(console.error);
 ```
 
-**Let's take a closer look at the code**:
+Let's take a look at what is happening in this code:
 
-1. **Import Libraries and Configure Environment:**
-   - Import necessary libraries for handling the OpenAI SDK, messaging, and environment variables.
-   - You call `dotenv.config();` to load environment variables, ensuring secure access to your OpenAI API key.
-2. **Setup Command Line Interface:**
-   - Set up a readline interface for taking input from the terminal, enabling interactive sessions directly from the command line.
-3. **Initialize Your Message Storage:**
-   - Define an array called `messages` to store the history of your conversation. This history is crucial for the AI to maintain context in ongoing dialogues.
-4. **Define the Main Function:**
-   - In your `main` function, which is asynchronous, manage the chat process:
-     - Prompt for and capture user input, storing it in `userInput`.
-     - Add user input to the `messages` array as a user message.
-     - Call the `streamText` function with the model, system instructions, and the accumulated messages to generate an AI response.
-     - Iterate over the text stream returned by the `streamText` function (`result.textStream`) and print the contents of the stream to the terminal
-5. **Handle Errors and Execute:**
-   - Invoke the `main` function with error handling to catch and log any issues, allowing your program to either recover or exit gracefully when errors occur.
+1. Set up a readline interface for taking input from the terminal, enabling interactive sessions directly from the command line.
+2. Initialize an array called `messages` to store the history of your conversation. This history allows the model to maintain context in ongoing dialogues.
+3. In the `main` function:
+   - Prompt for and capture user input, storing it in `userInput`.
+   - Add user input to the `messages` array as a user message.
+   - Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider and `messages`.
+   - Iterate over the text stream returned by the `streamText` function (`result.textStream`) and print the contents of the stream to the terminal.
+   - Add the assistant's response to the `messages` array.
 
-Head back to the terminal and run the following command:
+   ## Running Your Application
 
-<Snippet text="pnpm tsx src/index.ts" />
+   With that, you have built everything you need for your chatbot! To start your application, use the command:
 
-Type in a message and hit enter. You should see the model's response stream in as it’s being generated, just like a typewriter.
+   <Snippet text="pnpm tsx index.ts" />
 
-## Where to Next?
+   You should see a prompt in your terminal. Test it out by entering a message and see the AI chatbot respond in real-time! The AI SDK makes it fast and easy to build AI chat interfaces with Node.js.
 
-You've built an AI chatbot using the AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-core/tools-and-tool-calling) or [generating structured data](/docs/ai-sdk-core/generating-structured-data).
+   ## Enhance Your Chatbot with Tools and Multi-Step Interactions
 
-If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.
+   While large language models (LLMs) have incredible generation capabilities, they struggle with discrete tasks (e.g., mathematics) and interacting with the outside world (e.g., getting the weather). This is where [tools](/docs/ai-sdk-core/tools-and-tool-calling) come in.
+
+   Tools are actions that an LLM can invoke. The results of these actions can be reported back to the LLM to be considered in the next response. Let's enhance your chatbot by adding tools and enabling multi-step interactions.
+
+   ### Update Your Application
+
+   Modify your `index.ts` file to include new tools and enable multi-step interactions:
+
+   ```ts filename="index.ts"
+   import { createOpenAI } from '@ai-sdk/openai';
+   import { CoreMessage, streamText, tool } from 'ai';
+   import dotenv from 'dotenv';
+   import { z } from 'zod';
+   import * as readline from 'node:readline/promises';
+
+   dotenv.config();
+
+   const openai = createOpenAI({
+     apiKey: process.env.OPENAI_API_KEY,
+   });
+
+   const terminal = readline.createInterface({
+     input: process.stdin,
+     output: process.stdout,
+   });
+
+   const messages: CoreMessage[] = [];
+
+   async function main() {
+     while (true) {
+       const userInput = await terminal.question('You: ');
+
+       messages.push({ role: 'user', content: userInput });
+
+       const result = await streamText({
+         model: openai('gpt-4-turbo'),
+         messages,
+         tools: {
+           convertCelsiusToFahrenheit: tool({
+             description: 'Convert a temperature from Celsius to Fahrenheit',
+             parameters: z.object({
+               celsius: z.number().describe('The temperature in Celsius to convert'),
+             }),
+             execute: async ({ celsius }) => {
+               const fahrenheit = (celsius * 9) / 5 + 32;
+               return { fahrenheit: Math.round(fahrenheit * 100) / 100 };
+             },
+           }),
+           weather: tool({
+             description: 'Get the weather in a location (in Celsius)',
+             parameters: z.object({
+               location: z.string().describe('The location to get the weather for'),
+             }),
+             execute: async ({ location }) => ({
+               location,
+               temperature: Math.round((Math.random() * 30 + 5) * 10) / 10, // Random temp between 5°C and 35°C
+             }),
+           }),
+         },
+         maxSteps: 5,
+         onStepFinish: step => {
+           console.log(JSON.stringify(step, null, 2));
+         },
+       });
+
+       let fullResponse = '';
+       process.stdout.write('\nAssistant: ');
+       for await (const delta of result.textStream) {
+         fullResponse += delta;
+         process.stdout.write(delta);
+       }
+       process.stdout.write('\n\n');
+
+       messages.push({ role: 'assistant', content: fullResponse });
+     }
+   }
+
+   main().catch(console.error);
+   ```
+
+   In this updated code:
+
+   1. You've added two tools: `convertCelsiusToFahrenheit` and `weather`.
+      - The `convertCelsiusToFahrenheit` tool converts temperatures from Celsius to Fahrenheit.
+      - The `weather` tool simulates getting weather information (in Celsius) for a specific location.
+
+   2. You've enabled multi-step interactions by setting `maxSteps: 5`. This allows the model to make up to 5 tool calls in a single interaction.
+
+   3. You've added an `onStepFinish` callback to log each step of the interaction. This helps you understand the model's thought process and tool usage.
+
+   ### Understanding Multi-Step Interactions
+
+   With these changes, your chatbot can now handle more complex queries that require multiple steps. For example, if a user asks "What's the weather in New York in Fahrenheit?", the model might:
+
+   1. Call the `weather` tool to get the temperature in New York (in Celsius).
+   2. Use the result from step 1 to call the `convertCelsiusToFahrenheit` tool.
+   3. Synthesize the information from both tool calls to provide a final response.
+
+   Each of these steps will be logged to the console, allowing you to see the model's reasoning process.
+
+   ### Try It Out
+
+   Run your application again:
+
+   <Snippet text="pnpm tsx index.ts" />
+
+   Now, try asking questions like:
+   - "What's the weather in London in Fahrenheit?"
+   - "Is it warmer in Paris or New York right now?"
+
+   You should see the model making multiple tool calls and using the results to construct its final response.
+
+   ## Where to Next?
+
+   You've built an AI chatbot with multi-step reasoning capabilities using the AI SDK! This demonstrates how tools can expand your model's capabilities, allowing it to access and process real-world data in real-time.
+
+   From here, you can:
+   - Dive deeper into the AI SDK's capabilities by reading through the [documentation](/docs).
+   - Check out more advanced guides like [RAG (retrieval-augmented generation)](/docs/guides/rag-chatbot) or [multi-modal chatbot](/docs/guides/multi-modal-chatbot).
+   - Explore available [templates](https://vercel.com/templates?type=ai) to jumpstart your next AI project.
