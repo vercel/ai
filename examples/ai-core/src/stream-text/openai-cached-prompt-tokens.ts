@@ -148,17 +148,16 @@ function createCompletion() {
       openai: { maxCompletionTokens: 100 },
     },
     onFinish: ({ usage, experimental_providerMetadata }) => {
-      console.log(`metadata:`, experimental_providerMetadata)
+      console.log(`metadata:`, experimental_providerMetadata);
     },
   });
 }
 
-
 async function main() {
   let start = performance.now();
-  let result = await createCompletion()
-  let end = performance.now()
-  console.log(`duration: ${Math.floor(end-start)} ms`)
+  let result = await createCompletion();
+  let end = performance.now();
+  console.log(`duration: ${Math.floor(end - start)} ms`);
 
   let fullResponse = '';
   process.stdout.write('\nAssistant: ');

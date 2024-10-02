@@ -1740,22 +1740,20 @@ describe('doStream', () => {
       messages: [{ role: 'user', content: 'Hello' }],
     });
 
-    const chunksArr = await convertReadableStreamToArray(stream)
-    expect(chunksArr[chunksArr.length - 1]).toHaveProperty('providerMetadata')
-    expect(chunksArr[chunksArr.length - 1].type).toEqual('finish')
+    const chunksArr = await convertReadableStreamToArray(stream);
+    expect(chunksArr[chunksArr.length - 1]).toHaveProperty('providerMetadata');
+    expect(chunksArr[chunksArr.length - 1].type).toEqual('finish');
     expect(chunksArr[chunksArr.length - 1]).toStrictEqual({
       type: 'finish',
       finishReason: 'stop',
       logprobs: undefined,
       usage: {
         promptTokens: 15,
-        completionTokens: 20
+        completionTokens: 20,
       },
       providerMetadata: {
-        openai: {cachedPromptTokens: 1152}
+        openai: { cachedPromptTokens: 1152 },
       },
-    })
-
-
+    });
   });
 });

@@ -138,10 +138,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         typeof this.settings.logprobs === 'number'
           ? this.settings.logprobs
           : typeof this.settings.logprobs === 'boolean'
-            ? this.settings.logprobs
-              ? 0
-              : undefined
-            : undefined,
+          ? this.settings.logprobs
+            ? 0
+            : undefined
+          : undefined,
       user: this.settings.user,
       parallel_tool_calls: this.settings.parallelToolCalls,
 
@@ -199,14 +199,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
             response_format:
               this.settings.structuredOutputs === true
                 ? {
-                  type: 'json_schema',
-                  json_schema: {
-                    schema: mode.schema,
-                    strict: true,
-                    name: mode.name ?? 'response',
-                    description: mode.description,
-                  },
-                }
+                    type: 'json_schema',
+                    json_schema: {
+                      schema: mode.schema,
+                      strict: true,
+                      name: mode.name ?? 'response',
+                      description: mode.description,
+                    },
+                  }
                 : { type: 'json_object' },
           },
           warnings,
@@ -217,39 +217,39 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         return {
           args: useLegacyFunctionCalling
             ? {
-              ...baseArgs,
-              function_call: {
-                name: mode.tool.name,
-              },
-              functions: [
-                {
+                ...baseArgs,
+                function_call: {
                   name: mode.tool.name,
-                  description: mode.tool.description,
-                  parameters: mode.tool.parameters,
                 },
-              ],
-            }
-            : {
-              ...baseArgs,
-              tool_choice: {
-                type: 'function',
-                function: { name: mode.tool.name },
-              },
-              tools: [
-                {
-                  type: 'function',
-                  function: {
+                functions: [
+                  {
                     name: mode.tool.name,
                     description: mode.tool.description,
                     parameters: mode.tool.parameters,
-                    strict:
-                      this.settings.structuredOutputs === true
-                        ? true
-                        : undefined,
                   },
+                ],
+              }
+            : {
+                ...baseArgs,
+                tool_choice: {
+                  type: 'function',
+                  function: { name: mode.tool.name },
                 },
-              ],
-            },
+                tools: [
+                  {
+                    type: 'function',
+                    function: {
+                      name: mode.tool.name,
+                      description: mode.tool.description,
+                      parameters: mode.tool.parameters,
+                      strict:
+                        this.settings.structuredOutputs === true
+                          ? true
+                          : undefined,
+                    },
+                  },
+                ],
+              },
           warnings,
         };
       }
@@ -470,9 +470,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               if (value.usage.prompt_tokens_details?.cached_tokens != null) {
                 providerMetadata = {
                   openai: {
-                    cachedPromptTokens: value.usage.prompt_tokens_details?.cached_tokens
-                  }
-                }
+                    cachedPromptTokens:
+                      value.usage.prompt_tokens_details?.cached_tokens,
+                  },
+                };
               }
             }
 
@@ -628,7 +629,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 promptTokens: usage.promptTokens ?? NaN,
                 completionTokens: usage.completionTokens ?? NaN,
               },
-              ...(providerMetadata != null ? {providerMetadata} : {})
+              ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
         }),
