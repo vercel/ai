@@ -286,15 +286,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
     if (
-      response.usage?.completion_tokens_details?.reasoning_tokens !== null ||
-      response.usage?.prompt_tokens_details?.cached_tokens !== null
+      response.usage?.completion_tokens_details?.reasoning_tokens != null ||
+      response.usage?.prompt_tokens_details?.cached_tokens != null
     ) {
       providerMetadata = { openai: {} };
-      if (response.usage?.completion_tokens_details?.reasoning_tokens) {
+      if (response.usage?.completion_tokens_details?.reasoning_tokens != null) {
         providerMetadata.openai.reasoningTokens =
           response.usage?.completion_tokens_details?.reasoning_tokens;
       }
-      if (response.usage?.prompt_tokens_details?.cached_tokens) {
+      if (response.usage?.prompt_tokens_details?.cached_tokens != null) {
         providerMetadata.openai.cachedPromptTokens =
           response.usage?.prompt_tokens_details?.cached_tokens;
       }
