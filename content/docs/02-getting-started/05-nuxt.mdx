@@ -61,13 +61,13 @@ Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider.
 
 ### Configure OpenAI API key
 
-Create a `.env.local` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
+Create a `.env` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
 
-<Snippet text="touch .env.local" />
+<Snippet text="touch .env" />
 
-Edit the `.env.local` file:
+Edit the `.env` file:
 
-```env filename=".env.local"
+```env filename=".env"
 OPENAI_API_KEY=xxxxxxxxx
 ```
 
@@ -75,6 +75,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key and configure the environmen
 
 ```ts filename="nuxt.config.ts"
 export default defineNuxtConfig({
+  // rest of your nuxt config
   runtimeConfig: {
     openaiApiKey: process.env.OPENAI_API_KEY,
   },
@@ -153,12 +154,16 @@ const { messages, input, handleSubmit } = useChat();
 </template>
 ```
 
+<Note>
+  If your project has `app.vue` instead of `pages/index.vue`, delete the
+  `app.vue` file and create a new `pages/index.vue` file with the code above.
+</Note>
+
 This page utilizes the `useChat` hook, which will, by default, use the API route you created earlier (`/api/chat`). The hook provides functions and state for handling user input and form submission. The `useChat` hook provides multiple utility functions and state variables:
 
 - `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
 - `input` - the current value of the user's input field.
 - `handleSubmit` - function to handle form submission.
-- `isLoading` - boolean that indicates whether the API request is in progress.
 
 ## Running Your Application
 
