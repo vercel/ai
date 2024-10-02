@@ -120,6 +120,7 @@ Let's take a look at what is happening in this code:
 1. Set up a readline interface for taking input from the terminal, enabling interactive sessions directly from the command line.
 2. Initialize an array called `messages` to store the history of your conversation. This history allows the model to maintain context in ongoing dialogues.
 3. In the `main` function:
+
    - Prompt for and capture user input, storing it in `userInput`.
    - Add user input to the `messages` array as a user message.
    - Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider and `messages`.
@@ -177,7 +178,9 @@ Let's take a look at what is happening in this code:
            convertCelsiusToFahrenheit: tool({
              description: 'Convert a temperature from Celsius to Fahrenheit',
              parameters: z.object({
-               celsius: z.number().describe('The temperature in Celsius to convert'),
+               celsius: z
+                 .number()
+                 .describe('The temperature in Celsius to convert'),
              }),
              execute: async ({ celsius }) => {
                const fahrenheit = (celsius * 9) / 5 + 32;
@@ -187,7 +190,9 @@ Let's take a look at what is happening in this code:
            weather: tool({
              description: 'Get the weather in a location (in Celsius)',
              parameters: z.object({
-               location: z.string().describe('The location to get the weather for'),
+               location: z
+                 .string()
+                 .describe('The location to get the weather for'),
              }),
              execute: async ({ location }) => ({
                location,
@@ -219,6 +224,7 @@ Let's take a look at what is happening in this code:
    In this updated code:
 
    1. You've added two tools: `convertCelsiusToFahrenheit` and `weather`.
+
       - The `convertCelsiusToFahrenheit` tool converts temperatures from Celsius to Fahrenheit.
       - The `weather` tool simulates getting weather information (in Celsius) for a specific location.
 
@@ -243,6 +249,7 @@ Let's take a look at what is happening in this code:
    <Snippet text="pnpm tsx index.ts" />
 
    Now, try asking questions like:
+
    - "What's the weather in London in Fahrenheit?"
    - "Is it warmer in Paris or New York right now?"
 
@@ -253,6 +260,7 @@ Let's take a look at what is happening in this code:
    You've built an AI chatbot with multi-step reasoning capabilities using the AI SDK! This demonstrates how tools can expand your model's capabilities, allowing it to access and process real-world data in real-time.
 
    From here, you can:
+
    - Dive deeper into the AI SDK's capabilities by reading through the [documentation](/docs).
    - Check out more advanced guides like [RAG (retrieval-augmented generation)](/docs/guides/rag-chatbot) or [multi-modal chatbot](/docs/guides/multi-modal-chatbot).
    - Explore available [templates](https://vercel.com/templates?type=ai) to jumpstart your next AI project.
