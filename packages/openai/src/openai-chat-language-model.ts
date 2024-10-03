@@ -629,7 +629,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 promptTokens: usage.promptTokens ?? NaN,
                 completionTokens: usage.completionTokens ?? NaN,
               },
-              ...(providerMetadata != null ? { providerMetadata } : {}),
+              providerMetadata
             });
           },
         }),
