@@ -157,6 +157,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       max_completion_tokens:
         providerMetadata?.openai?.maxCompletionTokens ?? undefined,
       store: providerMetadata?.openai?.store ?? undefined,
+      metadata: providerMetadata?.openai?.metadata ?? undefined,
 
       // response format:
       response_format:
