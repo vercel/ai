@@ -135,17 +135,21 @@ With that, you have built everything you need for your chatbot! To start your ap
 
 You should see a prompt in your terminal. Test it out by entering a message and see the AI chatbot respond in real-time! The AI SDK makes it fast and easy to build AI chat interfaces with Node.js.
 
-## Enhance Your Chatbot with Tools and Multi-Step Interactions
+## Enhance Your Chatbot with Tools
 
-While large language models (LLMs) have incredible generation capabilities, they struggle with discrete tasks (e.g., mathematics) and interacting with the outside world (e.g., getting the weather). This is where [tools](/docs/ai-sdk-core/tools-and-tool-calling) come in.
+While large language models (LLMs) have incredible generation capabilities, they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather). This is where [tools](/docs/ai-sdk-core/tools-and-tool-calling) come in.
 
-Tools are actions that an LLM can invoke. The results of these actions can be reported back to the LLM to be considered in the next response. Let's enhance your chatbot by adding tools and enabling multi-step interactions.
+Tools are actions that an LLM can invoke. The results of these actions can be reported back to the LLM to be considered in the next response.
+
+For example, if a user asks about the current weather, without tools, the model would only be able to provide general information based on its training data. But with a weather tool, it can fetch and provide up-to-date, location-specific weather information.
+
+Let's enhance your chatbot by adding a simple weather tool.
 
 ### Update Your Application
 
-Modify your `index.ts` file to include new tools and enable multi-step interactions:
+Modify your `index.ts` file to include the new weather tool:
 
-```ts filename="index.ts"
+```ts filename="index.ts" highlight="2,25-36"
 import { openai } from '@ai-sdk/openai';
 import { CoreMessage, streamText, tool } from 'ai';
 import dotenv from 'dotenv';
@@ -171,18 +175,146 @@ async function main() {
       model: openai('gpt-4-turbo'),
       messages,
       tools: {
-        convertCelsiusToFahrenheit: tool({
-          description: 'Convert a temperature from Celsius to Fahrenheit',
+        weather: tool({
+          description: 'Get the weather in a location (in Celsius)',
           parameters: z.object({
-            celsius: z
-              .number()
-              .describe('The temperature in Celsius to convert'),
+            location: z
+              .string()
+              .describe('The location to get the weather for'),
           }),
-          execute: async ({ celsius }) => {
-            const fahrenheit = (celsius * 9) / 5 + 32;
-            return { fahrenheit: Math.round(fahrenheit * 100) / 100 };
-          },
+          execute: async ({ location }) => ({
+            location,
+            temperature: Math.round((Math.random() * 30 + 5) * 10) / 10, // Random temp between 5°C and 35°C
+          }),
         }),
+      },
+    });
+
+    let fullResponse = '';
+    process.stdout.write('\nAssistant: ');
+    for await (const delta of result.textStream) {
+      fullResponse += delta;
+      process.stdout.write(delta);
+    }
+    process.stdout.write('\n\n');
+
+    messages.push({ role: 'assistant', content: fullResponse });
+  }
+}
+
+main().catch(console.error);
+```
+
+In this updated code:
+
+1. You import the `tool` function from the `ai` package.
+2. You define a `tools` object with a `weather` tool. This tool:
+   - Has a description that helps the model understand when to use it.
+   - Defines parameters using a Zod schema, specifying that it requires a `location` string to execute this tool.
+   - Defines an `execute` function that simulates getting weather data (in this case, it returns a random temperature). This is an asynchronous function, so you could fetch real data from an external API.
+
+Now your chatbot can "fetch" weather information for any location the user asks about. When the model determines it needs to use the weather tool, it will generate a tool call with the necessary parameters. The `execute` function will then be automatically run, and the results will be used by the model to generate its response.
+
+Try asking something like "What's the weather in New York?" and see how the model uses the new tool.
+
+Notice the blank "assistant" response? This is because instead of generating a text response, the model generated a tool call. You can access the tool call and subsequent tool result in the `toolCall` and `toolResult` keys of the result object.
+
+```typescript highlight="47-48"
+import { openai } from '@ai-sdk/openai';
+import { CoreMessage, streamText, tool } from 'ai';
+import dotenv from 'dotenv';
+import { z } from 'zod';
+import * as readline from 'node:readline/promises';
+
+dotenv.config();
+
+const terminal = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+const messages: CoreMessage[] = [];
+
+async function main() {
+  while (true) {
+    const userInput = await terminal.question('You: ');
+
+    messages.push({ role: 'user', content: userInput });
+
+    const result = await streamText({
+      model: openai('gpt-4-turbo'),
+      messages,
+      tools: {
+        weather: tool({
+          description: 'Get the weather in a location (in Celsius)',
+          parameters: z.object({
+            location: z
+              .string()
+              .describe('The location to get the weather for'),
+          }),
+          execute: async ({ location }) => ({
+            location,
+            temperature: Math.round((Math.random() * 30 + 5) * 10) / 10, // Random temp between 5°C and 35°C
+          }),
+        }),
+      },
+    });
+
+    let fullResponse = '';
+    process.stdout.write('\nAssistant: ');
+    for await (const delta of result.textStream) {
+      fullResponse += delta;
+      process.stdout.write(delta);
+    }
+    process.stdout.write('\n\n');
+
+    console.log(await result.toolCalls);
+    console.log(await result.toolResults);
+    messages.push({ role: 'assistant', content: fullResponse });
+  }
+}
+
+main().catch(console.error);
+```
+
+Now, when you ask about the weather, you'll see the tool call and its result displayed in your chat interface.
+
+## Enabling Multi-Step Tool Calls
+
+You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has techincally completed its generation.
+
+To solve this, you can enable multi-step tool calls using `maxSteps`. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
+
+### Update Your Application
+
+Modify your `index.ts` file to include the `maxSteps` option:
+
+```ts filename="index.ts" highlight="37-40"
+import { openai } from '@ai-sdk/openai';
+import { CoreMessage, streamText, tool } from 'ai';
+import dotenv from 'dotenv';
+import { z } from 'zod';
+import * as readline from 'node:readline/promises';
+
+dotenv.config();
+
+const terminal = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+const messages: CoreMessage[] = [];
+
+async function main() {
+  while (true) {
+    const userInput = await terminal.question('You: ');
+
+    messages.push({ role: 'user', content: userInput });
+
+    const result = await streamText({
+      model: openai('gpt-4-turbo'),
+      messages,
+      tools: {
         weather: tool({
           description: 'Get the weather in a location (in Celsius)',
           parameters: z.object({
@@ -219,44 +351,104 @@ main().catch(console.error);
 
 In this updated code:
 
-1. You've added two tools: `convertCelsiusToFahrenheit` and `weather`.
+1. You set `maxSteps` to 5, allowing the model to use up to 5 "steps" for any given generation.
+2. You add an `onStepFinish` callback to log each step of the interaction, helping you understand the model's tool usage. This means we can also delete the `toolCall` and `toolResult` `console.log` statements from the previous example.
 
-- The `convertCelsiusToFahrenheit` tool converts temperatures from Celsius to Fahrenheit.
-- The `weather` tool simulates getting weather information (in Celsius) for a specific location.
+Now, when you ask about the weather in a location, you should see the model using the weather tool results to answer your question.
 
-2. You've enabled multi-step interactions by setting `maxSteps: 5`. This allows the model to make up to 5 tool calls in a single interaction.
+By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
 
-3. You've added an `onStepFinish` callback to log each step of the interaction. This helps you understand the model's thought process and tool usage.
+### Adding a second tool
 
-### Understanding Multi-Step Interactions
+Update your `index.ts` file to add a new tool to convert the temperature from Celsius to Fahrenheit:
 
-With these changes, your chatbot can now handle more complex queries that require multiple steps. For example, if a user asks "What's the weather in New York in Fahrenheit?", the model might:
+```ts filename="index.ts" highlight="36-45"
+import { openai } from '@ai-sdk/openai';
+import { CoreMessage, streamText, tool } from 'ai';
+import dotenv from 'dotenv';
+import { z } from 'zod';
+import * as readline from 'node:readline/promises';
 
-1. Call the `weather` tool to get the temperature in New York (in Celsius).
-2. Use the result from step 1 to call the `convertCelsiusToFahrenheit` tool.
-3. Synthesize the information from both tool calls to provide a final response.
+dotenv.config();
 
-Each of these steps will be logged to the console, allowing you to see the model's reasoning process.
+const terminal = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
 
-### Try It Out
+const messages: CoreMessage[] = [];
 
-Run your application again:
+async function main() {
+  while (true) {
+    const userInput = await terminal.question('You: ');
 
-<Snippet text="pnpm tsx index.ts" />
+    messages.push({ role: 'user', content: userInput });
 
-Now, try asking questions like:
+    const result = await streamText({
+      model: openai('gpt-4-turbo'),
+      messages,
+      tools: {
+        weather: tool({
+          description: 'Get the weather in a location (in Celsius)',
+          parameters: z.object({
+            location: z
+              .string()
+              .describe('The location to get the weather for'),
+          }),
+          execute: async ({ location }) => ({
+            location,
+            temperature: Math.round((Math.random() * 30 + 5) * 10) / 10, // Random temp between 5°C and 35°C
+          }),
+        }),
+        convertCelsiusToFahrenheit: tool({
+          description: 'Convert a temperature from Celsius to Fahrenheit',
+          parameters: z.object({
+            celsius: z
+              .number()
+              .describe('The temperature in Celsius to convert'),
+          }),
+          execute: async ({ celsius }) => {
+            const fahrenheit = (celsius * 9) / 5 + 32;
+            return { fahrenheit: Math.round(fahrenheit * 100) / 100 };
+          },
+        }),
+      },
+      maxSteps: 5,
+      onStepFinish: step => {
+        console.log(JSON.stringify(step, null, 2));
+      },
+    });
 
-- "What's the weather in London in Fahrenheit?"
-- "Is it warmer in Paris or New York right now?"
+    let fullResponse = '';
+    process.stdout.write('\nAssistant: ');
+    for await (const delta of result.textStream) {
+      fullResponse += delta;
+      process.stdout.write(delta);
+    }
+    process.stdout.write('\n\n');
 
-You should see the model making multiple tool calls and using the results to construct its final response.
+    messages.push({ role: 'assistant', content: fullResponse });
+  }
+}
+
+main().catch(console.error);
+```
+
+Now, when you ask "What's the weather in New York in Celsius?", you should see a more complete interaction:
+
+1. The model will call the weather tool for New York.
+2. You'll see the tool result logged.
+3. It will then call the temperature conversion tool to convert the temperature from Celsius to Fahrenheit.
+4. The model will then use that information to provide a natural language response about the weather in New York.
+
+This multi-step approach allows the model to gather information and use it to provide more accurate and contextual responses, making your chatbot considerably more useful.
+
+This example shows how tools can expand the model's capabilities. You can create more complex tools to integrate with real APIs, databases, or any other external systems, allowing the model to access and process real-world data in real-time. Tools bridge the gap between the model's knowledge cutoff and current information.
 
 ## Where to Next?
 
-You've built an AI chatbot with multi-step reasoning capabilities using the AI SDK! This demonstrates how tools can expand your model's capabilities, allowing it to access and process real-world data in real-time.
+You've built an AI chatbot using the AI SDK! From here, you have several paths to explore:
 
-From here, you can:
-
-- Dive deeper into the AI SDK's capabilities by reading through the [documentation](/docs).
-- Check out more advanced guides like [RAG (retrieval-augmented generation)](/docs/guides/rag-chatbot) or [multi-modal chatbot](/docs/guides/multi-modal-chatbot).
-- Explore available [templates](https://vercel.com/templates?type=ai) to jumpstart your next AI project.
+- To learn more about the AI SDK, read through the [documentation](/docs).
+- If you're interested in diving deeper with guides, check out the [RAG (retrieval-augmented generation)](/docs/guides/rag-chatbot) and [multi-modal chatbot](/docs/guides/multi-modal-chatbot) guides.
+- To jumpstart your first AI project, explore available [templates](https://vercel.com/templates?type=ai).

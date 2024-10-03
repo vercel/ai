@@ -1,6 +1,6 @@
 ---
 title: Nuxt
-description: Welcome to the AI SDK documentation!
+description: Welcome to the AI SDK quickstart guide for Nuxt!
 ---
 
 # Nuxt Quickstart
@@ -187,7 +187,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `server/api/chat.ts` file to include the new weather tool:
 
-```typescript filename="server/api/chat.ts" highlight="2,4,22-36"
+```typescript filename="server/api/chat.ts" highlight="1,18-34"
 import { streamText, convertToCoreMessages, tool } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -310,7 +310,7 @@ By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for
 
 Update your `server/api/chat.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```typescript filename="server/api/chat.ts" highlight="37-50"
+```typescript filename="server/api/chat.ts" highlight="34-47"
 import { streamText, convertToCoreMessages, tool } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
