@@ -22,6 +22,9 @@ async function main() {
     experimental_providerMetadata: {
       openai: {
         store: true,
+        metadata: {
+          custom: 'value',
+        },
       },
     },
   });

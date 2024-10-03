@@ -5,10 +5,13 @@ import 'dotenv/config';
 async function main() {
   const { text, usage } = await generateText({
     model: openai('gpt-4o-mini'),
-    prompt: 'Who worked on the original macintosh?',
+    prompt: 'Invent a new holiday and describe its traditions.',
     experimental_providerMetadata: {
       openai: {
         store: true,
+        metadata: {
+          custom: 'value',
+        }
       },
     },
   });
