@@ -57,7 +57,7 @@ describe('chat', () => {
       });
 
       const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual('2024-06-01');
+      expect(searchParams.get('api-version')).toStrictEqual('2024-08-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -106,7 +106,7 @@ describe('chat', () => {
 
       const requestUrl = await server.getRequestUrl();
       expect(requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-06-01',
+        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-08-01-preview',
       );
     });
   });
@@ -170,7 +170,7 @@ describe('completion', () => {
       });
 
       const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual('2024-06-01');
+      expect(searchParams.get('api-version')).toStrictEqual('2024-08-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -246,7 +246,7 @@ describe('embedding', () => {
       });
 
       const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual('2024-06-01');
+      expect(searchParams.get('api-version')).toStrictEqual('2024-08-01-preview');
     });
 
     it('should pass headers', async () => {
