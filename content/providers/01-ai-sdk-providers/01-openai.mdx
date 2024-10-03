@@ -290,6 +290,33 @@ const result = await generateText({
 });
 ```
 
+#### Distillation
+OpenAI supports model distillation for some models. If you want to store a generation for use in the distillation process, you can add the `store` option to the `experimental_providerMetadata.openai` object. This will save the generation to the OpenAI platform for later use in distillation.
+
+```typescript highlight="9-13"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+import 'dotenv/config';
+
+async function main() {
+  const { text, usage } = await generateText({
+    model: openai('gpt-4o-mini'),
+    prompt: 'Who worked on the original macintosh?',
+    experimental_providerMetadata: {
+      openai: {
+        store: true,
+      },
+    },
+  });
+
+  console.log(text);
+  console.log();
+  console.log('Usage:', usage);
+}
+
+main().catch(console.error);
+```
+
 #### Reasoning Models
 
 OpenAI has introduced the `o1` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
