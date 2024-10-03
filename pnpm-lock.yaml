@@ -559,8 +559,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.4
       '@vercel/kv':
-        specifier: ^0.2.2
-        version: 0.2.4
+        specifier: ^3.0.0
+        version: 3.0.0
       ai:
         specifier: latest
         version: link:../../packages/ai
@@ -672,8 +672,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.4
       '@vercel/kv':
-        specifier: ^0.2.2
-        version: 0.2.4
+        specifier: ^3.0.0
+        version: 3.0.0
       ai:
         specifier: latest
         version: link:../../packages/ai
@@ -12004,7 +12004,7 @@ packages:
     resolution: {integrity: sha512-cpPSR0XJAJs4Ddz9nq3tINlPS5aLfWVCqhhtHnXt4p7qr5+/Znlt1Es736poB/9rnl1hAHrOsOvVj46NEXcVqA==}
     engines: {node: '>=16.0.0'}
     dependencies:
-      '@upstash/redis': 1.25.1
+      '@upstash/redis': 1.34.1
     dev: false
 
   /@upstash/ratelimit@0.4.4:
@@ -12013,14 +12013,8 @@ packages:
       '@upstash/core-analytics': 0.0.6
     dev: false
 
-  /@upstash/redis@1.24.3:
-    resolution: {integrity: sha512-gw6d4IA1biB4eye5ESaXc0zOlVQI94aptsBvVcTghYWu1kRmOrJFoMFEDCa8p5uzluyYAOFCuY2GWLR6O4ZoIw==}
-    dependencies:
-      crypto-js: 4.2.0
-    dev: false
-
-  /@upstash/redis@1.25.1:
-    resolution: {integrity: sha512-ACj0GhJ4qrQyBshwFgPod6XufVEfKX2wcaihsEvSdLYnY+m+pa13kGt1RXm/yTHKf4TQi/Dy2A8z/y6WUEOmlg==}
+  /@upstash/redis@1.34.1:
+    resolution: {integrity: sha512-mammyRf9BTVTFJmyWyTHb0UL0J74vuQGL5yQIIbqFHVa2NPMB+adOZw5ZqpRQb/0AzzVBCrbok/vzBynQ1abiw==}
     dependencies:
       crypto-js: 4.2.0
     dev: false
@@ -12036,11 +12030,11 @@ packages:
       undici: 5.28.4
     dev: false
 
-  /@vercel/kv@0.2.4:
-    resolution: {integrity: sha512-wbIOOXhg6MzmNMzKFSWbbLAS65hCZcJN33z1coENzI1M0fOX55yE9v9LwVGqkzdItp3eZsv6pYvwcmGtllyLTw==}
+  /@vercel/kv@3.0.0:
+    resolution: {integrity: sha512-pKT8fRnfyYk2MgvyB6fn6ipJPCdfZwiKDdw7vB+HL50rjboEBHDVBEcnwfkEpVSp2AjNtoaOUH7zG+bVC/rvSg==}
     engines: {node: '>=14.6'}
     dependencies:
-      '@upstash/redis': 1.24.3
+      '@upstash/redis': 1.34.1
     dev: false
 
   /@vercel/nft@0.26.5:
