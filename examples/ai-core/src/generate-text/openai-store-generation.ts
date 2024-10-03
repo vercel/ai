@@ -11,7 +11,7 @@ async function main() {
         store: true,
         metadata: {
           custom: 'value',
-        }
+        },
       },
     },
   });
