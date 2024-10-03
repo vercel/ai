@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-fix (ai/core) FilePart interface not exported
+fix (ai/core): export FilePart interface
