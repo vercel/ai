@@ -39,6 +39,7 @@ import { createAzure } from '@ai-sdk/azure';
 const azure = createAzure({
   resourceName: 'your-resource-name', // Azure resource name
   apiKey: 'your-api-key',
+  apiVersion: '2024-06-01', // Optional: specify Azure OpenAI API version
 });
 ```
 
@@ -77,6 +78,11 @@ You can use the following optional settings to customize the OpenAI provider ins
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **apiVersion** _string_
+
+  Specify an API version for Azure OpenAI requests. 
+  Defaults to '2024-06-01' if not provided.
+
 ## Language Models
 
 The Azure OpenAI provider instance is a function that you can invoke to create a language model:
@@ -114,7 +120,8 @@ OpenAI language models can also be used in the `streamText`, `generateObject`, `
 
 <Note>
   The URL for calling Azure chat models will be constructed as follows:
-  `https://RESOURCE_NAME.openai.azure.com/openai/deployments/DEPLOYMENT_NAME/chat/completions?api-version=2024-06-01`
+  `https://RESOURCE_NAME.openai.azure.com/openai/deployments/DEPLOYMENT_NAME/chat/completions?api-version=API_VERSION`
+  Where API_VERSION is either the default '2024-06-01' or the custom version you specified.
 </Note>
 
 Azure OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
