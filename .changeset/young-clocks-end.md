@@ -2,4 +2,4 @@
 '@ai-sdk/vue': patch
 ---
 
-fix maxSteps
+fix (ui/vue): prevent infinite looping steps
