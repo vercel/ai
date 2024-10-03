@@ -912,6 +912,27 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send store extension setting', async () => {
+    prepareJsonResponse({  content: '' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: {
+          store: true,
+        },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      store: true,
+    });
+  });
+
   describe('should simulate streaming for reasoning models', () => {
     it('should stream text delta', async () => {
       prepareJsonResponse({ content: 'Hello, World!', model: 'o1-preview' });
@@ -1678,6 +1699,29 @@ describe('doStream', () => {
       'custom-request-header': 'request-header-value',
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
+    });
+  });
+
+  it('should send store extension setting', async () => {
+    prepareStreamResponse({ content: [] });
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: {
+          store: true,
+        },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      stream: true,
+      stream_options: { include_usage: true },
+      messages: [{ role: 'user', content: 'Hello' }],
+      store: true,
     });
   });
 });
