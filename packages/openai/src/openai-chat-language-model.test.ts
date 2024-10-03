@@ -913,7 +913,7 @@ describe('doGenerate', () => {
   });
 
   it('should send store extension setting', async () => {
-    prepareJsonResponse({  content: '' });
+    prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
       inputFormat: 'prompt',
