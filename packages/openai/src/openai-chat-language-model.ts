@@ -157,6 +157,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       // openai specific settings:
       max_completion_tokens:
         providerMetadata?.openai?.maxCompletionTokens ?? undefined,
+      store: providerMetadata?.openai?.store ?? undefined,
 
       // response format:
       response_format:
@@ -629,7 +630,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 promptTokens: usage.promptTokens ?? NaN,
                 completionTokens: usage.completionTokens ?? NaN,
               },
-              providerMetadata
+              ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
         }),

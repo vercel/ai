@@ -1,5 +1,12 @@
 # ai
 
+## 3.4.8
+
+### Patch Changes
+
+- Updated dependencies [b5f577e]
+  - @ai-sdk/vue@0.0.54
+
 ## 3.4.7
 
 ### Patch Changes

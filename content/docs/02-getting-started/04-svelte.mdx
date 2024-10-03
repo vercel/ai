@@ -84,7 +84,7 @@ Create a SvelteKit Endpoint, `src/routes/api/chat/+server.ts` and add the follow
 
 ```tsx filename="src/routes/api/chat/+server.ts"
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, convertToCoreMessages } from 'ai';
 import type { RequestHandler } from './$types';
 
 import { env } from '$env/dynamic/private';
@@ -97,20 +97,25 @@ export const POST = (async ({ request }) => {
   const { messages } = await request.json();
 
   const result = await streamText({
-    model: openai('gpt-4-turbo-preview'),
-    messages,
+    model: openai('gpt-4-turbo'),
+    messages: convertToCoreMessages(messages),
   });
 
   return result.toDataStreamResponse();
 }) satisfies RequestHandler;
 ```
 
+<Note>
+  You may see an error with the `./$types` import. This will be resolved as soon
+  as you run the dev server.
+</Note>
+
 Let's take a look at what is happening in this code:
 
 1. Create an OpenAI provider instance with the `createOpenAI` function from the `@ai-sdk/openai` package.
-2. Define a `POST` request and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
-3. Call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (defined in step 1) and `messages` (defined in step 2). You can use pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
-4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toDataStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
+2. Define a `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
+3. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (defined in step 1) and `messages` (defined in step 2). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
+4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toDataStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-data-stream-response) function which converts the result to a streamed response object.
 5. Return the result to the client to stream the response.
 
 ## Wire up the UI
@@ -143,8 +148,7 @@ This page utilizes the `useChat` hook, which will, by default, use the `POST` ro
 
 - `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
 - `input` - the current value of the user's input field.
-- `handleInputChange` and `handleSubmit` - functions to handle user interactions (typing into the input field and submitting the form, respectively).
-- `isLoading` - boolean that indicates whether the API request is in progress.
+- `handleSubmit` - function to handle form submission.
 
 ## Running Your Application
 
@@ -154,18 +158,25 @@ With that, you have built everything you need for your chatbot! To start your ap
 
 Head to your browser and open http://localhost:5173. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time! The AI SDK makes it fast and easy to build AI chat interfaces with Svelte.
 
-## Stream Data Alongside Response
+## Enhance Your Chatbot with Tools
 
-Depending on your use case, you may want to stream additional data alongside the model's response. This can be done using [`StreamData`](/docs/reference/stream-helpers/stream-data).
+While large language models (LLMs) have incredible generation capabilities, they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather). This is where [tools](/docs/ai-sdk-core/tools-and-tool-calling) come in.
 
-### Update your API route
+Tools are actions that an LLM can invoke. The results of these actions can be reported back to the LLM to be considered in the next response.
 
-Make the following changes to your POST endpoint (`src/routes/api/chat/+server.ts`)
+For example, if a user asks about the current weather, without tools, the model would only be able to provide general information based on its training data. But with a weather tool, it can fetch and provide up-to-date, location-specific weather information.
 
-```ts filename="src/routes/api/chat/+server.ts" highlight="2,14-15,19-21,25"
+Let's enhance your chatbot by adding a simple weather tool.
+
+### Update Your API Route
+
+Modify your `src/routes/api/chat/+server.ts` file to include the new weather tool:
+
+```tsx filename="src/routes/api/chat/+server.ts" highlight="2,4,18-32"
 import { createOpenAI } from '@ai-sdk/openai';
-import { StreamData, streamText } from 'ai';
+import { streamText, convertToCoreMessages, tool } from 'ai';
 import type { RequestHandler } from './$types';
+import { z } from 'zod';
 
 import { env } from '$env/dynamic/private';
 
@@ -176,44 +187,67 @@ const openai = createOpenAI({
 export const POST = (async ({ request }) => {
   const { messages } = await request.json();
 
-  const data = new StreamData();
-  data.append({ test: 'value' });
-
   const result = await streamText({
-    model: openai('gpt-3.5-turbo'),
-    onFinish() {
-      data.close();
+    model: openai('gpt-4-turbo'),
+    messages: convertToCoreMessages(messages),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (farenheit)',
+        parameters: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return {
+            location,
+            temperature,
+          };
+        },
+      }),
     },
-    messages,
   });
 
-  return result.toDataStreamResponse({ data });
+  return result.toDataStreamResponse();
 }) satisfies RequestHandler;
 ```
 
-In this code, you:
+In this updated code:
 
-1. Create a new instance of `StreamData`.
-2. Append the data you want to stream alongside the model's response.
-3. Listen for the `onFinish` callback on `streamText` and close the stream data.
-4. Pass the data into the `toDataStreamResponse` method.
+1. You import the `tool` function from the `ai` package and `z` from `zod` for schema validation.
+2. You define a `tools` object with a `weather` tool. This tool:
 
-### Update your frontend
+   - Has a description that helps the model understand when to use it.
+   - Defines parameters using a Zod schema, specifying that it requires a `location` string to execute this tool. The model will attempt to extract this parameter from the context of the conversation. If it can't, it will ask the user for the missing information.
+   - Defines an `execute` function that simulates getting weather data (in this case, it returns a random temperature). This is an asynchronous function running on the server so you can fetch real data from an external API.
 
-To access this data on the frontend, the `useChat` hook returns an optional value that stores this data. Update your root route with the following code to render the streamed data:
+Now your chatbot can "fetch" weather information for any location the user asks about. When the model determines it needs to use the weather tool, it will generate a tool call with the necessary parameters. The `execute` function will then be automatically run, and you can access the results via `toolInvocations` that is available on the message object.
 
-```svelte filename="src/routes/+page.svelte" highlight="4, 8"
+Try asking something like "What's the weather in New York?" and see how the model uses the new tool.
+
+Notice the blank response in the UI? This is because instead of generating a text response, the model generated a tool call. You can access the tool call and subsequent tool result in the `toolInvocations` key of the message object.
+
+### Update the UI
+
+To display the tool invocations in your UI, update your `src/routes/+page.svelte` file:
+
+```svelte filename="src/routes/+page.svelte"
 <script>
   import { useChat } from '@ai-sdk/svelte';
 
-  const { input, handleSubmit, messages, data } = useChat();
+  const { input, handleSubmit, messages } = useChat();
 </script>
 
 <main>
-  <pre>{JSON.stringify($data, null, 2)}</pre>
   <ul>
     {#each $messages as message}
-      <li>{message.role}: {message.content}</li>
+      <li>
+        {message.role}:
+        {#if message.toolInvocations}
+          <pre>{JSON.stringify(message.toolInvocations, null, 2)}</pre>
+        {:else}
+          {message.content}
+        {/if}
+      </li>
     {/each}
   </ul>
   <form on:submit={handleSubmit}>
@@ -223,10 +257,106 @@ To access this data on the frontend, the `useChat` hook returns an optional valu
 </main>
 ```
 
-Head back to your browser (http://localhost:5173) and enter a new message. You should see a JSON object appear with the value you sent from your API route!
+With this change, you check each message for any tool calls (`toolInvocations`). These tool calls will be displayed as stringified JSON. Otherwise, you show the message content as before.
+
+Now, when you ask about the weather, you'll see the tool invocation and its result displayed in your chat interface.
+
+## Enabling Multi-Step Tool Calls
+
+You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
+
+To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `useChat` hook. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
+
+### Update Your UI
+
+Modify your `src/routes/+page.svelte` file to include the `maxSteps` option:
+
+```svelte filename="src/routes/+page.svelte" highlight="4"
+<script>
+  import { useChat } from '@ai-sdk/svelte';
+
+  const { messages, input, handleSubmit } = useChat({ maxSteps: 5 });
+</script>
+
+<!-- ... rest of your component code -->
+```
+
+Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
+
+By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
+
+### Update Your API Route
+
+Update your `src/routes/api/chat/+server.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
+
+```tsx filename="src/routes/api/chat/+server.ts" highlight="32-45"
+import { createOpenAI } from '@ai-sdk/openai';
+import { streamText, convertToCoreMessages, tool } from 'ai';
+import type { RequestHandler } from './$types';
+import { z } from 'zod';
+
+import { env } from '$env/dynamic/private';
+
+const openai = createOpenAI({
+  apiKey: env.OPENAI_API_KEY ?? '',
+});
+
+export const POST = (async ({ request }) => {
+  const { messages } = await request.json();
+
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages: convertToCoreMessages(messages),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (farenheit)',
+        parameters: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return {
+            location,
+            temperature,
+          };
+        },
+      }),
+      convertFarenheitToCelsius: tool({
+        description: 'Convert a temperature in farenheit to celsius',
+        parameters: z.object({
+          temperature: z
+            .number()
+            .describe('The temperature in farenheit to convert'),
+        }),
+        execute: async ({ temperature }) => {
+          const celsius = Math.round((temperature - 32) * (5 / 9));
+          return {
+            celsius,
+          };
+        },
+      }),
+    },
+  });
+
+  return result.toDataStreamResponse();
+}) satisfies RequestHandler;
+```
+
+Now, when you ask "What's the weather in New York in celsius?", you should see a more complete interaction:
+
+1. The model will call the weather tool for New York.
+2. You'll see the tool result displayed.
+3. It will then call the temperature conversion tool to convert the temperature from Fahrenheit to Celsius.
+4. The model will then use that information to provide a natural language response about the weather in New York.
+
+This multi-step approach allows the model to gather information and use it to provide more accurate and contextual responses, making your chatbot considerably more useful.
+
+This simple example demonstrates how tools can expand your model's capabilities. You can create more complex tools to integrate with real APIs, databases, or any other external systems, allowing the model to access and process real-world data in real-time. Tools bridge the gap between the model's knowledge cutoff and current information.
 
 ## Where to Next?
 
-You've built an AI chatbot using the AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-ui/chatbot-with-tool-calling) or [persisting chat history](/docs/ai-sdk-ui/storing-messages).
+You've built an AI chatbot using the AI SDK! From here, you have several paths to explore:
 
-If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.
+- To learn more about the AI SDK, read through the [documentation](/docs).
+- If you're interested in diving deeper with guides, check out the [RAG (retrieval-augmented generation)](/docs/guides/rag-chatbot) and [multi-modal chatbot](/docs/guides/multi-modal-chatbot) guides.
+- To jumpstart your first AI project, explore available [templates](https://vercel.com/templates?type=ai).
