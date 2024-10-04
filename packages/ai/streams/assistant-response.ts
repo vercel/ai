@@ -92,6 +92,7 @@ export function AssistantResponse(
                 textEncoder.encode(
                   formatStreamPart('assistant_message', {
                     id: value.data.id,
+                    createdAt: value.data.created_at ? new Date(value.data.created_at * 1000) : undefined,
                     role: 'assistant',
                     content: [{ type: 'text', text: { value: '' } }],
                   }),

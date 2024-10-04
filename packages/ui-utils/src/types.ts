@@ -604,6 +604,7 @@ export type JSONValue =
 export type AssistantMessage = {
   id: string;
   role: 'assistant';
+  createdAt?: Date;
   content: Array<{
     type: 'text';
     text: {
