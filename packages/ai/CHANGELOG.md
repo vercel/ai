@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.9
+
+### Patch Changes
+
+- d347538: fix (ai/core): export FilePart interface
+
 ## 3.4.8
 
 ### Patch Changes
