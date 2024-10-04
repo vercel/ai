@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.66
+
+### Patch Changes
+
+- 3f29c10: feat (provider/openai): support metadata field for distillation
+
 ## 0.0.65
 
 ### Patch Changes
