@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 0.0.65
+
+### Patch Changes
+
+- e8aed44: Add OpenAI cached prompt tokens to experimental_providerMetadata for generateText and streamText
+
+## 0.0.64
+
+### Patch Changes
+
+- 5aa576d: feat (provider/openai): support store parameter for distillation
+
 ## 0.0.63
 
 ### Patch Changes

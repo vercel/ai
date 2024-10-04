@@ -1,5 +1,25 @@
 # @ai-sdk/azure
 
+## 0.0.44
+
+### Patch Changes
+
+- Updated dependencies [e8aed44]
+  - @ai-sdk/openai@0.0.65
+
+## 0.0.43
+
+### Patch Changes
+
+- Updated dependencies [5aa576d]
+  - @ai-sdk/openai@0.0.64
+
+## 0.0.42
+
+### Patch Changes
+
+- 9994f55: chore (provider/azure): update Azure OpenAI API version to 2024-08-01-preview
+
 ## 0.0.41
 
 ### Patch Changes

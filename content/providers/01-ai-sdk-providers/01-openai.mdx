@@ -290,6 +290,34 @@ const result = await generateText({
 });
 ```
 
+#### Distillation
+
+OpenAI supports model distillation for some models. If you want to store a generation for use in the distillation process, you can add the `store` option to the `experimental_providerMetadata.openai` object. This will save the generation to the OpenAI platform for later use in distillation.
+
+```typescript highlight="9-13"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+import 'dotenv/config';
+
+async function main() {
+  const { text, usage } = await generateText({
+    model: openai('gpt-4o-mini'),
+    prompt: 'Who worked on the original macintosh?',
+    experimental_providerMetadata: {
+      openai: {
+        store: true,
+      },
+    },
+  });
+
+  console.log(text);
+  console.log();
+  console.log('Usage:', usage);
+}
+
+main().catch(console.error);
+```
+
 #### Reasoning Models
 
 OpenAI has introduced the `o1` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
@@ -323,6 +351,33 @@ console.log(text);
 console.log('Usage:', {
   ...usage,
   reasoningTokens: experimental_providerMetadata?.openai?.reasoningTokens,
+});
+```
+
+#### Prompt Caching
+
+OpenAI has introduced [Prompt Caching](https://platform.openai.com/docs/guides/prompt-caching) for supported models
+including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
+
+- Prompt caching is automatically enabled for these models, when the prompt is 1024 tokens or longer. It does
+  not need to be explicitly enabled.
+- You can use response `experimental_providerMetadata` to access the number of prompt tokens that were a cache hit.
+- Note that caching behavior is dependent on load on OpenAI's infrastructure. Prompt prefixes generally remain in the
+  cache following 5-10 minutes of inactivity before they are evicted, but during off-peak periods they may persist for up
+  to an hour.
+
+```ts highlight="11"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const { text, usage, experimental_providerMetadata } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: `A 1024-token or longer prompt...`,
+});
+
+console.log(`usage:`, {
+  ...usage,
+  cachedPromptTokens: experimental_providerMetadata?.openai?.cachedPromptTokens,
 });
 ```
 

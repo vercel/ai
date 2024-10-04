@@ -172,7 +172,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `src/routes/api/chat/+server.ts` file to include the new weather tool:
 
-```tsx filename="src/routes/api/chat/+server.ts" highlight="2,4,20-34"
+```tsx filename="src/routes/api/chat/+server.ts" highlight="2,4,18-32"
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, convertToCoreMessages, tool } from 'ai';
 import type { RequestHandler } from './$types';
@@ -289,7 +289,7 @@ By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for
 
 Update your `src/routes/api/chat/+server.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="src/routes/api/chat/+server.ts" highlight="35-48"
+```tsx filename="src/routes/api/chat/+server.ts" highlight="32-45"
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, convertToCoreMessages, tool } from 'ai';
 import type { RequestHandler } from './$types';
