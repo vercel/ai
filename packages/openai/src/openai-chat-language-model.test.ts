@@ -963,6 +963,31 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send metadata extension values', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: {
+          metadata: {
+            custom: 'value',
+          },
+        },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      metadata: {
+        custom: 'value',
+      },
+    });
+  });
+
   describe('should simulate streaming for reasoning models', () => {
     it('should stream text delta', async () => {
       prepareJsonResponse({ content: 'Hello, World!', model: 'o1-preview' });
@@ -1798,6 +1823,33 @@ describe('doStream', () => {
       stream_options: { include_usage: true },
       messages: [{ role: 'user', content: 'Hello' }],
       store: true,
+    });
+  });
+
+  it('should send metadata extension values', async () => {
+    prepareStreamResponse({ content: [] });
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: {
+          metadata: {
+            custom: 'value',
+          },
+        },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      stream: true,
+      stream_options: { include_usage: true },
+      messages: [{ role: 'user', content: 'Hello' }],
+      metadata: {
+        custom: 'value',
+      },
     });
   });
 });
