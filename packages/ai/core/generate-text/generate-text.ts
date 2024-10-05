@@ -1,4 +1,4 @@
-import { createIdGenerator, getEffectiveAbortSignal } from '@ai-sdk/provider-utils';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { InvalidArgumentError } from '../../errors';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
@@ -30,6 +30,7 @@ import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray } from './tool-call';
 import { ToToolResultArray } from './tool-result';
+import { getEffectiveAbortSignal } from '../../util/get-effective-abort-signal';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
@@ -275,18 +276,28 @@ functionality that can be fully encapsulated in the provider.
             }),
             tracer,
             fn: async span => {
-              const { signal: effectiveAbortSignal, clearTimeout } = getEffectiveAbortSignal(abortSignal, timeout);
-              const result = await model.doGenerate({
-                mode,
-                ...callSettings,
-                inputFormat: currentInputFormat,
-                prompt: promptMessages,
-                providerMetadata,
-                abortSignal: effectiveAbortSignal, 
-                headers,
-              });
-             clearTimeout(); 
-
+              let clearTimeoutFunction: (() => void) | undefined;
+              let result: any; 
+              try {
+                const { signal: effectiveAbortSignal, clearTimeout } = getEffectiveAbortSignal(abortSignal, timeout);
+                clearTimeoutFunction = clearTimeout;
+                result = await model.doGenerate({
+                  mode,
+                  ...callSettings,
+                  inputFormat: currentInputFormat,
+                  prompt: promptMessages,
+                  providerMetadata,
+                  abortSignal: effectiveAbortSignal,
+                  headers,
+                });
+              } catch (error) {
+                console.error('Error during model generation:', error);
+                throw error;
+              } finally {
+                if (clearTimeoutFunction) {
+                  clearTimeoutFunction();
+                }
+              }
               // Fill in default values:
               const responseData = {
                 id: result.response?.id ?? generateId(),

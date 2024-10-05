@@ -7,7 +7,7 @@ import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
-import { getEffectiveAbortSignal } from '../../../provider-utils/src/get-effective-abort-signal';
+import { getEffectiveAbortSignal } from '../../util/get-effective-abort-signal';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },

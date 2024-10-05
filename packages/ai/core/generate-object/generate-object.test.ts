@@ -6,7 +6,7 @@ import { setTestTracer } from '../telemetry/get-tracer';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
-import { getEffectiveAbortSignal } from '../../../provider-utils/src/get-effective-abort-signal';
+import { getEffectiveAbortSignal } from '../../util/get-effective-abort-signal';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -1040,7 +1040,7 @@ describe('generateObject.timeout', () => {
     
     assert(success, 'Expected success with zero timeout on long operation');
     assert(duration >= delay && duration < delay + 100, `Unexpected duration: ${duration}ms`);
-    assert.strictEqual(result.object.content, `Completed after ${delay}ms`);
+    assert.strictEqual(result?.object.content, `Completed after ${delay}ms`);
   });
 });
 

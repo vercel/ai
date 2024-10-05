@@ -1,5 +1,5 @@
 import { JSONValue } from '@ai-sdk/provider';
-import { createIdGenerator, safeParseJSON, getEffectiveAbortSignal } from '@ai-sdk/provider-utils';
+import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
@@ -29,6 +29,7 @@ import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { getEffectiveAbortSignal } from '../../util/get-effective-abort-signal';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', size: 24 });
 
@@ -459,8 +460,12 @@ export async function generateObject<SCHEMA, RESULT>({
               }),
               tracer,
               fn: async span => {
+                let clearTimeoutFunction: (() => void) | undefined;
+                let result: any; 
+                try {
                 const { signal: effectiveAbortSignal, clearTimeout } = getEffectiveAbortSignal(abortSignal, timeout);
-                const result = await model.doGenerate({
+                clearTimeoutFunction = clearTimeout;
+                result = await model.doGenerate({
                   mode: {
                     type: 'object-json',
                     schema: outputStrategy.jsonSchema,
@@ -474,7 +479,14 @@ export async function generateObject<SCHEMA, RESULT>({
                   abortSignal: effectiveAbortSignal,
                   headers,
                 });
-                clearTimeout(); 
+                } catch (error) {
+                  console.error('Error during model generation:', error);
+                  throw error;
+                } finally {
+                  if (clearTimeoutFunction) {
+                    clearTimeoutFunction();
+                  }
+                }
                 if (result.text === undefined) {
                   throw new NoObjectGeneratedError();
                 }

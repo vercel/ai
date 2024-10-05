@@ -3,7 +3,7 @@ export function getEffectiveAbortSignal(
   timeout: number | undefined
 ): { signal: AbortSignal | undefined; clearTimeout: () => void } {
   let effectiveAbortSignal = abortSignal;
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   if (abortSignal && abortSignal.aborted) {
     return { signal: abortSignal, clearTimeout: () => {} };
   }
