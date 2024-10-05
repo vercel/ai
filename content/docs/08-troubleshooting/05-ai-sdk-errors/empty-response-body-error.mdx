@@ -1,0 +1,41 @@
+---
+title: EmptyResponseBodyError
+description: An error thrown when an AI API request receives an empty response body
+---
+
+# EmptyResponseBodyError
+
+## When This Error Occurs
+
+This error occurs when an AI API request receives an empty response body from the server.
+
+## What It Means
+
+An `EmptyResponseBodyError` indicates that the AI provider responded to a request, but the response body was empty. This is unexpected behavior, as the response should typically contain data or an error message.
+
+## How to Resolve It
+
+To resolve this error:
+
+1. Check your network connection to ensure there are no connectivity issues.
+2. Verify that the AI service is functioning correctly and not experiencing any outages.
+3. Review your request parameters to make sure they are valid and complete.
+4. If the issue persists, contact the AI service provider's support team for assistance.
+
+## Usage
+
+```typescript
+import { EmptyResponseBodyError } from '@vercel/ai';
+
+try {
+  // Your AI API request code here
+} catch (error) {
+  if (EmptyResponseBodyError.isInstance(error)) {
+    console.error(
+      'Received an empty response from the AI service:',
+      error.message,
+    );
+    // Handle the empty response error
+  }
+}
+```

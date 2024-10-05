@@ -1,0 +1,48 @@
+---
+title: InvalidPromptError
+description: Error thrown when a prompt is invalid and cannot be processed by AI providers
+---
+
+# InvalidPromptError
+
+## When This Error Occurs
+
+The `InvalidPromptError` occurs when an AI provider is unable to process a given prompt. This error is typically thrown by providers when they encounter a prompt that doesn't meet their specific requirements or constraints.
+
+## What It Means
+
+When you encounter an `InvalidPromptError`, it means that the prompt you've provided is not suitable for processing by the AI model. This could be due to various reasons, such as:
+
+1. The prompt is empty or null
+2. The prompt exceeds the maximum allowed length
+3. The prompt contains invalid characters or formatting
+4. The prompt doesn't meet specific requirements set by the provider
+
+## How to Resolve It
+
+To resolve an `InvalidPromptError`, you should:
+
+1. Check the error message for specific details about why the prompt is invalid.
+2. Review the prompt to ensure it meets the provider's requirements.
+3. Modify the prompt as needed:
+   - Ensure it's not empty
+   - Trim it if it exceeds the maximum length
+   - Remove any invalid characters or formatting
+   - Adjust the content to meet the provider's specific requirements
+4. If the issue persists, consult the documentation of the specific AI provider for any additional requirements or constraints.
+
+## Usage
+
+```typescript
+import { InvalidPromptError } from '@vercel/ai';
+
+try {
+  // Your code that might throw an InvalidPromptError
+} catch (error) {
+  if (InvalidPromptError.isInstance(error)) {
+    console.error('Invalid prompt:', error.message);
+    console.error('Problematic prompt:', error.prompt);
+    // Handle the error or provide feedback to the user
+  }
+}
+```

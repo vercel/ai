@@ -1,0 +1,45 @@
+---
+title: NoSuchToolError
+description: Error thrown when a model tries to call an unavailable tool
+---
+
+# NoSuchToolError
+
+## When This Error Occurs
+
+This error occurs when an AI model attempts to call a tool that is not available or has not been defined in the current context.
+
+## What It Means
+
+The `NoSuchToolError` indicates that there's a mismatch between the tools the AI model expects to be available and the tools that are actually provided in the code. This can happen if:
+
+1. The model is trained to use certain tools, but they haven't been implemented in your application.
+2. There's a typo in the tool name either in the model's output or in your tool definitions.
+3. The tool the model is trying to use has been removed or renamed.
+
+## How to Resolve It
+
+To resolve this error:
+
+1. Check the `toolName` property of the error to see which tool the model was trying to use.
+2. Verify that all tools the model might need are properly defined and passed to the model.
+3. If the tool should be available, make sure its name in your code exactly matches what the model is trying to call.
+4. If the tool is intentionally not available, you may need to adjust your prompt or model instructions to clarify which tools can be used.
+5. Review the `availableTools` property of the error (if defined) to see the list of tools that are currently available to the model.
+
+## Usage
+
+```typescript
+import { NoSuchToolError } from '@ai-sdk/provider';
+
+try {
+  // Code that might throw a NoSuchToolError
+} catch (error) {
+  if (NoSuchToolError.isInstance(error)) {
+    console.error(`Model tried to use unavailable tool: ${error.toolName}`);
+    if (error.availableTools) {
+      console.log(`Available tools are: ${error.availableTools.join(', ')}`);
+    }
+  }
+}
+```

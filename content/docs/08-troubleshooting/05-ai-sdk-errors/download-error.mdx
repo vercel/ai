@@ -1,0 +1,47 @@
+---
+title: DownloadError
+description: An error thrown when downloading a file fails
+---
+
+# DownloadError
+
+## When This Error Occurs
+
+This error occurs when the AI SDK fails to download a file, typically an image, that was included as part of a prompt. It can happen in scenarios where:
+
+1. The URL provided for the image is invalid or inaccessible.
+2. There are network connectivity issues.
+3. The server hosting the image returns an error status code.
+4. The download process is interrupted or times out.
+
+## What It Means
+
+The `DownloadError` indicates that the AI SDK was unable to retrieve the file content necessary to include in the prompt. This can impact the functionality of multi-modal models that rely on image inputs alongside text.
+
+## How to Resolve It
+
+To resolve this error, you can try the following:
+
+1. Check the URL: Ensure that the image URL is correct and publicly accessible.
+2. Verify network connectivity: Make sure your application has a stable internet connection.
+3. Validate content type: Make sure the content type of the file matches what's expected (e.g., image/png, image/jpeg).
+
+If the issue persists after trying these solutions, you may need to investigate further by examining the specific error details provided in the DownloadError instance, such as the `statusCode` and `statusText`.
+
+## Usage
+
+```typescript
+import { DownloadError } from '@ai-sdk/provider';
+
+try {
+  // Code that might result in a DownloadError
+} catch (error) {
+  if (DownloadError.isInstance(error)) {
+    console.error(`Failed to download file from ${error.url}`);
+    console.error(`Status: ${error.statusCode} ${error.statusText}`);
+    // Handle the error appropriately
+  } else {
+    // Handle other types of errors
+  }
+}
+```

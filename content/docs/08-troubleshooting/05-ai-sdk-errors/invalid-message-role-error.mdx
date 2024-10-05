@@ -1,0 +1,44 @@
+---
+title: InvalidMessageRoleError
+description: Error thrown when an invalid message role is provided
+---
+
+# InvalidMessageRoleError
+
+## When This Error Occurs
+
+This error occurs when an invalid message role is provided when constructing a message for an AI model prompt.
+
+## What It Means
+
+The `InvalidMessageRoleError` indicates that the role specified for a message is not one of the [allowed values](https://sdk.vercel.ai/docs/foundations/prompts). Valid message roles are:
+
+- "system"
+- "user"
+- "assistant"
+- "tool"
+
+Any other role value will trigger this error.
+
+## How to Resolve It
+
+To resolve this error:
+
+1. Check the role value you are providing when creating messages
+2. Ensure you only use one of the valid roles: "system", "user", "assistant", or "tool"
+3. Update any code that may be setting an invalid role value
+
+## Usage
+
+```ts
+import { InvalidMessageRoleError } from '@ai-sdk/core';
+
+try {
+  // Code that may throw the error
+} catch (error) {
+  if (InvalidMessageRoleError.isInstance(error)) {
+    console.log(`Invalid role provided: ${error.role}`);
+    // Handle the error appropriately
+  }
+}
+```
