@@ -29,7 +29,7 @@ import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { getEffectiveAbortSignal } from '../../util/get-effective-abort-signal';
+import { createAbortSignalWithTimeout } from '../../util/create-abort-signal-with-timeout';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', size: 24 });
 
@@ -463,7 +463,7 @@ export async function generateObject<SCHEMA, RESULT>({
                 let clearTimeoutFunction: (() => void) | undefined;
                 let result: any; 
                 try {
-                const { signal: effectiveAbortSignal, clearTimeout } = getEffectiveAbortSignal(abortSignal, timeout);
+                const { signal: effectiveAbortSignal, clearTimeout } = createAbortSignalWithTimeout({signal: abortSignal, timeoutMs: timeout});
                 clearTimeoutFunction = clearTimeout;
                 result = await model.doGenerate({
                   mode: {

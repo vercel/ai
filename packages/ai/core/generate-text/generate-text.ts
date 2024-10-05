@@ -30,7 +30,7 @@ import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray } from './tool-call';
 import { ToToolResultArray } from './tool-result';
-import { getEffectiveAbortSignal } from '../../util/get-effective-abort-signal';
+import { createAbortSignalWithTimeout } from '../../util/create-abort-signal-with-timeout';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
@@ -279,7 +279,7 @@ functionality that can be fully encapsulated in the provider.
               let clearTimeoutFunction: (() => void) | undefined;
               let result: any; 
               try {
-                const { signal: effectiveAbortSignal, clearTimeout } = getEffectiveAbortSignal(abortSignal, timeout);
+                const { signal: effectiveAbortSignal, clearTimeout } = createAbortSignalWithTimeout({signal: abortSignal, timeoutMs: timeout});
                 clearTimeoutFunction = clearTimeout;
                 result = await model.doGenerate({
                   mode,
