@@ -1,4 +1,4 @@
-import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { createIdGenerator, getEffectiveAbortSignal } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { InvalidArgumentError } from '../../errors';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
@@ -87,6 +87,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   prompt,
   messages,
   maxRetries,
+  timeout,
   abortSignal,
   headers,
   maxAutomaticRoundtrips = 0,
@@ -274,15 +275,17 @@ functionality that can be fully encapsulated in the provider.
             }),
             tracer,
             fn: async span => {
+              const { signal: effectiveAbortSignal, clearTimeout } = getEffectiveAbortSignal(abortSignal, timeout);
               const result = await model.doGenerate({
                 mode,
                 ...callSettings,
                 inputFormat: currentInputFormat,
                 prompt: promptMessages,
                 providerMetadata,
-                abortSignal,
+                abortSignal: effectiveAbortSignal, 
                 headers,
               });
+             clearTimeout(); 
 
               // Fill in default values:
               const responseData = {

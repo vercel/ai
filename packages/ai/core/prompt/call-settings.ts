@@ -71,6 +71,12 @@ Maximum number of retries. Set to 0 to disable retries.
   maxRetries?: number;
 
   /**
+Timeout in milliseconds. If set, the call will be aborted after the timeout. Defaults to 0 (no timeout).
+@default 0
+   */
+  timeout?: number;
+
+  /**
 Abort signal.
    */
   abortSignal?: AbortSignal;

@@ -1,5 +1,5 @@
 import { JSONValue } from '@ai-sdk/provider';
-import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
+import { createIdGenerator, safeParseJSON, getEffectiveAbortSignal } from '@ai-sdk/provider-utils';
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
@@ -294,6 +294,7 @@ export async function generateObject<SCHEMA, RESULT>({
   prompt,
   messages,
   maxRetries,
+  timeout,
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
@@ -458,6 +459,7 @@ export async function generateObject<SCHEMA, RESULT>({
               }),
               tracer,
               fn: async span => {
+                const { signal: effectiveAbortSignal, clearTimeout } = getEffectiveAbortSignal(abortSignal, timeout);
                 const result = await model.doGenerate({
                   mode: {
                     type: 'object-json',
@@ -469,10 +471,10 @@ export async function generateObject<SCHEMA, RESULT>({
                   inputFormat,
                   prompt: promptMessages,
                   providerMetadata,
-                  abortSignal,
+                  abortSignal: effectiveAbortSignal,
                   headers,
                 });
-
+                clearTimeout(); 
                 if (result.text === undefined) {
                   throw new NoObjectGeneratedError();
                 }

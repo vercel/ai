@@ -397,6 +397,13 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
         'Maximum number of retries. Set to 0 to disable retries. Default: 2.',
     },
     {
+      name: 'timeout',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Timeout in milliseconds. If set, the call will be aborted after the timeout. Defaults to 0 (no timeout).',
+    },
+    {
       name: 'abortSignal',
       type: 'AbortSignal',
       isOptional: true,

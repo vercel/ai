@@ -6,6 +6,7 @@ import { setTestTracer } from '../telemetry/get-tracer';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
+import { getEffectiveAbortSignal } from '../../../provider-utils/src/get-effective-abort-signal';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -934,5 +935,180 @@ describe('telemetry', () => {
     });
 
     expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+});
+
+describe('generateObject.timeout', () => {
+  const createDelayedModel = (delay: number) => new MockLanguageModelV1({
+    doGenerate: async ({ abortSignal }) => {
+      return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          resolve({
+            ...dummyResponseValues,
+            text: JSON.stringify({ content: `Completed after ${delay}ms` }),
+          });
+        }, delay);
+
+        if (abortSignal?.aborted) {
+          clearTimeout(timeoutId);
+          reject(new Error('AbortError'));
+        }
+
+        abortSignal?.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          reject(new Error('AbortError'));
+        });
+      });
+    },
+  });
+
+  const runWithTimeout = async (delay: number, timeout: number | undefined) => {
+    const startTime = Date.now();
+    try {
+      const result = await generateObject({
+        model: createDelayedModel(delay),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        timeout: timeout,
+      });
+      const duration = Date.now() - startTime;
+      return { success: true, result, duration };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      return { success: false, error, duration };
+    }
+  };
+
+  it('should timeout when response takes too long', async () => {
+    const { success, error, duration } = await runWithTimeout(200, 100);
+    assert(!success, 'Expected timeout, but got success');
+    assert(duration >= 100 && duration < 200, `Unexpected duration for timeout: ${duration}ms`);
+    assert(error instanceof Error && /timeout|abort/i.test(error.message), 'Expected timeout or abort error');
+  });
+
+  it('should complete just before timeout', async () => {
+    const { success, result, duration } = await runWithTimeout(95, 100);
+    assert(success, 'Expected success, but got timeout');
+    assert(duration < 150, `Generation took too long: ${duration}ms`);
+    assert.strictEqual(result?.object.content, 'Completed after 95ms');
+  });
+
+  it('should complete well before timeout', async () => {
+    const { success, result, duration } = await runWithTimeout(50, 100);
+    assert(success, 'Expected success, but got timeout');
+    assert(duration < 100, `Generation took too long: ${duration}ms`);
+    assert.strictEqual(result?.object.content, 'Completed after 50ms');
+  });
+
+  it('should handle very short timeouts', async () => {
+    const { success, error, duration } = await runWithTimeout(50, 1);
+    assert(!success, 'Expected timeout, but got success');
+    assert(duration >= 1 && duration < 100, `Unexpected duration for timeout: ${duration}ms`);
+    assert(error instanceof Error && /timeout|abort/i.test(error.message), 'Expected timeout or abort error');
+  });
+
+  it('should not timeout with no specified timeout', async () => {
+    const { success, result, duration } = await runWithTimeout(500, undefined);
+    assert(success, 'Expected success, but got timeout');
+    assert(duration >= 500 && duration < 600, `Unexpected duration: ${duration}ms`);
+    assert.strictEqual(result?.object.content, 'Completed after 500ms');
+  });
+
+  it('should treat zero timeout as no timeout', async () => {
+    const delay = 50; // ms
+    const { success, result, duration } = await runWithTimeout(delay, 0);
+    
+    assert(success, 'Expected success with zero timeout (treated as no timeout)');
+    assert(duration >= delay && duration < delay + 50, `Unexpected duration: ${duration}ms`);
+    assert.strictEqual(result?.object.content, `Completed after ${delay}ms`);
+  });
+
+  it('should behave the same with zero timeout and undefined timeout', async () => {
+    const delay = 100; // ms
+    const zeroTimeoutResult = await runWithTimeout(delay, 0);
+    const noTimeoutResult = await runWithTimeout(delay, undefined);
+
+    assert(zeroTimeoutResult.success && noTimeoutResult.success, 'Both should succeed');
+    assert.strictEqual(zeroTimeoutResult.result?.object.content, noTimeoutResult.result?.object.content, 'Results should be the same');
+    assert(Math.abs(zeroTimeoutResult.duration - noTimeoutResult.duration) < 20, 'Durations should be similar');
+  });
+
+  it('should allow long operations with zero timeout', async () => {
+    const delay = 500; // ms
+    const { success, result, duration } = await runWithTimeout(delay, 0);
+    
+    assert(success, 'Expected success with zero timeout on long operation');
+    assert(duration >= delay && duration < delay + 100, `Unexpected duration: ${duration}ms`);
+    assert.strictEqual(result.object.content, `Completed after ${delay}ms`);
+  });
+});
+
+describe('generateObject.timeout.abortsignal', () => {
+  const runWithTimeoutAndSignal = async (delay: number, timeout: number | undefined, abortSignal?: AbortSignal) => {
+    const startTime = Date.now();
+    try {
+      const { signal: effectiveAbortSignal, clearTimeout: clearEffectiveTimeout } = getEffectiveAbortSignal(abortSignal, timeout);
+      
+      const result = await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          resolve({
+            object: { content: `Completed after ${delay}ms` },
+            finishReason: 'stop' as const,
+            usage: { promptTokens: 10, completionTokens: 20 },
+          });
+        }, delay);
+
+        effectiveAbortSignal?.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          reject(new Error('AbortError'));
+        });
+
+        if (effectiveAbortSignal?.aborted) {
+          clearTimeout(timeoutId);
+          reject(new Error('AbortError'));
+        }
+      });
+
+      clearEffectiveTimeout();
+      const duration = Date.now() - startTime;
+      return { success: true, result, duration };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      return { success: false, error, duration };
+    }
+  };
+
+  it('should use provided abort signal when no timeout is set', async () => {
+    const abortController = new AbortController();
+    setTimeout(() => abortController.abort(), 50);
+
+    const { success, error, duration } = await runWithTimeoutAndSignal(200, undefined, abortController.signal);
+
+    assert(!success, 'Expected abort, but got success');
+    assert(duration < 100, `Abort took too long: ${duration}ms`);
+    assert(error instanceof Error && error.message === 'AbortError', 'Expected AbortError');
+  });
+
+  it('should use abort signal when both timeout and abort signal are provided', async () => {
+    const abortController = new AbortController();
+    setTimeout(() => abortController.abort(), 50);
+
+    const { success, error, duration } = await runWithTimeoutAndSignal(200, 100, abortController.signal);
+
+    assert(!success, 'Expected abort, but got success');
+    assert(duration < 100, `Abort took too long: ${duration}ms`);
+    assert(error instanceof Error && error.message === 'AbortError', 'Expected AbortError');
+  });
+
+  it('should handle immediate abort', async () => {
+    const abortController = new AbortController();
+    abortController.abort(); // Abort immediately
+
+    const { success, error, duration } = await runWithTimeoutAndSignal(200, undefined, abortController.signal);
+
+    assert(!success, 'Expected immediate abort, but got success');
+    assert(duration < 50, `Abort took too long: ${duration}ms`);
+    assert(error instanceof Error && error.message === 'AbortError', 'Expected AbortError');
   });
 });
