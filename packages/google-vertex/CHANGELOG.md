@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 0.0.40
+
+### Patch Changes
+
+- 8efa1c5: chore (provider/vertex): update GoogleVertexModelId
+
 ## 0.0.39
 
 ### Patch Changes
