@@ -134,6 +134,7 @@ const getStreamedResponse = async (
           tool_calls,
           tool_call_id,
           toolInvocations,
+          experimental_attachments
         }) => ({
           role,
           content,
@@ -145,6 +146,7 @@ const getStreamedResponse = async (
           tool_call_id,
           ...(function_call !== undefined && { function_call }),
           ...(tool_calls !== undefined && { tool_calls }),
+          ...experimental_attachments !== void 0 && {experimental_attachments}
         }),
       );
 
