@@ -1,5 +1,25 @@
 # @ai-sdk/vue
 
+## 0.0.54
+
+### Patch Changes
+
+- b5f577e: fix (ui/vue): prevent infinite looping steps
+
+## 0.0.53
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.20
+- @ai-sdk/ui-utils@0.0.46
+
+## 0.0.52
+
+### Patch Changes
+
+- Updated dependencies [cd77c5d]
+  - @ai-sdk/ui-utils@0.0.45
+
 ## 0.0.51
 
 ### Patch Changes

@@ -177,7 +177,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | ImagePart>',
+              type: 'string | Array<TextPart | ImagePart | FilePart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -208,6 +208,33 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                       type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
                       description:
                         'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The mime type of the image. Optional.',
+                    },
+                  ],
+                },
+                {
+                  type: 'FilePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'file'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      description: 'The mime type of the file.',
                     },
                   ],
                 },
@@ -517,7 +544,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -543,7 +570,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                     },
                     {
                       name: 'headers',
-                      optional: true,
+                      isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
                     },
@@ -681,7 +708,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'logprobs',
               type: 'Logprobs',
-              optional: true,
+              isOptional: true,
             },
             {
               name: 'usage',
@@ -691,7 +718,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -726,7 +753,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     {
       name: 'response',
       type: 'Promise<Response>',
-      optional: true,
+      isOptional: true,
       description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
@@ -752,7 +779,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             },
             {
               name: 'headers',
-              optional: true,
+              isOptional: true,
               type: 'Record<string, string>',
               description: 'Optional response headers.',
             },
@@ -778,19 +805,19 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'status',
               type: 'number',
-              optional: true,
+              isOptional: true,
               description: 'The response status code.',
             },
             {
               name: 'statusText',
               type: 'string',
-              optional: true,
+              isOptional: true,
               description: 'The response status text.',
             },
             {
               name: 'headers',
               type: 'Record<string, string>',
-              optional: true,
+              isOptional: true,
               description: 'The response headers.',
             },
           ],
@@ -809,19 +836,19 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'status',
               type: 'number',
-              optional: true,
+              isOptional: true,
               description: 'The response status code.',
             },
             {
               name: 'statusText',
               type: 'string',
-              optional: true,
+              isOptional: true,
               description: 'The response status text.',
             },
             {
               name: 'headers',
               type: 'Record<string, string>',
-              optional: true,
+              isOptional: true,
               description: 'The response headers.',
             },
           ],

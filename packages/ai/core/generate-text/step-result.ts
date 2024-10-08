@@ -70,4 +70,16 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
   readonly experimental_providerMetadata: ProviderMetadata | undefined;
+
+  /**
+The type of step that this result is for. The first step is always
+an "initial" step, and subsequent steps are either "continue" steps
+or "tool-result" steps.
+   */
+  readonly stepType: 'initial' | 'continue' | 'tool-result';
+
+  /**
+True when there will be a continuation step with a continuation text.
+   */
+  readonly isContinued: boolean;
 };

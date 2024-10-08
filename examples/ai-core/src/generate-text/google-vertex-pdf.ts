@@ -5,15 +5,19 @@ import fs from 'node:fs';
 
 async function main() {
   const result = await generateText({
-    model: vertex('gemini-1.0-pro-vision'),
+    model: vertex('gemini-1.5-flash'),
     messages: [
       {
         role: 'user',
         content: [
-          { type: 'text', text: 'Describe the image in detail.' },
           {
-            type: 'image',
-            image: fs.readFileSync('./data/comic-cat.png').toString('base64'),
+            type: 'text',
+            text: 'What is an embedding model according to this document?',
+          },
+          {
+            type: 'file',
+            data: fs.readFileSync('./data/ai.pdf'),
+            mimeType: 'application/pdf',
           },
         ],
       },

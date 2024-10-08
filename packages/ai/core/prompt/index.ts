@@ -1,4 +1,5 @@
 export type {
+  FilePart,
   ImagePart,
   TextPart,
   ToolCallPart,

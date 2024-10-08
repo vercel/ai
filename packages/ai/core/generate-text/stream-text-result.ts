@@ -275,6 +275,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       usage: LanguageModelUsage;
       response: LanguageModelResponseMetadata;
       experimental_providerMetadata?: ProviderMetadata;
+      isContinued: boolean;
     }
   | {
       type: 'finish';

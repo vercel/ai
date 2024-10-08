@@ -683,13 +683,7 @@ describe('result.pipeDataStreamToResponse', async () => {
       'Content-Type': 'text/plain; charset=utf-8',
       'X-Vercel-AI-Data-Stream': 'v1',
     });
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 
   it('should create a Response with a data stream and custom headers', async () => {
@@ -733,13 +727,7 @@ describe('result.pipeDataStreamToResponse', async () => {
       'custom-header': 'custom-value',
     });
 
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 
   it('should support merging with existing stream data', async () => {
@@ -780,14 +768,7 @@ describe('result.pipeDataStreamToResponse', async () => {
       'X-Vercel-AI-Data-Stream': 'v1',
     });
 
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '2:["stream-data-value"]\n',
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 
   it('should mask error messages by default', async () => {
@@ -809,11 +790,7 @@ describe('result.pipeDataStreamToResponse', async () => {
 
     await mockResponse.waitForEnd();
 
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '3:""\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 
   it('should support custom error messages', async () => {
@@ -837,11 +814,7 @@ describe('result.pipeDataStreamToResponse', async () => {
 
     await mockResponse.waitForEnd();
 
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '3:"custom error message: error"\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 
   it('should suppress usage information when sendUsage is false', async () => {
@@ -868,11 +841,7 @@ describe('result.pipeDataStreamToResponse', async () => {
 
     await mockResponse.waitForEnd();
 
-    expect(mockResponse.getDecodedChunks()).toEqual([
-      '0:"Hello, World!"\n',
-      'e:{"finishReason":"stop"}\n',
-      'd:{"finishReason":"stop"}\n',
-    ]);
+    expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
   });
 });
 
@@ -1185,11 +1154,7 @@ describe('result.toDataStream', () => {
       await convertReadableStreamToArray(
         dataStream.pipeThrough(new TextDecoderStream()),
       ),
-    ).toEqual([
-      '3:""\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    ).toMatchSnapshot();
   });
 
   it('should support custom error messages', async () => {
@@ -1213,11 +1178,7 @@ describe('result.toDataStream', () => {
       await convertReadableStreamToArray(
         dataStream.pipeThrough(new TextDecoderStream()),
       ),
-    ).toEqual([
-      '3:"custom error message: error"\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    ).toMatchSnapshot();
   });
 
   it('should suppress usage information when sendUsage is false', async () => {
@@ -1244,11 +1205,7 @@ describe('result.toDataStream', () => {
       await convertReadableStreamToArray(
         dataStream.pipeThrough(new TextDecoderStream()),
       ),
-    ).toEqual([
-      '0:"Hello, World!"\n',
-      'e:{"finishReason":"stop"}\n',
-      'd:{"finishReason":"stop"}\n',
-    ]);
+    ).toMatchSnapshot();
   });
 });
 
@@ -1287,13 +1244,7 @@ describe('result.toDataStreamResponse', () => {
       'text/plain; charset=utf-8',
     );
 
-    assert.deepStrictEqual(await convertResponseStreamToArray(response), [
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 
   it('should create a Response with a data stream and custom headers', async () => {
@@ -1333,13 +1284,7 @@ describe('result.toDataStreamResponse', () => {
       'custom-header': 'custom-value',
     });
 
-    assert.deepStrictEqual(await convertResponseStreamToArray(response), [
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 
   it('should support merging with existing stream data', async () => {
@@ -1374,16 +1319,7 @@ describe('result.toDataStreamResponse', () => {
       'text/plain; charset=utf-8',
     );
 
-    const chunks = await convertResponseStreamToArray(response);
-
-    assert.deepStrictEqual(chunks, [
-      '2:["stream-data-value"]\n',
-      '0:"Hello"\n',
-      '0:", "\n',
-      '0:"world!"\n',
-      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 
   it('should mask error messages by default', async () => {
@@ -1401,11 +1337,7 @@ describe('result.toDataStreamResponse', () => {
 
     const response = result.toDataStreamResponse();
 
-    assert.deepStrictEqual(await convertResponseStreamToArray(response), [
-      '3:""\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 
   it('should support custom error messages', async () => {
@@ -1425,11 +1357,7 @@ describe('result.toDataStreamResponse', () => {
       getErrorMessage: error => `custom error message: ${error}`,
     });
 
-    assert.deepStrictEqual(await convertResponseStreamToArray(response), [
-      '3:"custom error message: error"\n',
-      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 
   it('should suppress usage information when sendUsage is false', async () => {
@@ -1452,11 +1380,7 @@ describe('result.toDataStreamResponse', () => {
 
     const response = result.toDataStreamResponse({ sendUsage: false });
 
-    expect(await convertResponseStreamToArray(response)).toEqual([
-      '0:"Hello, World!"\n',
-      'e:{"finishReason":"stop"}\n',
-      'd:{"finishReason":"stop"}\n',
-    ]);
+    expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
   });
 });
 
@@ -2113,7 +2037,7 @@ describe('options.maxSteps', () => {
     setTestTracer(undefined);
   });
 
-  describe('2 steps', () => {
+  describe('2 steps: initial, tool-result', () => {
     beforeEach(async () => {
       result = undefined as any;
       onFinishResult = undefined as any;
@@ -2278,7 +2202,7 @@ describe('options.maxSteps', () => {
       });
     });
 
-    it('should contain assistant response message and tool message from all step', async () => {
+    it('should contain assistant response message and tool message from all steps', async () => {
       expect(
         await convertAsyncIterableToArray(result.fullStream),
       ).toMatchSnapshot();
@@ -2335,6 +2259,363 @@ describe('options.maxSteps', () => {
     it('should record telemetry data for each step', async () => {
       await convertAsyncIterableToArray(result.fullStream); // consume stream
       expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+  });
+
+  describe('3 steps: initial, continue, continue', () => {
+    beforeEach(async () => {
+      result = undefined as any;
+      onFinishResult = undefined as any;
+      onStepFinishResults = [];
+
+      let responseCount = 0;
+      result = await streamText({
+        model: new MockLanguageModelV1({
+          doStream: async ({ prompt, mode }) => {
+            switch (responseCount++) {
+              case 0:
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: undefined,
+                  tools: undefined,
+                });
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    { type: 'text-delta', textDelta: 'pa' },
+                    { type: 'text-delta', textDelta: 'rt ' },
+                    { type: 'text-delta', textDelta: '1 \n' },
+                    { type: 'text-delta', textDelta: ' to-be' },
+                    { type: 'text-delta', textDelta: '-discar' },
+                    { type: 'text-delta', textDelta: 'ded' },
+                    {
+                      type: 'finish',
+                      finishReason: 'length',
+                      logprobs: undefined,
+                      usage: { completionTokens: 20, promptTokens: 10 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                };
+              case 1:
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: undefined,
+                  tools: undefined,
+                });
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'part 1 \n ',
+                        providerMetadata: undefined,
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-delta', textDelta: 'no-' },
+                    { type: 'text-delta', textDelta: 'whitespace' },
+                    {
+                      type: 'finish',
+                      finishReason: 'length',
+                      logprobs: undefined,
+                      usage: { completionTokens: 5, promptTokens: 30 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                };
+              case 2: {
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: undefined,
+                  tools: undefined,
+                });
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'part 1 \n ',
+                        providerMetadata: undefined,
+                      },
+                      {
+                        type: 'text',
+                        text: 'no-whitespace',
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-delta', textDelta: 'final' },
+                    { type: 'text-delta', textDelta: ' va' },
+                    { type: 'text-delta', textDelta: 'lue keep all w' },
+                    { type: 'text-delta', textDelta: 'hitespace' },
+                    { type: 'text-delta', textDelta: '\n ' },
+                    { type: 'text-delta', textDelta: 'en' },
+                    { type: 'text-delta', textDelta: 'd' },
+                    {
+                      type: 'finish',
+                      finishReason: 'stop',
+                      logprobs: undefined,
+                      usage: { completionTokens: 2, promptTokens: 3 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                  rawResponse: { headers: { call: '3' } },
+                };
+              }
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        prompt: 'test-input',
+        maxSteps: 5,
+        experimental_continueSteps: true,
+        onFinish: async event => {
+          expect(onFinishResult).to.be.undefined;
+          onFinishResult = event as unknown as typeof onFinishResult;
+        },
+        onStepFinish: async event => {
+          onStepFinishResults.push(event);
+        },
+        experimental_telemetry: { isEnabled: true },
+        _internal: {
+          now: mockValues(0, 100, 500, 600, 1000),
+        },
+      });
+    });
+
+    it('should contain text deltas from all steps', async () => {
+      expect(
+        await convertAsyncIterableToArray(result.fullStream),
+      ).toStrictEqual([
+        {
+          textDelta: 'part ',
+          type: 'text-delta',
+        },
+        {
+          textDelta: '1 \n',
+          type: 'text-delta',
+        },
+        {
+          textDelta: ' ',
+          type: 'text-delta',
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'length',
+          logprobs: undefined,
+          response: {
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          type: 'step-finish',
+          usage: {
+            completionTokens: 20,
+            promptTokens: 10,
+            totalTokens: 30,
+          },
+          isContinued: true,
+        },
+        {
+          textDelta: 'no-whitespace',
+          type: 'text-delta',
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'length',
+          logprobs: undefined,
+          response: {
+            id: 'id-1',
+            modelId: 'mock-model-id',
+            timestamp: new Date(1000),
+          },
+          type: 'step-finish',
+          usage: {
+            completionTokens: 5,
+            promptTokens: 30,
+            totalTokens: 35,
+          },
+          isContinued: true,
+        },
+        {
+          textDelta: 'final ',
+          type: 'text-delta',
+        },
+        {
+          textDelta: 'value keep all ',
+          type: 'text-delta',
+        },
+        {
+          textDelta: 'whitespace\n ',
+          type: 'text-delta',
+        },
+        {
+          textDelta: 'end',
+          type: 'text-delta',
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'stop',
+          logprobs: undefined,
+          response: {
+            id: 'id-1',
+            modelId: 'mock-model-id',
+            timestamp: new Date(1000),
+          },
+          type: 'step-finish',
+          usage: {
+            completionTokens: 2,
+            promptTokens: 3,
+            totalTokens: 5,
+          },
+          isContinued: false,
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'stop',
+          logprobs: undefined,
+          response: {
+            id: 'id-1',
+            modelId: 'mock-model-id',
+            timestamp: new Date(1000),
+          },
+          type: 'finish',
+          usage: {
+            completionTokens: 27,
+            promptTokens: 43,
+            totalTokens: 70,
+          },
+        },
+      ]);
+    });
+
+    describe('callbacks', () => {
+      beforeEach(async () => {
+        await convertAsyncIterableToArray(result.fullStream); // consume stream
+      });
+
+      it('onFinish should send correct information', async () => {
+        expect(onFinishResult).toMatchSnapshot();
+      });
+
+      it('onStepFinish should send correct information', async () => {
+        expect(onStepFinishResults).toMatchSnapshot();
+      });
+    });
+
+    describe('value promises', () => {
+      beforeEach(async () => {
+        await convertAsyncIterableToArray(result.fullStream); // consume stream
+      });
+
+      it('result.usage should contain total token usage', async () => {
+        expect(await result.usage).toStrictEqual({
+          completionTokens: 27,
+          promptTokens: 43,
+          totalTokens: 70,
+        });
+      });
+
+      it('result.finishReason should contain finish reason from final step', async () => {
+        assert.strictEqual(await result.finishReason, 'stop');
+      });
+
+      it('result.text should contain combined text from all steps', async () => {
+        assert.strictEqual(
+          await result.text,
+          'part 1 \n no-whitespacefinal value keep all whitespace\n end',
+        );
+      });
+
+      it('result.steps should contain all steps', async () => {
+        expect(await result.steps).toMatchSnapshot();
+      });
+
+      it('result.rawResponse should contain rawResponse from last step', async () => {
+        assert.deepStrictEqual(result.rawResponse, { headers: { call: '3' } });
+      });
+
+      it('result.responseMessages should contain an assistant message with the combined text', async () => {
+        expect(await result.responseMessages).toStrictEqual([
+          {
+            content: [
+              {
+                text: 'part 1 \n ',
+                type: 'text',
+              },
+              {
+                text: 'no-whitespace',
+                type: 'text',
+              },
+              {
+                text: 'final value keep all whitespace\n end',
+                type: 'text',
+              },
+            ],
+            role: 'assistant',
+          },
+        ]);
+      });
+    });
+
+    it('should record telemetry data for each step', async () => {
+      await convertAsyncIterableToArray(result.fullStream); // consume stream
+      expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+
+    it('should generate correct data stream', async () => {
+      const dataStream = result.toDataStream();
+
+      expect(
+        await convertReadableStreamToArray(
+          dataStream.pipeThrough(new TextDecoderStream()),
+        ),
+      ).toMatchSnapshot();
     });
   });
 });

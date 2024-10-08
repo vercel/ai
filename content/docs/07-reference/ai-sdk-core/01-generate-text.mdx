@@ -79,7 +79,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | ImagePart>',
+              type: 'string | Array<TextPart | ImagePart | FilePart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -110,6 +110,33 @@ To see `generateText` in action, check out [these examples](#examples).
                       type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
                       description:
                         'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The mime type of the image. Optional.',
+                    },
+                  ],
+                },
+                {
+                  type: 'FilePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'file'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      description: 'The mime type of the file.',
                     },
                   ],
                 },
@@ -354,6 +381,12 @@ To see `generateText` in action, check out [these examples](#examples).
         'Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
     },
     {
+      name: 'experimental_continueSteps',
+      type: 'boolean',
+      isOptional: true,
+      description: 'Enable or disable continue steps. Disabled by default.',
+    },
+    {
       name: 'experimental_telemetry',
       type: 'TelemetrySettings',
       isOptional: true,
@@ -418,6 +451,12 @@ To see `generateText` in action, check out [these examples](#examples).
           type: 'onStepFinishResult',
           parameters: [
             {
+              name: 'stepType',
+              type: '"initial" | "continue" | "tool-result"',
+              description:
+                'The type of step. The first step is always an "initial" step, and subsequent steps are either "continue" steps or "tool-result" steps.',
+            },
+            {
               name: 'finishReason',
               type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
               description:
@@ -475,7 +514,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -501,13 +540,19 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'headers',
-                      optional: true,
+                      isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
                     },
                   ],
                 },
               ],
+            },
+            {
+              name: 'isContinued',
+              type: 'boolean',
+              description:
+                'True when there will be a continuation step with a continuation text.',
             },
             {
               name: 'experimental_providerMetadata',
@@ -578,7 +623,7 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'response',
       type: 'Response',
-      optional: true,
+      isOptional: true,
       description: 'Response metadata.',
       properties: [
         {
@@ -604,7 +649,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'headers',
-              optional: true,
+              isOptional: true,
               type: 'Record<string, string>',
               description: 'Optional response headers.',
             },
@@ -639,6 +684,12 @@ To see `generateText` in action, check out [these examples](#examples).
         {
           type: 'StepResult',
           parameters: [
+            {
+              name: 'stepType',
+              type: '"initial" | "continue" | "tool-result"',
+              description:
+                'The type of step. The first step is always an "initial" step, and subsequent steps are either "continue" steps or "tool-result" steps.',
+            },
             {
               name: 'text',
               type: 'string',
@@ -691,7 +742,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
-              optional: true,
+              isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
@@ -717,7 +768,7 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'headers',
-                      optional: true,
+                      isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
                     },
@@ -730,6 +781,12 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'Warning[] | undefined',
               description:
                 'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
+              name: 'isContinued',
+              type: 'boolean',
+              description:
+                'True when there will be a continuation step with a continuation text.',
             },
             {
               name: 'experimental_providerMetadata',

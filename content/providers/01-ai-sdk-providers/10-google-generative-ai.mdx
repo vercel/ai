@@ -75,6 +75,11 @@ The models support tool calls and some have multi-modal capabilities.
 const model = google('gemini-1.5-pro-latest');
 ```
 
+<Note>
+  You can use fine-tuned models by prefixing the model id with `tunedModels/`,
+  e.g. `tunedModels/my-model`.
+</Note>
+
 Google Generative AI models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
@@ -143,6 +148,37 @@ const { text } = await generateText({
 
 Google Generative AI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
+### Example: File input (PDF)
+
+The Google Generative AI provider supports file inputs, e.g. PDF files.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google('gemini-1.5-flash'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'What is an embedding model according to this document?',
+        },
+        {
+          type: 'file',
+          data: fs.readFileSync('./data/ai.pdf'),
+          mimeType: 'application/pdf',
+        },
+      ],
+    },
+  ],
+});
+```
+
+See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
 
 ### Example: Cached Content
 

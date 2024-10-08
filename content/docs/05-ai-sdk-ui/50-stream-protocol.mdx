@@ -204,13 +204,20 @@ Example: `a:{"toolCallId":"call-123","result":"tool output"}\n`
 ### Finish Step Part
 
 A part indicating that a step (i.e., one LLM API call in the backend) has been completed.
-This is necessary to correctly process multiple stitched assistant calls, e.g. when calling tools in the backend, and using steps in `useChat` at the same time.
-It includes addition metadata, such as [`FinishReason`](/docs/reference/ai-sdk-ui/use-chat#on-finish-finish-reason) and [`Usage`](/docs/reference/ai-sdk-ui/use-chat#on-finish-usage), for that step.
-This part needs to come at the end of a step.
 
-Format: `e:{finishReason:'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';usage:{promptTokens:number; completionTokens:number;}}\n`
+This part is necessary to correctly process multiple stitched assistant calls, e.g. when calling tools in the backend, and using steps in `useChat` at the same time.
 
-Example: `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n`
+It includes the following metadata:
+
+- [`FinishReason`](/docs/reference/ai-sdk-ui/use-chat#on-finish-finish-reason)
+- [`Usage`](/docs/reference/ai-sdk-ui/use-chat#on-finish-usage) for that step.
+- `isContinued` to indicate if the step text will be continued in the next step.
+
+The finish step part needs to come at the end of a step.
+
+Format: `e:{finishReason:'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';usage:{promptTokens:number; completionTokens:number;},isContinued:boolean}\n`
+
+Example: `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20},"isContinued":false}\n`
 
 ### Finish Message Part
 

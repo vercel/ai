@@ -50,6 +50,11 @@ export function convertToOpenAIChatMessages({
                   },
                 };
               }
+              case 'file': {
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'File content parts in user messages',
+                });
+              }
             }
           }),
         });

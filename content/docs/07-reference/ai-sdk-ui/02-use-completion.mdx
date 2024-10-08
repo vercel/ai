@@ -112,14 +112,14 @@ Allows you to create text completion based capabilities for your application. It
     {
       name: 'streamProtocol',
       type: "'text' | 'data'",
-      optional: true,
+      isOptional: true,
       description:
         'An optional literal that sets the type of stream to be used. Defaults to `data`. If set to `text`, the stream will be treated as a text stream.',
     },
     {
       name: 'fetch',
       type: 'FetchFunction',
-      optional: true,
+      isOptional: true,
       description:
         'Optional. A custom fetch function to be used for the API call. Defaults to the global fetch function.',
     },

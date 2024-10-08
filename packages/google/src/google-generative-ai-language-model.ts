@@ -15,6 +15,7 @@ import {
 import { z } from 'zod';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
+import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
@@ -50,11 +51,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     settings: GoogleGenerativeAISettings,
     config: GoogleGenerativeAIConfig,
   ) {
-    // TODO model ids with 'models/' prefix are deprecated
-    this.modelId = modelId.startsWith('models/')
-      ? modelId.substring(7)
-      : modelId;
-
+    this.modelId = modelId;
     this.settings = settings;
     this.config = config;
   }
@@ -202,7 +199,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}:generateContent`,
+      url: `${this.config.baseURL}/${getModelPath(
+        this.modelId,
+      )}:generateContent`,
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
@@ -244,7 +243,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}:streamGenerateContent?alt=sse`,
+      url: `${this.config.baseURL}/${getModelPath(
+        this.modelId,
+      )}:streamGenerateContent?alt=sse`,
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
@@ -414,7 +415,7 @@ const responseSchema = z.object({
   usageMetadata: z
     .object({
       promptTokenCount: z.number(),
-      candidatesTokenCount: z.number(),
+      candidatesTokenCount: z.number().nullish(),
       totalTokenCount: z.number(),
     })
     .optional(),
@@ -432,7 +433,7 @@ const chunkSchema = z.object({
   usageMetadata: z
     .object({
       promptTokenCount: z.number(),
-      candidatesTokenCount: z.number(),
+      candidatesTokenCount: z.number().nullish(),
       totalTokenCount: z.number(),
     })
     .optional(),

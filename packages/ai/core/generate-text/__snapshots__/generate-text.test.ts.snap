@@ -1,10 +1,11 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`options.maxSteps > 2 steps > onStepFinish should be called for each step 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should be called for each step 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "headers": undefined,
@@ -12,6 +13,7 @@ exports[`options.maxSteps > 2 steps > onStepFinish should be called for each ste
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "stepType": "initial",
     "text": "",
     "toolCalls": [
       {
@@ -43,6 +45,7 @@ exports[`options.maxSteps > 2 steps > onStepFinish should be called for each ste
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "headers": {
@@ -52,6 +55,7 @@ exports[`options.maxSteps > 2 steps > onStepFinish should be called for each ste
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
     "toolResults": [],
@@ -65,7 +69,7 @@ exports[`options.maxSteps > 2 steps > onStepFinish should be called for each ste
 ]
 `;
 
-exports[`options.maxSteps > 2 steps > result.responseMessages should contain response messages from all steps 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > result.responseMessages should contain response messages from all steps 1`] = `
 [
   {
     "content": [
@@ -107,11 +111,12 @@ exports[`options.maxSteps > 2 steps > result.responseMessages should contain res
 ]
 `;
 
-exports[`options.maxSteps > 2 steps > result.steps should contain all steps 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should contain all steps 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "headers": undefined,
@@ -119,6 +124,7 @@ exports[`options.maxSteps > 2 steps > result.steps should contain all steps 1`] 
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "stepType": "initial",
     "text": "",
     "toolCalls": [
       {
@@ -150,6 +156,7 @@ exports[`options.maxSteps > 2 steps > result.steps should contain all steps 1`] 
   {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
+    "isContinued": false,
     "logprobs": undefined,
     "response": {
       "headers": {
@@ -159,6 +166,7 @@ exports[`options.maxSteps > 2 steps > result.steps should contain all steps 1`] 
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
     "toolResults": [],
@@ -166,6 +174,156 @@ exports[`options.maxSteps > 2 steps > result.steps should contain all steps 1`] 
       "completionTokens": 20,
       "promptTokens": 10,
       "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish should be called for each step 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "isContinued": true,
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "test-id-1-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "stepType": "initial",
+    "text": "part 1 
+ ",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "isContinued": true,
+    "logprobs": undefined,
+    "response": {
+      "headers": {
+        "custom-response-header": "response-header-value",
+      },
+      "id": "test-id-2-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:10.000Z,
+    },
+    "stepType": "continue",
+    "text": "no-whitespace",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 30,
+      "totalTokens": 35,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "test-id-3-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:20.000Z,
+    },
+    "stepType": "continue",
+    "text": "final value keep all whitespace
+ end",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 2,
+      "promptTokens": 3,
+      "totalTokens": 5,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps should contain all steps 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "isContinued": true,
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "test-id-1-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "stepType": "initial",
+    "text": "part 1 
+ ",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "length",
+    "isContinued": true,
+    "logprobs": undefined,
+    "response": {
+      "headers": {
+        "custom-response-header": "response-header-value",
+      },
+      "id": "test-id-2-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:10.000Z,
+    },
+    "stepType": "continue",
+    "text": "no-whitespace",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 30,
+      "totalTokens": 35,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "test-id-3-from-model",
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:20.000Z,
+    },
+    "stepType": "continue",
+    "text": "final value keep all whitespace
+ end",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 2,
+      "promptTokens": 3,
+      "totalTokens": 5,
     },
     "warnings": undefined,
   },

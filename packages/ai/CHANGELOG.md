@@ -1,5 +1,71 @@
 # ai
 
+## 3.4.9
+
+### Patch Changes
+
+- d347538: fix (ai/core): export FilePart interface
+
+## 3.4.8
+
+### Patch Changes
+
+- Updated dependencies [b5f577e]
+  - @ai-sdk/vue@0.0.54
+
+## 3.4.7
+
+### Patch Changes
+
+- db04700: feat (core): support converting attachments to file parts
+- 988707c: feat (ai/core): automatically download files from urls
+
+## 3.4.6
+
+### Patch Changes
+
+- d595d0d: feat (ai/core): file content parts
+- Updated dependencies [d595d0d]
+  - @ai-sdk/provider@0.0.24
+  - @ai-sdk/provider-utils@1.0.20
+  - @ai-sdk/ui-utils@0.0.46
+  - @ai-sdk/react@0.0.62
+  - @ai-sdk/solid@0.0.49
+  - @ai-sdk/svelte@0.0.51
+  - @ai-sdk/vue@0.0.53
+
+## 3.4.5
+
+### Patch Changes
+
+- cd77c5d: feat (ai/core): add isContinued to steps
+- Updated dependencies [cd77c5d]
+  - @ai-sdk/ui-utils@0.0.45
+  - @ai-sdk/react@0.0.61
+  - @ai-sdk/solid@0.0.48
+  - @ai-sdk/svelte@0.0.50
+  - @ai-sdk/vue@0.0.52
+
+## 3.4.4
+
+### Patch Changes
+
+- 4db074b: fix (ai/core): correct whitespace in generateText continueSteps
+- 1297e1b: fix (ai/core): correct whitespace in streamText continueSteps
+
+## 3.4.3
+
+### Patch Changes
+
+- b270ae3: feat (ai/core): streamText continueSteps (experimental)
+- b270ae3: chore (ai/core): rename generateText continuationSteps to continueSteps
+
+## 3.4.2
+
+### Patch Changes
+
+- e6c7e98: feat (ai/core): add continuationSteps to generateText
+
 ## 3.4.1
 
 ### Patch Changes

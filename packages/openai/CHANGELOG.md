@@ -1,5 +1,37 @@
 # @ai-sdk/openai
 
+## 0.0.66
+
+### Patch Changes
+
+- 3f29c10: feat (provider/openai): support metadata field for distillation
+
+## 0.0.65
+
+### Patch Changes
+
+- e8aed44: Add OpenAI cached prompt tokens to experimental_providerMetadata for generateText and streamText
+
+## 0.0.64
+
+### Patch Changes
+
+- 5aa576d: feat (provider/openai): support store parameter for distillation
+
+## 0.0.63
+
+### Patch Changes
+
+- Updated dependencies [d595d0d]
+  - @ai-sdk/provider@0.0.24
+  - @ai-sdk/provider-utils@1.0.20
+
+## 0.0.62
+
+### Patch Changes
+
+- 7efa867: feat (provider/openai): simulated streaming for reasoning models
+
 ## 0.0.61
 
 ### Patch Changes

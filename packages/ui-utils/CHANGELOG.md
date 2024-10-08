@@ -1,5 +1,19 @@
 # @ai-sdk/ui-utils
 
+## 0.0.46
+
+### Patch Changes
+
+- Updated dependencies [d595d0d]
+  - @ai-sdk/provider@0.0.24
+  - @ai-sdk/provider-utils@1.0.20
+
+## 0.0.45
+
+### Patch Changes
+
+- cd77c5d: feat (ai/core): add isContinued to steps
+
 ## 0.0.44
 
 ### Patch Changes
