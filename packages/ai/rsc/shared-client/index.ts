@@ -9,3 +9,4 @@ export {
   useSyncUIState,
   useUIState,
 } from './context';
+export { InternalStreamableUIClient } from './internal-streamable-ui-client';

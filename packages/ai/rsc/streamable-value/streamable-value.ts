@@ -1,6 +1,9 @@
 export const STREAMABLE_VALUE_TYPE = Symbol.for('ui.streamable.value');
 
-export type StreamablePatch = undefined | [0, string]; // Append string.
+export type StreamablePatch =
+  | undefined
+  | [0, string] // Append string
+  | [1, React.ReactElement | string]; // Append element
 
 declare const __internal_curr: unique symbol;
 declare const __internal_error: unique symbol;
