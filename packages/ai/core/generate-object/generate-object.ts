@@ -29,6 +29,7 @@ import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { createAbortSignalWithTimeout } from '../../util/create-abort-signal-with-timeout';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', size: 24 });
 
@@ -294,6 +295,7 @@ export async function generateObject<SCHEMA, RESULT>({
   prompt,
   messages,
   maxRetries,
+  timeout,
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
@@ -458,7 +460,12 @@ export async function generateObject<SCHEMA, RESULT>({
               }),
               tracer,
               fn: async span => {
-                const result = await model.doGenerate({
+                let clearTimeoutFunction: (() => void) | undefined;
+                let result: any; 
+                try {
+                const { signal: effectiveAbortSignal, clearTimeout } = createAbortSignalWithTimeout({signal: abortSignal, timeoutMs: timeout});
+                clearTimeoutFunction = clearTimeout;
+                result = await model.doGenerate({
                   mode: {
                     type: 'object-json',
                     schema: outputStrategy.jsonSchema,
@@ -469,10 +476,17 @@ export async function generateObject<SCHEMA, RESULT>({
                   inputFormat,
                   prompt: promptMessages,
                   providerMetadata,
-                  abortSignal,
+                  abortSignal: effectiveAbortSignal,
                   headers,
                 });
-
+                } catch (error) {
+                  console.error('Error during model generation:', error);
+                  throw error;
+                } finally {
+                  if (clearTimeoutFunction) {
+                    clearTimeoutFunction();
+                  }
+                }
                 if (result.text === undefined) {
                   throw new NoObjectGeneratedError();
                 }

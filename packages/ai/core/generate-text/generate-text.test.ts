@@ -955,3 +955,109 @@ describe('tools with custom schema', () => {
     ]);
   });
 });
+
+
+
+describe('result.text.timeout', () => {
+  const createDelayedModel = (delay: number) => new MockLanguageModelV1({
+    doGenerate: async ({ abortSignal }) => {
+      return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          resolve({
+            ...dummyResponseValues,
+            text: `Completed after ${delay}ms`,
+          });
+        }, delay);
+
+        if (abortSignal?.aborted) {
+          clearTimeout(timeoutId);
+          reject(new Error('AbortError'));
+        }
+
+        abortSignal?.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          reject(new Error('AbortError'));
+        });
+      });
+    },
+  });
+
+  const runWithTimeout = async (delay: number, timeout: number | undefined) => {
+    const startTime = Date.now();
+    try {
+      const result = await generateText({
+        model: createDelayedModel(delay),
+        prompt: 'prompt',
+        timeout: timeout,
+      });
+      const duration = Date.now() - startTime;
+      return { success: true, result, duration };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      return { success: false, error, duration };
+    }
+  };
+
+  it('should timeout when response takes too long', async () => {
+    const { success, error, duration } = await runWithTimeout(200, 100);
+    assert(!success, 'Expected timeout, but got success');
+    assert(duration >= 100 && duration < 200, `Unexpected duration for timeout: ${duration}ms`);
+    assert(error instanceof Error && /timeout|abort/i.test(error.message), 'Expected timeout or abort error');
+  });
+
+  it('should complete just before timeout', async () => {
+    const { success, result, duration } = await runWithTimeout(95, 100);
+    assert(success, 'Expected success, but got timeout');
+    assert(duration < 150, `Generation took too long: ${duration}ms`);
+    assert.strictEqual(result?.text, 'Completed after 95ms');
+  });
+
+  it('should complete well before timeout', async () => {
+    const { success, result, duration } = await runWithTimeout(50, 100);
+    assert(success, 'Expected success, but got timeout');
+    assert(duration < 100, `Generation took too long: ${duration}ms`);
+    assert.strictEqual(result?.text, 'Completed after 50ms');
+  });
+
+  it('should handle very short timeouts', async () => {
+    const { success, error, duration } = await runWithTimeout(50, 1);
+    assert(!success, 'Expected timeout, but got success');
+    assert(duration >= 1 && duration < 100, `Unexpected duration for timeout: ${duration}ms`);
+    assert(error instanceof Error && /timeout|abort/i.test(error.message), 'Expected timeout or abort error');
+  });
+
+  it('should not timeout with no specified timeout', async () => {
+    const { success, result, duration } = await runWithTimeout(500, undefined);
+    assert(success, 'Expected success, but got timeout');
+    assert(duration >= 500 && duration < 600, `Unexpected duration: ${duration}ms`);
+    assert.strictEqual(result?.text, 'Completed after 500ms');
+  });
+
+  it('should treat zero timeout as no timeout', async () => {
+    const delay = 50; // ms
+    const { success, result, duration } = await runWithTimeout(delay, 0);
+    
+    assert(success, 'Expected success with zero timeout (treated as no timeout)');
+    assert(duration >= delay && duration < delay + 50, `Unexpected duration: ${duration}ms`);
+    assert.strictEqual(result?.text, `Completed after ${delay}ms`);
+  });
+  it('should behave the same with zero timeout and undefined timeout', async () => {
+    const delay = 100; // ms
+    const zeroTimeoutResult = await runWithTimeout(delay, 0);
+    const noTimeoutResult = await runWithTimeout(delay, undefined);
+
+    assert(zeroTimeoutResult.success && noTimeoutResult.success, 'Both should succeed');
+    assert.strictEqual(zeroTimeoutResult?.result?.text, noTimeoutResult?.result?.text, 'Results should be the same');
+    assert(Math.abs(zeroTimeoutResult.duration - noTimeoutResult.duration) < 20, 'Durations should be similar');
+  });
+
+  it('should allow long operations with zero timeout', async () => {
+    const delay = 500; // ms
+    const { success, result, duration } = await runWithTimeout(delay, 0);
+    
+    assert(success, 'Expected success with zero timeout on long operation');
+    assert(duration >= delay && duration < delay + 100, `Unexpected duration: ${duration}ms`);
+    assert.strictEqual(result?.text, `Completed after ${delay}ms`);
+  });
+
+});

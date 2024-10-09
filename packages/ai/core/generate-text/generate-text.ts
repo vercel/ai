@@ -31,6 +31,7 @@ import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray } from './tool-call';
 import { ToToolResultArray } from './tool-result';
+import { createAbortSignalWithTimeout } from '../../util/create-abort-signal-with-timeout';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
@@ -88,6 +89,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   prompt,
   messages,
   maxRetries,
+  timeout,
   abortSignal,
   headers,
   maxAutomaticRoundtrips = 0,
@@ -293,16 +295,28 @@ functionality that can be fully encapsulated in the provider.
             }),
             tracer,
             fn: async span => {
-              const result = await model.doGenerate({
-                mode,
-                ...callSettings,
-                inputFormat: currentInputFormat,
-                prompt: promptMessages,
-                providerMetadata,
-                abortSignal,
-                headers,
-              });
-
+              let clearTimeoutFunction: (() => void) | undefined;
+              let result: any; 
+              try {
+                const { signal: effectiveAbortSignal, clearTimeout } = createAbortSignalWithTimeout({signal: abortSignal, timeoutMs: timeout});
+                clearTimeoutFunction = clearTimeout;
+                result = await model.doGenerate({
+                  mode,
+                  ...callSettings,
+                  inputFormat: currentInputFormat,
+                  prompt: promptMessages,
+                  providerMetadata,
+                  abortSignal: effectiveAbortSignal,
+                  headers,
+                });
+              } catch (error) {
+                console.error('Error during model generation:', error);
+                throw error;
+              } finally {
+                if (clearTimeoutFunction) {
+                  clearTimeoutFunction();
+                }
+              }
               // Fill in default values:
               const responseData = {
                 id: result.response?.id ?? generateId(),
