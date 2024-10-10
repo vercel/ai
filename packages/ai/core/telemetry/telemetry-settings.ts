@@ -1,4 +1,4 @@
-import { AttributeValue } from '@opentelemetry/api';
+import { AttributeValue, Tracer } from '@opentelemetry/api';
 
 /**
  * Telemetry configuration.
@@ -36,4 +36,9 @@ export type TelemetrySettings = {
    * Additional information to include in the telemetry data.
    */
   metadata?: Record<string, AttributeValue>;
+
+  /**
+   * Callback to get a custom Tracer.
+   */
+  getTracer?: () => Tracer;  
 };

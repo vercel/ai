@@ -275,7 +275,7 @@ need to be added separately.
     settings: { ...settings, maxRetries },
   });
 
-  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false, getTracer: telemetry?.getTracer });
 
   return recordSpan({
     name: 'ai.streamText',
