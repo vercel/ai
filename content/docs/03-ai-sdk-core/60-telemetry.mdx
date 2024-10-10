@@ -55,6 +55,25 @@ const result = await generateText({
 });
 ```
 
+## Providing a custom tracer
+
+You can provide a `getTracer` function which must return an OpenTelemetry `Tracer`. This is useful in situations where
+you may want your traces to use an alternate `TracerProvider`.
+
+```ts highlight="7-9"
+const aiTracerProvider = new NodeTracerProvider();
+const result = await generateText({
+  model: openai('gpt-4-turbo'),
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: {
+    isEnabled: true,
+    getTracer() {
+      return aiTracerProvider.getTracer('ai')
+    },
+  },
+});
+```
+
 ## Collected Data
 
 ### generateText function

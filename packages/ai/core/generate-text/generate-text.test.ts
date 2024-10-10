@@ -1,7 +1,6 @@
 import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { setTestTracer } from '../telemetry/get-tracer';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
@@ -734,11 +733,6 @@ describe('telemetry', () => {
 
   beforeEach(() => {
     tracer = new MockTracer();
-    setTestTracer(tracer);
-  });
-
-  afterEach(() => {
-    setTestTracer(undefined);
   });
 
   it('should not record any telemetry data when not explicitly enabled', async () => {
@@ -750,6 +744,9 @@ describe('telemetry', () => {
         }),
       }),
       prompt: 'prompt',
+      experimental_telemetry: {
+        getTracer: () => tracer,
+      },      
     });
 
     expect(tracer.jsonSpans).toMatchSnapshot();
@@ -786,6 +783,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
+        getTracer: () => tracer,
       },
     });
 
@@ -816,6 +814,7 @@ describe('telemetry', () => {
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
+        getTracer: () => tracer,
       },
       _internal: {
         generateId: () => 'test-id',
@@ -852,6 +851,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
+        getTracer: () => tracer,
       },
       _internal: {
         generateId: () => 'test-id',
