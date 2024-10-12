@@ -57,27 +57,31 @@ const model = openRouter('google/gemini-flash-1.5');
 You can use OpenRouter language models to generate text with the `generateText` function:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai'
-import { generateText } from 'ai'
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
 
 const openRouter = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY ?? '',
   baseURL: 'https://openrouter.ai/api/v1',
   headers: {
-    "HTTP-Referer": `${YOUR_SITE_URL}`, // Optional, for including your app on openrouter.ai rankings.
-    "X-Title": `${YOUR_SITE_NAME}`, // Optional. Shows in rankings on openrouter.ai.
+    'HTTP-Referer': `${YOUR_SITE_URL}`, // Optional, for including your app on openrouter.ai rankings.
+    'X-Title': `${YOUR_SITE_NAME}`, // Optional. Shows in rankings on openrouter.ai.
   },
-})
+});
 
 const { text } = await generateText({
   model: openRouter('google/gemini-flash-1.5'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
-})
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 ```
 
 OpenRouter language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
 <Note type="warning">
-The availability of `generateText`, `streamText`, `generateObject`, `streamObject`, and `streamUI` functions depends on the specific model's capabilities. Please refer to the [OpenRouter models page](https://openrouter.ai/docs/models) for detailed information on each model's features and limitations.
+  The availability of `generateText`, `streamText`, `generateObject`,
+  `streamObject`, and `streamUI` functions depends on the specific model's
+  capabilities. Please refer to the [OpenRouter models
+  page](https://openrouter.ai/docs/models) for detailed information on each
+  model's features and limitations.
 </Note>
