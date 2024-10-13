@@ -590,25 +590,38 @@ export async function generateObject<SCHEMA, RESULT>({
               }),
               tracer,
               fn: async span => {
-                const result = await model.doGenerate({
-                  mode: {
-                    type: 'object-tool',
-                    tool: {
-                      type: 'function',
-                      name: schemaName ?? 'json',
-                      description:
-                        schemaDescription ?? 'Respond with a JSON object.',
-                      parameters: outputStrategy.jsonSchema!,
+                let clearTimeoutFunction: (() => void) | undefined;
+                let result: any; 
+                try {
+                  const { signal: effectiveAbortSignal, clearTimeout } = createAbortSignalWithTimeout({signal: abortSignal, timeoutMs: timeout});
+                  clearTimeoutFunction = clearTimeout;
+                  result = await model.doGenerate({
+                    mode: {
+                      type: 'object-tool',
+                      tool: {
+                        type: 'function',
+                        name: schemaName ?? 'json',
+                        description:
+                          schemaDescription ?? 'Respond with a JSON object.',
+                        parameters: outputStrategy.jsonSchema!,
+                      },
                     },
-                  },
-                  ...prepareCallSettings(settings),
-                  inputFormat,
-                  prompt: promptMessages,
-                  providerMetadata,
-                  abortSignal,
-                  headers,
-                });
-
+                    ...prepareCallSettings(settings),
+                    inputFormat,
+                    prompt: promptMessages,
+                    providerMetadata,
+                    abortSignal : effectiveAbortSignal,
+                    headers,
+                  })
+                   } catch (error) {
+                    console.error('Error during model generation:', error);
+                    throw error;
+                   } finally {
+                    if (clearTimeoutFunction) {
+                      clearTimeoutFunction();
+                    }
+                  };
+                
                 const objectText = result.toolCalls?.[0]?.args;
 
                 if (objectText === undefined) {
