@@ -13,7 +13,6 @@ import {
   jsonSchema,
 } from '../../streams';
 import { delay } from '../../util/delay';
-import { setTestTracer } from '../telemetry/get-tracer';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
@@ -2030,11 +2029,6 @@ describe('options.maxSteps', () => {
 
   beforeEach(() => {
     tracer = new MockTracer();
-    setTestTracer(tracer);
-  });
-
-  afterEach(() => {
-    setTestTracer(undefined);
   });
 
   describe('2 steps: initial, tool-result', () => {
@@ -2194,7 +2188,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
-        experimental_telemetry: { isEnabled: true },
+        experimental_telemetry: { isEnabled: true, tracer },
         maxSteps: 3,
         _internal: {
           now: mockValues(0, 100, 500, 600, 1000),
@@ -2421,7 +2415,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
-        experimental_telemetry: { isEnabled: true },
+        experimental_telemetry: { isEnabled: true, tracer },
         _internal: {
           now: mockValues(0, 100, 500, 600, 1000),
         },
@@ -2697,11 +2691,6 @@ describe('telemetry', () => {
 
   beforeEach(() => {
     tracer = new MockTracer();
-    setTestTracer(tracer);
-  });
-
-  afterEach(() => {
-    setTestTracer(undefined);
   });
 
   it('should not record any telemetry data when not explicitly enabled', async () => {
@@ -2782,6 +2771,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
+        tracer,
       },
       _internal: { now: mockValues(0, 100, 500) },
     });
@@ -2827,7 +2817,7 @@ describe('telemetry', () => {
         },
       },
       prompt: 'test-input',
-      experimental_telemetry: { isEnabled: true },
+      experimental_telemetry: { isEnabled: true, tracer },
       _internal: { now: mockValues(0, 100, 500) },
     });
 
@@ -2876,6 +2866,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
+        tracer,
       },
       _internal: { now: mockValues(0, 100, 500) },
     });

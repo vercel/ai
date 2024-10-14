@@ -4,6 +4,7 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
 import {
   DeepPartial,
   Schema,
@@ -44,14 +45,13 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { now as originalNow } from '../util/now';
+import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
+import { writeToServerResponse } from '../util/write-to-server-response';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { createIdGenerator } from '@ai-sdk/provider-utils';
-import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
-import { writeToServerResponse } from '../util/write-to-server-response';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', size: 24 });
 
@@ -386,7 +386,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     settings: { ...settings, maxRetries },
   });
 
-  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  const tracer = getTracer(telemetry);
 
   const retry = retryWithExponentialBackoff({ maxRetries });
 

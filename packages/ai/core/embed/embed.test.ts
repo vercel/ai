@@ -1,5 +1,4 @@
 import assert from 'node:assert';
-import { setTestTracer } from '../telemetry/get-tracer';
 import {
   MockEmbeddingModelV1,
   mockEmbed,
@@ -74,11 +73,6 @@ describe('telemetry', () => {
 
   beforeEach(() => {
     tracer = new MockTracer();
-    setTestTracer(tracer);
-  });
-
-  afterEach(() => {
-    setTestTracer(undefined);
   });
 
   it('should not record any telemetry data when not explicitly enabled', async () => {
@@ -87,6 +81,7 @@ describe('telemetry', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
+      experimental_telemetry: { tracer },
     });
 
     expect(tracer.jsonSpans).toMatchSnapshot();
@@ -105,6 +100,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
+        tracer,
       },
     });
 
@@ -121,6 +117,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
+        tracer,
       },
     });
 
