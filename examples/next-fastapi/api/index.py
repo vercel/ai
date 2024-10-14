@@ -110,7 +110,7 @@ def stream_text(messages: List[ClientMessage], protocol: str = 'data'):
                             draft_tool_calls[draft_tool_calls_index]["arguments"] += arguments
 
                 else:
-                    yield '0:"{text}"\n'.format(text=choice.delta.content)
+                    yield '0:{text}\n'.format(text=json.dumps(choice.delta.content))
 
             if chunk.choices == []:
                 usage = chunk.usage
