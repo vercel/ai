@@ -203,7 +203,8 @@ functionality that can be fully encapsulated in the provider.
     settings: { ...settings, maxRetries },
   });
 
-  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  const tracer = getTracer(telemetry);
+
   return recordSpan({
     name: 'ai.generateText',
     attributes: selectTelemetryAttributes({
