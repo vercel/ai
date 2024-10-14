@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { withTestServer } from '@ai-sdk/provider-utils/test';
 import {
+  StreamPartType,
   formatStreamPart,
   getTextFromDataUrl,
   Message,
@@ -30,12 +31,17 @@ describe('stream data stream', () => {
     };
   }> = [];
 
+  let chunks: StreamPartType[] = [];
+
   const TestComponent = () => {
     const [id, setId] = React.useState<string>('first-id');
     const { messages, append, error, data, isLoading } = useChat({
       id,
       onFinish: (message, options) => {
         onFinishCalls.push({ message, options });
+      },
+      onChunk(event) {
+        chunks.push(event.chunk);
       },
     });
 
@@ -70,12 +76,14 @@ describe('stream data stream', () => {
   beforeEach(() => {
     render(<TestComponent />);
     onFinishCalls = [];
+    chunks = [];
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     cleanup();
     onFinishCalls = [];
+    chunks = [];
   });
 
   it(
@@ -257,6 +265,46 @@ describe('stream data stream', () => {
       ),
     );
   });
+
+  it(
+    'options.onChunk',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: [
+          formatStreamPart('text', 'Hello'),
+          formatStreamPart('text', ','),
+          formatStreamPart('text', ' world'),
+          formatStreamPart('text', '.'),
+        ],
+      },
+      async () => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('message-1');
+
+        expect(chunks).toStrictEqual([
+          {
+            type: 'text',
+            value: 'Hello',
+          },
+          {
+            type: 'text',
+            value: ',',
+          },
+          {
+            type: 'text',
+            value: ' world',
+          },
+          {
+            type: 'text',
+            value: '.',
+          },
+        ]);
+      },
+    ),
+  );
 });
 
 describe('text stream', () => {
