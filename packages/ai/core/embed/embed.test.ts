@@ -81,9 +81,7 @@ describe('telemetry', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_telemetry: {
-        getTracer: () => tracer,
-      },      
+      experimental_telemetry: { tracer },
     });
 
     expect(tracer.jsonSpans).toMatchSnapshot();
@@ -102,7 +100,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
-        getTracer: () => tracer,
+        tracer,
       },
     });
 
@@ -119,7 +117,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        getTracer: () => tracer,
+        tracer,
       },
     });
 

@@ -744,9 +744,7 @@ describe('telemetry', () => {
         }),
       }),
       prompt: 'prompt',
-      experimental_telemetry: {
-        getTracer: () => tracer,
-      },      
+      experimental_telemetry: { tracer },
     });
 
     expect(tracer.jsonSpans).toMatchSnapshot();
@@ -783,7 +781,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
-        getTracer: () => tracer,
+        tracer,
       },
     });
 
@@ -814,7 +812,7 @@ describe('telemetry', () => {
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
-        getTracer: () => tracer,
+        tracer,
       },
       _internal: {
         generateId: () => 'test-id',
@@ -851,7 +849,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        getTracer: () => tracer,
+        tracer,
       },
       _internal: {
         generateId: () => 'test-id',

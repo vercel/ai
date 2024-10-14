@@ -1532,7 +1532,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
-        getTracer: () => tracer,
+        tracer,
       },
       _internal: { now: () => 0 },
     });
@@ -1626,7 +1626,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
-        getTracer: () => tracer,
+        tracer,
       },
       _internal: { now: () => 0 },
     });
@@ -1670,7 +1670,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        getTracer: () => tracer,
+        tracer,
       },
       _internal: { now: () => 0 },
     });
@@ -1750,7 +1750,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        getTracer: () => tracer,
+        tracer,
       },
       _internal: { now: () => 0 },
     });

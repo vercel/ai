@@ -38,7 +38,7 @@ export type TelemetrySettings = {
   metadata?: Record<string, AttributeValue>;
 
   /**
-   * Callback to get a custom Tracer.
+   * A custom tracer to use for the telemetry data.
    */
-  getTracer?: () => Tracer;  
+  tracer?: Tracer;
 };

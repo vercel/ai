@@ -2188,7 +2188,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
-        experimental_telemetry: { isEnabled: true, getTracer: () => tracer },
+        experimental_telemetry: { isEnabled: true, tracer },
         maxSteps: 3,
         _internal: {
           now: mockValues(0, 100, 500, 600, 1000),
@@ -2415,7 +2415,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
-        experimental_telemetry: { isEnabled: true, getTracer: () => tracer },
+        experimental_telemetry: { isEnabled: true, tracer },
         _internal: {
           now: mockValues(0, 100, 500, 600, 1000),
         },
@@ -2771,7 +2771,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
-        getTracer: () => tracer,
+        tracer,
       },
       _internal: { now: mockValues(0, 100, 500) },
     });
@@ -2817,7 +2817,7 @@ describe('telemetry', () => {
         },
       },
       prompt: 'test-input',
-      experimental_telemetry: { isEnabled: true, getTracer: () => tracer },
+      experimental_telemetry: { isEnabled: true, tracer },
       _internal: { now: mockValues(0, 100, 500) },
     });
 
@@ -2866,7 +2866,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        getTracer: () => tracer
+        tracer,
       },
       _internal: { now: mockValues(0, 100, 500) },
     });

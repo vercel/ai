@@ -386,7 +386,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     settings: { ...settings, maxRetries },
   });
 
-  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false, getTracer: telemetry?.getTracer });
+  const tracer = getTracer(telemetry);
 
   const retry = retryWithExponentialBackoff({ maxRetries });
 

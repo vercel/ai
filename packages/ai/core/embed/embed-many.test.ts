@@ -175,7 +175,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
-        getTracer: () => tracer,
+        tracer,
       },
     });
 
@@ -196,7 +196,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
-        getTracer: () => tracer,
+        tracer,
       },
     });
 
@@ -214,7 +214,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        getTracer: () => tracer,
+        tracer,
       },
     });
 
