@@ -9,19 +9,19 @@ the AI SDK is a powerful toolkit for building AI applications. This page will he
 
 Let’s start with a quick overview of the AI SDK, which is comprised of three parts:
 
-- **[AI SDK Core](/docs/ai-sdk-core/overview):** A unified API for generating text, structured objects, and tool calls with LLMs.
-- **[AI SDK UI](/docs/ai-sdk-ui/overview):** A set of framework-agnostic hooks for quickly building chat and generative user interface.
-- **[AI SDK RSC](/docs/ai-sdk-rsc/overview):** A library to stream generative user interfaces with React Server Components (RSC).
+- **[AI SDK Core](/docs/ai-sdk-core/overview):** A unified, provider agnostic API for generating text, structured objects, and tool calls with LLMs.
+- **[AI SDK UI](/docs/ai-sdk-ui/overview):** A set of framework-agnostic hooks for building chat and generative user interfaces.
+- [AI SDK RSC](/docs/ai-sdk-rsc/overview): Stream generative user interfaces with React Server Components (RSC). Development is currently paused and we recommend using [AI SDK UI](/docs/ai-sdk-ui/overview).
 
 ## Choosing the Right Tool for Your Environment
 
 When deciding which part of the AI SDK to use, your first consideration should be the environment and existing stack you are working with. Different components of the SDK are tailored to specific frameworks and environments.
 
-| Library                                   | Purpose                                                                                                                                                          | Environment Compatibility                                              |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| [AI SDK Core](/docs/ai-sdk-core/overview) | Call any LLM with unified API (e.g. [generateText](/docs/reference/ai-sdk-core/generate-text) and [generateObject](/docs/reference/ai-sdk-core/generate-object)) | Any JS environment (e.g. Node.js, Deno, Browser)                       |
-| [AI SDK UI](/docs/ai-sdk-ui/overview)     | Build streaming chat and generative UIs (e.g. [useChat](/docs/reference/ai-sdk-ui/use-chat))                                                                     | React & Next.js, Vue & Nuxt, Svelte & SvelteKit, Solid.js & SolidStart |
-| [AI SDK RSC](/docs/ai-sdk-rsc/overview)   | Stream generative UIs from Server to Client (e.g. [streamUI](/docs/reference/ai-sdk-rsc/stream-ui))                                                              | Any framework that supports React Server Components (e.g. Next.js)     |
+| Library                                   | Purpose                                                                                                                                                                                            | Environment Compatibility                                              |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [AI SDK Core](/docs/ai-sdk-core/overview) | Call any LLM with unified API (e.g. [generateText](/docs/reference/ai-sdk-core/generate-text) and [generateObject](/docs/reference/ai-sdk-core/generate-object))                                   | Any JS environment (e.g. Node.js, Deno, Browser)                       |
+| [AI SDK UI](/docs/ai-sdk-ui/overview)     | Build streaming chat and generative UIs (e.g. [useChat](/docs/reference/ai-sdk-ui/use-chat))                                                                                                       | React & Next.js, Vue & Nuxt, Svelte & SvelteKit, Solid.js & SolidStart |
+| [AI SDK RSC](/docs/ai-sdk-rsc/overview)   | Stream generative UIs from Server to Client (e.g. [streamUI](/docs/reference/ai-sdk-rsc/stream-ui)). Development is currently paused and we recommend using [AI SDK UI](/docs/ai-sdk-ui/overview). | Any framework that supports React Server Components (e.g. Next.js)     |
 
 ## Environment Compatibility
 
@@ -67,7 +67,16 @@ AI SDK UI supports the following frameworks: [React](https://react.dev/), [Sve
 
 ## When to use AI SDK RSC
 
-[React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) (RSCs) provide a new approach to building React applications that allow components to render on the server, fetch data directly, and stream the results to the client, reducing bundle size and improving performance. They also introduce a new way to call server-side functions from anywhere in your application called [Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations).
+<Note type="warning">
+  Development of AI SDK RSC is paused. We recommend using [AI SDK
+  UI](/docs/ai-sdk-ui/overview).
+</Note>
+
+[React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components)
+(RSCs) provide a new approach to building React applications that allow components
+to render on the server, fetch data directly, and stream the results to the client,
+reducing bundle size and improving performance. They also introduce a new way to
+call server-side functions from anywhere in your application called [Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations).
 
 AI SDK RSC provides a number of utilities that allow you to stream values and UI directly from the server to the client. However, **it's important to be aware of current limitations**:
 
