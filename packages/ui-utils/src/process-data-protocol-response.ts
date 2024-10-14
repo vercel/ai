@@ -36,6 +36,7 @@ export async function processDataProtocolResponse({
   reader,
   abortControllerRef,
   update,
+  onChunk,
   onToolCall,
   onFinish,
   generateId = generateIdFunction,
@@ -47,6 +48,7 @@ export async function processDataProtocolResponse({
   };
   update: (newMessages: Message[], data: JSONValue[] | undefined) => void;
   onToolCall?: UseChatOptions['onToolCall'];
+  onChunk?: UseChatOptions['onChunk'];
   onFinish?: (options: {
     message: Message | undefined;
     finishReason: LanguageModelV1FinishReason;
@@ -89,9 +91,12 @@ export async function processDataProtocolResponse({
   let finishReason: LanguageModelV1FinishReason = 'unknown';
 
   // we create a map of each prefix, and for each prefixed message we push to the map
-  for await (const { type, value } of readDataStream(reader, {
+  for await (const chunk of readDataStream(reader, {
     isAborted: () => abortControllerRef?.current === null,
   })) {
+    const { type, value } = chunk;
+    await onChunk?.({ chunk });
+
     if (type === 'error') {
       throw new Error(value);
     }

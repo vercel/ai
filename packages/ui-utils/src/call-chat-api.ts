@@ -15,6 +15,7 @@ export async function callChatApi({
   restoreMessagesOnFailure,
   onResponse,
   onUpdate,
+  onChunk,
   onFinish,
   onToolCall,
   generateId,
@@ -29,6 +30,7 @@ export async function callChatApi({
   restoreMessagesOnFailure: () => void;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onUpdate: (newMessages: Message[], data: JSONValue[] | undefined) => void;
+  onChunk?: UseChatOptions['onChunk'];
   onFinish: UseChatOptions['onFinish'];
   onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
@@ -116,6 +118,7 @@ export async function callChatApi({
         abortControllerRef:
           abortController != null ? { current: abortController() } : undefined,
         update: onUpdate,
+        onChunk,
         onToolCall,
         onFinish({ message, finishReason, usage }) {
           if (onFinish && message != null) {

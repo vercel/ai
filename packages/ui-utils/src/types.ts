@@ -3,6 +3,7 @@ import { FetchFunction } from '@ai-sdk/provider-utils';
 import { CompletionTokenUsage } from './duplicated/token-usage';
 import { ToolCall as CoreToolCall } from './duplicated/tool-call';
 import { ToolResult as CoreToolResult } from './duplicated/tool-result';
+import { StreamPartType } from './stream-parts';
 
 export * from './use-assistant-types';
 
@@ -447,6 +448,11 @@ either synchronously or asynchronously.
    * Callback function to be called when an error is encountered.
    */
   onError?: (error: Error) => void;
+
+  /**
+   * Callback that is called for each chunk of the stream.
+   */
+  onChunk?: (event: { chunk: StreamPartType }) => Promise<void> | void;
 
   /**
    * A way to provide a function that is going to be used for ids for messages.
