@@ -1,5 +1,12 @@
 # ai
 
+## 3.4.10
+
+### Patch Changes
+
+- 0b557d7: feat (ai/core): add tracer option to telemetry settings
+- 44f6bc5: feat (ai/core): expose StepResult type
+
 ## 3.4.9
 
 ### Patch Changes
