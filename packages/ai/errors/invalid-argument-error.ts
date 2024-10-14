@@ -11,13 +11,13 @@ export class InvalidArgumentError extends AISDKError {
   readonly value: unknown;
 
   constructor({
+    message,
     parameter,
     value,
-    message,
   }: {
+    message: string;
     parameter: string;
     value: unknown;
-    message: string;
   }) {
     super({
       name,
