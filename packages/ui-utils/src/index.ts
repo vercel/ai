@@ -18,4 +18,4 @@ export { readDataStream } from './read-data-stream';
 export { asSchema, jsonSchema, zodSchema } from './schema';
 export type { Schema } from './schema';
 export { formatStreamPart, parseStreamPart } from './stream-parts';
-export type { StreamPart, StreamString } from './stream-parts';
+export type { StreamPart, StreamString, StreamPartType } from './stream-parts';
