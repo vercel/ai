@@ -461,24 +461,28 @@ export async function generateObject<SCHEMA, RESULT>({
               tracer,
               fn: async span => {
                 let clearTimeoutFunction: (() => void) | undefined;
-                let result: any; 
+                let result: any;
                 try {
-                const { signal: effectiveAbortSignal, clearTimeout } = createAbortSignalWithTimeout({signal: abortSignal, timeoutMs: timeout});
-                clearTimeoutFunction = clearTimeout;
-                result = await model.doGenerate({
-                  mode: {
-                    type: 'object-json',
-                    schema: outputStrategy.jsonSchema,
-                    name: schemaName,
-                    description: schemaDescription,
-                  },
-                  ...prepareCallSettings(settings),
-                  inputFormat,
-                  prompt: promptMessages,
-                  providerMetadata,
-                  abortSignal: effectiveAbortSignal,
-                  headers,
-                });
+                  const { signal: effectiveAbortSignal, clearTimeout } =
+                    createAbortSignalWithTimeout({
+                      signal: abortSignal,
+                      timeoutMs: timeout,
+                    });
+                  clearTimeoutFunction = clearTimeout;
+                  result = await model.doGenerate({
+                    mode: {
+                      type: 'object-json',
+                      schema: outputStrategy.jsonSchema,
+                      name: schemaName,
+                      description: schemaDescription,
+                    },
+                    ...prepareCallSettings(settings),
+                    inputFormat,
+                    prompt: promptMessages,
+                    providerMetadata,
+                    abortSignal: effectiveAbortSignal,
+                    headers,
+                  });
                 } catch (error) {
                   console.error('Error during model generation:', error);
                   throw error;
@@ -591,9 +595,13 @@ export async function generateObject<SCHEMA, RESULT>({
               tracer,
               fn: async span => {
                 let clearTimeoutFunction: (() => void) | undefined;
-                let result: any; 
+                let result: any;
                 try {
-                  const { signal: effectiveAbortSignal, clearTimeout } = createAbortSignalWithTimeout({signal: abortSignal, timeoutMs: timeout});
+                  const { signal: effectiveAbortSignal, clearTimeout } =
+                    createAbortSignalWithTimeout({
+                      signal: abortSignal,
+                      timeoutMs: timeout,
+                    });
                   clearTimeoutFunction = clearTimeout;
                   result = await model.doGenerate({
                     mode: {
@@ -610,18 +618,18 @@ export async function generateObject<SCHEMA, RESULT>({
                     inputFormat,
                     prompt: promptMessages,
                     providerMetadata,
-                    abortSignal : effectiveAbortSignal,
+                    abortSignal: effectiveAbortSignal,
                     headers,
-                  })
-                   } catch (error) {
-                    console.error('Error during model generation:', error);
-                    throw error;
-                   } finally {
-                    if (clearTimeoutFunction) {
-                      clearTimeoutFunction();
-                    }
-                  };
-                
+                  });
+                } catch (error) {
+                  console.error('Error during model generation:', error);
+                  throw error;
+                } finally {
+                  if (clearTimeoutFunction) {
+                    clearTimeoutFunction();
+                  }
+                }
+
                 const objectText = result.toolCalls?.[0]?.args;
 
                 if (objectText === undefined) {

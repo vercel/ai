@@ -1,12 +1,10 @@
-type CreateAbortSignalWithTimeoutOptions = {
-  signal?: AbortSignal;
-  timeoutMs?: number;
-};
-
 export function createAbortSignalWithTimeout({
   signal,
-  timeoutMs
-}: CreateAbortSignalWithTimeoutOptions = {}): { signal: AbortSignal | undefined; clearTimeout: () => void } {
+  timeoutMs,
+}: {
+  signal: AbortSignal | undefined;
+  timeoutMs: number | undefined;
+}): { signal: AbortSignal | undefined; clearTimeout: () => void } {
   let effectiveAbortSignal = signal;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -29,4 +27,3 @@ export function createAbortSignalWithTimeout({
     },
   };
 }
-
