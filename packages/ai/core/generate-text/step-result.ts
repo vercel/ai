@@ -10,6 +10,9 @@ import { LanguageModelUsage } from '../types/usage';
 import { ToToolCallArray } from './tool-call';
 import { ToToolResultArray } from './tool-result';
 
+/**
+ * The result of a single step in the generation process.
+ */
 export type StepResult<TOOLS extends Record<string, CoreTool>> = {
   /**
 The generated text.
