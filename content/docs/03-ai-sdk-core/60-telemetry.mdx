@@ -5,14 +5,24 @@ description: Using OpenTelemetry with AI SDK Core
 
 # Telemetry
 
+<Note type="warning">
+  AI SDK Telemetry is experimental and may change in the future.
+</Note>
+
 The AI SDK uses [OpenTelemetry](https://opentelemetry.io/) to collect telemetry data.
 OpenTelemetry is an open-source observability framework designed to provide
 standardized instrumentation for collecting telemetry data.
 
-<Note type="warning">
-  This feature is experimental and may change in the future. The following AI
-  SDK functions support telemetry: `generateText`, `streamText`,
-  `generateObject`, `streamObject`, `embed`, and `embedMany`.
+## Observability Integrations
+
+The following observability integrations support AI SDK Telemetry data:
+
+- [Langfuse](https://langfuse.com/docs/integrations/vercel-ai-sdk)
+
+<Note>
+  Do you have an observability integration that supports AI SDK Telemetry data
+  and has an integration guide? Please open a pull request to add it to the
+  list.
 </Note>
 
 ## Enabling telemetry
