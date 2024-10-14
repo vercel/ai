@@ -1,6 +1,6 @@
 ---
 title: Next.js App Router
-description: Welcome to the AI SDK documentation!
+description: Welcome to the AI SDK quickstart guide for Next.js App Router!
 ---
 
 # Next.js App Router Quickstart
@@ -111,7 +111,7 @@ Let's take a look at what is happening in this code:
 
 1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the chatbot and provides the chatbot with the necessary context to make the next generation.
 2. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
-3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toDataStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
+3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toDataStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-data-stream-response) function which converts the result to a streamed response object.
 4. Finally, return the result to the client to stream the response.
 
 This Route Handler creates a POST request endpoint at `/api/chat`.
@@ -161,7 +161,6 @@ This page utilizes the `useChat` hook, which will, by default, use the `POST` AP
 - `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
 - `input` - the current value of the user's input field.
 - `handleInputChange` and `handleSubmit` - functions to handle user interactions (typing into the input field and submitting the form, respectively).
-- `isLoading` - boolean that indicates whether the API request is in progress.
 
 ## Running Your Application
 
@@ -171,64 +170,90 @@ With that, you have built everything you need for your chatbot! To start your ap
 
 Head to your browser and open http://localhost:3000. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time! The AI SDK makes it fast and easy to build AI chat interfaces with Next.js.
 
-## Stream Data Alongside Response
+## Enhance Your Chatbot with Tools
 
-Depending on your use case, you may want to stream additional data alongside the model's response. This can be done using [`StreamData`](/docs/reference/stream-helpers/stream-data).
+While large language models (LLMs) have incredible generation capabilities, they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather). This is where [tools](/docs/ai-sdk-core/tools-and-tool-calling) come in.
 
-### Update your Route Handler
+Tools are actions that an LLM can invoke. The results of these actions can be reported back to the LLM to be considered in the next response.
 
-Make the following changes to your Route Handler (`app/api/chat/route.ts`):
+For example, if a user asks about the current weather, without tools, the model would only be able to provide general information based on its training data. But with a weather tool, it can fetch and provide up-to-date, location-specific weather information.
 
-```ts filename="app/api/chat/route.ts" highlight="2,10-11,16-18,21"
+Let's enhance your chatbot by adding a simple weather tool.
+
+### Update Your Route Handler
+
+Modify your `app/api/chat/route.ts` file to include the new weather tool:
+
+```tsx filename="app/api/chat/route.ts" highlight="2,13-27"
 import { openai } from '@ai-sdk/openai';
-import { streamText, convertToCoreMessages, StreamData } from 'ai';
+import { streamText, convertToCoreMessages, tool } from 'ai';
+import { z } from 'zod';
 
-// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const data = new StreamData();
-  data.append({ test: 'value' });
-
   const result = await streamText({
     model: openai('gpt-4-turbo'),
     messages: convertToCoreMessages(messages),
-    onFinish() {
-      data.close();
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (farenheit)',
+        parameters: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return {
+            location,
+            temperature,
+          };
+        },
+      }),
     },
   });
 
-  return result.toDataStreamResponse({ data });
+  return result.toDataStreamResponse();
 }
 ```
 
-In this code, you:
+In this updated code:
 
-1. Create a new instance of `StreamData`.
-2. Append the data you want to stream alongside the model's response.
-3. Listen for the `onFinish` callback on `streamText` and close the stream data.
-4. Pass the data into the `toDataStreamResponse` method.
+1. You import the `tool` function from the `ai` package and `z` from `zod` for schema validation.
+2. You define a `tools` object with a `weather` tool. This tool:
 
-### Update your frontend
+   - Has a description that helps the model understand when to use it.
+   - Defines parameters using a Zod schema, specifying that it requires a `location` string to execute this tool. The model will attempt to extract this parameter from the context of the conversation. If it can't, it will ask the user for the missing information.
+   - Defines an `execute` function that simulates getting weather data (in this case, it returns a random temperature). This is an asynchronous function running on the server so you can fetch real data from an external API.
 
-To access this data on the frontend, the `useChat` hook returns an optional value that stores this data. Update your root route with the following code to render the streamed data:
+   Now your chatbot can "fetch" weather information for any location the user asks about. When the model determines it needs to use the weather tool, it will generate a tool call with the necessary parameters. The `execute` function will then be automatically run, and you can access the results via `toolInvocations` that is available on the message object.
 
-```tsx filename="app/page.tsx" highlight="6, 9"
+Try asking something like "What's the weather in New York?" and see how the model uses the new tool.
+
+Notice the blank response in the UI? This is because instead of generating a text response, the model generated a tool call. You can access the tool call and subsequent tool result in the `toolInvocations` key of the message object.
+
+### Update the UI
+
+To display the tool invocations in your UI, update your `app/page.tsx` file:
+
+```tsx filename="app/page.tsx" highlight="12-16"
 'use client';
 
 import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, data } = useChat();
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
+          {m.toolInvocations ? (
+            <pre>{JSON.stringify(m.toolInvocations, null, 2)}</pre>
+          ) : (
+            <p>{m.content}</p>
+          )}
         </div>
       ))}
 
@@ -245,230 +270,105 @@ export default function Chat() {
 }
 ```
 
-Head back to your browser (http://localhost:3000) and enter a new message. You should see a JSON object appear with the value you sent from your API route!
+With this change, you check each message for any tool calls (`toolInvocations`). These tool calls will be displayed as stringified JSON. Otherwise, you show the message content as before.
 
-## Introducing more granular control with `ai/rsc`
+Now, when you ask about the weather, you'll see the tool invocation and its result displayed in your chat interface.
 
-So far, you have used the AI SDK's [ UI ](/docs/ai-sdk-ui) package to connect your frontend to your API route. This package is framework agnostic and provides simple abstractions for quickly building chat-like interfaces with LLMs.
+## Enabling Multi-Step Tool Calls
 
-The AI SDK also has a package ([`ai/rsc`](/docs/ai-sdk-rsc)) specifically designed for frameworks that support the [React Server Component](https://nextjs.org/docs/app/building-your-application/rendering/server-components) architecture. With `ai/rsc`, you can build AI applications that go beyond pure text.
+You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
-## Next.js App Router
+To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `useChat` hook. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
 
-The [Next.js App Router](https://nextjs.org/docs/app) is a React Server Component (RSC) framework. This means that pages and components are rendered on the server. Optionally, you can add directives, like `"use client"` when you want to add interactivity using Javascript and `"use server"` when you want to ensure code will only run on the server.
+### Update Your Client-Side Code
 
-The server-first architecture of RSCs enables a number of powerful features, like Server Actions, which we will use as our server-side environment to query the language model.
+Modify your `app/page.tsx` file to include the `maxSteps` option:
 
-<Note>
-  Server Actions are functions that run on a server, but can be called directly
-  from your Next.js frontend. Server Actions reduce the amount of code you write
-  while also providing end-to-end type safety between the client and server. You
-  can learn more
-  [here](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations#with-client-components)
-</Note>
-
-### Create a Server Action
-
-Create your first Server Action (`app/actions.tsx`) and add the following code:
-
-```tsx filename="app/actions.tsx"
-'use server';
-
-import { createStreamableValue } from 'ai/rsc';
-import { CoreMessage, streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-
-export async function continueConversation(messages: CoreMessage[]) {
-  const result = await streamText({
-    model: openai('gpt-4-turbo'),
-    messages,
-  });
-
-  const stream = createStreamableValue(result.textStream);
-  return stream.value;
-}
-```
-
-Let's take a look at what is happening in this code:
-
-1. Add the `"use server"` directive at the top of the file to mark the function as a Server Action.
-2. Define and export an async function (`continueConversation`) that takes one argument, `messages`, which is an array of type `CoreMessage`. The `messages` variable contains a history of the conversation between you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
-3. Call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 2). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
-4. Create a streamable value using the [ `createStreamableValue` ](/docs/reference/ai-sdk-rsc/create-streamable-value) function imported from the `ai/rsc` package. To use this function you pass the model's response as a text stream which can be accessed directly on the model response object (`result.textStream`).
-5. Finally, return the value of the stream (`stream.value`).
-
-### Update the UI
-
-Now that you have created a Server Action that can query an LLM, it's time to update your frontend. With `ai/rsc`, you have much finer control over how you send and receive streamable values from the LLM.
-
-Update your root page (`app/page.tsx`) with the following code:
-
-```tsx filename="app/page.tsx"
+```tsx filename="app/page.tsx" highlight="7"
 'use client';
 
-import { type CoreMessage } from 'ai';
-import { useState } from 'react';
-import { continueConversation } from './actions';
-import { readStreamableValue } from 'ai/rsc';
-
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const [messages, setMessages] = useState<CoreMessage[]>([]);
-  const [input, setInput] = useState('');
-  return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map((m, i) => (
-        <div key={i} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content as string}
-        </div>
-      ))}
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    maxSteps: 5,
+  });
 
-      <form
-        onSubmit={async e => {
-          e.preventDefault();
-          const newMessages: CoreMessage[] = [
-            ...messages,
-            { content: input, role: 'user' },
-          ];
-
-          setMessages(newMessages);
-          setInput('');
-
-          const result = await continueConversation(newMessages);
-
-          for await (const content of readStreamableValue(result)) {
-            setMessages([
-              ...newMessages,
-              {
-                role: 'assistant',
-                content: content as string,
-              },
-            ]);
-          }
-        }}
-      >
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={e => setInput(e.target.value)}
-        />
-      </form>
-    </div>
-  );
+  // ... rest of your component code
 }
 ```
 
-Let's look at how your implementation has changed. Without `useChat`, you have to manage your own state using the `useState` hook to manage the user\'s `input` and `messages`, respectively. The biggest change in your implementation is how you manage the form submission behaviour:
+Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 
-1. Define a new variable to house the existing `messages` and append the user's message.
-2. Update the `messages` state by passing `newMessages` to the `setMessages` function.
-3. Clear the `input` state with `setInput("")`.
-4. Call your Server Action just like any other asynchronous function, passing the `newMessages` variable declared in the first step. This function will return a streamable value.
-5. Use an asynchronous for-loop in conjunction with the `readStreamableValue` function to iterate over the stream returned by the Server Action and read its value.
-6. Finally, update the `messages` state with the content streamed via the Server Action.
+By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
 
-## Streaming Additional Data
+### Update Your Route Handler
 
-Stream additional data alongside the response from the model by simply returning an additional value in your Server Action.
-Update your `app/actions.tsx`with the following code:
+Update your `app/api/chat/route.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```ts filename="app/actions.tsx" highlight="13,15"
-'use server';
-
-import { createStreamableValue } from 'ai/rsc';
-import { CoreMessage, streamText } from 'ai';
+```tsx filename="app/api/chat/route.ts" highlight="27-40"
 import { openai } from '@ai-sdk/openai';
+import { streamText, convertToCoreMessages, tool } from 'ai';
+import { z } from 'zod';
 
-export async function continueConversation(messages: CoreMessage[]) {
-  'use server';
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages,
+    messages: convertToCoreMessages(messages),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (farenheit)',
+        parameters: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return {
+            location,
+            temperature,
+          };
+        },
+      }),
+      convertFarenheitToCelsius: tool({
+        description: 'Convert a temperature in farenheit to celsius',
+        parameters: z.object({
+          temperature: z
+            .number()
+            .describe('The temperature in farenheit to convert'),
+        }),
+        execute: async ({ temperature }) => {
+          const celsius = Math.round((temperature - 32) * (5 / 9));
+          return {
+            celsius,
+          };
+        },
+      }),
+    },
   });
-  const data = { test: 'hello' };
-  const stream = createStreamableValue(result.textStream);
-  return { message: stream.value, data };
+
+  return result.toDataStreamResponse();
 }
 ```
 
-The only change that you make here is to declare a new value (`data`) and return it alongside the stream.
+Now, when you ask "What's the weather in New York in celsius?", you should see a more complete interaction:
 
-### Update the UI
+1. The model will call the weather tool for New York.
+2. You'll see the tool result displayed.
+3. It will then call the temperature conversion tool to convert the temperature from Fahrenheit to Celsius.
+4. The model will then use that information to provide a natural language response about the weather in New York.
 
-Update your root page with the following code:
+This multi-step approach allows the model to gather information and use it to provide more accurate and contextual responses, making your chatbot considerably more useful.
 
-```tsx filename="app/page.tsx" highlight="14, 17, 37, 39"
-'use client';
-
-import { type CoreMessage } from 'ai';
-import { useState } from 'react';
-import { continueConversation } from './actions';
-import { readStreamableValue } from 'ai/rsc';
-
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
-
-export default function Chat() {
-  const [messages, setMessages] = useState<CoreMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [data, setData] = useState<any>();
-  return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
-      {messages.map((m, i) => (
-        <div key={i} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content as string}
-        </div>
-      ))}
-
-      <form
-        onSubmit={async e => {
-          e.preventDefault();
-          const newMessages: CoreMessage[] = [
-            ...messages,
-            { content: input, role: 'user' },
-          ];
-
-          setMessages(newMessages);
-          setInput('');
-
-          const result = await continueConversation(newMessages);
-          setData(result.data);
-
-          for await (const content of readStreamableValue(result.message)) {
-            setMessages([
-              ...newMessages,
-              {
-                role: 'assistant',
-                content: content as string,
-              },
-            ]);
-          }
-        }}
-      >
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={e => setInput(e.target.value)}
-        />
-      </form>
-    </div>
-  );
-}
-```
-
-In the code above, you first create a new variable to manage the state of the additional data (`data`). Then, you update the state of the additional data with `setData(result.data)`. Just like that, you've sent additional data alongside the model's response.
-
-The `ai/rsc` library is designed to give you complete control over streamable values. This unlocks LLM applications beyond the traditional chat format.
+This simple example demonstrates how tools can expand your model's capabilities. You can create more complex tools to integrate with real APIs, databases, or any other external systems, allowing the model to access and process real-world data in real-time. Tools bridge the gap between the model's knowledge cutoff and current information.
 
 ## Where to Next?
 
-You've built an AI chatbot using the AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-core/tools-and-tool-calling) or introducing more granular control over [AI and UI states](/docs/ai-sdk-rsc/generative-ui-state).
+You've built an AI chatbot using the AI SDK! From here, you have several paths to explore:
 
-If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.
+- To learn more about the AI SDK, read through the [documentation](/docs).
+- If you're interested in diving deeper with guides, check out the [RAG (retrieval-augmented generation)](/docs/guides/rag-chatbot) and [multi-modal chatbot](/docs/guides/multi-modal-chatbot) guides.
+- To jumpstart your first AI project, explore available [templates](https://vercel.com/templates?type=ai).

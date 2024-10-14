@@ -1,5 +1,25 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.29
+
+### Patch Changes
+
+- 8c3847e: fix (provider/bedrock): update amazon bedrock package to use safe version of aws sdk
+
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [d595d0d]
+  - @ai-sdk/provider@0.0.24
+  - @ai-sdk/provider-utils@1.0.20
+
+## 0.0.27
+
+### Patch Changes
+
+- 8a15307: fix (provider/bedrock): support assistant messages with trailing whitespace
+
 ## 0.0.26
 
 ### Patch Changes

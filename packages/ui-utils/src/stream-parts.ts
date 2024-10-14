@@ -427,6 +427,7 @@ const finishStepStreamPart: StreamPart<
   'e',
   'finish_step',
   {
+    isContinued: boolean;
     finishReason: LanguageModelV1FinishReason;
     usage?: {
       promptTokens: number;
@@ -449,6 +450,7 @@ const finishStepStreamPart: StreamPart<
     }
 
     const result: {
+      isContinued: boolean;
       finishReason: LanguageModelV1FinishReason;
       usage?: {
         promptTokens: number;
@@ -456,6 +458,7 @@ const finishStepStreamPart: StreamPart<
       };
     } = {
       finishReason: value.finishReason as LanguageModelV1FinishReason,
+      isContinued: false,
     };
 
     if (
@@ -475,6 +478,10 @@ const finishStepStreamPart: StreamPart<
             ? value.usage.completionTokens
             : Number.NaN,
       };
+    }
+
+    if ('isContinued' in value && typeof value.isContinued === 'boolean') {
+      result.isContinued = value.isContinued;
     }
 
     return {

@@ -1,5 +1,27 @@
 # @ai-sdk/google
 
+## 0.0.51
+
+### Patch Changes
+
+- d595d0d: feat (ai/core): file content parts
+- Updated dependencies [d595d0d]
+  - @ai-sdk/provider@0.0.24
+  - @ai-sdk/provider-utils@1.0.20
+
+## 0.0.50
+
+### Patch Changes
+
+- 5d113fb: feat (provider/google): support fine-tuned models
+
+## 0.0.49
+
+### Patch Changes
+
+- 2e32bd0: fix (provider/google): deal with empty candidatesTokenCount
+- 2e32bd0: feat (provider/google): add new models
+
 ## 0.0.48
 
 ### Patch Changes

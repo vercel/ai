@@ -1,22 +1,22 @@
 ---
-title: generateObject
-description: API Reference for generateObject.
+title: streamObject
+description: API Reference for streamObject
 ---
 
-# `generateObject()`
+# `streamObject()`
 
-Generates a typed, structured object for a given prompt and schema using a language model.
+Streams a typed, structured object for a given prompt and schema using a language model.
 
 It can be used to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
 
-#### Example: generate an object using a schema
+#### Example: stream an object using a schema
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
+import { streamObject } from 'ai';
 import { z } from 'zod';
 
-const { object } = await generateObject({
+const { partialObjectStream } = await streamObject({
   model: openai('gpt-4-turbo'),
   schema: z.object({
     recipe: z.object({
@@ -28,19 +28,23 @@ const { object } = await generateObject({
   prompt: 'Generate a lasagna recipe.',
 });
 
-console.log(JSON.stringify(object, null, 2));
+for await (const partialObject of partialObjectStream) {
+  console.clear();
+  console.log(partialObject);
+}
 ```
 
-#### Example: generate an array using a schema
+#### Example: stream an array using a schema
 
 For arrays, you specify the schema of the array items.
+You can use `elementStream` to get the stream of complete array elements.
 
-```ts highlight="7"
+```ts highlight="7,18"
 import { openai } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
+import { streamObject } from 'ai';
 import { z } from 'zod';
 
-const { object } = await generateObject({
+const { elementStream } = await streamObject({
   model: openai('gpt-4-turbo'),
   output: 'array',
   schema: z.object({
@@ -52,45 +56,35 @@ const { object } = await generateObject({
   }),
   prompt: 'Generate 3 hero descriptions for a fantasy role playing game.',
 });
-```
 
-#### Example: generate an enum
-
-When you want to generate a specific enum value, you can set the output strategy to `enum`
-and provide the list of possible values in the `enum` parameter.
-
-```ts highlight="5-6"
-import { generateObject } from 'ai';
-
-const { object } = await generateObject({
-  model: yourModel,
-  output: 'enum',
-  enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
-  prompt:
-    'Classify the genre of this movie plot: ' +
-    '"A group of astronauts travel through a wormhole in search of a ' +
-    'new habitable planet for humanity."',
-});
+for await (const hero of elementStream) {
+  console.log(hero);
+}
 ```
 
 #### Example: generate JSON without a schema
 
-```ts highlight="6"
+```ts
 import { openai } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
+import { streamObject } from 'ai';
 
-const { object } = await generateObject({
+const { partialObjectStream } = await streamObject({
   model: openai('gpt-4-turbo'),
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
+
+for await (const partialObject of partialObjectStream) {
+  console.clear();
+  console.log(partialObject);
+}
 ```
 
-To see `generateObject` in action, check out the [additional examples](#more-examples).
+To see `streamObject` in action, check out the [additional examples](#more-examples).
 
 ## Import
 
-<Snippet text={`import { generateObject } from "ai"`} prompt={false} />
+<Snippet text={`import { streamObject } from "ai"`} prompt={false} />
 
 ## API Signature
 
@@ -105,7 +99,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
     },
     {
       name: 'output',
-      type: "'object' | 'array' | 'enum' | 'no-schema' | undefined",
+      type: "'object' | 'array' | 'no-schema' | undefined",
       description: "The type of output to generate. Defaults to 'object'.",
     },
     {
@@ -124,7 +118,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
         It is sent to the model to generate the object and used to validate the output. \
         You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). \
         In 'array' mode, the schema is used to describe an array element. \
-        Not available with 'no-schema' or 'enum' output.",
+        Not available with 'no-schema' output.",
     },
     {
       name: 'schemaName',
@@ -132,7 +126,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
       description:
         "Optional name of the output that should be generated. \
         Used by some providers for additional LLM guidance, e.g. via tool or schema name. \
-        Not available with 'no-schema' or 'enum' output.",
+        Not available with 'no-schema' output.",
     },
     {
       name: 'schemaDescription',
@@ -140,14 +134,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
       description:
         "Optional description of the output that should be generated. \
         Used by some providers for additional LLM guidance, e.g. via tool or schema name. \
-        Not available with 'no-schema' or 'enum' output.",
-    },
-    {
-      name: 'enum',
-      type: 'string[]',
-      description:
-        "List of possible values to generate. \
-        Only available with 'enum' output.",
+        Not available with 'no-schema' output.",
     },
     {
       name: 'system',
@@ -190,7 +177,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | ImagePart>',
+              type: 'string | Array<TextPart | ImagePart | FilePart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -221,6 +208,33 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
                       type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
                       description:
                         'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The mime type of the image. Optional.',
+                    },
+                  ],
+                },
+                {
+                  type: 'FilePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'file'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      description: 'The mime type of the file.',
                     },
                   ],
                 },
@@ -397,13 +411,6 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
         'Maximum number of retries. Set to 0 to disable retries. Default: 2.',
     },
     {
-      name: 'timeout',
-      type: 'number',
-      isOptional: true,
-      description:
-        'Timeout in milliseconds. If set, the call will be aborted after the specified duration. By default, there is no timeout.',
-    },
-    {
       name: 'abortSignal',
       type: 'AbortSignal',
       isOptional: true,
@@ -472,6 +479,109 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
       description:
         'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
+    {
+      name: 'onFinish',
+      type: '(result: OnFinishResult) => void',
+      isOptional: true,
+      description:
+        'Callback that is called when the LLM response has finished.',
+      properties: [
+        {
+          type: 'OnFinishResult',
+          parameters: [
+            {
+              name: 'usage',
+              type: 'CompletionTokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'CompletionTokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'experimental_providerMetadata',
+              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              description:
+                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+            },
+            {
+              name: 'object',
+              type: 'T | undefined',
+              description:
+                'The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.',
+            },
+            {
+              name: 'error',
+              type: 'unknown | undefined',
+              description:
+                'Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.',
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
+              name: 'response',
+              type: 'Response',
+              isOptional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                    {
+                      name: 'headers',
+                      isOptional: true,
+                      type: 'Record<string, string>',
+                      description: 'Optional response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
@@ -480,20 +590,10 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
 <PropertiesTable
   content={[
     {
-      name: 'object',
-      type: 'based on the schema',
-      description:
-        'The generated object, validated by the schema (if it supports validation).',
-    },
-    {
-      name: 'finishReason',
-      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
-      description: 'The reason the model finished generating the text.',
-    },
-    {
       name: 'usage',
-      type: 'CompletionTokenUsage',
-      description: 'The token usage of the generated text.',
+      type: 'Promise<CompletionTokenUsage>',
+      description:
+        'The token usage of the generated text. Resolved when the response is finished.',
       properties: [
         {
           type: 'CompletionTokenUsage',
@@ -518,10 +618,143 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
       ],
     },
     {
+      name: 'experimental_providerMetadata',
+      type: 'Promise<Record<string,Record<string,JSONValue>> | undefined>',
+      description:
+        'Optional metadata from the provider. Resolved whe the response is finished. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+    },
+    {
+      name: 'object',
+      type: 'Promise<T>',
+      description:
+        'The generated object (typed according to the schema). Resolved when the response is finished.',
+    },
+    {
+      name: 'partialObjectStream',
+      type: 'AsyncIterableStream<DeepPartial<T>>',
+      description:
+        'Stream of partial objects. It gets more complete as the stream progresses. Note that the partial object is not validated. If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.',
+    },
+    {
+      name: 'elementStream',
+      type: 'AsyncIterableStream<ELEMENT>',
+      description: 'Stream of array elements. Only available in "array" mode.',
+    },
+    {
+      name: 'textStream',
+      type: 'AsyncIterableStream<string>',
+      description:
+        'Text stream of the JSON representation of the generated object. It contains text chunks. When the stream is finished, the object is valid JSON that can be parsed.',
+    },
+    {
+      name: 'fullStream',
+      type: 'AsyncIterableStream<ObjectStreamPart<T>>',
+      description:
+        'Stream of different types of events, including partial objects, errors, and finish events. Only errors that stop the stream, such as network errors, are thrown.',
+      properties: [
+        {
+          type: 'ObjectPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'object'",
+            },
+            {
+              name: 'object',
+              type: 'DeepPartial<T>',
+              description: 'The partial object that was generated.',
+            },
+          ],
+        },
+        {
+          type: 'TextDeltaPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'text-delta'",
+            },
+            {
+              name: 'textDelta',
+              type: 'string',
+              description: 'The text delta for the underlying raw JSON text.',
+            },
+          ],
+        },
+        {
+          type: 'ErrorPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'error'",
+            },
+            {
+              name: 'error',
+              type: 'unknown',
+              description: 'The error that occurred.',
+            },
+          ],
+        },
+        {
+          type: 'FinishPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'finish'",
+            },
+            {
+              name: 'finishReason',
+              type: 'FinishReason',
+            },
+            {
+              name: 'logprobs',
+              type: 'Logprobs',
+              isOptional: true,
+            },
+            {
+              name: 'usage',
+              type: 'Usage',
+              description: 'Token usage.',
+            },
+            {
+              name: 'response',
+              type: 'Response',
+              isOptional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'response',
-      type: 'Response',
-      optional: true,
-      description: 'Response metadata.',
+      type: 'Promise<Response>',
+      isOptional: true,
+      description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
           type: 'Response',
@@ -546,7 +779,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
             },
             {
               name: 'headers',
-              optional: true,
+              isOptional: true,
               type: 'Record<string, string>',
               description: 'Optional response headers.',
             },
@@ -561,16 +794,66 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
         'Warnings from the model provider (e.g. unsupported settings).',
     },
     {
-      name: 'experimental_providerMetadata',
-      type: 'Record<string,Record<string,JSONValue>> | undefined',
+      name: 'pipeTextStreamToResponse',
+      type: '(response: ServerResponse, init?: ResponseInit => void',
       description:
-        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+        'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              isOptional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              isOptional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              isOptional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
     },
     {
-      name: 'toJsonResponse',
+      name: 'toTextStreamResponse',
       type: '(init?: ResponseInit) => Response',
       description:
-        'Converts the object to a JSON response. The response will have a status code of 200 and a content type of `application/json; charset=utf-8`.',
+        'Creates a simple text stream response. Each text delta is encoded as UTF-8 and sent as a separate chunk. Non-text-delta events are ignored.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              isOptional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              isOptional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              isOptional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
     },
   ]}
 />
@@ -580,14 +863,24 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
 <ExampleLinks
   examples={[
     {
-      title:
-        'Learn to generate structured data using a language model in Next.js',
-      link: '/examples/next-app/basics/generating-object',
+      title: 'Streaming Object Generation with RSC',
+      link: '/examples/next-app/basics/streaming-object-generation',
     },
     {
-      title:
-        'Learn to generate structured data using a language model in Node.js',
-      link: '/examples/node/generating-structured-data/generate-object',
+      title: 'Streaming Object Generation with useObject',
+      link: '/examples/next-pages/basics/streaming-object-generation',
+    },
+    {
+      title: 'Streaming Partial Objects',
+      link: '/examples/node/streaming-structured-data/stream-object',
+    },
+    {
+      title: 'Recording Token Usage',
+      link: '/examples/node/streaming-structured-data/token-usage',
+    },
+    {
+      title: 'Recording Final Object',
+      link: '/examples/node/streaming-structured-data/object',
     },
   ]}
 />

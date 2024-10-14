@@ -1,11 +1,11 @@
 import { Attachment } from '@ai-sdk/ui-utils';
-import { ImagePart, TextPart } from './content-part';
+import { FilePart, ImagePart, TextPart } from './content-part';
 import {
   convertDataContentToUint8Array,
   convertUint8ArrayToText,
 } from './data-content';
 
-type ContentPart = TextPart | ImagePart;
+type ContentPart = TextPart | ImagePart | FilePart;
 
 /**
  * Converts a list of attachments to a list of content parts
@@ -29,6 +29,18 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
       case 'https:': {
         if (attachment.contentType?.startsWith('image/')) {
           parts.push({ type: 'image', image: url });
+        } else {
+          if (!attachment.contentType) {
+            throw new Error(
+              'If the attachment is not an image, it must specify a content type',
+            );
+          }
+
+          parts.push({
+            type: 'file',
+            data: url,
+            mimeType: attachment.contentType,
+          });
         }
         break;
       }
@@ -60,6 +72,18 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
             text: convertUint8ArrayToText(
               convertDataContentToUint8Array(base64Content),
             ),
+          });
+        } else {
+          if (!attachment.contentType) {
+            throw new Error(
+              'If the attachment is not an image or text, it must specify a content type',
+            );
+          }
+
+          parts.push({
+            type: 'file',
+            data: base64Content,
+            mimeType: attachment.contentType,
           });
         }
 

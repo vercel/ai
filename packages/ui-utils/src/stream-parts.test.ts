@@ -254,27 +254,30 @@ describe('finish_step stream part', () => {
       formatStreamPart('finish_step', {
         finishReason: 'stop',
         usage: { promptTokens: 10, completionTokens: 20 },
+        isContinued: false,
       }),
     ).toEqual(
-      `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n`,
+      `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20},"isContinued":false}\n`,
     );
   });
 
-  it('should format a finish_step stream part without usage information', () => {
+  it('should format a finish_step stream part without usage or continue information ', () => {
     expect(
       formatStreamPart('finish_step', {
         finishReason: 'stop',
+        isContinued: false,
       }),
-    ).toEqual(`e:{"finishReason":"stop"}\n`);
+    ).toEqual(`e:{"finishReason":"stop","isContinued":false}\n`);
   });
 
   it('should parse a finish_step stream part', () => {
-    const input = `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}`;
+    const input = `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20},"isContinued":true}`;
     expect(parseStreamPart(input)).toEqual({
       type: 'finish_step',
       value: {
         finishReason: 'stop',
         usage: { promptTokens: 10, completionTokens: 20 },
+        isContinued: true,
       },
     });
   });
@@ -286,6 +289,7 @@ describe('finish_step stream part', () => {
       value: {
         finishReason: 'stop',
         usage: { promptTokens: NaN, completionTokens: NaN },
+        isContinued: false,
       },
     });
   });
@@ -296,6 +300,7 @@ describe('finish_step stream part', () => {
       type: 'finish_step',
       value: {
         finishReason: 'stop',
+        isContinued: false,
       },
     });
   });

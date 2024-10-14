@@ -196,6 +196,46 @@ for await (const part of result.fullStream) {
 }
 ```
 
+## Generating Long Text
+
+Most language models have an output limit that is much shorter than their context window.
+This means that you cannot generate long text in one go,
+but it is possible to add responses back to the input and continue generating
+to create longer text.
+
+`generateText` and `streamText` support such continuations for long text generation using the experimental `continueSteps` setting:
+
+```tsx highlight="5-6,9-10"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const {
+  text, // combined text
+  usage, // combined usage of all steps
+} = await generateText({
+  model: openai('gpt-4o'), // 4096 output tokens
+  maxSteps: 5, // enable multi-step calls
+  experimental_continueSteps: true,
+  prompt:
+    'Write a book about Roman history, ' +
+    'from the founding of the city of Rome ' +
+    'to the fall of the Western Roman Empire. ' +
+    'Each chapter MUST HAVE at least 1000 words.',
+});
+```
+
+<Note>
+  When `experimental_continueSteps` is enabled, only full words are streamed in
+  `streamText`, and both `generateText` and `streamText` might drop the trailing
+  tokens of some calls to prevent whitespace issues.
+</Note>
+
+<Note type="warning">
+  Some models might not always stop correctly on their own and keep generating
+  until `maxSteps` is reached. You can hint the model to stop by e.g. using a
+  system message such as "Stop when sufficient information was provided."
+</Note>
+
 ## Examples
 
 You can see `generateText` and `streamText` in action using various frameworks in the following examples:

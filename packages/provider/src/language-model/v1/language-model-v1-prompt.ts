@@ -22,7 +22,11 @@ export type LanguageModelV1Message =
       }
     | {
         role: 'user';
-        content: Array<LanguageModelV1TextPart | LanguageModelV1ImagePart>;
+        content: Array<
+          | LanguageModelV1TextPart
+          | LanguageModelV1ImagePart
+          | LanguageModelV1FilePart
+        >;
       }
     | {
         role: 'assistant';
@@ -63,6 +67,7 @@ The text content.
 /**
 Image content part of a prompt. It contains an image.
  */
+// TODO merge into file part in language model v2
 export interface LanguageModelV1ImagePart {
   type: 'image';
 
@@ -75,6 +80,32 @@ Image data as a Uint8Array (e.g. from a Blob or Buffer) or a URL.
 Optional mime type of the image.
    */
   mimeType?: string;
+
+  /**
+   * Additional provider-specific metadata. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerMetadata?: LanguageModelV1ProviderMetadata;
+}
+
+/**
+File content part of a prompt. It contains a file.
+ */
+export interface LanguageModelV1FilePart {
+  type: 'file';
+
+  /**
+File data as base64 encoded string or as a URL.
+   */
+  // Note: base64-encoded strings are used to prevent
+  // unnecessary conversions from string to buffer to string
+  data: string | URL;
+
+  /**
+Mime type of the file.
+   */
+  mimeType: string;
 
   /**
    * Additional provider-specific metadata. They are passed through

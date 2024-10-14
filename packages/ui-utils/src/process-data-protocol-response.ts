@@ -97,7 +97,9 @@ export async function processDataProtocolResponse({
     }
 
     if (type === 'finish_step') {
-      nextPrefixMap = {};
+      if (!value.isContinued) {
+        nextPrefixMap = {};
+      }
       continue;
     }
 

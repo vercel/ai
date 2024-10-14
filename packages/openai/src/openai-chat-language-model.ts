@@ -4,6 +4,7 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
+  LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -156,6 +157,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       // openai specific settings:
       max_completion_tokens:
         providerMetadata?.openai?.maxCompletionTokens ?? undefined,
+      store: providerMetadata?.openai?.store ?? undefined,
+      metadata: providerMetadata?.openai?.metadata ?? undefined,
 
       // response format:
       response_format:
@@ -169,7 +172,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     };
 
     // reasoning models have fixed params, remove them if they are set:
-    if (this.modelId === 'o1-preview' || this.modelId === 'o1-mini') {
+    if (isReasoningModel(this.modelId)) {
       baseArgs.temperature = undefined;
       baseArgs.top_p = undefined;
       baseArgs.frequency_penalty = undefined;
@@ -283,15 +286,21 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
 
-    const providerMetadata =
-      response.usage?.completion_tokens_details?.reasoning_tokens != null
-        ? {
-            openai: {
-              reasoningTokens:
-                response.usage?.completion_tokens_details?.reasoning_tokens,
-            },
-          }
-        : undefined;
+    let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
+    if (
+      response.usage?.completion_tokens_details?.reasoning_tokens != null ||
+      response.usage?.prompt_tokens_details?.cached_tokens != null
+    ) {
+      providerMetadata = { openai: {} };
+      if (response.usage?.completion_tokens_details?.reasoning_tokens != null) {
+        providerMetadata.openai.reasoningTokens =
+          response.usage?.completion_tokens_details?.reasoning_tokens;
+      }
+      if (response.usage?.prompt_tokens_details?.cached_tokens != null) {
+        providerMetadata.openai.cachedPromptTokens =
+          response.usage?.prompt_tokens_details?.cached_tokens;
+      }
+    }
 
     return {
       text: choice.message.content ?? undefined,
@@ -328,6 +337,50 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    // reasoning models don't support streaming, we simulate it:
+    if (isReasoningModel(this.modelId)) {
+      const result = await this.doGenerate(options);
+
+      const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
+        start(controller) {
+          controller.enqueue({ type: 'response-metadata', ...result.response });
+
+          if (result.text) {
+            controller.enqueue({
+              type: 'text-delta',
+              textDelta: result.text,
+            });
+          }
+
+          if (result.toolCalls) {
+            for (const toolCall of result.toolCalls) {
+              controller.enqueue({
+                type: 'tool-call',
+                ...toolCall,
+              });
+            }
+          }
+
+          controller.enqueue({
+            type: 'finish',
+            finishReason: result.finishReason,
+            usage: result.usage,
+            logprobs: result.logprobs,
+            providerMetadata: result.providerMetadata,
+          });
+
+          controller.close();
+        },
+      });
+
+      return {
+        stream: simulatedStream,
+        rawCall: result.rawCall,
+        rawResponse: result.rawResponse,
+        warnings: result.warnings,
+      };
+    }
+
     const { args, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -378,6 +431,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     const { useLegacyFunctionCalling } = this.settings;
 
+    let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -415,6 +469,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 promptTokens: value.usage.prompt_tokens ?? undefined,
                 completionTokens: value.usage.completion_tokens ?? undefined,
               };
+              if (value.usage.prompt_tokens_details?.cached_tokens != null) {
+                providerMetadata = {
+                  openai: {
+                    cachedPromptTokens:
+                      value.usage.prompt_tokens_details?.cached_tokens,
+                  },
+                };
+              }
             }
 
             const choice = value.choices[0];
@@ -569,6 +631,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 promptTokens: usage.promptTokens ?? NaN,
                 completionTokens: usage.completionTokens ?? NaN,
               },
+              ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
         }),
@@ -584,6 +647,11 @@ const openAITokenUsageSchema = z
   .object({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
+    prompt_tokens_details: z
+      .object({
+        cached_tokens: z.number().nullish(),
+      })
+      .nullish(),
     completion_tokens_details: z
       .object({
         reasoning_tokens: z.number().nullish(),
@@ -797,4 +865,8 @@ function prepareToolsAndToolChoice({
       throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
     }
   }
+}
+
+function isReasoningModel(modelId: string) {
+  return modelId.startsWith('o1-');
 }

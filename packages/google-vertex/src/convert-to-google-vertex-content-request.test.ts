@@ -55,6 +55,32 @@ describe('user message', () => {
       ],
     });
   });
+
+  it('should add file parts for base64 encoded files', async () => {
+    const result = convertToGoogleVertexContentRequest([
+      {
+        role: 'user',
+        content: [{ type: 'file', data: 'AAECAw==', mimeType: 'image/png' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                data: 'AAECAw==',
+                mimeType: 'image/png',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
 });
 
 describe('assistant message', () => {

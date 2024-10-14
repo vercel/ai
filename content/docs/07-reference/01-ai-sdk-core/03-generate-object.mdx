@@ -1,31 +1,96 @@
 ---
-title: generateText
-description: API Reference for generateText.
+title: generateObject
+description: API Reference for generateObject.
 ---
 
-# `generateText()`
+# `generateObject()`
 
-Generates text and calls tools for a given prompt using a language model.
+Generates a typed, structured object for a given prompt and schema using a language model.
 
-It is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
+It can be used to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
+
+#### Example: generate an object using a schema
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
 
-const { text } = await generateText({
+const { object } = await generateObject({
   model: openai('gpt-4-turbo'),
-  prompt: 'Invent a new holiday and describe its traditions.',
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
 });
 
-console.log(text);
+console.log(JSON.stringify(object, null, 2));
 ```
 
-To see `generateText` in action, check out [these examples](#examples).
+#### Example: generate an array using a schema
+
+For arrays, you specify the schema of the array items.
+
+```ts highlight="7"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const { object } = await generateObject({
+  model: openai('gpt-4-turbo'),
+  output: 'array',
+  schema: z.object({
+    name: z.string(),
+    class: z
+      .string()
+      .describe('Character class, e.g. warrior, mage, or thief.'),
+    description: z.string(),
+  }),
+  prompt: 'Generate 3 hero descriptions for a fantasy role playing game.',
+});
+```
+
+#### Example: generate an enum
+
+When you want to generate a specific enum value, you can set the output strategy to `enum`
+and provide the list of possible values in the `enum` parameter.
+
+```ts highlight="5-6"
+import { generateObject } from 'ai';
+
+const { object } = await generateObject({
+  model: yourModel,
+  output: 'enum',
+  enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
+  prompt:
+    'Classify the genre of this movie plot: ' +
+    '"A group of astronauts travel through a wormhole in search of a ' +
+    'new habitable planet for humanity."',
+});
+```
+
+#### Example: generate JSON without a schema
+
+```ts highlight="6"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+
+const { object } = await generateObject({
+  model: openai('gpt-4-turbo'),
+  output: 'no-schema',
+  prompt: 'Generate a lasagna recipe.',
+});
+```
+
+To see `generateObject` in action, check out the [additional examples](#more-examples).
 
 ## Import
 
-<Snippet text={`import { generateText } from "ai"`} prompt={false} />
+<Snippet text={`import { generateObject } from "ai"`} prompt={false} />
 
 ## API Signature
 
@@ -37,6 +102,52 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'model',
       type: 'LanguageModel',
       description: "The language model to use. Example: openai('gpt-4-turbo')",
+    },
+    {
+      name: 'output',
+      type: "'object' | 'array' | 'enum' | 'no-schema' | undefined",
+      description: "The type of output to generate. Defaults to 'object'.",
+    },
+    {
+      name: 'mode',
+      type: "'auto' | 'json' | 'tool'",
+      description:
+        "The mode to use for object generation. Not every model supports all modes. \
+        Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. \
+        Must be 'json' for 'no-schema' output.",
+    },
+    {
+      name: 'schema',
+      type: 'Zod Schema | JSON Schema',
+      description:
+        "The schema that describes the shape of the object to generate. \
+        It is sent to the model to generate the object and used to validate the output. \
+        You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). \
+        In 'array' mode, the schema is used to describe an array element. \
+        Not available with 'no-schema' or 'enum' output.",
+    },
+    {
+      name: 'schemaName',
+      type: 'string | undefined',
+      description:
+        "Optional name of the output that should be generated. \
+        Used by some providers for additional LLM guidance, e.g. via tool or schema name. \
+        Not available with 'no-schema' or 'enum' output.",
+    },
+    {
+      name: 'schemaDescription',
+      type: 'string | undefined',
+      description:
+        "Optional description of the output that should be generated. \
+        Used by some providers for additional LLM guidance, e.g. via tool or schema name. \
+        Not available with 'no-schema' or 'enum' output.",
+    },
+    {
+      name: 'enum',
+      type: 'string[]',
+      description:
+        "List of possible values to generate. \
+        Only available with 'enum' output.",
     },
     {
       name: 'system',
@@ -79,7 +190,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | ImagePart>',
+              type: 'string | Array<TextPart | ImagePart | FilePart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -110,6 +221,33 @@ To see `generateText` in action, check out [these examples](#examples).
                       type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
                       description:
                         'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The mime type of the image. Optional.',
+                    },
+                  ],
+                },
+                {
+                  type: 'FilePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'file'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      description: 'The mime type of the file.',
                     },
                   ],
                 },
@@ -166,7 +304,7 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'args',
-                      type: 'object based on zod schema',
+                      type: 'object based on schema',
                       description:
                         'Parameters generated by the model to be used by the tool.',
                     },
@@ -231,46 +369,6 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'tools',
-      type: 'Record<string, CoreTool>',
-      description:
-        'Tools that are accessible to and can be called by the model. The model needs to support calling tools.',
-      properties: [
-        {
-          type: 'CoreTool',
-          parameters: [
-            {
-              name: 'description',
-              isOptional: true,
-              type: 'string',
-              description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model.',
-            },
-            {
-              name: 'parameters',
-              type: 'Zod Schema | JSON Schema',
-              description:
-                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
-            },
-            {
-              name: 'execute',
-              isOptional: true,
-              type: 'async (parameters) => any',
-              description:
-                'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      name: 'toolChoice',
-      isOptional: true,
-      type: '"auto" | "none" | "required" | { "type": "tool", "toolName": string }',
-      description:
-        'The tool choice setting. It specifies how tools are selected for execution. The default is "auto". "none" disables tool execution. "required" requires tools to be executed. { "type": "tool", "toolName": string } specifies a specific tool to execute.',
-    },
-    {
       name: 'maxTokens',
       type: 'number',
       isOptional: true,
@@ -312,13 +410,6 @@ To see `generateText` in action, check out [these examples](#examples).
         'Frequency penalty setting. It affects the likelihood of the model to repeatedly use the same words or phrases. The value is passed through to the provider. The range depends on the provider and model.',
     },
     {
-      name: 'stopSequences',
-      type: 'string[]',
-      isOptional: true,
-      description:
-        'Sequences that will stop the generation of the text. If the model generates any of these sequences, it will stop generating further text.',
-    },
-    {
       name: 'seed',
       type: 'number',
       isOptional: true,
@@ -352,13 +443,6 @@ To see `generateText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
-    },
-    {
-      name: 'maxSteps',
-      type: 'number',
-      isOptional: true,
-      description:
-        'Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
     },
     {
       name: 'experimental_telemetry',
@@ -415,118 +499,6 @@ To see `generateText` in action, check out [these examples](#examples).
       description:
         'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
-    {
-      name: 'onStepFinish',
-      type: '(result: onStepFinishResult) => Promise<void> | void',
-      isOptional: true,
-      description: 'Callback that is called when a step is finished.',
-      properties: [
-        {
-          type: 'onStepFinishResult',
-          parameters: [
-            {
-              name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
-              description:
-                'The reason the model finished generating the text for the step.',
-            },
-            {
-              name: 'usage',
-              type: 'TokenUsage',
-              description: 'The token usage of the step.',
-              properties: [
-                {
-                  type: 'TokenUsage',
-                  parameters: [
-                    {
-                      name: 'promptTokens',
-                      type: 'number',
-                      description: 'The total number of tokens in the prompt.',
-                    },
-                    {
-                      name: 'completionTokens',
-                      type: 'number',
-                      description:
-                        'The total number of tokens in the completion.',
-                    },
-                    {
-                      name: 'totalTokens',
-                      type: 'number',
-                      description: 'The total number of tokens generated.',
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              name: 'text',
-              type: 'string',
-              description: 'The full text that has been generated.',
-            },
-            {
-              name: 'toolCalls',
-              type: 'ToolCall[]',
-              description: 'The tool calls that have been executed.',
-            },
-            {
-              name: 'toolResults',
-              type: 'ToolResult[]',
-              description: 'The tool results that have been generated.',
-            },
-            {
-              name: 'warnings',
-              type: 'Warning[] | undefined',
-              description:
-                'Warnings from the model provider (e.g. unsupported settings).',
-            },
-            {
-              name: 'response',
-              type: 'Response',
-              optional: true,
-              description: 'Response metadata.',
-              properties: [
-                {
-                  type: 'Response',
-                  parameters: [
-                    {
-                      name: 'id',
-                      type: 'string',
-                      description:
-                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
-                    },
-                    {
-                      name: 'model',
-                      type: 'string',
-                      description:
-                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
-                    },
-                    {
-                      name: 'timestamp',
-                      type: 'Date',
-                      description:
-                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
-                    },
-                    {
-                      name: 'headers',
-                      optional: true,
-                      type: 'Record<string, string>',
-                      description: 'Optional response headers.',
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              name: 'experimental_providerMetadata',
-              type: 'Record<string,Record<string,JSONValue>> | undefined',
-              isOptional: true,
-              description:
-                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
-            },
-          ],
-        },
-      ],
-    },
   ]}
 />
 
@@ -535,20 +507,10 @@ To see `generateText` in action, check out [these examples](#examples).
 <PropertiesTable
   content={[
     {
-      name: 'text',
-      type: 'string',
-      description: 'The generated text by the model.',
-    },
-    {
-      name: 'toolCalls',
-      type: 'array',
-      description: 'A list of tool calls made by the model.',
-    },
-    {
-      name: 'toolResults',
-      type: 'array',
+      name: 'object',
+      type: 'based on the schema',
       description:
-        'A list of tool results returned as responses to earlier tool calls.',
+        'The generated object, validated by the schema (if it supports validation).',
     },
     {
       name: 'finishReason',
@@ -585,7 +547,7 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'response',
       type: 'Response',
-      optional: true,
+      isOptional: true,
       description: 'Response metadata.',
       properties: [
         {
@@ -611,7 +573,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'headers',
-              optional: true,
+              isOptional: true,
               type: 'Record<string, string>',
               description: 'Optional response headers.',
             },
@@ -632,156 +594,27 @@ To see `generateText` in action, check out [these examples](#examples).
         'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
-      name: 'responseMessages',
-      type: 'Array<CoreAssistantMessage | CoreToolMessage>',
+      name: 'toJsonResponse',
+      type: '(init?: ResponseInit) => Response',
       description:
-        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
-    },
-    {
-      name: 'steps',
-      type: 'Array<StepResult>',
-      description:
-        'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
-      properties: [
-        {
-          type: 'StepResult',
-          parameters: [
-            {
-              name: 'text',
-              type: 'string',
-              description: 'The generated text by the model.',
-            },
-            {
-              name: 'toolCalls',
-              type: 'array',
-              description: 'A list of tool calls made by the model.',
-            },
-            {
-              name: 'toolResults',
-              type: 'array',
-              description:
-                'A list of tool results returned as responses to earlier tool calls.',
-            },
-            {
-              name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
-              description: 'The reason the model finished generating the text.',
-            },
-            {
-              name: 'usage',
-              type: 'CompletionTokenUsage',
-              description: 'The token usage of the generated text.',
-              properties: [
-                {
-                  type: 'CompletionTokenUsage',
-                  parameters: [
-                    {
-                      name: 'promptTokens',
-                      type: 'number',
-                      description: 'The total number of tokens in the prompt.',
-                    },
-                    {
-                      name: 'completionTokens',
-                      type: 'number',
-                      description:
-                        'The total number of tokens in the completion.',
-                    },
-                    {
-                      name: 'totalTokens',
-                      type: 'number',
-                      description: 'The total number of tokens generated.',
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              name: 'response',
-              type: 'Response',
-              optional: true,
-              description: 'Response metadata.',
-              properties: [
-                {
-                  type: 'Response',
-                  parameters: [
-                    {
-                      name: 'id',
-                      type: 'string',
-                      description:
-                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
-                    },
-                    {
-                      name: 'model',
-                      type: 'string',
-                      description:
-                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
-                    },
-                    {
-                      name: 'timestamp',
-                      type: 'Date',
-                      description:
-                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
-                    },
-                    {
-                      name: 'headers',
-                      optional: true,
-                      type: 'Record<string, string>',
-                      description: 'Optional response headers.',
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              name: 'warnings',
-              type: 'Warning[] | undefined',
-              description:
-                'Warnings from the model provider (e.g. unsupported settings).',
-            },
-            {
-              name: 'experimental_providerMetadata',
-              type: 'Record<string,Record<string,JSONValue>> | undefined',
-              isOptional: true,
-              description:
-                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
-            },
-          ],
-        },
-      ],
+        'Converts the object to a JSON response. The response will have a status code of 200 and a content type of `application/json; charset=utf-8`.',
     },
   ]}
 />
 
-## Examples
+## More Examples
 
 <ExampleLinks
   examples={[
     {
-      title: 'Learn to generate text using a language model in Next.js',
-      link: '/examples/next-app/basics/generating-text',
+      title:
+        'Learn to generate structured data using a language model in Next.js',
+      link: '/examples/next-app/basics/generating-object',
     },
     {
       title:
-        'Learn to generate a chat completion using a language model in Next.js',
-      link: '/examples/next-app/basics/generating-text',
-    },
-    {
-      title: 'Learn to call tools using a language model in Next.js',
-      link: '/examples/next-app/tools/call-tool',
-    },
-    {
-      title:
-        'Learn to render a React component as a tool call using a language model in Next.js',
-      link: '/examples/next-app/tools/render-interface-during-tool-call',
-    },
-    {
-      title: 'Learn to generate text using a language model in Node.js',
-      link: '/examples/node/generating-text/generate-text',
-    },
-    {
-      title:
-        'Learn to generate chat completions using a language model in Node.js',
-      link: '/examples/node/generating-text/generate-text-with-chat-prompt',
+        'Learn to generate structured data using a language model in Node.js',
+      link: '/examples/node/generating-structured-data/generate-object',
     },
   ]}
 />

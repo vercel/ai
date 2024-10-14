@@ -146,7 +146,7 @@ const { embedding } = await embed({
     {
       name: 'rawResponse',
       type: 'RawResponse',
-      optional: true,
+      isOptional: true,
       description: 'Optional raw response data.',
       properties: [
         {
@@ -154,7 +154,7 @@ const { embedding } = await embed({
           parameters: [
             {
               name: 'headers',
-              optional: true,
+              isOptional: true,
               type: 'Record<string, string>',
               description: 'Response headers.',
             },
