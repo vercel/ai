@@ -21,7 +21,7 @@ it('should throw an error when timeoutMs is 0 or negative', () => {
 });
 
 it('should create an AbortSignal that aborts after the specified timeout', () => {
-  const { signal, clear } = createTimeoutAbortSignal(5000);
+  const { signal, clearTimeoutSignal: clear } = createTimeoutAbortSignal(5000);
   expect(signal.aborted).toBe(false);
   vi.advanceTimersByTime(4999);
   expect(signal.aborted).toBe(false);
@@ -31,7 +31,7 @@ it('should create an AbortSignal that aborts after the specified timeout', () =>
 });
 
 it('should clear the timeout when clear is called', () => {
-  const { signal, clear } = createTimeoutAbortSignal(5000);
+  const { signal, clearTimeoutSignal: clear } = createTimeoutAbortSignal(5000);
   vi.advanceTimersByTime(3000);
   clear();
   vi.advanceTimersByTime(2000);
@@ -39,7 +39,9 @@ it('should clear the timeout when clear is called', () => {
 });
 
 it('should handle very large timeout values', () => {
-  const { signal, clear } = createTimeoutAbortSignal(Number.MAX_SAFE_INTEGER);
+  const { signal, clearTimeoutSignal: clear } = createTimeoutAbortSignal(
+    Number.MAX_SAFE_INTEGER,
+  );
   vi.advanceTimersByTime(Number.MAX_SAFE_INTEGER - 1);
   expect(signal.aborted).toBe(false);
   vi.advanceTimersByTime(1);
@@ -48,7 +50,7 @@ it('should handle very large timeout values', () => {
 });
 
 it('should handle multiple abort listeners', () => {
-  const { signal, clear } = createTimeoutAbortSignal(1000);
+  const { signal, clearTimeoutSignal: clear } = createTimeoutAbortSignal(1000);
   const listener1 = vi.fn();
   const listener2 = vi.fn();
   signal.addEventListener('abort', listener1);
@@ -60,7 +62,7 @@ it('should handle multiple abort listeners', () => {
 });
 
 it('should not trigger abort after clear is called', () => {
-  const { signal, clear } = createTimeoutAbortSignal(1000);
+  const { signal, clearTimeoutSignal: clear } = createTimeoutAbortSignal(1000);
   const abortListener = vi.fn();
   signal.addEventListener('abort', abortListener);
   vi.advanceTimersByTime(500);

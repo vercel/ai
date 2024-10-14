@@ -1,6 +1,7 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { InvalidArgumentError } from '../../errors';
+import { enhanceAbortSignalWithTimeout } from '../../util/enhance-abort-signal-with-timeout';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
@@ -31,7 +32,6 @@ import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCallArray } from './tool-call';
 import { ToToolResultArray } from './tool-result';
-import { createAbortSignalWithTimeout } from '../../util/create-abort-signal-with-timeout';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
@@ -296,9 +296,15 @@ functionality that can be fully encapsulated in the provider.
             tracer,
             fn: async span => {
               let clearTimeoutFunction: (() => void) | undefined;
-              let result: any; 
+              let result: any;
               try {
-                const { signal: effectiveAbortSignal, clearTimeout } = createAbortSignalWithTimeout({signal: abortSignal, timeoutMs: timeout});
+                const {
+                  signal: effectiveAbortSignal,
+                  clearTimeoutSignal: clearTimeout,
+                } = enhanceAbortSignalWithTimeout({
+                  signal: abortSignal,
+                  timeoutInMs: timeout,
+                });
                 clearTimeoutFunction = clearTimeout;
                 result = await model.doGenerate({
                   mode,

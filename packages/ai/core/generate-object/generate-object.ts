@@ -2,6 +2,7 @@ import { JSONValue } from '@ai-sdk/provider';
 import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
+import { enhanceAbortSignalWithTimeout } from '../../util/enhance-abort-signal-with-timeout';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -29,7 +30,6 @@ import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { createAbortSignalWithTimeout } from '../../util/create-abort-signal-with-timeout';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', size: 24 });
 
@@ -463,11 +463,13 @@ export async function generateObject<SCHEMA, RESULT>({
                 let clearTimeoutFunction: (() => void) | undefined;
                 let result: any;
                 try {
-                  const { signal: effectiveAbortSignal, clearTimeout } =
-                    createAbortSignalWithTimeout({
-                      signal: abortSignal,
-                      timeoutMs: timeout,
-                    });
+                  const {
+                    signal: effectiveAbortSignal,
+                    clearTimeoutSignal: clearTimeout,
+                  } = enhanceAbortSignalWithTimeout({
+                    signal: abortSignal,
+                    timeoutInMs: timeout,
+                  });
                   clearTimeoutFunction = clearTimeout;
                   result = await model.doGenerate({
                     mode: {
@@ -594,14 +596,17 @@ export async function generateObject<SCHEMA, RESULT>({
               }),
               tracer,
               fn: async span => {
+                const {
+                  signal: effectiveAbortSignal,
+                  clearTimeoutSignal: clearTimeout,
+                } = enhanceAbortSignalWithTimeout({
+                  signal: abortSignal,
+                  timeoutInMs: timeout,
+                });
+
                 let clearTimeoutFunction: (() => void) | undefined;
                 let result: any;
                 try {
-                  const { signal: effectiveAbortSignal, clearTimeout } =
-                    createAbortSignalWithTimeout({
-                      signal: abortSignal,
-                      timeoutMs: timeout,
-                    });
                   clearTimeoutFunction = clearTimeout;
                   result = await model.doGenerate({
                     mode: {
@@ -621,9 +626,6 @@ export async function generateObject<SCHEMA, RESULT>({
                     abortSignal: effectiveAbortSignal,
                     headers,
                   });
-                } catch (error) {
-                  console.error('Error during model generation:', error);
-                  throw error;
                 } finally {
                   if (clearTimeoutFunction) {
                     clearTimeoutFunction();

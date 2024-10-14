@@ -1,31 +1,31 @@
 import { InvalidArgumentError } from '../errors';
 
-export function createTimeoutAbortSignal(timeoutMs: number | undefined): {
+export function createTimeoutAbortSignal(timeoutInMs: number | undefined): {
   signal: AbortSignal;
-  clear: () => void;
+  clearTimeoutSignal: () => void;
 } {
-  if (timeoutMs == null) {
+  if (timeoutInMs == null) {
     throw new InvalidArgumentError({
       message: 'Timeout cannot be undefined',
-      parameter: 'timeoutMs',
-      value: timeoutMs,
+      parameter: 'timeoutInMs',
+      value: timeoutInMs,
     });
   }
 
-  if (timeoutMs <= 0) {
+  if (timeoutInMs <= 0) {
     throw new InvalidArgumentError({
       message: 'Timeout must be greater than 0',
       parameter: 'timeoutMs',
-      value: timeoutMs,
+      value: timeoutInMs,
     });
   }
 
   const timeoutController = new AbortController();
-  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutInMs);
 
   return {
     signal: timeoutController.signal,
-    clear: () => {
+    clearTimeoutSignal: () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }

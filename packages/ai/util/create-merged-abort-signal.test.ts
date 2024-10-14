@@ -79,3 +79,18 @@ it('should work with multiple signals', () => {
   controller2.abort();
   expect(mergedSignal.aborted).toBe(true);
 });
+
+it('should handle undefined signals correctly', () => {
+  const controller1 = new AbortController();
+  const mergedSignal = createMergedAbortSignal(
+    controller1.signal,
+    undefined,
+    undefined,
+  );
+
+  expect(mergedSignal).toBeInstanceOf(AbortSignal);
+  expect(mergedSignal.aborted).toBe(false);
+
+  controller1.abort();
+  expect(mergedSignal.aborted).toBe(true);
+});
