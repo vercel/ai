@@ -38,6 +38,7 @@ To use Fireworks, you can create a custom provider instance with the `createOpen
 import { createOpenAI } from '@ai-sdk/openai';
 
 const fireworks = createOpenAI({
+  name: 'fireworks',
   apiKey: process.env.FIREWORKS_API_KEY ?? '',
   baseURL: 'https://api.fireworks.ai/inference/v1',
 });
@@ -61,6 +62,7 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { generateText } from 'ai'
 
 const fireworks = createOpenAI({
+  name: 'fireworks',
   apiKey: process.env.FIREWORKS_API_KEY ?? '',
   baseURL: 'https://api.fireworks.ai/inference/v1'
 })
