@@ -18,6 +18,27 @@ describe('stream-parts', () => {
   });
 
   describe('parseStreamPart', () => {
+    it('should parse an id line', () => {
+      {
+        // uuid
+        const input = 'f:"f91a9bd7-c848-44f1-af46-f5428edcc296"';
+
+        expect(parseStreamPart(input)).toEqual({
+          type: 'id',
+          value: 'f91a9bd7-c848-44f1-af46-f5428edcc296',
+        });
+      }
+      {
+        // nanoid
+        const input = 'f:"V1StGXR8_Z5jdHi6B-myT"';
+
+        expect(parseStreamPart(input)).toEqual({
+          type: 'id',
+          value: 'V1StGXR8_Z5jdHi6B-myT',
+        });
+      }
+    });
+
     it('should parse a text line', () => {
       const input = '0:"Hello, world!"';
 
