@@ -74,6 +74,24 @@ describe('doGenerate', () => {
     expect(text).toStrictEqual('Hello, World!');
   });
 
+  it('should avoid duplication when there is a trailing assistant message', async () => {
+    prepareJsonResponse({ content: 'prefix and more content' });
+
+    const { text } = await model.doGenerate({
+      inputFormat: 'messages',
+      mode: { type: 'regular' },
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'prefix ' }],
+        },
+      ],
+    });
+
+    expect(text).toStrictEqual('and more content');
+  });
+
   it('should extract tool call response', async () => {
     server.responseBodyJson = {
       id: 'b3999b8c93e04e11bcbff7bcab829667',

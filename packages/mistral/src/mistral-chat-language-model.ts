@@ -186,9 +186,21 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
+    let text = choice.message.content ?? undefined;
+
+    // when there is a trailing assistant message, mistral will send the
+    // content of that message again. we skip this repeated content to
+    // avoid duplication, e.g. in continuation mode.
+    const lastMessage = rawPrompt[rawPrompt.length - 1];
+    if (
+      lastMessage.role === 'assistant' &&
+      text?.startsWith(lastMessage.content)
+    ) {
+      text = text.slice(lastMessage.content.length);
+    }
 
     return {
-      text: choice.message.content ?? undefined,
+      text,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
         toolCallId: toolCall.id,
