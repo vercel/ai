@@ -3,6 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 const perplexity = createOpenAI({
+  name: 'perplexity',
   apiKey: process.env.PERPLEXITY_API_KEY ?? '',
   baseURL: 'https://api.perplexity.ai/',
 });

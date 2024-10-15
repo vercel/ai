@@ -3,13 +3,14 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 const groq = createOpenAI({
+  name: 'groq',
   apiKey: process.env.GROQ_API_KEY ?? '',
   baseURL: 'https://api.groq.com/openai/v1',
 });
 
 async function main() {
   const result = await streamText({
-    model: groq.chat('llama3-70b-8192'),
+    model: groq('llama3-70b-8192'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

@@ -4,13 +4,14 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 const groq = createOpenAI({
+  name: 'groq',
   apiKey: process.env.GROQ_API_KEY ?? '',
   baseURL: 'https://api.groq.com/openai/v1',
 });
 
 async function main() {
   const result = await streamObject({
-    model: groq.chat('llama3-70b-8192'),
+    model: groq('llama3-70b-8192'),
     maxTokens: 2000,
     schema: z.object({
       characters: z.array(

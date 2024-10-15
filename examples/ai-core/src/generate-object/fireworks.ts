@@ -4,6 +4,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 const fireworks = createOpenAI({
+  name: 'fireworks',
   apiKey: process.env.FIREWORKS_API_KEY ?? '',
   baseURL: 'https://api.fireworks.ai/inference/v1',
 });

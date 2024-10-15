@@ -38,6 +38,7 @@ To use Perplexity, you can create a custom provider instance with the `createOpe
 import { createOpenAI } from '@ai-sdk/openai';
 
 const perplexity = createOpenAI({
+  name: 'perplexity',
   apiKey: process.env.PERPLEXITY_API_KEY ?? '',
   baseURL: 'https://api.perplexity.ai/',
 });
@@ -61,6 +62,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const perplexity = createOpenAI({
+  name: 'perplexity',
   apiKey: process.env.PERPLEXITY_API_KEY ?? '',
   baseURL: 'https://api.perplexity.ai/',
 });

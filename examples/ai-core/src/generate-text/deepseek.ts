@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import 'dotenv/config';
 
 const deepSeek = createOpenAI({
+  name: 'deepseek',
   baseURL: 'https://api.deepseek.com',
   apiKey: process.env.DEEPSEEK_API_KEY!,
 });
