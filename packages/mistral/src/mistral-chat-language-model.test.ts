@@ -331,6 +331,40 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should avoid duplication when there is a trailing assistant message', async () => {
+    prepareStreamResponse({ content: ['prefix', ' and', ' more content'] });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'messages',
+      mode: { type: 'regular' },
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'prefix ' }],
+        },
+      ],
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: '6e2cd91750904b7092f49bdca9083de1',
+        timestamp: new Date(1711097175 * 1000),
+        modelId: 'mistral-small-latest',
+      },
+      { type: 'text-delta', textDelta: '' },
+      { type: 'text-delta', textDelta: 'and' },
+      { type: 'text-delta', textDelta: ' more content' },
+      { type: 'text-delta', textDelta: '' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 32 },
+      },
+    ]);
+  });
+
   it('should stream tool deltas', async () => {
     server.responseChunks = [
       `data: {"id":"ad6f7ce6543c4d0890280ae184fe4dd8","object":"chat.completion.chunk","created":1711365023,"model":"mistral-large-latest",` +
