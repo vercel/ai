@@ -77,20 +77,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const warnings: LanguageModelV1CallWarning[] = [];
 
-    if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
-    }
-
-    if (presencePenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
-      });
-    }
-
     if (seed != null) {
       warnings.push({
         type: 'unsupported-setting',
@@ -99,13 +85,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     }
 
     const generationConfig = {
-      // model specific settings:
-      topK: topK ?? this.settings.topK,
-
       // standardized settings:
       maxOutputTokens: maxTokens,
       temperature,
+      topK: topK ?? this.settings.topK,
       topP,
+      frequencyPenalty,
+      presencePenalty,
       stopSequences,
 
       // response format:
