@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 0.0.43
+
+### Patch Changes
+
+- 843656c: feat (provider/mistral): support continuation and trailing assistant messages
+
 ## 0.0.42
 
 ### Patch Changes
