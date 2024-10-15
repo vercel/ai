@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.67
+
+### Patch Changes
+
+- 39fccee: feat (provider/openai): provider name can be changed for 3rd party openai compatible providers
+
 ## 0.0.66
 
 ### Patch Changes
