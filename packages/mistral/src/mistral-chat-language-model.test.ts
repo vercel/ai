@@ -74,6 +74,24 @@ describe('doGenerate', () => {
     expect(text).toStrictEqual('Hello, World!');
   });
 
+  it('should avoid duplication when there is a trailing assistant message', async () => {
+    prepareJsonResponse({ content: 'prefix and more content' });
+
+    const { text } = await model.doGenerate({
+      inputFormat: 'messages',
+      mode: { type: 'regular' },
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'prefix ' }],
+        },
+      ],
+    });
+
+    expect(text).toStrictEqual('and more content');
+  });
+
   it('should extract tool call response', async () => {
     server.responseBodyJson = {
       id: 'b3999b8c93e04e11bcbff7bcab829667',
@@ -322,6 +340,40 @@ describe('doStream', () => {
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
       { type: 'text-delta', textDelta: 'world!' },
+      { type: 'text-delta', textDelta: '' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 32 },
+      },
+    ]);
+  });
+
+  it('should avoid duplication when there is a trailing assistant message', async () => {
+    prepareStreamResponse({ content: ['prefix', ' and', ' more content'] });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'messages',
+      mode: { type: 'regular' },
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'prefix ' }],
+        },
+      ],
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: '6e2cd91750904b7092f49bdca9083de1',
+        timestamp: new Date(1711097175 * 1000),
+        modelId: 'mistral-small-latest',
+      },
+      { type: 'text-delta', textDelta: '' },
+      { type: 'text-delta', textDelta: 'and' },
+      { type: 'text-delta', textDelta: ' more content' },
       { type: 'text-delta', textDelta: '' },
       {
         type: 'finish',
