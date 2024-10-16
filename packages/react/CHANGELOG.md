@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.63
+
+### Patch Changes
+
+- caedcda: feat (ai/ui): add setData helper to useChat
+
 ## 0.0.62
 
 ### Patch Changes
