@@ -41,45 +41,53 @@ Allows you to easily create a conversational user interface for your chatbot app
     {
       name: 'api',
       type: "string = '/api/chat'",
+      isOptional: true,
       description: 'The chat completion API endpoint offered by the provider.',
     },
     {
       name: 'keepLastMessageOnError',
       type: 'boolean',
+      isOptional: true,
       description:
         'Keeps the last message when an error happens. This will be the default behavior starting with the next major release. The flag was introduced for backwards compatibility and currently defaults to `false`. Please enable it and update your error handling/resubmit behavior.',
     },
     {
       name: 'id',
       type: 'string',
+      isOptional: true,
       description:
         'An unique identifier for the chat. If not provided, a random one will be generated. When provided, the `useChat` hook with the same `id` will have shared states across components. This is useful when you have multiple components showing the same chat stream.',
     },
     {
       name: 'initialInput',
       type: "string = ''",
+      isOptional: true,
       description: 'An optional string for the initial prompt input.',
     },
     {
       name: 'initialMessages',
       type: 'Messages[] = []',
+      isOptional: true,
       description: 'An optional array of initial chat messages',
     },
     {
       name: 'onToolCall',
       type: '({toolCall: ToolCall}) => void | unknown| Promise<unknown>',
+      isOptional: true,
       description:
         'Optional callback function that is invoked when a tool call is received. Intended for automatic client-side tool execution. You can optionally return a result for the tool call, either synchronously or asynchronously.',
     },
     {
       name: 'onResponse',
       type: '(response: Response) => void',
+      isOptional: true,
       description:
         'An optional callback that will be called with the response from the API endpoint. Useful for throwing customized errors or logging',
     },
     {
       name: 'onFinish',
       type: '(message: Message, options: OnFinishOptions) => void',
+      isOptional: true,
       description:
         'An optional callback function that is called when the completion stream ends.',
       properties: [
@@ -126,42 +134,48 @@ Allows you to easily create a conversational user interface for your chatbot app
     {
       name: 'onError',
       type: '(error: Error) => void',
+      isOptional: true,
       description:
-        'An optional callback that will be called when the chat stream encounters an error.',
+        'A callback that will be called when the chat stream encounters an error. Optional.',
     },
     {
       name: 'generateId',
       type: '() => string',
-      description:
-        'Optional. A way to provide a function that is going to be used for ids for messages. If not provided generateId is used by default.',
+      isOptional: true,
+      description: 'A custom id generator for messages. Optional.',
     },
     {
       name: 'headers',
       type: 'Record<string, string> | Headers',
+      isOptional: true,
       description:
-        'An optional object of headers to be passed to the API endpoint.',
+        'Additional headers to be passed to the API endpoint. Optional.',
     },
     {
       name: 'body',
       type: 'any',
+      isOptional: true,
       description:
-        'An optional, additional body object to be passed to the API endpoint.',
+        'Additional body object to be passed to the API endpoint. Optional.',
     },
     {
       name: 'credentials',
       type: "'omit' | 'same-origin' | 'include'",
+      isOptional: true,
       description:
         'An optional literal that sets the mode of credentials to be used on the request. Defaults to same-origin.',
     },
     {
       name: 'sendExtraMessageFields',
       type: 'boolean',
+      isOptional: true,
       description:
         "An optional boolean that determines whether to send extra fields you've added to `messages`. Defaults to `false` and only the `content` and `role` fields will be sent to the API endpoint. If set to `true`, the `name`, `data`, and `annotations` fields will also be sent.",
     },
     {
       name: 'maxSteps',
       type: 'number',
+      isOptional: true,
       description:
         'Maximum number of backend calls to generate a response. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
     },
@@ -540,7 +554,13 @@ Allows you to easily create a conversational user interface for your chatbot app
     {
       name: 'data',
       type: 'JSONValue[]',
-      description: 'Data returned from StreamData',
+      description: 'Data returned from StreamData.',
+    },
+    {
+      name: 'setData',
+      type: '(data: JSONValue[] | undefined | ((data: JSONValue[] | undefined) => JSONValue[] | undefined)) => void',
+      description:
+        'Function to update the `data` state which contains data from StreamData.',
     },
     {
       name: 'addToolResult',
