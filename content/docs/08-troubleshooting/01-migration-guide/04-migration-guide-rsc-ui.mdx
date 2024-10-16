@@ -96,7 +96,7 @@ export default function Page() {
 }
 ```
 
-The `streamUI` function combines generating text and rendering the user interface. To migrate to AI SDK UI, you need to separate these concerns – streaming generations with `streamText` and rendering the UI with `useChat`.
+The `streamUI` function combines generating text and rendering the user interface. To migrate to AI SDK UI, you need to **separate these concerns** – streaming generations with `streamText` and rendering the UI with `useChat`.
 
 #### After: Replace server action with route handler
 
@@ -157,8 +157,6 @@ export default function Page() {
   );
 }
 ```
-
-This setup gets your chat-based application up and running!
 
 ### Generative User Interfaces
 
@@ -338,7 +336,7 @@ export function ListFlights({ flights }) {
 
 #### After: Use another chat hook with same ID from the component
 
-After switching to AI SDK UI, these messages are by initializing the `useChat` hook in the component with the same `id` as the parent component.
+After switching to AI SDK UI, these messages are synced by initializing the `useChat` hook in the component with the same `id` as the parent component.
 
 ```tsx filename="@/app/components/list-flights.tsx"
 'use client';
@@ -468,6 +466,8 @@ As messages are typically loaded from the database, we can use a server actions 
 ```tsx filename="@/app/chat/[id]/page.tsx"
 import { Chat } from '@/app/components/chat';
 import { getChatById } from '@/utils/queries';
+
+// link to example implementation: https://github.com/vercel/ai-chatbot/blob/00b125378c998d19ef60b73fe576df0fe5a0e9d4/lib/utils.ts#L87-L127
 import { convertToUIMessages } from '@/utils/functions';
 
 export default async function Page({ params }: { params: any }) {
