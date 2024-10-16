@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await streamText({
-    model: mistral('open-mistral-7b'),
+    model: mistral('ministral-8b-latest'),
     maxTokens: 512,
     temperature: 0.3,
     maxRetries: 5,
