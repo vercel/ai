@@ -728,6 +728,47 @@ describe('options.providerMetadata', () => {
   });
 });
 
+describe('options.abortSignal', () => {
+  it('should forward abort signal to tool execution', async () => {
+    const abortController = new AbortController();
+    const toolExecuteMock = vi.fn().mockResolvedValue('tool result');
+
+    const generateTextPromise = generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          toolCalls: [
+            {
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: toolExecuteMock,
+        },
+      },
+      prompt: 'test-input',
+      abortSignal: abortController.signal,
+    });
+
+    // Abort the operation
+    abortController.abort();
+
+    await generateTextPromise;
+
+    expect(toolExecuteMock).toHaveBeenCalledWith(
+      { value: 'value' },
+      { abortSignal: abortController.signal },
+    );
+  });
+});
+
 describe('telemetry', () => {
   let tracer: MockTracer;
 

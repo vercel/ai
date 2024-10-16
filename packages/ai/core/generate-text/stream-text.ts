@@ -366,6 +366,7 @@ need to be added separately.
               toolCallStreaming,
               tracer,
               telemetry,
+              abortSignal,
             }),
             warnings,
             rawResponse,

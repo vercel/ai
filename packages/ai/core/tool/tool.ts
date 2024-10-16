@@ -32,8 +32,16 @@ Use descriptions to make the input understandable for the language model.
   /**
 An async function that is called with the arguments from the tool call and produces a result.
 If not provided, the tool will not be executed automatically.
+
+@args is the input of the tool call.
+@options.abortSignal is a signal that can be used to abort the tool call.
    */
-  execute?: (args: inferParameters<PARAMETERS>) => PromiseLike<RESULT>;
+  execute?: (
+    args: inferParameters<PARAMETERS>,
+    options: {
+      abortSignal?: AbortSignal;
+    },
+  ) => PromiseLike<RESULT>;
 }
 
 /**
