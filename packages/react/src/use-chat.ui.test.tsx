@@ -2,6 +2,7 @@
 import { withTestServer } from '@ai-sdk/provider-utils/test';
 import {
   formatStreamPart,
+  generateId,
   getTextFromDataUrl,
   Message,
 } from '@ai-sdk/ui-utils';
@@ -17,7 +18,7 @@ import userEvent from '@testing-library/user-event';
 import React, { useRef, useState } from 'react';
 import { useChat } from './use-chat';
 
-describe('stream data stream', () => {
+describe('data protocol stream', () => {
   let onFinishCalls: Array<{
     message: Message;
     options: {
@@ -30,9 +31,9 @@ describe('stream data stream', () => {
     };
   }> = [];
 
-  const TestComponent = () => {
-    const [id, setId] = React.useState<string>('first-id');
-    const { messages, append, error, data, isLoading } = useChat({
+  const TestComponent = ({ id: idParam }: { id: string }) => {
+    const [id, setId] = React.useState<string>(idParam);
+    const { messages, append, error, data, isLoading, setData } = useChat({
       id,
       onFinish: (message, options) => {
         onFinishCalls.push({ message, options });
@@ -43,14 +44,13 @@ describe('stream data stream', () => {
       <div>
         <div data-testid="loading">{isLoading.toString()}</div>
         {error && <div data-testid="error">{error.toString()}</div>}
-        {data && <div data-testid="data">{JSON.stringify(data)}</div>}
+        <div data-testid="data">{data != null ? JSON.stringify(data) : ''}</div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
             {m.content}
           </div>
         ))}
-
         <button
           data-testid="do-append"
           onClick={() => {
@@ -63,12 +63,25 @@ describe('stream data stream', () => {
             setId('second-id');
           }}
         />
+        <button
+          data-testid="do-set-data"
+          onClick={() => {
+            setData([{ t1: 'set' }]);
+          }}
+        />
+        <button
+          data-testid="do-clear-data"
+          onClick={() => {
+            setData(undefined);
+          }}
+        />
       </div>
     );
   };
 
   beforeEach(() => {
-    render(<TestComponent />);
+    // use a random id to avoid conflicts:
+    render(<TestComponent id={`first-id-${generateId()}`} />);
     onFinishCalls = [];
   });
 
@@ -101,7 +114,7 @@ describe('stream data stream', () => {
   );
 
   it(
-    'should show streamed response with data',
+    'should set stream data',
     withTestServer(
       {
         type: 'stream-values',
@@ -119,6 +132,37 @@ describe('stream data stream', () => {
       },
     ),
   );
+
+  describe('setData', () => {
+    it('should set data', async () => {
+      await userEvent.click(screen.getByTestId('do-set-data'));
+
+      await screen.findByTestId('data');
+      expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"set"}]');
+    });
+
+    it(
+      'should clear data',
+      withTestServer(
+        {
+          type: 'stream-values',
+          url: '/api/chat',
+          content: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
+        },
+        async () => {
+          await userEvent.click(screen.getByTestId('do-append'));
+
+          await screen.findByTestId('data');
+          expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
+
+          await userEvent.click(screen.getByTestId('do-clear-data'));
+
+          await screen.findByTestId('data');
+          expect(screen.getByTestId('data')).toHaveTextContent('');
+        },
+      ),
+    );
+  });
 
   it(
     'should show error response when there is a server error',
