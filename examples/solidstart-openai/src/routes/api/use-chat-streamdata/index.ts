@@ -1,11 +1,9 @@
 import { openai } from '@ai-sdk/openai';
+import { APIEvent } from '@solidjs/start/server';
 import { convertToCoreMessages, StreamData, streamText } from 'ai';
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
-
-export async function POST(req: Request) {
-  const { messages } = await req.json();
+export const POST = async (event: APIEvent) => {
+  const { messages } = await event.request.json();
 
   // use stream data
   const data = new StreamData();
@@ -21,4 +19,4 @@ export async function POST(req: Request) {
   });
 
   return result.toDataStreamResponse({ data });
-}
+};

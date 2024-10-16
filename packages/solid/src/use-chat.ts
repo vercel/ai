@@ -77,8 +77,16 @@ export type UseChatHelpers = {
   ) => void;
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
+
   /** Additional data added on the server via StreamData */
   data: Accessor<JSONValue[] | undefined>;
+  /** Set the data of the chat. You can use this to transform or clear the chat data. */
+  setData: (
+    data:
+      | JSONValue[]
+      | undefined
+      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+  ) => void;
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -408,6 +416,19 @@ export function useChat(
     messagesRef = messagesArg;
   };
 
+  const setData = (
+    dataArg:
+      | JSONValue[]
+      | undefined
+      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+  ) => {
+    if (typeof dataArg === 'function') {
+      dataArg = dataArg(streamData());
+    }
+
+    setStreamData(dataArg);
+  };
+
   const [input, setInput] = createSignal(
     useChatOptions().initialInput?.() || '',
   );
@@ -506,6 +527,7 @@ export function useChat(
     handleSubmit,
     isLoading,
     data: streamData,
+    setData,
     addToolResult,
   };
 }
