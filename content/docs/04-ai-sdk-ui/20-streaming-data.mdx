@@ -10,7 +10,7 @@ This can be achieved with [`StreamData`](/docs/reference/stream-helpers/stream-d
 
 ## What is StreamData
 
-The `StreamData` class allows you to stream arbitrary data to the client alongside your LLM response.
+The `StreamData` class allows you to stream arbitrary JSON data to the client alongside your LLM response.
 This can be particularly useful in applications that need to augment AI responses with metadata, auxiliary information,
 or custom data structures that are relevant to the ongoing interaction.
 
@@ -26,10 +26,10 @@ On the client, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook returns 
 
 ### On the server
 
-<Note>
-  While this example uses Next.js (App Router), `StreamData` is compatible with
-  any framework.
-</Note>
+You can use `StreamData` in combination with `streamText`.
+It is initialized as a separate object and you can append data to it with `append`.
+Once the stream is finished, you need to call `close()` on the `StreamData` object to
+ensure that the connection is closed.
 
 ```tsx
 import { openai } from '@ai-sdk/openai';
@@ -62,12 +62,35 @@ export async function POST(req: Request) {
 }
 ```
 
+<Note>
+  While this example uses Next.js (App Router), `StreamData` is compatible with
+  any framework.
+</Note>
+
 ### On the client
 
-On the client, you can destructure `data` from the `useChat` hook which stores all `StreamData` in an array. The `data` is of the type `JSONValue[]`.
+On the client, you can destructure `data` from the `useChat` hook which stores all `StreamData`
+as a `JSONValue[]`.
 
 ```tsx
 const { data } = useChat();
 ```
 
 Future versions of the AI SDK will support each `Message` having a `data` object attached to it.
+
+## Updating and Clearing Data
+
+You can update and clear the `data` object of the `useChat` hook using the `setData` function.
+
+```tsx
+const { setData } = useChat();
+
+// clear existing data
+setData(undefined);
+
+// set new data
+setData([{ test: 'value' }]);
+
+// transform existing data, e.g. adding additional values:
+setData(currentData => [...currentData, { test: 'value' }]);
+```
