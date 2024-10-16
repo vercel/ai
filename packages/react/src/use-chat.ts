@@ -89,7 +89,7 @@ const getStreamedResponse = async (
   chatRequest: ChatRequest,
   mutate: KeyedMutator<Message[]>,
   mutateStreamData: KeyedMutator<JSONValue[] | undefined>,
-  existingData: JSONValue[] | undefined,
+  existingDataRef: React.MutableRefObject<JSONValue[] | undefined>,
   extraMetadataRef: React.MutableRefObject<any>,
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
@@ -144,6 +144,8 @@ const getStreamedResponse = async (
         }),
       );
 
+  const existingData = existingDataRef.current;
+
   return await callChatApi({
     api,
     body: experimental_prepareRequestBody?.({
@@ -183,7 +185,7 @@ const getStreamedResponse = async (
     onResponse,
     onUpdate(merged, data) {
       mutate([...chatRequest.messages, ...merged], false);
-      mutateStreamData([...(existingData || []), ...(data || [])], false);
+      mutateStreamData([...(existingData ?? []), ...(data ?? [])], false);
     },
     onToolCall,
     onFinish,
@@ -372,7 +374,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
               chatRequest,
               mutate,
               mutateStreamData,
-              streamData!,
+              streamDataRef,
               extraMetadataRef,
               messagesRef,
               abortControllerRef,
