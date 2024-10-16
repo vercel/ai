@@ -1,5 +1,16 @@
 # ai
 
+## 3.4.11
+
+### Patch Changes
+
+- caedcda: feat (ai/ui): add setData helper to useChat
+- Updated dependencies [caedcda]
+  - @ai-sdk/svelte@0.0.52
+  - @ai-sdk/react@0.0.63
+  - @ai-sdk/solid@0.0.50
+  - @ai-sdk/vue@0.0.55
+
 ## 3.4.10
 
 ### Patch Changes
