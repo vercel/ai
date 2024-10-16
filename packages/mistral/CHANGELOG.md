@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 0.0.44
+
+### Patch Changes
+
+- b13ecf7: chore (provider/mistral): update model ids
+
 ## 0.0.43
 
 ### Patch Changes
