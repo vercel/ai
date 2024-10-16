@@ -369,6 +369,7 @@ functionality that can be fully encapsulated in the provider.
                 tools,
                 tracer,
                 telemetry,
+                abortSignal,
               });
 
         // token usage:
@@ -537,11 +538,13 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   tools,
   tracer,
   telemetry,
+  abortSignal,
 }: {
   toolCalls: ToToolCallArray<TOOLS>;
   tools: TOOLS;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  abortSignal: AbortSignal | undefined;
 }): Promise<ToToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(
     toolCalls.map(async toolCall => {
@@ -569,7 +572,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         }),
         tracer,
         fn: async span => {
-          const result = await tool.execute!(toolCall.args);
+          const result = await tool.execute!(toolCall.args, { abortSignal });
 
           try {
             span.setAttributes(

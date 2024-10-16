@@ -66,12 +66,14 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   toolCallStreaming,
   tracer,
   telemetry,
+  abortSignal,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV1StreamPart>;
   toolCallStreaming: boolean;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  abortSignal: AbortSignal | undefined;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   let canClose = false;
   const outstandingToolCalls = new Set<string>();
@@ -195,7 +197,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                 }),
                 tracer,
                 fn: async span =>
-                  tool.execute!(toolCall.args).then(
+                  tool.execute!(toolCall.args, { abortSignal }).then(
                     (result: any) => {
                       toolResultsStreamController!.enqueue({
                         ...toolCall,
