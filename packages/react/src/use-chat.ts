@@ -72,9 +72,10 @@ export type UseChatHelpers = {
   metadata?: Object;
   /** Whether the API request is in progress */
   isLoading: boolean;
-  /** Additional data added on the server via StreamData */
+
+  /** Additional data added on the server via StreamData. */
   data?: JSONValue[];
-  /** Set the data object of the chat. You can use this to transform or clear the data object. */
+  /** Set the data of the chat. You can use this to transform or clear the chat data. */
   setData: (
     data:
       | JSONValue[]
