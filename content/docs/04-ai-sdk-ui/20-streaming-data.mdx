@@ -94,3 +94,35 @@ setData([{ test: 'value' }]);
 // transform existing data, e.g. adding additional values:
 setData(currentData => [...currentData, { test: 'value' }]);
 ```
+
+#### Example: Clear on Submit
+
+```tsx highlight="18-21"
+'use client';
+
+import { Message, useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit, data, setData } =
+    useChat();
+
+  return (
+    <>
+      {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
+
+      {messages?.map((m: Message) => (
+        <div key={m.id}>{`${m.role}: ${m.content}`}</div>
+      ))}
+
+      <form
+        onSubmit={e => {
+          setData(undefined); // clear stream data
+          handleSubmit(e);
+        }}
+      >
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </>
+  );
+}
+```
