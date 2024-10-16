@@ -11,13 +11,13 @@ This guide helps you migrate from AI SDK RSC to AI SDK UI.
 
 The AI SDK has two packages that help you build the frontend for your applications – [AI SDK UI](/docs/ai-sdk-ui) and [AI SDK RSC](/docs/ai-sdk-rsc).
 
-We introduced support for using [React Server Components](https://react.dev/reference/rsc/server-components) (RSC) within the AI SDK to simplify building generative user interfaces for frameworks that supported RSC.
+We introduced support for using [React Server Components](https://react.dev/reference/rsc/server-components) (RSC) within the AI SDK to simplify building generative user interfaces for frameworks that support RSC.
 
-However, since we're pushing the boundaries of this technology, AI SDK RSC currently faces significant limitations that make it unsuitable for stable production use.
+However, given we're pushing the boundaries of this technology, AI SDK RSC currently faces significant limitations that make it unsuitable for stable production use.
 
 - It is not possible to abort a stream using server actions. This will be improved in future releases of React and Next.js [(1122)](https://github.com/vercel/ai/issues/1122).
 - When using `createStreamableUI` and `streamUI`, components remount on `.done()`, causing them to flicker [(2939)](https://github.com/vercel/ai/issues/2939).
-- Large amount of suspense can lead to crashes [(2843)](https://github.com/vercel/ai/issues/2843).
+- Many suspense boundaries can lead to crashes [(2843)](https://github.com/vercel/ai/issues/2843).
 - Using `createStreamableUI` can lead to quadratic data transfer. You can avoid this using createStreamableValue instead, and rendering the component client-side.
 - Closed RSC streams cause update issues [(3007)](https://github.com/vercel/ai/issues/3007).
 
@@ -25,7 +25,7 @@ Due to these limitations, AI SDK RSC is marked as experimental, and we do not re
 
 As a result, we strongly recommend migrating to AI SDK UI, which has undergone extensive development to provide a more stable and production grade experience.
 
-By building [v0](https://v0.dev) over the past year, we spent a lot of time figuring out ways to deliver the best chat experience for the web. The AI SDK UI packs some of these best practices and commonly used patterns like middleware, multi-step tool calls, attachments, telemetry, provider registry, and many more into a neat abstraction that you can use to reliably integrate AI into your applications.
+In building [v0](https://v0.dev), we have invested considerable time exploring how to create the best chat experience on the web. AI SDK UI ships with many of these best practices and commonly used patterns like [language model middleware](/docs/ai-sdk-core/middleware), [multi-step tool calls](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls), [attachments](/docs/ai-sdk-ui/chatbot#attachments-experimental), [telemetry](/docs/ai-sdk-core/telemetry), [provider registry](/docs/ai-sdk-core/provider-management#provider-registry), and many more. These features have been considerately designed into a neat abstraction that you can use to reliably integrate AI into your applications.
 
 ## Streaming Chat Completions
 
@@ -65,7 +65,7 @@ export function sendMessage(message: string) {
 
 #### Before: Call server action and update UI state
 
-The chat interface calls the server action, whose response is then stored in the `useUIState` hook.
+The chat interface calls the server action. The response is then saved using the `useUIState` hook.
 
 ```tsx filename="@/app/page.tsx"
 'use client';
@@ -100,7 +100,7 @@ The `streamUI` function combines generating text and rendering the user interfac
 
 #### After: Replace server action with route handler
 
-The `streamText` function executes as part of a route handler and streams the response to the client. The `useChat` hook on the client decodes this stream and renders the chat interface.
+The `streamText` function executes as part of a route handler and streams the response to the client. The `useChat` hook on the client decodes this stream and renders the response within the chat interface.
 
 ```ts filename="@/app/api/chat/route.ts"
 import { streamText, convertToCoreMessages } from 'ai';
@@ -162,7 +162,7 @@ This setup gets your chat-based application up and running!
 
 ### Generative User Interfaces
 
-The `streamUI` function uses `tools` as a wat to execute functions based on user input and renders React components based on the function output to go beyond text in the chat interface.
+The `streamUI` function uses `tools` as a way to execute functions based on user input and renders React components based on the function output to go beyond text in the chat interface.
 
 #### Before: Render components within the server action and stream to client
 
@@ -302,7 +302,7 @@ export default function Page() {
 
 ### Handling Client Interactions
 
-With AI SDK RSC, components streamed to the client become interactive by using event handlers to call server actions. This is possible as long as the component is a descendant of the `<AI/>` context provider.
+With AI SDK RSC, components streamed to the client can trigger subsequent generations by calling the relevant server action using the `useActions` hooks. This is possible as long as the component is a descendant of the `<AI/>` context provider.
 
 #### Before: Use actions hook to send messages
 
@@ -374,7 +374,7 @@ export function ListFlights({ chatId, flights }) {
 
 ### Saving Chats
 
-Before implementing `streamUI` as a server action, you should create an `<AI/>` provider and wrap your application at the root layout to sync between AI and UI states. During its initialization, you typically use the `onSetAIState` callback function to track updates of a mutable AI state and save it to the database when `done(...)` is called.
+Before implementing `streamUI` as a server action, you should create an `<AI/>` provider and wrap your application at the root layout to sync the AI and UI states. During initialization, you typically use the `onSetAIState` callback function to track updates to the AI state and save it to the database when `done(...)` is called.
 
 #### Before: Save chats using callback function of context provider
 
@@ -459,9 +459,9 @@ export const AI = createAI({
 });
 ```
 
-On the other hand, the AI SDK UI uses the `messages` field of `useChat` to store messages. To load messages when `useChat` is mounted, you should use `initialMessages`.
+AI SDK UI uses the `messages` field of `useChat` to store messages. To load messages when `useChat` is mounted, you should use `initialMessages`.
 
-Since messages are typically loaded from the database, we can use a server actions inside a Page component to fetch an older chat from the database during static generation and pass the messages as props to the `<Chat/>` component.
+As messages are typically loaded from the database, we can use a server actions inside a Page component to fetch an older chat from the database during static generation and pass the messages as props to the `<Chat/>` component.
 
 #### After: Load chat from database during static generation of page
 
@@ -518,7 +518,7 @@ export function Chat({
 
 ## Streaming Object Generation
 
-The `createStreamableValue` function streams any serializable data from the server to the client. As a result, this function streams object generations when used along with `streamObject`.
+The `createStreamableValue` function streams any serializable data from the server to the client. As a result, this function allows you to stream object generations from the server to the client when paired with `streamObject`.
 
 #### Before: Use streamable value to stream object generations
 
@@ -587,7 +587,7 @@ export default function Page() {
 }
 ```
 
-To migrate to AI SDK UI, you should use the `useObject` hook and implement `streamObject` as part of a route handler.
+To migrate to AI SDK UI, you should use the `useObject` hook and implement `streamObject` within your route handler.
 
 #### After: Replace with route handler and stream text response
 
