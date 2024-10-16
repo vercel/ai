@@ -8,7 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { createSignal, For } from 'solid-js';
 import { useChat } from './use-chat';
 
-describe('stream data stream', () => {
+describe('data protocol stream', () => {
   let onFinishCalls: Array<{
     message: Message;
     options: {
@@ -23,18 +23,22 @@ describe('stream data stream', () => {
 
   const TestComponent = () => {
     const [id, setId] = createSignal('first-id');
-    const { messages, append, error, data, isLoading } = useChat(() => ({
-      id: id(),
-      onFinish: (message, options) => {
-        onFinishCalls.push({ message, options });
-      },
-    }));
+    const { messages, append, error, data, isLoading, setData } = useChat(
+      () => ({
+        id: id(),
+        onFinish: (message, options) => {
+          onFinishCalls.push({ message, options });
+        },
+      }),
+    );
 
     return (
       <div>
         <div data-testid="loading">{isLoading().toString()}</div>
         <div data-testid="error">{error()?.toString()}</div>
-        <div data-testid="data">{JSON.stringify(data())}</div>
+        <div data-testid="data">
+          {data() != null ? JSON.stringify(data()) : ''}
+        </div>
         <For each={messages()}>
           {(m, idx) => (
             <div data-testid={`message-${idx()}`}>
@@ -53,6 +57,18 @@ describe('stream data stream', () => {
           data-testid="do-change-id"
           onClick={() => {
             setId('second-id');
+          }}
+        />
+        <button
+          data-testid="do-set-data"
+          onClick={() => {
+            setData([{ t1: 'set' }]);
+          }}
+        />
+        <button
+          data-testid="do-clear-data"
+          onClick={() => {
+            setData(undefined);
           }}
         />
       </div>
@@ -111,6 +127,37 @@ describe('stream data stream', () => {
       },
     ),
   );
+
+  describe('setData', () => {
+    it('should set data', async () => {
+      await userEvent.click(screen.getByTestId('do-set-data'));
+
+      await screen.findByTestId('data');
+      expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"set"}]');
+    });
+
+    it(
+      'should clear data',
+      withTestServer(
+        {
+          type: 'stream-values',
+          url: '/api/chat',
+          content: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
+        },
+        async () => {
+          await userEvent.click(screen.getByTestId('do-append'));
+
+          await screen.findByTestId('data');
+          expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
+
+          await userEvent.click(screen.getByTestId('do-clear-data'));
+
+          await screen.findByTestId('data');
+          expect(screen.getByTestId('data')).toHaveTextContent('');
+        },
+      ),
+    );
+  });
 
   it(
     'should show error response',
