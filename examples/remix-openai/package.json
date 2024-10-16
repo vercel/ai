@@ -1,0 +1,34 @@
+{
+  "name": "remix-vercel-ai",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "remix build",
+    "dev": "remix dev --manual",
+    "start": "remix-serve ./build/index.js",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@remix-run/css-bundle": "^2.8.1",
+    "@remix-run/node": "^2.8.1",
+    "@remix-run/react": "^2.8.1",
+    "@remix-run/serve": "^2.8.1",
+    "@vercel/remix": "^2.8.1",
+    "ai": "workspace:^",
+    "isbot": "^5.1.7",
+    "openai": "^4.47.1",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@remix-run/dev": "^2.8.1",
+    "@remix-run/eslint-config": "^2.8.1",
+    "@types/node": "^20.12.12",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^9.3.0",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5"
+  },
+  "type": "module"
+}
