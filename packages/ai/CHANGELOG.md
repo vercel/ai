@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.12
+
+### Patch Changes
+
+- a23da5b: feat (ai/core): forward abort signal to tools
+
 ## 3.4.11
 
 ### Patch Changes
