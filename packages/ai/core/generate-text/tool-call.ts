@@ -24,7 +24,7 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
 }
 
 // transforms the tools into a tool call union
-export type ToToolCall<TOOLS extends Record<string, CoreTool>> = ValueOf<{
+export type ToolCallUnion<TOOLS extends Record<string, CoreTool>> = ValueOf<{
   [NAME in keyof TOOLS]: {
     type: 'tool-call';
     toolCallId: string;
@@ -33,6 +33,6 @@ export type ToToolCall<TOOLS extends Record<string, CoreTool>> = ValueOf<{
   };
 }>;
 
-export type ToToolCallArray<TOOLS extends Record<string, CoreTool>> = Array<
-  ToToolCall<TOOLS>
+export type ToolCallArray<TOOLS extends Record<string, CoreTool>> = Array<
+  ToolCallUnion<TOOLS>
 >;

@@ -29,8 +29,8 @@ import { GenerateTextResult } from './generate-text-result';
 import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
-import { ToToolCallArray } from './tool-call';
-import { ToToolResultArray } from './tool-result';
+import { ToolCallArray } from './tool-call';
+import { ToolResultArray } from './tool-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
@@ -244,8 +244,8 @@ functionality that can be fully encapsulated in the provider.
       let currentModelResponse: Awaited<
         ReturnType<LanguageModel['doGenerate']>
       > & { response: { id: string; timestamp: Date; modelId: string } };
-      let currentToolCalls: ToToolCallArray<TOOLS> = [];
-      let currentToolResults: ToToolResultArray<TOOLS> = [];
+      let currentToolCalls: ToolCallArray<TOOLS> = [];
+      let currentToolResults: ToolResultArray<TOOLS> = [];
       let stepCount = 0;
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
@@ -540,12 +540,12 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   telemetry,
   abortSignal,
 }: {
-  toolCalls: ToToolCallArray<TOOLS>;
+  toolCalls: ToolCallArray<TOOLS>;
   tools: TOOLS;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
   abortSignal: AbortSignal | undefined;
-}): Promise<ToToolResultArray<TOOLS>> {
+}): Promise<ToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(
     toolCalls.map(async toolCall => {
       const tool = tools[toolCall.toolName];
@@ -601,7 +601,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         toolName: toolCall.toolName,
         args: toolCall.args,
         result,
-      } as ToToolResultArray<TOOLS>[number];
+      } as ToolResultArray<TOOLS>[number];
     }),
   );
 
