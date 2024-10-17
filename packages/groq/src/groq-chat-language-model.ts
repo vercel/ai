@@ -292,10 +292,11 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
               });
             }
 
-            if (value.usage != null) {
+            if (value.x_groq?.usage != null) {
               usage = {
-                promptTokens: value.usage.prompt_tokens ?? undefined,
-                completionTokens: value.usage.completion_tokens ?? undefined,
+                promptTokens: value.x_groq.usage.prompt_tokens ?? undefined,
+                completionTokens:
+                  value.x_groq.usage.completion_tokens ?? undefined,
               };
             }
 
@@ -441,13 +442,6 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
   }
 }
 
-const groqTokenUsageSchema = z
-  .object({
-    prompt_tokens: z.number().nullish(),
-    completion_tokens: z.number().nullish(),
-  })
-  .nullish();
-
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const groqChatResponseSchema = z.object({
@@ -476,7 +470,12 @@ const groqChatResponseSchema = z.object({
       finish_reason: z.string().nullish(),
     }),
   ),
-  usage: groqTokenUsageSchema,
+  usage: z
+    .object({
+      prompt_tokens: z.number().nullish(),
+      completion_tokens: z.number().nullish(),
+    })
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -511,7 +510,16 @@ const groqChatChunkSchema = z.union([
         index: z.number(),
       }),
     ),
-    usage: groqTokenUsageSchema,
+    x_groq: z
+      .object({
+        usage: z
+          .object({
+            prompt_tokens: z.number().nullish(),
+            completion_tokens: z.number().nullish(),
+          })
+          .nullish(),
+      })
+      .nullish(),
   }),
   groqErrorDataSchema,
 ]);
