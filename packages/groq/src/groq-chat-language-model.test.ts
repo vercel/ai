@@ -39,7 +39,7 @@ describe('settings', () => {
 
 describe('doGenerate', () => {
   const server = new JsonTestServer(
-    'https://api.openai.com/v1/chat/completions',
+    'https://api.groq.com/openai/v1/chat/completions',
   );
 
   server.setupTestEnvironment();
@@ -222,7 +222,7 @@ describe('doGenerate', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
-      'content-length': '337',
+      'content-length': '321',
       'content-type': 'application/json',
 
       // custom header
@@ -240,7 +240,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-3.5-turbo',
+      model: 'gemma-7b-it',
       messages: [{ role: 'user', content: 'Hello' }],
     });
   });
@@ -396,131 +396,10 @@ describe('doGenerate', () => {
     ]);
   });
 
-  describe('when useLegacyFunctionCalling is enabled', () => {
-    let result: Awaited<ReturnType<LanguageModelV1['doGenerate']>>;
-
-    beforeEach(async () => {
-      prepareJsonResponse({
-        function_call: {
-          name: 'test-tool',
-          arguments: '{"value":"Spark"}',
-        },
-      });
-
-      const model = provider.chat('gpt-3.5-turbo', {
-        useLegacyFunctionCalling: true,
-      });
-
-      result = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: {
-          type: 'regular',
-          tools: [
-            {
-              type: 'function',
-              name: 'test-tool',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-          ],
-          toolChoice: {
-            type: 'tool',
-            toolName: 'test-tool',
-          },
-        },
-        prompt: TEST_PROMPT,
-      });
-    });
-
-    it('should pass functions and function_call with useLegacyFunctionCalling', async () => {
-      expect(await server.getRequestBodyJson()).toEqual({
-        messages: [{ role: 'user', content: 'Hello' }],
-        model: 'gpt-3.5-turbo',
-        functions: [
-          {
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        ],
-        function_call: { name: 'test-tool' },
-      });
-    });
-
-    it('should parse function results with useLegacyFunctionCalling', async () => {
-      expect(result.toolCalls).toStrictEqual([
-        {
-          args: '{"value":"Spark"}',
-          toolCallId: expect.any(String),
-          toolCallType: 'function',
-          toolName: 'test-tool',
-        },
-      ]);
-    });
-  });
-
-  describe('when structuredOutputs are enabled', () => {
-    it('should use json_schema & strict in object-json mode', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
-
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: true,
-      });
-
-      const response = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: {
-          type: 'object-json',
-          schema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-        prompt: TEST_PROMPT,
-      });
-
-      expect(await server.getRequestBodyJson()).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'response',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        },
-      });
-
-      expect(response.text).toStrictEqual('{"value":"Spark"}');
-    });
-  });
-
-  it('should set name & description in object-json mode', async () => {
+  it('should pass object-json mode', async () => {
     prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
-    });
+    const model = provider('gemma2-9b-it');
 
     await model.doGenerate({
       inputFormat: 'prompt',
@@ -540,459 +419,18 @@ describe('doGenerate', () => {
     });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
+      model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
       response_format: {
-        type: 'json_schema',
-        json_schema: {
-          name: 'test-name',
-          description: 'test description',
-          strict: true,
-          schema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
+        type: 'json_object',
       },
-    });
-  });
-
-  it('should set strict in object-tool mode', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Spark"}',
-          },
-        },
-      ],
-    });
-
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
-    });
-
-    const result = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-tool',
-        tool: {
-          type: 'function',
-          name: 'test-tool',
-          description: 'test description',
-          parameters: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
-      messages: [{ role: 'user', content: 'Hello' }],
-      tool_choice: { type: 'function', function: { name: 'test-tool' } },
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            description: 'test description',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-            strict: true,
-          },
-        },
-      ],
-    });
-
-    expect(result.toolCalls).toStrictEqual([
-      {
-        args: '{"value":"Spark"}',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-      },
-    ]);
-  });
-
-  it('should set strict for tool usage', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Spark"}',
-          },
-        },
-      ],
-    });
-
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
-    });
-
-    const result = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        ],
-        toolChoice: {
-          type: 'tool',
-          toolName: 'test-tool',
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
-      messages: [{ role: 'user', content: 'Hello' }],
-      tool_choice: { type: 'function', function: { name: 'test-tool' } },
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-            strict: true,
-          },
-        },
-      ],
-    });
-
-    expect(result.toolCalls).toStrictEqual([
-      {
-        args: '{"value":"Spark"}',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-      },
-    ]);
-  });
-
-  it('should return cached_tokens in prompt_details_tokens', async () => {
-    prepareJsonResponse({
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        prompt_tokens_details: {
-          cached_tokens: 1152,
-        },
-      },
-    });
-
-    const model = provider('gemma-7b-it');
-
-    const result = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.providerMetadata).toStrictEqual({
-      openai: {
-        cachedPromptTokens: 1152,
-      },
-    });
-  });
-
-  describe('reasoning models', () => {
-    it('should clear out temperature, top_p, frequency_penalty, presence_penalty', async () => {
-      prepareJsonResponse();
-
-      const model = provider.chat('o1-preview');
-
-      await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-        temperature: 0.5,
-        topP: 0.7,
-        frequencyPenalty: 0.2,
-        presencePenalty: 0.3,
-      });
-
-      expect(await server.getRequestBodyJson()).toStrictEqual({
-        model: 'o1-preview',
-        messages: [{ role: 'user', content: 'Hello' }],
-      });
-    });
-  });
-
-  it('should return the reasoning tokens in the provider metadata', async () => {
-    prepareJsonResponse({
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        completion_tokens_details: {
-          reasoning_tokens: 10,
-        },
-      },
-    });
-
-    const model = provider.chat('o1-preview');
-
-    const result = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.providerMetadata).toStrictEqual({
-      openai: {
-        reasoningTokens: 10,
-      },
-    });
-  });
-
-  it('should send max_completion_tokens extension setting', async () => {
-    prepareJsonResponse({ model: 'o1-preview' });
-
-    const model = provider.chat('o1-preview');
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      providerMetadata: {
-        openai: {
-          maxCompletionTokens: 255,
-        },
-      },
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'o1-preview',
-      messages: [{ role: 'user', content: 'Hello' }],
-      max_completion_tokens: 255,
-    });
-  });
-
-  it('should send store extension setting', async () => {
-    prepareJsonResponse({ content: '' });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      providerMetadata: {
-        openai: {
-          store: true,
-        },
-      },
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: 'Hello' }],
-      store: true,
-    });
-  });
-
-  it('should send metadata extension values', async () => {
-    prepareJsonResponse({ content: '' });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      providerMetadata: {
-        openai: {
-          metadata: {
-            custom: 'value',
-          },
-        },
-      },
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: 'Hello' }],
-      metadata: {
-        custom: 'value',
-      },
-    });
-  });
-
-  describe('should simulate streaming for reasoning models', () => {
-    it('should stream text delta', async () => {
-      prepareJsonResponse({ content: 'Hello, World!', model: 'o1-preview' });
-
-      const model = provider.chat('o1-preview');
-
-      const { stream } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-      });
-
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-          modelId: 'o1-preview',
-          timestamp: expect.any(Date),
-        },
-        { type: 'text-delta', textDelta: 'Hello, World!' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { promptTokens: 4, completionTokens: 30 },
-          logprobs: undefined,
-          providerMetadata: undefined,
-        },
-      ]);
-    });
-
-    it('should stream tool calls', async () => {
-      prepareJsonResponse({
-        model: 'o1-preview',
-        tool_calls: [
-          {
-            id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-            type: 'function',
-            function: {
-              name: 'test-tool',
-              arguments: '{"value":"Sparkle Day"}',
-            },
-          },
-        ],
-      });
-
-      const model = provider.chat('o1-preview');
-
-      const { stream } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: {
-          type: 'regular',
-          tools: [
-            {
-              type: 'function',
-              name: 'test-tool',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-          ],
-        },
-        prompt: TEST_PROMPT,
-      });
-
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-          modelId: 'o1-preview',
-          timestamp: expect.any(Date),
-        },
-        {
-          type: 'tool-call',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          args: '{"value":"Sparkle Day"}',
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { promptTokens: 4, completionTokens: 30 },
-          logprobs: undefined,
-          providerMetadata: undefined,
-        },
-      ]);
-    });
-
-    it('should send reasoning tokens', async () => {
-      prepareJsonResponse({
-        content: 'Hello, World!',
-        model: 'o1-preview',
-        usage: {
-          prompt_tokens: 15,
-          completion_tokens: 20,
-          total_tokens: 35,
-          completion_tokens_details: {
-            reasoning_tokens: 10,
-          },
-        },
-      });
-
-      const model = provider.chat('o1-preview');
-
-      const { stream } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-      });
-
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-          modelId: 'o1-preview',
-          timestamp: expect.any(Date),
-        },
-        { type: 'text-delta', textDelta: 'Hello, World!' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { promptTokens: 15, completionTokens: 20 },
-          logprobs: undefined,
-          providerMetadata: {
-            openai: {
-              reasoningTokens: 10,
-            },
-          },
-        },
-      ]);
     });
   });
 });
 
 describe('doStream', () => {
   const server = new StreamingTestServer(
-    'https://api.openai.com/v1/chat/completions',
+    'https://api.groq.com/openai/v1/chat/completions',
   );
 
   server.setupTestEnvironment();
@@ -1004,7 +442,6 @@ describe('doStream', () => {
       total_tokens: 244,
       completion_tokens: 227,
     },
-    logprobs = null,
     finish_reason = 'stop',
   }: {
     content: string[];
@@ -1016,15 +453,6 @@ describe('doStream', () => {
         cached_tokens?: number;
       };
     };
-    logprobs?: {
-      content:
-        | {
-            token: string;
-            logprob: number;
-            top_logprobs: { token: string; logprob: number }[];
-          }[]
-        | null;
-    } | null;
     finish_reason?: string;
   }) {
     server.responseChunks = [
@@ -1037,9 +465,7 @@ describe('doStream', () => {
         );
       }),
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
-        `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}","logprobs":${JSON.stringify(
-          logprobs,
-        )}}]}\n\n`,
+        `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":${JSON.stringify(
           usage,
@@ -1057,7 +483,6 @@ describe('doStream', () => {
         total_tokens: 244,
         completion_tokens: 227,
       },
-      logprobs: TEST_LOGPROBS,
     });
 
     const { stream } = await model.doStream({
@@ -1081,7 +506,6 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        logprobs: mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
         usage: { promptTokens: 17, completionTokens: 227 },
       },
     ]);
@@ -1092,30 +516,30 @@ describe('doStream', () => {
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
         `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\""}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}]}\n\n`,
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":53,"completion_tokens":17,"total_tokens":70}}\n\n`,
       'data: [DONE]\n\n',
@@ -1208,7 +632,6 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'tool-calls',
-        logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
       },
     ]);
@@ -1219,30 +642,30 @@ describe('doStream', () => {
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
         `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}]}\n\n`,
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":53,"completion_tokens":17,"total_tokens":70}}\n\n`,
       'data: [DONE]\n\n',
@@ -1342,7 +765,6 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'tool-calls',
-        logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
       },
     ]);
@@ -1353,9 +775,9 @@ describe('doStream', () => {
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
         `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
-        `"logprobs":null,"finish_reason":null}]}\n\n`,
+        `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}]}\n\n`,
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":53,"completion_tokens":17,"total_tokens":70}}\n\n`,
       'data: [DONE]\n\n',
@@ -1406,83 +828,6 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'tool-calls',
-        logprobs: undefined,
-        usage: { promptTokens: 53, completionTokens: 17 },
-      },
-    ]);
-  });
-
-  it('should stream function deltas with legacy function calling', async () => {
-    server.responseChunks = [
-      `data: {"id":"chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2","object":"chat.completion.chunk","created":1721720519,"model":"gpt-4-turbo-2024-04-09","system_fingerprint":"fp_7b3074c4b0",` +
-        `"choices":[{"index":0,"delta":{"role":"assistant","content":null,"function_call":{"name":"test-tool","arguments":""}},"logprobs":null,"finish_reason":null}],"usage":null}\n\n`,
-      `data: {"id":"chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2","object":"chat.completion.chunk","created":1721720519,"model":"gpt-4-turbo-2024-04-09","system_fingerprint":"fp_7b3074c4b0",` +
-        `"choices":[{"index":0,"delta":{"function_call":{"arguments":"{\\"value\\""}},"logprobs":null,"finish_reason":null}],"usage":null}\n\n`,
-      `data: {"id":"chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2","object":"chat.completion.chunk","created":1721720519,"model":"gpt-4-turbo-2024-04-09","system_fingerprint":"fp_7b3074c4b0",` +
-        `"choices":[{"index":0,"delta":{"function_call":{"arguments":":\\"Sparkle Day\\"}"}},"logprobs":null,"finish_reason":null}],"usage":null}\n\n`,
-      `data: {"id":"chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2","object":"chat.completion.chunk","created":1721720519,"model":"gpt-4-turbo-2024-04-09","system_fingerprint":"fp_7b3074c4b0",` +
-        `"choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}],"usage":null}\n\n`,
-      `data: {"id":"chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2","object":"chat.completion.chunk","created":1721720519,"model":"gpt-4-turbo-2024-04-09","system_fingerprint":"fp_7b3074c4b0",` +
-        `"choices":[],"usage":{"prompt_tokens":53,"completion_tokens":17,"total_tokens":70}}\n\n`,
-    ];
-
-    const model = provider.chat('gpt-4-turbo', {
-      useLegacyFunctionCalling: true,
-    });
-
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        ],
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2',
-        modelId: 'gpt-4-turbo-2024-04-09',
-        timestamp: new Date('2024-07-23T07:41:59.000Z'),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: expect.any(String),
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"value"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: expect.any(String),
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: ':"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: expect.any(String),
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
       },
     ]);
@@ -1490,8 +835,7 @@ describe('doStream', () => {
 
   it('should handle error stream parts', async () => {
     server.responseChunks = [
-      `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
-        `help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
+      `data: {"error":{"message": "The server had an error processing your request. Sorry about that!","type":"invalid_request_error"}}\n\n`,
       'data: [DONE]\n\n',
     ];
 
@@ -1506,17 +850,12 @@ describe('doStream', () => {
         type: 'error',
         error: {
           message:
-            'The server had an error processing your request. Sorry about that! ' +
-            'You can retry your request, or contact us through our help center at ' +
-            'help.openai.com if you keep seeing this error.',
-          type: 'server_error',
-          code: null,
-          param: null,
+            'The server had an error processing your request. Sorry about that!',
+          type: 'invalid_request_error',
         },
       },
       {
         finishReason: 'error',
-        logprobs: undefined,
         type: 'finish',
         usage: {
           completionTokens: NaN,
@@ -1541,7 +880,6 @@ describe('doStream', () => {
     expect(elements[0].type).toBe('error');
     expect(elements[1]).toStrictEqual({
       finishReason: 'error',
-      logprobs: undefined,
       type: 'finish',
       usage: {
         completionTokens: NaN,
@@ -1585,8 +923,7 @@ describe('doStream', () => {
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       stream: true,
-      stream_options: { include_usage: true },
-      model: 'gpt-3.5-turbo',
+      model: 'gemma-7b-it',
       messages: [{ role: 'user', content: 'Hello' }],
     });
   });
@@ -1594,16 +931,14 @@ describe('doStream', () => {
   it('should pass headers', async () => {
     prepareStreamResponse({ content: [] });
 
-    const provider = createOpenAI({
+    const provider = createGroq({
       apiKey: 'test-api-key',
-      organization: 'test-organization',
-      project: 'test-project',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
       },
     });
 
-    await provider.chat('gpt-3.5-turbo').doStream({
+    await provider('gemma2-9b-it').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -1619,101 +954,6 @@ describe('doStream', () => {
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
-      'openai-organization': 'test-organization',
-      'openai-project': 'test-project',
-    });
-  });
-
-  it('Should handle cached tokens in experimental_providerMetadata', async () => {
-    prepareStreamResponse({
-      content: [],
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        prompt_tokens_details: {
-          cached_tokens: 1152,
-        },
-      },
-    });
-
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      stream: true,
-      stream_options: { include_usage: true },
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
-
-    const chunksArr = await convertReadableStreamToArray(stream);
-    expect(chunksArr[chunksArr.length - 1]).toHaveProperty('providerMetadata');
-    expect(chunksArr[chunksArr.length - 1].type).toEqual('finish');
-    expect(chunksArr[chunksArr.length - 1]).toStrictEqual({
-      type: 'finish',
-      finishReason: 'stop',
-      logprobs: undefined,
-      usage: {
-        promptTokens: 15,
-        completionTokens: 20,
-      },
-      providerMetadata: {
-        openai: { cachedPromptTokens: 1152 },
-      },
-    });
-  });
-
-  it('should send store extension setting', async () => {
-    prepareStreamResponse({ content: [] });
-
-    await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      providerMetadata: {
-        openai: {
-          store: true,
-        },
-      },
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-3.5-turbo',
-      stream: true,
-      stream_options: { include_usage: true },
-      messages: [{ role: 'user', content: 'Hello' }],
-      store: true,
-    });
-  });
-
-  it('should send metadata extension values', async () => {
-    prepareStreamResponse({ content: [] });
-
-    await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      providerMetadata: {
-        openai: {
-          metadata: {
-            custom: 'value',
-          },
-        },
-      },
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-3.5-turbo',
-      stream: true,
-      stream_options: { include_usage: true },
-      messages: [{ role: 'user', content: 'Hello' }],
-      metadata: {
-        custom: 'value',
-      },
     });
   });
 });
