@@ -2,39 +2,35 @@ import { openai } from '@ai-sdk/openai';
 import { CoreToolCallUnion, CoreToolResultUnion, generateText, tool } from 'ai';
 import { z } from 'zod';
 
-const tool1 = tool({
+const myFirstTool = tool({
   description: 'Greets the user',
   parameters: z.object({ name: z.string() }),
   execute: async ({ name }) => `Hello, ${name}!`,
 });
 
-const tool2 = tool({
+const mySecondTool = tool({
   description: 'Tells the user their age',
   parameters: z.object({ age: z.number() }),
   execute: async ({ age }) => `You are ${age} years old!`,
 });
 
-const toolSet = {
-  firstTool: tool1,
-  secondTool: tool2,
+const myToolSet = {
+  firstTool: myFirstTool,
+  secondTool: mySecondTool,
 };
 
-type ToolSet = typeof toolSet;
-type ToolCall = CoreToolCallUnion<ToolSet>;
-type ToolResult = CoreToolResultUnion<ToolSet>;
+type MyToolSet = typeof myToolSet;
+type MyToolCall = CoreToolCallUnion<MyToolSet>;
+type MyToolResult = CoreToolResultUnion<MyToolSet>;
 
-async function callLLM(toolSet: ToolSet): Promise<{
-  toolCalls: Array<ToolCall>;
-  toolResults: Array<ToolResult>;
+async function callLLM(toolSet: MyToolSet): Promise<{
+  text: string;
+  toolCalls: Array<MyToolCall>;
+  toolResults: Array<MyToolResult>;
 }> {
-  const result = await generateText({
+  return generateText({
     model: openai('gpt-4o'),
     tools: toolSet,
     prompt: '...',
   });
-
-  return {
-    toolCalls: result.toolCalls,
-    toolResults: result.toolResults,
-  };
 }
