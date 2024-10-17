@@ -225,7 +225,9 @@ const result = await generateText({
 
 ## Types
 
-The AI SDK provides several helper types to make working with tools easier.
+Modularizing your code often requires defining types to ensure type safety and reusability.
+To enable this, the AI SDK provides several helper types for tools, tool calls, and tool results.
+
 You can use them to strongly type your variables, function parameters, and return types
 in parts of the code that are not directly related to `steamText` or `generateText`.
 
@@ -234,9 +236,8 @@ on the tool that has been invoked.
 Similarly, the tool results are typed with `CoreToolResult<NAME extends string, ARGS, RESULT>`.
 
 The tools in `streamText` and `generateText` are defined as a `Record<string, CoreTool>`.
-
-The type inference helpers `ToolCallUnion<TOOLS extends Record<string, CoreTool>>`
-and `ToolResultUnion<TOOLS extends Record<string, CoreTool>>` can be used to
+The type inference helpers `CoreToolCallUnion<TOOLS extends Record<string, CoreTool>>`
+and `CoreToolResultUnion<TOOLS extends Record<string, CoreTool>>` can be used to
 extract the tool call and tool result types from the tools.
 
 ```ts highlight="18-19,23-24"
