@@ -9,6 +9,7 @@
     "@ai-sdk/cohere": "latest",
     "@ai-sdk/google": "latest",
     "@ai-sdk/google-vertex": "latest",
+    "@ai-sdk/groq": "latest",
     "@ai-sdk/mistral": "latest",
     "@ai-sdk/openai": "latest",
     "@opentelemetry/sdk-node": "0.52.0",
