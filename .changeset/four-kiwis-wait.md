@@ -2,4 +2,4 @@
 '@ai-sdk/groq': patch
 ---
 
-feat (provider/groq): add dedicated groq provider
+feat (provider/groq): add groq provider
