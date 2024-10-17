@@ -4,130 +4,33 @@ import {
   StreamingTestServer,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
-import { createOpenAI } from './openai-provider';
+import { createGroq } from './groq-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const TEST_LOGPROBS = {
-  content: [
-    {
-      token: 'Hello',
-      logprob: -0.0009994634,
-      top_logprobs: [
-        {
-          token: 'Hello',
-          logprob: -0.0009994634,
-        },
-      ],
-    },
-    {
-      token: '!',
-      logprob: -0.13410144,
-      top_logprobs: [
-        {
-          token: '!',
-          logprob: -0.13410144,
-        },
-      ],
-    },
-    {
-      token: ' How',
-      logprob: -0.0009250381,
-      top_logprobs: [
-        {
-          token: ' How',
-          logprob: -0.0009250381,
-        },
-      ],
-    },
-    {
-      token: ' can',
-      logprob: -0.047709424,
-      top_logprobs: [
-        {
-          token: ' can',
-          logprob: -0.047709424,
-        },
-      ],
-    },
-    {
-      token: ' I',
-      logprob: -0.000009014684,
-      top_logprobs: [
-        {
-          token: ' I',
-          logprob: -0.000009014684,
-        },
-      ],
-    },
-    {
-      token: ' assist',
-      logprob: -0.009125131,
-      top_logprobs: [
-        {
-          token: ' assist',
-          logprob: -0.009125131,
-        },
-      ],
-    },
-    {
-      token: ' you',
-      logprob: -0.0000066306106,
-      top_logprobs: [
-        {
-          token: ' you',
-          logprob: -0.0000066306106,
-        },
-      ],
-    },
-    {
-      token: ' today',
-      logprob: -0.00011093382,
-      top_logprobs: [
-        {
-          token: ' today',
-          logprob: -0.00011093382,
-        },
-      ],
-    },
-    {
-      token: '?',
-      logprob: -0.00004596782,
-      top_logprobs: [
-        {
-          token: '?',
-          logprob: -0.00004596782,
-        },
-      ],
-    },
-  ],
-};
-
-const provider = createOpenAI({
+const provider = createGroq({
   apiKey: 'test-api-key',
-  compatibility: 'strict',
 });
 
-const model = provider.chat('gpt-3.5-turbo');
+const model = provider('gemma-7b-it');
 
 describe('settings', () => {
   it('should set supportsImageUrls to true by default', () => {
-    const defaultModel = provider.chat('gpt-3.5-turbo');
+    const defaultModel = provider('gemma-7b-it');
     expect(defaultModel.supportsImageUrls).toBe(true);
   });
 
   it('should set supportsImageUrls to false when downloadImages is true', () => {
-    const modelWithDownloadImages = provider.chat('gpt-3.5-turbo', {
+    const modelWithDownloadImages = provider('gemma-7b-it', {
       downloadImages: true,
     });
     expect(modelWithDownloadImages.supportsImageUrls).toBe(false);
   });
 
   it('should set supportsImageUrls to true when downloadImages is false', () => {
-    const modelWithoutDownloadImages = provider.chat('gpt-3.5-turbo', {
+    const modelWithoutDownloadImages = provider('gemma-7b-it', {
       downloadImages: false,
     });
     expect(modelWithoutDownloadImages.supportsImageUrls).toBe(true);
@@ -150,7 +53,6 @@ describe('doGenerate', () => {
       total_tokens: 34,
       completion_tokens: 30,
     },
-    logprobs = null,
     finish_reason = 'stop',
     id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
     created = 1711115037,
@@ -180,15 +82,6 @@ describe('doGenerate', () => {
         cached_tokens?: number;
       };
     };
-    logprobs?: {
-      content:
-        | {
-            token: string;
-            logprob: number;
-            top_logprobs: { token: string; logprob: number }[];
-          }[]
-        | null;
-    } | null;
     finish_reason?: string;
     created?: number;
     id?: string;
@@ -208,7 +101,6 @@ describe('doGenerate', () => {
             tool_calls,
             function_call,
           },
-          logprobs,
           finish_reason,
         },
       ],
@@ -285,23 +177,6 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should extract logprobs', async () => {
-    prepareJsonResponse({
-      logprobs: TEST_LOGPROBS,
-    });
-
-    const response = await provider
-      .chat('gpt-3.5-turbo', { logprobs: 1 })
-      .doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-      });
-    expect(response.logprobs).toStrictEqual(
-      mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
-    );
-  });
-
   it('should extract finish reason', async () => {
     prepareJsonResponse({
       content: '',
@@ -373,25 +248,18 @@ describe('doGenerate', () => {
   it('should pass settings', async () => {
     prepareJsonResponse();
 
-    await provider
-      .chat('gpt-3.5-turbo', {
-        logitBias: { 50256: -100 },
-        logprobs: 2,
-        parallelToolCalls: false,
-        user: 'test-user-id',
-      })
-      .doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-      });
+    await provider('gemma-7b-it', {
+      parallelToolCalls: false,
+      user: 'test-user-id',
+    }).doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-3.5-turbo',
+      model: 'gemma-7b-it',
       messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: true,
-      top_logprobs: 2,
-      logit_bias: { 50256: -100 },
       parallel_tool_calls: false,
       user: 'test-user-id',
     });
@@ -426,7 +294,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-3.5-turbo',
+      model: 'gemma-7b-it',
       messages: [{ role: 'user', content: 'Hello' }],
       tools: [
         {
@@ -453,16 +321,14 @@ describe('doGenerate', () => {
   it('should pass headers', async () => {
     prepareJsonResponse({ content: '' });
 
-    const provider = createOpenAI({
+    const provider = createGroq({
       apiKey: 'test-api-key',
-      organization: 'test-organization',
-      project: 'test-project',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
       },
     });
 
-    await provider.chat('gpt-3.5-turbo').doGenerate({
+    await provider('gemma-7b-it').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -478,8 +344,6 @@ describe('doGenerate', () => {
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
-      'openai-organization': 'test-organization',
-      'openai-project': 'test-project',
     });
   });
 
@@ -854,7 +718,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const model = provider.chat('gpt-4o-mini');
+    const model = provider('gemma-7b-it');
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
