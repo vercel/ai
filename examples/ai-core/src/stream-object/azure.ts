@@ -25,6 +25,9 @@ async function main() {
     console.clear();
     console.log(partialObject);
   }
+
+  console.log();
+  console.log('Token usage:', await result.usage);
 }
 
 main().catch(console.error);

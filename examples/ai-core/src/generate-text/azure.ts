@@ -3,12 +3,14 @@ import { generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await generateText({
+  const { text, usage } = await generateText({
     model: azure('v0-gpt-35-turbo'), // use your own deployment
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  console.log(result.text);
+  console.log(text);
+  console.log();
+  console.log('Usage:', usage);
 }
 
 main().catch(console.error);
