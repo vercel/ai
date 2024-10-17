@@ -18,6 +18,11 @@ The tool can also contain an optional execute function for the actual execution 
  */
 export interface CoreTool<PARAMETERS extends Parameters = any, RESULT = any> {
   /**
+   * Type marker for discriminated unions. Optional.
+   */
+  type?: 'tool';
+
+  /**
 An optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
    */
   description?: string;
