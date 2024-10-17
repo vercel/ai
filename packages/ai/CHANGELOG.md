@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.14
+
+### Patch Changes
+
+- e930f40: feat (ai/core): expose core tool result and tool call types
+
 ## 3.4.13
 
 ### Patch Changes

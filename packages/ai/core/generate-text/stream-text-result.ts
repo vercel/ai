@@ -17,8 +17,8 @@ import {
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { StepResult } from './step-result';
-import { ToToolCall } from './tool-call';
-import { ToToolResult } from './tool-result';
+import { ToolCallUnion } from './tool-call';
+import { ToolResultUnion } from './tool-result';
 
 /**
 A result object for accessing different stream types and additional information.
@@ -64,14 +64,14 @@ The tool calls that have been executed in the last step.
 
 Resolved when the response is finished.
      */
-  readonly toolCalls: Promise<ToToolCall<TOOLS>[]>;
+  readonly toolCalls: Promise<ToolCallUnion<TOOLS>[]>;
 
   /**
 The tool results that have been generated in the last step.
 
 Resolved when the all tool executions are finished.
      */
-  readonly toolResults: Promise<ToToolResult<TOOLS>[]>;
+  readonly toolResults: Promise<ToolResultUnion<TOOLS>[]>;
 
   /**
 Optional raw response data.
@@ -253,7 +253,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
     }
   | ({
       type: 'tool-call';
-    } & ToToolCall<TOOLS>)
+    } & ToolCallUnion<TOOLS>)
   | {
       type: 'tool-call-streaming-start';
       toolCallId: string;
@@ -267,7 +267,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
     }
   | ({
       type: 'tool-result';
-    } & ToToolResult<TOOLS>)
+    } & ToolResultUnion<TOOLS>)
   | {
       type: 'step-finish';
       finishReason: FinishReason;

@@ -51,9 +51,9 @@ type ToToolResultObject<TOOLS extends Record<string, CoreTool>> = ValueOf<{
   };
 }>;
 
-export type ToToolResult<TOOLS extends Record<string, CoreTool>> =
+export type ToolResultUnion<TOOLS extends Record<string, CoreTool>> =
   ToToolResultObject<ToToolsWithDefinedExecute<ToToolsWithExecute<TOOLS>>>;
 
-export type ToToolResultArray<TOOLS extends Record<string, CoreTool>> = Array<
-  ToToolResult<TOOLS>
+export type ToolResultArray<TOOLS extends Record<string, CoreTool>> = Array<
+  ToolResultUnion<TOOLS>
 >;

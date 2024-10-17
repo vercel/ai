@@ -15,8 +15,8 @@ import {
 } from '../types';
 import { calculateLanguageModelUsage } from '../types/usage';
 import { parseToolCall } from './parse-tool-call';
-import { ToToolCall } from './tool-call';
-import { ToToolResult } from './tool-result';
+import { ToolCallUnion } from './tool-call';
+import { ToolResultUnion } from './tool-result';
 
 export type SingleRequestTextStreamPart<
   TOOLS extends Record<string, CoreTool>,
@@ -27,7 +27,7 @@ export type SingleRequestTextStreamPart<
     }
   | ({
       type: 'tool-call';
-    } & ToToolCall<TOOLS>)
+    } & ToolCallUnion<TOOLS>)
   | {
       type: 'tool-call-streaming-start';
       toolCallId: string;
@@ -41,7 +41,7 @@ export type SingleRequestTextStreamPart<
     }
   | ({
       type: 'tool-result';
-    } & ToToolResult<TOOLS>)
+    } & ToolResultUnion<TOOLS>)
   | {
       type: 'response-metadata';
       id?: string;
