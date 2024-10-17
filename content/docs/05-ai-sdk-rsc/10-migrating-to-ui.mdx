@@ -36,11 +36,10 @@ The `streamUI` function executes as part of a server action as illustrated below
 #### Before: Handle generation and rendering in a single server action
 
 ```tsx filename="@/app/actions.tsx"
-import { streamUI } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { getMutableAIState } from 'ai/rsc';
+import { getMutableAIState, streamUI } from 'ai/rsc';
 
-export function sendMessage(message: string) {
+export async function sendMessage(message: string) {
   'use server';
 
   const messages = getMutableAIState('messages');
@@ -166,7 +165,7 @@ The `streamUI` function uses `tools` as a way to execute functions based on user
 
 ```tsx filename="@/app/actions.tsx"
 import { z } from 'zod';
-import { streamUI } from 'ai';
+import { streamUI } from 'ai/rsc';
 import { openai } from '@ai-sdk/openai';
 import { getWeather } from '@/utils/queries';
 import { Weather } from '@/components/weather';
@@ -209,7 +208,7 @@ import { openai } from '@ai-sdk/openai';
 import { getWeather } from '@/utils/queries';
 import { streamText, convertToCoreMessages } from 'ai';
 
-export function POST(request) {
+export async function POST(request) {
   const { messages } = await request.json();
 
   const coreMessages = convertToCoreMessages(messages);
@@ -405,7 +404,7 @@ import { openai } from '@ai-sdk/openai';
 import { saveChat } from '@/utils/queries';
 import { streamText, convertToCoreMessages } from 'ai';
 
-export function POST(request) {
+export async function POST(request) {
   const { id, messages } = await request.json();
 
   const coreMessages = convertToCoreMessages(messages);
