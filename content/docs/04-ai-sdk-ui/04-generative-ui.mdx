@@ -2,6 +2,7 @@
 title: Generative UI
 description: Learn how to build Generative UI with AI SDK UI.
 ---
+
 # Generative UI
 
 Generative UI is the process of allowing a large language model (LLM) to go beyond text and "generate UI". This creates a more engaging and AI-native experience for users.
@@ -29,18 +30,18 @@ Let's create a chat interface that handles text-based conversations and incorpor
 Start with a basic chat implementation using the `useChat` hook:
 
 ```tsx filename="app/page.tsx"
-"use client";
+'use client';
 
-import { useChat } from "ai/react";
+import { useChat } from 'ai/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   return (
     <div>
-      {messages.map((message) => (
+      {messages.map(message => (
         <div key={message.id}>
-          {message.role === "user" ? "User: " : "AI: "}
+          {message.role === 'user' ? 'User: ' : 'AI: '}
           {message.content}
         </div>
       ))}
@@ -61,15 +62,15 @@ export default function Page() {
 To handle the chat requests and model responses, set up an API route:
 
 ```ts filename="app/api/chat/route.ts"
-import { openai } from "@ai-sdk/openai";
-import { streamText, convertToCoreMessages } from "ai";
+import { openai } from '@ai-sdk/openai';
+import { streamText, convertToCoreMessages } from 'ai';
 
 export async function POST(request: Request) {
   const { messages } = await request.json();
 
   const result = await streamText({
-    model: openai("gpt-4o"),
-    system: "You are a friendly assistant!",
+    model: openai('gpt-4o'),
+    system: 'You are a friendly assistant!',
     messages: convertToCoreMessages(messages),
   });
 
@@ -86,17 +87,17 @@ Before enhancing your chat interface with dynamic UI elements, you need to creat
 Create a new file called `ai/tools.ts` with the following content:
 
 ```ts filename="ai/tools.ts"
-import { tool as createTool } from "ai";
-import { z } from "zod";
+import { tool as createTool } from 'ai';
+import { z } from 'zod';
 
 export const weatherTool = createTool({
-  description: "Display the weather for a location",
+  description: 'Display the weather for a location',
   parameters: z.object({
     location: z.string(),
   }),
   execute: async function ({ location }) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    return { weather: "Sunny", temperature: 75, location };
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    return { weather: 'Sunny', temperature: 75, location };
   },
 });
 
@@ -112,16 +113,16 @@ In this file, you've created a tool called `weatherTool`. This tool simulates fe
 Update the API route to include the tool you've defined:
 
 ```ts filename="app/api/chat/route.ts"
-import { openai } from "@ai-sdk/openai";
-import { streamText, convertToCoreMessages } from "ai";
-import { tools } from "@/ai/tools";
+import { openai } from '@ai-sdk/openai';
+import { streamText, convertToCoreMessages } from 'ai';
+import { tools } from '@/ai/tools';
 
 export async function POST(request: Request) {
   const { messages } = await request.json();
 
   const result = await streamText({
-    model: openai("gpt-4o"),
-    system: "You are a friendly assistant!",
+    model: openai('gpt-4o'),
+    system: 'You are a friendly assistant!',
     messages: convertToCoreMessages(messages),
     tools,
   });
@@ -141,7 +142,7 @@ type WeatherProps = {
   temperature: number;
   weather: string;
   location: string;
-}
+};
 
 export const Weather = ({ temperature, weather, location }: WeatherProps) => {
   return (
@@ -153,6 +154,7 @@ export const Weather = ({ temperature, weather, location }: WeatherProps) => {
   );
 };
 ```
+
 This component will display the weather information for a given location. It takes three props: `temperature`, `weather`, and `location` (exactly what the `weatherTool` returns).
 
 ### Render the Weather Component
@@ -164,27 +166,27 @@ To check if the model has called a tool, you can use the `toolInvocations` prope
 Update your `page.tsx` file:
 
 ```tsx filename="app/page.tsx" highlight="4,16-39"
-"use client";
+'use client';
 
-import { useChat } from "ai/react";
-import { Weather } from "@/components/weather";
+import { useChat } from 'ai/react';
+import { Weather } from '@/components/weather';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   return (
     <div>
-      {messages.map((message) => (
+      {messages.map(message => (
         <div key={message.id}>
-          <div>{message.role === "user" ? "User: " : "AI: "}</div>
+          <div>{message.role === 'user' ? 'User: ' : 'AI: '}</div>
           <div>{message.content}</div>
 
           <div>
-            {message.toolInvocations?.map((toolInvocation) => {
+            {message.toolInvocations?.map(toolInvocation => {
               const { toolName, toolCallId, state } = toolInvocation;
 
-              if (state === "result") {
-                if (toolName === "displayWeather") {
+              if (state === 'result') {
+                if (toolName === 'displayWeather') {
                   const { result } = toolInvocation;
                   return (
                     <div key={toolCallId}>
@@ -195,7 +197,7 @@ export default function Page() {
               } else {
                 return (
                   <div key={toolCallId}>
-                    {toolName === "displayWeather" ? (
+                    {toolName === 'displayWeather' ? (
                       <div>Loading weather...</div>
                     ) : null}
                   </div>
@@ -239,13 +241,13 @@ To add more tools, simply define them in your `ai/tools.ts` file:
 ```ts
 // Add a new stock tool
 export const stockTool = createTool({
-  description: "Get price for a stock",
+  description: 'Get price for a stock',
   parameters: z.object({
     symbol: z.string(),
   }),
   execute: async function ({ symbol }) {
     // Simulated API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     return { symbol, price: 100 };
   },
 });
@@ -260,8 +262,8 @@ export const tools = {
 Now, create a new file called `components/stock.tsx`:
 
 ```tsx
-import { ToolResults } from "@/lib/utils";
-import { type stockTool } from "@/ai/tools";
+import { ToolResults } from '@/lib/utils';
+import { type stockTool } from '@/ai/tools';
 
 export const Stock = ({ price, symbol }: ToolResults<typeof stockTool>) => {
   return (
@@ -277,44 +279,44 @@ export const Stock = ({ price, symbol }: ToolResults<typeof stockTool>) => {
 Finally, update your `page.tsx` file to include the new Stock component:
 
 ```tsx
-"use client";
+'use client';
 
-import { useChat } from "ai/react";
-import { Weather } from "@/components/weather";
-import { Stock } from "@/components/stock";
+import { useChat } from 'ai/react';
+import { Weather } from '@/components/weather';
+import { Stock } from '@/components/stock';
 
 export default function Page() {
   const { messages, input, setInput, handleSubmit } = useChat();
 
   return (
     <div>
-      {messages.map((message) => (
+      {messages.map(message => (
         <div key={message.id}>
           <div>{message.role}</div>
           <div>{message.content}</div>
 
           <div>
-            {message.toolInvocations?.map((toolInvocation) => {
+            {message.toolInvocations?.map(toolInvocation => {
               const { toolName, toolCallId, state } = toolInvocation;
 
-              if (state === "result") {
-                if (toolName === "displayWeather") {
+              if (state === 'result') {
+                if (toolName === 'displayWeather') {
                   const { result } = toolInvocation;
                   return (
                     <div key={toolCallId}>
                       <Weather {...result} />
                     </div>
                   );
-                } else if (toolName === "getStockPrice") {
+                } else if (toolName === 'getStockPrice') {
                   const { result } = toolInvocation;
                   return <Stock {...result} />;
                 }
               } else {
                 return (
                   <div key={toolCallId}>
-                    {toolName === "displayWeather" ? (
+                    {toolName === 'displayWeather' ? (
                       <div>Loading weather...</div>
-                    ) : toolName === "getStockPrice" ? (
+                    ) : toolName === 'getStockPrice' ? (
                       <div>Loading stock price...</div>
                     ) : (
                       <div>Loading...</div>
@@ -331,7 +333,7 @@ export default function Page() {
         <input
           type="text"
           value={input}
-          onChange={(event) => {
+          onChange={event => {
             setInput(event.target.value);
           }}
         />
