@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.13
+
+### Patch Changes
+
+- fc39158: fix (ai/core): add abortSignal to tool helper function
+
 ## 3.4.12
 
 ### Patch Changes
