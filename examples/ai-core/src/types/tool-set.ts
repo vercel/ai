@@ -1,4 +1,5 @@
-import { CoreToolCallUnion, CoreToolResultUnion, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { CoreToolCallUnion, CoreToolResultUnion, generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const tool1 = tool({
@@ -18,8 +19,22 @@ const toolSet = {
   secondTool: tool2,
 };
 
-// inferred tool call type:
-type ToolCall = CoreToolCallUnion<typeof toolSet>;
+type ToolSet = typeof toolSet;
+type ToolCall = CoreToolCallUnion<ToolSet>;
+type ToolResult = CoreToolResultUnion<ToolSet>;
 
-// inferred tool result type:
-type ToolResult = CoreToolResultUnion<typeof toolSet>;
+async function callLLM(toolSet: ToolSet): Promise<{
+  toolCalls: Array<ToolCall>;
+  toolResults: Array<ToolResult>;
+}> {
+  const result = await generateText({
+    model: openai('gpt-4o'),
+    tools: toolSet,
+    prompt: '...',
+  });
+
+  return {
+    toolCalls: result.toolCalls,
+    toolResults: result.toolResults,
+  };
+}
