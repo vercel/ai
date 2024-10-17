@@ -441,7 +441,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       onError,
       setError,
       mutateStreamData,
-      streamData,
+      streamDataRef,
       streamProtocol,
       sendExtraMessageFields,
       experimental_onFunctionCall,
