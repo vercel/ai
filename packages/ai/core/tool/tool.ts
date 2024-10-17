@@ -38,9 +38,7 @@ If not provided, the tool will not be executed automatically.
    */
   execute?: (
     args: inferParameters<PARAMETERS>,
-    options: {
-      abortSignal?: AbortSignal;
-    },
+    options: { abortSignal?: AbortSignal },
   ) => PromiseLike<RESULT>;
 }
 
@@ -50,10 +48,16 @@ Helper function for inferring the execute args of a tool.
 // Note: special type inference is needed for the execute function args to make sure they are inferred correctly.
 export function tool<PARAMETERS extends Parameters, RESULT>(
   tool: CoreTool<PARAMETERS, RESULT> & {
-    execute: (args: inferParameters<PARAMETERS>) => PromiseLike<RESULT>;
+    execute: (
+      args: inferParameters<PARAMETERS>,
+      options: { abortSignal?: AbortSignal },
+    ) => PromiseLike<RESULT>;
   },
 ): CoreTool<PARAMETERS, RESULT> & {
-  execute: (args: inferParameters<PARAMETERS>) => PromiseLike<RESULT>;
+  execute: (
+    args: inferParameters<PARAMETERS>,
+    options: { abortSignal?: AbortSignal },
+  ) => PromiseLike<RESULT>;
 };
 export function tool<PARAMETERS extends Parameters, RESULT>(
   tool: CoreTool<PARAMETERS, RESULT> & {
