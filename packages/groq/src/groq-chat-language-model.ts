@@ -72,8 +72,10 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
-    providerMetadata,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+    stream,
+  }: Parameters<LanguageModelV1['doGenerate']>[0] & {
+    stream: boolean;
+  }) {
     const type = mode.type;
 
     const warnings: LanguageModelV1CallWarning[] = [];
@@ -116,7 +118,10 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
 
       // response format:
       response_format:
-        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
+        // json object response format is not supported for streaming:
+        stream === false && responseFormat?.type === 'json'
+          ? { type: 'json_object' }
+          : undefined,
 
       // messages:
       messages: convertToGroqChatMessages(prompt),
@@ -137,7 +142,9 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
         return {
           args: {
             ...baseArgs,
-            response_format: { type: 'json_object' },
+            response_format:
+              // json object response format is not supported for streaming:
+              stream === false ? { type: 'json_object' } : undefined,
           },
           warnings,
         };
@@ -176,7 +183,7 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = this.getArgs({ ...options, stream: false });
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -219,7 +226,7 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = this.getArgs({ ...options, stream: true });
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
