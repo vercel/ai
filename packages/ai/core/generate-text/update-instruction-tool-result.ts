@@ -6,9 +6,7 @@ import { CoreToolChoice, LanguageModel } from '../types/language-model';
  */
 const validatorSymbol = Symbol.for('vercel.ai.validator');
 
-export function experimental_updateInstructionToolResult<
-  TOOL_NAMES extends string,
->(
+export function experimental_updateInstructionToolResult(
   instructionDelta: {
     /**
 The language model to use.
@@ -23,9 +21,9 @@ System message to include in the prompt. Can be used with `prompt` or `messages`
     /**
 Active tools.
 */
-    activeTools?: Array<TOOL_NAMES>;
+    activeTools?: Array<string>; // Note: not type safe
 
-    toolChoice?: CoreToolChoice<TOOL_NAMES>;
+    toolChoice?: CoreToolChoice<Record<string, unknown>>; // Note: not type safe
   } & Omit<CallSettings, 'maxRetries' | 'abortSignal' | 'headers'>,
 ) {
   return {

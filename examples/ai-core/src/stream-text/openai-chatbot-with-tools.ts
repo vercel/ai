@@ -17,7 +17,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = await streamText({
-      model: openai('gpt-4o'),
+      model: openai('gpt-3.5-turbo'),
       tools: { weatherTool },
       maxSteps: 5,
       system: `You are a helpful, respectful and honest assistant.`,
