@@ -98,6 +98,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
     false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
+  experimental_activeTools: activeTools,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -176,6 +177,12 @@ functionality that can be fully encapsulated in the provider.
     experimental_providerMetadata?: ProviderMetadata;
 
     /**
+Limits the tools that are available for the model to call without
+changing the tool call and result types in the result.
+     */
+    experimental_activeTools?: Array<keyof TOOLS>;
+
+    /**
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
     onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
@@ -233,7 +240,7 @@ functionality that can be fully encapsulated in the provider.
 
       const mode = {
         type: 'regular' as const,
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
+        ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
       };
       const callSettings = prepareCallSettings(settings);
       const promptMessages = await convertToLanguageModelPrompt({
