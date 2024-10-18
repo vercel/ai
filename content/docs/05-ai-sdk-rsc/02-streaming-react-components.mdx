@@ -10,6 +10,12 @@ import { Weather } from '@/components/home/weather';
 
 # Streaming React Components
 
+<Note type="warning">
+  AI SDK RSC is currently experimental. We recommend using [AI SDK
+  UI](/docs/ai-sdk-ui/overview) for production. For guidance on migrating from
+  RSC to UI, see our [migration guide](/docs/ai-sdk-rsc/migrating-to-ui).
+</Note>
+
 The RSC API allows you to stream React components from the server to the client with the [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui) function. This is useful when you want to go beyond raw text and stream components to the client in real-time.
 
 Similar to [ AI SDK Core ](/docs/ai-sdk-core/overview) APIs (like [ `streamText` ](/docs/reference/ai-sdk-core/stream-text) and [ `streamObject` ](/docs/reference/ai-sdk-core/stream-object)), `streamUI` provides a single function to call a model and allow it to respond with React Server Components.

@@ -55,6 +55,11 @@ You can use the following optional settings to customize the OpenAI provider ins
   API key that is being send using the `Authorization` header.
   It defaults to the `OPENAI_API_KEY` environment variable.
 
+- **name** _string_
+
+  The provider name. You can set this when using OpenAI compatible providers
+  to change the model provider property. Defaults to `openai`.
+
 - **organization** _string_
 
   OpenAI Organization.
@@ -120,15 +125,16 @@ OpenAI language models can also be used in the `streamText`, `generateObject`, `
 
 ### Model Capabilities
 
-| Model           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| --------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-4o`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4-turbo`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-3.5-turbo` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o1-preview`    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `o1-mini`       | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                  | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
+| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-4o`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-audio-preview` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4-turbo`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-3.5-turbo`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `o1-preview`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `o1-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. You can also pass any available provider
@@ -384,6 +390,37 @@ console.log(`usage:`, {
 });
 ```
 
+#### Audio Input
+
+With the `gpt-4o-audio-preview` model, you can pass audio files to the model.
+
+<Note type="warning">
+  The `gpt-4o-audio-preview` model is currently in preview and requires at least
+  some audio inputs. It will not work with non-audio data.
+</Note>
+
+```ts highlight="12-14"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-4o-audio-preview'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is the audio saying?' },
+        {
+          type: 'file',
+          mimeType: 'audio/mpeg',
+          data: fs.readFileSync('./data/galileo.mp3'),
+        },
+      ],
+    },
+  ],
+});
+```
+
 ### Completion Models
 
 You can create models that call the [OpenAI completions API](https://platform.openai.com/docs/api-reference/completions) using the `.completion()` factory method.
@@ -474,7 +511,8 @@ The following optional settings are available for OpenAI embedding models:
 
 - **dimensions**: _number_
 
-  Echo back the prompt in addition to the completion.
+  The number of dimensions the resulting output embeddings should have.
+  Only supported in text-embedding-3 and later models.
 
 - **user** _string_
 

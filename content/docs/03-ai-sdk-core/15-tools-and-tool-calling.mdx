@@ -195,6 +195,105 @@ const result = await generateText({
 });
 ```
 
+## Abort Signals
+
+The abort signals from `generateText` and `streamText` are forwarded to the tool execution.
+You can access them in the second parameter of the `execute` function and e.g. abort long-running computations or forward them to fetch calls inside tools.
+
+```ts highlight="6,11,14"
+import { z } from 'zod';
+import { generateText, tool } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  abortSignal: myAbortSignal, // signal that will be forwarded to tools
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      parameters: z.object({ location: z.string() }),
+      execute: async ({ location }, { abortSignal }) => {
+        return fetch(
+          `https://api.weatherapi.com/v1/current.json?q=${location}`,
+          { signal: abortSignal }, // forward the abort signal to fetch
+        );
+      },
+    }),
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+## Types
+
+Modularizing your code often requires defining types to ensure type safety and reusability.
+To enable this, the AI SDK provides several helper types for tools, tool calls, and tool results.
+
+You can use them to strongly type your variables, function parameters, and return types
+in parts of the code that are not directly related to `steamText` or `generateText`.
+
+Each tool call is typed with `CoreToolCall<NAME extends string, ARGS>`, depending
+on the tool that has been invoked.
+Similarly, the tool results are typed with `CoreToolResult<NAME extends string, ARGS, RESULT>`.
+
+The tools in `streamText` and `generateText` are defined as a `Record<string, CoreTool>`.
+The type inference helpers `CoreToolCallUnion<TOOLS extends Record<string, CoreTool>>`
+and `CoreToolResultUnion<TOOLS extends Record<string, CoreTool>>` can be used to
+extract the tool call and tool result types from the tools.
+
+```ts highlight="18-19,23-24"
+import { openai } from '@ai-sdk/openai';
+import { CoreToolCallUnion, CoreToolResultUnion, generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const myToolSet = {
+  firstTool: tool({
+    description: 'Greets the user',
+    parameters: z.object({ name: z.string() }),
+    execute: async ({ name }) => `Hello, ${name}!`,
+  }),
+  secondTool: tool({
+    description: 'Tells the user their age',
+    parameters: z.object({ age: z.number() }),
+    execute: async ({ age }) => `You are ${age} years old!`,
+  }),
+};
+
+type MyToolCall = CoreToolCallUnion<typeof myToolSet>;
+type MyToolResult = CoreToolResultUnion<typeof myToolSet>;
+
+async function generateSomething(prompt: string): Promise<{
+  text: string;
+  toolCalls: Array<MyToolCall>; // typed tool calls
+  toolResults: Array<MyToolResult>; // typed tool results
+}> {
+  return generateText({
+    model: openai('gpt-4o'),
+    tools: myToolSet,
+    prompt,
+  });
+}
+```
+
+## Active Tools
+
+Language models can only handle a limited number of tools at a time, depending on the model.
+To allow for static typing using a large number of tools and limiting the available tools to the model at the same time,
+the AI SDK provides the `experimental_activeTools` property.
+
+It is an array of tool names that are currently active.
+By default, the value is `undefined` and all tools are active.
+
+```ts highlight="7"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  tools: myToolSet,
+  experimental_activeTools: ['firstTool'],
+});
+```
+
 ## Prompt Engineering with Tools
 
 When you create prompts that include tools, getting good results can be tricky as the number and complexity of your tools increases.

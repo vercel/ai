@@ -29,8 +29,8 @@ import { GenerateTextResult } from './generate-text-result';
 import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
-import { ToToolCallArray } from './tool-call';
-import { ToToolResultArray } from './tool-result';
+import { ToolCallArray } from './tool-call';
+import { ToolResultArray } from './tool-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
@@ -98,6 +98,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
     false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
+  experimental_activeTools: activeTools,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -176,6 +177,12 @@ functionality that can be fully encapsulated in the provider.
     experimental_providerMetadata?: ProviderMetadata;
 
     /**
+Limits the tools that are available for the model to call without
+changing the tool call and result types in the result.
+     */
+    experimental_activeTools?: Array<keyof TOOLS>;
+
+    /**
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
     onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
@@ -203,7 +210,8 @@ functionality that can be fully encapsulated in the provider.
     settings: { ...settings, maxRetries },
   });
 
-  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  const tracer = getTracer(telemetry);
+
   return recordSpan({
     name: 'ai.generateText',
     attributes: selectTelemetryAttributes({
@@ -232,7 +240,7 @@ functionality that can be fully encapsulated in the provider.
 
       const mode = {
         type: 'regular' as const,
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
+        ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
       };
       const callSettings = prepareCallSettings(settings);
       const promptMessages = await convertToLanguageModelPrompt({
@@ -243,8 +251,8 @@ functionality that can be fully encapsulated in the provider.
       let currentModelResponse: Awaited<
         ReturnType<LanguageModel['doGenerate']>
       > & { response: { id: string; timestamp: Date; modelId: string } };
-      let currentToolCalls: ToToolCallArray<TOOLS> = [];
-      let currentToolResults: ToToolResultArray<TOOLS> = [];
+      let currentToolCalls: ToolCallArray<TOOLS> = [];
+      let currentToolResults: ToolResultArray<TOOLS> = [];
       let stepCount = 0;
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
@@ -368,6 +376,7 @@ functionality that can be fully encapsulated in the provider.
                 tools,
                 tracer,
                 telemetry,
+                abortSignal,
               });
 
         // token usage:
@@ -536,12 +545,14 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   tools,
   tracer,
   telemetry,
+  abortSignal,
 }: {
-  toolCalls: ToToolCallArray<TOOLS>;
+  toolCalls: ToolCallArray<TOOLS>;
   tools: TOOLS;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
-}): Promise<ToToolResultArray<TOOLS>> {
+  abortSignal: AbortSignal | undefined;
+}): Promise<ToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(
     toolCalls.map(async toolCall => {
       const tool = tools[toolCall.toolName];
@@ -568,7 +579,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         }),
         tracer,
         fn: async span => {
-          const result = await tool.execute!(toolCall.args);
+          const result = await tool.execute!(toolCall.args, { abortSignal });
 
           try {
             span.setAttributes(
@@ -597,7 +608,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         toolName: toolCall.toolName,
         args: toolCall.args,
         result,
-      } as ToToolResultArray<TOOLS>[number];
+      } as ToolResultArray<TOOLS>[number];
     }),
   );
 

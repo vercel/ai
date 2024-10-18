@@ -6,7 +6,6 @@ import fs from 'node:fs';
 async function main() {
   const result = await generateText({
     model: google('gemini-1.5-flash'),
-    maxTokens: 512,
     messages: [
       {
         role: 'user',

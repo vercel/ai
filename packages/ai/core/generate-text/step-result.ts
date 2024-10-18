@@ -7,9 +7,12 @@ import {
   ProviderMetadata,
 } from '../types';
 import { LanguageModelUsage } from '../types/usage';
-import { ToToolCallArray } from './tool-call';
-import { ToToolResultArray } from './tool-result';
+import { ToolCallArray } from './tool-call';
+import { ToolResultArray } from './tool-result';
 
+/**
+ * The result of a single step in the generation process.
+ */
 export type StepResult<TOOLS extends Record<string, CoreTool>> = {
   /**
 The generated text.
@@ -19,12 +22,12 @@ The generated text.
   /**
 The tool calls that were made during the generation.
 */
-  readonly toolCalls: ToToolCallArray<TOOLS>;
+  readonly toolCalls: ToolCallArray<TOOLS>;
 
   /**
 The results of the tool calls.
 */
-  readonly toolResults: ToToolResultArray<TOOLS>;
+  readonly toolResults: ToolResultArray<TOOLS>;
 
   /**
 The reason why the generation finished.

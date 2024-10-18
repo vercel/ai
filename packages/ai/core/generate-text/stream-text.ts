@@ -59,8 +59,8 @@ import {
 import { StepResult } from './step-result';
 import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import { ToToolCall } from './tool-call';
-import { ToToolResult } from './tool-result';
+import { ToolCallUnion } from './tool-call';
+import { ToolResultUnion } from './tool-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
@@ -127,6 +127,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   experimental_toolCallStreaming: toolCallStreaming = false,
+  experimental_activeTools: activeTools,
   onChunk,
   onFinish,
   onStepFinish,
@@ -196,6 +197,12 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
     experimental_providerMetadata?: ProviderMetadata;
+
+    /**
+Limits the tools that are available for the model to call without
+changing the tool call and result types in the result.
+     */
+    experimental_activeTools?: Array<keyof TOOLS>;
 
     /**
 Enable streaming of tool call deltas as they are generated. Disabled by default.
@@ -275,7 +282,7 @@ need to be added separately.
     settings: { ...settings, maxRetries },
   });
 
-  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  const tracer = getTracer(telemetry);
 
   return recordSpan({
     name: 'ai.streamText',
@@ -345,7 +352,11 @@ need to be added separately.
               result: await model.doStream({
                 mode: {
                   type: 'regular',
-                  ...prepareToolsAndToolChoice({ tools, toolChoice }),
+                  ...prepareToolsAndToolChoice({
+                    tools,
+                    toolChoice,
+                    activeTools,
+                  }),
                 },
                 ...prepareCallSettings(settings),
                 inputFormat: promptType,
@@ -366,6 +377,7 @@ need to be added separately.
               toolCallStreaming,
               tracer,
               telemetry,
+              abortSignal,
             }),
             warnings,
             rawResponse,
@@ -516,12 +528,12 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
     // initialize toolCalls promise
     const { resolve: resolveToolCalls, promise: toolCallsPromise } =
-      createResolvablePromise<ToToolCall<TOOLS>[]>();
+      createResolvablePromise<ToolCallUnion<TOOLS>[]>();
     this.toolCalls = toolCallsPromise;
 
     // initialize toolResults promise
     const { resolve: resolveToolResults, promise: toolResultsPromise } =
-      createResolvablePromise<ToToolResult<TOOLS>[]>();
+      createResolvablePromise<ToolResultUnion<TOOLS>[]>();
     this.toolResults = toolResultsPromise;
 
     // initialize steps promise
@@ -587,8 +599,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       stepType: 'initial' | 'continue' | 'tool-result';
       previousStepText?: string;
     }) {
-      const stepToolCalls: ToToolCall<TOOLS>[] = [];
-      const stepToolResults: ToToolResult<TOOLS>[] = [];
+      const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
+      const stepToolResults: ToolResultUnion<TOOLS>[] = [];
       let stepFinishReason: FinishReason = 'unknown';
       let stepUsage: LanguageModelUsage = {
         promptTokens: 0,

@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 0.0.52
+
+### Patch Changes
+
+- 7944e61: feat (provider/google): enable frequencyPenalty and presencePenalty settings
+
 ## 0.0.51
 
 ### Patch Changes

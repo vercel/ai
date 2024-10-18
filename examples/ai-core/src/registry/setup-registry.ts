@@ -1,17 +1,12 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { createOpenAI, openai } from '@ai-sdk/openai';
+import { groq } from '@ai-sdk/groq';
+import { mistral } from '@ai-sdk/mistral';
+import { openai } from '@ai-sdk/openai';
 import {
   experimental_createProviderRegistry as createProviderRegistry,
   experimental_customProvider as customProvider,
 } from 'ai';
 import 'dotenv/config';
-import { mistral } from '@ai-sdk/mistral';
-
-// custom provider setup
-const groq = createOpenAI({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
 
 // custom provider with alias names:
 const myAnthropic = customProvider({

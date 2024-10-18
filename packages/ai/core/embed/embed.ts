@@ -68,7 +68,7 @@ Only applicable for HTTP-based providers.
     settings: { maxRetries },
   });
 
-  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  const tracer = getTracer(telemetry);
 
   return recordSpan({
     name: 'ai.embed',

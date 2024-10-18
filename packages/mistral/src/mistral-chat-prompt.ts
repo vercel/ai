@@ -1,6 +1,6 @@
-export type MistralChatPrompt = Array<MistralChatMessage>;
+export type MistralPrompt = Array<MistralMessage>;
 
-export type MistralChatMessage =
+export type MistralMessage =
   | MistralSystemMessage
   | MistralUserMessage
   | MistralAssistantMessage
@@ -33,6 +33,7 @@ export interface MistralUserMessageTextContent {
 export interface MistralAssistantMessage {
   role: 'assistant';
   content: string;
+  prefix?: boolean;
   tool_calls?: Array<{
     id: string;
     type: 'function';

@@ -122,6 +122,11 @@ information such as streamOptions are not being sent. Defaults to 'compatible'.
   compatibility?: 'strict' | 'compatible';
 
   /**
+Provider name. Overrides the `openai` default name for 3rd party providers.
+   */
+  name?: string;
+
+  /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
@@ -141,6 +146,8 @@ export function createOpenAI(
   // we default to compatible, because strict breaks providers like Groq:
   const compatibility = options.compatibility ?? 'compatible';
 
+  const providerName = options.name ?? 'openai';
+
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
@@ -157,7 +164,7 @@ export function createOpenAI(
     settings: OpenAIChatSettings = {},
   ) =>
     new OpenAIChatLanguageModel(modelId, settings, {
-      provider: 'openai.chat',
+      provider: `${providerName}.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       compatibility,
@@ -169,7 +176,7 @@ export function createOpenAI(
     settings: OpenAICompletionSettings = {},
   ) =>
     new OpenAICompletionLanguageModel(modelId, settings, {
-      provider: 'openai.completion',
+      provider: `${providerName}.completion`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       compatibility,
@@ -181,7 +188,7 @@ export function createOpenAI(
     settings: OpenAIEmbeddingSettings = {},
   ) =>
     new OpenAIEmbeddingModel(modelId, settings, {
-      provider: 'openai.embedding',
+      provider: `${providerName}.embedding`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,

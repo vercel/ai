@@ -1,5 +1,54 @@
 # ai
 
+## 3.4.16
+
+### Patch Changes
+
+- 01dcc44: feat (ai/core): add experimental activeTools option to generateText and streamText
+
+## 3.4.15
+
+### Patch Changes
+
+- Updated dependencies [98a3b08]
+  - @ai-sdk/react@0.0.64
+
+## 3.4.14
+
+### Patch Changes
+
+- e930f40: feat (ai/core): expose core tool result and tool call types
+
+## 3.4.13
+
+### Patch Changes
+
+- fc39158: fix (ai/core): add abortSignal to tool helper function
+
+## 3.4.12
+
+### Patch Changes
+
+- a23da5b: feat (ai/core): forward abort signal to tools
+
+## 3.4.11
+
+### Patch Changes
+
+- caedcda: feat (ai/ui): add setData helper to useChat
+- Updated dependencies [caedcda]
+  - @ai-sdk/svelte@0.0.52
+  - @ai-sdk/react@0.0.63
+  - @ai-sdk/solid@0.0.50
+  - @ai-sdk/vue@0.0.55
+
+## 3.4.10
+
+### Patch Changes
+
+- 0b557d7: feat (ai/core): add tracer option to telemetry settings
+- 44f6bc5: feat (ai/core): expose StepResult type
+
 ## 3.4.9
 
 ### Patch Changes

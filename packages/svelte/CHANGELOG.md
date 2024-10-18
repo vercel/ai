@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 0.0.52
+
+### Patch Changes
+
+- caedcda: feat (ai/ui): add setData helper to useChat
+
 ## 0.0.51
 
 ### Patch Changes

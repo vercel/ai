@@ -72,8 +72,16 @@ export type UseChatHelpers = {
   metadata?: Object;
   /** Whether the API request is in progress */
   isLoading: boolean;
-  /** Additional data added on the server via StreamData */
+
+  /** Additional data added on the server via StreamData. */
   data?: JSONValue[];
+  /** Set the data of the chat. You can use this to transform or clear the chat data. */
+  setData: (
+    data:
+      | JSONValue[]
+      | undefined
+      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+  ) => void;
 };
 
 const getStreamedResponse = async (
@@ -81,7 +89,7 @@ const getStreamedResponse = async (
   chatRequest: ChatRequest,
   mutate: KeyedMutator<Message[]>,
   mutateStreamData: KeyedMutator<JSONValue[] | undefined>,
-  existingData: JSONValue[] | undefined,
+  existingDataRef: React.MutableRefObject<JSONValue[] | undefined>,
   extraMetadataRef: React.MutableRefObject<any>,
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
@@ -136,6 +144,8 @@ const getStreamedResponse = async (
         }),
       );
 
+  const existingData = existingDataRef.current;
+
   return await callChatApi({
     api,
     body: experimental_prepareRequestBody?.({
@@ -175,7 +185,7 @@ const getStreamedResponse = async (
     onResponse,
     onUpdate(merged, data) {
       mutate([...chatRequest.messages, ...merged], false);
-      mutateStreamData([...(existingData || []), ...(data || [])], false);
+      mutateStreamData([...(existingData ?? []), ...(data ?? [])], false);
     },
     onToolCall,
     onFinish,
@@ -302,25 +312,32 @@ By default, it's set to 1, which means that only a single LLM call is made.
     { fallbackData: initialMessages ?? initialMessagesFallback },
   );
 
+  // Keep the latest messages in a ref.
+  const messagesRef = useRef<Message[]>(messages || []);
+  useEffect(() => {
+    messagesRef.current = messages || [];
+  }, [messages]);
+
+  // stream data
+  const { data: streamData, mutate: mutateStreamData } = useSWR<
+    JSONValue[] | undefined
+  >([chatKey, 'streamData'], null);
+
+  // keep the latest stream data in a ref
+  const streamDataRef = useRef<JSONValue[] | undefined>(streamData);
+  useEffect(() => {
+    streamDataRef.current = streamData;
+  }, [streamData]);
+
   // We store loading state in another hook to sync loading states across hook invocations
   const { data: isLoading = false, mutate: mutateLoading } = useSWR<boolean>(
     [chatKey, 'loading'],
     null,
   );
 
-  const { data: streamData, mutate: mutateStreamData } = useSWR<
-    JSONValue[] | undefined
-  >([chatKey, 'streamData'], null);
-
   const { data: error = undefined, mutate: setError } = useSWR<
     undefined | Error
   >([chatKey, 'error'], null);
-
-  // Keep the latest messages in a ref.
-  const messagesRef = useRef<Message[]>(messages || []);
-  useEffect(() => {
-    messagesRef.current = messages || [];
-  }, [messages]);
 
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -357,7 +374,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
               chatRequest,
               mutate,
               mutateStreamData,
-              streamData!,
+              streamDataRef,
               extraMetadataRef,
               messagesRef,
               abortControllerRef,
@@ -424,7 +441,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       onError,
       setError,
       mutateStreamData,
-      streamData,
+      streamDataRef,
       streamProtocol,
       sendExtraMessageFields,
       experimental_onFunctionCall,
@@ -565,6 +582,23 @@ By default, it's set to 1, which means that only a single LLM call is made.
     [mutate],
   );
 
+  const setData = useCallback(
+    (
+      data:
+        | JSONValue[]
+        | undefined
+        | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+    ) => {
+      if (typeof data === 'function') {
+        data = data(streamDataRef.current);
+      }
+
+      mutateStreamData(data, false);
+      streamDataRef.current = data;
+    },
+    [mutateStreamData],
+  );
+
   // Input state and handlers.
   const [input, setInput] = useState(initialInput);
 
@@ -661,17 +695,18 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   return {
     messages: messages || [],
+    setMessages,
+    data: streamData,
+    setData,
     error,
     append,
     reload,
     stop,
-    setMessages,
     input,
     setInput,
     handleInputChange,
     handleSubmit,
     isLoading,
-    data: streamData,
     addToolResult,
     experimental_addToolResult: addToolResult,
   };

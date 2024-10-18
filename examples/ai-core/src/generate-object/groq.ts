@@ -1,16 +1,11 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { groq } from '@ai-sdk/groq';
 import { generateObject } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
-const groq = createOpenAI({
-  apiKey: process.env.GROQ_API_KEY ?? '',
-  baseURL: 'https://api.groq.com/openai/v1',
-});
-
 async function main() {
   const result = await generateObject({
-    model: groq.chat('llama3-70b-8192'),
+    model: groq('llama-3.1-70b-versatile'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),
