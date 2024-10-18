@@ -3,9 +3,9 @@ title: Generative User Interfaces
 description: Learn how to build Generative UI with AI SDK UI.
 ---
 
-# Generative UI
+# Generative User Interfaces
 
-Generative UI is the process of allowing a large language model (LLM) to go beyond text and "generate UI". This creates a more engaging and AI-native experience for users.
+Generative user interfaces (generative UI) is the process of allowing a large language model (LLM) to go beyond text and "generate UI". This creates a more engaging and AI-native experience for users.
 
 <WeatherSearch />
 
@@ -263,10 +263,12 @@ export const tools = {
 Now, create a new file called `components/stock.tsx`:
 
 ```tsx
-import { ToolResults } from '@/lib/utils';
-import { type stockTool } from '@/ai/tools';
+type StockProps = {
+  price: number;
+  symbol: string;
+};
 
-export const Stock = ({ price, symbol }: ToolResults<typeof stockTool>) => {
+export const Stock = ({ price, symbol }: StockProps) => {
   return (
     <div>
       <h2>Stock Information</h2>
