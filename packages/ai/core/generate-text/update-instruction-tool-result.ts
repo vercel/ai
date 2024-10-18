@@ -6,25 +6,24 @@ import { CoreToolChoice, LanguageModel } from '../types/language-model';
  */
 const validatorSymbol = Symbol.for('vercel.ai.validator');
 
-export function experimental_updateInstructionToolResult(
-  instructionDelta: {
-    /**
+export type Instruction = {
+  /**
 The language model to use.
-     */
-    model?: LanguageModel;
-
-    /**
-System message to include in the prompt. Can be used with `prompt` or `messages`.
    */
-    system?: string;
-
-    /**
+  model?: LanguageModel;
+  /**
+System message to include in the prompt. Can be used with `prompt` or `messages`.
+ */
+  system?: string;
+  /**
 Active tools.
 */
-    activeTools?: Array<string>; // Note: not type safe
+  activeTools?: Array<string>; // Note: not type safe
+  toolChoice?: CoreToolChoice<Record<string, unknown>>; // Note: not type safe
+} & Omit<CallSettings, 'maxRetries' | 'abortSignal' | 'headers'>;
 
-    toolChoice?: CoreToolChoice<Record<string, unknown>>; // Note: not type safe
-  } & Omit<CallSettings, 'maxRetries' | 'abortSignal' | 'headers'>,
+export function experimental_updateInstructionToolResult(
+  instructionDelta: Instruction,
 ) {
   return {
     [validatorSymbol]: true,
@@ -34,7 +33,7 @@ Active tools.
 
 export function isUpdateInstructionToolResult(
   value: unknown,
-): value is ReturnType<typeof experimental_updateInstructionToolResult> {
+): value is Instruction {
   return (
     typeof value === 'object' &&
     value !== null &&

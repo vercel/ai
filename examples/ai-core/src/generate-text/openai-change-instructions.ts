@@ -76,7 +76,7 @@ const executeOrder = tool({
 const triageSystemPrompt =
   'You are a customer service bot for ACME Inc. ' +
   'Introduce yourself. Always be very brief. ' +
-  'Gather information to direct the customer to the right department. ' +
+  'Gather information to direct the customer to the right department by calling the appropriate tool. ' +
   'But make your questions subtle and natural.';
 
 const triageTools = [
@@ -88,72 +88,83 @@ const triageTools = [
 async function main() {
   const messages: CoreMessage[] = [];
 
-  const userInput = await terminal.question('You: ');
-  messages.push({ role: 'user', content: userInput });
+  while (true) {
+    const userInput = await terminal.question('You: ');
+    messages.push({ role: 'user', content: userInput });
 
-  const { text } = await generateText({
-    model: openai('gpt-4o-2024-08-06', { structuredOutputs: true }),
-    maxSteps: 20,
-    tools: {
-      escalateToHuman,
-      executeRefund,
-      lookupItem,
-      executeOrder,
+    const result = await generateText({
+      model: openai('gpt-4o-2024-08-06', { structuredOutputs: true }),
+      maxSteps: 20,
+      tools: {
+        escalateToHuman,
+        executeRefund,
+        lookupItem,
+        executeOrder,
 
-      // you can change instructions using experimental_updateInstructionToolResult:
-      transferBackToTriage: tool({
-        parameters: z.object({}),
-        execute: async () =>
-          experimental_updateInstructionToolResult({
-            system: triageSystemPrompt,
-            activeTools: triageTools,
-          }),
-      }),
-      transferToSales: tool({
-        parameters: z.object({}),
-        execute: async () =>
-          experimental_updateInstructionToolResult({
-            system:
-              'You are a sales representative for ACME Inc.' +
-              'Always answer in a sentence or less.' +
-              'Follow the following routine with the user:' +
-              '1. Ask them about any problems in their life related to catching roadrunners.' +
-              '2. Casually mention one of ACMEs crazy made-up products can help.' +
-              ' - Do not mention price.' +
-              '3. Once the user is bought in, drop a ridiculous price.' +
-              '4. Only after everything, and if the user says yes, ' +
-              'tell them a crazy caveat and execute their order.',
-            activeTools: ['executeOrder', 'transferBackToTriage'],
-          }),
-      }),
-      transferToIssuesAndRepairs: tool({
-        parameters: z.object({}),
-        execute: async () =>
-          experimental_updateInstructionToolResult({
-            system:
-              'You are a customer support agent for ACME Inc.' +
-              'Always answer in a sentence or less.' +
-              'Follow the following routine with the user:' +
-              '1. First, ask probing questions and understand the users problem deeper.' +
-              ' - unless the user has already provided a reason.' +
-              '2. Propose a fix (make one up).' +
-              '3. ONLY if not satisfied, offer a refund.' +
-              '4. If accepted, search for the ID and then execute refund.',
-            activeTools: [
-              'executeRefund',
-              'lookUpItem',
-              'transferBackToTriage',
-            ],
-          }),
-      }),
-    },
-    messages,
-    system: triageSystemPrompt,
-    experimental_activeTools: triageTools,
-  });
+        // you can change instructions using experimental_updateInstructionToolResult:
+        transferBackToTriage: tool({
+          parameters: z.object({}),
+          execute: async () =>
+            experimental_updateInstructionToolResult({
+              system: triageSystemPrompt,
+              activeTools: triageTools,
+            }),
+        }),
+        transferToSales: tool({
+          parameters: z.object({}),
+          execute: async () => {
+            console.log('transferring to sales');
+            return experimental_updateInstructionToolResult({
+              system:
+                'You are a sales representative for ACME Inc.' +
+                'Always answer in a sentence or less.' +
+                'Follow the following routine with the user:' +
+                '1. Ask them about any problems in their life related to catching roadrunners.' +
+                '2. Casually mention one of ACMEs crazy made-up products can help.' +
+                ' - Do not mention price.' +
+                '3. Once the user is bought in, drop a ridiculous price.' +
+                '4. Only after everything, and if the user says yes, ' +
+                'tell them a crazy caveat and execute their order.',
+              activeTools: ['executeOrder', 'transferBackToTriage'],
+            });
+          },
+        }),
+        transferToIssuesAndRepairs: tool({
+          parameters: z.object({}),
+          execute: async () => {
+            console.log('transferring to issues and repairs');
+            return experimental_updateInstructionToolResult({
+              system:
+                'You are a customer support agent for ACME Inc.' +
+                'Always answer in a sentence or less.' +
+                'Follow the following routine with the user:' +
+                '1. First, ask probing questions and understand the users problem deeper.' +
+                ' - unless the user has already provided a reason.' +
+                '2. Propose a fix (make one up).' +
+                '3. ONLY if not satisfied, offer a refund.' +
+                '4. If accepted, search for the ID and then execute refund.',
+              activeTools: [
+                'executeRefund',
+                'lookUpItem',
+                'transferBackToTriage',
+              ],
+            });
+          },
+        }),
+      },
+      messages,
+      system: triageSystemPrompt,
+      experimental_activeTools: triageTools,
+      onStepFinish(event) {
+        console.log('event', JSON.stringify(event, null, 2));
+      },
+    });
 
-  process.stdout.write(`\nAssistant: ${text}`);
-  process.stdout.write('\n\n');
+    process.stdout.write(`\nAssistant: ${result.text}`);
+    process.stdout.write('\n\n');
+
+    messages.push(...result.responseMessages);
+  }
 }
 
 main().catch(console.error);
