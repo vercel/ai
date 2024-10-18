@@ -14,7 +14,7 @@ async function main() {
           {
             type: 'file',
             mimeType: 'audio/mpeg',
-            data: fs.readFileSync('./data/galileo.mp3').toString('base64'),
+            data: fs.readFileSync('./data/galileo.mp3'),
           },
         ],
       },
