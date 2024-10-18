@@ -1,37 +1,43 @@
-export type OpenAIChatPrompt = Array<ChatCompletionMessageParam>;
+export type OpenAIChatPrompt = Array<ChatCompletionMessage>;
 
-export type ChatCompletionMessageParam =
-  | ChatCompletionSystemMessageParam
-  | ChatCompletionUserMessageParam
-  | ChatCompletionAssistantMessageParam
-  | ChatCompletionToolMessageParam
-  | ChatCompletionFunctionMessageParam;
+export type ChatCompletionMessage =
+  | ChatCompletionSystemMessage
+  | ChatCompletionUserMessage
+  | ChatCompletionAssistantMessage
+  | ChatCompletionToolMessage
+  | ChatCompletionFunctionMessage;
 
-export interface ChatCompletionSystemMessageParam {
+export interface ChatCompletionSystemMessage {
   role: 'system';
   content: string;
 }
 
-export interface ChatCompletionUserMessageParam {
+export interface ChatCompletionUserMessage {
   role: 'user';
   content: string | Array<ChatCompletionContentPart>;
 }
 
 export type ChatCompletionContentPart =
   | ChatCompletionContentPartText
-  | ChatCompletionContentPartImage;
-
-export interface ChatCompletionContentPartImage {
-  type: 'image_url';
-  image_url: { url: string };
-}
+  | ChatCompletionContentPartImage
+  | ChatCompletionContentPartInputAudio;
 
 export interface ChatCompletionContentPartText {
   type: 'text';
   text: string;
 }
 
-export interface ChatCompletionAssistantMessageParam {
+export interface ChatCompletionContentPartImage {
+  type: 'image_url';
+  image_url: { url: string };
+}
+
+export interface ChatCompletionContentPartInputAudio {
+  type: 'input_audio';
+  input_audio: { data: string; format: 'wav' | 'mp3' };
+}
+
+export interface ChatCompletionAssistantMessage {
   role: 'assistant';
   content?: string | null;
   tool_calls?: Array<ChatCompletionMessageToolCall>;
@@ -54,7 +60,7 @@ export interface ChatCompletionMessageToolCall {
   };
 }
 
-export interface ChatCompletionToolMessageParam {
+export interface ChatCompletionToolMessage {
   role: 'tool';
   content: string;
   tool_call_id: string;
@@ -66,7 +72,7 @@ export interface ChatCompletionToolMessageParam {
  * @internal
  * @deprecated
  */
-export interface ChatCompletionFunctionMessageParam {
+export interface ChatCompletionFunctionMessage {
   role: 'function';
   content: string;
   name: string;
