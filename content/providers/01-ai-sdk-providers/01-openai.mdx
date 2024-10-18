@@ -125,15 +125,16 @@ OpenAI language models can also be used in the `streamText`, `generateObject`, `
 
 ### Model Capabilities
 
-| Model           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| --------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-4o`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4-turbo`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-3.5-turbo` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o1-preview`    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `o1-mini`       | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                  | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
+| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-4o`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-audio-preview` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4-turbo`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-3.5-turbo`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `o1-preview`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `o1-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. You can also pass any available provider
@@ -386,6 +387,37 @@ const { text, usage, experimental_providerMetadata } = await generateText({
 console.log(`usage:`, {
   ...usage,
   cachedPromptTokens: experimental_providerMetadata?.openai?.cachedPromptTokens,
+});
+```
+
+#### Audio Input
+
+With the `gpt-4o-audio-preview` model, you can pass audio files to the model.
+
+<Note type="warning">
+  The `gpt-4o-audio-preview` model is currently in preview and requires at least
+  some audio inputs. It will not work with non-audio data.
+</Note>
+
+```ts highlight="12-14"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-4o-audio-preview'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is the audio saying?' },
+        {
+          type: 'file',
+          mimeType: 'audio/mpeg',
+          data: fs.readFileSync('./data/galileo.mp3'),
+        },
+      ],
+    },
+  ],
 });
 ```
 
