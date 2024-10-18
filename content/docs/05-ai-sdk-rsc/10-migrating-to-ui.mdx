@@ -157,6 +157,18 @@ export default function Page() {
 }
 ```
 
+### Parallel Tool Calls
+
+In AI SDK RSC, `streamUI` does not support parallel tool calls. You will have to use a combination of `streamText`, `createStreamableUI` and `createStreamableValue`.
+
+With AI SDK UI, `useChat` comes with built-in support for parallel tool calls. You can define multiple tools in the `streamText` and have them called them in parallel. The `useChat` hook will then handle the parallel tool calls for you automatically.
+
+### Multi-Step Tool Calls
+
+In AI SDK RSC, `streamUI` does not support multi-step tool calls. You will have to use a combination of `streamText`, `createStreamableUI` and `createStreamableValue`.
+
+With AI SDK UI, `useChat` comes with built-in support for multi-step tool calls. You can set `maxSteps` in the `streamText` function to define the number of steps the language model can make in a single call. The `useChat` hook will then handle the multi-step tool calls for you automatically.
+
 ### Generative User Interfaces
 
 The `streamUI` function uses `tools` as a way to execute functions based on user input and renders React components based on the function output to go beyond text in the chat interface.
@@ -364,6 +376,79 @@ export function ListFlights({ chatId, flights }) {
           {flight.name}
         </div>
       ))}
+    </div>
+  );
+}
+```
+
+### Loading Indicators
+
+In AI SDK RSC, you can use the `initial` parameter of `streamUI` to define the component to display while the generation is in progress.
+
+#### Before: Use `loading` to show loading indicator
+
+```tsx filename="@/app/actions.tsx"
+import { openai } from '@ai-sdk/openai';
+import { streamUI } from 'ai/rsc';
+
+const { value: stream } = await streamUI({
+  model: openai('gpt-4o'),
+  system: 'you are a friendly assistant!',
+  messages,
+  initial: <div>Loading...</div>,
+  text: async function* ({ content, done }) {
+    // process text
+  },
+  tools: {
+    // tool definitions
+  },
+});
+
+return stream;
+```
+
+With AI SDK UI, you can use the tool invocation state to show a loading indicator while the tool is executing.
+
+#### After: Use tool invocation state to show loading indicator
+
+```tsx filename="@/app/components/message.tsx"
+'use client';
+
+export function Message({ role, content, toolInvocations }) {
+  return (
+    <div>
+      <div>{role}</div>
+      <div>{content}</div>
+
+      {toolInvocations && (
+        <div>
+          {toolInvocations.map(toolInvocation => {
+            const { toolName, toolCallId, state } = toolInvocation;
+
+            if (state === 'result') {
+              const { result } = toolInvocation;
+
+              return (
+                <div key={toolCallId}>
+                  {toolName === 'getWeather' ? (
+                    <Weather weatherAtLocation={result} />
+                  ) : null}
+                </div>
+              );
+            } else {
+              return (
+                <div key={toolCallId}>
+                  {toolName === 'getWeather' ? (
+                    <Weather isLoading={true} />
+                  ) : (
+                    <div>Loading...</div>
+                  )}
+                </div>
+              );
+            }
+          })}
+        </div>
+      )}
     </div>
   );
 }
