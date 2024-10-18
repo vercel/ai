@@ -1,7 +1,10 @@
 import { CallSettings } from '../prompt/call-settings';
 import { CoreToolChoice, LanguageModel } from '../types/language-model';
 
-// TODO tagging with symbol
+/**
+ * Used to mark update instruction tool results.
+ */
+const validatorSymbol = Symbol.for('vercel.ai.validator');
 
 export function experimental_updateInstructionToolResult<
   TOOL_NAMES extends string,
@@ -24,4 +27,20 @@ Active tools.
 
     toolChoice?: CoreToolChoice<TOOL_NAMES>;
   } & Omit<CallSettings, 'maxRetries' | 'abortSignal' | 'headers'>,
-) {}
+) {
+  return {
+    [validatorSymbol]: true,
+    ...instructionDelta,
+  };
+}
+
+export function isUpdateInstructionToolResult(
+  value: unknown,
+): value is ReturnType<typeof experimental_updateInstructionToolResult> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    validatorSymbol in value &&
+    value[validatorSymbol] === true
+  );
+}
