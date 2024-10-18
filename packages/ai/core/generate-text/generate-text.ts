@@ -120,7 +120,7 @@ The tools that the model can call. The model needs to support calling tools.
     /**
 The tool choice strategy. Default: 'auto'.
      */
-    toolChoice?: CoreToolChoice<TOOLS>;
+    toolChoice?: CoreToolChoice<string & keyof TOOLS>;
 
     /**
 @deprecated Use `maxToolRoundtrips` instead.

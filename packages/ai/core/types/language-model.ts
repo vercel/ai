@@ -53,11 +53,11 @@ Tool choice for the generation. It supports the following settings:
 - `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
  */
 // TODO rename to ToolChoice once shared/types.ts ToolChoice is gone
-export type CoreToolChoice<TOOLS extends Record<string, unknown>> =
+export type CoreToolChoice<TOOL_NAMES extends string> =
   | 'auto'
   | 'none'
   | 'required'
-  | { type: 'tool'; toolName: keyof TOOLS };
+  | { type: 'tool'; toolName: TOOL_NAMES };
 
 export type LanguageModelResponseMetadata = {
   /**

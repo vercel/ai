@@ -15,7 +15,7 @@ export function prepareToolsAndToolChoice<
   activeTools,
 }: {
   tools: TOOLS | undefined;
-  toolChoice: CoreToolChoice<TOOLS> | undefined;
+  toolChoice: CoreToolChoice<string & keyof TOOLS> | undefined;
   activeTools: Array<keyof TOOLS> | undefined;
 }): {
   tools: LanguageModelV1FunctionTool[] | undefined;

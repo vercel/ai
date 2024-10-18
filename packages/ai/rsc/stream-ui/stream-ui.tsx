@@ -115,7 +115,7 @@ export async function streamUI<
     /**
      * The tool choice strategy. Default: 'auto'.
      */
-    toolChoice?: CoreToolChoice<TOOLS>;
+    toolChoice?: CoreToolChoice<string & keyof TOOLS>;
 
     text?: RenderText;
     initial?: ReactNode;
