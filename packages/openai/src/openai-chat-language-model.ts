@@ -60,6 +60,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 
   get defaultObjectGenerationMode() {
+    // audio models don't support structured outputs:
+    if (isAudioModel(this.modelId)) {
+      return 'tool';
+    }
+
     return this.supportsStructuredOutputs ? 'json' : 'tool';
   }
 
@@ -869,4 +874,8 @@ function prepareToolsAndToolChoice({
 
 function isReasoningModel(modelId: string) {
   return modelId.startsWith('o1-');
+}
+
+function isAudioModel(modelId: string) {
+  return modelId.startsWith('gpt-4o-audio-preview');
 }
