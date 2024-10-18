@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.16
+
+### Patch Changes
+
+- 01dcc44: feat (ai/core): add experimental activeTools option to generateText and streamText
+
 ## 3.4.15
 
 ### Patch Changes
