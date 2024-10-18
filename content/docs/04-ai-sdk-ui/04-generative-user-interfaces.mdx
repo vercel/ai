@@ -1,5 +1,5 @@
 ---
-title: Generative UI
+title: Generative User Interfaces
 description: Learn how to build Generative UI with AI SDK UI.
 ---
 
@@ -9,17 +9,17 @@ Generative UI is the process of allowing a large language model (LLM) to go beyo
 
 <WeatherSearch />
 
-At the core of generative UI are [ tools ](/docs/ai-sdk-core/tools-and-tool-calling), which are like programs you provide to the model to perform specialized tasks like getting the weather in a location. The model can decide when and how to use these tools based on the context of the conversation.
+At the core of generative UI are [ tools ](/docs/ai-sdk-core/tools-and-tool-calling), which are functions you provide to the model to perform specialized tasks like getting the weather in a location. The model can decide when and how to use these tools based on the context of the conversation.
 
-Generative UI is simply the process of piping the results of a tool call to a React component. Here's how the process works:
+Generative UI is the process of connecting the results of a tool call to a React component. Here's how it works:
 
 1. You provide the model with a prompt or conversation history, along with a set of tools.
 2. Based on the context, the model may decide to call a tool.
 3. If a tool is called, it will execute and return data.
-4. This data can then be piped to a React component for rendering.
-5. If no relevant tool is available or a tool isn't necessary (ie. summarising actions), the model will generate text.
+4. This data can then be passed to a React component for rendering.
+5. After executing any necessary tools, the model will generate text to provide a response.
 
-By connecting the tool results to React components, you can create a generative UI experience that's more engaging and adaptive to your needs.
+By passing the tool results to React components, you can create a generative UI experience that's more engaging and adaptive to your needs.
 
 ## Build a Generative UI Chat Interface
 
@@ -72,6 +72,7 @@ export async function POST(request: Request) {
     model: openai('gpt-4o'),
     system: 'You are a friendly assistant!',
     messages: convertToCoreMessages(messages),
+    maxSteps: 5,
   });
 
   return result.toDataStreamResponse();
@@ -112,7 +113,7 @@ In this file, you've created a tool called `weatherTool`. This tool simulates fe
 
 Update the API route to include the tool you've defined:
 
-```ts filename="app/api/chat/route.ts"
+```ts filename="app/api/chat/route.ts" highlight="3,13"
 import { openai } from '@ai-sdk/openai';
 import { streamText, convertToCoreMessages } from 'ai';
 import { tools } from '@/ai/tools';
@@ -124,6 +125,7 @@ export async function POST(request: Request) {
     model: openai('gpt-4o'),
     system: 'You are a friendly assistant!',
     messages: convertToCoreMessages(messages),
+    maxSteps: 5,
     tools,
   });
 
