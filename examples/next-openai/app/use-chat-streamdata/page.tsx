@@ -26,6 +26,11 @@ export default function Chat() {
         <div key={m.id} className="whitespace-pre-wrap">
           <strong>{`${m.role}: `}</strong>
           {m.content}
+          {m.annotations && (
+            <pre className="p-4 text-sm bg-gray-100">
+              {JSON.stringify(m.annotations, null, 2)}
+            </pre>
+          )}
           <br />
           <br />
         </div>

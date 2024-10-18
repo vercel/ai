@@ -126,6 +126,14 @@ Example: `2:[{"key":"object1"},{"anotherKey":"object2"}]\n`
   height={1148}
 />
 
+### Message Annotation Part
+
+The message annotation parts are appended to the message as they are received.
+
+Format: `8:JSONValue\n`
+
+Example: `8:{"id":"message-123","other":"annotation"}\n`
+
 ### Error Part
 
 The error parts are appended to the message as they are received.

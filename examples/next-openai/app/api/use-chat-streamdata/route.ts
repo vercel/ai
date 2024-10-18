@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { convertToCoreMessages, StreamData, streamText } from 'ai';
+import { convertToCoreMessages, generateId, StreamData, streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -15,7 +15,15 @@ export async function POST(req: Request) {
     model: openai('gpt-4o'),
     messages: convertToCoreMessages(messages),
     onFinish() {
+      // message annotation:
+      data.appendMessageAnnotation({
+        id: generateId(), // e.g. id from saved DB record
+        other: 'information',
+      });
+
+      // call annotation:
       data.append('call completed');
+
       data.close();
     },
   });
