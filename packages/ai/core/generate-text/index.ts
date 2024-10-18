@@ -13,3 +13,5 @@ export type {
   ToolResult as CoreToolResult,
   ToolResultUnion as CoreToolResultUnion,
 } from './tool-result';
+
+export { experimental_updateInstructionToolResult } from './update-instruction-tool-result';
