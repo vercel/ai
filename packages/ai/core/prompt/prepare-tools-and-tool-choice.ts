@@ -12,9 +12,11 @@ export function prepareToolsAndToolChoice<
 >({
   tools,
   toolChoice,
+  activeTools,
 }: {
   tools: TOOLS | undefined;
   toolChoice: CoreToolChoice<TOOLS> | undefined;
+  activeTools: Array<keyof TOOLS> | undefined;
 }): {
   tools: LanguageModelV1FunctionTool[] | undefined;
   toolChoice: LanguageModelV1ToolChoice | undefined;
@@ -26,8 +28,16 @@ export function prepareToolsAndToolChoice<
     };
   }
 
+  // when activeTools is provided, we only include the tools that are in the list:
+  const filteredTools =
+    activeTools != null
+      ? Object.entries(tools).filter(([name]) =>
+          activeTools.includes(name as keyof TOOLS),
+        )
+      : Object.entries(tools);
+
   return {
-    tools: Object.entries(tools).map(([name, tool]) => ({
+    tools: filteredTools.map(([name, tool]) => ({
       type: 'function' as const,
       name,
       description: tool.description,

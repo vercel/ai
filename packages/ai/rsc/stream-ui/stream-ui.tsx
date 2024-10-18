@@ -257,7 +257,11 @@ functionality that can be fully encapsulated in the provider.
     model.doStream({
       mode: {
         type: 'regular',
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
+        ...prepareToolsAndToolChoice({
+          tools,
+          toolChoice,
+          activeTools: undefined,
+        }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,
