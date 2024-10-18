@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.68
+
+### Patch Changes
+
+- 741ca51: feat (provider/openai): support mp3 and wav audio inputs
+
 ## 0.0.67
 
 ### Patch Changes
