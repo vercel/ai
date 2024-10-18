@@ -71,16 +71,44 @@ export async function POST(req: Request) {
 
 The `useChat` hook automatically processes the streamed data and makes it available to you.
 
+### Accessing Data
+
 On the client, you can destructure `data` from the `useChat` hook which stores all `StreamData`
 as a `JSONValue[]`.
 
 ```tsx
+import { useChat } from 'ai/react';
+
 const { data } = useChat();
 ```
 
-Future versions of the AI SDK will support each `Message` having a `data` object attached to it.
+### Accessing Message Annotations
 
-## Updating and Clearing Data
+Each message from the `useChat` hook has an optional `annotations` property that contains
+the message annotations sent from the server.
+
+Since the shape of the annotations depends on what you send from the server,
+you have to destructure them in a type-safe way on the client side.
+
+Here we just show the annotations as a JSON string:
+
+```tsx highlight="9"
+import { Message, useChat } from 'ai/react';
+
+const { messages } = useChat();
+
+const result = (
+  <>
+    {messages?.map((m: Message) => (
+      <div key={m.id}>
+        {m.annotations && <>{JSON.stringify(m.annotations)}</>}
+      </div>
+    ))}
+  </>
+);
+```
+
+### Updating and Clearing Data
 
 You can update and clear the `data` object of the `useChat` hook using the `setData` function.
 
