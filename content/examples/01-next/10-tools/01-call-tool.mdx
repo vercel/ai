@@ -32,6 +32,8 @@ Let's create a React component that imports the `useChat` hook from the `ai/reac
 We will use the `maxSteps` to specify the maximum number of steps (i.e., LLM calls) that can be made to prevent infinite loops. In this example, you will set it to `2` to allow for two backend calls to happen.
 
 ```tsx filename='pages/index.tsx'
+'use client';
+
 import { useChat } from 'ai/react';
 
 export default function Page() {

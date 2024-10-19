@@ -47,7 +47,7 @@ import { Message, useChat } from 'ai/react';
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
-      api: '/api/use-chat-tools-ui',
+      api: '/api/use-chat',
       maxSteps: 5,
 
       // run client-side tools that are automatically executed:
@@ -184,14 +184,10 @@ export default function Chat() {
 ```tsx filename='api/chat.ts'
 import { openai } from '@ai-sdk/openai';
 import { convertToCoreMessages, streamText } from 'ai';
-import { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
-export default async function handler(
-  request: NextApiRequest,
-  response: NextApiResponse,
-) {
-  const { messages } = await request.body;
+export default async function POST(request: Request) {
+  const { messages } = await request.json();
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
@@ -233,6 +229,6 @@ export default async function handler(
     },
   });
 
-  result.pipeDataStreamToResponse(response);
+  return result.toDataStreamResponse();
 }
 ```
