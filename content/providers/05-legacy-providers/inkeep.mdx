@@ -136,7 +136,7 @@ This example leverages a few utilities provided by the AI SDK:
    class with the default headers you probably want (hint: `'Content-Type':
 'text/plain; charset=utf-8'` is already set for you). This will provide the streamed content to the client.
 
-3. Lastly, we use the [StreamData](/docs/reference/stream-helpers/stream-data) and callback methods of the `InkeepStream` to attach metadata to the response like `onFinalMetadata.chat_session_id` and `records_cited.citations` for use by the client.
+3. Lastly, we use the [StreamData](/docs/reference/ai-sdk-ui/stream-data) and callback methods of the `InkeepStream` to attach metadata to the response like `onFinalMetadata.chat_session_id` and `records_cited.citations` for use by the client.
 
 <Note>
   It's common to save a chat to a database. To do so, you can leverage the
