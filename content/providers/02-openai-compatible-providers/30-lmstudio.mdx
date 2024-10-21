@@ -5,8 +5,10 @@ description: Use the LM Studio OpenAI compatible API with the AI SDK.
 
 # LM Studio Provider
 
-[LM Studio](https://lmstudio.ai/) is a local LLM server that you can use to run and test LLMs on your own hardware.
-It offers an OpenAI compatible API that you can use with the AI SDK.
+[LM Studio](https://lmstudio.ai/) is user interface for running local models.
+
+It contains an OpenAI compatible API server that you can use with the AI SDK.
+You can start the local server under the [Local Server tab](https://lmstudio.ai/docs/basics/server) in the LM Studio UI ("Start Server" button).
 
 ## Setup
 
@@ -34,14 +36,14 @@ import { createOpenAI } from '@ai-sdk/openai';
 
 const lmstudio = createOpenAI({
   name: 'lmstudio',
-  apiKey: 'not-needed',
-  baseURL: 'https://localhost:1234/v1',
+  baseURL: 'http://localhost:1234/v1',
+  maxRetries: 1, // immediately error if the server is not running
 });
 ```
 
 <Note>
-  LM Studio uses port `1234` by default, but you can change in the [app's
-  Developer tab](https://lmstudio.ai/docs/basics/server).
+  LM Studio uses port `1234` by default, but you can change in the [app's Local
+  Server tab](https://lmstudio.ai/docs/basics/server).
 </Note>
 
 ## Language Models
