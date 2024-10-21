@@ -295,9 +295,65 @@ describe('multiple messages', () => {
       },
     ]);
   });
+
+  it('should exclude partial tool calls from assistant message', () => {
+    const result = convertToCoreMessages([
+      {
+        role: 'assistant',
+        content: 'Let me calculate that for you.',
+        toolInvocations: [
+          {
+            state: 'partial-call',
+            toolCallId: 'call1',
+            toolName: 'calculator',
+            args: { operation: 'add', numbers: [] },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Let me calculate that for you.' }],
+      },
+    ]);
+  });
+
+  it('should exclude tool calls without results from tool message', () => {
+    const result = convertToCoreMessages([
+      {
+        role: 'assistant',
+        content: 'Let me calculate that for you.',
+        toolInvocations: [
+          {
+            state: 'call',
+            toolCallId: 'call1',
+            toolName: 'calculator',
+            args: { operation: 'add', numbers: [1, 2] },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Let me calculate that for you.' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'calculator',
+            args: { operation: 'add', numbers: [1, 2] },
+          },
+        ],
+      },
+    ]);
+  });
 });
 
-describe('error handling', () => {
+describe('unsupported roles', () => {
   it('should throw an error for unhandled roles', () => {
     expect(() => {
       convertToCoreMessages([
