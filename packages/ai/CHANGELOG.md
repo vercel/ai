@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.17
+
+### Patch Changes
+
+- e4ff512: fix (core): prevent unnecessary input/output serialization when telemetry is not enabled
+
 ## 3.4.16
 
 ### Patch Changes
