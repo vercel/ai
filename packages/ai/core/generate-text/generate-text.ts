@@ -21,8 +21,8 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool/tool';
 import { CoreToolChoice, LanguageModel, ProviderMetadata } from '../types';
 import {
-  LanguageModelUsage,
   calculateLanguageModelUsage,
+  LanguageModelUsage,
 } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
 import { GenerateTextResult } from './generate-text-result';
@@ -31,6 +31,10 @@ import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
+import {
+  Instruction,
+  isUpdateInstructionToolResult,
+} from './update-instruction-tool-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
 
@@ -378,6 +382,42 @@ changing the tool call and result types in the result.
                 telemetry,
                 abortSignal,
               });
+
+        // update instructions if there is an instruction tool result
+        const firstInstructionToolResult = currentToolResults
+          .map(result => result.result)
+          .filter(isUpdateInstructionToolResult)[0] as Instruction | undefined;
+
+        console.log('firstInstructionToolResult', firstInstructionToolResult);
+
+        if (firstInstructionToolResult != null) {
+          // TODO this doesn't swap, need to be input-msg based first:
+          system = firstInstructionToolResult.system ?? system;
+
+          // HACK for prototyping
+          // remove first message from promptMessages if system msg
+          // TODO does not inject when there is no system message, etc
+          if (
+            firstInstructionToolResult.system != null &&
+            promptMessages.length > 0 &&
+            promptMessages[0].role === 'system'
+          ) {
+            promptMessages.shift();
+            promptMessages.unshift({
+              role: 'system',
+              content: firstInstructionToolResult.system,
+            });
+          }
+
+          activeTools = firstInstructionToolResult.activeTools ?? activeTools;
+          toolChoice = firstInstructionToolResult.toolChoice ?? toolChoice;
+          model = firstInstructionToolResult.model ?? model;
+
+          // TODO other properties
+          // TODO how to represent the switch in the message history?
+
+          console.log(promptMessages);
+        }
 
         // token usage:
         const currentUsage = calculateLanguageModelUsage(
