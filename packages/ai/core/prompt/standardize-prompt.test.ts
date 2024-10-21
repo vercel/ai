@@ -1,10 +1,10 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
-import { validatePrompt } from './validate-prompt';
+import { standardizePrompt } from './standardize-prompt';
 
 describe('message prompt', () => {
   it('should throw InvalidPromptError when system message has parts', () => {
     expect(() => {
-      validatePrompt({
+      standardizePrompt({
         messages: [
           {
             role: 'system',

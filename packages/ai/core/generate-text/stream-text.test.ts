@@ -30,8 +30,13 @@ describe('result.textStream', () => {
             tools: undefined,
             toolChoice: undefined,
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -103,8 +108,13 @@ describe('result.fullStream', () => {
             tools: undefined,
             toolChoice: undefined,
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -146,8 +156,13 @@ describe('result.fullStream', () => {
             tools: undefined,
             toolChoice: undefined,
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -200,8 +215,13 @@ describe('result.fullStream', () => {
             ],
             toolChoice: { type: 'required' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -266,8 +286,13 @@ describe('result.fullStream', () => {
             ],
             toolChoice: { type: 'required' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -382,8 +407,13 @@ describe('result.fullStream', () => {
             ],
             toolChoice: { type: 'required' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -497,8 +527,13 @@ describe('result.fullStream', () => {
             ],
             toolChoice: { type: 'auto' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -563,8 +598,13 @@ describe('result.fullStream', () => {
             ],
             toolChoice: { type: 'auto' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -1597,8 +1637,13 @@ describe('result.text', () => {
             tools: undefined,
             toolChoice: undefined,
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -1650,8 +1695,13 @@ describe('result.toolCalls', () => {
             ],
             toolChoice: { type: 'auto' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -1719,8 +1769,13 @@ describe('result.toolResults', () => {
             ],
             toolChoice: { type: 'auto' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -2042,7 +2097,7 @@ describe('options.maxSteps', () => {
         model: new MockLanguageModelV1({
           doStream: async ({ prompt, mode }) => {
             switch (responseCount++) {
-              case 0:
+              case 0: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
                   tools: [
@@ -2066,6 +2121,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
                   },
                 ]);
 
@@ -2093,7 +2149,8 @@ describe('options.maxSteps', () => {
                   ]),
                   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                 };
-              case 1:
+              }
+              case 1: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
                   tools: [
@@ -2117,6 +2174,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
                   },
                   {
                     role: 'assistant',
@@ -2166,6 +2224,7 @@ describe('options.maxSteps', () => {
                   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                   rawResponse: { headers: { call: '2' } },
                 };
+              }
               default:
                 throw new Error(`Unexpected response count: ${responseCount}`);
             }
@@ -2267,7 +2326,7 @@ describe('options.maxSteps', () => {
         model: new MockLanguageModelV1({
           doStream: async ({ prompt, mode }) => {
             switch (responseCount++) {
-              case 0:
+              case 0: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
                   toolChoice: undefined,
@@ -2277,6 +2336,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
                   },
                 ]);
 
@@ -2303,7 +2363,8 @@ describe('options.maxSteps', () => {
                   ]),
                   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                 };
-              case 1:
+              }
+              case 1: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
                   toolChoice: undefined,
@@ -2313,6 +2374,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
                   },
                   {
                     role: 'assistant',
@@ -2346,16 +2408,19 @@ describe('options.maxSteps', () => {
                   ]),
                   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                 };
+              }
               case 2: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
                   toolChoice: undefined,
                   tools: undefined,
                 });
+
                 expect(prompt).toStrictEqual([
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
                   },
                   {
                     role: 'assistant',
@@ -2368,6 +2433,7 @@ describe('options.maxSteps', () => {
                       {
                         type: 'text',
                         text: 'no-whitespace',
+                        providerMetadata: undefined,
                       },
                     ],
                     providerMetadata: undefined,
@@ -2946,8 +3012,13 @@ describe('tools with custom schema', () => {
             ],
             toolChoice: { type: 'required' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {

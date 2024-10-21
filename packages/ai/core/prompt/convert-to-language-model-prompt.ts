@@ -19,53 +19,34 @@ import {
 } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { splitDataUrl } from './split-data-url';
-import { ValidatedPrompt } from './validate-prompt';
+import { StandardizedPrompt } from './standardize-prompt';
 
 export async function convertToLanguageModelPrompt({
   prompt,
   modelSupportsImageUrls = true,
   downloadImplementation = download,
 }: {
-  prompt: ValidatedPrompt;
+  prompt: StandardizedPrompt;
   modelSupportsImageUrls: boolean | undefined;
   downloadImplementation?: typeof download;
 }): Promise<LanguageModelV1Prompt> {
+  const downloadedAssets =
+    modelSupportsImageUrls || prompt.messages == null
+      ? null
+      : await downloadAssets(prompt.messages, downloadImplementation);
+
   const languageModelMessages: LanguageModelV1Prompt = [];
 
   if (prompt.system != null) {
     languageModelMessages.push({ role: 'system', content: prompt.system });
   }
 
-  const downloadedAssets =
-    modelSupportsImageUrls || prompt.messages == null
-      ? null
-      : await downloadAssets(prompt.messages, downloadImplementation);
-
-  const promptType = prompt.type;
-  switch (promptType) {
-    case 'prompt': {
-      languageModelMessages.push({
-        role: 'user',
-        content: [{ type: 'text', text: prompt.prompt }],
-      });
-      break;
-    }
-
-    case 'messages': {
-      languageModelMessages.push(
-        ...prompt.messages.map(
-          (message): LanguageModelV1Message =>
-            convertToLanguageModelMessage(message, downloadedAssets),
-        ),
-      );
-      break;
-    }
-
-    default: {
-      const _exhaustiveCheck: never = promptType;
-      throw new Error(`Unsupported prompt type: ${_exhaustiveCheck}`);
-    }
-  }
+  languageModelMessages.push(
+    ...prompt.messages.map(
+      (message): LanguageModelV1Message =>
+        convertToLanguageModelMessage(message, downloadedAssets),
+    ),
+  );
 
   return languageModelMessages;
 }

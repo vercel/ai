@@ -4,21 +4,25 @@ import { z } from 'zod';
 import { CoreMessage, coreMessageSchema } from './message';
 import { Prompt } from './prompt';
 
-export type ValidatedPrompt =
-  | {
-      type: 'prompt';
-      prompt: string;
-      messages: undefined;
-      system?: string;
-    }
-  | {
-      type: 'messages';
-      prompt: undefined;
-      messages: CoreMessage[];
-      system?: string;
-    };
+export type StandardizedPrompt = {
+  /**
+   * Original prompt type. This is forwarded to the providers and can be used
+   * to write send raw text to providers that support it.
+   */
+  type: 'prompt' | 'messages';
 
-export function validatePrompt(prompt: Prompt): ValidatedPrompt {
+  /**
+   * System message.
+   */
+  system?: string;
+
+  /**
+   * Messages.
+   */
+  messages: CoreMessage[];
+};
+
+export function standardizePrompt(prompt: Prompt): StandardizedPrompt {
   if (prompt.prompt == null && prompt.messages == null) {
     throw new InvalidPromptError({
       prompt,
@@ -53,9 +57,13 @@ export function validatePrompt(prompt: Prompt): ValidatedPrompt {
 
     return {
       type: 'prompt',
-      prompt: prompt.prompt,
-      messages: undefined,
       system: prompt.system,
+      messages: [
+        {
+          role: 'user',
+          content: prompt.prompt,
+        },
+      ],
     };
   }
 
@@ -76,7 +84,6 @@ export function validatePrompt(prompt: Prompt): ValidatedPrompt {
 
     return {
       type: 'messages',
-      prompt: undefined,
       messages: prompt.messages!, // only possible case bc of checks above
       system: prompt.system,
     };

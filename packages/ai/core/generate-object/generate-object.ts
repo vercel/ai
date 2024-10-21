@@ -7,7 +7,7 @@ import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { validatePrompt } from '../prompt/validate-prompt';
+import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -406,7 +406,7 @@ export async function generateObject<SCHEMA, RESULT>({
 
       switch (mode) {
         case 'json': {
-          const validatedPrompt = validatePrompt({
+          const standardPrompt = standardizePrompt({
             system:
               outputStrategy.jsonSchema == null
                 ? injectJsonInstruction({ prompt: system })
@@ -421,11 +421,9 @@ export async function generateObject<SCHEMA, RESULT>({
           });
 
           const promptMessages = await convertToLanguageModelPrompt({
-            prompt: validatedPrompt,
+            prompt: standardPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
           });
-
-          const inputFormat = validatedPrompt.type;
 
           const generateResult = await retry(() =>
             recordSpan({
@@ -439,7 +437,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   }),
                   ...baseTelemetryAttributes,
                   'ai.prompt.format': {
-                    input: () => inputFormat,
+                    input: () => standardPrompt.type,
                   },
                   'ai.prompt.messages': {
                     input: () => JSON.stringify(promptMessages),
@@ -467,7 +465,7 @@ export async function generateObject<SCHEMA, RESULT>({
                     description: schemaDescription,
                   },
                   ...prepareCallSettings(settings),
-                  inputFormat,
+                  inputFormat: standardPrompt.type,
                   prompt: promptMessages,
                   providerMetadata,
                   abortSignal,
@@ -533,7 +531,7 @@ export async function generateObject<SCHEMA, RESULT>({
         }
 
         case 'tool': {
-          const validatedPrompt = validatePrompt({
+          const validatedPrompt = standardizePrompt({
             system,
             prompt,
             messages,
