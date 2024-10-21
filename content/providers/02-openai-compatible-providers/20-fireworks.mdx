@@ -30,13 +30,13 @@ You can install it with
 To use Fireworks, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai'
+import { createOpenAI } from '@ai-sdk/openai';
 
 const fireworks = createOpenAI({
   name: 'fireworks',
   apiKey: process.env.FIREWORKS_API_KEY ?? '',
-  baseURL: 'https://api.fireworks.ai/inference/v1'
-})
+  baseURL: 'https://api.fireworks.ai/inference/v1',
+});
 ```
 
 ## Language Models
@@ -45,7 +45,7 @@ You can create [Fireworks models](https://fireworks.ai/models) using a provider 
 The first argument is the model id, e.g. `accounts/fireworks/models/firefunction-v1`.
 
 ```ts
-const model = fireworks('accounts/fireworks/models/firefunction-v1')
+const model = fireworks('accounts/fireworks/models/firefunction-v1');
 ```
 
 ### Example

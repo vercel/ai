@@ -35,13 +35,13 @@ The OpenAI provider is available via the `@ai-sdk/openai` module. You can instal
 To use an OpenAI compatible provider, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai'
+import { createOpenAI } from '@ai-sdk/openai';
 
 const provider = createOpenAI({
   name: 'provider-name',
   apiKey: process.env.PROVIDER_API_KEY ?? '',
-  baseURL: 'https://api.provider.com/v1'
-})
+  baseURL: 'https://api.provider.com/v1',
+});
 ```
 
 ## Language Models
@@ -50,7 +50,7 @@ You can create provider models using a provider instance.
 The first argument is the model id, e.g. `model-id`.
 
 ```ts
-const model = provider('model-id')
+const model = provider('model-id');
 ```
 
 ### Example
