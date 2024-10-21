@@ -1,17 +1,12 @@
 ---
 title: Perplexity
-description: Learn how to use Perplexity.
+description: Use the Perplexity OpenAI compatible API with the AI SDK.
 ---
 
 # Perplexity Provider
 
-<Note style={{ paddingTop: 0, paddingBottom: 0 }}>
-  Perplexity is supported via OpenAI API compatibility - the OpenAI provider is
-  used in the examples below.
-</Note>
-
-The [Perplexity](https://docs.perplexity.ai/) provider contains language model support for the Perplexity API.
-It creates language model objects that can be used with the `generateText` and `streamText`.
+[Perplexity](https://docs.perplexity.ai/) is a search engine that uses LLMs to answer questions.
+It offers an OpenAI compatible API that you can use with the AI SDK.
 
 ## Setup
 
@@ -73,5 +68,4 @@ const { text } = await generateText({
 });
 ```
 
-Perplexity language models can also be used in the `streamText` and `streamUI` functions
-(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+Perplexity language models can also be used in the `streamText` function.

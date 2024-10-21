@@ -1,17 +1,12 @@
 ---
 title: Fireworks
-description: Learn how to use Fireworks.
+description: Use the Fireworks OpenAI compatible API with the AI SDK.
 ---
 
 # Fireworks Provider
 
-<Note style={{ paddingTop: 0, paddingBottom: 0 }}>
-  Fireworks is supported via OpenAI API compatibility - the OpenAI provider is
-  used in the examples below.
-</Note>
-
-The [Fireworks](https://fireworks.ai/) provider contains language model support for the Fireworks API.
-It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` functions.
+[Fireworks](https://fireworks.ai/) is a platform for running and testing LLMs.
+It offers an OpenAI compatible API that you can use with the AI SDK.
 
 ## Setup
 
@@ -73,5 +68,4 @@ const { text } = await generateText({
 })
 ```
 
-Fireworks language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
-(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+Fireworks language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions.
