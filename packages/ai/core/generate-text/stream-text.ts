@@ -24,7 +24,10 @@ import {
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
-import { standardizePrompt } from '../prompt/standardize-prompt';
+import {
+  StandardizedPrompt,
+  standardizePrompt,
+} from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -304,12 +307,15 @@ need to be added separately.
       const retry = retryWithExponentialBackoff({ maxRetries });
 
       const startStep: StartStepFunction<TOOLS> = async ({
-        promptMessages,
-        promptType,
+        currentPrompt,
       }: {
-        promptMessages: LanguageModelV1Prompt;
-        promptType: 'prompt' | 'messages';
+        currentPrompt: StandardizedPrompt;
       }) => {
+        const promptMessages = await convertToLanguageModelPrompt({
+          prompt: currentPrompt,
+          modelSupportsImageUrls: model.supportsImageUrls,
+        });
+
         const {
           result: { stream, warnings, rawResponse },
           doStreamSpan,
@@ -326,7 +332,7 @@ need to be added separately.
                 }),
                 ...baseTelemetryAttributes,
                 'ai.prompt.format': {
-                  input: () => promptType,
+                  input: () => currentPrompt.type,
                 },
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
@@ -359,7 +365,7 @@ need to be added separately.
                   }),
                 },
                 ...prepareCallSettings(settings),
-                inputFormat: promptType,
+                inputFormat: currentPrompt.type,
                 prompt: promptMessages,
                 providerMetadata,
                 abortSignal,
@@ -387,19 +393,13 @@ need to be added separately.
         };
       };
 
-      const promptMessages = await convertToLanguageModelPrompt({
-        prompt: standardizePrompt({ system, prompt, messages }),
-        modelSupportsImageUrls: model.supportsImageUrls,
-      });
+      const currentPrompt = standardizePrompt({ system, prompt, messages });
 
       const {
         result: { stream, warnings, rawResponse },
         doStreamSpan,
         startTimestampMs,
-      } = await startStep({
-        promptType: standardizePrompt({ system, prompt, messages }).type,
-        promptMessages,
-      });
+      } = await startStep({ currentPrompt });
 
       return new DefaultStreamTextResult({
         stream,
@@ -415,7 +415,7 @@ need to be added separately.
         maxSteps,
         continueSteps,
         startStep,
-        promptMessages,
+        currentPrompt,
         modelId: model.modelId,
         now,
         currentDate,
@@ -426,8 +426,7 @@ need to be added separately.
 }
 
 type StartStepFunction<TOOLS extends Record<string, CoreTool>> = (options: {
-  promptMessages: LanguageModelV1Prompt;
-  promptType: 'prompt' | 'messages';
+  currentPrompt: StandardizedPrompt;
 }) => Promise<{
   result: {
     stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
@@ -474,7 +473,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     maxSteps,
     continueSteps,
     startStep,
-    promptMessages,
+    currentPrompt,
     modelId,
     now,
     currentDate,
@@ -502,7 +501,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     maxSteps: number;
     continueSteps: boolean;
     startStep: StartStepFunction<TOOLS>;
-    promptMessages: LanguageModelV1Prompt;
+    currentPrompt: StandardizedPrompt;
     modelId: string;
     now: () => number;
     currentDate: () => Date;
@@ -581,7 +580,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       startTimestamp,
       doStreamSpan,
       currentStep,
-      promptMessages,
+      currentPrompt,
       usage = {
         promptTokens: 0,
         completionTokens: 0,
@@ -594,7 +593,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       startTimestamp: number;
       doStreamSpan: Span;
       currentStep: number;
-      promptMessages: LanguageModelV1Prompt;
+      currentPrompt: StandardizedPrompt;
       usage: LanguageModelUsage | undefined;
       stepType: 'initial' | 'continue' | 'tool-result';
       previousStepText?: string;
@@ -894,29 +893,29 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   // continue step: update the last assistant message
                   // continue is only possible when there are no tool calls,
                   // so we can assume that there is a single last assistant message:
-                  const lastPromptMessage = promptMessages[
-                    promptMessages.length - 1
-                  ] as LanguageModelV1Message & {
-                    role: 'assistant';
-                  };
+                  const lastMessage = currentPrompt.messages[
+                    currentPrompt.messages.length - 1
+                  ] as CoreAssistantMessage;
 
-                  lastPromptMessage.content.push({
-                    text: stepText,
-                    type: 'text',
-                  });
-                } else {
-                  // tool result step
-                  // add the assistant message with the tool calls
-                  // and the tool result messages:
-                  promptMessages.push(
-                    ...toResponseMessages({
+                  if (typeof lastMessage.content === 'string') {
+                    lastMessage.content = stepText;
+                  } else {
+                    lastMessage.content.push({
                       text: stepText,
-                      toolCalls: stepToolCalls,
-                      toolResults: stepToolResults,
-                    }).map(message =>
-                      convertToLanguageModelMessage(message, null),
-                    ),
-                  );
+                      type: 'text',
+                    });
+                  }
+                  // update the last message in the prompt:
+                  currentPrompt.messages[currentPrompt.messages.length - 1] =
+                    lastMessage;
+                } else {
+                  const newResponseMessages = toResponseMessages({
+                    text: stepText,
+                    toolCalls: stepToolCalls,
+                    toolResults: stepToolResults,
+                  });
+
+                  currentPrompt.messages.push(...newResponseMessages);
                 }
 
                 // create call and doStream span:
@@ -925,8 +924,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   doStreamSpan,
                   startTimestampMs: startTimestamp,
                 } = await startStep({
-                  promptType: 'messages',
-                  promptMessages,
+                  currentPrompt: {
+                    type: 'messages',
+                    system: currentPrompt.system,
+                    messages: currentPrompt.messages,
+                  },
                 });
 
                 // update warnings and rawResponse:
@@ -939,7 +941,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   startTimestamp,
                   doStreamSpan,
                   currentStep: currentStep + 1,
-                  promptMessages,
+                  currentPrompt,
                   usage: combinedUsage,
                   stepType: nextStepType,
                   previousStepText: fullStepText,
@@ -1073,7 +1075,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       startTimestamp: startTimestampMs,
       doStreamSpan,
       currentStep: 0,
-      promptMessages,
+      currentPrompt,
       usage: undefined,
       stepType: 'initial',
     });

@@ -2415,6 +2415,7 @@ describe('options.maxSteps', () => {
                   toolChoice: undefined,
                   tools: undefined,
                 });
+
                 expect(prompt).toStrictEqual([
                   {
                     role: 'user',
@@ -2432,6 +2433,7 @@ describe('options.maxSteps', () => {
                       {
                         type: 'text',
                         text: 'no-whitespace',
+                        providerMetadata: undefined,
                       },
                     ],
                     providerMetadata: undefined,

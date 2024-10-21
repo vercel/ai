@@ -406,7 +406,7 @@ export async function generateObject<SCHEMA, RESULT>({
 
       switch (mode) {
         case 'json': {
-          const validatedPrompt = standardizePrompt({
+          const standardPrompt = standardizePrompt({
             system:
               outputStrategy.jsonSchema == null
                 ? injectJsonInstruction({ prompt: system })
@@ -421,11 +421,9 @@ export async function generateObject<SCHEMA, RESULT>({
           });
 
           const promptMessages = await convertToLanguageModelPrompt({
-            prompt: validatedPrompt,
+            prompt: standardPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
           });
-
-          const inputFormat = validatedPrompt.type;
 
           const generateResult = await retry(() =>
             recordSpan({
@@ -439,7 +437,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   }),
                   ...baseTelemetryAttributes,
                   'ai.prompt.format': {
-                    input: () => inputFormat,
+                    input: () => standardPrompt.type,
                   },
                   'ai.prompt.messages': {
                     input: () => JSON.stringify(promptMessages),
@@ -467,7 +465,7 @@ export async function generateObject<SCHEMA, RESULT>({
                     description: schemaDescription,
                   },
                   ...prepareCallSettings(settings),
-                  inputFormat,
+                  inputFormat: standardPrompt.type,
                   prompt: promptMessages,
                   providerMetadata,
                   abortSignal,

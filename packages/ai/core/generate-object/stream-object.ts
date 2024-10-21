@@ -430,7 +430,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
 
       switch (mode) {
         case 'json': {
-          const validatedPrompt = standardizePrompt({
+          const standardPrompt = standardizePrompt({
             system:
               outputStrategy.jsonSchema == null
                 ? injectJsonInstruction({ prompt: system })
@@ -452,9 +452,9 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
               description: schemaDescription,
             },
             ...prepareCallSettings(settings),
-            inputFormat: validatedPrompt.type,
+            inputFormat: standardPrompt.type,
             prompt: await convertToLanguageModelPrompt({
-              prompt: validatedPrompt,
+              prompt: standardPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
             }),
             providerMetadata,

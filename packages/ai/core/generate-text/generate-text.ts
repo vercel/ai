@@ -232,21 +232,15 @@ changing the tool call and result types in the result.
     tracer,
     fn: async span => {
       const retry = retryWithExponentialBackoff({ maxRetries });
-      const validatedPrompt = standardizePrompt({
-        system,
-        prompt,
-        messages,
-      });
+
+      const currentPrompt = standardizePrompt({ system, prompt, messages });
 
       const mode = {
         type: 'regular' as const,
         ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
       };
+
       const callSettings = prepareCallSettings(settings);
-      const promptMessages = await convertToLanguageModelPrompt({
-        prompt: validatedPrompt,
-        modelSupportsImageUrls: model.supportsImageUrls,
-      });
 
       let currentModelResponse: Awaited<
         ReturnType<LanguageModel['doGenerate']>
@@ -268,8 +262,14 @@ changing the tool call and result types in the result.
 
       do {
         // once we have a 2nd step, we need to switch to messages format:
-        const currentInputFormat =
-          stepCount === 0 ? validatedPrompt.type : 'messages';
+        if (stepCount === 1) {
+          currentPrompt.type = 'messages';
+        }
+
+        const promptMessages = await convertToLanguageModelPrompt({
+          prompt: currentPrompt,
+          modelSupportsImageUrls: model.supportsImageUrls,
+        });
 
         currentModelResponse = await retry(() =>
           recordSpan({
@@ -282,7 +282,7 @@ changing the tool call and result types in the result.
                   telemetry,
                 }),
                 ...baseTelemetryAttributes,
-                'ai.prompt.format': { input: () => currentInputFormat },
+                'ai.prompt.format': { input: () => currentPrompt.type },
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
                 },
@@ -304,7 +304,7 @@ changing the tool call and result types in the result.
               const result = await model.doGenerate({
                 mode,
                 ...callSettings,
-                inputFormat: currentInputFormat,
+                inputFormat: currentPrompt.type,
                 prompt: promptMessages,
                 providerMetadata,
                 abortSignal,
@@ -444,22 +444,24 @@ changing the tool call and result types in the result.
           // continue step: update the last assistant message
           // continue is only possible when there are no tool calls,
           // so we can assume that there is a single last assistant message:
-          const lastResponseMessage =
-            responseMessages.pop() as CoreAssistantMessage;
-          promptMessages.pop();
-          if (typeof lastResponseMessage.content === 'string') {
-            lastResponseMessage.content = text;
+          const lastMessage = currentPrompt.messages[
+            currentPrompt.messages.length - 1
+          ] as CoreAssistantMessage;
+
+          if (typeof lastMessage.content === 'string') {
+            lastMessage.content = text;
           } else {
-            lastResponseMessage.content.push({
+            lastMessage.content.push({
               text: stepText,
               type: 'text',
             });
           }
-          responseMessages.push(lastResponseMessage);
-          promptMessages.push(
-            convertToLanguageModelMessage(lastResponseMessage, null),
-          );
-        } else if (nextStepType === 'continue') {
+
+          // update the last message in the prompt:
+          responseMessages[responseMessages.length - 1] = lastMessage;
+          currentPrompt.messages[currentPrompt.messages.length - 1] =
+            lastMessage;
+        } else {
           const newResponseMessages = toResponseMessages({
             text,
             toolCalls: currentToolCalls,
@@ -467,25 +469,7 @@ changing the tool call and result types in the result.
           });
 
           responseMessages.push(...newResponseMessages);
-          promptMessages.push(
-            ...newResponseMessages.map(message =>
-              convertToLanguageModelMessage(message, null),
-            ),
-          );
-        } else {
-          // next step is either done or tool-result:
-          const newResponseMessages = toResponseMessages({
-            text: currentModelResponse.text,
-            toolCalls: currentToolCalls,
-            toolResults: currentToolResults,
-          });
-
-          responseMessages.push(...newResponseMessages);
-          promptMessages.push(
-            ...newResponseMessages.map(message =>
-              convertToLanguageModelMessage(message, null),
-            ),
-          );
+          currentPrompt.messages.push(...newResponseMessages);
         }
 
         stepType = nextStepType;
