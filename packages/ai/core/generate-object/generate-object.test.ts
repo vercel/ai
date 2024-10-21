@@ -31,7 +31,7 @@ describe('output = "object"', () => {
               },
             });
 
-            assert.deepStrictEqual(prompt, [
+            expect(prompt).toStrictEqual([
               {
                 role: 'system',
                 content:
@@ -39,7 +39,11 @@ describe('output = "object"', () => {
                   '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                   'You MUST answer with a JSON object that matches the JSON schema above.',
               },
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -74,8 +78,12 @@ describe('output = "object"', () => {
               },
             });
 
-            assert.deepStrictEqual(prompt, [
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+            expect(prompt).toStrictEqual([
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -110,8 +118,12 @@ describe('output = "object"', () => {
               },
             });
 
-            assert.deepStrictEqual(prompt, [
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+            expect(prompt).toStrictEqual([
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -149,8 +161,13 @@ describe('output = "object"', () => {
                 },
               },
             });
-            assert.deepStrictEqual(prompt, [
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+
+            expect(prompt).toStrictEqual([
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -193,8 +210,12 @@ describe('output = "object"', () => {
                 },
               },
             });
-            assert.deepStrictEqual(prompt, [
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+            expect(prompt).toStrictEqual([
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -313,7 +334,7 @@ describe('output = "object"', () => {
                 type: 'object',
               },
             });
-            assert.deepStrictEqual(prompt, [
+            expect(prompt).toStrictEqual([
               {
                 role: 'system',
                 content:
@@ -321,7 +342,11 @@ describe('output = "object"', () => {
                   '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                   'You MUST answer with a JSON object that matches the JSON schema above.',
               },
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -356,7 +381,7 @@ describe('output = "object"', () => {
                 type: 'object',
               },
             });
-            assert.deepStrictEqual(prompt, [
+            expect(prompt).toStrictEqual([
               {
                 role: 'system',
                 content:
@@ -364,7 +389,11 @@ describe('output = "object"', () => {
                   '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                   'You MUST answer with a JSON object that matches the JSON schema above.',
               },
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -403,7 +432,7 @@ describe('output = "object"', () => {
                 additionalProperties: false,
               },
             });
-            assert.deepStrictEqual(prompt, [
+            expect(prompt).toStrictEqual([
               {
                 role: 'system',
                 content:
@@ -411,7 +440,11 @@ describe('output = "object"', () => {
                   '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}\n' +
                   'You MUST answer with a JSON object that matches the JSON schema above.',
               },
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -641,7 +674,7 @@ describe('output = "array"', () => {
             },
           });
 
-          assert.deepStrictEqual(prompt, [
+          expect(prompt).toStrictEqual([
             {
               role: 'system',
               content:
@@ -650,7 +683,11 @@ describe('output = "array"', () => {
                 `\n` +
                 'You MUST answer with a JSON object that matches the JSON schema above.',
             },
-            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'prompt' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -742,9 +779,13 @@ describe('output = "no-schema"', () => {
             schema: undefined,
           });
 
-          assert.deepStrictEqual(prompt, [
+          expect(prompt).toStrictEqual([
             { role: 'system', content: 'You MUST answer with JSON.' },
-            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'prompt' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {

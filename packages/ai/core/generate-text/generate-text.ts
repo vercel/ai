@@ -11,7 +11,7 @@ import {
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
-import { validatePrompt } from '../prompt/validate-prompt';
+import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -232,7 +232,7 @@ changing the tool call and result types in the result.
     tracer,
     fn: async span => {
       const retry = retryWithExponentialBackoff({ maxRetries });
-      const validatedPrompt = validatePrompt({
+      const validatedPrompt = standardizePrompt({
         system,
         prompt,
         messages,

@@ -11,7 +11,6 @@ describe('convertToLanguageModelPrompt', () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
             type: 'messages',
-            prompt: undefined,
             messages: [
               {
                 role: 'user',
@@ -52,7 +51,6 @@ describe('convertToLanguageModelPrompt', () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
             type: 'messages',
-            prompt: undefined,
             messages: [
               {
                 role: 'user',
@@ -95,7 +93,6 @@ describe('convertToLanguageModelPrompt', () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
             type: 'messages',
-            prompt: undefined,
             messages: [
               {
                 role: 'user',
@@ -131,7 +128,6 @@ describe('convertToLanguageModelPrompt', () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
             type: 'messages',
-            prompt: undefined,
             messages: [
               {
                 role: 'user',
@@ -167,7 +163,6 @@ describe('convertToLanguageModelPrompt', () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
             type: 'messages',
-            prompt: undefined,
             messages: [
               {
                 role: 'user',
@@ -202,7 +197,6 @@ describe('convertToLanguageModelPrompt', () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
             type: 'messages',
-            prompt: undefined,
             messages: [
               {
                 role: 'user',
@@ -244,7 +238,6 @@ describe('convertToLanguageModelPrompt', () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
             type: 'messages',
-            prompt: undefined,
             messages: [
               {
                 role: 'user',
@@ -288,7 +281,6 @@ describe('convertToLanguageModelPrompt', () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
             type: 'messages',
-            prompt: undefined,
             messages: [
               {
                 role: 'user',

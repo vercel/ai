@@ -24,7 +24,7 @@ import {
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
-import { validatePrompt } from '../prompt/validate-prompt';
+import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -388,7 +388,7 @@ need to be added separately.
       };
 
       const promptMessages = await convertToLanguageModelPrompt({
-        prompt: validatePrompt({ system, prompt, messages }),
+        prompt: standardizePrompt({ system, prompt, messages }),
         modelSupportsImageUrls: model.supportsImageUrls,
       });
 
@@ -397,7 +397,7 @@ need to be added separately.
         doStreamSpan,
         startTimestampMs,
       } = await startStep({
-        promptType: validatePrompt({ system, prompt, messages }).type,
+        promptType: standardizePrompt({ system, prompt, messages }).type,
         promptMessages,
       });
 

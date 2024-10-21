@@ -7,7 +7,7 @@ import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { validatePrompt } from '../prompt/validate-prompt';
+import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -406,7 +406,7 @@ export async function generateObject<SCHEMA, RESULT>({
 
       switch (mode) {
         case 'json': {
-          const validatedPrompt = validatePrompt({
+          const validatedPrompt = standardizePrompt({
             system:
               outputStrategy.jsonSchema == null
                 ? injectJsonInstruction({ prompt: system })
@@ -533,7 +533,7 @@ export async function generateObject<SCHEMA, RESULT>({
         }
 
         case 'tool': {
-          const validatedPrompt = validatePrompt({
+          const validatedPrompt = standardizePrompt({
             system,
             prompt,
             messages,
