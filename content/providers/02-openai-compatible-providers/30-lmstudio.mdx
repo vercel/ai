@@ -1,17 +1,12 @@
 ---
 title: LM Studio
-description: Learn how to use LM Studio.
+description: Use the LM Studio OpenAI compatible API with the AI SDK.
 ---
 
 # LM Studio Provider
 
-<Note style={{ paddingTop: 0, paddingBottom: 0 }}>
-  LM Studio is supported via OpenAI API compatibility - the OpenAI provider is
-  used in the examples below.
-</Note>
-
-The [LM Studio](https://lmstudio.ai/docs) provider contains language model support for the LM Studio API.
-It creates language model objects that can be used with the `generateText` and `streamText`.
+[LM Studio](https://lmstudio.ai/) is a local LLM server that you can use to run and test LLMs on your own hardware.
+It offers an OpenAI compatible API that you can use with the AI SDK.
 
 ## Setup
 
@@ -35,15 +30,19 @@ You can install it with
 To use LM Studio, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAI } from '@ai-sdk/openai'
 
 const lmstudio = createOpenAI({
   name: 'lmstudio',
   apiKey: 'not-needed',
-  baseURL: 'https://localhost:1234/v1',
-});
+  baseURL: 'https://localhost:1234/v1'
+})
 ```
-###### LM Studio uses port `1234` by default, but you can change in the [app's Developer tab](https://lmstudio.ai/docs/basics/server).
+
+<Note>
+  LM Studio uses port `1234` by default, but you can change in the [app's
+  Developer tab](https://lmstudio.ai/docs/basics/server).
+</Note>
 
 ## Language Models
 
@@ -51,7 +50,7 @@ You can interact with local LLMs in [LM Studio](https://lmstudio.ai/docs/basics/
 The first argument is the model id, e.g. `llama-3.2-1b`.
 
 ```ts
-const model = lmstudio('llama-3.2-1b');
+const model = lmstudio('llama-3.2-1b')
 ```
 
 ###### To be able to use a model, you need to [download it first](https://lmstudio.ai/docs/basics/download-model).
@@ -61,23 +60,22 @@ const model = lmstudio('llama-3.2-1b');
 You can use LM Studio language models to generate text with the `generateText` function:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai'
+import { generateText } from 'ai'
 
 const lmstudio = createOpenAI({
   name: 'lmstudio',
   apiKey: 'not-needed',
-  baseURL: 'https://localhost:1234/v1',
-});
+  baseURL: 'https://localhost:1234/v1'
+})
 
 const { text } = await generateText({
   model: lmstudio('llama-3.2-1b'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-});
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
+})
 ```
 
-LM Studio language models can also be used in the `streamText` and `streamUI` functions
-(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+LM Studio language models can also be used with `streamText`.
 
 ## Embedding Models
 
@@ -85,26 +83,26 @@ You can create models that call the [LM Studio embeddings API](https://lmstudio.
 using the `.embedding()` factory method.
 
 ```ts
-const model = lmstudio.embedding('text-embedding-nomic-embed-text-v1.5');
+const model = lmstudio.embedding('text-embedding-nomic-embed-text-v1.5')
 ```
 
 ### Example - Embedding a Single Value
 
 ```tsx
-import { createOpenAI } from '@ai-sdk/openai';
-import { embed } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai'
+import { embed } from 'ai'
 
 const lmstudio = createOpenAI({
   name: 'lmstudio',
   apiKey: 'not-needed',
-  baseURL: 'https://localhost:1234/v1',
-});
+  baseURL: 'https://localhost:1234/v1'
+})
 
 // 'embedding' is a single embedding object (number[])
 const { embedding } = await embed({
   model: lmstudio.embedding('text-embedding-nomic-embed-text-v1.5'),
-  value: 'sunny day at the beach',
-});
+  value: 'sunny day at the beach'
+})
 ```
 
 ### Example - Embedding Many Values
@@ -117,8 +115,8 @@ Similar to `embed`, you can use it with embeddings models,
 e.g. `lmstudio.embedding('text-embedding-nomic-embed-text-v1.5')` or `lmstudio.embedding('text-embedding-bge-small-en-v1.5')`.
 
 ```tsx
-import { createOpenAI } from '@ai-sdk/openai';
-import { embedMany } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai'
+import { embedMany } from 'ai'
 
 // 'embeddings' is an array of embedding objects (number[][]).
 // It is sorted in the same order as the input values.
@@ -127,7 +125,7 @@ const { embeddings } = await embedMany({
   values: [
     'sunny day at the beach',
     'rainy afternoon in the city',
-    'snowy night in the mountains',
-  ],
-});
+    'snowy night in the mountains'
+  ]
+})
 ```
