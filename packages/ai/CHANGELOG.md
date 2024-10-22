@@ -1,5 +1,19 @@
 # ai
 
+## 3.4.19
+
+### Patch Changes
+
+- b9b0d7b: feat (ai): access raw request body
+- Updated dependencies [b9b0d7b]
+  - @ai-sdk/provider@0.0.25
+  - @ai-sdk/provider-utils@1.0.21
+  - @ai-sdk/ui-utils@0.0.47
+  - @ai-sdk/react@0.0.65
+  - @ai-sdk/solid@0.0.51
+  - @ai-sdk/svelte@0.0.53
+  - @ai-sdk/vue@0.0.56
+
 ## 3.4.18
 
 ### Patch Changes
