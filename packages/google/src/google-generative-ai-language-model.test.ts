@@ -488,6 +488,21 @@ describe('doGenerate', () => {
       });
     }),
   );
+
+  it(
+    'should send request body',
+    withTestServer(prepareJsonResponse({}), async () => {
+      const { request } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(request).toStrictEqual({
+        body: '{"generationConfig":{},"contents":[{"role":"user","parts":[{"text":"Hello"}]}]}',
+      });
+    }),
+  );
 });
 
 describe('doStream', () => {
@@ -637,5 +652,20 @@ describe('doStream', () => {
         });
       },
     ),
+  );
+
+  it(
+    'should send request body',
+    withTestServer(prepareStreamResponse({ content: [''] }), async () => {
+      const { request } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(request).toStrictEqual({
+        body: '{"generationConfig":{},"contents":[{"role":"user","parts":[{"text":"Hello"}]}]}',
+      });
+    }),
   );
 });
