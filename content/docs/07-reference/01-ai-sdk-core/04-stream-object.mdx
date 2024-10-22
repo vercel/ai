@@ -751,13 +751,32 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       ],
     },
     {
+      name: 'request',
+      type: 'Promise<RequestMetadata>',
+      isOptional: true,
+      description: 'Request metadata.',
+      properties: [
+        {
+          type: 'RequestMetadata',
+          parameters: [
+            {
+              name: 'body',
+              type: 'string',
+              description:
+                'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'response',
-      type: 'Promise<Response>',
+      type: 'Promise<ResponseMetadata>',
       isOptional: true,
       description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
-          type: 'Response',
+          type: 'ResponseMetadata',
           parameters: [
             {
               name: 'id',

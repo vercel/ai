@@ -4,10 +4,7 @@ import { InvalidArgumentError } from '../../errors';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
-import {
-  convertToLanguageModelMessage,
-  convertToLanguageModelPrompt,
-} from '../prompt/convert-to-language-model-prompt';
+import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
@@ -429,6 +426,7 @@ changing the tool call and result types in the result.
           usage: currentUsage,
           warnings: currentModelResponse.warnings,
           logprobs: currentModelResponse.logprobs,
+          request: currentModelResponse.request ?? {},
           response: {
             ...currentModelResponse.response,
             headers: currentModelResponse.rawResponse?.headers,
@@ -511,6 +509,7 @@ changing the tool call and result types in the result.
         finishReason: currentModelResponse.finishReason,
         usage,
         warnings: currentModelResponse.warnings,
+        request: currentModelResponse.request ?? {},
         response: {
           ...currentModelResponse.response,
           headers: currentModelResponse.rawResponse?.headers,
@@ -617,7 +616,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
   readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
   readonly experimental_providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
   readonly response: GenerateTextResult<TOOLS>['response'];
-
+  readonly request: GenerateTextResult<TOOLS>['request'];
   constructor(options: {
     text: GenerateTextResult<TOOLS>['text'];
     toolCalls: GenerateTextResult<TOOLS>['toolCalls'];
@@ -630,6 +629,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     steps: GenerateTextResult<TOOLS>['steps'];
     providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
     response: GenerateTextResult<TOOLS>['response'];
+    request: GenerateTextResult<TOOLS>['request'];
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -637,6 +637,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
+    this.request = options.request;
     this.response = options.response;
     this.responseMessages = options.responseMessages;
     this.roundtrips = options.steps;

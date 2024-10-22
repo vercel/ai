@@ -18,6 +18,7 @@ import {
   CallWarning,
   FinishReason,
   LanguageModel,
+  LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
@@ -401,6 +402,7 @@ export async function generateObject<SCHEMA, RESULT>({
       let warnings: CallWarning[] | undefined;
       let rawResponse: { headers?: Record<string, string> } | undefined;
       let response: LanguageModelResponseMetadata;
+      let request: LanguageModelRequestMetadata;
       let logprobs: LogProbs | undefined;
       let resultProviderMetadata: ProviderMetadata | undefined;
 
@@ -525,6 +527,7 @@ export async function generateObject<SCHEMA, RESULT>({
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
           resultProviderMetadata = generateResult.providerMetadata;
+          request = generateResult.request ?? {};
           response = generateResult.responseData;
 
           break;
@@ -649,6 +652,7 @@ export async function generateObject<SCHEMA, RESULT>({
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
           resultProviderMetadata = generateResult.providerMetadata;
+          request = generateResult.request ?? {};
           response = generateResult.responseData;
 
           break;
@@ -707,6 +711,7 @@ export async function generateObject<SCHEMA, RESULT>({
         finishReason,
         usage: calculateLanguageModelUsage(usage),
         warnings,
+        request,
         response: {
           ...response,
           headers: rawResponse?.headers,
@@ -727,6 +732,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly logprobs: GenerateObjectResult<T>['logprobs'];
   readonly experimental_providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
   readonly response: GenerateObjectResult<T>['response'];
+  readonly request: GenerateObjectResult<T>['request'];
 
   constructor(options: {
     object: GenerateObjectResult<T>['object'];
@@ -736,6 +742,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     logprobs: GenerateObjectResult<T>['logprobs'];
     providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
     response: GenerateObjectResult<T>['response'];
+    request: GenerateObjectResult<T>['request'];
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
@@ -743,7 +750,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.warnings = options.warnings;
     this.experimental_providerMetadata = options.providerMetadata;
     this.response = options.response;
-
+    this.request = options.request;
     // deprecated:
     this.rawResponse = {
       headers: options.response.headers,

@@ -291,6 +291,20 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
     });
   });
+
+  it('should send request body', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const { request } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"mistral-small-latest","messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}]}',
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -515,6 +529,20 @@ describe('doStream', () => {
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
+    });
+  });
+
+  it('should send request body', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const { request } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"mistral-small-latest","messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}],"stream":true}',
     });
   });
 });

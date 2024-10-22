@@ -3,6 +3,7 @@ import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelRequestMetadata,
   LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
@@ -83,6 +84,11 @@ Optional raw response data.
    */
     readonly headers?: Record<string, string>;
   };
+
+  /**
+Additional request information.
+   */
+  readonly request: LanguageModelRequestMetadata;
 
   /**
 Additional response information.

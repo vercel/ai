@@ -242,6 +242,57 @@ describe('output = "object"', () => {
     });
   });
 
+  describe('result.request', () => {
+    it('should contain request information with json mode', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+      });
+
+      expect(result.request).toStrictEqual({
+        body: 'test body',
+      });
+    });
+
+    it('should contain request information with tool mode', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                args: `{ "content": "Hello, world!" }`,
+              },
+            ],
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'tool',
+        prompt: 'prompt',
+      });
+
+      expect(result.request).toStrictEqual({
+        body: 'test body',
+      });
+    });
+  });
+
   describe('result.response', () => {
     it('should contain response information with json mode', async () => {
       const result = await generateObject({

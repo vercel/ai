@@ -62,7 +62,7 @@ export type CoreToolChoice<TOOLS extends Record<string, unknown>> =
 export type LanguageModelResponseMetadata = {
   /**
 ID for the generated response.
-     */
+   */
   id: string;
 
   /**
@@ -80,3 +80,10 @@ export type LanguageModelResponseMetadataWithHeaders =
   LanguageModelResponseMetadata & {
     headers?: Record<string, string>;
   };
+
+export type LanguageModelRequestMetadata = {
+  /**
+Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
+   */
+  body?: string;
+};

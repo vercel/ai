@@ -9,6 +9,7 @@ import { CoreTool } from '../tool';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
   LanguageModelResponseMetadataWithHeaders,
   LogProbs,
@@ -108,7 +109,12 @@ such as the tool calls or the response headers.
   readonly steps: Promise<Array<StepResult<TOOLS>>>;
 
   /**
-Additional response information.
+Additional request information from the last step.
+ */
+  readonly request: Promise<LanguageModelRequestMetadata>;
+
+  /**
+Additional response information from the last step.
  */
   readonly response: Promise<LanguageModelResponseMetadataWithHeaders>;
 

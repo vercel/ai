@@ -1,6 +1,7 @@
 import {
   CallWarning,
   FinishReason,
+  LanguageModelRequestMetadata,
   LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
@@ -42,6 +43,11 @@ export interface GenerateObjectResult<T> {
    */
     headers?: Record<string, string>;
   };
+
+  /**
+Additional request information.
+   */
+  readonly request: LanguageModelRequestMetadata;
 
   /**
 Additional response information.

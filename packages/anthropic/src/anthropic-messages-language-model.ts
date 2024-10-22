@@ -239,6 +239,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
               },
             }
           : undefined,
+      request: { body: JSON.stringify(args) },
     };
   }
 
@@ -247,10 +248,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const { args, warnings } = await this.getArgs(options);
 
+    const body = { ...args, stream: true };
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
       headers: this.getHeaders(options.headers),
-      body: { ...args, stream: true },
+      body,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         anthropicMessagesChunkSchema,
@@ -437,6 +440,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
+      request: { body: JSON.stringify(body) },
     };
   }
 }

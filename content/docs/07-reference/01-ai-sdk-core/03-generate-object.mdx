@@ -538,13 +538,32 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
       ],
     },
     {
+      name: 'request',
+      type: 'RequestMetadata',
+      isOptional: true,
+      description: 'Request metadata.',
+      properties: [
+        {
+          type: 'RequestMetadata',
+          parameters: [
+            {
+              name: 'body',
+              type: 'string',
+              description:
+                'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'response',
-      type: 'Response',
+      type: 'ResponseMetadata',
       isOptional: true,
       description: 'Response metadata.',
       properties: [
         {
-          type: 'Response',
+          type: 'ResponseMetadata',
           parameters: [
             {
               name: 'id',

@@ -2,6 +2,7 @@ import { ServerResponse } from 'http';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
   LanguageModelResponseMetadataWithHeaders,
   LogProbs,
@@ -43,6 +44,11 @@ Optional raw response data.
    */
     headers?: Record<string, string>;
   };
+
+  /**
+Additional request information from the last step.
+ */
+  readonly request: Promise<LanguageModelRequestMetadata>;
 
   /**
 Additional response information.

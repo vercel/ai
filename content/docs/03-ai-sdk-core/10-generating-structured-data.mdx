@@ -173,35 +173,6 @@ const { object } = await generateObject({
 });
 ```
 
-## Schema Writing Tips
-
-The mapping from Zod schemas to LLM inputs (typically JSON schema) is not always straightforward, since the mapping is not one-to-one.
-Please checkout the following tips and the [Prompt Engineering with Tools](/docs/ai-sdk-core/tools-and-tool-calling#prompt-engineering-with-tools) guide.
-
-### Dates
-
-Zod expects JavaScript Date objects, but models return dates as strings.
-You can specify and validate the date format using `z.string().datetime()` or `z.string().date()`,
-and then use a Zod transformer to convert the string to a Date object.
-
-```ts highlight="7-10"
-const result = await generateObject({
-  model: openai('gpt-4-turbo'),
-  schema: z.object({
-    events: z.array(
-      z.object({
-        event: z.string(),
-        date: z
-          .string()
-          .date()
-          .transform(value => new Date(value)),
-      }),
-    ),
-  }),
-  prompt: 'List 5 important events from the the year 2000.',
-});
-```
-
 ## Error Handling
 
 When you use `generateObject`, errors are thrown when the model fails to generate proper JSON (`JSONParseError`)

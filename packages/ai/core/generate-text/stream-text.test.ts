@@ -1588,6 +1588,42 @@ describe('result.providerMetadata', () => {
   });
 });
 
+describe('result.request', () => {
+  it('should resolve with response information', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          request: { body: 'test body' },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    // consume stream (runs in parallel)
+    convertAsyncIterableToArray(result.textStream);
+
+    expect(await result.request).toStrictEqual({
+      body: 'test body',
+    });
+  });
+});
+
 describe('result.response', () => {
   it('should resolve with response information', async () => {
     const result = await streamText({
@@ -2148,6 +2184,7 @@ describe('options.maxSteps', () => {
                     },
                   ]),
                   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                  rawResponse: { headers: { call: '1' } },
                 };
               }
               case 1: {

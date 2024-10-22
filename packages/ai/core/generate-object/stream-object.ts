@@ -539,7 +539,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
       }
 
       const {
-        result: { stream, warnings, rawResponse },
+        result: { stream, warnings, rawResponse, request },
         doStreamSpan,
         startTimestampMs,
       } = await retry(() =>
@@ -587,6 +587,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
         stream: stream.pipeThrough(new TransformStream(transformer)),
         warnings,
         rawResponse,
+        request: request ?? {},
         onFinish,
         rootSpan,
         doStreamSpan,
@@ -606,6 +607,12 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 {
   private readonly originalStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
   private readonly objectPromise: DelayedPromise<RESULT>;
+
+  readonly request: StreamObjectResult<
+    PARTIAL,
+    RESULT,
+    ELEMENT_STREAM
+  >['request'];
 
   readonly warnings: StreamObjectResult<
     PARTIAL,
@@ -634,6 +641,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     stream,
     warnings,
     rawResponse,
+    request,
     outputStrategy,
     onFinish,
     rootSpan,
@@ -654,6 +662,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       RESULT,
       ELEMENT_STREAM
     >['rawResponse'];
+    request: Awaited<
+      StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>['request']
+    >;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
     onFinish: OnFinishCallback<RESULT> | undefined;
     rootSpan: Span;
@@ -668,6 +679,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     this.warnings = warnings;
     this.rawResponse = rawResponse;
     this.outputStrategy = outputStrategy;
+    this.request = Promise.resolve(request);
 
     // initialize object promise
     this.objectPromise = new DelayedPromise<RESULT>();

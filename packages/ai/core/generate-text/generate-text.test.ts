@@ -285,6 +285,60 @@ describe('result.responseMessages', () => {
   });
 });
 
+describe('result.request', () => {
+  it('should contain request information', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: `Hello, world!`,
+          request: {
+            body: 'test body',
+          },
+        }),
+      }),
+      prompt: 'prompt',
+    });
+
+    expect(result.request).toStrictEqual({
+      body: 'test body',
+    });
+  });
+});
+
+describe('result.response', () => {
+  it('should contain response information', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: `Hello, world!`,
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
+          rawResponse: {
+            headers: {
+              'custom-response-header': 'response-header-value',
+            },
+          },
+        }),
+      }),
+      prompt: 'prompt',
+    });
+
+    expect(result.response).toStrictEqual({
+      id: 'test-id-from-model',
+      timestamp: new Date(10000),
+      modelId: 'test-response-model-id',
+      headers: {
+        'custom-response-header': 'response-header-value',
+      },
+    });
+  });
+});
+
 describe('options.maxSteps', () => {
   describe('2 steps: initial, tool-result', () => {
     let result: GenerateTextResult<any>;
@@ -655,55 +709,6 @@ describe('options.maxSteps', () => {
 
     it('onStepFinish should be called for each step', () => {
       expect(onStepFinishResults).toMatchSnapshot();
-    });
-  });
-});
-
-describe('result.response', () => {
-  it('should contain response information', async () => {
-    const result = await generateText({
-      model: new MockLanguageModelV1({
-        doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
-            type: 'regular',
-            tools: undefined,
-            toolChoice: undefined,
-          });
-
-          expect(prompt).toStrictEqual([
-            {
-              role: 'user',
-              content: [{ type: 'text', text: 'prompt' }],
-              providerMetadata: undefined,
-            },
-          ]);
-
-          return {
-            ...dummyResponseValues,
-            text: `Hello, world!`,
-            response: {
-              id: 'test-id-from-model',
-              timestamp: new Date(10000),
-              modelId: 'test-response-model-id',
-            },
-            rawResponse: {
-              headers: {
-                'custom-response-header': 'response-header-value',
-              },
-            },
-          };
-        },
-      }),
-      prompt: 'prompt',
-    });
-
-    expect(result.response).toStrictEqual({
-      id: 'test-id-from-model',
-      timestamp: new Date(10000),
-      modelId: 'test-response-model-id',
-      headers: {
-        'custom-response-header': 'response-header-value',
-      },
     });
   });
 });
