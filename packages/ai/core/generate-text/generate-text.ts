@@ -426,6 +426,7 @@ changing the tool call and result types in the result.
           usage: currentUsage,
           warnings: currentModelResponse.warnings,
           logprobs: currentModelResponse.logprobs,
+          request: currentModelResponse.request ?? {},
           response: {
             ...currentModelResponse.response,
             headers: currentModelResponse.rawResponse?.headers,
@@ -508,10 +509,7 @@ changing the tool call and result types in the result.
         finishReason: currentModelResponse.finishReason,
         usage,
         warnings: currentModelResponse.warnings,
-        request: {
-          // TODO add to every step result
-          body: currentModelResponse.request?.body,
-        },
+        request: currentModelResponse.request ?? {},
         response: {
           ...currentModelResponse.response,
           headers: currentModelResponse.rawResponse?.headers,

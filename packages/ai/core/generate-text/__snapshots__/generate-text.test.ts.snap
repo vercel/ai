@@ -7,6 +7,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "test-id-1-from-model",
@@ -47,6 +48,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": {
         "custom-response-header": "response-header-value",
@@ -118,6 +120,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "test-id-1-from-model",
@@ -158,6 +161,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": {
         "custom-response-header": "response-header-value",
@@ -187,6 +191,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "test-id-1-from-model",
@@ -210,6 +215,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": {
         "custom-response-header": "response-header-value",
@@ -234,6 +240,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "test-id-3-from-model",
@@ -262,6 +269,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "test-id-1-from-model",
@@ -285,6 +293,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": {
         "custom-response-header": "response-header-value",
@@ -309,6 +318,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "test-id-3-from-model",
