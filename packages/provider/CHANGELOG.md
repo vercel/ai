@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.25
+
+### Patch Changes
+
+- b9b0d7b: feat (ai): access raw request body
+
 ## 0.0.24
 
 ### Patch Changes

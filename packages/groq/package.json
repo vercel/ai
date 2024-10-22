@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/groq",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -37,8 +37,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.24",
-    "@ai-sdk/provider-utils": "1.0.20"
+    "@ai-sdk/provider": "0.0.25",
+    "@ai-sdk/provider-utils": "1.0.21"
   },
   "devDependencies": {
     "@types/node": "^18",
