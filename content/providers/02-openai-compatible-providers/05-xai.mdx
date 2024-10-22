@@ -30,13 +30,13 @@ You can install it with:
 To use xAI, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai'
+import { createOpenAI } from '@ai-sdk/openai';
 
 const lmstudio = createOpenAI({
   name: 'xai',
   baseURL: 'https://api.x.ai/v1',
-  apiKey: process.env.XAI_API_KEY ?? ''
-})
+  apiKey: process.env.XAI_API_KEY ?? '',
+});
 ```
 
 ## Language Models
@@ -45,7 +45,7 @@ You can interact with xAI language models using a provider instance.
 The first argument is the model id, e.g. `grok-beta`.
 
 ```ts
-const model = xai('grok-beta')
+const model = xai('grok-beta');
 ```
 
 ### Example
@@ -53,19 +53,19 @@ const model = xai('grok-beta')
 You can use xAI language models to generate text with the `generateText` function:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai'
-import { generateText } from 'ai'
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
 
 const xai = createOpenAI({
   name: 'xai',
   apiKey: 'not-needed',
-  baseURL: 'https://api.x.ai/v1'
-})
+  baseURL: 'https://api.x.ai/v1',
+});
 
 const { text } = await generateText({
   model: xai('grok-beta'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
-})
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 ```
 
 xAI language models can also be used with `streamText`.
@@ -75,5 +75,5 @@ xAI language models can also be used with `streamText`.
 You can create models that call the xAI embeddings API using the `.embedding()` factory method.
 
 ```ts
-const model = xai.embedding('embedding-model-name')
+const model = xai.embedding('embedding-model-name');
 ```
