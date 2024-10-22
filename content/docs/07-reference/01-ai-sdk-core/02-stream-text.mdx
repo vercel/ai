@@ -925,13 +925,32 @@ To see `streamText` in action, check out [these examples](#examples).
         'The tool results that have been generated. Resolved when the all tool executions are finished.',
     },
     {
+      name: 'request',
+      type: 'RequestMetadata',
+      isOptional: true,
+      description: 'Request metadata.',
+      properties: [
+        {
+          type: 'RequestMetadata',
+          parameters: [
+            {
+              name: 'body',
+              type: 'string',
+              description:
+                'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'response',
-      type: 'Promise<Response>',
+      type: 'Promise<ResponseMetadata>',
       isOptional: true,
       description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
-          type: 'Response',
+          type: 'ResponseMetadata',
           parameters: [
             {
               name: 'id',
@@ -1032,13 +1051,32 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
+              name: 'request',
+              type: 'RequestMetadata',
+              isOptional: true,
+              description: 'Request metadata.',
+              properties: [
+                {
+                  type: 'RequestMetadata',
+                  parameters: [
+                    {
+                      name: 'body',
+                      type: 'string',
+                      description:
+                        'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'response',
-              type: 'Response',
+              type: 'ResponseMetadata',
               isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
-                  type: 'Response',
+                  type: 'ResponseMetadata',
                   parameters: [
                     {
                       name: 'id',
