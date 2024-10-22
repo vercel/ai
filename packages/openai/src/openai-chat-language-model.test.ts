@@ -247,6 +247,24 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send request body', async () => {
+    prepareJsonResponse({
+      id: 'test-id',
+      created: 123,
+      model: 'test-model',
+    });
+
+    const { request } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"gpt-3.5-turbo","messages":[{"role":"user","content":"Hello"}]}',
+    });
+  });
+
   it('should send additional response information', async () => {
     prepareJsonResponse({
       id: 'test-id',
@@ -1683,6 +1701,20 @@ describe('doStream', () => {
         completionTokens: NaN,
         promptTokens: NaN,
       },
+    });
+  });
+
+  it('should send request body', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const { request } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"gpt-3.5-turbo","messages":[{"role":"user","content":"Hello"}],"stream":true,"stream_options":{"include_usage":true}}',
     });
   });
 
