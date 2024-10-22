@@ -392,6 +392,20 @@ describe('doGenerate', () => {
       },
     });
   });
+
+  it('should send request body', async () => {
+    prepareJsonResponse({ content: [] });
+
+    const { request } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"claude-3-haiku-20240307","max_tokens":4096,"messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}]}',
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -695,5 +709,19 @@ describe('doStream', () => {
         },
       },
     ]);
+  });
+
+  it('should send request body', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const { request } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"claude-3-haiku-20240307","max_tokens":4096,"messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}],"stream":true}',
+    });
   });
 });
