@@ -101,6 +101,7 @@ Finish reason.
     /**
 Raw prompt and setting information for observability provider integration.
      */
+    // TODO remove in v2 (there is now request)
     rawCall: {
       /**
 Raw prompt after expansion and conversion to the format that the
@@ -126,6 +127,19 @@ Response headers.
       headers?: Record<string, string>;
     };
 
+    /**
+Optional request information for telemetry and debugging purposes.
+     */
+    request?: {
+      /**
+Request body as string (JSON should be stringified).
+       */
+      body?: string;
+    };
+
+    /**
+Optional response information for telemetry and debugging purposes.
+     */
     response?: {
       /**
 ID for the generated response, if the provider sends one.
@@ -175,6 +189,7 @@ by the user.
     /**
 Raw prompt and setting information for observability provider integration.
      */
+    // TODO remove in v2 (there is now request)
     rawCall: {
       /**
 Raw prompt after expansion and conversion to the format that the
@@ -192,11 +207,22 @@ settings.
     /**
 Optional raw response data.
      */
+    // TODO rename to response in v2
     rawResponse?: {
       /**
 Response headers.
        */
       headers?: Record<string, string>;
+    };
+
+    /**
+Optional request information for telemetry and debugging purposes.
+     */
+    request?: {
+      /**
+Request body as string (JSON should be stringified).
+   */
+      body?: string;
     };
 
     warnings?: LanguageModelV1CallWarning[];

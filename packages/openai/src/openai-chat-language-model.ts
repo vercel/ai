@@ -271,7 +271,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args: body, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -279,7 +279,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: args,
+      body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openAIChatResponseSchema,
@@ -288,7 +288,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
+    const { messages: rawPrompt, ...rawSettings } = body;
     const choice = response.choices[0];
 
     let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
@@ -332,6 +332,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      request: { body: JSON.stringify(body) },
       response: getResponseMetadata(response),
       warnings,
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
@@ -388,22 +389,24 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     const { args, warnings } = this.getArgs(options);
 
+    const body = {
+      ...args,
+      stream: true,
+
+      // only include stream_options when in strict compatibility mode:
+      stream_options:
+        this.config.compatibility === 'strict'
+          ? { include_usage: true }
+          : undefined,
+    };
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-
-        // only include stream_options when in strict compatibility mode:
-        stream_options:
-          this.config.compatibility === 'strict'
-            ? { include_usage: true }
-            : undefined,
-      },
+      body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         openaiChatChunkSchema,
@@ -643,6 +646,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       ),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      request: { body: JSON.stringify(body) },
       warnings,
     };
   }
