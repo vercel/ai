@@ -59,7 +59,7 @@ async function getKasadaMetadata(request: NextRequest): Promise<{
   }));
 
   const kasadaPayload: APIRequest = {
-    clientIp: String(request.headers.get('x-real-ip') || request.ip),
+    clientIp: String(request.headers.get('x-real-ip')),
     headers: headersArray,
     method: request.method as APIRequest['method'],
     protocol: url.protocol.slice(0, -1).toUpperCase() as APIRequest['protocol'],

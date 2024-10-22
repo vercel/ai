@@ -62,7 +62,7 @@ async function getKasadaMetadata(request: NextRequest): Promise<{
     clientIp:
       process.env.NODE_ENV === 'development'
         ? '65.204.128.202'
-        : String(request.headers.get('x-real-ip') || request.ip),
+        : String(request.headers.get('x-real-ip')),
     headers: headersArray,
     method: request.method as APIRequest['method'],
     protocol: url.protocol.slice(0, -1).toUpperCase() as APIRequest['protocol'],
