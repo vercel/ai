@@ -201,6 +201,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       rawResponse: { headers: responseHeaders },
       response: getResponseMetadata(response),
       warnings,
+      request: { body: JSON.stringify(args) },
     };
   }
 
@@ -209,22 +210,24 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const { args, warnings } = this.getArgs(options);
 
+    const body = {
+      ...args,
+      stream: true,
+
+      // only include stream_options when in strict compatibility mode:
+      stream_options:
+        this.config.compatibility === 'strict'
+          ? { include_usage: true }
+          : undefined,
+    };
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/completions',
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-
-        // only include stream_options when in strict compatibility mode:
-        stream_options:
-          this.config.compatibility === 'strict'
-            ? { include_usage: true }
-            : undefined,
-      },
+      body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         openaiCompletionChunkSchema,
@@ -317,6 +320,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
+      request: { body: JSON.stringify(body) },
     };
   }
 }

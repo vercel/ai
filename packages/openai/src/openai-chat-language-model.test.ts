@@ -248,11 +248,7 @@ describe('doGenerate', () => {
   });
 
   it('should send request body', async () => {
-    prepareJsonResponse({
-      id: 'test-id',
-      created: 123,
-      model: 'test-model',
-    });
+    prepareJsonResponse({});
 
     const { request } = await model.doGenerate({
       inputFormat: 'prompt',
