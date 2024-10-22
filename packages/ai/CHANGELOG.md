@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.18
+
+### Patch Changes
+
+- 95c67b4: fix (ai/core): handle tool calls without results in message conversion
+
 ## 3.4.17
 
 ### Patch Changes
