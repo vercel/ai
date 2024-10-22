@@ -214,6 +214,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      request: { body: JSON.stringify(args) },
       response: getResponseMetadata(response),
       warnings,
     };
@@ -224,10 +225,12 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const { args, warnings } = this.getArgs(options);
 
+    const body = { ...args, stream: true };
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: { ...args, stream: true },
+      body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         mistralChatChunkSchema,
@@ -348,6 +351,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       ),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      request: { body: JSON.stringify(body) },
       warnings,
     };
   }
