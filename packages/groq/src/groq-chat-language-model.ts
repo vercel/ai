@@ -185,6 +185,8 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = this.getArgs({ ...options, stream: false });
 
+    const body = JSON.stringify(args);
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
@@ -220,6 +222,7 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
       rawResponse: { headers: responseHeaders },
       response: getResponseMetadata(response),
       warnings,
+      request: { body },
     };
   }
 
@@ -227,6 +230,8 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const { args, warnings } = this.getArgs({ ...options, stream: true });
+
+    const body = JSON.stringify({ ...args, stream: true });
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -445,6 +450,7 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
+      request: { body },
     };
   }
 }

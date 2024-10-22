@@ -420,6 +420,20 @@ describe('doGenerate', () => {
       },
     });
   });
+
+  it('should send request body', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const { request } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"gemma2-9b-it","messages":[{"role":"user","content":"Hello"}]}',
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -930,6 +944,20 @@ describe('doStream', () => {
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
+    });
+  });
+
+  it('should send request body', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const { request } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"gemma2-9b-it","messages":[{"role":"user","content":"Hello"}],"stream":true}',
     });
   });
 });
