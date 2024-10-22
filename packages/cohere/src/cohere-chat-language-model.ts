@@ -179,6 +179,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       },
       rawResponse: { headers: responseHeaders },
       warnings: undefined,
+      request: { body: JSON.stringify(args) },
     };
   }
 
@@ -186,14 +187,12 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const args = this.getArgs(options);
+    const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-      },
+      body,
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonStreamResponseHandler(
         cohereChatChunkSchema,
@@ -337,6 +336,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       },
       rawResponse: { headers: responseHeaders },
       warnings: [],
+      request: { body: JSON.stringify(body) },
     };
   }
 }
