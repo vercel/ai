@@ -40,6 +40,7 @@ import {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
+  LanguageModelRequestMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -317,7 +318,7 @@ need to be added separately.
         });
 
         const {
-          result: { stream, warnings, rawResponse },
+          result: { stream, warnings, rawResponse, request },
           doStreamSpan,
           startTimestampMs,
         } = await retry(() =>
@@ -386,6 +387,7 @@ need to be added separately.
               abortSignal,
             }),
             warnings,
+            request: request ?? {},
             rawResponse,
           },
           doStreamSpan,
@@ -396,7 +398,7 @@ need to be added separately.
       const currentPrompt = standardizePrompt({ system, prompt, messages });
 
       const {
-        result: { stream, warnings, rawResponse },
+        result: { stream, warnings, rawResponse, request },
         doStreamSpan,
         startTimestampMs,
       } = await startStep({ currentPrompt });
@@ -405,6 +407,7 @@ need to be added separately.
         stream,
         warnings,
         rawResponse,
+        request,
         onChunk,
         onFinish,
         onStepFinish,
@@ -430,10 +433,9 @@ type StartStepFunction<TOOLS extends Record<string, CoreTool>> = (options: {
 }) => Promise<{
   result: {
     stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
-    warnings?: CallWarning[] | undefined;
-    rawResponse?: {
-      headers?: Record<string, string>;
-    };
+    warnings: CallWarning[] | undefined;
+    rawResponse: { headers?: Record<string, string> } | undefined;
+    request: LanguageModelRequestMetadata;
   };
   doStreamSpan: Span;
   startTimestampMs: number;
@@ -455,6 +457,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   readonly text: StreamTextResult<TOOLS>['text'];
   readonly toolCalls: StreamTextResult<TOOLS>['toolCalls'];
   readonly toolResults: StreamTextResult<TOOLS>['toolResults'];
+  readonly request: StreamTextResult<TOOLS>['request'];
   readonly response: StreamTextResult<TOOLS>['response'];
   readonly steps: StreamTextResult<TOOLS>['steps'];
   readonly responseMessages: StreamTextResult<TOOLS>['responseMessages'];
@@ -463,6 +466,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     stream,
     warnings,
     rawResponse,
+    request,
     onChunk,
     onFinish,
     onStepFinish,
@@ -482,6 +486,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
     warnings: StreamTextResult<TOOLS>['warnings'];
     rawResponse: StreamTextResult<TOOLS>['rawResponse'];
+    request: Awaited<StreamTextResult<TOOLS>['request']>;
     onChunk: Parameters<typeof streamText>[0]['onChunk'];
     onFinish:
       | ((
@@ -547,6 +552,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     } = createResolvablePromise<ProviderMetadata | undefined>();
     this.experimental_providerMetadata = providerMetadataPromise;
 
+    // initialize request promise
+    const { resolve: resolveRequest, promise: requestPromise } =
+      createResolvablePromise<LanguageModelRequestMetadata>();
+    this.request = requestPromise;
+
     // initialize response promise
     const { resolve: resolveResponse, promise: responsePromise } =
       createResolvablePromise<Awaited<StreamTextResult<TOOLS>['response']>>();
@@ -588,6 +598,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       },
       stepType,
       previousStepText = '',
+      stepRequest,
     }: {
       stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
       startTimestamp: number;
@@ -597,6 +608,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       usage: LanguageModelUsage | undefined;
       stepType: 'initial' | 'continue' | 'tool-result';
       previousStepText?: string;
+      stepRequest: LanguageModelRequestMetadata;
     }) {
       const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
       const stepToolResults: ToolResultUnion<TOOLS>[] = [];
@@ -870,8 +882,12 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 usage: stepUsage,
                 warnings: self.warnings,
                 logprobs: stepLogProbs,
-                response: stepResponse,
+                request: stepRequest,
                 rawResponse: self.rawResponse,
+                response: {
+                  ...stepResponse,
+                  headers: self.rawResponse?.headers,
+                },
                 experimental_providerMetadata: stepProviderMetadata,
                 isContinued: nextStepType === 'continue',
               };
@@ -945,6 +961,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   usage: combinedUsage,
                   stepType: nextStepType,
                   previousStepText: fullStepText,
+                  stepRequest: result.request,
                 });
 
                 return;
@@ -1029,6 +1046,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 resolveToolCalls(stepToolCalls);
                 resolveProviderMetadata(stepProviderMetadata);
                 resolveToolResults(stepToolResults);
+                resolveRequest(stepRequest);
                 resolveResponse({
                   ...stepResponse,
                   headers: rawResponse?.headers,
@@ -1048,6 +1066,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   // optional as well. Therefore we need to cast the toolResults to any.
                   // The type exposed to the users will be correctly inferred.
                   toolResults: stepToolResults as any,
+                  request: stepRequest,
                   rawResponse,
                   response: {
                     ...stepResponse,
@@ -1078,6 +1097,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       currentPrompt,
       usage: undefined,
       stepType: 'initial',
+      stepRequest: request,
     });
   }
 
