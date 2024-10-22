@@ -132,7 +132,8 @@ Optional request information for telemetry and debugging purposes.
      */
     request?: {
       /**
-Request body as string (JSON should be stringified).
+Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
+Non-HTTP(s) providers should not set this.
        */
       body?: string;
     };
@@ -220,7 +221,8 @@ Optional request information for telemetry and debugging purposes.
      */
     request?: {
       /**
-Request body as string (JSON should be stringified).
+Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
+Non-HTTP(s) providers should not set this.
    */
       body?: string;
     };
