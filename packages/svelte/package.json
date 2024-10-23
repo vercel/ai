@@ -29,7 +29,7 @@
   "dependencies": {
     "@ai-sdk/provider-utils": "1.0.21",
     "@ai-sdk/ui-utils": "0.0.47",
-    "sswr": "2.1.0"
+    "sswr": "^2.1.0"
   },
   "devDependencies": {
     "@types/node": "^18",
