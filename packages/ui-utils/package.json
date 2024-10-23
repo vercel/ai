@@ -39,9 +39,9 @@
   "dependencies": {
     "@ai-sdk/provider": "0.0.25",
     "@ai-sdk/provider-utils": "1.0.21",
-    "json-schema": "0.4.0",
-    "secure-json-parse": "2.7.0",
-    "zod-to-json-schema": "3.23.2"
+    "json-schema": "^0.4.0",
+    "secure-json-parse": "^2.7.0",
+    "zod-to-json-schema": "^3.23.3"
   },
   "devDependencies": {
     "@types/json-schema": "7.0.15",
