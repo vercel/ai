@@ -1,3 +1,4 @@
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { CoreTool } from '../tool';
 import {
   CallWarning,
@@ -71,7 +72,13 @@ Additional request information.
   /**
 Additional response information.
 */
-  readonly response: LanguageModelResponseMetadata;
+  readonly response: LanguageModelResponseMetadata & {
+    /**
+The response messages that were generated during the call. It consists of an assistant message,
+potentially containing tool calls.
+*/
+    readonly messages: Array<CoreAssistantMessage | CoreToolMessage>;
+  };
 
   /**
 Additional provider-specific metadata. They are passed through

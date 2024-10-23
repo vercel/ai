@@ -262,10 +262,12 @@ changing the tool call and result types in the result.
           initialPrompt.type = 'messages';
         }
 
+        // after the 1st step, we need to switch to messages format:
+        const promptFormat = stepCount === 0 ? initialPrompt.type : 'messages';
+
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
-            // after the 1st step, we need to switch to messages format:
-            type: stepCount === 0 ? initialPrompt.type : 'messages',
+            type: promptFormat,
             system: initialPrompt.system,
             messages: [...initialPrompt.messages, ...responseMessages],
           },
@@ -283,7 +285,7 @@ changing the tool call and result types in the result.
                   telemetry,
                 }),
                 ...baseTelemetryAttributes,
-                'ai.prompt.format': { input: () => initialPrompt.type },
+                'ai.prompt.format': { input: () => promptFormat },
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
                 },
@@ -305,7 +307,7 @@ changing the tool call and result types in the result.
               const result = await model.doGenerate({
                 mode,
                 ...callSettings,
-                inputFormat: initialPrompt.type,
+                inputFormat: promptFormat,
                 prompt: promptMessages,
                 providerMetadata,
                 abortSignal,
@@ -420,27 +422,6 @@ changing the tool call and result types in the result.
             ? text + stepText
             : stepText;
 
-        // Add step information:
-        const currentStep: StepResult<TOOLS> = {
-          stepType,
-          text: stepText,
-          toolCalls: currentToolCalls,
-          toolResults: currentToolResults,
-          finishReason: currentModelResponse.finishReason,
-          usage: currentUsage,
-          warnings: currentModelResponse.warnings,
-          logprobs: currentModelResponse.logprobs,
-          request: currentModelResponse.request ?? {},
-          response: {
-            ...currentModelResponse.response,
-            headers: currentModelResponse.rawResponse?.headers,
-          },
-          experimental_providerMetadata: currentModelResponse.providerMetadata,
-          isContinued: nextStepType === 'continue',
-        };
-        steps.push(currentStep);
-        await onStepFinish?.(currentStep);
-
         // append to messages for potential next step:
         if (stepType === 'continue') {
           // continue step: update the last assistant message
@@ -467,6 +448,30 @@ changing the tool call and result types in the result.
             }),
           );
         }
+
+        // Add step information (after response messages are updated):
+        const currentStepResult: StepResult<TOOLS> = {
+          stepType,
+          text: stepText,
+          toolCalls: currentToolCalls,
+          toolResults: currentToolResults,
+          finishReason: currentModelResponse.finishReason,
+          usage: currentUsage,
+          warnings: currentModelResponse.warnings,
+          logprobs: currentModelResponse.logprobs,
+          request: currentModelResponse.request ?? {},
+          response: {
+            ...currentModelResponse.response,
+            headers: currentModelResponse.rawResponse?.headers,
+
+            // deep clone msgs to avoid mutating past messages in multi-step:
+            messages: JSON.parse(JSON.stringify(responseMessages)),
+          },
+          experimental_providerMetadata: currentModelResponse.providerMetadata,
+          isContinued: nextStepType === 'continue',
+        };
+        steps.push(currentStepResult);
+        await onStepFinish?.(currentStepResult);
 
         stepType = nextStepType;
       } while (stepType !== 'done');
