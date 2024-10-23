@@ -458,9 +458,6 @@ changing the tool call and result types in the result.
               type: 'text',
             });
           }
-
-          // update the last message in the prompt:
-          responseMessages[responseMessages.length - 1] = lastMessage;
         } else {
           responseMessages.push(
             ...toResponseMessages({
