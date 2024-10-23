@@ -93,10 +93,9 @@
     "@opentelemetry/api": "1.9.0",
     "eventsource-parser": "1.1.2",
     "jsondiffpatch": "0.6.0",
-    "json-schema": "0.4.0",
-    "nanoid": "3.3.6",
-    "secure-json-parse": "2.7.0",
-    "zod-to-json-schema": "3.23.2"
+    "json-schema": "^0.4.0",
+    "secure-json-parse": "^2.7.0",
+    "zod-to-json-schema": "^3.23.3"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.18.0",

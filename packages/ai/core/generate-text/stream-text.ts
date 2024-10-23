@@ -59,7 +59,7 @@ import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
 /**
 Generate a text and call tools for a given prompt using a language model.

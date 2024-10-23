@@ -32,7 +32,7 @@
   "dependencies": {
     "@ai-sdk/provider": "0.0.25",
     "@ai-sdk/provider-utils": "1.0.21",
-    "json-schema": "0.4.0"
+    "json-schema": "^0.4.0"
   },
   "devDependencies": {
     "@google-cloud/vertexai": "^1.6.0",

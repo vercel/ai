@@ -31,7 +31,7 @@ import { NoObjectGeneratedError } from './no-object-generated-error';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', size: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
