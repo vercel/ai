@@ -58,8 +58,8 @@ import { generateText } from 'ai';
 
 const xai = createOpenAI({
   name: 'xai',
-  apiKey: 'not-needed',
   baseURL: 'https://api.x.ai/v1',
+  apiKey: process.env.XAI_API_KEY ?? '',
 });
 
 const { text } = await generateText({
