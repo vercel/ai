@@ -2,7 +2,7 @@ import {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
-  LanguageModelResponseMetadataWithHeaders,
+  LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -52,7 +52,7 @@ Additional request information.
   /**
 Additional response information.
    */
-  readonly response: LanguageModelResponseMetadataWithHeaders;
+  readonly response: LanguageModelResponseMetadata;
 
   /**
  Logprobs for the completion.

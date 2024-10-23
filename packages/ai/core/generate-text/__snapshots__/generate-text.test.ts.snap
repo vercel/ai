@@ -11,6 +11,36 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "response": {
       "headers": undefined,
       "id": "test-id-1-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "",
+              "type": "text",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ],
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
@@ -54,6 +84,45 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
         "custom-response-header": "response-header-value",
       },
       "id": "test-id-2-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "",
+              "type": "text",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
@@ -124,6 +193,36 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "response": {
       "headers": undefined,
       "id": "test-id-1-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "",
+              "type": "text",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ],
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
@@ -167,6 +266,45 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
         "custom-response-header": "response-header-value",
       },
       "id": "test-id-2-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "",
+              "type": "text",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
@@ -195,6 +333,18 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
     "response": {
       "headers": undefined,
       "id": "test-id-1-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
@@ -221,6 +371,22 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
         "custom-response-header": "response-header-value",
       },
       "id": "test-id-2-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+            {
+              "text": "no-whitespace",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
@@ -244,6 +410,27 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
     "response": {
       "headers": undefined,
       "id": "test-id-3-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+            {
+              "text": "no-whitespace",
+              "type": "text",
+            },
+            {
+              "text": "final value keep all whitespace
+ end",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
@@ -273,6 +460,18 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
     "response": {
       "headers": undefined,
       "id": "test-id-1-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
@@ -299,6 +498,22 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
         "custom-response-header": "response-header-value",
       },
       "id": "test-id-2-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+            {
+              "text": "no-whitespace",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
@@ -322,6 +537,27 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
     "response": {
       "headers": undefined,
       "id": "test-id-3-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+            {
+              "text": "no-whitespace",
+              "type": "text",
+            },
+            {
+              "text": "final value keep all whitespace
+ end",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
@@ -338,6 +574,28 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
     "warnings": undefined,
   },
 ]
+`;
+
+exports[`result.response > should contain response information 1`] = `
+{
+  "headers": {
+    "custom-response-header": "response-header-value",
+  },
+  "id": "test-id-from-model",
+  "messages": [
+    {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+  ],
+  "modelId": "test-response-model-id",
+  "timestamp": 1970-01-01T00:00:10.000Z,
+}
 `;
 
 exports[`result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `

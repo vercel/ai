@@ -32,7 +32,7 @@ import {
   CallWarning,
   FinishReason,
   LanguageModel,
-  LanguageModelResponseMetadataWithHeaders,
+  LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -86,7 +86,7 @@ Response headers.
   /**
 Response metadata.
  */
-  response: LanguageModelResponseMetadataWithHeaders;
+  response: LanguageModelResponseMetadata;
 
   /**
 Warnings from the model provider (e.g. unsupported settings).
@@ -691,7 +691,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
     // initialize response promise
     const { resolve: resolveResponse, promise: responsePromise } =
-      createResolvablePromise<LanguageModelResponseMetadataWithHeaders>();
+      createResolvablePromise<LanguageModelResponseMetadata>();
     this.response = responsePromise;
 
     // initialize experimental_providerMetadata promise
