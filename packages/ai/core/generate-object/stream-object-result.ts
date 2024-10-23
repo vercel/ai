@@ -4,7 +4,6 @@ import {
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
-  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -53,7 +52,7 @@ Additional request information from the last step.
   /**
 Additional response information.
  */
-  readonly response: Promise<LanguageModelResponseMetadataWithHeaders>;
+  readonly response: Promise<LanguageModelResponseMetadata>;
 
   /**
   The generated object (typed according to the schema). Resolved when the response is finished.

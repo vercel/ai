@@ -328,14 +328,7 @@ describe('result.response', () => {
       prompt: 'prompt',
     });
 
-    expect(result.response).toStrictEqual({
-      id: 'test-id-from-model',
-      timestamp: new Date(10000),
-      modelId: 'test-response-model-id',
-      headers: {
-        'custom-response-header': 'response-header-value',
-      },
-    });
+    expect(result.response).toMatchSnapshot();
   });
 });
 

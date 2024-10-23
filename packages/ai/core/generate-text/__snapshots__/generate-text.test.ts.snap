@@ -340,6 +340,28 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
 ]
 `;
 
+exports[`result.response > should contain response information 1`] = `
+{
+  "headers": {
+    "custom-response-header": "response-header-value",
+  },
+  "id": "test-id-from-model",
+  "messages": [
+    {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+  ],
+  "modelId": "test-response-model-id",
+  "timestamp": 1970-01-01T00:00:10.000Z,
+}
+`;
+
 exports[`result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
 [
   {

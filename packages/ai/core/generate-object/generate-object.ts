@@ -18,11 +18,11 @@ import {
   CallWarning,
   FinishReason,
   LanguageModel,
-  LanguageModelRequestMetadata,
-  LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { calculateLanguageModelUsage } from '../types/usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';

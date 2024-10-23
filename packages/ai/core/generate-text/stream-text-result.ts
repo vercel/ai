@@ -10,11 +10,13 @@ import {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
-  LanguageModelResponseMetadata,
-  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import {
+  LanguageModelResponseMetadata,
+  LanguageModelResponseMetadataWithHeaders,
+} from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { StepResult } from './step-result';
@@ -88,14 +90,7 @@ Optional raw response data.
   };
 
   /**
-The response messages that were generated during the call. It consists of an assistant message,
-potentially containing tool calls.
-
-When there are tool results, there is an additional tool message with the tool results that are available.
-If there are tools that do not have execute functions, they are not included in the tool results and
-need to be added separately.
-
-Resolved when the response is finished.
+@deprecated use `response.messages` instead.
      */
   readonly responseMessages: Promise<
     Array<CoreAssistantMessage | CoreToolMessage>

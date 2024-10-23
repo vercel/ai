@@ -513,6 +513,7 @@ changing the tool call and result types in the result.
         response: {
           ...currentModelResponse.response,
           headers: currentModelResponse.rawResponse?.headers,
+          messages: responseMessages,
         },
         logprobs: currentModelResponse.logprobs,
         responseMessages,
