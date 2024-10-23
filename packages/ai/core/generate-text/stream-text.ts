@@ -1,7 +1,3 @@
-import {
-  LanguageModelV1Message,
-  LanguageModelV1Prompt,
-} from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -17,10 +13,7 @@ import {
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
-import {
-  convertToLanguageModelMessage,
-  convertToLanguageModelPrompt,
-} from '../prompt/convert-to-language-model-prompt';
+import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
@@ -66,7 +59,7 @@ import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
 /**
 Generate a text and call tools for a given prompt using a language model.
