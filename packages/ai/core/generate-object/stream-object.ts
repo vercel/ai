@@ -53,7 +53,7 @@ import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', size: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
 type OnFinishCallback<RESULT> = (event: {
   /**
