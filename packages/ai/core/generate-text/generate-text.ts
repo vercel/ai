@@ -207,6 +207,8 @@ changing the tool call and result types in the result.
     settings: { ...settings, maxRetries },
   });
 
+  const initialPrompt = standardizePrompt({ system, prompt, messages });
+
   const tracer = getTracer(telemetry);
 
   return recordSpan({
@@ -229,8 +231,6 @@ changing the tool call and result types in the result.
     tracer,
     fn: async span => {
       const retry = retryWithExponentialBackoff({ maxRetries });
-
-      const currentPrompt = standardizePrompt({ system, prompt, messages });
 
       const mode = {
         type: 'regular' as const,
@@ -258,13 +258,17 @@ changing the tool call and result types in the result.
       let stepType: 'initial' | 'tool-result' | 'continue' | 'done' = 'initial';
 
       do {
-        // once we have a 2nd step, we need to switch to messages format:
         if (stepCount === 1) {
-          currentPrompt.type = 'messages';
+          initialPrompt.type = 'messages';
         }
 
         const promptMessages = await convertToLanguageModelPrompt({
-          prompt: currentPrompt,
+          prompt: {
+            // after the 1st step, we need to switch to messages format:
+            type: stepCount === 0 ? initialPrompt.type : 'messages',
+            system: initialPrompt.system,
+            messages: [...initialPrompt.messages, ...responseMessages],
+          },
           modelSupportsImageUrls: model.supportsImageUrls,
         });
 
@@ -279,7 +283,7 @@ changing the tool call and result types in the result.
                   telemetry,
                 }),
                 ...baseTelemetryAttributes,
-                'ai.prompt.format': { input: () => currentPrompt.type },
+                'ai.prompt.format': { input: () => initialPrompt.type },
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
                 },
@@ -301,7 +305,7 @@ changing the tool call and result types in the result.
               const result = await model.doGenerate({
                 mode,
                 ...callSettings,
-                inputFormat: currentPrompt.type,
+                inputFormat: initialPrompt.type,
                 prompt: promptMessages,
                 providerMetadata,
                 abortSignal,
@@ -442,8 +446,8 @@ changing the tool call and result types in the result.
           // continue step: update the last assistant message
           // continue is only possible when there are no tool calls,
           // so we can assume that there is a single last assistant message:
-          const lastMessage = currentPrompt.messages[
-            currentPrompt.messages.length - 1
+          const lastMessage = responseMessages[
+            responseMessages.length - 1
           ] as CoreAssistantMessage;
 
           if (typeof lastMessage.content === 'string') {
@@ -457,17 +461,14 @@ changing the tool call and result types in the result.
 
           // update the last message in the prompt:
           responseMessages[responseMessages.length - 1] = lastMessage;
-          currentPrompt.messages[currentPrompt.messages.length - 1] =
-            lastMessage;
         } else {
-          const newResponseMessages = toResponseMessages({
-            text,
-            toolCalls: currentToolCalls,
-            toolResults: currentToolResults,
-          });
-
-          responseMessages.push(...newResponseMessages);
-          currentPrompt.messages.push(...newResponseMessages);
+          responseMessages.push(
+            ...toResponseMessages({
+              text,
+              toolCalls: currentToolCalls,
+              toolResults: currentToolResults,
+            }),
+          );
         }
 
         stepType = nextStepType;
