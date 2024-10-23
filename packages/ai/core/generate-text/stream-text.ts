@@ -1003,39 +1003,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   }),
                 );
 
-                // // Collect responseMessages from all steps:
-                // const responseMessages = stepResults.reduce<
-                //   Array<CoreAssistantMessage | CoreToolMessage>
-                // >((responseMessages, step) => {
-                //   if (step.stepType === 'continue') {
-                //     // continue step: update the last assistant message
-                //     // continue is only possible when there are no tool calls,
-                //     // so we can assume that there is a single last assistant message:
-                //     const lastResponseMessage =
-                //       responseMessages.pop() as CoreAssistantMessage;
-
-                //     if (typeof lastResponseMessage.content === 'string') {
-                //       lastResponseMessage.content += step.text;
-                //     } else {
-                //       lastResponseMessage.content.push({
-                //         text: step.text,
-                //         type: 'text',
-                //       });
-                //     }
-
-                //     return [...responseMessages, lastResponseMessage];
-                //   }
-
-                //   return [
-                //     ...responseMessages,
-                //     ...toResponseMessages({
-                //       text: step.text,
-                //       toolCalls: step.toolCalls,
-                //       toolResults: step.toolResults,
-                //     }),
-                //   ];
-                // }, []);
-
                 // resolve promises:
                 resolveUsage(combinedUsage);
                 resolveFinishReason(stepFinishReason!);
