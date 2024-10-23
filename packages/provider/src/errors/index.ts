@@ -2,6 +2,7 @@ export { AISDKError } from './ai-sdk-error';
 export { APICallError } from './api-call-error';
 export { EmptyResponseBodyError } from './empty-response-body-error';
 export { getErrorMessage } from './get-error-message';
+export { InvalidArgumentError } from './invalid-argument-error';
 export { InvalidPromptError } from './invalid-prompt-error';
 export { InvalidResponseDataError } from './invalid-response-data-error';
 export { JSONParseError } from './json-parse-error';
