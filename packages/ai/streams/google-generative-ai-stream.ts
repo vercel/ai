@@ -19,7 +19,7 @@ interface Content {
   parts: Part[];
 }
 
-type Part = TextPart | InlineDataPart;
+type Part = TextPart | InlineDataPart | FileDataPart;
 
 interface InlineDataPart {
   text?: never;
@@ -28,6 +28,12 @@ interface InlineDataPart {
 interface TextPart {
   text: string;
   inlineData?: never;
+}
+
+interface FileDataPart {
+  text?: never;
+  mimeType: string;
+  fileUri: string;
 }
 
 async function* streamable(response: {
