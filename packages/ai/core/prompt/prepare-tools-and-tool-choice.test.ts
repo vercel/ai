@@ -13,6 +13,18 @@ const mockTools: Record<string, CoreTool> = {
   }),
 };
 
+const mockProviderDefinedTool: CoreTool = {
+  type: 'provider-defined',
+  id: 'provider.tool-id',
+  args: { key: 'value' },
+  parameters: z.object({}),
+};
+
+const mockToolsWithProviderDefined: Record<string, CoreTool> = {
+  ...mockTools,
+  providerTool: mockProviderDefinedTool,
+};
+
 it('should return undefined for both tools and toolChoice when tools is not provided', () => {
   const result = prepareToolsAndToolChoice({
     tools: undefined,
@@ -81,5 +93,20 @@ it('should correctly map tool properties', () => {
       type: 'object',
       properties: {},
     },
+  });
+});
+
+it('should handle provider-defined tool type', () => {
+  const result = prepareToolsAndToolChoice({
+    tools: mockToolsWithProviderDefined,
+    toolChoice: undefined,
+    activeTools: undefined,
+  });
+  expect(result.tools).toHaveLength(3);
+  expect(result.tools?.[2]).toEqual({
+    type: 'provider-defined',
+    name: 'providerTool',
+    id: 'provider.tool-id',
+    args: { key: 'value' },
   });
 });
