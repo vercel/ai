@@ -1,5 +1,5 @@
 import { LanguageModelV1 } from '@ai-sdk/provider';
-import { AnthropicTool, AnthropicToolChoice } from './anthropic-tools';
+import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
 
 export function prepareTools(
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {

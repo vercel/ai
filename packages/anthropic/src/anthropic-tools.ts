@@ -1,27 +1,33 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import { JSONValue } from '@ai-sdk/provider';
+import { z } from 'zod';
 
-export type AnthropicTool =
-  | {
-      name: string;
-      description: string | undefined;
-      input_schema: JSONSchema7;
-    }
-  | {
-      name: string;
-      type: 'computer_20241022';
-      display_width_px: number;
-      display_height_px: number;
-      display_number: number;
-    }
-  | {
-      name: string;
-      type: 'text_editor_20241022';
-    }
-  | {
-      name: string;
-      type: 'bash_20241022';
-    };
+const Bash20241022Parameters = z.object({
+  command: z.string(),
+  restart: z.boolean().nullish(),
+});
 
-export type AnthropicToolChoice =
-  | { type: 'auto' | 'any' }
-  | { type: 'tool'; name: string };
+export function anthropicBashTool(options: {
+  execute?: (
+    args: z.infer<typeof Bash20241022Parameters>,
+    options: { abortSignal?: AbortSignal },
+  ) => Promise<JSONValue>;
+}): {
+  type: 'provider-defined';
+  id: 'anthropic.bash_20241022';
+  args: {};
+  parameters: typeof Bash20241022Parameters;
+  execute?:
+    | undefined
+    | ((
+        args: z.infer<typeof Bash20241022Parameters>,
+        options: { abortSignal?: AbortSignal },
+      ) => Promise<JSONValue>);
+} {
+  return {
+    type: 'provider-defined',
+    id: 'anthropic.bash_20241022',
+    args: {},
+    parameters: Bash20241022Parameters,
+    execute: options.execute,
+  };
+}

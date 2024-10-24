@@ -4,7 +4,7 @@ import {
   StreamingTestServer,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { AnthropicAssistantMessage } from './anthropic-messages-prompt';
+import { AnthropicAssistantMessage } from './anthropic-api-types';
 import { createAnthropic } from './anthropic-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [

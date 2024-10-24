@@ -8,12 +8,12 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { anthropicBashTool } from './anthropic-bash-tool';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
+import { anthropicBashTool } from './anthropic-tools';
 
 export interface AnthropicProvider extends ProviderV1 {
   /**
