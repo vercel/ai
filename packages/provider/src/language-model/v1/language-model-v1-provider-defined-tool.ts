@@ -10,7 +10,7 @@ The type of the tool (always 'provider-defined').
   /**
 The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
    */
-  id: string;
+  id: `${string}.${string}`;
 
   /**
 The name of the tool. Unique within this model call.

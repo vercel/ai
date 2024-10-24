@@ -1,5 +1,6 @@
 import {
   LanguageModelV1FunctionTool,
+  LanguageModelV1ProviderDefinedTool,
   LanguageModelV1ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/ui-utils';
@@ -18,7 +19,9 @@ export function prepareToolsAndToolChoice<
   toolChoice: CoreToolChoice<TOOLS> | undefined;
   activeTools: Array<keyof TOOLS> | undefined;
 }): {
-  tools: LanguageModelV1FunctionTool[] | undefined;
+  tools:
+    | Array<LanguageModelV1FunctionTool | LanguageModelV1ProviderDefinedTool>
+    | undefined;
   toolChoice: LanguageModelV1ToolChoice | undefined;
 } {
   if (!isNonEmptyObject(tools)) {
@@ -37,12 +40,25 @@ export function prepareToolsAndToolChoice<
       : Object.entries(tools);
 
   return {
-    tools: filteredTools.map(([name, tool]) => ({
-      type: 'function' as const,
-      name,
-      description: tool.description,
-      parameters: asSchema(tool.parameters).jsonSchema,
-    })),
+    tools: filteredTools.map(([name, tool]) => {
+      switch (tool.type) {
+        case undefined:
+        case 'function':
+          return {
+            type: 'function' as const,
+            name,
+            description: tool.description,
+            parameters: asSchema(tool.parameters).jsonSchema,
+          };
+        case 'provider-defined':
+          return {
+            type: 'provider-defined' as const,
+            id: tool.id,
+            name,
+            args: tool.args,
+          };
+      }
+    }),
     toolChoice:
       toolChoice == null
         ? { type: 'auto' }
