@@ -42,13 +42,11 @@ export function prepareTools(
     }
   }
 
-  const mappedTools: Tool[] = bedrockTools;
-
   const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
     return {
-      toolConfiguration: { tools: mappedTools, toolChoice: undefined },
+      toolConfiguration: { tools: bedrockTools, toolChoice: undefined },
       toolWarnings,
     };
   }
@@ -58,12 +56,12 @@ export function prepareTools(
   switch (type) {
     case 'auto':
       return {
-        toolConfiguration: { tools: mappedTools, toolChoice: { auto: {} } },
+        toolConfiguration: { tools: bedrockTools, toolChoice: { auto: {} } },
         toolWarnings,
       };
     case 'required':
       return {
-        toolConfiguration: { tools: mappedTools, toolChoice: { any: {} } },
+        toolConfiguration: { tools: bedrockTools, toolChoice: { any: {} } },
         toolWarnings,
       };
     case 'none':
@@ -75,7 +73,7 @@ export function prepareTools(
     case 'tool':
       return {
         toolConfiguration: {
-          tools: mappedTools,
+          tools: bedrockTools,
           toolChoice: { tool: { name: toolChoice.toolName } },
         },
         toolWarnings,
