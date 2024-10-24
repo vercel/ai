@@ -16,14 +16,13 @@ import {
   ConverseStreamOutput,
   GuardrailConfiguration,
   GuardrailStreamConfiguration,
-  Tool,
-  ToolConfiguration,
   ToolInputSchema,
 } from '@aws-sdk/client-bedrock-runtime';
 import {
   BedrockChatModelId,
   BedrockChatSettings,
 } from './bedrock-chat-settings';
+import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
 
@@ -53,7 +52,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     this.config = config;
   }
 
-  private async getArgs({
+  private getArgs({
     mode,
     prompt,
     maxTokens,
@@ -67,7 +66,10 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     seed,
     providerMetadata,
     headers,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+  }: Parameters<LanguageModelV1['doGenerate']>[0]): {
+    command: ConverseCommandInput;
+    warnings: LanguageModelV1CallWarning[];
+  } {
     const type = mode.type;
 
     const warnings: LanguageModelV1CallWarning[] = [];
@@ -136,15 +138,14 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { toolConfiguration, warnings: toolWarnings } =
-          prepareToolsAndToolChoice(mode);
-
-        warnings.push(...toolWarnings);
-
+        const { toolConfiguration, toolWarnings } = prepareTools(mode);
         return {
-          ...baseArgs,
-          ...(toolConfiguration.tools?.length ? { toolConfiguration } : {}),
-        } satisfies ConverseCommandInput;
+          command: {
+            ...baseArgs,
+            ...(toolConfiguration.tools?.length ? { toolConfiguration } : {}),
+          },
+          warnings: [...warnings, ...toolWarnings],
+        };
       }
 
       case 'object-json': {
@@ -155,22 +156,25 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
       case 'object-tool': {
         return {
-          ...baseArgs,
-          toolConfig: {
-            tools: [
-              {
-                toolSpec: {
-                  name: mode.tool.name,
-                  description: mode.tool.description,
-                  inputSchema: {
-                    json: mode.tool.parameters,
-                  } as ToolInputSchema,
+          command: {
+            ...baseArgs,
+            toolConfig: {
+              tools: [
+                {
+                  toolSpec: {
+                    name: mode.tool.name,
+                    description: mode.tool.description,
+                    inputSchema: {
+                      json: mode.tool.parameters,
+                    } as ToolInputSchema,
+                  },
                 },
-              },
-            ],
-            toolChoice: { tool: { name: mode.tool.name } },
+              ],
+              toolChoice: { tool: { name: mode.tool.name } },
+            },
           },
-        } satisfies ConverseCommandInput;
+          warnings,
+        };
       }
 
       default: {
@@ -183,11 +187,13 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const args = await this.getArgs(options);
+    const { command, warnings } = this.getArgs(options);
 
-    const response = await this.config.client.send(new ConverseCommand(args));
+    const response = await this.config.client.send(
+      new ConverseCommand(command),
+    );
 
-    const { messages: rawPrompt, ...rawSettings } = args;
+    const { messages: rawPrompt, ...rawSettings } = command;
 
     const providerMetadata = response.trace
       ? { bedrock: { trace: response.trace as JSONObject } }
@@ -212,7 +218,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage?.outputTokens ?? Number.NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      warnings: [],
+      warnings,
       providerMetadata,
     };
   }
@@ -220,13 +226,13 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const args = await this.getArgs(options);
+    const { command, warnings } = this.getArgs(options);
 
     const response = await this.config.client.send(
-      new ConverseStreamCommand({ ...args }),
+      new ConverseStreamCommand(command),
     );
 
-    const { messages: rawPrompt, ...rawSettings } = args;
+    const { messages: rawPrompt, ...rawSettings } = command;
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
@@ -383,89 +389,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
-      warnings: [],
-    };
-  }
-}
-
-function prepareToolsAndToolChoice(
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-): {
-  toolConfiguration: ToolConfiguration;
-  warnings: LanguageModelV1CallWarning[];
-} {
-  // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
-
-  if (tools == null) {
-    return {
-      toolConfiguration: { tools: undefined, toolChoice: undefined },
-      warnings: [],
-    };
-  }
-
-  const warnings: LanguageModelV1CallWarning[] = [];
-  const bedrockTools: Tool[] = [];
-
-  for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
-      warnings.push({ type: 'unsupported-tool', tool });
-    } else {
-      bedrockTools.push({
-        toolSpec: {
-          name: tool.name,
-          description: tool.description,
-          inputSchema: {
-            json: tool.parameters,
-          } as ToolInputSchema,
-        },
-      });
-    }
-  }
-
-  const mappedTools: Tool[] = bedrockTools;
-
-  const toolChoice = mode.toolChoice;
-
-  if (toolChoice == null) {
-    return {
-      toolConfiguration: { tools: mappedTools, toolChoice: undefined },
       warnings,
     };
-  }
-
-  const type = toolChoice.type;
-
-  switch (type) {
-    case 'auto':
-      return {
-        toolConfiguration: { tools: mappedTools, toolChoice: { auto: {} } },
-        warnings,
-      };
-    case 'required':
-      return {
-        toolConfiguration: { tools: mappedTools, toolChoice: { any: {} } },
-        warnings,
-      };
-    case 'none':
-      // Bedrock does not support 'none' tool choice, so we remove the tools:
-      return {
-        toolConfiguration: { tools: undefined, toolChoice: undefined },
-        warnings,
-      };
-    case 'tool':
-      return {
-        toolConfiguration: {
-          tools: mappedTools,
-          toolChoice: { tool: { name: toolChoice.toolName } },
-        },
-        warnings,
-      };
-    default: {
-      const _exhaustiveCheck: never = type;
-      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
-    }
   }
 }
