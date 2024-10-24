@@ -68,7 +68,7 @@ Specifies how the tool should be selected. Defaults to 'auto'.
     | {
         // object generation with tool mode enabled (streaming: tool call deltas)
         type: 'object-tool';
-        tool: LanguageModelV1FunctionTool | LanguageModelV1ProviderDefinedTool;
+        tool: LanguageModelV1FunctionTool;
       };
 
   /**
