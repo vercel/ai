@@ -16,12 +16,7 @@ This enables the language model to generate the input.
 
 The tool can also contain an optional execute function for the actual execution function of the tool.
  */
-export interface CoreTool<PARAMETERS extends Parameters = any, RESULT = any> {
-  /**
-An optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
-   */
-  description?: string;
-
+export type CoreTool<PARAMETERS extends Parameters = any, RESULT = any> = {
   /**
 The schema of the input that the tool expects. The language model will use this to generate the input.
 It is also used to validate the output of the language model.
@@ -40,7 +35,35 @@ If not provided, the tool will not be executed automatically.
     args: inferParameters<PARAMETERS>,
     options: { abortSignal?: AbortSignal },
   ) => PromiseLike<RESULT>;
-}
+} & (
+  | {
+      /**
+Function tool.
+       */
+      type?: undefined | 'function';
+
+      /**
+An optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
+   */
+      description?: string;
+    }
+  | {
+      /**
+Provider-defined tool.
+       */
+      type: 'provider-defined';
+
+      /**
+The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
+       */
+      id: `${string}.${string}`;
+
+      /**
+The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
+       */
+      args: Record<string, unknown>;
+    }
+);
 
 /**
 Helper function for inferring the execute args of a tool.

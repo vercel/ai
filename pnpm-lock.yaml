@@ -1258,13 +1258,7 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 1.0.21
         version: link:../provider-utils
-      json-schema:
-        specifier: 0.4.0
-        version: 0.4.0
     devDependencies:
-      '@types/json-schema':
-        specifier: 7.0.15
-        version: 7.0.15
       '@types/node':
         specifier: ^18
         version: 18.18.9
@@ -1289,16 +1283,10 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 1.0.21
         version: link:../provider-utils
-      json-schema:
-        specifier: ^0.4.0
-        version: 0.4.0
     devDependencies:
       '@google-cloud/vertexai':
         specifier: ^1.6.0
         version: 1.8.1
-      '@types/json-schema':
-        specifier: 7.0.15
-        version: 7.0.15
       '@types/node':
         specifier: ^18
         version: 18.18.9

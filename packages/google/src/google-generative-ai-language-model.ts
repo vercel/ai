@@ -22,6 +22,7 @@ import {
   GoogleGenerativeAIModelId,
   GoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
+import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
 type GoogleGenerativeAIConfig = {
@@ -112,16 +113,19 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
+        const { tools, toolConfig, toolWarnings } = prepareTools(mode);
+
         return {
           args: {
             generationConfig,
             contents,
             systemInstruction,
             safetySettings: this.settings.safetySettings,
-            ...prepareToolsAndToolConfig(mode),
+            tools,
+            toolConfig,
             cachedContent: this.settings.cachedContent,
           },
-          warnings,
+          warnings: [...warnings, ...toolWarnings],
         };
       }
 
@@ -436,64 +440,3 @@ const chunkSchema = z.object({
     })
     .optional(),
 });
-
-function prepareToolsAndToolConfig(
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-) {
-  // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
-
-  if (tools == null) {
-    return { tools: undefined, toolConfig: undefined };
-  }
-
-  const mappedTools = {
-    functionDeclarations: tools.map(tool => ({
-      name: tool.name,
-      description: tool.description ?? '',
-      parameters: convertJSONSchemaToOpenAPISchema(tool.parameters),
-    })),
-  };
-
-  const toolChoice = mode.toolChoice;
-
-  if (toolChoice == null) {
-    return { tools: mappedTools, toolConfig: undefined };
-  }
-
-  const type = toolChoice.type;
-
-  switch (type) {
-    case 'auto':
-      return {
-        tools: mappedTools,
-        toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
-      };
-    case 'none':
-      return {
-        tools: mappedTools,
-        toolConfig: { functionCallingConfig: { mode: 'NONE' } },
-      };
-    case 'required':
-      return {
-        tools: mappedTools,
-        toolConfig: { functionCallingConfig: { mode: 'ANY' } },
-      };
-    case 'tool':
-      return {
-        tools: mappedTools,
-        toolConfig: {
-          functionCallingConfig: {
-            mode: 'ANY',
-            allowedFunctionNames: [toolChoice.toolName],
-          },
-        },
-      };
-    default: {
-      const _exhaustiveCheck: never = type;
-      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
-    }
-  }
-}

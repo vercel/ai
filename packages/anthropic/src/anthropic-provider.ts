@@ -13,6 +13,7 @@ import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
+import { anthropicTools } from './anthropic-tools';
 
 export interface AnthropicProvider extends ProviderV1 {
   /**
@@ -46,6 +47,11 @@ Creates a model for text generation.
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
   ): LanguageModelV1;
+
+  /**
+Anthropic-specific computer use tool.
+   */
+  tools: typeof anthropicTools;
 }
 
 export interface AnthropicProviderSettings {
@@ -92,6 +98,7 @@ export function createAnthropic(
 
   const getHeaders = () => ({
     'anthropic-version': '2023-06-01',
+    'anthropic-beta': 'computer-use-2024-10-22',
     'x-api-key': loadApiKey({
       apiKey: options.apiKey,
       environmentVariableName: 'ANTHROPIC_API_KEY',
@@ -130,6 +137,8 @@ export function createAnthropic(
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
+
+  provider.tools = anthropicTools;
 
   return provider as AnthropicProvider;
 }

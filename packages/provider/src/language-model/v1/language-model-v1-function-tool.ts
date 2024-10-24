@@ -8,8 +8,7 @@ map the user-facing tool definitions to this format.
  */
 export type LanguageModelV1FunctionTool = {
   /**
-The type of the tool. Only functions for now, but this gives us room to
-add more specific tool types in the future and use a discriminated union.
+The type of the tool (always 'function').
    */
   type: 'function';
 
