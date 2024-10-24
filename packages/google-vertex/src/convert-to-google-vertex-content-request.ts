@@ -37,38 +37,41 @@ export function convertToGoogleVertexContentRequest(
             }
 
             case 'image': {
-              if (part.image instanceof URL) {
-                parts.push({
-                  fileData: {
-                    mimeType: part.mimeType ?? 'image/jpeg',
-                    fileUri: part.image.toString(),
-                  },
-                });
-              } else {
-                parts.push({
-                  inlineData: {
-                    mimeType: part.mimeType ?? 'image/jpeg',
-                    data: convertUint8ArrayToBase64(part.image),
-                  },
-                });
-              }
+              parts.push(
+                part.image instanceof URL
+                  ? {
+                      fileData: {
+                        mimeType: part.mimeType ?? 'image/jpeg',
+                        fileUri: part.image.toString(),
+                      },
+                    }
+                  : {
+                      inlineData: {
+                        mimeType: part.mimeType ?? 'image/jpeg',
+                        data: convertUint8ArrayToBase64(part.image),
+                      },
+                    },
+              );
 
               break;
             }
 
             case 'file': {
-              if (part.data instanceof URL) {
-                parts.push({
-                  fileData: {
-                    mimeType: part.mimeType,
-                    fileUri: part.data.toString(),
-                  },
-                });
-              } else {
-                parts.push({
-                  inlineData: { mimeType: part.mimeType, data: part.data },
-                });
-              }
+              parts.push(
+                part.data instanceof URL
+                  ? {
+                      fileData: {
+                        mimeType: part.mimeType,
+                        fileUri: part.data.toString(),
+                      },
+                    }
+                  : {
+                      inlineData: {
+                        mimeType: part.mimeType,
+                        data: part.data,
+                      },
+                    },
+              );
 
               break;
             }
