@@ -1,5 +1,15 @@
 # @ai-sdk/react
 
+## 0.0.66
+
+### Patch Changes
+
+- aa98cdb: chore: more flexible dependency versioning
+- Updated dependencies [aa98cdb]
+- Updated dependencies [7b937c5]
+  - @ai-sdk/provider-utils@1.0.22
+  - @ai-sdk/ui-utils@0.0.48
+
 ## 0.0.65
 
 ### Patch Changes
