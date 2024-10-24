@@ -89,7 +89,7 @@ describe('convertToLanguageModelPrompt', () => {
     });
 
     describe('file parts', () => {
-      it('should handle file parts with URL data', async () => {
+      it('should pass through URLs when the model supports a particular URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
             type: 'messages',
@@ -107,6 +107,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: true,
+          modelSupportsUrl: () => true,
         });
 
         expect(result).toEqual([

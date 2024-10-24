@@ -272,6 +272,7 @@ changing the tool call and result types in the result.
             messages: [...initialPrompt.messages, ...responseMessages],
           },
           modelSupportsImageUrls: model.supportsImageUrls,
+          modelSupportsUrl: model.supportsUrl,
         });
 
         currentModelResponse = await retry(() =>
