@@ -136,11 +136,14 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const toolConfig = prepareToolsAndToolChoice(mode);
+        const { toolConfiguration, warnings: toolWarnings } =
+          prepareToolsAndToolChoice(mode);
+
+        warnings.push(...toolWarnings);
 
         return {
           ...baseArgs,
-          ...(toolConfig.tools?.length ? { toolConfig } : {}),
+          ...(toolConfiguration.tools?.length ? { toolConfiguration } : {}),
         } satisfies ConverseCommandInput;
       }
 
@@ -389,44 +392,76 @@ function prepareToolsAndToolChoice(
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
   },
-): ToolConfiguration {
+): {
+  toolConfiguration: ToolConfiguration;
+  warnings: LanguageModelV1CallWarning[];
+} {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
 
   if (tools == null) {
-    return { tools: undefined, toolChoice: undefined };
+    return {
+      toolConfiguration: { tools: undefined, toolChoice: undefined },
+      warnings: [],
+    };
   }
 
-  const mappedTools: Tool[] = tools.map(tool => ({
-    toolSpec: {
-      name: tool.name,
-      description: tool.description,
-      inputSchema: {
-        json: tool.parameters,
-      } as ToolInputSchema,
-    },
-  }));
+  const warnings: LanguageModelV1CallWarning[] = [];
+  const bedrockTools: Tool[] = [];
+
+  for (const tool of tools) {
+    if (tool.type === 'provider-defined') {
+      warnings.push({ type: 'unsupported-tool', tool });
+    } else {
+      bedrockTools.push({
+        toolSpec: {
+          name: tool.name,
+          description: tool.description,
+          inputSchema: {
+            json: tool.parameters,
+          } as ToolInputSchema,
+        },
+      });
+    }
+  }
+
+  const mappedTools: Tool[] = bedrockTools;
 
   const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
-    return { tools: mappedTools, toolChoice: undefined };
+    return {
+      toolConfiguration: { tools: mappedTools, toolChoice: undefined },
+      warnings,
+    };
   }
 
   const type = toolChoice.type;
 
   switch (type) {
     case 'auto':
-      return { tools: mappedTools, toolChoice: { auto: {} } };
+      return {
+        toolConfiguration: { tools: mappedTools, toolChoice: { auto: {} } },
+        warnings,
+      };
     case 'required':
-      return { tools: mappedTools, toolChoice: { any: {} } };
+      return {
+        toolConfiguration: { tools: mappedTools, toolChoice: { any: {} } },
+        warnings,
+      };
     case 'none':
       // Bedrock does not support 'none' tool choice, so we remove the tools:
-      return { tools: undefined, toolChoice: undefined };
+      return {
+        toolConfiguration: { tools: undefined, toolChoice: undefined },
+        warnings,
+      };
     case 'tool':
       return {
-        tools: mappedTools,
-        toolChoice: { tool: { name: toolChoice.toolName } },
+        toolConfiguration: {
+          tools: mappedTools,
+          toolChoice: { tool: { name: toolChoice.toolName } },
+        },
+        warnings,
       };
     default: {
       const _exhaustiveCheck: never = type;
