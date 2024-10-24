@@ -127,9 +127,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
+        const { tools, tool_choice, toolWarnings } = prepareTools(mode);
+
         return {
-          args: { ...baseArgs, ...prepareTools(mode) },
-          warnings,
+          args: { ...baseArgs, tools, tool_choice },
+          warnings: [...warnings, ...toolWarnings],
         };
       }
 

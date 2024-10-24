@@ -1,4 +1,4 @@
-import { LanguageModelV1 } from '@ai-sdk/provider';
+import { LanguageModelV1, LanguageModelV1CallWarning } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
 
 export function prepareTools(
@@ -8,12 +8,15 @@ export function prepareTools(
 ): {
   tools: Array<AnthropicTool> | undefined;
   tool_choice: AnthropicToolChoice | undefined;
+  toolWarnings: LanguageModelV1CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
 
+  const toolWarnings: LanguageModelV1CallWarning[] = [];
+
   if (tools == null) {
-    return { tools: undefined, tool_choice: undefined };
+    return { tools: undefined, tool_choice: undefined, toolWarnings };
   }
 
   const anthropicTools = tools
@@ -45,15 +48,13 @@ export function prepareTools(
                 name: tool.name,
                 type: 'bash_20241022',
               };
-
-            // TODO warning for unsupported tool id
             default:
+              toolWarnings.push({ type: 'unsupported-tool', tool });
               return null;
           }
         }
-
-        // TODO warning for unsupported tool type
         default: {
+          toolWarnings.push({ type: 'unsupported-tool', tool });
           return null;
         }
       }
@@ -63,23 +64,32 @@ export function prepareTools(
   const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
-    return { tools: anthropicTools, tool_choice: undefined };
+    return { tools: anthropicTools, tool_choice: undefined, toolWarnings };
   }
 
   const type = toolChoice.type;
 
   switch (type) {
     case 'auto':
-      return { tools: anthropicTools, tool_choice: { type: 'auto' } };
+      return {
+        tools: anthropicTools,
+        tool_choice: { type: 'auto' },
+        toolWarnings,
+      };
     case 'required':
-      return { tools: anthropicTools, tool_choice: { type: 'any' } };
+      return {
+        tools: anthropicTools,
+        tool_choice: { type: 'any' },
+        toolWarnings,
+      };
     case 'none':
       // Anthropic does not support 'none' tool choice, so we remove the tools:
-      return { tools: undefined, tool_choice: undefined };
+      return { tools: undefined, tool_choice: undefined, toolWarnings };
     case 'tool':
       return {
         tools: anthropicTools,
         tool_choice: { type: 'tool', name: toolChoice.toolName },
+        toolWarnings,
       };
     default: {
       const _exhaustiveCheck: never = type;
