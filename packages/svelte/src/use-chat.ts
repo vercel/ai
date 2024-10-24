@@ -93,6 +93,13 @@ export type UseChatHelpers = {
 
   /** Additional data added on the server via StreamData */
   data: Readable<JSONValue[] | undefined>;
+  /** Set the data of the chat. You can use this to transform or clear the chat data. */
+  setData: (
+    data:
+      | JSONValue[]
+      | undefined
+      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+  ) => void;
 };
 
 const getStreamedResponse = async (
@@ -479,6 +486,19 @@ export function useChat({
     mutate(messagesArg);
   };
 
+  const setData = (
+    dataArg:
+      | JSONValue[]
+      | undefined
+      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+  ) => {
+    if (typeof dataArg === 'function') {
+      dataArg = dataArg(get(streamData));
+    }
+
+    streamData.set(dataArg);
+  };
+
   const input = writable(initialInput);
 
   const handleSubmit = (
@@ -568,6 +588,7 @@ export function useChat({
     handleSubmit,
     isLoading,
     data: streamData,
+    setData,
     addToolResult,
   };
 }

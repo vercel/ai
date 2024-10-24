@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "0.0.40",
+  "version": "0.0.41",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,13 +30,11 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.24",
-    "@ai-sdk/provider-utils": "1.0.20",
-    "json-schema": "0.4.0"
+    "@ai-sdk/provider": "0.0.25",
+    "@ai-sdk/provider-utils": "1.0.21"
   },
   "devDependencies": {
     "@google-cloud/vertexai": "^1.6.0",
-    "@types/json-schema": "7.0.15",
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",

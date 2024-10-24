@@ -20,6 +20,7 @@ import {
 import { cohereFailedResponseHandler } from '../src/cohere-error';
 import { convertToCohereChatPrompt } from '../src/convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from '../src/map-cohere-finish-reason';
+import { prepareTools } from './cohere-prepare-tools';
 
 type CohereChatConfig = {
   provider: string;
@@ -110,7 +111,13 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        return { ...baseArgs, ...prepareToolsAndToolChoice(mode) };
+        const { tools, force_single_step, toolWarnings } = prepareTools(mode);
+        return {
+          ...baseArgs,
+          tools,
+          force_single_step,
+          warnings: toolWarnings,
+        };
       }
 
       case 'object-json': {
@@ -135,7 +142,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const args = this.getArgs(options);
+    const { warnings, ...args } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
@@ -178,22 +185,21 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
         id: response.generation_id ?? undefined,
       },
       rawResponse: { headers: responseHeaders },
-      warnings: undefined,
+      warnings,
+      request: { body: JSON.stringify(args) },
     };
   }
 
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const args = this.getArgs(options);
+    const { warnings, ...args } = this.getArgs(options);
+    const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-      },
+      body,
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonStreamResponseHandler(
         cohereChatChunkSchema,
@@ -336,7 +342,8 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
         rawSettings,
       },
       rawResponse: { headers: responseHeaders },
-      warnings: [],
+      warnings,
+      request: { body: JSON.stringify(body) },
     };
   }
 }
@@ -416,103 +423,3 @@ const cohereChatChunkSchema = z.discriminatedUnion('event_type', [
     }),
   }),
 ]);
-
-// For reference: https://docs.cohere.com/docs/parameter-types-in-tool-use
-
-function prepareToolsAndToolChoice(
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-) {
-  const tools = mode.tools?.length ? mode.tools : undefined;
-
-  if (tools == null) {
-    return { tools: undefined };
-  }
-
-  const mappedTools = tools.map(tool => {
-    const { properties, required } = tool.parameters;
-
-    const parameterDefinitions: any = {};
-
-    if (properties) {
-      for (const [key, value] of Object.entries(properties)) {
-        if (typeof value === 'object' && value !== null) {
-          const { type: JSONType, description } = value;
-
-          let type: 'str' | 'float' | 'int' | 'bool';
-
-          if (typeof JSONType === 'string') {
-            switch (JSONType) {
-              case 'string':
-                type = 'str';
-                break;
-              case 'number':
-                type = 'float';
-                break;
-              case 'integer':
-                type = 'int';
-                break;
-              case 'boolean':
-                type = 'bool';
-                break;
-              default:
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'tool call parameter of non-primitive type',
-                });
-            }
-          } else {
-            throw new UnsupportedFunctionalityError({
-              functionality: 'tool call parameter of non-primitive type',
-            });
-          }
-
-          parameterDefinitions[key] = {
-            required: required ? required.includes(key) : false,
-            type,
-            description,
-          };
-        }
-      }
-    }
-
-    return {
-      name: tool.name,
-      description: tool.description,
-      parameterDefinitions,
-    };
-  });
-
-  const toolChoice = mode.toolChoice;
-
-  if (toolChoice == null) {
-    return { tools: mappedTools, force_single_step: false };
-  }
-
-  const type = toolChoice.type;
-
-  switch (type) {
-    case 'auto':
-      return { tools: mappedTools, force_single_step: false };
-    case 'required':
-      return { tools: mappedTools, force_single_step: true };
-
-    // cohere does not support 'none' tool choice, so we remove the tools:
-    case 'none':
-      return { tools: undefined, force_single_step: false };
-
-    // cohere does not support tool mode directly,
-    // so we filter the tools and force the tool choice through 'any'
-    case 'tool':
-      return {
-        tools: mappedTools.filter(tool => tool.name === toolChoice.toolName),
-        force_single_step: true,
-      };
-    default: {
-      const _exhaustiveCheck: never = type;
-      throw new UnsupportedFunctionalityError({
-        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
-      });
-    }
-  }
-}

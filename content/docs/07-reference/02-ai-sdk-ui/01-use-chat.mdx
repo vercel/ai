@@ -1,0 +1,577 @@
+---
+title: useChat
+description: API reference for the useChat hook.
+---
+
+# `useChat()`
+
+Allows you to easily create a conversational user interface for your chatbot application. It enables the streaming of chat messages from your AI provider, manages the state for chat input, and updates the UI automatically as new messages are received.
+
+## Import
+
+<Tabs items={['React', 'Svelte', 'Vue', 'Solid']}>
+  <Tab>
+    <Snippet text="import { useChat } from 'ai/react'" dark prompt={false} />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="import { useChat } from '@ai-sdk/svelte'"
+      dark
+      prompt={false}
+    />
+  </Tab>
+  <Tab>
+    <Snippet text="import { useChat } from '@ai-sdk/vue'" dark prompt={false} />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="import { useChat } from '@ai-sdk/solid'"
+      dark
+      prompt={false}
+    />
+  </Tab>
+</Tabs>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'api',
+      type: "string = '/api/chat'",
+      isOptional: true,
+      description: 'The chat completion API endpoint offered by the provider.',
+    },
+    {
+      name: 'keepLastMessageOnError',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Keeps the last message when an error happens. This will be the default behavior starting with the next major release. The flag was introduced for backwards compatibility and currently defaults to `false`. Please enable it and update your error handling/resubmit behavior.',
+    },
+    {
+      name: 'id',
+      type: 'string',
+      isOptional: true,
+      description:
+        'An unique identifier for the chat. If not provided, a random one will be generated. When provided, the `useChat` hook with the same `id` will have shared states across components. This is useful when you have multiple components showing the same chat stream.',
+    },
+    {
+      name: 'initialInput',
+      type: "string = ''",
+      isOptional: true,
+      description: 'An optional string for the initial prompt input.',
+    },
+    {
+      name: 'initialMessages',
+      type: 'Messages[] = []',
+      isOptional: true,
+      description: 'An optional array of initial chat messages',
+    },
+    {
+      name: 'onToolCall',
+      type: '({toolCall: ToolCall}) => void | unknown| Promise<unknown>',
+      isOptional: true,
+      description:
+        'Optional callback function that is invoked when a tool call is received. Intended for automatic client-side tool execution. You can optionally return a result for the tool call, either synchronously or asynchronously.',
+    },
+    {
+      name: 'onResponse',
+      type: '(response: Response) => void',
+      isOptional: true,
+      description:
+        'An optional callback that will be called with the response from the API endpoint. Useful for throwing customized errors or logging',
+    },
+    {
+      name: 'onFinish',
+      type: '(message: Message, options: OnFinishOptions) => void',
+      isOptional: true,
+      description:
+        'An optional callback function that is called when the completion stream ends.',
+      properties: [
+        {
+          type: 'OnFinishOptions',
+          parameters: [
+            {
+              name: 'usage',
+              type: 'CompletionTokenUsage',
+              description: 'The token usage for the completion.',
+              properties: [
+                {
+                  type: 'CompletionTokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              description: 'The reason why the generation ended.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'onError',
+      type: '(error: Error) => void',
+      isOptional: true,
+      description:
+        'A callback that will be called when the chat stream encounters an error. Optional.',
+    },
+    {
+      name: 'generateId',
+      type: '() => string',
+      isOptional: true,
+      description: 'A custom id generator for messages. Optional.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string> | Headers',
+      isOptional: true,
+      description:
+        'Additional headers to be passed to the API endpoint. Optional.',
+    },
+    {
+      name: 'body',
+      type: 'any',
+      isOptional: true,
+      description:
+        'Additional body object to be passed to the API endpoint. Optional.',
+    },
+    {
+      name: 'credentials',
+      type: "'omit' | 'same-origin' | 'include'",
+      isOptional: true,
+      description:
+        'An optional literal that sets the mode of credentials to be used on the request. Defaults to same-origin.',
+    },
+    {
+      name: 'sendExtraMessageFields',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        "An optional boolean that determines whether to send extra fields you've added to `messages`. Defaults to `false` and only the `content` and `role` fields will be sent to the API endpoint. If set to `true`, the `name`, `data`, and `annotations` fields will also be sent.",
+    },
+    {
+      name: 'maxSteps',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of backend calls to generate a response. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
+    },
+    {
+      name: 'streamProtocol',
+      type: "'text' | 'data'",
+      isOptional: true,
+      description:
+        'An optional literal that sets the type of stream to be used. Defaults to `data`. If set to `text`, the stream will be treated as a text stream.',
+    },
+    {
+      name: 'fetch',
+      type: 'FetchFunction',
+      isOptional: true,
+      description:
+        'Optional. A custom fetch function to be used for the API call. Defaults to the global fetch function.',
+    },
+    {
+      name: 'experimental_prepareRequestBody',
+      type: '(options: { messages: Message[]; requestData?: JSONValue; requestBody?: object }) => JSONValue',
+      isOptional: true,
+      description:
+        'Experimental (React only). When a function is provided, it will be used to prepare the request body for the chat API. This can be useful for customizing the request body based on the messages and data in the chat.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'messages',
+      type: 'Message[]',
+      description: 'The current array of chat messages.',
+      properties: [
+        {
+          type: 'Message',
+          parameters: [
+            {
+              name: 'id',
+              type: 'string',
+              description: 'The unique identifier of the message.',
+            },
+            {
+              name: 'role',
+              type: "'system' | 'user' | 'assistant' | 'data'",
+              description: 'The role of the message.',
+            },
+            {
+              name: 'content',
+              type: 'string',
+              description: 'The content of the message.',
+            },
+            {
+              name: 'createdAt',
+              type: 'Date',
+              isOptional: true,
+              description: 'The creation date of the message.',
+            },
+            {
+              name: 'name',
+              type: 'string',
+              isOptional: true,
+              description: 'The name of the message.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              isOptional: true,
+              description: 'Additional data sent along with the message.',
+            },
+            {
+              name: 'annotations',
+              type: 'Array<JSONValue>',
+              isOptional: true,
+              description:
+                'Additional annotations sent along with the message.',
+            },
+            {
+              name: 'toolInvocations',
+              type: 'Array<ToolInvocation>',
+              isOptional: true,
+              description:
+                'An array of tool invocations that are associated with the (assistant) message.',
+              properties: [
+                {
+                  type: 'ToolInvocation',
+                  parameters: [
+                    {
+                      name: 'state',
+                      type: "'partial-call'",
+                      description:
+                        'The state of the tool call when it was partially created.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description: 'Name of the tool that is being called.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'any',
+                      description:
+                        'Partial arguments of the tool call. This is a JSON-serializable object.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ToolInvocation',
+                  parameters: [
+                    {
+                      name: 'state',
+                      type: "'call'",
+                      description:
+                        'The state of the tool call when it was fully created.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description: 'Name of the tool that is being called.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'any',
+                      description:
+                        'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ToolInvocation',
+                  parameters: [
+                    {
+                      name: 'state',
+                      type: "'result'",
+                      description:
+                        'The state of the tool call when the result is available.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description: 'Name of the tool that is being called.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'any',
+                      description:
+                        'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
+                    },
+                    {
+                      name: 'result',
+                      type: 'any',
+                      description: 'The result of the tool call.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'experimental_attachments',
+              type: 'Array<Attachment>',
+              isOptional: true,
+              description:
+                'Additional attachments sent along with the message.',
+              properties: [
+                {
+                  type: 'Attachment',
+                  description:
+                    'An attachment object that can be used to describe the metadata of the file.',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'The name of the attachment, usually the file name.',
+                    },
+                    {
+                      name: 'contentType',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'A string indicating the media type of the file.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description:
+                        'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'error',
+      type: 'Error | undefined',
+      description: 'An error object returned by SWR, if any.',
+    },
+    {
+      name: 'append',
+      type: '(message: Message | CreateMessage, options?: ChatRequestOptions) => Promise<string | undefined>',
+      description:
+        'Function to append a message to the chat, triggering an API call for the AI response. It returns a promise that resolves to full response message content when the API call is successfully finished, or throws an error when the API call fails.',
+      properties: [
+        {
+          type: 'ChatRequestOptions',
+          parameters: [
+            {
+              name: 'headers',
+              type: 'Record<string, string> | Headers',
+              description:
+                'Additional headers that should be to be passed to the API endpoint.',
+            },
+            {
+              name: 'body',
+              type: 'object',
+              description:
+                'Additional body JSON properties that should be sent to the API endpoint.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              description: 'Additional data to be sent to the API endpoint.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'reload',
+      type: '() => Promise<string | undefined>',
+      description:
+        "Function to reload the last AI chat response for the given chat history. If the last message isn't from the assistant, it will request the API to generate a new response.",
+    },
+    {
+      name: 'stop',
+      type: '() => void',
+      description: 'Function to abort the current API request.',
+    },
+    {
+      name: 'setMessages',
+      type: '(messages: Message[] | ((messages: Message[]) => Message[]) => void',
+      description:
+        'Function to update the `messages` state locally without triggering an API call.',
+    },
+    {
+      name: 'input',
+      type: 'string',
+      description: 'The current value of the input field.',
+    },
+    {
+      name: 'setInput',
+      type: 'React.Dispatch<React.SetStateAction<string>>',
+      description: 'Function to update the `input` value.',
+    },
+    {
+      name: 'handleInputChange',
+      type: '(event: any) => void',
+      description:
+        "Handler for the `onChange` event of the input field to control the input's value.",
+    },
+    {
+      name: 'handleSubmit',
+      type: '(event?: { preventDefault?: () => void }, options?: ChatRequestOptions) => void',
+      description:
+        'Form submission handler that automatically resets the input field and appends a user message. You can use the `options` parameter to send additional data, headers and more to the server.',
+      properties: [
+        {
+          type: 'ChatRequestOptions',
+          parameters: [
+            {
+              name: 'headers',
+              type: 'Record<string, string> | Headers',
+              description:
+                'Additional headers that should be to be passed to the API endpoint.',
+            },
+            {
+              name: 'body',
+              type: 'object',
+              description:
+                'Additional body JSON properties that should be sent to the API endpoint.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              description: 'Additional data to be sent to the API endpoint.',
+            },
+            {
+              name: 'allowEmptySubmit',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'A boolean that determines whether to allow submitting an empty input that triggers a generation. Defaults to `false`.',
+            },
+            {
+              name: 'experimental_attachments',
+              type: 'FileList | Array<Attachment>',
+              isOptional: true,
+              description:
+                'An array of attachments to be sent to the API endpoint.',
+              properties: [
+                {
+                  type: 'FileList',
+                  parameters: [
+                    {
+                      name: '',
+                      type: '',
+                      description:
+                        "A list of files that have been selected by the user using an <input type='file'> element. It's also used for a list of files dropped into web content when using the drag and drop API.",
+                    },
+                  ],
+                },
+                {
+                  type: 'Attachment',
+                  description:
+                    'An attachment object that can be used to describe the metadata of the file.',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'The name of the attachment, usually the file name.',
+                    },
+                    {
+                      name: 'contentType',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'A string indicating the media type of the file.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description:
+                        'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'isLoading',
+      type: 'boolean',
+      description:
+        'Boolean flag indicating whether a request is currently in progress.',
+    },
+    {
+      name: 'data',
+      type: 'JSONValue[]',
+      description: 'Data returned from StreamData.',
+    },
+    {
+      name: 'setData',
+      type: '(data: JSONValue[] | undefined | ((data: JSONValue[] | undefined) => JSONValue[] | undefined)) => void',
+      description:
+        'Function to update the `data` state which contains data from StreamData.',
+    },
+    {
+      name: 'addToolResult',
+      type: '({toolCallId: string; result: any;}) => void',
+      description:
+        'React and SolidJS only. Function to add a tool result to the chat. This will update the chat messages with the tool result and call the API route if all tool results for the last message are available.',
+    },
+  ]}
+/>
+
+## Learn more
+
+- [Chatbot](/docs/ai-sdk-ui/chatbot)
+- [Chatbot with Tools](/docs/ai-sdk-ui/chatbot-with-tool-calling)

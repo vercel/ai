@@ -21,6 +21,7 @@ import {
 } from './mistral-chat-settings';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { getResponseMetadata } from './get-response-metadata';
+import { prepareTools } from './mistral-prepare-tools';
 
 type MistralChatConfig = {
   provider: string;
@@ -133,9 +134,11 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
+        const { tools, tool_choice, toolWarnings } = prepareTools(mode);
+
         return {
-          args: { ...baseArgs, ...prepareToolsAndToolChoice(mode) },
-          warnings,
+          args: { ...baseArgs, tools, tool_choice },
+          warnings: [...warnings, ...toolWarnings],
         };
       }
 
@@ -186,9 +189,21 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
+    let text = choice.message.content ?? undefined;
+
+    // when there is a trailing assistant message, mistral will send the
+    // content of that message again. we skip this repeated content to
+    // avoid duplication, e.g. in continuation mode.
+    const lastMessage = rawPrompt[rawPrompt.length - 1];
+    if (
+      lastMessage.role === 'assistant' &&
+      text?.startsWith(lastMessage.content)
+    ) {
+      text = text.slice(lastMessage.content.length);
+    }
 
     return {
-      text: choice.message.content ?? undefined,
+      text,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
         toolCallId: toolCall.id,
@@ -202,6 +217,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      request: { body: JSON.stringify(args) },
       response: getResponseMetadata(response),
       warnings,
     };
@@ -212,10 +228,12 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const { args, warnings } = this.getArgs(options);
 
+    const body = { ...args, stream: true };
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: { ...args, stream: true },
+      body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         mistralChatChunkSchema,
@@ -231,7 +249,8 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
-    let isFirstChunk = true;
+    let chunkNumber = 0;
+    let trimLeadingSpace = false;
 
     return {
       stream: response.pipeThrough(
@@ -245,11 +264,11 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
               return;
             }
 
+            chunkNumber++;
+
             const value = chunk.value;
 
-            if (isFirstChunk) {
-              isFirstChunk = false;
-
+            if (chunkNumber === 1) {
               controller.enqueue({
                 type: 'response-metadata',
                 ...getResponseMetadata(value),
@@ -275,11 +294,36 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
             const delta = choice.delta;
 
+            // when there is a trailing assistant message, mistral will send the
+            // content of that message again. we skip this repeated content to
+            // avoid duplication, e.g. in continuation mode.
+            if (chunkNumber <= 2) {
+              const lastMessage = rawPrompt[rawPrompt.length - 1];
+
+              if (
+                lastMessage.role === 'assistant' &&
+                delta.content === lastMessage.content.trimEnd()
+              ) {
+                // Mistral moves the trailing space from the prefix to the next chunk.
+                // We trim the leading space to avoid duplication.
+                if (delta.content.length < lastMessage.content.length) {
+                  trimLeadingSpace = true;
+                }
+
+                // skip the repeated content:
+                return;
+              }
+            }
+
             if (delta.content != null) {
               controller.enqueue({
                 type: 'text-delta',
-                textDelta: delta.content,
+                textDelta: trimLeadingSpace
+                  ? delta.content.trimStart()
+                  : delta.content,
               });
+
+              trimLeadingSpace = false;
             }
 
             if (delta.tool_calls != null) {
@@ -310,6 +354,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       ),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      request: { body: JSON.stringify(body) },
       warnings,
     };
   }
@@ -377,55 +422,3 @@ const mistralChatChunkSchema = z.object({
     })
     .nullish(),
 });
-
-function prepareToolsAndToolChoice(
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-) {
-  // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
-
-  if (tools == null) {
-    return { tools: undefined, tool_choice: undefined };
-  }
-
-  const mappedTools = tools.map(tool => ({
-    type: 'function',
-    function: {
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-    },
-  }));
-
-  const toolChoice = mode.toolChoice;
-
-  if (toolChoice == null) {
-    return { tools: mappedTools, tool_choice: undefined };
-  }
-
-  const type = toolChoice.type;
-
-  switch (type) {
-    case 'auto':
-    case 'none':
-      return { tools: mappedTools, tool_choice: type };
-    case 'required':
-      return { tools: mappedTools, tool_choice: 'any' };
-
-    // mistral does not support tool mode directly,
-    // so we filter the tools and force the tool choice through 'any'
-    case 'tool':
-      return {
-        tools: mappedTools.filter(
-          tool => tool.function.name === toolChoice.toolName,
-        ),
-        tool_choice: 'any',
-      };
-    default: {
-      const _exhaustiveCheck: never = type;
-      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
-    }
-  }
-}

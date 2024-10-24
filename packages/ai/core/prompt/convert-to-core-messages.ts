@@ -22,6 +22,8 @@ export type ConvertibleMessage = {
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
 with the AI core functions (e.g. `streamText`).
+
+Only full tool calls are included in assistant messages. Partial tool calls are removed.
  */
 export function convertToCoreMessages(messages: Array<ConvertibleMessage>) {
   const coreMessages: CoreMessage[] = [];
@@ -63,39 +65,34 @@ export function convertToCoreMessages(messages: Array<ConvertibleMessage>) {
           role: 'assistant',
           content: [
             { type: 'text', text: content },
-            ...toolInvocations.map(({ toolCallId, toolName, args }) => ({
-              type: 'tool-call' as const,
-              toolCallId,
-              toolName,
-              args,
-            })),
+            ...toolInvocations
+              .filter(invocation => invocation.state !== 'partial-call')
+              .map(({ toolCallId, toolName, args }) => ({
+                type: 'tool-call' as const,
+                toolCallId,
+                toolName,
+                args,
+              })),
           ],
         });
 
         // tool message with tool results
-        coreMessages.push({
-          role: 'tool',
-          content: toolInvocations.map(ToolInvocation => {
-            if (!('result' in ToolInvocation)) {
-              throw new MessageConversionError({
-                originalMessage: message,
-                message:
-                  'ToolInvocation must have a result: ' +
-                  JSON.stringify(ToolInvocation),
-              });
-            }
+        const toolResults = toolInvocations
+          .filter(invocation => invocation.state === 'result')
+          .map(({ toolCallId, toolName, args, result }) => ({
+            type: 'tool-result' as const,
+            toolCallId,
+            toolName,
+            args,
+            result,
+          }));
 
-            const { toolCallId, toolName, args, result } = ToolInvocation;
-
-            return {
-              type: 'tool-result' as const,
-              toolCallId,
-              toolName,
-              args,
-              result,
-            };
-          }),
-        });
+        if (toolResults.length > 0) {
+          coreMessages.push({
+            role: 'tool',
+            content: toolResults,
+          });
+        }
 
         break;
       }

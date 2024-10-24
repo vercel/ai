@@ -16,18 +16,7 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Hello' },
-          {
-            type: 'image_url',
-            image_url: 'data:image/png;base64,AAECAw==',
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchSnapshot();
   });
 });
 
@@ -55,6 +44,23 @@ describe('tool calls', () => {
             result: { key: 'result-value' },
           },
         ],
+      },
+    ]);
+
+    expect(result).toMatchSnapshot();
+  });
+});
+
+describe('assistant messages', () => {
+  it('should add prefix true to trailing assistant messages', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hello!' }],
       },
     ]);
 

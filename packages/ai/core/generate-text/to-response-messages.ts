@@ -1,7 +1,7 @@
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CoreTool } from '../tool/tool';
-import { ToToolCallArray } from './tool-call';
-import { ToToolResultArray } from './tool-result';
+import { ToolCallArray } from './tool-call';
+import { ToolResultArray } from './tool-result';
 
 /**
 Converts the result of a `generateText` call to a list of response messages.
@@ -12,8 +12,8 @@ export function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
   toolResults,
 }: {
   text: string | undefined;
-  toolCalls: ToToolCallArray<TOOLS>;
-  toolResults: ToToolResultArray<TOOLS>;
+  toolCalls: ToolCallArray<TOOLS>;
+  toolResults: ToolResultArray<TOOLS>;
 }): Array<CoreAssistantMessage | CoreToolMessage> {
   const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> = [];
 

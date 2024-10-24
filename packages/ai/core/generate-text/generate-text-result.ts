@@ -3,14 +3,15 @@ import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
   FinishReason,
-  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { StepResult } from './step-result';
-import { ToToolCallArray } from './tool-call';
-import { ToToolResultArray } from './tool-result';
+import { ToolCallArray } from './tool-call';
+import { ToolResultArray } from './tool-result';
 
 /**
 The result of a `generateText` call.
@@ -25,12 +26,12 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   /**
   The tool calls that were made during the generation.
    */
-  readonly toolCalls: ToToolCallArray<TOOLS>;
+  readonly toolCalls: ToolCallArray<TOOLS>;
 
   /**
   The results of the tool calls.
    */
-  readonly toolResults: ToToolResultArray<TOOLS>;
+  readonly toolResults: ToolResultArray<TOOLS>;
 
   /**
   The reason why the generation finished.
@@ -48,12 +49,7 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   readonly warnings: CallWarning[] | undefined;
 
   /**
-The response messages that were generated during the call. It consists of an assistant message,
-potentially containing tool calls.
-
-When there are tool results, there is an additional tool message with the tool results that are available.
-If there are tools that do not have execute functions, they are not included in the tool results and
-need to be added separately.
+@deprecated use `response.messages` instead.
      */
   readonly responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
 
@@ -85,9 +81,24 @@ Optional raw response data.
   };
 
   /**
+Additional request information.
+   */
+  readonly request: LanguageModelRequestMetadata;
+
+  /**
 Additional response information.
    */
-  readonly response: LanguageModelResponseMetadataWithHeaders;
+  readonly response: LanguageModelResponseMetadata & {
+    /**
+The response messages that were generated during the call. It consists of an assistant message,
+potentially containing tool calls.
+
+When there are tool results, there is an additional tool message with the tool results that are available.
+If there are tools that do not have execute functions, they are not included in the tool results and
+need to be added separately.
+       */
+    messages: Array<CoreAssistantMessage | CoreToolMessage>;
+  };
 
   /**
 Logprobs for the completion.

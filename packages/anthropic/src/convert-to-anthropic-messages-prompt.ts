@@ -10,7 +10,7 @@ import {
   AnthropicCacheControl,
   AnthropicMessagesPrompt,
   AnthropicUserMessage,
-} from './anthropic-messages-prompt';
+} from './anthropic-api-types';
 
 export function convertToAnthropicMessagesPrompt({
   prompt,

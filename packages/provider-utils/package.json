@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -37,10 +37,10 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.24",
-    "eventsource-parser": "1.1.2",
-    "nanoid": "3.3.6",
-    "secure-json-parse": "2.7.0"
+    "@ai-sdk/provider": "0.0.25",
+    "eventsource-parser": "^1.1.2",
+    "nanoid": "^3.3.7",
+    "secure-json-parse": "^2.7.0"
   },
   "devDependencies": {
     "@types/node": "^18",

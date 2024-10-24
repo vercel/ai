@@ -4,6 +4,7 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
 import {
   DeepPartial,
   Schema,
@@ -20,7 +21,7 @@ import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { validatePrompt } from '../prompt/validate-prompt';
+import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -31,7 +32,7 @@ import {
   CallWarning,
   FinishReason,
   LanguageModel,
-  LanguageModelResponseMetadataWithHeaders,
+  LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -44,16 +45,15 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { now as originalNow } from '../util/now';
+import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
+import { writeToServerResponse } from '../util/write-to-server-response';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { createIdGenerator } from '@ai-sdk/provider-utils';
-import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
-import { writeToServerResponse } from '../util/write-to-server-response';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', size: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
 type OnFinishCallback<RESULT> = (event: {
   /**
@@ -86,7 +86,7 @@ Response headers.
   /**
 Response metadata.
  */
-  response: LanguageModelResponseMetadataWithHeaders;
+  response: LanguageModelResponseMetadata;
 
   /**
 Warnings from the model provider (e.g. unsupported settings).
@@ -386,7 +386,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     settings: { ...settings, maxRetries },
   });
 
-  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  const tracer = getTracer(telemetry);
 
   const retry = retryWithExponentialBackoff({ maxRetries });
 
@@ -430,7 +430,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
 
       switch (mode) {
         case 'json': {
-          const validatedPrompt = validatePrompt({
+          const standardPrompt = standardizePrompt({
             system:
               outputStrategy.jsonSchema == null
                 ? injectJsonInstruction({ prompt: system })
@@ -452,10 +452,11 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
               description: schemaDescription,
             },
             ...prepareCallSettings(settings),
-            inputFormat: validatedPrompt.type,
+            inputFormat: standardPrompt.type,
             prompt: await convertToLanguageModelPrompt({
-              prompt: validatedPrompt,
+              prompt: standardPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
+              modelSupportsUrl: model.supportsUrl,
             }),
             providerMetadata,
             abortSignal,
@@ -481,7 +482,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
         }
 
         case 'tool': {
-          const validatedPrompt = validatePrompt({
+          const validatedPrompt = standardizePrompt({
             system,
             prompt,
             messages,
@@ -502,6 +503,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
             prompt: await convertToLanguageModelPrompt({
               prompt: validatedPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
+              modelSupportsUrl: model.supportsUrl,
             }),
             providerMetadata,
             abortSignal,
@@ -539,7 +541,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
       }
 
       const {
-        result: { stream, warnings, rawResponse },
+        result: { stream, warnings, rawResponse, request },
         doStreamSpan,
         startTimestampMs,
       } = await retry(() =>
@@ -587,6 +589,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
         stream: stream.pipeThrough(new TransformStream(transformer)),
         warnings,
         rawResponse,
+        request: request ?? {},
         onFinish,
         rootSpan,
         doStreamSpan,
@@ -606,6 +609,12 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 {
   private readonly originalStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
   private readonly objectPromise: DelayedPromise<RESULT>;
+
+  readonly request: StreamObjectResult<
+    PARTIAL,
+    RESULT,
+    ELEMENT_STREAM
+  >['request'];
 
   readonly warnings: StreamObjectResult<
     PARTIAL,
@@ -634,6 +643,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     stream,
     warnings,
     rawResponse,
+    request,
     outputStrategy,
     onFinish,
     rootSpan,
@@ -654,6 +664,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       RESULT,
       ELEMENT_STREAM
     >['rawResponse'];
+    request: Awaited<
+      StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>['request']
+    >;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
     onFinish: OnFinishCallback<RESULT> | undefined;
     rootSpan: Span;
@@ -668,6 +681,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     this.warnings = warnings;
     this.rawResponse = rawResponse;
     this.outputStrategy = outputStrategy;
+    this.request = Promise.resolve(request);
 
     // initialize object promise
     this.objectPromise = new DelayedPromise<RESULT>();
@@ -679,7 +693,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
     // initialize response promise
     const { resolve: resolveResponse, promise: responsePromise } =
-      createResolvablePromise<LanguageModelResponseMetadataWithHeaders>();
+      createResolvablePromise<LanguageModelResponseMetadata>();
     this.response = responsePromise;
 
     // initialize experimental_providerMetadata promise

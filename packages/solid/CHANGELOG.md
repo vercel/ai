@@ -1,5 +1,18 @@
 # @ai-sdk/solid
 
+## 0.0.51
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.21
+- @ai-sdk/ui-utils@0.0.47
+
+## 0.0.50
+
+### Patch Changes
+
+- caedcda: feat (ai/ui): add setData helper to useChat
+
 ## 0.0.49
 
 ### Patch Changes

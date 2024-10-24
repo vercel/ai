@@ -4,7 +4,7 @@ import {
   StreamingTestServer,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { AnthropicAssistantMessage } from './anthropic-messages-prompt';
+import { AnthropicAssistantMessage } from './anthropic-api-types';
 import { createAnthropic } from './anthropic-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
@@ -12,7 +12,7 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
 ];
 
 const provider = createAnthropic({ apiKey: 'test-api-key' });
-const model = provider.chat('claude-3-haiku-20240307');
+const model = provider('claude-3-haiku-20240307');
 
 describe('doGenerate', () => {
   const server = new JsonTestServer('https://api.anthropic.com/v1/messages');
@@ -55,7 +55,7 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
-    const { text } = await provider.chat('gpt-3.5-turbo').doGenerate({
+    const { text } = await provider('claude-3-haiku-20240307').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -331,6 +331,7 @@ describe('doGenerate', () => {
 
     expect(requestHeaders).toStrictEqual({
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'computer-use-2024-10-22',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
@@ -390,6 +391,20 @@ describe('doGenerate', () => {
         cacheCreationInputTokens: 10,
         cacheReadInputTokens: 5,
       },
+    });
+  });
+
+  it('should send request body', async () => {
+    prepareJsonResponse({ content: [] });
+
+    const { request } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"claude-3-haiku-20240307","max_tokens":4096,"messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}]}',
     });
   });
 });
@@ -631,7 +646,7 @@ describe('doStream', () => {
       },
     });
 
-    await provider.chat('claude-3-haiku-20240307').doStream({
+    await provider('claude-3-haiku-20240307').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -644,6 +659,7 @@ describe('doStream', () => {
 
     expect(requestHeaders).toStrictEqual({
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'computer-use-2024-10-22',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
@@ -695,5 +711,19 @@ describe('doStream', () => {
         },
       },
     ]);
+  });
+
+  it('should send request body', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const { request } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"claude-3-haiku-20240307","max_tokens":4096,"messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}],"stream":true}',
+    });
   });
 });

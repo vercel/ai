@@ -74,10 +74,56 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
-  "rawResponse": undefined,
+  "rawResponse": {
+    "headers": {
+      "call": "1",
+    },
+  },
+  "request": {},
   "response": {
-    "headers": undefined,
+    "headers": {
+      "call": "1",
+    },
     "id": "id-1",
+    "messages": [
+      {
+        "content": [
+          {
+            "text": "",
+            "type": "text",
+          },
+          {
+            "args": {
+              "value": "value",
+            },
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+        ],
+        "role": "assistant",
+      },
+      {
+        "content": [
+          {
+            "result": "result1",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+        ],
+        "role": "tool",
+      },
+      {
+        "content": [
+          {
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ],
+        "role": "assistant",
+      },
+    ],
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
@@ -126,9 +172,47 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
       "finishReason": "tool-calls",
       "isContinued": false,
       "logprobs": undefined,
-      "rawResponse": undefined,
+      "rawResponse": {
+        "headers": {
+          "call": "1",
+        },
+      },
+      "request": {},
       "response": {
+        "headers": {
+          "call": "1",
+        },
         "id": "id-0",
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "",
+                "type": "text",
+              },
+              {
+                "args": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "result": "result1",
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
@@ -172,8 +256,51 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
           "call": "2",
         },
       },
+      "request": {},
       "response": {
+        "headers": {
+          "call": "2",
+        },
         "id": "id-1",
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "",
+                "type": "text",
+              },
+              {
+                "args": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "result": "result1",
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
@@ -208,9 +335,47 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFi
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
-    "rawResponse": undefined,
+    "rawResponse": {
+      "headers": {
+        "call": "1",
+      },
+    },
+    "request": {},
     "response": {
+      "headers": {
+        "call": "1",
+      },
       "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "",
+              "type": "text",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
@@ -254,8 +419,51 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFi
         "call": "2",
       },
     },
+    "request": {},
     "response": {
+      "headers": {
+        "call": "2",
+      },
       "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "",
+              "type": "text",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
@@ -531,9 +739,47 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
-    "rawResponse": undefined,
+    "rawResponse": {
+      "headers": {
+        "call": "1",
+      },
+    },
+    "request": {},
     "response": {
+      "headers": {
+        "call": "1",
+      },
       "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "",
+              "type": "text",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
@@ -577,8 +823,51 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
         "call": "2",
       },
     },
+    "request": {},
     "response": {
+      "headers": {
+        "call": "2",
+      },
       "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "",
+              "type": "text",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
@@ -602,9 +891,31 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
   "finishReason": "stop",
   "logprobs": undefined,
   "rawResponse": undefined,
+  "request": {},
   "response": {
     "headers": undefined,
     "id": "id-1",
+    "messages": [
+      {
+        "content": [
+          {
+            "text": "part 1 
+ ",
+            "type": "text",
+          },
+          {
+            "text": "no-whitespace",
+            "type": "text",
+          },
+          {
+            "text": "final value keep all whitespace
+ end",
+            "type": "text",
+          },
+        ],
+        "role": "assistant",
+      },
+    ],
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
@@ -636,8 +947,22 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
       "isContinued": true,
       "logprobs": undefined,
       "rawResponse": undefined,
+      "request": {},
       "response": {
+        "headers": undefined,
         "id": "id-0",
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "part 1 
+ ",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
@@ -659,8 +984,26 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
       "isContinued": true,
       "logprobs": undefined,
       "rawResponse": undefined,
+      "request": {},
       "response": {
+        "headers": undefined,
         "id": "id-1",
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "part 1 
+ ",
+                "type": "text",
+              },
+              {
+                "text": "no-whitespace",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
@@ -685,8 +1028,33 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
           "call": "3",
         },
       },
+      "request": {},
       "response": {
+        "headers": {
+          "call": "3",
+        },
         "id": "id-1",
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "part 1 
+ ",
+                "type": "text",
+              },
+              {
+                "text": "no-whitespace",
+                "type": "text",
+              },
+              {
+                "text": "final value keep all whitespace
+ end",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
@@ -725,8 +1093,22 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
     "isContinued": true,
     "logprobs": undefined,
     "rawResponse": undefined,
+    "request": {},
     "response": {
+      "headers": undefined,
       "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
@@ -748,8 +1130,26 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
     "isContinued": true,
     "logprobs": undefined,
     "rawResponse": undefined,
+    "request": {},
     "response": {
+      "headers": undefined,
       "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+            {
+              "text": "no-whitespace",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
@@ -774,8 +1174,33 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > callbacks > o
         "call": "3",
       },
     },
+    "request": {},
     "response": {
+      "headers": {
+        "call": "3",
+      },
       "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+            {
+              "text": "no-whitespace",
+              "type": "text",
+            },
+            {
+              "text": "final value keep all whitespace
+ end",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
@@ -1000,8 +1425,22 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > value promise
     "isContinued": true,
     "logprobs": undefined,
     "rawResponse": undefined,
+    "request": {},
     "response": {
+      "headers": undefined,
       "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
@@ -1023,8 +1462,26 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > value promise
     "isContinued": true,
     "logprobs": undefined,
     "rawResponse": undefined,
+    "request": {},
     "response": {
+      "headers": undefined,
       "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+            {
+              "text": "no-whitespace",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
@@ -1049,8 +1506,33 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > value promise
         "call": "3",
       },
     },
+    "request": {},
     "response": {
+      "headers": {
+        "call": "3",
+      },
       "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+            {
+              "text": "no-whitespace",
+              "type": "text",
+            },
+            {
+              "text": "final value keep all whitespace
+ end",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
@@ -1083,11 +1565,42 @@ exports[`options.onFinish > options.onFinish should send correct information 1`]
       "call": "2",
     },
   },
+  "request": {},
   "response": {
     "headers": {
       "call": "2",
     },
     "id": "id-0",
+    "messages": [
+      {
+        "content": [
+          {
+            "text": "Hello, world!",
+            "type": "text",
+          },
+          {
+            "args": {
+              "value": "value",
+            },
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+        ],
+        "role": "assistant",
+      },
+      {
+        "content": [
+          {
+            "result": "value-result",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+        ],
+        "role": "tool",
+      },
+    ],
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
@@ -1136,8 +1649,42 @@ exports[`options.onFinish > options.onFinish should send correct information 1`]
           "call": "2",
         },
       },
+      "request": {},
       "response": {
+        "headers": {
+          "call": "2",
+        },
         "id": "id-0",
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+              {
+                "args": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "result": "value-result",
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },

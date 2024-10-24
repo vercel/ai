@@ -98,8 +98,15 @@ The first argument is the model id, e.g. `gemini-1.5-pro`.
 const model = vertex('gemini-1.5-pro');
 ```
 
-Google Vertex models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
-You can pass them as an options argument:
+<Note>
+  If you are using [your own
+  models](https://cloud.google.com/vertex-ai/docs/training-overview), the name
+  of your model needs to start with `projects/`.
+</Note>
+
+Google Vertex models support also some model specific settings that are not part
+of the [standard call settings](/docs/ai-sdk-core/settings). You can pass them as
+an options argument:
 
 ```ts
 const model = vertex('gemini-1.5-pro', {
@@ -150,8 +157,6 @@ The following optional settings are available for Google Vertex models:
 
   Optional. When enabled, the model will [use Google search to ground the response](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview).
 
-### Example: Generate Text
-
 You can use Google Vertex language models to generate text with the `generateText` function:
 
 ```ts highlight="1,5"
@@ -167,7 +172,7 @@ const { text } = await generateText({
 Google Vertex language models can also be used in the `streamText` and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
-### Example: File input (PDF)
+### File Inputs
 
 The Google Vertex provider supports file inputs, e.g. PDF files.
 
@@ -196,9 +201,15 @@ const { text } = await generateText({
 });
 ```
 
+<Note>
+  The AI SDK will automatically download URLs if you pass them as data, except
+  for `gs://` URLs. You can use the Google Cloud Storage API to upload larger
+  files to that location.
+</Note>
+
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
 
-### Example: Search Grounding
+### Search Grounding
 
 With [search grounding](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview),
 the model has access to the latest information using Google search.
@@ -218,7 +229,9 @@ const { text } = await generateText({
 });
 ```
 
-### Troubleshooting: Schema Limitations
+### Troubleshooting
+
+#### Schema Limitations
 
 The Google Vertex API uses a subset of the OpenAPI 3.0 schema,
 which does not support features such as unions.

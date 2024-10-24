@@ -1,0 +1,75 @@
+---
+title: OpenAI compatible Providers
+description: Use OpenAI compatible providers with the AI SDK.
+---
+
+# OpenAI compatible Providers
+
+You can use the [OpenAI Provider](/providers/ai-sdk-providers/openai) to use language model providers that implement the OpenAI API.
+We provide detailed documentation for the following OpenAI compatible providers:
+
+- [xAI](/providers/openai-compatible-providers/xai)
+- [Perplexity](/providers/openai-compatible-providers/perplexity)
+- [Fireworks](/providers/openai-compatible-providers/fireworks)
+- [LM Studio](/providers/openai-compatible-providers/lmstudio)
+
+The general setup and provider instance creation is the same for all OpenAI compatible providers.
+
+## Setup
+
+The OpenAI provider is available via the `@ai-sdk/openai` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use an OpenAI compatible provider, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const provider = createOpenAI({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY ?? '',
+  baseURL: 'https://api.provider.com/v1',
+});
+```
+
+## Language Models
+
+You can create provider models using a provider instance.
+The first argument is the model id, e.g. `model-id`.
+
+```ts
+const model = provider('model-id');
+```
+
+### Example
+
+You can use provider language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai'
+import { generateText } from 'ai'
+
+const provider = createOpenAI({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY ?? '',
+  baseURL: 'https://api.provider.com/v1'
+})
+
+const { text } = await generateText({
+  model: provider('model-id')
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
+})
+```

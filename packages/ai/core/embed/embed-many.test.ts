@@ -3,9 +3,8 @@ import {
   MockEmbeddingModelV1,
   mockEmbed,
 } from '../test/mock-embedding-model-v1';
-import { embedMany } from './embed-many';
 import { MockTracer } from '../test/mock-tracer';
-import { setTestTracer } from '../telemetry/get-tracer';
+import { embedMany } from './embed-many';
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3],
@@ -129,11 +128,6 @@ describe('telemetry', () => {
 
   beforeEach(() => {
     tracer = new MockTracer();
-    setTestTracer(tracer);
-  });
-
-  afterEach(() => {
-    setTestTracer(undefined);
   });
 
   it('should not record any telemetry data when not explicitly enabled', async () => {
@@ -181,6 +175,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
+        tracer,
       },
     });
 
@@ -201,6 +196,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
+        tracer,
       },
     });
 
@@ -218,6 +214,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
+        tracer,
       },
     });
 

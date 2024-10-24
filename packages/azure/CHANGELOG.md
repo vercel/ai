@@ -1,5 +1,34 @@
 # @ai-sdk/azure
 
+## 0.0.49
+
+### Patch Changes
+
+- Updated dependencies [b9b0d7b]
+  - @ai-sdk/provider@0.0.25
+  - @ai-sdk/openai@0.0.69
+  - @ai-sdk/provider-utils@1.0.21
+
+## 0.0.48
+
+### Patch Changes
+
+- Updated dependencies [741ca51]
+  - @ai-sdk/openai@0.0.68
+
+## 0.0.47
+
+### Patch Changes
+
+- 861fb35: fix (provider/azure): support token usage information when streaming
+
+## 0.0.46
+
+### Patch Changes
+
+- Updated dependencies [39fccee]
+  - @ai-sdk/openai@0.0.67
+
 ## 0.0.45
 
 ### Patch Changes

@@ -2,6 +2,7 @@ import { JSONSchema7 } from 'json-schema';
 import { LanguageModelV1CallSettings } from './language-model-v1-call-settings';
 import { LanguageModelV1FunctionTool } from './language-model-v1-function-tool';
 import { LanguageModelV1Prompt } from './language-model-v1-prompt';
+import { LanguageModelV1ProviderDefinedTool } from './language-model-v1-provider-defined-tool';
 import { LanguageModelV1ProviderMetadata } from './language-model-v1-provider-metadata';
 import { LanguageModelV1ToolChoice } from './language-model-v1-tool-choice';
 
@@ -35,7 +36,9 @@ in particular responseFormat, toolChoice, and tools.
 The tools that are available for the model.
          */
         // TODO Spec V2: move to call settings
-        tools?: Array<LanguageModelV1FunctionTool>;
+        tools?: Array<
+          LanguageModelV1FunctionTool | LanguageModelV1ProviderDefinedTool
+        >;
 
         /**
 Specifies how the tool should be selected. Defaults to 'auto'.

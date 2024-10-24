@@ -2,8 +2,8 @@ import { ServerResponse } from 'http';
 import {
   CallWarning,
   FinishReason,
+  LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
-  LanguageModelResponseMetadataWithHeaders,
   LogProbs,
   ProviderMetadata,
 } from '../types';
@@ -45,9 +45,14 @@ Optional raw response data.
   };
 
   /**
+Additional request information from the last step.
+ */
+  readonly request: Promise<LanguageModelRequestMetadata>;
+
+  /**
 Additional response information.
  */
-  readonly response: Promise<LanguageModelResponseMetadataWithHeaders>;
+  readonly response: Promise<LanguageModelResponseMetadata>;
 
   /**
   The generated object (typed according to the schema). Resolved when the response is finished.

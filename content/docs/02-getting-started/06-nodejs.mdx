@@ -281,7 +281,7 @@ Now, when you ask about the weather, you'll see the tool call and its result dis
 
 ## Enabling Multi-Step Tool Calls
 
-You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has techincally completed its generation.
+You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
 To solve this, you can enable multi-step tool calls using `maxSteps`. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
 

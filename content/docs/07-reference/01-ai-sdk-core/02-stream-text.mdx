@@ -1,0 +1,1701 @@
+---
+title: streamText
+description: API Reference for streamText.
+---
+
+# `streamText()`
+
+Streams text generations from a language model.
+
+You can use the streamText function for interactive use cases such as chat bots and other real-time applications. You can also generate UI components with tools.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const { textStream } = await streamText({
+  model: openai('gpt-4-turbo'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+
+for await (const textPart of textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+To see `streamText` in action, check out [these examples](#examples).
+
+## Import
+
+<Snippet text={`import { streamText } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'LanguageModel',
+      description: "The language model to use. Example: openai('gpt-4-turbo')",
+    },
+    {
+      name: 'system',
+      type: 'string',
+      description:
+        'The system prompt to use that specifies the behavior of the model.',
+    },
+    {
+      name: 'prompt',
+      type: 'string',
+      description: 'The input prompt to generate the text from.',
+    },
+    {
+      name: 'messages',
+      type: 'Array<CoreSystemMessage | CoreUserMessage | CoreAssistantMessage | CoreToolMessage>',
+      description: 'A list of messages that represent a conversation.',
+      properties: [
+        {
+          type: 'CoreSystemMessage',
+          parameters: [
+            {
+              name: 'role',
+              type: "'system'",
+              description: 'The role for the system message.',
+            },
+            {
+              name: 'content',
+              type: 'string',
+              description: 'The content of the message.',
+            },
+          ],
+        },
+        {
+          type: 'CoreUserMessage',
+          parameters: [
+            {
+              name: 'role',
+              type: "'user'",
+              description: 'The role for the user message.',
+            },
+            {
+              name: 'content',
+              type: 'string | Array<TextPart | ImagePart | FilePart>',
+              description: 'The content of the message.',
+              properties: [
+                {
+                  type: 'TextPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'text'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The text content of the message part.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ImagePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'image'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'image',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The mime type of the image. Optional.',
+                    },
+                  ],
+                },
+                {
+                  type: 'FilePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'file'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      description: 'The mime type of the file.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: 'CoreAssistantMessage',
+          parameters: [
+            {
+              name: 'role',
+              type: "'assistant'",
+              description: 'The role for the assistant message.',
+            },
+            {
+              name: 'content',
+              type: 'string | Array<TextPart | ToolCallPart>',
+              description: 'The content of the message.',
+              properties: [
+                {
+                  type: 'TextPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'text'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The text content of the message part.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ToolCallPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'tool-call'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description: 'The id of the tool call.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description:
+                        'The name of the tool, which typically would be the name of the function.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'object based on zod schema',
+                      description:
+                        'Parameters generated by the model to be used by the tool.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: 'CoreToolMessage',
+          parameters: [
+            {
+              name: 'role',
+              type: "'tool'",
+              description: 'The role for the assistant message.',
+            },
+            {
+              name: 'content',
+              type: 'Array<ToolResultPart>',
+              description: 'The content of the message.',
+              properties: [
+                {
+                  type: 'ToolResultPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'tool-result'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'The id of the tool call the result corresponds to.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description:
+                        'The name of the tool the result corresponds to.',
+                    },
+                    {
+                      name: 'result',
+                      type: 'unknown',
+                      description:
+                        'The result returned by the tool after execution.',
+                    },
+                    {
+                      name: 'isError',
+                      type: 'boolean',
+                      isOptional: true,
+                      description:
+                        'Whether the result is an error or an error message.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'tools',
+      type: 'Record<string, CoreTool>',
+      description:
+        'Tools that are accessible to and can be called by the model. The model needs to support calling tools.',
+      properties: [
+        {
+          type: 'CoreTool',
+          parameters: [
+            {
+              name: 'description',
+              isOptional: true,
+              type: 'string',
+              description:
+                'Information about the purpose of the tool including details on how and when it can be used by the model.',
+            },
+            {
+              name: 'parameters',
+              type: 'Zod Schema | JSON Schema',
+              description:
+                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
+            },
+            {
+              name: 'execute',
+              isOptional: true,
+              type: 'async (parameters: T, options: { abortSignal: AbortSignal }) => JSONValue',
+              description:
+                'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'toolChoice',
+      isOptional: true,
+      type: '"auto" | "none" | "required" | { "type": "tool", "toolName": string }',
+      description:
+        'The tool choice setting. It specifies how tools are selected for execution. The default is "auto". "none" disables tool execution. "required" requires tools to be executed. { "type": "tool", "toolName": string } specifies a specific tool to execute.',
+    },
+    {
+      name: 'maxTokens',
+      type: 'number',
+      isOptional: true,
+      description: 'Maximum number of tokens to generate.',
+    },
+    {
+      name: 'temperature',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Temperature setting. The value is passed through to the provider. The range depends on the provider and model. It is recommended to set either `temperature` or `topP`, but not both.',
+    },
+    {
+      name: 'topP',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Nucleus sampling. The value is passed through to the provider. The range depends on the provider and model. It is recommended to set either `temperature` or `topP`, but not both.',
+    },
+    {
+      name: 'topK',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Only sample from the top K options for each subsequent token. Used to remove "long tail" low probability responses. Recommended for advanced use cases only. You usually only need to use temperature.',
+    },
+    {
+      name: 'presencePenalty',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Presence penalty setting. It affects the likelihood of the model to repeat information that is already in the prompt. The value is passed through to the provider. The range depends on the provider and model.',
+    },
+    {
+      name: 'frequencyPenalty',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Frequency penalty setting. It affects the likelihood of the model to repeatedly use the same words or phrases. The value is passed through to the provider. The range depends on the provider and model.',
+    },
+    {
+      name: 'stopSequences',
+      type: 'string[]',
+      isOptional: true,
+      description:
+        'Sequences that will stop the generation of the text. If the model generates any of these sequences, it will stop generating further text.',
+    },
+    {
+      name: 'seed',
+      type: 'number',
+      isOptional: true,
+      description:
+        'The seed (integer) to use for random sampling. If set and supported by the model, calls will generate deterministic results.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of retries. Set to 0 to disable retries. Default: 2.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'An optional abort signal that can be used to cancel the call.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
+    {
+      name: 'maxSteps',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
+    },
+    {
+      name: 'experimental_continueSteps',
+      type: 'boolean',
+      isOptional: true,
+      description: 'Enable or disable continue steps. Disabled by default.',
+    },
+    {
+      name: 'experimental_telemetry',
+      type: 'TelemetrySettings',
+      isOptional: true,
+      description: 'Telemetry configuration. Experimental feature.',
+      properties: [
+        {
+          type: 'TelemetrySettings',
+          parameters: [
+            {
+              name: 'isEnabled',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Enable or disable telemetry. Disabled by default while experimental.',
+            },
+            {
+              name: 'recordInputs',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Enable or disable input recording. Enabled by default.',
+            },
+            {
+              name: 'recordOutputs',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Enable or disable output recording. Enabled by default.',
+            },
+            {
+              name: 'functionId',
+              type: 'string',
+              isOptional: true,
+              description:
+                'Identifier for this function. Used to group telemetry data by function.',
+            },
+            {
+              name: 'metadata',
+              isOptional: true,
+              type: 'Record<string, string | number | boolean | Array<null | undefined | string> | Array<null | undefined | number> | Array<null | undefined | boolean>>',
+              description:
+                'Additional information to include in the telemetry data.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_toolCallStreaming',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Enable streaming of tool call deltas as they are generated. Disabled by default.',
+    },
+    {
+      name: 'experimental_providerMetadata',
+      type: 'Record<string,Record<string,JSONValue>> | undefined',
+      isOptional: true,
+      description:
+        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+    },
+    {
+      name: 'experimental_activeTools',
+      type: 'Array<TOOLNAME> | undefined',
+      isOptional: true,
+      description:
+        'The tools that are currently active. All tools are active by default.',
+    },
+    {
+      name: 'onChunk',
+      type: '(event: OnChunkResult) => Promise<void> |void',
+      isOptional: true,
+      description:
+        'Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.',
+      properties: [
+        {
+          type: 'OnChunkResult',
+          parameters: [
+            {
+              name: 'chunk',
+              type: 'TextStreamPart',
+              description: 'The chunk of the stream.',
+              properties: [
+                {
+                  type: 'TextStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'text-delta'",
+                      description:
+                        'The type to identify the object as text delta.',
+                    },
+                    {
+                      name: 'textDelta',
+                      type: 'string',
+                      description: 'The text delta.',
+                    },
+                  ],
+                },
+                {
+                  type: 'TextStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'tool-call'",
+                      description:
+                        'The type to identify the object as tool call.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description: 'The id of the tool call.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description:
+                        'The name of the tool, which typically would be the name of the function.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'object based on zod schema',
+                      description:
+                        'Parameters generated by the model to be used by the tool.',
+                    },
+                  ],
+                },
+                {
+                  type: 'TextStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'tool-call-streaming-start'",
+                      description:
+                        'Indicates the start of a tool call streaming. Only available when streaming tool calls.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description: 'The id of the tool call.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description:
+                        'The name of the tool, which typically would be the name of the function.',
+                    },
+                  ],
+                },
+                {
+                  type: 'TextStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'tool-call-delta'",
+                      description:
+                        'The type to identify the object as tool call delta. Only available when streaming tool calls.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description: 'The id of the tool call.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description:
+                        'The name of the tool, which typically would be the name of the function.',
+                    },
+                    {
+                      name: 'argsTextDelta',
+                      type: 'string',
+                      description: 'The text delta of the tool call arguments.',
+                    },
+                  ],
+                },
+                {
+                  type: 'TextStreamPart',
+                  description: 'The result of a tool call execution.',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'tool-result'",
+                      description:
+                        'The type to identify the object as tool result.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description: 'The id of the tool call.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description:
+                        'The name of the tool, which typically would be the name of the function.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'object based on zod schema',
+                      description:
+                        'Parameters generated by the model to be used by the tool.',
+                    },
+                    {
+                      name: 'result',
+                      type: 'any',
+                      description:
+                        'The result returned by the tool after execution has completed.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'onStepFinish',
+      type: '(result: onStepFinishResult) => Promise<void> | void',
+      isOptional: true,
+      description: 'Callback that is called when a step is finished.',
+      properties: [
+        {
+          type: 'onStepFinishResult',
+          parameters: [
+            {
+              name: 'stepType',
+              type: '"initial" | "continue" | "tool-result"',
+              description:
+                'The type of step. The first step is always an "initial" step, and subsequent steps are either "continue" steps or "tool-result" steps.',
+            },
+            {
+              name: 'finishReason',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              description:
+                'The reason the model finished generating the text for the step.',
+            },
+            {
+              name: 'usage',
+              type: 'TokenUsage',
+              description: 'The token usage of the step.',
+              properties: [
+                {
+                  type: 'TokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'text',
+              type: 'string',
+              description: 'The full text that has been generated.',
+            },
+            {
+              name: 'toolCalls',
+              type: 'ToolCall[]',
+              description: 'The tool calls that have been executed.',
+            },
+            {
+              name: 'toolResults',
+              type: 'ToolResult[]',
+              description: 'The tool results that have been generated.',
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
+              name: 'response',
+              type: 'Response',
+              isOptional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                    {
+                      name: 'headers',
+                      isOptional: true,
+                      type: 'Record<string, string>',
+                      description: 'Optional response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'isContinued',
+              type: 'boolean',
+              description:
+                'True when there will be a continuation step with a continuation text.',
+            },
+            {
+              name: 'experimental_providerMetadata',
+              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              isOptional: true,
+              description:
+                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'onFinish',
+      type: '(result: OnFinishResult) => Promise<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when the LLM response and all request tool executions (for tools that have an `execute` function) are finished.',
+      properties: [
+        {
+          type: 'OnFinishResult',
+          parameters: [
+            {
+              name: 'finishReason',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'usage',
+              type: 'TokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'TokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'experimental_providerMetadata',
+              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              description:
+                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+            },
+            {
+              name: 'text',
+              type: 'string',
+              description: 'The full text that has been generated.',
+            },
+            {
+              name: 'toolCalls',
+              type: 'ToolCall[]',
+              description: 'The tool calls that have been executed.',
+            },
+            {
+              name: 'toolResults',
+              type: 'ToolResult[]',
+              description: 'The tool results that have been generated.',
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
+              name: 'response',
+              type: 'Response',
+              isOptional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                    {
+                      name: 'headers',
+                      isOptional: true,
+                      type: 'Record<string, string>',
+                      description: 'Optional response headers.',
+                    },
+                    {
+                      name: 'messages',
+                      type: 'Array<CoreAssistantMessage | CoreToolMessage>',
+                      description:
+                        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'steps',
+              type: 'Array<StepResult>',
+              description:
+                'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'finishReason',
+      type: "Promise<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'>",
+      description:
+        'The reason why the generation finished. Resolved when the response is finished.',
+    },
+    {
+      name: 'usage',
+      type: 'Promise<CompletionTokenUsage>',
+      description:
+        'The token usage of the generated text. Resolved when the response is finished.',
+      properties: [
+        {
+          type: 'CompletionTokenUsage',
+          parameters: [
+            {
+              name: 'promptTokens',
+              type: 'number',
+              description: 'The total number of tokens in the prompt.',
+            },
+            {
+              name: 'completionTokens',
+              type: 'number',
+              description: 'The total number of tokens in the completion.',
+            },
+            {
+              name: 'totalTokens',
+              type: 'number',
+              description: 'The total number of tokens generated.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_providerMetadata',
+      type: 'Promise<Record<string,Record<string,JSONValue>> | undefined>',
+      description:
+        'Optional metadata from the provider. Resolved whe the response is finished. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+    },
+    {
+      name: 'responseMessages',
+      type: 'Promise<Array<CoreAssistantMessage | CoreToolMessage>>',
+      description:
+        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately. Resolved when the response is finished.',
+    },
+    {
+      name: 'text',
+      type: 'Promise<string>',
+      description:
+        'The full text that has been generated. Resolved when the response is finished.',
+    },
+    {
+      name: 'toolCalls',
+      type: 'Promise<ToolCall[]>',
+      description:
+        'The tool calls that have been executed. Resolved when the response is finished.',
+    },
+    {
+      name: 'toolResults',
+      type: 'Promise<ToolResult[]>',
+      description:
+        'The tool results that have been generated. Resolved when the all tool executions are finished.',
+    },
+    {
+      name: 'request',
+      type: 'Promise<RequestMetadata>',
+      isOptional: true,
+      description: 'Request metadata.',
+      properties: [
+        {
+          type: 'RequestMetadata',
+          parameters: [
+            {
+              name: 'body',
+              type: 'string',
+              description:
+                'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'response',
+      type: 'Promise<ResponseMetadata>',
+      isOptional: true,
+      description: 'Response metadata. Resolved when the response is finished.',
+      properties: [
+        {
+          type: 'ResponseMetadata',
+          parameters: [
+            {
+              name: 'id',
+              type: 'string',
+              description:
+                'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+            },
+            {
+              name: 'model',
+              type: 'string',
+              description:
+                'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+            },
+            {
+              name: 'timestamp',
+              type: 'Date',
+              description:
+                'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+            },
+            {
+              name: 'headers',
+              isOptional: true,
+              type: 'Record<string, string>',
+              description: 'Optional response headers.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<CoreAssistantMessage | CoreToolMessage>',
+              description:
+                'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'warnings',
+      type: 'Warning[] | undefined',
+      description:
+        'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'steps',
+      type: 'Promise<Array<StepResult>>',
+      description:
+        'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
+      properties: [
+        {
+          type: 'StepResult',
+          parameters: [
+            {
+              name: 'stepType',
+              type: '"initial" | "continue" | "tool-result"',
+              description:
+                'The type of step. The first step is always an "initial" step, and subsequent steps are either "continue" steps or "tool-result" steps.',
+            },
+            {
+              name: 'text',
+              type: 'string',
+              description: 'The generated text by the model.',
+            },
+            {
+              name: 'toolCalls',
+              type: 'array',
+              description: 'A list of tool calls made by the model.',
+            },
+            {
+              name: 'toolResults',
+              type: 'array',
+              description:
+                'A list of tool results returned as responses to earlier tool calls.',
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'usage',
+              type: 'CompletionTokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'CompletionTokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'request',
+              type: 'RequestMetadata',
+              isOptional: true,
+              description: 'Request metadata.',
+              properties: [
+                {
+                  type: 'RequestMetadata',
+                  parameters: [
+                    {
+                      name: 'body',
+                      type: 'string',
+                      description:
+                        'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'response',
+              type: 'ResponseMetadata',
+              isOptional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'ResponseMetadata',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                    {
+                      name: 'headers',
+                      isOptional: true,
+                      type: 'Record<string, string>',
+                      description: 'Optional response headers.',
+                    },
+                    {
+                      name: 'messages',
+                      type: 'Array<CoreAssistantMessage | CoreToolMessage>',
+                      description:
+                        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
+              name: 'isContinued',
+              type: 'boolean',
+              description:
+                'True when there will be a continuation step with a continuation text.',
+            },
+            {
+              name: 'experimental_providerMetadata',
+              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              isOptional: true,
+              description:
+                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'textStream',
+      type: 'AsyncIterable<string> & ReadableStream<string>',
+      description:
+        'A text stream that returns only the generated text deltas. You can use it as either an AsyncIterable or a ReadableStream. When an error occurs, the stream will throw the error.',
+    },
+    {
+      name: 'fullStream',
+      type: 'AsyncIterable<TextStreamPart> & ReadableStream<TextStreamPart>',
+      description:
+        'A stream with all events, including text deltas, tool calls, tool results, and errors. You can use it as either an AsyncIterable or a ReadableStream. Only errors that stop the stream, such as network errors, are thrown.',
+      properties: [
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'text-delta'",
+              description: 'The type to identify the object as text delta.',
+            },
+            {
+              name: 'textDelta',
+              type: 'string',
+              description: 'The text delta.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'tool-call'",
+              description: 'The type to identify the object as tool call.',
+            },
+            {
+              name: 'toolCallId',
+              type: 'string',
+              description: 'The id of the tool call.',
+            },
+            {
+              name: 'toolName',
+              type: 'string',
+              description:
+                'The name of the tool, which typically would be the name of the function.',
+            },
+            {
+              name: 'args',
+              type: 'object based on zod schema',
+              description:
+                'Parameters generated by the model to be used by the tool.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'tool-call-streaming-start'",
+              description:
+                'Indicates the start of a tool call streaming. Only available when streaming tool calls.',
+            },
+            {
+              name: 'toolCallId',
+              type: 'string',
+              description: 'The id of the tool call.',
+            },
+            {
+              name: 'toolName',
+              type: 'string',
+              description:
+                'The name of the tool, which typically would be the name of the function.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'tool-call-delta'",
+              description:
+                'The type to identify the object as tool call delta. Only available when streaming tool calls.',
+            },
+            {
+              name: 'toolCallId',
+              type: 'string',
+              description: 'The id of the tool call.',
+            },
+            {
+              name: 'toolName',
+              type: 'string',
+              description:
+                'The name of the tool, which typically would be the name of the function.',
+            },
+            {
+              name: 'argsTextDelta',
+              type: 'string',
+              description: 'The text delta of the tool call arguments.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          description: 'The result of a tool call execution.',
+          parameters: [
+            {
+              name: 'type',
+              type: "'tool-result'",
+              description: 'The type to identify the object as tool result.',
+            },
+            {
+              name: 'toolCallId',
+              type: 'string',
+              description: 'The id of the tool call.',
+            },
+            {
+              name: 'toolName',
+              type: 'string',
+              description:
+                'The name of the tool, which typically would be the name of the function.',
+            },
+            {
+              name: 'args',
+              type: 'object based on zod schema',
+              description:
+                'Parameters generated by the model to be used by the tool.',
+            },
+            {
+              name: 'result',
+              type: 'any',
+              description:
+                'The result returned by the tool after execution has completed.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'error'",
+              description: 'The type to identify the object as error.',
+            },
+            {
+              name: 'error',
+              type: 'Error',
+              description:
+                'Describes the error that may have occurred during execution.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'step-finish'",
+              description: 'The type to identify the object as step finish.',
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'usage',
+              type: 'TokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'TokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'isContinued',
+              type: 'boolean',
+              description:
+                'True when there will be a continuation step with a continuation text.',
+            },
+            {
+              name: 'response',
+              type: 'Response',
+              isOptional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'finish'",
+              description: 'The type to identify the object as finish.',
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'usage',
+              type: 'TokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'TokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'response',
+              type: 'Response',
+              isOptional: true,
+              description: 'Response metadata.',
+              properties: [
+                {
+                  type: 'Response',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description:
+                        'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'string',
+                      description:
+                        'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
+                    },
+                    {
+                      name: 'timestamp',
+                      type: 'Date',
+                      description:
+                        'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'pipeDataStreamToResponse',
+      type: '(response: ServerResponse, options: PipeDataStreamToResponseOptions } => void',
+      description:
+        'Writes stream data output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each stream data part as a separate chunk.',
+      properties: [
+        {
+          type: 'PipeDataStreamToResponseOptions',
+          parameters: [
+            {
+              name: 'init',
+              type: 'ResponseInit',
+              isOptional: true,
+              description: 'The response init options.',
+              properties: [
+                {
+                  type: 'ResponseInit',
+                  parameters: [
+                    {
+                      name: 'status',
+                      type: 'number',
+                      isOptional: true,
+                      description: 'The response status code.',
+                    },
+                    {
+                      name: 'statusText',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The response status text.',
+                    },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      isOptional: true,
+                      description: 'The response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'data',
+              type: 'StreamData',
+              isOptional: true,
+              description: 'The stream data object.',
+            },
+            {
+              name: 'getErrorMessage',
+              type: '(error: unknown) => string',
+              description:
+                'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
+              isOptional: true,
+            },
+            {
+              name: 'sendUsage',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the usage information in the stream. Defaults to true.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'pipeTextStreamToResponse',
+      type: '(response: ServerResponse, init?: ResponseInit => void',
+      description:
+        'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              isOptional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              isOptional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              isOptional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'toDataStream',
+      type: '(options?: ToDataStreamOptions) => Response',
+      description: 'Converts the result to a data stream.',
+      properties: [
+        {
+          type: 'ToDataStreamOptions',
+          parameters: [
+            {
+              name: 'data',
+              type: 'StreamData',
+              isOptional: true,
+              description: 'The stream data object.',
+            },
+            {
+              name: 'getErrorMessage',
+              type: '(error: unknown) => string',
+              description:
+                'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
+              isOptional: true,
+            },
+            {
+              name: 'sendUsage',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the usage information in the stream. Defaults to true.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'toDataStreamResponse',
+      type: '(options?: ToDataStreamResponseOptions) => Response',
+      description:
+        'Converts the result to a streamed response object with a stream data part stream. It can be used with the `useChat` and `useCompletion` hooks.',
+      properties: [
+        {
+          type: 'ToDataStreamResponseOptions',
+          parameters: [
+            {
+              name: 'init',
+              type: 'ResponseInit',
+              isOptional: true,
+              description: 'The response init options.',
+              properties: [
+                {
+                  type: 'ResponseInit',
+                  parameters: [
+                    {
+                      name: 'status',
+                      type: 'number',
+                      isOptional: true,
+                      description: 'The response status code.',
+                    },
+                    {
+                      name: 'statusText',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The response status text.',
+                    },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      isOptional: true,
+                      description: 'The response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'data',
+              type: 'StreamData',
+              isOptional: true,
+              description: 'The stream data object.',
+            },
+            {
+              name: 'getErrorMessage',
+              type: '(error: unknown) => string',
+              description:
+                'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
+              isOptional: true,
+            },
+            {
+              name: 'sendUsage',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the usage information in the stream. Defaults to true.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'toTextStreamResponse',
+      type: '(init?: ResponseInit) => Response',
+      description:
+        'Creates a simple text stream response. Each text delta is encoded as UTF-8 and sent as a separate chunk. Non-text-delta events are ignored.',
+      properties: [
+        {
+          type: 'ResponseInit',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              isOptional: true,
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              isOptional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              isOptional: true,
+              description: 'The response headers.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+
+## Examples
+
+<ExampleLinks
+  examples={[
+    {
+      title: 'Learn to stream text generated by a language model in Next.js',
+      link: '/examples/next-app/basics/streaming-text-generation',
+    },
+    {
+      title:
+        'Learn to stream chat completions generated by a language model in Next.js',
+      link: '/examples/next-app/chat/stream-chat-completion',
+    },
+    {
+      title: 'Learn to stream text generated by a language model in Node.js',
+      link: '/examples/node/generating-text/stream-text',
+    },
+    {
+      title:
+        'Learn to stream chat completions generated by a language model in Node.js',
+      link: '/examples/node/generating-text/stream-text-with-chat-prompt',
+    },
+  ]}
+/>

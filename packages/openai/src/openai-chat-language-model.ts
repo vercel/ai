@@ -28,6 +28,7 @@ import {
   openaiFailedResponseHandler,
 } from './openai-error';
 import { getResponseMetadata } from './get-response-metadata';
+import { prepareTools } from './openai-prepare-tools';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -60,6 +61,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 
   get defaultObjectGenerationMode() {
+    // audio models don't support structured outputs:
+    if (isAudioModel(this.modelId)) {
+      return 'tool';
+    }
+
     return this.supportsStructuredOutputs ? 'json' : 'tool';
   }
 
@@ -181,16 +187,22 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
+        const { tools, tool_choice, functions, function_call, toolWarnings } =
+          prepareTools({
+            mode,
+            useLegacyFunctionCalling,
+            structuredOutputs: this.settings.structuredOutputs,
+          });
+
         return {
           args: {
             ...baseArgs,
-            ...prepareToolsAndToolChoice({
-              mode,
-              useLegacyFunctionCalling,
-              structuredOutputs: this.settings.structuredOutputs,
-            }),
+            tools,
+            tool_choice,
+            functions,
+            function_call,
           },
-          warnings,
+          warnings: [...warnings, ...toolWarnings],
         };
       }
 
@@ -266,7 +278,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args: body, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -274,7 +286,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: args,
+      body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openAIChatResponseSchema,
@@ -283,7 +295,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
+    const { messages: rawPrompt, ...rawSettings } = body;
     const choice = response.choices[0];
 
     let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
@@ -327,6 +339,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      request: { body: JSON.stringify(body) },
       response: getResponseMetadata(response),
       warnings,
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
@@ -383,22 +396,24 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     const { args, warnings } = this.getArgs(options);
 
+    const body = {
+      ...args,
+      stream: true,
+
+      // only include stream_options when in strict compatibility mode:
+      stream_options:
+        this.config.compatibility === 'strict'
+          ? { include_usage: true }
+          : undefined,
+    };
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-
-        // only include stream_options when in strict compatibility mode:
-        stream_options:
-          this.config.compatibility === 'strict'
-            ? { include_usage: true }
-            : undefined,
-      },
+      body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         openaiChatChunkSchema,
@@ -638,6 +653,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       ),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
+      request: { body: JSON.stringify(body) },
       warnings,
     };
   }
@@ -776,97 +792,10 @@ const openaiChatChunkSchema = z.union([
   openAIErrorDataSchema,
 ]);
 
-function prepareToolsAndToolChoice({
-  mode,
-  useLegacyFunctionCalling = false,
-  structuredOutputs = false,
-}: {
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  };
-  useLegacyFunctionCalling?: boolean;
-  structuredOutputs?: boolean;
-}) {
-  // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
-
-  if (tools == null) {
-    return { tools: undefined, tool_choice: undefined };
-  }
-
-  const toolChoice = mode.toolChoice;
-
-  if (useLegacyFunctionCalling) {
-    const mappedFunctions = tools.map(tool => ({
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-    }));
-
-    if (toolChoice == null) {
-      return { functions: mappedFunctions, function_call: undefined };
-    }
-
-    const type = toolChoice.type;
-
-    switch (type) {
-      case 'auto':
-      case 'none':
-      case undefined:
-        return {
-          functions: mappedFunctions,
-          function_call: undefined,
-        };
-      case 'required':
-        throw new UnsupportedFunctionalityError({
-          functionality: 'useLegacyFunctionCalling and toolChoice: required',
-        });
-      default:
-        return {
-          functions: mappedFunctions,
-          function_call: { name: toolChoice.toolName },
-        };
-    }
-  }
-
-  const mappedTools = tools.map(tool => ({
-    type: 'function',
-    function: {
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-      strict: structuredOutputs === true ? true : undefined,
-    },
-  }));
-
-  if (toolChoice == null) {
-    return { tools: mappedTools, tool_choice: undefined };
-  }
-
-  const type = toolChoice.type;
-
-  switch (type) {
-    case 'auto':
-    case 'none':
-    case 'required':
-      return { tools: mappedTools, tool_choice: type };
-    case 'tool':
-      return {
-        tools: mappedTools,
-        tool_choice: {
-          type: 'function',
-          function: {
-            name: toolChoice.toolName,
-          },
-        },
-      };
-    default: {
-      const _exhaustiveCheck: never = type;
-      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
-    }
-  }
-}
-
 function isReasoningModel(modelId: string) {
   return modelId.startsWith('o1-');
+}
+
+function isAudioModel(modelId: string) {
+  return modelId.startsWith('gpt-4o-audio-preview');
 }

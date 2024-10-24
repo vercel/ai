@@ -60,8 +60,15 @@ export type UseChatHelpers = {
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;
 
-  /** Additional data added on the server via StreamData */
+  /** Additional data added on the server via StreamData. */
   data: Ref<JSONValue[] | undefined>;
+  /** Set the data of the chat. You can use this to transform or clear the chat data. */
+  setData: (
+    data:
+      | JSONValue[]
+      | undefined
+      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+  ) => void;
 
   addToolResult: ({
     toolCallId,
@@ -317,6 +324,19 @@ export function useChat(
     mutate(messagesArg);
   };
 
+  const setData = (
+    dataArg:
+      | JSONValue[]
+      | undefined
+      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+  ) => {
+    if (typeof dataArg === 'function') {
+      dataArg = dataArg(streamData.value as JSONValue[] | undefined);
+    }
+
+    streamData.value = dataArg;
+  };
+
   const input = ref(initialInput);
 
   const handleSubmit = (
@@ -388,6 +408,7 @@ export function useChat(
     handleSubmit,
     isLoading,
     data: streamData as Ref<undefined | JSONValue[]>,
+    setData,
     addToolResult,
   };
 }

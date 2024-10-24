@@ -1,0 +1,649 @@
+---
+title: Chatbot
+description: Learn how to use the useChat hook.
+---
+
+# Chatbot
+
+The `useChat` hook makes it effortless to create a conversational user interface for your chatbot application. It enables the streaming of chat messages from your AI provider, manages the chat state, and updates the UI automatically as new messages arrive.
+
+To summarize, the `useChat` hook provides the following features:
+
+- **Message Streaming**: All the messages from the AI provider are streamed to the chat UI in real-time.
+- **Managed States**: The hook manages the states for input, messages, loading, error and more for you.
+- **Seamless Integration**: Easily integrate your chat AI into any design or layout with minimal effort.
+
+In this guide, you will learn how to use the `useChat` hook to create a chatbot application with real-time message streaming. Let's start with the following example first.
+
+## Example
+
+```tsx filename='app/page.tsx'
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Page() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    keepLastMessageOnError: true,
+  });
+
+  return (
+    <>
+      {messages.map(message => (
+        <div key={message.id}>
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.content}
+        </div>
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <input name="prompt" value={input} onChange={handleInputChange} />
+        <button type="submit">Submit</button>
+      </form>
+    </>
+  );
+}
+```
+
+```ts filename='app/api/chat/route.ts'
+import { openai } from '@ai-sdk/openai';
+import { convertToCoreMessages, streamText } from 'ai';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    system: 'You are a helpful assistant.',
+    messages: convertToCoreMessages(messages),
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+In the `Page` component, the `useChat` hook will request to your AI provider endpoint whenever the user submits a message.
+The messages are then streamed back in real-time and displayed in the chat UI.
+
+This enables a seamless chat experience where the user can see the AI response as soon as it is available,
+without having to wait for the entire response to be received.
+
+<Note>
+  `useChat` has a `keepLastMessageOnError` option that defaults to `false`. This
+  option can be enabled to keep the last message on error. We will make this the
+  default behavior in the next major release. Please enable it and update your
+  error handling/resubmit behavior.
+</Note>
+
+## Customized UI
+
+`useChat` also provides ways to manage the chat message and input states via code, show loading and error states, and update messages without being triggered by user interactions.
+
+### Loading State
+
+The `isLoading` state returned by the `useChat` hook can be used for several
+purposes
+
+- To show a loading spinner while the chatbot is processing the user's message.
+- To show a "Stop" button to abort the current message.
+- To disable the submit button.
+
+```tsx filename='app/page.tsx' highlight="6,20-27,34"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Page() {
+  const { messages, input, handleInputChange, handleSubmit, isLoading, stop } =
+    useChat({
+      keepLastMessageOnError: true,
+    });
+
+  return (
+    <>
+      {messages.map(message => (
+        <div key={message.id}>
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.content}
+        </div>
+      ))}
+
+      {isLoading && (
+        <div>
+          <Spinner />
+          <button type="button" onClick={() => stop()}>
+            Stop
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          name="prompt"
+          value={input}
+          onChange={handleInputChange}
+          disabled={isLoading}
+        />
+        <button type="submit">Submit</button>
+      </form>
+    </>
+  );
+}
+```
+
+### Error State
+
+Similarly, the `error` state reflects the error object thrown during the fetch request.
+It can be used to display an error message, disable the submit button, or show a retry button:
+
+<Note>
+  We recommend showing a generic error message to the user, such as "Something
+  went wrong." This is a good practice to avoid leaking information from the
+  server.
+</Note>
+
+```tsx file="app/page.tsx" highlight="6,18-25,31"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit, error, reload } =
+    useChat({
+      keepLastMessageOnError: true,
+    });
+
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role}: {m.content}
+        </div>
+      ))}
+
+      {error && (
+        <>
+          <div>An error occurred.</div>
+          <button type="button" onClick={() => reload()}>
+            Retry
+          </button>
+        </>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          value={input}
+          onChange={handleInputChange}
+          disabled={error != null}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+Please also see the [error handling](/docs/ai-sdk-ui/error-handling) guide for more information.
+
+### Modify messages
+
+Sometimes, you may want to directly modify some existing messages. For example, a delete button can be added to each message to allow users to remove them from the chat history.
+
+The `setMessages` function can help you achieve these tasks:
+
+```tsx
+const { messages, setMessages, ... } = useChat()
+
+const handleDelete = (id) => {
+  setMessages(messages.filter(message => message.id !== id))
+}
+
+return <>
+  {messages.map(message => (
+    <div key={message.id}>
+      {message.role === 'user' ? 'User: ' : 'AI: '}
+      {message.content}
+      <button onClick={() => handleDelete(message.id)}>Delete</button>
+    </div>
+  ))}
+  ...
+```
+
+You can think of `messages` and `setMessages` as a pair of `state` and `setState` in React.
+
+### Controlled input
+
+In the initial example, we have `handleSubmit` and `handleInputChange` callbacks that manage the input changes and form submissions. These are handy for common use cases, but you can also use uncontrolled APIs for more advanced scenarios such as form validation or customized components.
+
+The following example demonstrates how to use more granular APIs like `setInput` and `append` with your custom input and submit button components:
+
+```tsx
+const { input, setInput, append } = useChat()
+
+return <>
+  <MyCustomInput value={input} onChange={value => setInput(value)} />
+  <MySubmitButton onClick={() => {
+    // Send a new message to the AI provider
+    append({
+      role: 'user',
+      content: input,
+    })
+  }}/>
+  ...
+```
+
+### Cancelation and regeneration
+
+It's also a common use case to abort the response message while it's still streaming back from the AI provider. You can do this by calling the `stop` function returned by the `useChat` hook.
+
+```tsx
+const { stop, isLoading, ... } = useChat()
+
+return <>
+  <button onClick={stop} disabled={!isLoading}>Stop</button>
+  ...
+```
+
+When the user clicks the "Stop" button, the fetch request will be aborted. This avoids consuming unnecessary resources and improves the UX of your chatbot application.
+
+Similarly, you can also request the AI provider to reprocess the last message by calling the `reload` function returned by the `useChat` hook:
+
+```tsx
+const { reload, isLoading, ... } = useChat()
+
+return <>
+  <button onClick={reload} disabled={isLoading}>Regenerate</button>
+  ...
+</>
+```
+
+When the user clicks the "Regenerate" button, the AI provider will regenerate the last message and replace the current one correspondingly.
+
+## Event Callbacks
+
+`useChat` provides optional event callbacks that you can use to handle different stages of the chatbot lifecycle:
+
+- `onFinish`: Called when the assistant message is completed
+- `onError`: Called when an error occurs during the fetch request.
+- `onResponse`: Called when the response from the API is received.
+
+These callbacks can be used to trigger additional actions, such as logging, analytics, or custom UI updates.
+
+```tsx
+import { Message } from 'ai/react';
+
+const {
+  /* ... */
+} = useChat({
+  onFinish: (message, { usage, finishReason }) => {
+    console.log('Finished streaming message:', message);
+    console.log('Token usage:', usage);
+    console.log('Finish reason:', finishReason);
+  },
+  onError: error => {
+    console.error('An error occurred:', error);
+  },
+  onResponse: response => {
+    console.log('Received HTTP response from server:', response);
+  },
+});
+```
+
+It's worth noting that you can abort the processing by throwing an error in the `onResponse` callback. This will trigger the `onError` callback and stop the message from being appended to the chat UI. This can be useful for handling unexpected responses from the AI provider.
+
+## Request Configuration
+
+### Custom headers, body, and credentials
+
+By default, the `useChat` hook sends a HTTP POST request to the `/api/chat` endpoint with the message list as the request body. You can customize the request by passing additional options to the `useChat` hook:
+
+```tsx
+const { messages, input, handleInputChange, handleSubmit } = useChat({
+  api: '/api/custom-chat',
+  headers: {
+    Authorization: 'your_token',
+  },
+  body: {
+    user_id: '123',
+  },
+  credentials: 'same-origin',
+});
+```
+
+In this example, the `useChat` hook sends a POST request to the `/api/custom-chat` endpoint with the specified headers, additional body fields, and credentials for that fetch request. On your server side, you can handle the request with these additional information.
+
+### Setting custom body fields per request
+
+You can configure custom `body` fields on a per-request basis using the `body` option of the `handleSubmit` function.
+This is useful if you want to pass in additional information to your backend that is not part of the message list.
+
+```tsx filename="app/page.tsx" highlight="18-20"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role}: {m.content}
+        </div>
+      ))}
+
+      <form
+        onSubmit={event => {
+          handleSubmit(event, {
+            body: {
+              customKey: 'customValue',
+            },
+          });
+        }}
+      >
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
+
+You can retrieve these custom fields on your server side by destructuring the request body:
+
+```ts filename="app/api/chat/route.ts" highlight="3"
+export async function POST(req: Request) {
+  // Extract addition information ("customKey") from the body of the request:
+  const { messages, customKey } = await req.json();
+  //...
+}
+```
+
+## Controlling the response stream
+
+With `streamText`, you can control how error messages and usage information are sent back to the client.
+
+### Error Messages
+
+By default, the error message is suppressed for security reasons. You can forward it or send your own error message by providing a `getErrorMessage` function:
+
+```ts filename="app/api/chat/route.ts" highlight="13-27"
+import { openai } from '@ai-sdk/openai';
+import { convertToCoreMessages, streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    messages: convertToCoreMessages(messages),
+  });
+
+  return result.toDataStreamResponse({
+    getErrorMessage: error => {
+      if (error == null) {
+        return 'unknown error';
+      }
+
+      if (typeof error === 'string') {
+        return error;
+      }
+
+      if (error instanceof Error) {
+        return error.message;
+      }
+
+      return JSON.stringify(error);
+    },
+  });
+}
+```
+
+### Usage Information
+
+By default, the usage information is sent back to the client. You can disable it by setting the `sendUsage` option to `false`:
+
+```ts filename="app/api/chat/route.ts" highlight="13"
+import { openai } from '@ai-sdk/openai';
+import { convertToCoreMessages, streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    messages: convertToCoreMessages(messages),
+  });
+
+  return result.toDataStreamResponse({
+    sendUsage: false,
+  });
+}
+```
+
+### Text Streams
+
+`useChat` can handle plain text streams by setting the `streamProtocol` option to `text`:
+
+```tsx filename="app/page.tsx" highlight="7"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages } = useChat({
+    streamProtocol: 'text',
+  });
+
+  return <>...</>;
+}
+```
+
+This configuration also works with other backend servers that stream plain text.
+Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more information.
+
+<Note>
+  When using `streamProtocol: 'text'`, tool calls, usage information and finish
+  reasons are not available.
+</Note>
+
+## Empty Submissions
+
+You can configure the `useChat` hook to allow empty submissions by setting the `allowEmptySubmit` option to `true`.
+
+```tsx filename="app/page.tsx" highlight="18"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role}: {m.content}
+        </div>
+      ))}
+
+      <form
+        onSubmit={event => {
+          handleSubmit(event, {
+            allowEmptySubmit: true,
+          });
+        }}
+      >
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
+
+## Attachments (Experimental)
+
+The `useChat` hook supports sending attachments along with a message as well as rendering them on the client. This can be useful for building applications that involve sending images, files, or other media content to the AI provider.
+
+> **Note:** Attachments is currently only available for React frameworks.
+
+There are two ways to send attachments with a message, either by providing a `FileList` object or a list of URLs to the `handleSubmit` function:
+
+### FileList
+
+By using `FileList`, you can send multiple files as attachments along with a message using the file input element. The `useChat` hook will automatically convert them into data URLs and send them to the AI provider.
+
+> **Note:** Currently, only `image/*` and `text/*` content types get automatically converted into [multi-modal content parts](https://sdk.vercel.ai/docs/foundations/prompts#multi-modal-messages). You will need to handle other content types manually.
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from 'ai/react';
+import { useRef, useState } from 'react';
+
+export default function Page() {
+  const { messages, input, handleSubmit, handleInputChange, isLoading } =
+    useChat();
+
+  const [files, setFiles] = useState<FileList | undefined>(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div>
+      <div>
+        {messages.map(message => (
+          <div key={message.id}>
+            <div>{`${message.role}: `}</div>
+
+            <div>
+              {message.content}
+
+              <div>
+                {message.experimental_attachments
+                  ?.filter(attachment =>
+                    attachment.contentType.startsWith('image/'),
+                  )
+                  .map((attachment, index) => (
+                    <img
+                      key={`${message.id}-${index}`}
+                      src={attachment.url}
+                      alt={attachment.name}
+                    />
+                  ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <form
+        onSubmit={event => {
+          handleSubmit(event, {
+            experimental_attachments: files,
+          });
+
+          setFiles(undefined);
+
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }}
+      >
+        <input
+          type="file"
+          onChange={event => {
+            if (event.target.files) {
+              setFiles(event.target.files);
+            }
+          }}
+          multiple
+          ref={fileInputRef}
+        />
+        <input
+          value={input}
+          placeholder="Send message..."
+          onChange={handleInputChange}
+          disabled={isLoading}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+### URLs
+
+You can also send URLs as attachments along with a message. This can be useful for sending links to external resources or media content.
+
+> **Note:** The URL can also be a data URL, which is a base64-encoded string that represents the content of a file. Currently, only `image/*` content types get automatically converted into [multi-modal content parts](https://sdk.vercel.ai/docs/foundations/prompts#multi-modal-messages). You will need to handle other content types manually.
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from 'ai/react';
+import { useState } from 'react';
+import { Attachment } from '@ai-sdk/ui-utils';
+
+export default function Page() {
+  const { messages, input, handleSubmit, handleInputChange, isLoading } =
+    useChat();
+
+  const [attachments] = useState<Attachment[]>([
+    {
+      name: 'earth.png',
+      contentType: 'image/png',
+      url: 'https://example.com/earth.png',
+    },
+    {
+      name: 'moon.png',
+      contentType: 'image/png',
+      url: 'data:image/png;base64,iVBORw0KGgo...',
+    },
+  ]);
+
+  return (
+    <div>
+      <div>
+        {messages.map(message => (
+          <div key={message.id}>
+            <div>{`${message.role}: `}</div>
+
+            <div>
+              {message.content}
+
+              <div>
+                {message.experimental_attachments
+                  ?.filter(attachment =>
+                    attachment.contentType?.startsWith('image/'),
+                  )
+                  .map((attachment, index) => (
+                    <img
+                      key={`${message.id}-${index}`}
+                      src={attachment.url}
+                      alt={attachment.name}
+                    />
+                  ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <form
+        onSubmit={event => {
+          handleSubmit(event, {
+            experimental_attachments: attachments,
+          });
+        }}
+      >
+        <input
+          value={input}
+          placeholder="Send message..."
+          onChange={handleInputChange}
+          disabled={isLoading}
+        />
+      </form>
+    </div>
+  );
+}
+```

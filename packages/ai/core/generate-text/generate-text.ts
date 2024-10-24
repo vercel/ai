@@ -4,14 +4,11 @@ import { InvalidArgumentError } from '../../errors';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
-import {
-  convertToLanguageModelMessage,
-  convertToLanguageModelPrompt,
-} from '../prompt/convert-to-language-model-prompt';
+import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
-import { validatePrompt } from '../prompt/validate-prompt';
+import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -29,10 +26,10 @@ import { GenerateTextResult } from './generate-text-result';
 import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
-import { ToToolCallArray } from './tool-call';
-import { ToToolResultArray } from './tool-result';
+import { ToolCallArray } from './tool-call';
+import { ToolResultArray } from './tool-result';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aitxt-', size: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -98,6 +95,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
     false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
+  experimental_activeTools: activeTools,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -176,6 +174,12 @@ functionality that can be fully encapsulated in the provider.
     experimental_providerMetadata?: ProviderMetadata;
 
     /**
+Limits the tools that are available for the model to call without
+changing the tool call and result types in the result.
+     */
+    experimental_activeTools?: Array<keyof TOOLS>;
+
+    /**
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
     onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
@@ -203,7 +207,10 @@ functionality that can be fully encapsulated in the provider.
     settings: { ...settings, maxRetries },
   });
 
-  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  const initialPrompt = standardizePrompt({ system, prompt, messages });
+
+  const tracer = getTracer(telemetry);
+
   return recordSpan({
     name: 'ai.generateText',
     attributes: selectTelemetryAttributes({
@@ -224,27 +231,19 @@ functionality that can be fully encapsulated in the provider.
     tracer,
     fn: async span => {
       const retry = retryWithExponentialBackoff({ maxRetries });
-      const validatedPrompt = validatePrompt({
-        system,
-        prompt,
-        messages,
-      });
 
       const mode = {
         type: 'regular' as const,
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
+        ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
       };
+
       const callSettings = prepareCallSettings(settings);
-      const promptMessages = await convertToLanguageModelPrompt({
-        prompt: validatedPrompt,
-        modelSupportsImageUrls: model.supportsImageUrls,
-      });
 
       let currentModelResponse: Awaited<
         ReturnType<LanguageModel['doGenerate']>
       > & { response: { id: string; timestamp: Date; modelId: string } };
-      let currentToolCalls: ToToolCallArray<TOOLS> = [];
-      let currentToolResults: ToToolResultArray<TOOLS> = [];
+      let currentToolCalls: ToolCallArray<TOOLS> = [];
+      let currentToolResults: ToolResultArray<TOOLS> = [];
       let stepCount = 0;
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
@@ -259,9 +258,22 @@ functionality that can be fully encapsulated in the provider.
       let stepType: 'initial' | 'tool-result' | 'continue' | 'done' = 'initial';
 
       do {
-        // once we have a 2nd step, we need to switch to messages format:
-        const currentInputFormat =
-          stepCount === 0 ? validatedPrompt.type : 'messages';
+        if (stepCount === 1) {
+          initialPrompt.type = 'messages';
+        }
+
+        // after the 1st step, we need to switch to messages format:
+        const promptFormat = stepCount === 0 ? initialPrompt.type : 'messages';
+
+        const promptMessages = await convertToLanguageModelPrompt({
+          prompt: {
+            type: promptFormat,
+            system: initialPrompt.system,
+            messages: [...initialPrompt.messages, ...responseMessages],
+          },
+          modelSupportsImageUrls: model.supportsImageUrls,
+          modelSupportsUrl: model.supportsUrl,
+        });
 
         currentModelResponse = await retry(() =>
           recordSpan({
@@ -274,7 +286,7 @@ functionality that can be fully encapsulated in the provider.
                   telemetry,
                 }),
                 ...baseTelemetryAttributes,
-                'ai.prompt.format': { input: () => currentInputFormat },
+                'ai.prompt.format': { input: () => promptFormat },
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
                 },
@@ -296,7 +308,7 @@ functionality that can be fully encapsulated in the provider.
               const result = await model.doGenerate({
                 mode,
                 ...callSettings,
-                inputFormat: currentInputFormat,
+                inputFormat: promptFormat,
                 prompt: promptMessages,
                 providerMetadata,
                 abortSignal,
@@ -368,6 +380,7 @@ functionality that can be fully encapsulated in the provider.
                 tools,
                 tracer,
                 telemetry,
+                abortSignal,
               });
 
         // token usage:
@@ -410,8 +423,35 @@ functionality that can be fully encapsulated in the provider.
             ? text + stepText
             : stepText;
 
-        // Add step information:
-        const currentStep: StepResult<TOOLS> = {
+        // append to messages for potential next step:
+        if (stepType === 'continue') {
+          // continue step: update the last assistant message
+          // continue is only possible when there are no tool calls,
+          // so we can assume that there is a single last assistant message:
+          const lastMessage = responseMessages[
+            responseMessages.length - 1
+          ] as CoreAssistantMessage;
+
+          if (typeof lastMessage.content === 'string') {
+            lastMessage.content = text;
+          } else {
+            lastMessage.content.push({
+              text: stepText,
+              type: 'text',
+            });
+          }
+        } else {
+          responseMessages.push(
+            ...toResponseMessages({
+              text,
+              toolCalls: currentToolCalls,
+              toolResults: currentToolResults,
+            }),
+          );
+        }
+
+        // Add step information (after response messages are updated):
+        const currentStepResult: StepResult<TOOLS> = {
           stepType,
           text: stepText,
           toolCalls: currentToolCalls,
@@ -420,64 +460,19 @@ functionality that can be fully encapsulated in the provider.
           usage: currentUsage,
           warnings: currentModelResponse.warnings,
           logprobs: currentModelResponse.logprobs,
+          request: currentModelResponse.request ?? {},
           response: {
             ...currentModelResponse.response,
             headers: currentModelResponse.rawResponse?.headers,
+
+            // deep clone msgs to avoid mutating past messages in multi-step:
+            messages: JSON.parse(JSON.stringify(responseMessages)),
           },
           experimental_providerMetadata: currentModelResponse.providerMetadata,
           isContinued: nextStepType === 'continue',
         };
-        steps.push(currentStep);
-        await onStepFinish?.(currentStep);
-
-        // append to messages for potential next step:
-        if (stepType === 'continue') {
-          // continue step: update the last assistant message
-          // continue is only possible when there are no tool calls,
-          // so we can assume that there is a single last assistant message:
-          const lastResponseMessage =
-            responseMessages.pop() as CoreAssistantMessage;
-          promptMessages.pop();
-          if (typeof lastResponseMessage.content === 'string') {
-            lastResponseMessage.content = text;
-          } else {
-            lastResponseMessage.content.push({
-              text: stepText,
-              type: 'text',
-            });
-          }
-          responseMessages.push(lastResponseMessage);
-          promptMessages.push(
-            convertToLanguageModelMessage(lastResponseMessage, null),
-          );
-        } else if (nextStepType === 'continue') {
-          const newResponseMessages = toResponseMessages({
-            text,
-            toolCalls: currentToolCalls,
-            toolResults: currentToolResults,
-          });
-
-          responseMessages.push(...newResponseMessages);
-          promptMessages.push(
-            ...newResponseMessages.map(message =>
-              convertToLanguageModelMessage(message, null),
-            ),
-          );
-        } else {
-          // next step is either done or tool-result:
-          const newResponseMessages = toResponseMessages({
-            text: currentModelResponse.text,
-            toolCalls: currentToolCalls,
-            toolResults: currentToolResults,
-          });
-
-          responseMessages.push(...newResponseMessages);
-          promptMessages.push(
-            ...newResponseMessages.map(message =>
-              convertToLanguageModelMessage(message, null),
-            ),
-          );
-        }
+        steps.push(currentStepResult);
+        await onStepFinish?.(currentStepResult);
 
         stepType = nextStepType;
       } while (stepType !== 'done');
@@ -518,9 +513,11 @@ functionality that can be fully encapsulated in the provider.
         finishReason: currentModelResponse.finishReason,
         usage,
         warnings: currentModelResponse.warnings,
+        request: currentModelResponse.request ?? {},
         response: {
           ...currentModelResponse.response,
           headers: currentModelResponse.rawResponse?.headers,
+          messages: responseMessages,
         },
         logprobs: currentModelResponse.logprobs,
         responseMessages,
@@ -536,12 +533,14 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   tools,
   tracer,
   telemetry,
+  abortSignal,
 }: {
-  toolCalls: ToToolCallArray<TOOLS>;
+  toolCalls: ToolCallArray<TOOLS>;
   tools: TOOLS;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
-}): Promise<ToToolResultArray<TOOLS>> {
+  abortSignal: AbortSignal | undefined;
+}): Promise<ToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(
     toolCalls.map(async toolCall => {
       const tool = tools[toolCall.toolName];
@@ -568,7 +567,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         }),
         tracer,
         fn: async span => {
-          const result = await tool.execute!(toolCall.args);
+          const result = await tool.execute!(toolCall.args, { abortSignal });
 
           try {
             span.setAttributes(
@@ -597,7 +596,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         toolName: toolCall.toolName,
         args: toolCall.args,
         result,
-      } as ToToolResultArray<TOOLS>[number];
+      } as ToolResultArray<TOOLS>[number];
     }),
   );
 
@@ -622,7 +621,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
   readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
   readonly experimental_providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
   readonly response: GenerateTextResult<TOOLS>['response'];
-
+  readonly request: GenerateTextResult<TOOLS>['request'];
   constructor(options: {
     text: GenerateTextResult<TOOLS>['text'];
     toolCalls: GenerateTextResult<TOOLS>['toolCalls'];
@@ -635,6 +634,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     steps: GenerateTextResult<TOOLS>['steps'];
     providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
     response: GenerateTextResult<TOOLS>['response'];
+    request: GenerateTextResult<TOOLS>['request'];
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -642,6 +642,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
+    this.request = options.request;
     this.response = options.response;
     this.responseMessages = options.responseMessages;
     this.roundtrips = options.steps;

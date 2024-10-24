@@ -42,6 +42,7 @@ export const experimental_wrapLanguageModel = ({
 
     defaultObjectGenerationMode: model.defaultObjectGenerationMode,
     supportsImageUrls: model.supportsImageUrls,
+    supportsUrl: model.supportsUrl,
     supportsStructuredOutputs: model.supportsStructuredOutputs,
 
     async doGenerate(

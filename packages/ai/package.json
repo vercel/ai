@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "3.4.9",
+  "version": "3.4.19",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -83,20 +83,19 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.24",
-    "@ai-sdk/provider-utils": "1.0.20",
-    "@ai-sdk/react": "0.0.62",
-    "@ai-sdk/solid": "0.0.49",
-    "@ai-sdk/svelte": "0.0.51",
-    "@ai-sdk/ui-utils": "0.0.46",
-    "@ai-sdk/vue": "0.0.54",
+    "@ai-sdk/provider": "0.0.25",
+    "@ai-sdk/provider-utils": "1.0.21",
+    "@ai-sdk/react": "0.0.65",
+    "@ai-sdk/solid": "0.0.51",
+    "@ai-sdk/svelte": "0.0.53",
+    "@ai-sdk/ui-utils": "0.0.47",
+    "@ai-sdk/vue": "0.0.56",
     "@opentelemetry/api": "1.9.0",
     "eventsource-parser": "1.1.2",
     "jsondiffpatch": "0.6.0",
-    "json-schema": "0.4.0",
-    "nanoid": "3.3.6",
-    "secure-json-parse": "2.7.0",
-    "zod-to-json-schema": "3.23.2"
+    "json-schema": "^0.4.0",
+    "secure-json-parse": "^2.7.0",
+    "zod-to-json-schema": "^3.23.3"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.18.0",

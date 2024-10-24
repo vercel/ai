@@ -1,5 +1,24 @@
 # @ai-sdk/react
 
+## 0.0.65
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.21
+- @ai-sdk/ui-utils@0.0.47
+
+## 0.0.64
+
+### Patch Changes
+
+- 98a3b08: fix (ui/react): fix callback dependency
+
+## 0.0.63
+
+### Patch Changes
+
+- caedcda: feat (ai/ui): add setData helper to useChat
+
 ## 0.0.62
 
 ### Patch Changes

@@ -3,14 +3,17 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
-import { MistralChatPrompt } from './mistral-chat-prompt';
+import { MistralPrompt } from './mistral-chat-prompt';
 
 export function convertToMistralChatMessages(
   prompt: LanguageModelV1Prompt,
-): MistralChatPrompt {
-  const messages: MistralChatPrompt = [];
+): MistralPrompt {
+  const messages: MistralPrompt = [];
 
-  for (const { role, content } of prompt) {
+  for (let i = 0; i < prompt.length; i++) {
+    const { role, content } = prompt[i];
+    const isLastMessage = i === prompt.length - 1;
+
     switch (role) {
       case 'system': {
         messages.push({ role: 'system', content });
@@ -82,6 +85,7 @@ export function convertToMistralChatMessages(
         messages.push({
           role: 'assistant',
           content: text,
+          prefix: isLastMessage ? true : undefined,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 

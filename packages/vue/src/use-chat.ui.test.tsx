@@ -21,7 +21,7 @@ import TestChatFormOptionsComponent from './TestChatFormOptionsComponent.vue';
 import TestChatReloadComponent from './TestChatReloadComponent.vue';
 import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
 
-describe('stream data stream', () => {
+describe('data protocol stream', () => {
   beforeEach(() => {
     render(TestChatComponent);
   });
@@ -61,6 +61,37 @@ describe('stream data stream', () => {
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+  });
+
+  describe('setData', () => {
+    it('should set data', async () => {
+      await userEvent.click(screen.getByTestId('do-set-data'));
+
+      await screen.findByTestId('data');
+      expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"set"}]');
+    });
+
+    it(
+      'should clear data',
+      withTestServer(
+        {
+          type: 'stream-values',
+          url: '/api/chat',
+          content: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
+        },
+        async () => {
+          await userEvent.click(screen.getByTestId('do-append'));
+
+          await screen.findByTestId('data');
+          expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
+
+          await userEvent.click(screen.getByTestId('do-clear-data'));
+
+          await screen.findByTestId('data');
+          expect(screen.getByTestId('data')).toHaveTextContent('');
+        },
+      ),
+    );
   });
 
   it('should show error response', async () => {

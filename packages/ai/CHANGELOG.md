@@ -1,5 +1,80 @@
 # ai
 
+## 3.4.19
+
+### Patch Changes
+
+- b9b0d7b: feat (ai): access raw request body
+- Updated dependencies [b9b0d7b]
+  - @ai-sdk/provider@0.0.25
+  - @ai-sdk/provider-utils@1.0.21
+  - @ai-sdk/ui-utils@0.0.47
+  - @ai-sdk/react@0.0.65
+  - @ai-sdk/solid@0.0.51
+  - @ai-sdk/svelte@0.0.53
+  - @ai-sdk/vue@0.0.56
+
+## 3.4.18
+
+### Patch Changes
+
+- 95c67b4: fix (ai/core): handle tool calls without results in message conversion
+
+## 3.4.17
+
+### Patch Changes
+
+- e4ff512: fix (core): prevent unnecessary input/output serialization when telemetry is not enabled
+
+## 3.4.16
+
+### Patch Changes
+
+- 01dcc44: feat (ai/core): add experimental activeTools option to generateText and streamText
+
+## 3.4.15
+
+### Patch Changes
+
+- Updated dependencies [98a3b08]
+  - @ai-sdk/react@0.0.64
+
+## 3.4.14
+
+### Patch Changes
+
+- e930f40: feat (ai/core): expose core tool result and tool call types
+
+## 3.4.13
+
+### Patch Changes
+
+- fc39158: fix (ai/core): add abortSignal to tool helper function
+
+## 3.4.12
+
+### Patch Changes
+
+- a23da5b: feat (ai/core): forward abort signal to tools
+
+## 3.4.11
+
+### Patch Changes
+
+- caedcda: feat (ai/ui): add setData helper to useChat
+- Updated dependencies [caedcda]
+  - @ai-sdk/svelte@0.0.52
+  - @ai-sdk/react@0.0.63
+  - @ai-sdk/solid@0.0.50
+  - @ai-sdk/vue@0.0.55
+
+## 3.4.10
+
+### Patch Changes
+
+- 0b557d7: feat (ai/core): add tracer option to telemetry settings
+- 44f6bc5: feat (ai/core): expose StepResult type
+
 ## 3.4.9
 
 ### Patch Changes

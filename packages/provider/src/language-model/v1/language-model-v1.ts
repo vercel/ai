@@ -67,6 +67,15 @@ Defaults to `false`.
   readonly supportsStructuredOutputs?: boolean;
 
   /**
+Checks if the model supports the given URL for file parts natively.
+If the model does not support the URL,
+the AI SDK will download the file and pass the file data to the model.
+
+When undefined, the AI SDK will download the file.
+   */
+  supportsUrl?(url: URL): boolean;
+
+  /**
 Generates a language model output (non-streaming).
 
 Naming: "do" prefix to prevent accidental direct usage of the method
@@ -101,6 +110,7 @@ Finish reason.
     /**
 Raw prompt and setting information for observability provider integration.
      */
+    // TODO remove in v2 (there is now request)
     rawCall: {
       /**
 Raw prompt after expansion and conversion to the format that the
@@ -126,6 +136,20 @@ Response headers.
       headers?: Record<string, string>;
     };
 
+    /**
+Optional request information for telemetry and debugging purposes.
+     */
+    request?: {
+      /**
+Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
+Non-HTTP(s) providers should not set this.
+       */
+      body?: string;
+    };
+
+    /**
+Optional response information for telemetry and debugging purposes.
+     */
     response?: {
       /**
 ID for the generated response, if the provider sends one.
@@ -175,6 +199,7 @@ by the user.
     /**
 Raw prompt and setting information for observability provider integration.
      */
+    // TODO remove in v2 (there is now request)
     rawCall: {
       /**
 Raw prompt after expansion and conversion to the format that the
@@ -192,11 +217,23 @@ settings.
     /**
 Optional raw response data.
      */
+    // TODO rename to response in v2
     rawResponse?: {
       /**
 Response headers.
        */
       headers?: Record<string, string>;
+    };
+
+    /**
+Optional request information for telemetry and debugging purposes.
+     */
+    request?: {
+      /**
+Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
+Non-HTTP(s) providers should not set this.
+   */
+      body?: string;
     };
 
     warnings?: LanguageModelV1CallWarning[];

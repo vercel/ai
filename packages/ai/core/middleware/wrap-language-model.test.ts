@@ -149,3 +149,32 @@ it('should call wrapStream middleware', async () => {
     model: mockModel,
   });
 });
+
+it('should pass through empty supportsUrl', async () => {
+  const mockModel = new MockLanguageModelV1({
+    doGenerate: vi.fn().mockResolvedValue('mock result'),
+  });
+
+  const wrappedModel = experimental_wrapLanguageModel({
+    model: mockModel,
+    middleware: {},
+  });
+
+  expect(wrappedModel.supportsUrl).toBeUndefined();
+});
+
+it('should pass through supportsUrl when it is defined on the model', async () => {
+  const mockModel = new MockLanguageModelV1({
+    doGenerate: vi.fn().mockResolvedValue('mock result'),
+    supportsUrl: vi.fn().mockReturnValue(true),
+  });
+
+  const wrappedModel = experimental_wrapLanguageModel({
+    model: mockModel,
+    middleware: {},
+  });
+
+  expect(
+    wrappedModel.supportsUrl?.(new URL('https://example.com/test.jpg')),
+  ).toBe(true);
+});

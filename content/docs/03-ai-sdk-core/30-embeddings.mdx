@@ -87,6 +87,58 @@ const { embedding, usage } = await embed({
 console.log(usage); // { tokens: 10 }
 ```
 
+## Settings
+
+### Retries
+
+Both `embed` and `embedMany` accept an optional `maxRetries` parameter of type `number`
+that you can use to set the maximum number of retries for the embedding process.
+It defaults to `2` retries (3 attempts in total). You can set it to `0` to disable retries.
+
+```ts highlight={"7"}
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: openai.embedding('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+  maxRetries: 0, // Disable retries
+});
+```
+
+### Abort Signals and Timeouts
+
+Both `embed` and `embedMany` accept an optional `abortSignal` parameter of
+type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
+that you can use to abort the embedding process or set a timeout.
+
+```ts highlight={"7"}
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: openai.embedding('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+  abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
+});
+```
+
+### Custom Headers
+
+Both `embed` and `embedMany` accept an optional `headers` parameter of type `Record<string, string>`
+that you can use to add custom headers to the embedding request.
+
+```ts highlight={"7"}
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: openai.embedding('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+  headers: { 'X-Custom-Header': 'custom-value' },
+});
+```
+
 ## Embedding Providers & Models
 
 Several providers offer embedding models:
@@ -105,3 +157,5 @@ Several providers offer embedding models:
 | [Cohere](/providers/ai-sdk-providers/cohere#embedding-models)                             | `embed-english-v2.0`            | 4096                 |
 | [Cohere](/providers/ai-sdk-providers/cohere#embedding-models)                             | `embed-english-light-v2.0`      | 1024                 |
 | [Cohere](/providers/ai-sdk-providers/cohere#embedding-models)                             | `embed-multilingual-v2.0`       | 768                  |
+| [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock#embedding-models)             | `amazon.titan-embed-text-v1`    | 1024                 |
+| [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock#embedding-models)             | `amazon.titan-embed-text-v2:0`  | 1024                 |

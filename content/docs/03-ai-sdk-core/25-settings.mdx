@@ -90,6 +90,19 @@ Maximum number of retries. Set to 0 to disable retries. Default: `2`.
 
 An optional abort signal that can be used to cancel the call.
 
+The abort signal can e.g. be forwarded from a user interface to cancel the call,
+or to define a timeout.
+
+#### Example: Timeout
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+  abortSignal: AbortSignal.timeout(5000), // 5 seconds
+});
+```
+
 ### `headers`
 
 Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
@@ -103,7 +116,7 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: openai('gpt-3.5-turbo'),
+  model: openai('gpt-4o'),
   prompt: 'Invent a new holiday and describe its traditions.',
   headers: {
     'Prompt-Id': 'my-prompt-id',

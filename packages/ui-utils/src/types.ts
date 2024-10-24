@@ -188,6 +188,7 @@ Text content of the message.
     | 'tool'; // @deprecated
 
   /**
+   * @deprecated
    *
    * If the message has a role of `function`, the `name` field is the name of the function.
    * Otherwise, the name field should not be set.

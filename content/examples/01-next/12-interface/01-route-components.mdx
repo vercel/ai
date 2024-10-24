@@ -1,0 +1,120 @@
+---
+title: Route Components
+description: Learn to route components using the AI SDK in your Next.js App Router application
+---
+
+# Route Components
+
+Language models can call external tools to enhance responses beyond plain text. For weather queries, a React weather component could replace a text-only answer. This approach enables richer, interactive outputs. By combining AI language understanding with custom UI elements, we can create more useful and engaging interfaces. The key is thoughtfully matching user needs to appropriate visual or interactive components.
+
+Let's create a weather tool that fetches weather data for a given location and returns the result as props for our React component.
+
+```ts filename="@/app/api/chat/route.ts"
+import { z } from 'zod';
+import { openai } from '@ai-sdk/openai';
+import { getWeather } from '@/utils/queries';
+import { streamText, convertToCoreMessages } from 'ai';
+
+export function POST(request) {
+  const { messages } = await request.json();
+
+  const coreMessages = convertToCoreMessages(messages);
+
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    system: 'you are a friendly assistant!',
+    messages: coreMessages,
+    tools: {
+      displayWeather: {
+        description: 'Display the weather for a location',
+        parameters: z.object({
+          latitude: z.number(),
+          longitude: z.number(),
+        }),
+        execute: async function ({ latitude, longitude }) {
+          const props = await getWeather({ latitude, longitude });
+          return props;
+        },
+      },
+    },
+  });
+
+  return result.toDataStream();
+}
+```
+
+Now we can render the React component that uses the weather data returned by the `displayWeather` tool.
+
+```tsx filename="@/components/chat.tsx"
+'use client';
+
+import { useChat } from 'ai/react';
+import { Weather } from '@/components/weather';
+
+export default function Chat() {
+  const { messages, input, setInput, handleSubmit } = useChat();
+
+  return (
+    <div>
+      {messages.map(message => (
+        <div key={message.id}>
+          <div>{message.role}</div>
+          <div>{message.content}</div>
+
+          <div>
+            {message.toolInvocations.map(toolInvocation => {
+              const { toolName, toolCallId, state } = toolInvocation;
+
+              if (state === 'result') {
+                const { result } = toolInvocation;
+
+                return (
+                  <div key={toolCallId}>
+                    {toolName === 'displayWeather' ? (
+                      <Weather weatherAtLocation={result} />
+                    ) : null}
+                  </div>
+                );
+              } else {
+                return (
+                  <div key={toolCallId}>
+                    {toolName === 'displayWeather' ? (
+                      <div>Loading weather...</div>
+                    ) : null}
+                  </div>
+                );
+              }
+            })}
+          </div>
+        </div>
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={input}
+          onChange={event => {
+            setInput(event.target.value);
+          }}
+        />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  );
+}
+```
+
+The `Weather` component can be a simple React component that displays the weather data.
+
+```tsx filename="@/components/weather.tsx"
+import React from 'react';
+
+export function Weather({ weatherAtLocation }) {
+  const { value, unit } = weatherAtLocation;
+  return (
+    <div>
+      {value}°{unit}
+    </div>
+  );
+}
+```

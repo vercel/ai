@@ -7,7 +7,7 @@ import { convertToLanguageModelPrompt } from '../../core/prompt/convert-to-langu
 import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../../core/prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../../core/prompt/prompt';
-import { validatePrompt } from '../../core/prompt/validate-prompt';
+import { standardizePrompt } from '../../core/prompt/standardize-prompt';
 import {
   CallWarning,
   CoreToolChoice,
@@ -252,18 +252,23 @@ functionality that can be fully encapsulated in the provider.
   }
 
   const retry = retryWithExponentialBackoff({ maxRetries });
-  const validatedPrompt = validatePrompt({ system, prompt, messages });
+  const validatedPrompt = standardizePrompt({ system, prompt, messages });
   const result = await retry(async () =>
     model.doStream({
       mode: {
         type: 'regular',
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
+        ...prepareToolsAndToolChoice({
+          tools,
+          toolChoice,
+          activeTools: undefined,
+        }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         modelSupportsImageUrls: model.supportsImageUrls,
+        modelSupportsUrl: model.supportsUrl,
       }),
       providerMetadata,
       abortSignal,

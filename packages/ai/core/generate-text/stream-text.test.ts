@@ -13,7 +13,6 @@ import {
   jsonSchema,
 } from '../../streams';
 import { delay } from '../../util/delay';
-import { setTestTracer } from '../telemetry/get-tracer';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
@@ -31,8 +30,13 @@ describe('result.textStream', () => {
             tools: undefined,
             toolChoice: undefined,
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -104,8 +108,13 @@ describe('result.fullStream', () => {
             tools: undefined,
             toolChoice: undefined,
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -147,8 +156,13 @@ describe('result.fullStream', () => {
             tools: undefined,
             toolChoice: undefined,
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -201,8 +215,13 @@ describe('result.fullStream', () => {
             ],
             toolChoice: { type: 'required' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -267,8 +286,13 @@ describe('result.fullStream', () => {
             ],
             toolChoice: { type: 'required' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -383,8 +407,13 @@ describe('result.fullStream', () => {
             ],
             toolChoice: { type: 'required' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -498,8 +527,13 @@ describe('result.fullStream', () => {
             ],
             toolChoice: { type: 'auto' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -564,8 +598,13 @@ describe('result.fullStream', () => {
             ],
             toolChoice: { type: 'auto' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -1549,6 +1588,42 @@ describe('result.providerMetadata', () => {
   });
 });
 
+describe('result.request', () => {
+  it('should resolve with response information', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          request: { body: 'test body' },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    // consume stream (runs in parallel)
+    convertAsyncIterableToArray(result.textStream);
+
+    expect(await result.request).toStrictEqual({
+      body: 'test body',
+    });
+  });
+});
+
 describe('result.response', () => {
   it('should resolve with response information', async () => {
     const result = await streamText({
@@ -1598,8 +1673,13 @@ describe('result.text', () => {
             tools: undefined,
             toolChoice: undefined,
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -1651,8 +1731,13 @@ describe('result.toolCalls', () => {
             ],
             toolChoice: { type: 'auto' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -1720,8 +1805,13 @@ describe('result.toolResults', () => {
             ],
             toolChoice: { type: 'auto' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -2030,11 +2120,6 @@ describe('options.maxSteps', () => {
 
   beforeEach(() => {
     tracer = new MockTracer();
-    setTestTracer(tracer);
-  });
-
-  afterEach(() => {
-    setTestTracer(undefined);
   });
 
   describe('2 steps: initial, tool-result', () => {
@@ -2048,7 +2133,7 @@ describe('options.maxSteps', () => {
         model: new MockLanguageModelV1({
           doStream: async ({ prompt, mode }) => {
             switch (responseCount++) {
-              case 0:
+              case 0: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
                   tools: [
@@ -2072,6 +2157,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
                   },
                 ]);
 
@@ -2098,8 +2184,10 @@ describe('options.maxSteps', () => {
                     },
                   ]),
                   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                  rawResponse: { headers: { call: '1' } },
                 };
-              case 1:
+              }
+              case 1: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
                   tools: [
@@ -2123,6 +2211,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
                   },
                   {
                     role: 'assistant',
@@ -2172,6 +2261,7 @@ describe('options.maxSteps', () => {
                   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                   rawResponse: { headers: { call: '2' } },
                 };
+              }
               default:
                 throw new Error(`Unexpected response count: ${responseCount}`);
             }
@@ -2194,7 +2284,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
-        experimental_telemetry: { isEnabled: true },
+        experimental_telemetry: { isEnabled: true, tracer },
         maxSteps: 3,
         _internal: {
           now: mockValues(0, 100, 500, 600, 1000),
@@ -2273,7 +2363,7 @@ describe('options.maxSteps', () => {
         model: new MockLanguageModelV1({
           doStream: async ({ prompt, mode }) => {
             switch (responseCount++) {
-              case 0:
+              case 0: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
                   toolChoice: undefined,
@@ -2283,6 +2373,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
                   },
                 ]);
 
@@ -2309,7 +2400,8 @@ describe('options.maxSteps', () => {
                   ]),
                   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                 };
-              case 1:
+              }
+              case 1: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
                   toolChoice: undefined,
@@ -2319,6 +2411,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
                   },
                   {
                     role: 'assistant',
@@ -2352,16 +2445,19 @@ describe('options.maxSteps', () => {
                   ]),
                   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                 };
+              }
               case 2: {
                 expect(mode).toStrictEqual({
                   type: 'regular',
                   toolChoice: undefined,
                   tools: undefined,
                 });
+
                 expect(prompt).toStrictEqual([
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
                   },
                   {
                     role: 'assistant',
@@ -2374,6 +2470,7 @@ describe('options.maxSteps', () => {
                       {
                         type: 'text',
                         text: 'no-whitespace',
+                        providerMetadata: undefined,
                       },
                     ],
                     providerMetadata: undefined,
@@ -2421,7 +2518,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
-        experimental_telemetry: { isEnabled: true },
+        experimental_telemetry: { isEnabled: true, tracer },
         _internal: {
           now: mockValues(0, 100, 500, 600, 1000),
         },
@@ -2692,16 +2789,57 @@ describe('options.providerMetadata', () => {
   });
 });
 
+describe('options.abortSignal', () => {
+  it('should forward abort signal to tool execution during streaming', async () => {
+    const abortController = new AbortController();
+    const toolExecuteMock = vi.fn().mockResolvedValue('tool result');
+
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 10, completionTokens: 20 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: toolExecuteMock,
+        },
+      },
+      prompt: 'test-input',
+      abortSignal: abortController.signal,
+    });
+
+    convertAsyncIterableToArray(result.fullStream);
+
+    abortController.abort();
+
+    expect(toolExecuteMock).toHaveBeenCalledWith(
+      { value: 'value' },
+      { abortSignal: abortController.signal },
+    );
+  });
+});
+
 describe('telemetry', () => {
   let tracer: MockTracer;
 
   beforeEach(() => {
     tracer = new MockTracer();
-    setTestTracer(tracer);
-  });
-
-  afterEach(() => {
-    setTestTracer(undefined);
   });
 
   it('should not record any telemetry data when not explicitly enabled', async () => {
@@ -2782,6 +2920,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
+        tracer,
       },
       _internal: { now: mockValues(0, 100, 500) },
     });
@@ -2827,7 +2966,7 @@ describe('telemetry', () => {
         },
       },
       prompt: 'test-input',
-      experimental_telemetry: { isEnabled: true },
+      experimental_telemetry: { isEnabled: true, tracer },
       _internal: { now: mockValues(0, 100, 500) },
     });
 
@@ -2876,6 +3015,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
+        tracer,
       },
       _internal: { now: mockValues(0, 100, 500) },
     });
@@ -2909,8 +3049,13 @@ describe('tools with custom schema', () => {
             ],
             toolChoice: { type: 'required' },
           });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+
+          expect(prompt).toStrictEqual([
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {

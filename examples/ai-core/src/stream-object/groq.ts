@@ -1,17 +1,11 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { groq } from '@ai-sdk/groq';
 import { streamObject } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
-const groq = createOpenAI({
-  apiKey: process.env.GROQ_API_KEY ?? '',
-  baseURL: 'https://api.groq.com/openai/v1',
-});
-
 async function main() {
   const result = await streamObject({
-    model: groq.chat('llama3-70b-8192'),
-    maxTokens: 2000,
+    model: groq('llama-3.1-70b-versatile'),
     schema: z.object({
       characters: z.array(
         z.object({
@@ -31,6 +25,9 @@ async function main() {
     console.clear();
     console.log(partialObject);
   }
+
+  console.log();
+  console.log('Token usage:', await result.usage);
 }
 
 main().catch(console.error);

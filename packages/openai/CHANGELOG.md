@@ -1,5 +1,26 @@
 # @ai-sdk/openai
 
+## 0.0.69
+
+### Patch Changes
+
+- b9b0d7b: feat (ai): access raw request body
+- Updated dependencies [b9b0d7b]
+  - @ai-sdk/provider@0.0.25
+  - @ai-sdk/provider-utils@1.0.21
+
+## 0.0.68
+
+### Patch Changes
+
+- 741ca51: feat (provider/openai): support mp3 and wav audio inputs
+
+## 0.0.67
+
+### Patch Changes
+
+- 39fccee: feat (provider/openai): provider name can be changed for 3rd party openai compatible providers
+
 ## 0.0.66
 
 ### Patch Changes

@@ -132,8 +132,6 @@ The following optional settings are available for Google Generative AI models:
     - `BLOCK_ONLY_HIGH`
     - `BLOCK_NONE`
 
-### Example: Generate Text
-
 You can use Google Generative AI language models to generate text with the `generateText` function:
 
 ```ts
@@ -149,7 +147,7 @@ const { text } = await generateText({
 Google Generative AI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
-### Example: File input (PDF)
+### File Inputs
 
 The Google Generative AI provider supports file inputs, e.g. PDF files.
 
@@ -178,9 +176,15 @@ const result = await generateText({
 });
 ```
 
+<Note>
+  The AI SDK will automatically download URLs if you pass them as data, except
+  for `https://generativelanguage.googleapis.com/v1beta/files/`. You can use the
+  Google Generative AI Files API to upload larger files to that location.
+</Note>
+
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
 
-### Example: Cached Content
+### Cached Content
 
 You can use Google Generative AI language models to cache content:
 
@@ -222,7 +226,9 @@ const { text: meatLasangaRecipe } = await generateText({
 });
 ```
 
-### Troubleshooting: Schema Limitations
+### Troubleshooting
+
+#### Schema Limitations
 
 The Google Generative AI API uses a subset of the OpenAPI 3.0 schema,
 which does not support features such as unions.
