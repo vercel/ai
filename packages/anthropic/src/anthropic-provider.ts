@@ -1,5 +1,4 @@
 import {
-  JSONValue,
   LanguageModelV1,
   NoSuchModelError,
   ProviderV1,
@@ -9,17 +8,12 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
+import { anthropicBashTool } from './anthropic-bash-tool';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
-import { z } from 'zod';
-
-const Bash20241022Parameters = z.object({
-  command: z.string(),
-  restart: z.boolean().nullish(),
-});
 
 export interface AnthropicProvider extends ProviderV1 {
   /**
@@ -54,24 +48,11 @@ Creates a model for text generation.
     settings?: AnthropicMessagesSettings,
   ): LanguageModelV1;
 
+  /**
+Anthropic-specific computer use tool.
+   */
   tools: {
-    bash_20241022: (options: {
-      execute?: (
-        args: z.infer<typeof Bash20241022Parameters>,
-        options: { abortSignal?: AbortSignal },
-      ) => Promise<JSONValue>;
-    }) => {
-      type: 'provider-defined';
-      id: 'anthropic.bash_20241022';
-      args: {};
-      parameters: typeof Bash20241022Parameters;
-      execute?:
-        | undefined
-        | ((
-            args: z.infer<typeof Bash20241022Parameters>,
-            options: { abortSignal?: AbortSignal },
-          ) => Promise<JSONValue>);
-    };
+    bash_20241022: typeof anthropicBashTool;
   };
 }
 
@@ -160,20 +141,7 @@ export function createAnthropic(
   };
 
   provider.tools = {
-    bash_20241022(options: {
-      execute?: (
-        args: z.infer<typeof Bash20241022Parameters>,
-        options: { abortSignal?: AbortSignal },
-      ) => Promise<JSONValue>;
-    }) {
-      return {
-        type: 'provider-defined',
-        id: 'anthropic.bash_20241022',
-        args: {},
-        parameters: Bash20241022Parameters,
-        execute: options.execute,
-      };
-    },
+    bash_20241022: anthropicBashTool,
   };
 
   return provider as AnthropicProvider;
