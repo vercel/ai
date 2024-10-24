@@ -16,7 +16,6 @@ const baseten = createOpenAI({
   apiKey: process.env.BASETEN_API_KEY ?? '',
   baseURL: 'https://bridge.baseten.co/v1/direct',
   fetch: async (url, request) => {
-    console.log(request);
     if (!request || !request.body) {
       throw new Error('Request body is undefined');
     }
