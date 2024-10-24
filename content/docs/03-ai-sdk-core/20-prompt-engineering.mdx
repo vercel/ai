@@ -53,6 +53,21 @@ const result = await generateObject({
 
 ## Debugging
 
+### Inspecting Warnings
+
+Not all providers support all AI SDK features.
+Providers either throw exceptions or return warnings when they do not support a feature.
+To check if your prompt, tools, and settings are handled correctly by the provider, you can check the call warnings:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello, world!',
+});
+
+console.log(result.warnings);
+```
+
 ### HTTP Request Bodies
 
 You can inspect the raw HTTP request bodies for models that expose them, e.g. [OpenAI](/providers/ai-sdk-providers/openai).
