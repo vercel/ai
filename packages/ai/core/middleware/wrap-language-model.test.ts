@@ -150,7 +150,7 @@ it('should call wrapStream middleware', async () => {
   });
 });
 
-it('should default to a model that does not support any native URLs', async () => {
+it('should pass through empty supportsUrl', async () => {
   const mockModel = new MockLanguageModelV1({
     doGenerate: vi.fn().mockResolvedValue('mock result'),
   });
@@ -160,16 +160,10 @@ it('should default to a model that does not support any native URLs', async () =
     middleware: {},
   });
 
-  if (wrappedModel.supportsUrl) {
-    expect(
-      wrappedModel.supportsUrl(new URL('https://example.com/test.jpg')),
-    ).toBe(false);
-  } else {
-    throw new Error('supportsUrl is not defined');
-  }
+  expect(wrappedModel.supportsUrl).toBeUndefined();
 });
 
-it('passes on supportsUrl when it is defined on the model', async () => {
+it('should pass through supportsUrl when it is defined on the model', async () => {
   const mockModel = new MockLanguageModelV1({
     doGenerate: vi.fn().mockResolvedValue('mock result'),
     supportsUrl: vi.fn().mockReturnValue(true),
@@ -180,11 +174,7 @@ it('passes on supportsUrl when it is defined on the model', async () => {
     middleware: {},
   });
 
-  if (wrappedModel.supportsUrl) {
-    expect(
-      wrappedModel.supportsUrl(new URL('https://example.com/test.jpg')),
-    ).toBe(true);
-  } else {
-    throw new Error('supportsUrl is not defined');
-  }
+  expect(
+    wrappedModel.supportsUrl?.(new URL('https://example.com/test.jpg')),
+  ).toBe(true);
 });
