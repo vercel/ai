@@ -13,7 +13,7 @@ import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
-import { bashTool_20241022, textEditorTool_20241022 } from './anthropic-tools';
+import { anthropicTools } from './anthropic-tools';
 
 export interface AnthropicProvider extends ProviderV1 {
   /**
@@ -51,9 +51,7 @@ Creates a model for text generation.
   /**
 Anthropic-specific computer use tool.
    */
-  tools: {
-    bash_20241022: typeof bashTool_20241022;
-  };
+  tools: typeof anthropicTools;
 }
 
 export interface AnthropicProviderSettings {
@@ -140,10 +138,7 @@ export function createAnthropic(
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
 
-  provider.tools = {
-    bash_20241022: bashTool_20241022,
-    textEditor_20241022: textEditorTool_20241022,
-  };
+  provider.tools = anthropicTools;
 
   return provider as AnthropicProvider;
 }

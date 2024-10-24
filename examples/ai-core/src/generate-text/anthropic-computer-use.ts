@@ -1,43 +1,29 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
 
 async function main() {
   const result = await generateText({
     model: anthropic('claude-3-5-sonnet-20241022'),
     tools: {
-      computer: {
-        type: 'provider-defined',
-        id: 'anthropic.computer_20241022',
-        args: {
-          displayWidthPx: 100,
-          displayHeightPx: 100,
-          displayNumber: 1,
+      computer: anthropic.tools.computer_20241022({
+        displayWidthPx: 100,
+        displayHeightPx: 100,
+        async execute({ action, coordinate, text }) {
+          return '';
         },
-        parameters: z.object({
-          action: z.enum([
-            'key',
-            'type',
-            'mouse_move',
-            'left_click',
-            'left_click_drag',
-            'right_click',
-            'middle_click',
-            'double_click',
-            'screenshot',
-            'cursor_position',
-          ]),
-          coordinate: z.object({ x: z.number(), y: z.number() }).nullish(),
-          text: z.string().nullish(),
-        }),
-      },
+      }),
       bash: anthropic.tools.bash_20241022({
-        execute: async ({ command }) => {
+        async execute({ command }) {
           return `
           ❯ ls
           README.md     build         data          node_modules  package.json  src           tsconfig.json
 `;
+        },
+      }),
+      str_replace_editor: anthropic.tools.textEditor_20241022({
+        async execute({ command, path, old_str, new_str }) {
+          return '';
         },
       }),
     },
@@ -58,6 +44,7 @@ async function main() {
   console.log(result.text);
   console.log(result.finishReason);
   console.log(JSON.stringify(result.toolCalls, null, 2));
+  console.log(JSON.stringify(result.steps, null, 2));
 }
 
 main().catch(console.error);
