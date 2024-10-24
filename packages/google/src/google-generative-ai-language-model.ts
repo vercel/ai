@@ -180,15 +180,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   }
 
   supportsUrl(url: URL): boolean {
-    if (
-      url
-        .toString()
-        .startsWith('https://generativelanguage.googleapis.com/v1beta/files/')
-    ) {
-      return true;
-    }
-
-    return false;
+    return url
+      .toString()
+      .startsWith('https://generativelanguage.googleapis.com/v1beta/files/');
   }
 
   async doGenerate(
