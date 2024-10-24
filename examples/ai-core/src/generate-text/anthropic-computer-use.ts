@@ -45,6 +45,16 @@ async function main() {
     maxSteps: 2,
   });
 
+  for (const toolResult of result.toolResults) {
+    switch (toolResult.toolName) {
+      case 'bash': {
+        toolResult.args.command; // string
+        toolResult.result; // string
+        break;
+      }
+    }
+  }
+
   console.log(result.text);
   console.log(result.finishReason);
   console.log(JSON.stringify(result.toolCalls, null, 2));
