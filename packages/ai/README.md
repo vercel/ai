@@ -8,10 +8,15 @@ To learn more about how to use the AI SDK, check out our [API Reference](https:/
 
 ## Installation
 
-You will need Node.js 18+ and pnpm installed on your local development machine.
+Install on your local development machine:
+
+- Node.js `v18` or `v20`. We recommend managing Node installation and versions with [fnm](https://github.com/Schniz/fnm) or [nvm](https://github.com/nvm-sh/nvm).
+- For package management we recommend (and the subsequent docs assume) [pnpm](https://pnpm.io/installation) `v8`, e.g. installed via `npm install -g pnpm@8.6.9`.
+
+Once you've got those in place:
 
 ```shell
-npm install ai
+pnpm install ai
 ```
 
 ## Usage
@@ -20,10 +25,10 @@ npm install ai
 
 The [AI SDK Core](https://sdk.vercel.ai/docs/ai-sdk-core/overview) module provides a unified API to interact with model providers like [OpenAI](https://sdk.vercel.ai/providers/ai-sdk-providers/openai), [Anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic), [Google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai), and more.
 
-You will then install the model provider of your choice.
+You will then install the model provider of your choice:
 
 ```shell
-npm install @ai-sdk/openai
+pnpm install @ai-sdk/openai
 ```
 
 ###### @/index.ts (Node.js Runtime)
