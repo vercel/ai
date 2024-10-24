@@ -29,6 +29,7 @@ interface TextPart {
   text: string;
   inlineData?: never;
 }
+
 async function* streamable(response: {
   stream: AsyncIterable<GenerateContentResponse>;
 }) {
