@@ -315,9 +315,10 @@ export const createResource = async (input: NewResourceParams) => {
   try {
     const { content } = insertResourceSchema.parse(input);
 
+    const contentWithoutLineBreaks = payload.content.replace("\n", " ");
     const [resource] = await db
       .insert(resources)
-      .values({ content })
+      .values({ content: contentWithoutLineBreaks })
       .returning();
 
     return 'Resource successfully created.';
@@ -332,7 +333,7 @@ This function is a [Server Action](https://nextjs.org/docs/app/building-your-app
 
 Update the file with the following code:
 
-```tsx filename="lib/actions/resources.ts" highlight="9-10,21-27,29"
+```tsx filename="lib/actions/resources.ts" highlight="9-10,22-28,30"
 'use server';
 
 import {
@@ -348,9 +349,10 @@ export const createResource = async (input: NewResourceParams) => {
   try {
     const { content } = insertResourceSchema.parse(input);
 
+    const contentWithoutLineBreaks = payload.content.replace("\n", " ");
     const [resource] = await db
       .insert(resources)
-      .values({ content })
+      .values({ content: contentWithoutLineBreaks })
       .returning();
 
     const embeddings = await generateEmbeddings(content);
