@@ -32,21 +32,14 @@ async function main() {
           text: z.string().nullish(),
         }),
       },
-      bash: {
-        type: 'provider-defined',
-        id: 'anthropic.bash_20241022',
-        args: {},
-        parameters: z.object({
-          command: z.string(),
-          restart: z.boolean().nullish(),
-        }),
+      bash: anthropic.tools.bash_20241022({
         execute: async ({ command }) => {
           return `
           ❯ ls
           README.md     build         data          node_modules  package.json  src           tsconfig.json
 `;
         },
-      },
+      }),
     },
     prompt: 'List the files in my home directory.',
     maxSteps: 2,

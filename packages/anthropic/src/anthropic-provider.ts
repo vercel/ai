@@ -1,4 +1,5 @@
 import {
+  JSONValue,
   LanguageModelV1,
   NoSuchModelError,
   ProviderV1,
@@ -13,6 +14,12 @@ import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
+import { z } from 'zod';
+
+const Bash20241022Parameters = z.object({
+  command: z.string(),
+  restart: z.boolean().nullish(),
+});
 
 export interface AnthropicProvider extends ProviderV1 {
   /**
@@ -46,6 +53,26 @@ Creates a model for text generation.
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
   ): LanguageModelV1;
+
+  tools: {
+    bash_20241022: (options: {
+      execute?: (
+        args: z.infer<typeof Bash20241022Parameters>,
+        options: { abortSignal?: AbortSignal },
+      ) => Promise<JSONValue>;
+    }) => {
+      type: 'provider-defined';
+      id: 'anthropic.bash_20241022';
+      args: {};
+      parameters: typeof Bash20241022Parameters;
+      execute?:
+        | undefined
+        | ((
+            args: z.infer<typeof Bash20241022Parameters>,
+            options: { abortSignal?: AbortSignal },
+          ) => Promise<JSONValue>);
+    };
+  };
 }
 
 export interface AnthropicProviderSettings {
@@ -130,6 +157,23 @@ export function createAnthropic(
   provider.messages = createChatModel;
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
+
+  provider.tools = {
+    bash_20241022(options: {
+      execute?: (
+        args: z.infer<typeof Bash20241022Parameters>,
+        options: { abortSignal?: AbortSignal },
+      ) => Promise<JSONValue>;
+    }) {
+      return {
+        type: 'provider-defined',
+        id: 'anthropic.bash_20241022',
+        args: {},
+        parameters: Bash20241022Parameters,
+        execute: options.execute,
+      };
+    },
   };
 
   return provider as AnthropicProvider;
