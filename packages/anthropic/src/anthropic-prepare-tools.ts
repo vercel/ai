@@ -19,47 +19,50 @@ export function prepareTools(
     return { tools: undefined, tool_choice: undefined, toolWarnings };
   }
 
-  const anthropicTools = tools
-    .map(tool => {
-      switch (tool.type) {
-        case 'function':
-          return {
-            name: tool.name,
-            description: tool.description,
-            input_schema: tool.parameters,
-          };
-        case 'provider-defined': {
-          switch (tool.id) {
-            case 'anthropic.computer_20241022':
-              return {
-                name: tool.name,
-                type: 'computer_20241022',
-                display_width_px: tool.args.displayWidthPx,
-                display_height_px: tool.args.displayHeightPx,
-                display_number: tool.args.displayNumber,
-              };
-            case 'anthropic.text_editor_20241022':
-              return {
-                name: tool.name,
-                type: 'text_editor_20241022',
-              };
-            case 'anthropic.bash_20241022':
-              return {
-                name: tool.name,
-                type: 'bash_20241022',
-              };
-            default:
-              toolWarnings.push({ type: 'unsupported-tool', tool });
-              return null;
-          }
+  const anthropicTools: AnthropicTool[] = [];
+
+  for (const tool of tools) {
+    switch (tool.type) {
+      case 'function':
+        anthropicTools.push({
+          name: tool.name,
+          description: tool.description,
+          input_schema: tool.parameters,
+        });
+        break;
+      case 'provider-defined':
+        switch (tool.id) {
+          case 'anthropic.computer_20241022':
+            anthropicTools.push({
+              name: tool.name,
+              type: 'computer_20241022',
+              display_width_px: tool.args.displayWidthPx as number,
+              display_height_px: tool.args.displayHeightPx as number,
+              display_number: tool.args.displayNumber as number,
+            });
+            break;
+          case 'anthropic.text_editor_20241022':
+            anthropicTools.push({
+              name: tool.name,
+              type: 'text_editor_20241022',
+            });
+            break;
+          case 'anthropic.bash_20241022':
+            anthropicTools.push({
+              name: tool.name,
+              type: 'bash_20241022',
+            });
+            break;
+          default:
+            toolWarnings.push({ type: 'unsupported-tool', tool });
+            break;
         }
-        default: {
-          toolWarnings.push({ type: 'unsupported-tool', tool });
-          return null;
-        }
-      }
-    })
-    .filter((item): item is AnthropicTool => item != null);
+        break;
+      default:
+        toolWarnings.push({ type: 'unsupported-tool', tool });
+        break;
+    }
+  }
 
   const toolChoice = mode.toolChoice;
 
