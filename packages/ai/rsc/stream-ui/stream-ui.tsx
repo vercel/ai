@@ -268,6 +268,7 @@ functionality that can be fully encapsulated in the provider.
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         modelSupportsImageUrls: model.supportsImageUrls,
+        modelSupportsUrl: model.supportsUrl,
       }),
       providerMetadata,
       abortSignal,

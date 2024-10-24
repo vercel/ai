@@ -6,6 +6,7 @@ export class MockLanguageModelV1 implements LanguageModelV1 {
   readonly provider: LanguageModelV1['provider'];
   readonly modelId: LanguageModelV1['modelId'];
 
+  supportsUrl: LanguageModelV1['supportsUrl'];
   doGenerate: LanguageModelV1['doGenerate'];
   doStream: LanguageModelV1['doStream'];
 
@@ -14,6 +15,7 @@ export class MockLanguageModelV1 implements LanguageModelV1 {
   constructor({
     provider = 'mock-provider',
     modelId = 'mock-model-id',
+    supportsUrl = undefined,
     doGenerate = notImplemented,
     doStream = notImplemented,
     defaultObjectGenerationMode = undefined,
@@ -21,6 +23,7 @@ export class MockLanguageModelV1 implements LanguageModelV1 {
   }: {
     provider?: LanguageModelV1['provider'];
     modelId?: LanguageModelV1['modelId'];
+    supportsUrl?: LanguageModelV1['supportsUrl'];
     doGenerate?: LanguageModelV1['doGenerate'];
     doStream?: LanguageModelV1['doStream'];
     defaultObjectGenerationMode?: LanguageModelV1['defaultObjectGenerationMode'];
@@ -30,6 +33,7 @@ export class MockLanguageModelV1 implements LanguageModelV1 {
     this.modelId = modelId;
     this.doGenerate = doGenerate;
     this.doStream = doStream;
+    this.supportsUrl = supportsUrl;
 
     this.defaultObjectGenerationMode = defaultObjectGenerationMode;
     this.supportsStructuredOutputs = supportsStructuredOutputs;

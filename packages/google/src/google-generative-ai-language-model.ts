@@ -183,6 +183,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     }
   }
 
+  supportsUrl(url: URL): boolean {
+    return url
+      .toString()
+      .startsWith('https://generativelanguage.googleapis.com/v1beta/files/');
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {

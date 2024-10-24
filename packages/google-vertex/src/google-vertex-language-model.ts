@@ -210,6 +210,10 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     }
   }
 
+  supportsUrl(url: URL): boolean {
+    return url.protocol === 'gs:';
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {

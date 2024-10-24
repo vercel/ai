@@ -425,6 +425,7 @@ export async function generateObject<SCHEMA, RESULT>({
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: standardPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
+            modelSupportsUrl: model.supportsUrl,
           });
 
           const generateResult = await retry(() =>
@@ -543,6 +544,7 @@ export async function generateObject<SCHEMA, RESULT>({
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: validatedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
+            modelSupportsUrl: model.supportsUrl,
           });
           const inputFormat = validatedPrompt.type;
 

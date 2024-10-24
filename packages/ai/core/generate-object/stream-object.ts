@@ -456,6 +456,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
             prompt: await convertToLanguageModelPrompt({
               prompt: standardPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
+              modelSupportsUrl: model.supportsUrl,
             }),
             providerMetadata,
             abortSignal,
@@ -502,6 +503,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
             prompt: await convertToLanguageModelPrompt({
               prompt: validatedPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
+              modelSupportsUrl: model.supportsUrl,
             }),
             providerMetadata,
             abortSignal,

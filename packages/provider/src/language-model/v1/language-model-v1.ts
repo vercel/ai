@@ -67,6 +67,15 @@ Defaults to `false`.
   readonly supportsStructuredOutputs?: boolean;
 
   /**
+Checks if the model supports the given URL for file parts natively.
+If the model does not support the URL,
+the AI SDK will download the file and pass the file data to the model.
+
+When undefined, the AI SDK will download the file.
+   */
+  supportsUrl?(url: URL): boolean;
+
+  /**
 Generates a language model output (non-streaming).
 
 Naming: "do" prefix to prevent accidental direct usage of the method

@@ -318,6 +318,7 @@ need to be added separately.
             messages: [...initialPrompt.messages, ...responseMessages],
           },
           modelSupportsImageUrls: model.supportsImageUrls,
+          modelSupportsUrl: model.supportsUrl,
         });
 
         const {
