@@ -331,6 +331,7 @@ describe('doGenerate', () => {
 
     expect(requestHeaders).toStrictEqual({
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'computer-use-2024-10-22',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
@@ -658,6 +659,7 @@ describe('doStream', () => {
 
     expect(requestHeaders).toStrictEqual({
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'computer-use-2024-10-22',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
