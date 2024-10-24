@@ -12,7 +12,7 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
 ];
 
 const provider = createAnthropic({ apiKey: 'test-api-key' });
-const model = provider.chat('claude-3-haiku-20240307');
+const model = provider('claude-3-haiku-20240307');
 
 describe('doGenerate', () => {
   const server = new JsonTestServer('https://api.anthropic.com/v1/messages');
@@ -55,7 +55,7 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
-    const { text } = await provider.chat('gpt-3.5-turbo').doGenerate({
+    const { text } = await provider('claude-3-haiku-20240307').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -646,7 +646,7 @@ describe('doStream', () => {
       },
     });
 
-    await provider.chat('claude-3-haiku-20240307').doStream({
+    await provider('claude-3-haiku-20240307').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
