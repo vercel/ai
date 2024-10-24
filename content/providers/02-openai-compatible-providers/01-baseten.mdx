@@ -33,7 +33,7 @@ To use Baseten, you can create a custom provider instance with the `createOpenAI
 ```ts
 import { createOpenAI } from '@ai-sdk/openai';
 
-const BASETEN_MODEL_ID = "232vpv0q"
+const BASETEN_MODEL_ID = "<deployment-id>"
 const BASETEN_DEPLOYMENT_ID = null
 
 // see https://docs.baseten.co/api-reference/openai for more information
@@ -52,6 +52,7 @@ const baseten = createOpenAI({
   }
 });
 ```
+Be sure to have your `BASETEN_API_KEY` set in your environment and the model `deployment id` ready. The `deployment_id` will be given after you have deployed the model on Baseten.
 
 ## Language Models
 
@@ -70,7 +71,7 @@ You can use Baseten language models to generate text with the `generateText` fun
 import { createOpenAI } from '@ai-sdk/openai'
 import { generateText } from 'ai'
 
-const BASETEN_MODEL_ID = "232vpv0q"
+const BASETEN_MODEL_ID = "<deployment-id>"
 const BASETEN_DEPLOYMENT_ID = null
 
 // see https://docs.baseten.co/api-reference/openai for more information
@@ -103,7 +104,7 @@ Baseten language models are also able to generate text in a streaming fashion wi
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
-const BASETEN_MODEL_ID = "232vpv0q"
+const BASETEN_MODEL_ID = "<deployment-id>"
 const BASETEN_DEPLOYMENT_ID = null
 
 // see https://docs.baseten.co/api-reference/openai for more information
