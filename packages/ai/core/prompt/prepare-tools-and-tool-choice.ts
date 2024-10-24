@@ -41,7 +41,8 @@ export function prepareToolsAndToolChoice<
 
   return {
     tools: filteredTools.map(([name, tool]) => {
-      switch (tool.type) {
+      const toolType = tool.type;
+      switch (toolType) {
         case undefined:
         case 'function':
           return {
@@ -53,10 +54,14 @@ export function prepareToolsAndToolChoice<
         case 'provider-defined':
           return {
             type: 'provider-defined' as const,
-            id: tool.id,
             name,
+            id: tool.id,
             args: tool.args,
           };
+        default: {
+          const exhaustiveCheck: never = toolType;
+          throw new Error(`Unsupported tool type: ${exhaustiveCheck}`);
+        }
       }
     }),
     toolChoice:
