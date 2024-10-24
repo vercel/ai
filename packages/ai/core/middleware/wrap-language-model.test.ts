@@ -1,7 +1,6 @@
 import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
 import { experimental_wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
-import exp from 'constants';
 
 it('should pass through model properties', () => {
   const wrappedModel = experimental_wrapLanguageModel({

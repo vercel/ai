@@ -1,5 +1,5 @@
 import { GoogleAIFileManager } from '@google/generative-ai/server';
-import { google } from '../../../../packages/google';
+import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import path from 'path';
 import 'dotenv/config';

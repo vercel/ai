@@ -208,11 +208,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   }
 
   supportsUrl(url: URL): boolean {
-    if (url.protocol === 'gs:') {
-      return true;
-    }
-
-    return false;
+    return url.protocol === 'gs:';
   }
 
   async doGenerate(
