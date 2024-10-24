@@ -37,29 +37,19 @@ const model = provider.chat('gemini-pro');
 
 describe('supportsUrl', () => {
   it('should return false if it is not a Gemini files URL', () => {
-    if (model.supportsUrl) {
-      // Check if the method is defined
-      expect(
-        model.supportsUrl(new URL('https://example.com/foo/bar')),
-      ).toStrictEqual(false);
-    } else {
-      throw new Error('supportsUrl method is not defined');
-    }
+    expect(
+      model.supportsUrl?.(new URL('https://example.com/foo/bar')),
+    ).toStrictEqual(false);
   });
 
   it('should return true if it is a Gemini files URL', () => {
-    expect(model.supportsUrl).toBeDefined();
-    if (model.supportsUrl) {
-      expect(
-        model.supportsUrl(
-          new URL(
-            'https://generativelanguage.googleapis.com/v1beta/files/00000000-00000000-00000000-00000000',
-          ),
+    expect(
+      model.supportsUrl?.(
+        new URL(
+          'https://generativelanguage.googleapis.com/v1beta/files/00000000-00000000-00000000-00000000',
         ),
-      ).toStrictEqual(true);
-    } else {
-      throw new Error('supportsUrl method is not defined');
-    }
+      ),
+    ).toStrictEqual(true);
   });
 });
 
