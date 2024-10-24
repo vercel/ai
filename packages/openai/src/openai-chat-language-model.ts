@@ -28,6 +28,7 @@ import {
   openaiFailedResponseHandler,
 } from './openai-error';
 import { getResponseMetadata } from './get-response-metadata';
+import { prepareTools } from './openai-prepare-tools';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -186,16 +187,22 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
+        const { tools, tool_choice, functions, function_call, toolWarnings } =
+          prepareTools({
+            mode,
+            useLegacyFunctionCalling,
+            structuredOutputs: this.settings.structuredOutputs,
+          });
+
         return {
           args: {
             ...baseArgs,
-            ...prepareToolsAndToolChoice({
-              mode,
-              useLegacyFunctionCalling,
-              structuredOutputs: this.settings.structuredOutputs,
-            }),
+            tools,
+            tool_choice,
+            functions,
+            function_call,
           },
-          warnings,
+          warnings: [...warnings, ...toolWarnings],
         };
       }
 
@@ -784,97 +791,6 @@ const openaiChatChunkSchema = z.union([
   }),
   openAIErrorDataSchema,
 ]);
-
-function prepareToolsAndToolChoice({
-  mode,
-  useLegacyFunctionCalling = false,
-  structuredOutputs = false,
-}: {
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  };
-  useLegacyFunctionCalling?: boolean;
-  structuredOutputs?: boolean;
-}) {
-  // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
-
-  if (tools == null) {
-    return { tools: undefined, tool_choice: undefined };
-  }
-
-  const toolChoice = mode.toolChoice;
-
-  if (useLegacyFunctionCalling) {
-    const mappedFunctions = tools.map(tool => ({
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-    }));
-
-    if (toolChoice == null) {
-      return { functions: mappedFunctions, function_call: undefined };
-    }
-
-    const type = toolChoice.type;
-
-    switch (type) {
-      case 'auto':
-      case 'none':
-      case undefined:
-        return {
-          functions: mappedFunctions,
-          function_call: undefined,
-        };
-      case 'required':
-        throw new UnsupportedFunctionalityError({
-          functionality: 'useLegacyFunctionCalling and toolChoice: required',
-        });
-      default:
-        return {
-          functions: mappedFunctions,
-          function_call: { name: toolChoice.toolName },
-        };
-    }
-  }
-
-  const mappedTools = tools.map(tool => ({
-    type: 'function',
-    function: {
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-      strict: structuredOutputs === true ? true : undefined,
-    },
-  }));
-
-  if (toolChoice == null) {
-    return { tools: mappedTools, tool_choice: undefined };
-  }
-
-  const type = toolChoice.type;
-
-  switch (type) {
-    case 'auto':
-    case 'none':
-    case 'required':
-      return { tools: mappedTools, tool_choice: type };
-    case 'tool':
-      return {
-        tools: mappedTools,
-        tool_choice: {
-          type: 'function',
-          function: {
-            name: toolChoice.toolName,
-          },
-        },
-      };
-    default: {
-      const _exhaustiveCheck: never = type;
-      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
-    }
-  }
-}
 
 function isReasoningModel(modelId: string) {
   return modelId.startsWith('o1-');
