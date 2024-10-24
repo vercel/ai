@@ -1,6 +1,7 @@
 import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
 import { experimental_wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
+import exp from 'constants';
 
 it('should pass through model properties', () => {
   const wrappedModel = experimental_wrapLanguageModel({
@@ -148,4 +149,43 @@ it('should call wrapStream middleware', async () => {
     params,
     model: mockModel,
   });
+});
+
+it('should default to a model that does not support any native URLs', async () => {
+  const mockModel = new MockLanguageModelV1({
+    doGenerate: vi.fn().mockResolvedValue('mock result'),
+  });
+
+  const wrappedModel = experimental_wrapLanguageModel({
+    model: mockModel,
+    middleware: {},
+  });
+
+  if (wrappedModel.supportsUrl) {
+    expect(
+      wrappedModel.supportsUrl(new URL('https://example.com/test.jpg')),
+    ).toBe(false);
+  } else {
+    throw new Error('supportsUrl is not defined');
+  }
+});
+
+it('passes on supportsUrl when it is defined on the model', async () => {
+  const mockModel = new MockLanguageModelV1({
+    doGenerate: vi.fn().mockResolvedValue('mock result'),
+    supportsUrl: vi.fn().mockReturnValue(true),
+  });
+
+  const wrappedModel = experimental_wrapLanguageModel({
+    model: mockModel,
+    middleware: {},
+  });
+
+  if (wrappedModel.supportsUrl) {
+    expect(
+      wrappedModel.supportsUrl(new URL('https://example.com/test.jpg')),
+    ).toBe(true);
+  } else {
+    throw new Error('supportsUrl is not defined');
+  }
 });

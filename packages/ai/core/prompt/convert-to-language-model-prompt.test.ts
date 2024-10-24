@@ -124,6 +124,48 @@ describe('convertToLanguageModelPrompt', () => {
         ]);
       });
 
+      it('should download the URL as an asset when the model does not support a URL', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            type: 'messages',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: new URL('https://example.com/document.pdf'),
+                    mimeType: 'application/pdf',
+                  },
+                ],
+              },
+            ],
+          },
+          modelSupportsImageUrls: true,
+          modelSupportsUrl: () => false,
+          downloadImplementation: async ({ url }) => {
+            expect(url).toEqual(new URL('https://example.com/document.pdf'));
+            return {
+              data: new Uint8Array([0, 1, 2, 3]),
+              mimeType: 'application/pdf',
+            };
+          },
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mimeType: 'application/pdf',
+                data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should handle file parts with base64 string data', async () => {
         const base64Data = 'SGVsbG8sIFdvcmxkIQ=='; // "Hello, World!" in base64
         const result = await convertToLanguageModelPrompt({
