@@ -13,7 +13,7 @@ const Bash20241022Parameters = z.object({
 });
 
 /**
- * Creates a tool for running a bash command.
+ * Creates a tool for running a bash command. Must have name "bash".
  *
  * @param execute - The function to execute the tool. Optional.
  */
@@ -61,7 +61,7 @@ const TextEditor20241022Parameters = z.object({
 });
 
 /**
- * Creates a tool for editing text.
+ * Creates a tool for editing text. Must have name "str_replace_editor".
  *
  * @param execute - The function to execute the tool. Optional.
  */
@@ -144,7 +144,7 @@ const Computer20241022Parameters = z.object({
 });
 
 /**
- * Creates a tool for executing actions on a computer.
+ * Creates a tool for executing actions on a computer. Must have name "computer".
  *
  * @param displayWidthPx - The width of the display being controlled by the model in pixels.
  * @param displayHeightPx - The height of the display being controlled by the model in pixels.
