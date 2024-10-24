@@ -315,7 +315,7 @@ export const createResource = async (input: NewResourceParams) => {
   try {
     const { content } = insertResourceSchema.parse(input);
 
-    const contentWithoutLineBreaks = payload.content.replace("\n", " ");
+    const contentWithoutLineBreaks = payload.content.replace('\n', ' ');
     const [resource] = await db
       .insert(resources)
       .values({ content: contentWithoutLineBreaks })
@@ -349,7 +349,7 @@ export const createResource = async (input: NewResourceParams) => {
   try {
     const { content } = insertResourceSchema.parse(input);
 
-    const contentWithoutLineBreaks = payload.content.replace("\n", " ");
+    const contentWithoutLineBreaks = payload.content.replace('\n', ' ');
     const [resource] = await db
       .insert(resources)
       .values({ content: contentWithoutLineBreaks })
