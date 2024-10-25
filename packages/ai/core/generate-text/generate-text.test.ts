@@ -446,6 +446,7 @@ describe('options.maxSteps', () => {
                         toolCallId: 'call-1',
                         toolName: 'tool1',
                         result: 'result1',
+                        isError: undefined,
                         providerMetadata: undefined,
                       },
                     ],
