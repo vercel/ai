@@ -162,7 +162,7 @@ Result of the tool call. This is a JSON-serializable object.
   /**
 Multi-part content of the tool result. Only for tools that support multipart results.
    */
-  content?: ToolResultContent;
+  experimental_content?: ToolResultContent;
 
   /**
 Optional flag if the result is an error or an error message.

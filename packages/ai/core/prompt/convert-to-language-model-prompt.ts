@@ -124,7 +124,7 @@ export function convertToLanguageModelMessage(
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           result: part.result,
-          content: part.content,
+          content: part.experimental_content,
           isError: part.isError,
           providerMetadata: part.experimental_providerMetadata,
         })),

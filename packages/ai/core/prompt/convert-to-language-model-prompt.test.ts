@@ -829,7 +829,7 @@ describe('convertToLanguageModelMessage', () => {
               toolName: 'toolName',
               toolCallId: 'toolCallId',
               result: { some: 'result' },
-              content: [
+              experimental_content: [
                 { type: 'image', data: 'dGVzdA==', mimeType: 'image/png' },
               ],
             },
