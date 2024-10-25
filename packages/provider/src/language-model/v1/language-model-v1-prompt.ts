@@ -171,6 +171,11 @@ Optional flag if the result is an error or an error message.
   isError?: boolean;
 
   /**
+Optional base64 encoded PNG image data (e.g. for screenshots).
+   */
+  imageBase64?: string;
+
+  /**
    * Additional provider-specific metadata. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.

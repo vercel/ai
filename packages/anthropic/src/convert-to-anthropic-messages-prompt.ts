@@ -141,6 +141,7 @@ export function convertToAnthropicMessagesPrompt({
                   content: JSON.stringify(part.result),
                   is_error: part.isError,
                   cache_control: cacheControl,
+                  image_base64: part.imageBase64,
                 });
               }
 

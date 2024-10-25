@@ -161,6 +161,11 @@ Optional flag if the result is an error or an error message.
   isError?: boolean;
 
   /**
+Optional base64 encoded PNG image data (e.g. for screenshots).
+   */
+  imageBase64?: string;
+
+  /**
 Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
@@ -174,5 +179,6 @@ export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   toolName: z.string(),
   result: z.unknown(),
   isError: z.boolean().optional(),
+  imageBase64: z.string().optional(),
   experimental_providerMetadata: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type
