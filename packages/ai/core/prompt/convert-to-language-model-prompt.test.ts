@@ -819,7 +819,7 @@ describe('convertToLanguageModelMessage', () => {
       });
     });
 
-    it('should include image data', () => {
+    it('should include multipart content', () => {
       const result = convertToLanguageModelMessage(
         {
           role: 'tool',
@@ -829,7 +829,9 @@ describe('convertToLanguageModelMessage', () => {
               toolName: 'toolName',
               toolCallId: 'toolCallId',
               result: { some: 'result' },
-              imageBase64: 'dGVzdA==',
+              content: [
+                { type: 'image', data: 'dGVzdA==', mimeType: 'image/png' },
+              ],
             },
           ],
         },
@@ -844,7 +846,9 @@ describe('convertToLanguageModelMessage', () => {
             result: { some: 'result' },
             toolCallId: 'toolCallId',
             toolName: 'toolName',
-            imageBase64: 'dGVzdA==',
+            content: [
+              { type: 'image', data: 'dGVzdA==', mimeType: 'image/png' },
+            ],
           },
         ],
       });
