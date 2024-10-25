@@ -25,6 +25,21 @@ Use descriptions to make the input understandable for the language model.
   parameters: PARAMETERS;
 
   /**
+Flag that enables image results for the tool. When enabled, results of the following structure will be interpreted as image results:
+
+```js
+const result = {
+  type: 'image-result';
+  imageBase64: string; // base64 encoded png image, e.g. screenshot
+  text?: string; // optional text description of the tool result
+};
+```
+
+Default is `false`.
+   */
+  imageResults?: boolean;
+
+  /**
 An async function that is called with the arguments from the tool call and produces a result.
 If not provided, the tool will not be executed automatically.
 

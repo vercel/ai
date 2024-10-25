@@ -15,6 +15,8 @@ const Bash20241022Parameters = z.object({
 /**
  * Creates a tool for running a bash command. Must have name "bash".
  *
+ * Image results are supported.
+ *
  * @param execute - The function to execute the tool. Optional.
  */
 function bashTool_20241022<RESULT>(
@@ -40,6 +42,7 @@ function bashTool_20241022<RESULT>(
   args: {};
   parameters: typeof Bash20241022Parameters;
   execute: ExecuteFunction<z.infer<typeof Bash20241022Parameters>, RESULT>;
+  imageResults: true;
 } {
   return {
     type: 'provider-defined',
@@ -47,6 +50,7 @@ function bashTool_20241022<RESULT>(
     args: {},
     parameters: Bash20241022Parameters,
     execute: options.execute,
+    imageResults: true,
   };
 }
 
@@ -62,6 +66,8 @@ const TextEditor20241022Parameters = z.object({
 
 /**
  * Creates a tool for editing text. Must have name "str_replace_editor".
+ *
+ * Image results are supported.
  *
  * @param execute - The function to execute the tool. Optional.
  */
@@ -116,6 +122,7 @@ function textEditorTool_20241022<RESULT>(
     z.infer<typeof TextEditor20241022Parameters>,
     RESULT
   >;
+  imageResults: true;
 } {
   return {
     type: 'provider-defined',
@@ -123,6 +130,7 @@ function textEditorTool_20241022<RESULT>(
     args: {},
     parameters: TextEditor20241022Parameters,
     execute: options.execute,
+    imageResults: true,
   };
 }
 
@@ -145,6 +153,8 @@ const Computer20241022Parameters = z.object({
 
 /**
  * Creates a tool for executing actions on a computer. Must have name "computer".
+ *
+ * Image results are supported.
  *
  * @param displayWidthPx - The width of the display being controlled by the model in pixels.
  * @param displayHeightPx - The height of the display being controlled by the model in pixels.
@@ -202,6 +212,7 @@ function computerTool_20241022<RESULT>(options: {
   args: {};
   parameters: typeof Computer20241022Parameters;
   execute: ExecuteFunction<z.infer<typeof Computer20241022Parameters>, RESULT>;
+  imageResults: true;
 } {
   return {
     type: 'provider-defined',
@@ -213,6 +224,7 @@ function computerTool_20241022<RESULT>(options: {
     },
     parameters: Computer20241022Parameters,
     execute: options.execute,
+    imageResults: true,
   };
 }
 
