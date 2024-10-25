@@ -4,22 +4,27 @@ It contains the tool call ID, the tool name, the tool arguments, and the tool re
  */
 export interface ToolResult<NAME extends string, ARGS, RESULT> {
   /**
-  ID of the tool call. This ID is used to match the tool call with the tool result.
+ID of the tool call. This ID is used to match the tool call with the tool result.
    */
   toolCallId: string;
 
   /**
-  Name of the tool that was called.
+Name of the tool that was called.
    */
   toolName: NAME;
 
   /**
-  Arguments of the tool call. This is a JSON-serializable object that matches the tool's input schema.
+Indicates whether this tool result is a multi-part tool results. Defaults to false.
+   */
+  isMultipart?: boolean;
+
+  /**
+Arguments of the tool call. This is a JSON-serializable object that matches the tool's input schema.
      */
   args: ARGS;
 
   /**
-  Result of the tool call. This is the result of the tool's execution.
+Result of the tool call. This is the result of the tool's execution.
      */
   result: RESULT;
 }
