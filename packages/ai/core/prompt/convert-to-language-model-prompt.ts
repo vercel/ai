@@ -58,7 +58,7 @@ export function convertToLanguageModelMessage(
   downloadedAssets: Record<
     string,
     { mimeType: string | undefined; data: Uint8Array }
-  > | null,
+  >,
 ): LanguageModelV1Message {
   const role = message.role;
   switch (role) {
@@ -205,7 +205,7 @@ function convertPartToLanguageModelPart(
   downloadedAssets: Record<
     string,
     { mimeType: string | undefined; data: Uint8Array }
-  > | null,
+  >,
 ):
   | LanguageModelV1TextPart
   | LanguageModelV1ImagePart
@@ -218,12 +218,12 @@ function convertPartToLanguageModelPart(
     };
   }
 
-  const type = part.type;
   let mimeType: string | undefined = part.mimeType;
   let data: DataContent | URL;
   let content: URL | ArrayBuffer | string;
   let normalizedData: Uint8Array | URL;
 
+  const type = part.type;
   switch (type) {
     case 'image':
       data = part.image;
@@ -265,13 +265,10 @@ function convertPartToLanguageModelPart(
        * we can let the model decide if it wants to support the URL. This also allows
        * for non-HTTP URLs to be passed through (e.g. gs://).
        */
-      const downloadedFile = downloadedAssets?.[content.toString()];
+      const downloadedFile = downloadedAssets[content.toString()];
       if (downloadedFile) {
         normalizedData = downloadedFile.data;
-
-        if (!mimeType) {
-          mimeType = downloadedFile.mimeType;
-        }
+        mimeType ??= downloadedFile.mimeType;
       } else {
         normalizedData = content;
       }
@@ -288,12 +285,8 @@ function convertPartToLanguageModelPart(
     case 'image':
       // We give a best effort to detect the mime type if it is not provided.
       // otherwise, we use the provided mime type.
-      if (!mimeType && normalizedData instanceof Uint8Array) {
+      if (mimeType == null && normalizedData instanceof Uint8Array) {
         mimeType = detectImageMimeType(normalizedData);
-      }
-
-      if (!mimeType) {
-        mimeType = part.mimeType;
       }
 
       return {
@@ -304,8 +297,8 @@ function convertPartToLanguageModelPart(
       };
     case 'file':
       // We should have a mimeType at this point, if not, throw an error.
-      if (!mimeType) {
-        throw new Error('Mime type is missing for file');
+      if (mimeType == null) {
+        throw new Error(`Mime type is missing for file part`);
       }
 
       return {

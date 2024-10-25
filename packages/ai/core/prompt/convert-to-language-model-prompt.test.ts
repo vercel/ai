@@ -502,7 +502,7 @@ describe('convertToLanguageModelMessage', () => {
       it('should filter out empty text parts', async () => {
         const result = convertToLanguageModelMessage(
           { role: 'user', content: [{ type: 'text', text: '' }] },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -517,7 +517,7 @@ describe('convertToLanguageModelMessage', () => {
             role: 'user',
             content: [{ type: 'text', text: 'hello, world!' }],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -539,7 +539,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -564,7 +564,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -593,7 +593,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -620,7 +620,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -656,7 +656,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -693,7 +693,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
