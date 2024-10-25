@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { toResponseMessages } from './to-response-messages';
+import { tool } from '../tool';
 
 it('should return an assistant message with text when no tool calls or results', () => {
   const result = toResponseMessages({
@@ -139,15 +140,14 @@ it('should handle multipart tool results', () => {
   const result = toResponseMessages({
     text: 'multipart tool result',
     tools: {
-      testTool: {
+      testTool: tool({
         description: 'A test tool',
         parameters: z.object({}),
-        supportsMultipartResults: true,
-        execute: async () => [
-          { type: 'text', text: 'Text result' },
-          { type: 'image', data: 'image-base64', mimeType: 'image/png' },
-        ],
-      },
+        execute: async () => 'image-base64',
+        experimental_toToolResultContent(result) {
+          return [{ type: 'image', data: result, mimeType: 'image/png' }];
+        },
+      }),
     },
     toolCalls: [
       {
@@ -162,11 +162,8 @@ it('should handle multipart tool results', () => {
         type: 'tool-result',
         toolCallId: '123',
         toolName: 'testTool',
-        result: [
-          { type: 'text', text: 'Text result' },
-          { type: 'image', data: 'image-base64', mimeType: 'image/png' },
-        ],
         args: {},
+        result: 'image-base64',
       },
     ],
   });
@@ -192,11 +189,9 @@ it('should handle multipart tool results', () => {
           toolCallId: '123',
           toolName: 'testTool',
           result: [
-            { type: 'text', text: 'Text result' },
             { type: 'image', data: 'image-base64', mimeType: 'image/png' },
           ],
           content: [
-            { type: 'text', text: 'Text result' },
             { type: 'image', data: 'image-base64', mimeType: 'image/png' },
           ],
         },
