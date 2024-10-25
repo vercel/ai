@@ -360,6 +360,55 @@ const result = await generateText({
 });
 ```
 
+#### Multi-modal Tool Results
+
+<Note type="warning">
+  Multi-part tool results are experimental and only supported by Anthropic.
+</Note>
+
+Tool results can be multi-part and multi-modal, e.g. a text and an image.
+You can use the `experimental_content` property on tool parts to specify multi-part tool results.
+
+```ts highlight="20-32"
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    // ...
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: '12345', // needs to match the tool call id
+          toolName: 'get-nutrition-data',
+          // for models that do not support multi-part tool results,
+          // you can include a regular result part:
+          result: {
+            name: 'Cheese, roquefort',
+            calories: 369,
+            fat: 31,
+            protein: 22,
+          },
+          // for models that support multi-part tool results,
+          // you can include a multi-part content part:
+          content: [
+            {
+              type: 'text',
+              text: 'Here is an image of the nutrition data for the cheese:',
+            },
+            {
+              type: 'image',
+              data: fs.readFileSync('./data/roquefort-nutrition-data.png'),
+              mimeType: 'image/png',
+            },
+          ],
+        },
+      ],
+    },
+  ],
+});
+```
+
 ### System Messages
 
 System messages are messages that are sent to the model before the user messages to guide the assistant's behavior.

@@ -1,5 +1,6 @@
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
+import { ToolResultContent } from '../prompt/tool-result-content';
 
 type Parameters = z.ZodTypeAny | Schema<any>;
 
@@ -23,6 +24,11 @@ It is also used to validate the output of the language model.
 Use descriptions to make the input understandable for the language model.
    */
   parameters: PARAMETERS;
+
+  /**
+Optional conversion function that maps the tool result to multi-part tool content for LLMs.
+   */
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 
   /**
 An async function that is called with the arguments from the tool call and produces a result.

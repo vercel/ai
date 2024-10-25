@@ -20,7 +20,7 @@ describe('doGenerate', () => {
   server.setupTestEnvironment();
 
   function prepareJsonResponse({
-    content = [{ type: 'text', text: '' }],
+    content = [{ type: 'text', text: '', cache_control: undefined }],
     usage = {
       input_tokens: 4,
       output_tokens: 30,
@@ -53,7 +53,11 @@ describe('doGenerate', () => {
   }
 
   it('should extract text response', async () => {
-    prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
+    prepareJsonResponse({
+      content: [
+        { type: 'text', text: 'Hello, World!', cache_control: undefined },
+      ],
+    });
 
     const { text } = await provider('claude-3-haiku-20240307').doGenerate({
       inputFormat: 'prompt',
@@ -67,12 +71,17 @@ describe('doGenerate', () => {
   it('should extract tool calls', async () => {
     prepareJsonResponse({
       content: [
-        { type: 'text', text: 'Some text\n\n' },
+        {
+          type: 'text',
+          text: 'Some text\n\n',
+          cache_control: undefined,
+        },
         {
           type: 'tool_use',
           id: 'toolu_1',
           name: 'test-tool',
           input: { value: 'example value' },
+          cache_control: undefined,
         },
       ],
       stopReason: 'tool_use',
@@ -114,12 +123,17 @@ describe('doGenerate', () => {
   it('should support object-tool mode', async () => {
     prepareJsonResponse({
       content: [
-        { type: 'text', text: 'Some text\n\n' },
+        {
+          type: 'text',
+          text: 'Some text\n\n',
+          cache_control: undefined,
+        },
         {
           type: 'tool_use',
           id: 'toolu_1',
           name: 'json',
           input: { value: 'example value' },
+          cache_control: undefined,
         },
       ],
       stopReason: 'tool_use',

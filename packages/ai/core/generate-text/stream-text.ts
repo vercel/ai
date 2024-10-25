@@ -17,10 +17,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
-import {
-  StandardizedPrompt,
-  standardizePrompt,
-} from '../prompt/standardize-prompt';
+import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -424,6 +421,7 @@ need to be added separately.
         now,
         currentDate,
         generateId,
+        tools,
       });
     },
   });
@@ -482,6 +480,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     now,
     currentDate,
     generateId,
+    tools,
   }: {
     stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
     warnings: StreamTextResult<TOOLS>['warnings'];
@@ -510,6 +509,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
+    tools: TOOLS | undefined;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -895,6 +895,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 responseMessages.push(
                   ...toResponseMessages({
                     text: stepText,
+                    tools: tools ?? ({} as TOOLS),
                     toolCalls: stepToolCalls,
                     toolResults: stepToolResults,
                   }),
