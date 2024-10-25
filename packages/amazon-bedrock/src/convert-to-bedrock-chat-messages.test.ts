@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 
 describe('system messages', () => {
@@ -21,7 +22,13 @@ describe('system messages', () => {
 });
 
 describe('user messages', () => {
-  it('should convert messages with image and text parts to multiple parts', async () => {
+  it('should convert messages with file, image, and text parts to multiple parts', async () => {
+    const fileData = new Uint8Array([0, 1, 2, 3]);
+    const fileBase64Data = Buffer.from(fileData).toString('base64');
+    const fileHash = crypto.createHash('sha256');
+    fileHash.update(fileBase64Data);
+    const fileName = fileHash.digest('hex');
+
     const { messages } = convertToBedrockChatMessages([
       {
         role: 'user',
@@ -31,6 +38,11 @@ describe('user messages', () => {
             type: 'image',
             image: new Uint8Array([0, 1, 2, 3]),
             mimeType: 'image/png',
+          },
+          {
+            type: 'file',
+            data: fileBase64Data,
+            mimeType: 'application/pdf',
           },
         ],
       },
@@ -45,6 +57,13 @@ describe('user messages', () => {
             image: {
               format: 'png',
               source: { bytes: new Uint8Array([0, 1, 2, 3]) },
+            },
+          },
+          {
+            document: {
+              format: 'pdf',
+              name: fileName,
+              source: { bytes: Buffer.from(fileData) },
             },
           },
         ],
