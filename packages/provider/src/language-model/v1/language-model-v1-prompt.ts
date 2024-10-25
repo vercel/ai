@@ -174,7 +174,29 @@ Optional flag if the result is an error or an error message.
 Tool results as an array of parts. This enables advanced tool results including images.
 When this is used, the `result` field should be ignored (if the provider supports content).
    */
-  content?: Array<LanguageModelV1TextPart | LanguageModelV1ImagePart>;
+  content?: Array<
+    | {
+        type: 'text';
+
+        /**
+Text content.
+         */
+        text: string;
+      }
+    | {
+        type: 'image';
+
+        /**
+base-64 encoded image data
+         */
+        data: string;
+
+        /**
+Mime type of the image.
+         */
+        mimeType?: string;
+      }
+  >;
 
   /**
    * Additional provider-specific metadata. They are passed through

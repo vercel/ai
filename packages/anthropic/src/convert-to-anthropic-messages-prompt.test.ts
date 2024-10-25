@@ -197,7 +197,7 @@ describe('tool messages', () => {
     });
   });
 
-  it('should handle tool result with imageBase64', async () => {
+  it('should handle tool result with content parts', async () => {
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -208,7 +208,17 @@ describe('tool messages', () => {
               toolName: 'image-generator',
               toolCallId: 'image-gen-1',
               result: 'Image generated successfully',
-              imageBase64: 'base64encodedimage',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Image generated successfully',
+                },
+                {
+                  type: 'image',
+                  data: 'AAECAw==',
+                  mimeType: 'image/png',
+                },
+              ],
             },
           ],
         },
@@ -225,8 +235,17 @@ describe('tool messages', () => {
               type: 'tool_result',
               tool_use_id: 'image-gen-1',
               is_error: undefined,
-              content: JSON.stringify('Image generated successfully'),
-              image_base64: 'base64encodedimage',
+              content: [
+                { type: 'text', text: 'Image generated successfully' },
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    data: 'AAECAw==',
+                    media_type: 'image/png',
+                  },
+                },
+              ],
             },
           ],
         },

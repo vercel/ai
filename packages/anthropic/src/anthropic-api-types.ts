@@ -48,9 +48,8 @@ export interface AnthropicToolCallContent {
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
-  content: unknown;
+  content: string | Array<AnthropicTextContent | AnthropicImageContent>;
   is_error: boolean | undefined;
-  image_base64: string | undefined;
   cache_control: AnthropicCacheControl | undefined;
 }
 

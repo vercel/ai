@@ -135,13 +135,36 @@ export function convertToAnthropicMessagesPrompt({
                     ? getCacheControl(message.providerMetadata)
                     : undefined);
 
+                const toolResultContent =
+                  part.content != null
+                    ? part.content.map(part => {
+                        switch (part.type) {
+                          case 'text':
+                            return {
+                              type: 'text' as const,
+                              text: part.text,
+                              cache_control: undefined,
+                            };
+                          case 'image':
+                            return {
+                              type: 'image' as const,
+                              source: {
+                                type: 'base64' as const,
+                                media_type: part.mimeType ?? 'image/jpeg',
+                                data: part.data,
+                              },
+                              cache_control: undefined,
+                            };
+                        }
+                      })
+                    : JSON.stringify(part.result);
+
                 anthropicContent.push({
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
-                  content: JSON.stringify(part.result),
+                  content: toolResultContent,
                   is_error: part.isError,
                   cache_control: cacheControl,
-                  image_base64: part.imageBase64,
                 });
               }
 
