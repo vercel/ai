@@ -218,9 +218,9 @@ function computerTool_20241022<RESULT>(options: {
     type: 'provider-defined',
     id: 'anthropic.computer_20241022',
     args: {
-      display_width_px: options.displayWidthPx,
-      display_height_px: options.displayHeightPx,
-      display_number: options.displayNumber,
+      displayWidthPx: options.displayWidthPx,
+      displayHeightPx: options.displayHeightPx,
+      displayNumber: options.displayNumber,
     },
     parameters: Computer20241022Parameters,
     execute: options.execute,
