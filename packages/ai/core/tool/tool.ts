@@ -25,19 +25,25 @@ Use descriptions to make the input understandable for the language model.
   parameters: PARAMETERS;
 
   /**
-Flag that enables image results for the tool. When enabled, results of the following structure will be interpreted as image results:
+Flag that enables multipart results for the tool. When enabled, results of the following structure will be interpreted as multipart results:
 
-```js
-const result = {
-  type: 'image-result';
-  imageBase64: string; // base64 encoded png image, e.g. screenshot
-  text?: string; // optional text description of the tool result
-};
+```ts
+type MultipartResult = Array<
+  | {
+      type: 'text';
+      text: string;
+    }
+  | {
+      type: 'image';
+      data: string; // base64 encoded png image, e.g. screenshot
+      mimeType: 'image/png';
+    }
+>;
 ```
 
 Default is `false`.
    */
-  imageResults?: boolean;
+  supportsMultipartResults?: boolean;
 
   /**
 An async function that is called with the arguments from the tool call and produces a result.

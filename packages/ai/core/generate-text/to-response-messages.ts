@@ -1,4 +1,5 @@
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
+import { isMultipartToolResult } from '../prompt/multipart-tool-result';
 import { CoreTool } from '../tool/tool';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
@@ -27,12 +28,30 @@ export function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
   if (toolResults.length > 0) {
     responseMessages.push({
       role: 'tool',
-      content: toolResults.map(result => ({
-        type: 'tool-result',
-        toolCallId: result.toolCallId,
-        toolName: result.toolName,
-        result: result.result,
-      })),
+      content: toolResults.map(toolResult => {
+        const tool = tools[toolResult.toolName];
+
+        if (
+          tool?.supportsMultipartResults === true &&
+          isMultipartToolResult(toolResult.result)
+        ) {
+          return {
+            type: 'tool-result',
+            toolCallId: toolResult.toolCallId,
+            toolName: toolResult.toolName,
+            result: toolResult.result,
+            content: toolResult.result,
+          };
+        }
+
+        return {
+          type: 'tool-result',
+          toolCallId: toolResult.toolCallId,
+          toolName: toolResult.toolName,
+          result: toolResult.result,
+          // no multipart content for legacy results
+        };
+      }),
     });
   }
 

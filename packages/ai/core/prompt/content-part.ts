@@ -4,6 +4,10 @@ import {
   providerMetadataSchema,
 } from '../types/provider-metadata';
 import { DataContent, dataContentSchema } from './data-content';
+import {
+  MultipartToolResult,
+  multipartToolResultSchema,
+} from './multipart-tool-result';
 
 /**
 Text content part of a prompt. It contains a string of text.
@@ -156,14 +160,14 @@ Result of the tool call. This is a JSON-serializable object.
   result: unknown;
 
   /**
+Multi-part content of the tool result. Only for tools that support multipart results.
+   */
+  content?: MultipartToolResult;
+
+  /**
 Optional flag if the result is an error or an error message.
    */
   isError?: boolean;
-
-  /**
-Optional base64 encoded PNG image data (e.g. for screenshots).
-   */
-  imageBase64?: string;
 
   /**
 Additional provider-specific metadata. They are passed through
@@ -178,7 +182,7 @@ export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   toolCallId: z.string(),
   toolName: z.string(),
   result: z.unknown(),
+  content: multipartToolResultSchema.optional(),
   isError: z.boolean().optional(),
-  imageBase64: z.string().optional(),
   experimental_providerMetadata: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type

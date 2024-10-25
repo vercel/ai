@@ -114,6 +114,70 @@ it('should include tool results as a separate message', () => {
   ]);
 });
 
+it('should include image tool results when the tool supports them', () => {
+  const result = toResponseMessages({
+    text: 'image tool',
+    tools: {
+      testTool: {
+        description: 'A test tool',
+        parameters: z.object({}),
+        supportsImageResults: true,
+        execute: async () => ({
+          type: 'image-result',
+          imageBase64: 'image-base64',
+        }),
+      },
+    },
+    toolCalls: [
+      {
+        type: 'tool-call',
+        toolCallId: '123',
+        toolName: 'testTool',
+        args: {},
+      },
+    ],
+    toolResults: [
+      {
+        type: 'tool-result',
+        toolCallId: '123',
+        toolName: 'testTool',
+        result: {
+          type: 'image-result',
+          imageBase64: 'image-base64',
+        },
+        args: {},
+      },
+    ],
+  });
+
+  expect(result).toEqual([
+    {
+      role: 'assistant',
+      content: [
+        { type: 'text', text: 'image tool' },
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          args: {},
+        },
+      ],
+    },
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: '123',
+          toolName: 'testTool',
+          result: undefined,
+          imageBase64: 'image-base64',
+        },
+      ],
+    },
+  ]);
+});
+
 it('should handle undefined text', () => {
   const result = toResponseMessages({
     text: undefined,

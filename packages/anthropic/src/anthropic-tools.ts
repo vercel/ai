@@ -42,7 +42,7 @@ function bashTool_20241022<RESULT>(
   args: {};
   parameters: typeof Bash20241022Parameters;
   execute: ExecuteFunction<z.infer<typeof Bash20241022Parameters>, RESULT>;
-  supportsImageResults: true;
+  supportsMultipartResults: true;
 } {
   return {
     type: 'provider-defined',
@@ -50,7 +50,7 @@ function bashTool_20241022<RESULT>(
     args: {},
     parameters: Bash20241022Parameters,
     execute: options.execute,
-    supportsImageResults: true,
+    supportsMultipartResults: true,
   };
 }
 
@@ -122,7 +122,7 @@ function textEditorTool_20241022<RESULT>(
     z.infer<typeof TextEditor20241022Parameters>,
     RESULT
   >;
-  supportsImageResults: true;
+  supportsMultipartResults: true;
 } {
   return {
     type: 'provider-defined',
@@ -130,7 +130,7 @@ function textEditorTool_20241022<RESULT>(
     args: {},
     parameters: TextEditor20241022Parameters,
     execute: options.execute,
-    supportsImageResults: true,
+    supportsMultipartResults: true,
   };
 }
 
@@ -212,7 +212,7 @@ function computerTool_20241022<RESULT>(options: {
   args: {};
   parameters: typeof Computer20241022Parameters;
   execute: ExecuteFunction<z.infer<typeof Computer20241022Parameters>, RESULT>;
-  supportsImageResults: true;
+  supportsMultipartResults: true;
 } {
   return {
     type: 'provider-defined',
@@ -224,7 +224,7 @@ function computerTool_20241022<RESULT>(options: {
     },
     parameters: Computer20241022Parameters,
     execute: options.execute,
-    supportsImageResults: true,
+    supportsMultipartResults: true,
   };
 }
 
