@@ -788,7 +788,7 @@ describe('convertToLanguageModelMessage', () => {
       });
     });
 
-    it('should convert error flag', () => {
+    it('should include error flag', () => {
       const result = convertToLanguageModelMessage(
         {
           role: 'tool',
@@ -814,6 +814,37 @@ describe('convertToLanguageModelMessage', () => {
             toolCallId: 'toolCallId',
             toolName: 'toolName',
             isError: true,
+          },
+        ],
+      });
+    });
+
+    it('should include image data', () => {
+      const result = convertToLanguageModelMessage(
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'toolName',
+              toolCallId: 'toolCallId',
+              result: { some: 'result' },
+              imageBase64: 'dGVzdA==',
+            },
+          ],
+        },
+        {},
+      );
+
+      expect(result).toEqual({
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            result: { some: 'result' },
+            toolCallId: 'toolCallId',
+            toolName: 'toolName',
+            imageBase64: 'dGVzdA==',
           },
         ],
       });

@@ -125,6 +125,7 @@ export function convertToLanguageModelMessage(
           toolName: part.toolName,
           result: part.result,
           isError: part.isError,
+          imageBase64: part.imageBase64,
           providerMetadata: part.experimental_providerMetadata,
         })),
         providerMetadata: message.experimental_providerMetadata,

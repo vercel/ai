@@ -2234,6 +2234,7 @@ describe('options.maxSteps', () => {
                         toolCallId: 'call-1',
                         toolName: 'tool1',
                         result: 'result1',
+                        imageBase64: undefined,
                         isError: undefined,
                         providerMetadata: undefined,
                       },
