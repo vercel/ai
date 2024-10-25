@@ -10,20 +10,25 @@ async function main() {
         displayWidthPx: 100,
         displayHeightPx: 100,
         async execute({ action, coordinate, text }) {
-          return '';
+          return [{ type: 'text', text: '' }];
         },
       }),
       bash: anthropic.tools.bash_20241022({
         async execute({ command }) {
-          return `
+          return [
+            {
+              type: 'text',
+              text: `
           ❯ ls
           README.md     build         data          node_modules  package.json  src           tsconfig.json
-`;
+          `,
+            },
+          ];
         },
       }),
       str_replace_editor: anthropic.tools.textEditor_20241022({
         async execute({ command, path, old_str, new_str }) {
-          return '';
+          return [{ type: 'text', text: '' }];
         },
       }),
     },
