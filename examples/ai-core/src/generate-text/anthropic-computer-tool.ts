@@ -10,28 +10,33 @@ async function main() {
       computer: anthropic.tools.computer_20241022({
         displayWidthPx: 1024,
         displayHeightPx: 768,
+
         async execute({ action, coordinate, text }) {
           console.log('args', { action, coordinate, text });
           switch (action) {
             case 'screenshot': {
               // multipart result:
-              return [
-                {
-                  type: 'image',
-                  mimeType: 'image/png',
-                  data: fs
-                    .readFileSync('./data/screenshot-editor.png')
-                    .toString('base64'),
-                },
-              ];
+              return {
+                type: 'image',
+                data: fs
+                  .readFileSync('./data/screenshot-editor.png')
+                  .toString('base64'),
+              };
             }
             default: {
               console.log('Action:', action);
               console.log('Coordinate:', coordinate);
               console.log('Text:', text);
-              return [{ type: 'text', text: `executed ${action}` }];
+              return `executed ${action}`;
             }
           }
+        },
+
+        // map to tool result content for LLM consumption:
+        experimental_toToolResultContent(result) {
+          return typeof result === 'string'
+            ? [{ type: 'text', text: result }]
+            : [{ type: 'image', data: result.data, mimeType: 'image/png' }];
         },
       }),
     },

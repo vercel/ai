@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export type MultipartToolResult = Array<
+export type ToolResultContent = Array<
   | {
       type: 'text';
       text: string;
@@ -12,21 +12,20 @@ export type MultipartToolResult = Array<
     }
 >;
 
-export const multipartToolResultSchema: z.ZodType<MultipartToolResult> =
-  z.array(
-    z.union([
-      z.object({ type: z.literal('text'), text: z.string() }),
-      z.object({
-        type: z.literal('image'),
-        data: z.string(),
-        mimeType: z.string().optional(),
-      }),
-    ]),
-  );
+export const toolResultContentSchema: z.ZodType<ToolResultContent> = z.array(
+  z.union([
+    z.object({ type: z.literal('text'), text: z.string() }),
+    z.object({
+      type: z.literal('image'),
+      data: z.string(),
+      mimeType: z.string().optional(),
+    }),
+  ]),
+);
 
-export function isMultipartToolResult(
+export function isToolResultContent(
   value: unknown,
-): value is MultipartToolResult {
+): value is ToolResultContent {
   if (!Array.isArray(value) || value.length === 0) {
     return false;
   }

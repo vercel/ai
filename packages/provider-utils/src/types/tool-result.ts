@@ -14,11 +14,6 @@ Name of the tool that was called.
   toolName: NAME;
 
   /**
-Indicates whether this tool result is a multi-part tool results. Defaults to false.
-   */
-  isMultipart?: boolean;
-
-  /**
 Arguments of the tool call. This is a JSON-serializable object that matches the tool's input schema.
      */
   args: ARGS;

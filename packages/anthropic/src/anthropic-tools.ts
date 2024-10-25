@@ -9,7 +9,7 @@ type ExecuteFunction<PARAMETERS, RESULT> =
     ) => Promise<RESULT>);
 
 // Copied from ai package
-export type MultipartToolResult = Array<
+export type ToolResultContent = Array<
   | {
       type: 'text';
       text: string;
@@ -33,7 +33,7 @@ const Bash20241022Parameters = z.object({
  *
  * @param execute - The function to execute the tool. Optional.
  */
-function bashTool_20241022(
+function bashTool_20241022<RESULT>(
   options: {
     execute?: ExecuteFunction<
       {
@@ -47,19 +47,17 @@ function bashTool_20241022(
          */
         restart?: boolean;
       },
-      MultipartToolResult
+      RESULT
     >;
+    experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
   } = {},
 ): {
   type: 'provider-defined';
   id: 'anthropic.bash_20241022';
   args: {};
   parameters: typeof Bash20241022Parameters;
-  execute: ExecuteFunction<
-    z.infer<typeof Bash20241022Parameters>,
-    MultipartToolResult
-  >;
-  supportsMultipartResults: true;
+  execute: ExecuteFunction<z.infer<typeof Bash20241022Parameters>, RESULT>;
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
     type: 'provider-defined',
@@ -67,7 +65,7 @@ function bashTool_20241022(
     args: {},
     parameters: Bash20241022Parameters,
     execute: options.execute,
-    supportsMultipartResults: true,
+    experimental_toToolResultContent: options.experimental_toToolResultContent,
   };
 }
 
@@ -88,7 +86,7 @@ const TextEditor20241022Parameters = z.object({
  *
  * @param execute - The function to execute the tool. Optional.
  */
-function textEditorTool_20241022(
+function textEditorTool_20241022<RESULT>(
   options: {
     execute?: ExecuteFunction<
       {
@@ -127,8 +125,9 @@ function textEditorTool_20241022(
          */
         view_range?: number[];
       },
-      MultipartToolResult
+      RESULT
     >;
+    experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
   } = {},
 ): {
   type: 'provider-defined';
@@ -137,9 +136,9 @@ function textEditorTool_20241022(
   parameters: typeof TextEditor20241022Parameters;
   execute: ExecuteFunction<
     z.infer<typeof TextEditor20241022Parameters>,
-    MultipartToolResult
+    RESULT
   >;
-  supportsMultipartResults: true;
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
     type: 'provider-defined',
@@ -147,7 +146,7 @@ function textEditorTool_20241022(
     args: {},
     parameters: TextEditor20241022Parameters,
     execute: options.execute,
-    supportsMultipartResults: true,
+    experimental_toToolResultContent: options.experimental_toToolResultContent,
   };
 }
 
@@ -178,7 +177,7 @@ const Computer20241022Parameters = z.object({
  * @param displayNumber - The display number to control (only relevant for X11 environments). If specified, the tool will be provided a display number in the tool definition.
  * @param execute - The function to execute the tool. Optional.
  */
-function computerTool_20241022(options: {
+function computerTool_20241022<RESULT>(options: {
   displayWidthPx: number;
   displayHeightPx: number;
   displayNumber?: number;
@@ -221,18 +220,16 @@ function computerTool_20241022(options: {
        */
       text?: string;
     },
-    MultipartToolResult
+    RESULT
   >;
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 }): {
   type: 'provider-defined';
   id: 'anthropic.computer_20241022';
   args: {};
   parameters: typeof Computer20241022Parameters;
-  execute: ExecuteFunction<
-    z.infer<typeof Computer20241022Parameters>,
-    MultipartToolResult
-  >;
-  supportsMultipartResults: true;
+  execute: ExecuteFunction<z.infer<typeof Computer20241022Parameters>, RESULT>;
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
     type: 'provider-defined',
@@ -244,7 +241,7 @@ function computerTool_20241022(options: {
     },
     parameters: Computer20241022Parameters,
     execute: options.execute,
-    supportsMultipartResults: true,
+    experimental_toToolResultContent: options.experimental_toToolResultContent,
   };
 }
 

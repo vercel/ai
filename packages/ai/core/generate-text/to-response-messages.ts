@@ -1,5 +1,4 @@
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
-import { isMultipartToolResult } from '../prompt/multipart-tool-result';
 import { CoreTool } from '../tool/tool';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
@@ -31,26 +30,20 @@ export function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
       content: toolResults.map(toolResult => {
         const tool = tools[toolResult.toolName];
 
-        if (
-          tool?.supportsMultipartResults === true &&
-          isMultipartToolResult(toolResult.result)
-        ) {
-          return {
-            type: 'tool-result',
-            toolCallId: toolResult.toolCallId,
-            toolName: toolResult.toolName,
-            result: toolResult.result,
-            content: toolResult.result,
-          };
-        }
-
-        return {
-          type: 'tool-result',
-          toolCallId: toolResult.toolCallId,
-          toolName: toolResult.toolName,
-          result: toolResult.result,
-          // no multipart content for legacy results
-        };
+        return tool?.experimental_toToolResultContent != null
+          ? {
+              type: 'tool-result',
+              toolCallId: toolResult.toolCallId,
+              toolName: toolResult.toolName,
+              result: tool.experimental_toToolResultContent(toolResult.result),
+              content: tool.experimental_toToolResultContent(toolResult.result),
+            }
+          : {
+              type: 'tool-result',
+              toolCallId: toolResult.toolCallId,
+              toolName: toolResult.toolName,
+              result: toolResult.result,
+            };
       }),
     });
   }

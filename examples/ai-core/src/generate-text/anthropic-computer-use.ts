@@ -6,13 +6,6 @@ async function main() {
   const result = await generateText({
     model: anthropic('claude-3-5-sonnet-20241022'),
     tools: {
-      computer: anthropic.tools.computer_20241022({
-        displayWidthPx: 100,
-        displayHeightPx: 100,
-        async execute({ action, coordinate, text }) {
-          return [{ type: 'text', text: '' }];
-        },
-      }),
       bash: anthropic.tools.bash_20241022({
         async execute({ command }) {
           return [
