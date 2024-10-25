@@ -1,5 +1,7 @@
-import { ToolCall as CoreToolCall } from './duplicated/tool-call';
-import { ToolResult as CoreToolResult } from './duplicated/tool-result';
+import {
+  ToolCall as CoreToolCall,
+  ToolResult as CoreToolResult,
+} from '@ai-sdk/provider-utils';
 import { formatStreamPart, parseStreamPart } from './stream-parts';
 
 describe('stream-parts', () => {
