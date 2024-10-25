@@ -8,10 +8,12 @@ Converts the result of a `generateText` call to a list of response messages.
  */
 export function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
   text = '',
+  tools,
   toolCalls,
   toolResults,
 }: {
   text: string | undefined;
+  tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
   toolResults: ToolResultArray<TOOLS>;
 }): Array<CoreAssistantMessage | CoreToolMessage> {

@@ -444,6 +444,7 @@ changing the tool call and result types in the result.
           responseMessages.push(
             ...toResponseMessages({
               text,
+              tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
               toolResults: currentToolResults,
             }),
