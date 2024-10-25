@@ -1,11 +1,25 @@
 import { z } from 'zod';
 
+// Copied from ai package
 type ExecuteFunction<PARAMETERS, RESULT> =
   | undefined
   | ((
       args: PARAMETERS,
       options: { abortSignal?: AbortSignal },
     ) => Promise<RESULT>);
+
+// Copied from ai package
+export type MultipartToolResult = Array<
+  | {
+      type: 'text';
+      text: string;
+    }
+  | {
+      type: 'image';
+      data: string; // base64 encoded png image, e.g. screenshot
+      mimeType?: string; // e.g. 'image/png';
+    }
+>;
 
 const Bash20241022Parameters = z.object({
   command: z.string(),
@@ -19,7 +33,7 @@ const Bash20241022Parameters = z.object({
  *
  * @param execute - The function to execute the tool. Optional.
  */
-function bashTool_20241022<RESULT>(
+function bashTool_20241022(
   options: {
     execute?: ExecuteFunction<
       {
@@ -33,7 +47,7 @@ function bashTool_20241022<RESULT>(
          */
         restart?: boolean;
       },
-      RESULT
+      MultipartToolResult
     >;
   } = {},
 ): {
@@ -41,7 +55,10 @@ function bashTool_20241022<RESULT>(
   id: 'anthropic.bash_20241022';
   args: {};
   parameters: typeof Bash20241022Parameters;
-  execute: ExecuteFunction<z.infer<typeof Bash20241022Parameters>, RESULT>;
+  execute: ExecuteFunction<
+    z.infer<typeof Bash20241022Parameters>,
+    MultipartToolResult
+  >;
   supportsMultipartResults: true;
 } {
   return {
@@ -71,7 +88,7 @@ const TextEditor20241022Parameters = z.object({
  *
  * @param execute - The function to execute the tool. Optional.
  */
-function textEditorTool_20241022<RESULT>(
+function textEditorTool_20241022(
   options: {
     execute?: ExecuteFunction<
       {
@@ -110,7 +127,7 @@ function textEditorTool_20241022<RESULT>(
          */
         view_range?: number[];
       },
-      RESULT
+      MultipartToolResult
     >;
   } = {},
 ): {
@@ -120,7 +137,7 @@ function textEditorTool_20241022<RESULT>(
   parameters: typeof TextEditor20241022Parameters;
   execute: ExecuteFunction<
     z.infer<typeof TextEditor20241022Parameters>,
-    RESULT
+    MultipartToolResult
   >;
   supportsMultipartResults: true;
 } {
@@ -161,7 +178,7 @@ const Computer20241022Parameters = z.object({
  * @param displayNumber - The display number to control (only relevant for X11 environments). If specified, the tool will be provided a display number in the tool definition.
  * @param execute - The function to execute the tool. Optional.
  */
-function computerTool_20241022<RESULT>(options: {
+function computerTool_20241022(options: {
   displayWidthPx: number;
   displayHeightPx: number;
   displayNumber?: number;
@@ -204,14 +221,17 @@ function computerTool_20241022<RESULT>(options: {
        */
       text?: string;
     },
-    RESULT
+    MultipartToolResult
   >;
 }): {
   type: 'provider-defined';
   id: 'anthropic.computer_20241022';
   args: {};
   parameters: typeof Computer20241022Parameters;
-  execute: ExecuteFunction<z.infer<typeof Computer20241022Parameters>, RESULT>;
+  execute: ExecuteFunction<
+    z.infer<typeof Computer20241022Parameters>,
+    MultipartToolResult
+  >;
   supportsMultipartResults: true;
 } {
   return {

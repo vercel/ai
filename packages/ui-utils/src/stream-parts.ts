@@ -1,6 +1,8 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
-import { ToolCall as CoreToolCall } from './duplicated/tool-call';
-import { ToolResult as CoreToolResult } from './duplicated/tool-result';
+import {
+  ToolCall as CoreToolCall,
+  ToolResult as CoreToolResult,
+} from '@ai-sdk/provider-utils';
 import {
   AssistantMessage,
   DataMessage,
