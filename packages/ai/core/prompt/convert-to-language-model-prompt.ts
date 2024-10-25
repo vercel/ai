@@ -29,30 +29,21 @@ export async function convertToLanguageModelPrompt({
   modelSupportsUrl?: (url: URL) => boolean;
   downloadImplementation?: typeof download;
 }): Promise<LanguageModelV1Prompt> {
-  const downloadedAssets =
-    prompt.messages == null
-      ? null
-      : await downloadAssets(
-          prompt.messages,
-          downloadImplementation,
-          modelSupportsImageUrls,
-          modelSupportsUrl,
-        );
-
-  const languageModelMessages: LanguageModelV1Prompt = [];
-
-  if (prompt.system != null) {
-    languageModelMessages.push({ role: 'system', content: prompt.system });
-  }
-
-  languageModelMessages.push(
-    ...prompt.messages.map(
-      (message): LanguageModelV1Message =>
-        convertToLanguageModelMessage(message, downloadedAssets),
-    ),
+  const downloadedAssets = await downloadAssets(
+    prompt.messages,
+    downloadImplementation,
+    modelSupportsImageUrls,
+    modelSupportsUrl,
   );
 
-  return languageModelMessages;
+  return [
+    ...(prompt.system != null
+      ? [{ role: 'system' as const, content: prompt.system }]
+      : []),
+    ...prompt.messages.map(message =>
+      convertToLanguageModelMessage(message, downloadedAssets),
+    ),
+  ];
 }
 
 /**
@@ -308,7 +299,7 @@ function convertPartToLanguageModelPart(
       return {
         type: 'image',
         image: normalizedData,
-        mimeType: mimeType,
+        mimeType,
         providerMetadata: part.experimental_providerMetadata,
       };
     case 'file':
@@ -323,7 +314,7 @@ function convertPartToLanguageModelPart(
           normalizedData instanceof Uint8Array
             ? convertDataContentToBase64String(normalizedData)
             : normalizedData,
-        mimeType: mimeType,
+        mimeType,
         providerMetadata: part.experimental_providerMetadata,
       };
   }
