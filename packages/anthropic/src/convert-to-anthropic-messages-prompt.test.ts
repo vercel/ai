@@ -196,6 +196,44 @@ describe('tool messages', () => {
       system: undefined,
     });
   });
+
+  it('should handle tool result with imageBase64', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'image-generator',
+              toolCallId: 'image-gen-1',
+              result: 'Image generated successfully',
+              imageBase64: 'base64encodedimage',
+            },
+          ],
+        },
+      ],
+      cacheControl: false,
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'image-gen-1',
+              is_error: undefined,
+              content: JSON.stringify('Image generated successfully'),
+              image_base64: 'base64encodedimage',
+            },
+          ],
+        },
+      ],
+      system: undefined,
+    });
+  });
 });
 
 describe('assistant messages', () => {
