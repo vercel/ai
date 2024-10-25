@@ -24,7 +24,7 @@ export interface AnthropicAssistantMessage {
 export interface AnthropicTextContent {
   type: 'text';
   text: string;
-  cache_control?: AnthropicCacheControl;
+  cache_control: AnthropicCacheControl | undefined;
 }
 
 export interface AnthropicImageContent {
@@ -34,7 +34,7 @@ export interface AnthropicImageContent {
     media_type: string;
     data: string;
   };
-  cache_control?: AnthropicCacheControl;
+  cache_control: AnthropicCacheControl | undefined;
 }
 
 export interface AnthropicToolCallContent {
@@ -42,15 +42,15 @@ export interface AnthropicToolCallContent {
   id: string;
   name: string;
   input: unknown;
-  cache_control?: AnthropicCacheControl;
+  cache_control: AnthropicCacheControl | undefined;
 }
 
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
-  content: unknown;
+  content: string | Array<AnthropicTextContent | AnthropicImageContent>;
   is_error: boolean | undefined;
-  cache_control?: AnthropicCacheControl;
+  cache_control: AnthropicCacheControl | undefined;
 }
 
 export type AnthropicTool =

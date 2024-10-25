@@ -8,10 +8,12 @@ Converts the result of a `generateText` call to a list of response messages.
  */
 export function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
   text = '',
+  tools,
   toolCalls,
   toolResults,
 }: {
   text: string | undefined;
+  tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
   toolResults: ToolResultArray<TOOLS>;
 }): Array<CoreAssistantMessage | CoreToolMessage> {
@@ -25,12 +27,24 @@ export function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
   if (toolResults.length > 0) {
     responseMessages.push({
       role: 'tool',
-      content: toolResults.map(result => ({
-        type: 'tool-result',
-        toolCallId: result.toolCallId,
-        toolName: result.toolName,
-        result: result.result,
-      })),
+      content: toolResults.map(toolResult => {
+        const tool = tools[toolResult.toolName];
+
+        return tool?.experimental_toToolResultContent != null
+          ? {
+              type: 'tool-result',
+              toolCallId: toolResult.toolCallId,
+              toolName: toolResult.toolName,
+              result: tool.experimental_toToolResultContent(toolResult.result),
+              content: tool.experimental_toToolResultContent(toolResult.result),
+            }
+          : {
+              type: 'tool-result',
+              toolCallId: toolResult.toolCallId,
+              toolName: toolResult.toolName,
+              result: toolResult.result,
+            };
+      }),
     });
   }
 

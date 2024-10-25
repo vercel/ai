@@ -1,11 +1,25 @@
 import { z } from 'zod';
 
+// Copied from ai package
 type ExecuteFunction<PARAMETERS, RESULT> =
   | undefined
   | ((
       args: PARAMETERS,
       options: { abortSignal?: AbortSignal },
     ) => Promise<RESULT>);
+
+// Copied from ai package
+export type ToolResultContent = Array<
+  | {
+      type: 'text';
+      text: string;
+    }
+  | {
+      type: 'image';
+      data: string; // base64 encoded png image, e.g. screenshot
+      mimeType?: string; // e.g. 'image/png';
+    }
+>;
 
 const Bash20241022Parameters = z.object({
   command: z.string(),
@@ -14,6 +28,8 @@ const Bash20241022Parameters = z.object({
 
 /**
  * Creates a tool for running a bash command. Must have name "bash".
+ *
+ * Image results are supported.
  *
  * @param execute - The function to execute the tool. Optional.
  */
@@ -33,6 +49,7 @@ function bashTool_20241022<RESULT>(
       },
       RESULT
     >;
+    experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
   } = {},
 ): {
   type: 'provider-defined';
@@ -40,6 +57,7 @@ function bashTool_20241022<RESULT>(
   args: {};
   parameters: typeof Bash20241022Parameters;
   execute: ExecuteFunction<z.infer<typeof Bash20241022Parameters>, RESULT>;
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
     type: 'provider-defined',
@@ -47,6 +65,7 @@ function bashTool_20241022<RESULT>(
     args: {},
     parameters: Bash20241022Parameters,
     execute: options.execute,
+    experimental_toToolResultContent: options.experimental_toToolResultContent,
   };
 }
 
@@ -62,6 +81,8 @@ const TextEditor20241022Parameters = z.object({
 
 /**
  * Creates a tool for editing text. Must have name "str_replace_editor".
+ *
+ * Image results are supported.
  *
  * @param execute - The function to execute the tool. Optional.
  */
@@ -106,6 +127,7 @@ function textEditorTool_20241022<RESULT>(
       },
       RESULT
     >;
+    experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
   } = {},
 ): {
   type: 'provider-defined';
@@ -116,6 +138,7 @@ function textEditorTool_20241022<RESULT>(
     z.infer<typeof TextEditor20241022Parameters>,
     RESULT
   >;
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
     type: 'provider-defined',
@@ -123,6 +146,7 @@ function textEditorTool_20241022<RESULT>(
     args: {},
     parameters: TextEditor20241022Parameters,
     execute: options.execute,
+    experimental_toToolResultContent: options.experimental_toToolResultContent,
   };
 }
 
@@ -145,6 +169,8 @@ const Computer20241022Parameters = z.object({
 
 /**
  * Creates a tool for executing actions on a computer. Must have name "computer".
+ *
+ * Image results are supported.
  *
  * @param displayWidthPx - The width of the display being controlled by the model in pixels.
  * @param displayHeightPx - The height of the display being controlled by the model in pixels.
@@ -196,23 +222,26 @@ function computerTool_20241022<RESULT>(options: {
     },
     RESULT
   >;
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 }): {
   type: 'provider-defined';
   id: 'anthropic.computer_20241022';
   args: {};
   parameters: typeof Computer20241022Parameters;
   execute: ExecuteFunction<z.infer<typeof Computer20241022Parameters>, RESULT>;
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
     type: 'provider-defined',
     id: 'anthropic.computer_20241022',
     args: {
-      display_width_px: options.displayWidthPx,
-      display_height_px: options.displayHeightPx,
-      display_number: options.displayNumber,
+      displayWidthPx: options.displayWidthPx,
+      displayHeightPx: options.displayHeightPx,
+      displayNumber: options.displayNumber,
     },
     parameters: Computer20241022Parameters,
     execute: options.execute,
+    experimental_toToolResultContent: options.experimental_toToolResultContent,
   };
 }
 

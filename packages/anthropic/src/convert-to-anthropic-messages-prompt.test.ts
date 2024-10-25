@@ -196,6 +196,63 @@ describe('tool messages', () => {
       system: undefined,
     });
   });
+
+  it('should handle tool result with content parts', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'image-generator',
+              toolCallId: 'image-gen-1',
+              result: 'Image generated successfully',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Image generated successfully',
+                },
+                {
+                  type: 'image',
+                  data: 'AAECAw==',
+                  mimeType: 'image/png',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      cacheControl: false,
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'image-gen-1',
+              is_error: undefined,
+              content: [
+                { type: 'text', text: 'Image generated successfully' },
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    data: 'AAECAw==',
+                    media_type: 'image/png',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      system: undefined,
+    });
+  });
 });
 
 describe('assistant messages', () => {

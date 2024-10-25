@@ -52,26 +52,71 @@ export const weatherTool = tool({
               isOptional: true,
               type: 'string',
               description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model.',
+                'Information about the purpose of the tool including details on how and when it can be used by the model.'
             },
             {
               name: 'parameters',
               type: 'Zod Schema | JSON Schema',
               description:
-                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
+                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).'
             },
             {
               name: 'execute',
               isOptional: true,
-              type: 'async (parameters: T, options: { abortSignal: AbortSignal }) => JSONValue',
+              type: 'async (parameters: T, options: { abortSignal: AbortSignal }) => RESULT',
               description:
-                'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.',
+                'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.'
             },
-          ],
-        },
-      ],
-    },
-  ]}
+            {
+              name: 'experimental_toToolResultContent',
+              isOptional: true,
+              type: '(result: RESULT) => TextToolResultContent | ImageToolResultContent',
+              description: 'An optional function that converts the result of the tool call to a content object that can be used in LLM messages.',
+              properties: [
+                {
+                  type: 'TextToolResultContent',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'text'",
+                      description: 'The type of the tool result content.'
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The content of the message.'
+                    }
+                  ]
+                },
+                {
+                  type: 'ImageToolResultContent',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'image'",
+                      description: 'The type of the tool result content.'
+                    },
+                    {
+                      name: 'data',
+                      type: 'string',
+                      description: 'The base64 encoded png image.'
+                    },
+                    {
+                      name: 'mimeType',
+                      isOptional: true,
+                      type: 'string',
+                      description: 'The mime type of the image.'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+
+]}
 />
 
 ### Returns
