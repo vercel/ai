@@ -171,9 +171,10 @@ Optional flag if the result is an error or an error message.
   isError?: boolean;
 
   /**
-Optional base64 encoded PNG image data (e.g. for screenshots).
+Tool results as an array of parts. This enables advanced tool results including images.
+When this is used, the `result` field should be ignored (if the provider supports content).
    */
-  imageBase64?: string;
+  content?: Array<LanguageModelV1TextPart | LanguageModelV1ImagePart>;
 
   /**
    * Additional provider-specific metadata. They are passed through
