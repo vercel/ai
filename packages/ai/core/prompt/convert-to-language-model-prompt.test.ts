@@ -24,6 +24,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: false,
+          modelSupportsUrl: undefined,
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
@@ -64,6 +65,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: false,
+          modelSupportsUrl: undefined,
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
@@ -185,6 +187,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: true,
+          modelSupportsUrl: undefined,
         });
 
         expect(result).toEqual([
@@ -220,6 +223,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: true,
+          modelSupportsUrl: undefined,
         });
 
         expect(result).toEqual([
@@ -254,6 +258,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: false,
+          modelSupportsUrl: undefined,
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -295,6 +300,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: false,
+          modelSupportsUrl: undefined,
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -415,6 +421,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: false,
+          modelSupportsUrl: undefined,
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -463,6 +470,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: undefined,
+          modelSupportsUrl: undefined,
         });
 
         expect(result).toEqual([

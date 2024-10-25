@@ -26,7 +26,7 @@ export async function convertToLanguageModelPrompt({
 }: {
   prompt: StandardizedPrompt;
   modelSupportsImageUrls: boolean | undefined;
-  modelSupportsUrl?: (url: URL) => boolean;
+  modelSupportsUrl: undefined | ((url: URL) => boolean);
   downloadImplementation?: typeof download;
 }): Promise<LanguageModelV1Prompt> {
   const downloadedAssets = await downloadAssets(
