@@ -10,9 +10,9 @@ icon: '1'
 2. Enter edit mode, then from the Priority field, select None from the drop-down menu.&#x20;
 3. Click Save. &#x20;
 
-{% file src="../../.gitbook/assets/1.1 Set Ticket Priority.mp4" %}
-**Video Set Ticket Priority**
-{% endfile %}
+{% include "../../.gitbook/includes/untitled.md" %}
+
+***
 
 ### **1.2 Correct the Due Date**
 
@@ -22,7 +22,7 @@ icon: '1'
 
 **IMPORTANT:** Save the ticket before making changes
 
-
+***
 
 ### **1.3 Update Ticket Title and Include Details**&#x20;
 
@@ -44,7 +44,7 @@ _**New Joiner**_ – **\[Starter Name]** - **\[Start Date]** - **\[Location]**.&
 
 For “Device Serial Number” and “Device Hostname” this can be done by the engineer responsible for this onboarding.&#x20;
 
-
+***
 
 ### 1.4 Updating Business Unit and Hiring Manager
 

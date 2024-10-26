@@ -4,6 +4,10 @@
 
 * [Creating Account](README.md)
   * [Autotask Ticket Handling](account-management/creating-account/autotask-ticket-handling.md)
+  * [Active Directory (AD) Account Setup](account-management/creating-account/active-directory-ad-account-setup.md)
+  * [Licensing and §Group Assignments](account-management/creating-account/licensing-and-group-assignments.md)
+  * [Completing Active Directory Fields](account-management/creating-account/completing-active-directory-fields.md)
+  * [Final StepsLeaver Procedures](account-management/creating-account/final-stepsleaver-procedures.md)
 * [Account Deactivation](account-management/account-deactivation.md)
 * [User Managment](account-management/user-managment/README.md)
   * [Password Policies and Reset Procedures](account-management/user-managment/password-policies-and-reset-procedures.md)
