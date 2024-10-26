@@ -4,11 +4,6 @@
   * [Overview of IT Services](readme/overview-of-it-services.md)
   * [Onboarding and Initial Setup](readme/onboarding-and-initial-setup.md)
   * [Accessing Company Resources](readme/accessing-company-resources.md)
-* [Account Management](changelog/README.md)
-  * [Creating Account](changelog/creating-account/README.md)
-    * [1.  Autotask Ticket Handling](changelog/creating-account/1.-autotask-ticket-handling.md)
-  * [Password Policies and Reset Procedures](changelog/password-policies-and-reset-procedures.md)
-  * [Permissions and Access Levels](changelog/permissions-and-access-levels.md)
 * [Device Setup and Support](contributing/README.md)
   * [Standard Device Configuration](contributing/standard-device-configuration.md)
   * [Software Installation and Updates](contributing/software-installation-and-updates.md)
@@ -23,6 +18,9 @@
   * [Security and Phishing Awareness](.github/security-and-phishing-awareness.md)
 * [Software and Applications](software-and-applications.md)
 
-## Group 1
+## Account Management
 
-* [Page 1](group-1/page-1.md)
+* [Creating Account](account-management/creating-account/README.md)
+  * [Autotask Ticket Handling](account-management/creating-account/autotask-ticket-handling.md)
+* [Password Policies and Reset Procedures](account-management/password-policies-and-reset-procedures.md)
+* [Permissions and Access Levels](account-management/permissions-and-access-levels.md)
