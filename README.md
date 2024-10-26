@@ -1,38 +1,17 @@
 ---
-icon: user-plus
-noIndex: true
+icon: brain-circuit
 layout:
   title:
     visible: true
   description:
-    visible: false
+    visible: true
   tableOfContents:
     visible: true
   outline:
-    visible: false
+    visible: true
   pagination:
-    visible: false
+    visible: true
 ---
 
-# Creating Account
-
-{% content-ref url="account-management/creating-account/autotask-ticket-handling.md" %}
-[autotask-ticket-handling.md](account-management/creating-account/autotask-ticket-handling.md)
-{% endcontent-ref %}
-
-{% content-ref url="account-management/creating-account/active-directory-ad-account-setup.md" %}
-[active-directory-ad-account-setup.md](account-management/creating-account/active-directory-ad-account-setup.md)
-{% endcontent-ref %}
-
-{% content-ref url="account-management/creating-account/licensing-and-group-assignments.md" %}
-[licensing-and-group-assignments.md](account-management/creating-account/licensing-and-group-assignments.md)
-{% endcontent-ref %}
-
-{% content-ref url="account-management/creating-account/completing-active-directory-fields.md" %}
-[completing-active-directory-fields.md](account-management/creating-account/completing-active-directory-fields.md)
-{% endcontent-ref %}
-
-{% content-ref url="account-management/creating-account/final-stepsleaver-procedures.md" %}
-[final-stepsleaver-procedures.md](account-management/creating-account/final-stepsleaver-procedures.md)
-{% endcontent-ref %}
+# Getting Started
 

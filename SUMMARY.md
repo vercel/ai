@@ -1,8 +1,13 @@
 # Table of contents
 
+* [Getting Started](README.md)
+  * [Overview of IT Services](readme/overview-of-it-services.md)
+  * [Onboarding and Initial Setup](readme/onboarding-and-initial-setup.md)
+  * [Accessing Company Resources](readme/accessing-company-resources.md)
+
 ## Account Management
 
-* [Creating Account](README.md)
+* [Creating Account](<README (1).md>)
   * [Autotask Ticket Handling](account-management/creating-account/autotask-ticket-handling.md)
   * [Active Directory (AD) Account Setup](account-management/creating-account/active-directory-ad-account-setup.md)
   * [Licensing and §Group Assignments](account-management/creating-account/licensing-and-group-assignments.md)
@@ -15,10 +20,6 @@
 
 ## Technology Center
 
-* [Getting Started](technology-center/readme/README.md)
-  * [Overview of IT Services](technology-center/readme/overview-of-it-services.md)
-  * [Onboarding and Initial Setup](technology-center/readme/onboarding-and-initial-setup.md)
-  * [Accessing Company Resources](technology-center/readme/accessing-company-resources.md)
 * [Network and Connectivity](technology-center/.changeset/README.md)
   * [Connecting to the Network (Wi-Fi, VPN)](technology-center/.changeset/connecting-to-the-network-wi-fi-vpn.md)
   * [Remote Access Setup](technology-center/.changeset/remote-access-setup.md)
