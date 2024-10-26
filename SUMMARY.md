@@ -18,12 +18,18 @@
 
 * [Creating Account](account-management/creating-account/README.md)
   * [Autotask Ticket Handling](account-management/creating-account/autotask-ticket-handling.md)
-* [Password Policies and Reset Procedures](account-management/password-policies-and-reset-procedures.md)
-* [Permissions and Access Levels](account-management/permissions-and-access-levels.md)
+* [Account Deactivation](account-management/account-deactivation.md)
+* [User Managment](account-management/user-managment/README.md)
+  * [Password Policies and Reset Procedures](account-management/user-managment/password-policies-and-reset-procedures.md)
+  * [Okta](account-management/user-managment/okta.md)
 
 ## Device Setup and Support
 
-* [Page 1](device-setup-and-support/page-1.md)
-* [Standard Device Configuration](device-setup-and-support/standard-device-configuration.md)
-* [Software Installation and Updates](device-setup-and-support/software-installation-and-updates.md)
+* [Standard Device Configuration](device-setup-and-support/standard-device-configuration/README.md)
+  * [Software Installation and Updates](device-setup-and-support/standard-device-configuration/software-installation-and-updates.md)
+  * [Laptops](device-setup-and-support/standard-device-configuration/laptops.md)
 * [Troubleshooting Common Device Issues](device-setup-and-support/troubleshooting-common-device-issues.md)
+
+***
+
+* [Standards and](standards-and.md)
