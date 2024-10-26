@@ -1,6 +1,17 @@
 # Table of contents
 
-* [Getting Started](README.md)
+## Account Management
+
+* [Creating Account](README.md)
+  * [Autotask Ticket Handling](account-management/creating-account/autotask-ticket-handling.md)
+* [Account Deactivation](account-management/account-deactivation.md)
+* [User Managment](account-management/user-managment/README.md)
+  * [Password Policies and Reset Procedures](account-management/user-managment/password-policies-and-reset-procedures.md)
+  * [Okta](account-management/user-managment/okta.md)
+
+***
+
+* [Getting Started](<README (1).md>)
   * [Overview of IT Services](readme/overview-of-it-services.md)
   * [Onboarding and Initial Setup](readme/onboarding-and-initial-setup.md)
   * [Accessing Company Resources](readme/accessing-company-resources.md)
@@ -13,15 +24,6 @@
   * [Collaboration Tools](.github/collaboration-tools.md)
   * [Security and Phishing Awareness](.github/security-and-phishing-awareness.md)
 * [Software and Applications](software-and-applications.md)
-
-## Account Management
-
-* [Creating Account](account-management/creating-account/README.md)
-  * [Autotask Ticket Handling](account-management/creating-account/autotask-ticket-handling.md)
-* [Account Deactivation](account-management/account-deactivation.md)
-* [User Managment](account-management/user-managment/README.md)
-  * [Password Policies and Reset Procedures](account-management/user-managment/password-policies-and-reset-procedures.md)
-  * [Okta](account-management/user-managment/okta.md)
 
 ## Device Setup and Support
 

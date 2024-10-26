@@ -1,23 +1,10 @@
 ---
-icon: play
-cover: .gitbook/assets/compliance-solutions (1).jpg
-coverY: 0
-layout:
-  cover:
-    visible: true
-    size: full
-  title:
-    visible: true
-  description:
-    visible: true
-  tableOfContents:
-    visible: true
-  outline:
-    visible: true
-  pagination:
-    visible: true
+icon: user-plus
 ---
 
-# Getting Started
+# Creating Account
 
-packages/ai/README.md
+{% content-ref url="account-management/creating-account/autotask-ticket-handling.md" %}
+[autotask-ticket-handling.md](account-management/creating-account/autotask-ticket-handling.md)
+{% endcontent-ref %}
+
