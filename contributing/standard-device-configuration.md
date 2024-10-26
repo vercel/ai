@@ -1,0 +1,2 @@
+# Standard Device Configuration
+
