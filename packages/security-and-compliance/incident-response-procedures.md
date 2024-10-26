@@ -1,2 +1,0 @@
-# Incident Response Procedures
-

@@ -1,4 +1,8 @@
-# Contributing to the AI SDK
+---
+icon: laptop-code
+---
+
+# Device Setup and Support
 
 We deeply appreciate your interest in contributing to our repository! Whether you're reporting bugs, suggesting enhancements, improving docs, or submitting pull requests, your contributions help improve the project for everyone.
 
@@ -19,8 +23,7 @@ We're always looking for suggestions to make our project better. If you have an 
 
 ## Improving Documentation
 
-Documentation is crucial for understanding and using our project effectively.
-You can find the content of our docs under [`content`](https://github.com/vercel/ai/tree/main/content).
+Documentation is crucial for understanding and using our project effectively. You can find the content of our docs under [`content`](https://github.com/vercel/ai/tree/main/content).
 
 To fix smaller typos, you can edit the code directly in GitHub or use Github.dev (press `.` in Github).
 
@@ -51,17 +54,16 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 
 ### Fixing Prettier Issues
 
-> [!TIP]
-> Run `pnpm prettier-fix` before opening a pull request.
+> \[!TIP] Run `pnpm prettier-fix` before opening a pull request.
 
 If you encounter any prettier issues, you can fix them by running `pnpm prettier-fix`. This command will automatically fix any formatting issues in your code.
 
 ### Running the Examples
 
 1. run `pnpm install` in the root
-1. run `pnpm build` in the root
-1. `cd examples/ai-core` (or another example folder)
-1. AI core examples: run e.g. `pnpm tsx src/stream-text/openai.ts`
-1. Other examples: run `pnpm dev` and go to the browser url
+2. run `pnpm build` in the root
+3. `cd examples/ai-core` (or another example folder)
+4. AI core examples: run e.g. `pnpm tsx src/stream-text/openai.ts`
+5. Other examples: run `pnpm dev` and go to the browser url
 
 Thank you for contributing to the AI SDK! Your efforts make a significant difference.
