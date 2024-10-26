@@ -124,26 +124,25 @@ export async function processDataProtocolResponse({
     // are associated with the previous message until then to
     // support sending them in onFinish and onStepFinish:
     if (
-      type === 'text' ||
-      type === 'tool_call' ||
-      type === 'tool_call_streaming_start' ||
-      type === 'tool_call_delta' ||
-      type === 'tool_result'
+      nextPrefixMap &&
+      (type === 'text' ||
+        type === 'tool_call' ||
+        type === 'tool_call_streaming_start' ||
+        type === 'tool_call_delta' ||
+        type === 'tool_result')
     ) {
-      if (nextPrefixMap) {
-        if (prefixMap.text) {
-          previousMessages.push(prefixMap.text);
-        }
-        if (prefixMap.function_call) {
-          previousMessages.push(prefixMap.function_call);
-        }
-        if (prefixMap.tool_calls) {
-          previousMessages.push(prefixMap.tool_calls);
-        }
-
-        prefixMap = nextPrefixMap;
-        nextPrefixMap = undefined;
+      if (prefixMap.text) {
+        previousMessages.push(prefixMap.text);
       }
+      if (prefixMap.function_call) {
+        previousMessages.push(prefixMap.function_call);
+      }
+      if (prefixMap.tool_calls) {
+        previousMessages.push(prefixMap.tool_calls);
+      }
+
+      prefixMap = nextPrefixMap;
+      nextPrefixMap = undefined;
     }
 
     if (type === 'text') {
