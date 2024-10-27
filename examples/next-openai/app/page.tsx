@@ -1,7 +1,7 @@
 'use client';
 
 import { Message, useChat } from 'ai/react';
-import { ChangeEvent, FormEvent, useEffect } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useRef } from 'react';
 
 interface VoiceflowMessage {
   type: string;
@@ -25,13 +25,15 @@ declare global {
     voiceflow?: {
       chat: {
         load: (config: VoiceflowConfig) => void;
-        interact: (data: any) => void;
+        interact: (data: VoiceflowMessage) => void;
       };
     };
   }
 }
 
 export default function Chat() {
+  const voiceflowInitialized = useRef(false);
+
   const {
     error,
     input,
@@ -47,49 +49,81 @@ export default function Chat() {
       console.log('Usage:', usage);
       console.log('FinishReason:', finishReason);
       
-      // Trigger dynamic binding event when chat message is finished
-      if (window.voiceflow?.chat) {
-        window.voiceflow.chat.interact({
-          type: 'message',
-          payload: {
-            message: message.content,
-            role: message.role,
-            timestamp: new Date().toISOString()
-          }
-        });
+      try {
+        // Only send to Voiceflow if it's properly initialized
+        if (window.voiceflow?.chat && voiceflowInitialized.current) {
+          const voiceflowMessage: VoiceflowMessage = {
+            type: 'message',
+            payload: {
+              message: message.content,
+              role: message.role,
+              timestamp: new Date().toISOString()
+            }
+          };
+          
+          window.voiceflow.chat.interact(voiceflowMessage);
+        }
+      } catch (err) {
+        console.error('Error sending message to Voiceflow:', err);
       }
     },
   });
 
   useEffect(() => {
-    // Create and inject the Voiceflow script
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'https://cdn.voiceflow.com/widget/bundle.mjs';
-    script.onload = () => {
-      // Initialize Voiceflow chat widget with dynamic binding
-      if (window.voiceflow?.chat) {
-        window.voiceflow.chat.load({
-          verify: { projectID: '671e8b0eff5ef3f747ccb6cc' },
-          url: 'https://general-runtime.voiceflow.com',
-          versionID: 'production'
-        });
+    let scriptElement: HTMLScriptElement | null = null;
+
+    const initVoiceflow = () => {
+      try {
+        if (window.voiceflow?.chat) {
+          window.voiceflow.chat.load({
+            verify: { projectID: '671e8b0eff5ef3f747ccb6cc' },
+            url: 'https://general-runtime.voiceflow.com',
+            versionID: 'production'
+          });
+          voiceflowInitialized.current = true;
+          console.log('Voiceflow initialized successfully');
+        } else {
+          console.error('Voiceflow chat object not available');
+        }
+      } catch (err) {
+        console.error('Error initializing Voiceflow:', err);
       }
     };
 
-    // Find the first script tag to insert before
-    const firstScript = document.getElementsByTagName('script')[0];
-    firstScript.parentNode?.insertBefore(script, firstScript);
+    const loadVoiceflowScript = () => {
+      scriptElement = document.createElement('script');
+      scriptElement.type = 'text/javascript';
+      scriptElement.src = 'https://cdn.voiceflow.com/widget/bundle.mjs';
+      scriptElement.async = true;
+      
+      scriptElement.onload = () => {
+        console.log('Voiceflow script loaded');
+        // Add a small delay to ensure the Voiceflow object is properly initialized
+        setTimeout(initVoiceflow, 100);
+      };
+
+      scriptElement.onerror = (error) => {
+        console.error('Error loading Voiceflow script:', error);
+      };
+
+      document.head.appendChild(scriptElement);
+    };
+
+    // Only load the script if it hasn't been loaded yet
+    if (!document.querySelector('script[src*="voiceflow"]')) {
+      loadVoiceflowScript();
+    }
 
     return () => {
-      // Cleanup script when component unmounts
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
+      voiceflowInitialized.current = false;
+      if (scriptElement && scriptElement.parentNode) {
+        scriptElement.parentNode.removeChild(scriptElement);
       }
     };
   }, []);
 
   const handleFormSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     handleSubmit(e);
   };
 
@@ -121,7 +155,9 @@ export default function Chat() {
 
       {error && (
         <div className="mt-4">
-          <div className="text-red-500">An error occurred.</div>
+          <div className="text-red-500">
+            An error occurred: {error.message || 'Unknown error'}
+          </div>
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
