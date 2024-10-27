@@ -191,7 +191,7 @@ it('should handle multipart tool results', () => {
           result: [
             { type: 'image', data: 'image-base64', mimeType: 'image/png' },
           ],
-          content: [
+          experimental_content: [
             { type: 'image', data: 'image-base64', mimeType: 'image/png' },
           ],
         },
