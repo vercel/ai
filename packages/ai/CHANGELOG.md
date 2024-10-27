@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.21
+
+### Patch Changes
+
+- 3954471: (experimental) fix passing "experimental_toToolResultContent" into PoolResultPart
+
 ## 3.4.20
 
 ### Patch Changes
