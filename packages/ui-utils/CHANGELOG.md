@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.49
+
+### Patch Changes
+
+- 3bf8da0: fix (ai/ui): update latest message with stream data message annotations until new message starts
+
 ## 0.0.48
 
 ### Patch Changes
