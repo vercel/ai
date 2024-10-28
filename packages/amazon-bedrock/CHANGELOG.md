@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.33
+
+### Patch Changes
+
+- bc0ffc5: feat (provider/bedrock): add file content part support
+
 ## 0.0.32
 
 ### Patch Changes

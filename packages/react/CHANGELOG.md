@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.68
+
+### Patch Changes
+
+- 8301e41: fix (ai/react): update React peer dependency version to allow rc releases.
+
 ## 0.0.67
 
 ### Patch Changes
