@@ -3,13 +3,13 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { DocumentFormat, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
 import {
   BedrockAssistantMessage,
   BedrockMessagesPrompt,
   BedrockUserMessage,
 } from './bedrock-chat-prompt';
-import { createIdGenerator, generateId } from '@ai-sdk/provider-utils';
 
 const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
