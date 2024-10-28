@@ -99,6 +99,11 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
 
 ### Cache Control
 
+<Note>
+  Cache control uses the Anthropic cache control beta and is not compatible with
+  [Computer Use](#computer-use).
+</Note>
+
 You can enable the cache control beta by setting the `cacheControl` option to `true` when creating the model instance.
 
 In the messages and message parts, you can then use the `experimental_providerMetadata` property to set cache control breakpoints.
@@ -171,6 +176,11 @@ const result = await generateText({
 ```
 
 ### Computer Use
+
+<Note>
+  Computer use uses the Anthropic computer use beta and is not compatible with
+  [Cache Control](#cache-control).
+</Note>
 
 Anthropic provides three built-in tools that can be used to interact with external systems:
 
