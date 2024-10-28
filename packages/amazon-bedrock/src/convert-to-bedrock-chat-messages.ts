@@ -3,12 +3,15 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { ImageFormat } from '@aws-sdk/client-bedrock-runtime';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { DocumentFormat, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
 import {
   BedrockAssistantMessage,
   BedrockMessagesPrompt,
   BedrockUserMessage,
 } from './bedrock-chat-prompt';
+
+const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
 export function convertToBedrockChatMessages(
   prompt: LanguageModelV1Prompt,
@@ -66,6 +69,28 @@ export function convertToBedrockChatMessages(
                         format: part.mimeType?.split('/')?.[1] as ImageFormat,
                         source: {
                           bytes: part.image ?? (part.image as Uint8Array),
+                        },
+                      },
+                    });
+
+                    break;
+                  }
+                  case 'file': {
+                    if (part.data instanceof URL) {
+                      // The AI SDK automatically downloads files for user file parts with URLs
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'File URLs in user messages',
+                      });
+                    }
+
+                    bedrockContent.push({
+                      document: {
+                        format: part.mimeType?.split(
+                          '/',
+                        )?.[1] as DocumentFormat,
+                        name: generateFileId(),
+                        source: {
+                          bytes: Buffer.from(part.data, 'base64'),
                         },
                       },
                     });

@@ -21,7 +21,9 @@ describe('system messages', () => {
 });
 
 describe('user messages', () => {
-  it('should convert messages with image and text parts to multiple parts', async () => {
+  it('should convert messages with file, image, and text parts to multiple parts', async () => {
+    const fileData = new Uint8Array([0, 1, 2, 3]);
+
     const { messages } = convertToBedrockChatMessages([
       {
         role: 'user',
@@ -31,6 +33,11 @@ describe('user messages', () => {
             type: 'image',
             image: new Uint8Array([0, 1, 2, 3]),
             mimeType: 'image/png',
+          },
+          {
+            type: 'file',
+            data: Buffer.from(fileData).toString('base64'),
+            mimeType: 'application/pdf',
           },
         ],
       },
@@ -45,6 +52,13 @@ describe('user messages', () => {
             image: {
               format: 'png',
               source: { bytes: new Uint8Array([0, 1, 2, 3]) },
+            },
+          },
+          {
+            document: {
+              format: 'pdf',
+              name: expect.any(String),
+              source: { bytes: Buffer.from(fileData) },
             },
           },
         ],
