@@ -1,11 +1,28 @@
 import { JSONSchema7Definition } from '@ai-sdk/provider';
 
+export function isEmptyObjectSchema(
+  jsonSchema: JSONSchema7Definition,
+): boolean {
+  return (
+    jsonSchema != null &&
+    typeof jsonSchema === 'object' &&
+    jsonSchema.type === 'object' &&
+    (jsonSchema.properties == null ||
+      Object.keys(jsonSchema.properties).length === 0)
+  );
+}
+
 /**
  * Converts JSON Schema 7 to OpenAPI Schema 3.0
  */
 export function convertJSONSchemaToOpenAPISchema(
   jsonSchema: JSONSchema7Definition,
 ): unknown {
+  // parameters need to be undefined if they are empty objects:
+  if (isEmptyObjectSchema(jsonSchema)) {
+    return undefined;
+  }
+
   if (typeof jsonSchema === 'boolean') {
     return { type: 'boolean', properties: {} };
   }
@@ -50,7 +67,7 @@ export function convertJSONSchemaToOpenAPISchema(
     }
   }
 
-  if (properties) {
+  if (properties != null) {
     result.properties = Object.entries(properties).reduce(
       (acc, [key, value]) => {
         acc[key] = convertJSONSchemaToOpenAPISchema(value);

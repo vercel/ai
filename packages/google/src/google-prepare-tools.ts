@@ -3,7 +3,10 @@ import {
   LanguageModelV1CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
+import {
+  convertJSONSchemaToOpenAPISchema,
+  isEmptyObjectSchema,
+} from './convert-json-schema-to-openapi-schema';
 
 export function prepareTools(
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
