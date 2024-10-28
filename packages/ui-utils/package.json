@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/ui-utils",
-  "version": "0.0.48",
+  "version": "0.0.49",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
