@@ -119,7 +119,18 @@ export async function processDataProtocolResponse({
       continue;
     }
 
-    if (nextPrefixMap) {
+    // switch to the next prefix map once we start receiving
+    // content of the next message. Stream data annotations
+    // are associated with the previous message until then to
+    // support sending them in onFinish and onStepFinish:
+    if (
+      nextPrefixMap &&
+      (type === 'text' ||
+        type === 'tool_call' ||
+        type === 'tool_call_streaming_start' ||
+        type === 'tool_call_delta' ||
+        type === 'tool_result')
+    ) {
       if (prefixMap.text) {
         previousMessages.push(prefixMap.text);
       }
@@ -320,6 +331,10 @@ export async function processDataProtocolResponse({
         prefixMap['text'],
         message_annotations,
       );
+
+      // trigger update for streaming by copying adding a update id that changes
+      // (without it, the changes get stuck in SWR and are not forwarded to rendering):
+      (prefixMap.text! as any).internalUpdateId = generateId();
     }
 
     // keeps the prefixMap up to date with the latest annotations, even if annotations preceded the message
