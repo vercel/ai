@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 0.0.55
+
+### Patch Changes
+
+- 11beb9d: fix (provider/google): support tool calls without parameters
+
 ## 0.0.54
 
 ### Patch Changes
