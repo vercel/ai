@@ -8,6 +8,8 @@ const roleToColorMap: Record<Message['role'], string> = {
   user: 'black',
   assistant: 'green',
   data: 'orange',
+  function: 'pink',
+  tool: 'blue',
 };
 
 export default function Chat() {
