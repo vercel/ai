@@ -1,5 +1,16 @@
 # ai
 
+## 3.4.22
+
+### Patch Changes
+
+- Updated dependencies [3bf8da0]
+  - @ai-sdk/ui-utils@0.0.49
+  - @ai-sdk/react@0.0.67
+  - @ai-sdk/solid@0.0.53
+  - @ai-sdk/svelte@0.0.55
+  - @ai-sdk/vue@0.0.58
+
 ## 3.4.21
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "0.0.57",
+  "version": "0.0.58",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,7 +30,7 @@
   ],
   "dependencies": {
     "@ai-sdk/provider-utils": "1.0.22",
-    "@ai-sdk/ui-utils": "0.0.48",
+    "@ai-sdk/ui-utils": "0.0.49",
     "swrv": "^1.0.4"
   },
   "devDependencies": {
