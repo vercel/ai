@@ -1,11 +1,11 @@
-import { google } from '@ai-sdk/google';
+import { vertex } from '@ai-sdk/google-vertex';
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
   const { text } = await generateText({
-    model: google('gemini-1.5-pro'),
+    model: vertex('gemini-1.5-flash'),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',
