@@ -174,8 +174,29 @@ export interface ToolResultPart {
   result: unknown;
 
   /**
+   * Multi-part content of the tool result. Only for tools that support multipart results.
+   */
+  experimental_content?: ToolResultContent;
+
+  /**
    * Optional flag if the result is an error or an error message.
    */
   isError?: boolean;
 }
+```
+
+### `ToolResultContent`
+
+```ts
+export type ToolResultContent = Array<
+  | {
+      type: 'text';
+      text: string;
+    }
+  | {
+      type: 'image';
+      data: string; // base64 encoded png image, e.g. screenshot
+      mimeType?: string; // e.g. 'image/png';
+    }
+>;
 ```

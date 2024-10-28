@@ -1,8 +1,10 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  ToolCall as CoreToolCall,
+  ToolResult as CoreToolResult,
+  FetchFunction,
+} from '@ai-sdk/provider-utils';
 import { CompletionTokenUsage } from './duplicated/token-usage';
-import { ToolCall as CoreToolCall } from './duplicated/tool-call';
-import { ToolResult as CoreToolResult } from './duplicated/tool-result';
 
 export * from './use-assistant-types';
 

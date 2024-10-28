@@ -24,6 +24,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: false,
+          modelSupportsUrl: undefined,
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
@@ -64,6 +65,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: false,
+          modelSupportsUrl: undefined,
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
@@ -185,6 +187,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: true,
+          modelSupportsUrl: undefined,
         });
 
         expect(result).toEqual([
@@ -220,6 +223,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: true,
+          modelSupportsUrl: undefined,
         });
 
         expect(result).toEqual([
@@ -254,6 +258,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: false,
+          modelSupportsUrl: undefined,
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -295,6 +300,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: false,
+          modelSupportsUrl: undefined,
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -415,6 +421,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: false,
+          modelSupportsUrl: undefined,
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -463,6 +470,7 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           modelSupportsImageUrls: undefined,
+          modelSupportsUrl: undefined,
         });
 
         expect(result).toEqual([
@@ -494,7 +502,7 @@ describe('convertToLanguageModelMessage', () => {
       it('should filter out empty text parts', async () => {
         const result = convertToLanguageModelMessage(
           { role: 'user', content: [{ type: 'text', text: '' }] },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -509,7 +517,7 @@ describe('convertToLanguageModelMessage', () => {
             role: 'user',
             content: [{ type: 'text', text: 'hello, world!' }],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -531,7 +539,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -556,7 +564,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -585,7 +593,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -612,7 +620,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -648,7 +656,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -685,7 +693,7 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          null,
+          {},
         );
 
         expect(result).toEqual({
@@ -705,6 +713,144 @@ describe('convertToLanguageModelMessage', () => {
             },
           ],
         });
+      });
+    });
+  });
+
+  describe('tool message', () => {
+    it('should convert basic tool result message', () => {
+      const result = convertToLanguageModelMessage(
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'toolName',
+              toolCallId: 'toolCallId',
+              result: { some: 'result' },
+            },
+          ],
+        },
+        {},
+      );
+
+      expect(result).toEqual({
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            result: { some: 'result' },
+            toolCallId: 'toolCallId',
+            toolName: 'toolName',
+          },
+        ],
+      });
+    });
+
+    it('should convert tool result with provider metadata', () => {
+      const result = convertToLanguageModelMessage(
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'toolName',
+              toolCallId: 'toolCallId',
+              result: { some: 'result' },
+              experimental_providerMetadata: {
+                'test-provider': {
+                  'key-a': 'test-value-1',
+                  'key-b': 'test-value-2',
+                },
+              },
+            },
+          ],
+        },
+        {},
+      );
+
+      expect(result).toEqual({
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            result: { some: 'result' },
+            toolCallId: 'toolCallId',
+            toolName: 'toolName',
+            providerMetadata: {
+              'test-provider': {
+                'key-a': 'test-value-1',
+                'key-b': 'test-value-2',
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it('should include error flag', () => {
+      const result = convertToLanguageModelMessage(
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'toolName',
+              toolCallId: 'toolCallId',
+              result: { some: 'result' },
+              isError: true,
+            },
+          ],
+        },
+        {},
+      );
+
+      expect(result).toEqual({
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            result: { some: 'result' },
+            toolCallId: 'toolCallId',
+            toolName: 'toolName',
+            isError: true,
+          },
+        ],
+      });
+    });
+
+    it('should include multipart content', () => {
+      const result = convertToLanguageModelMessage(
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'toolName',
+              toolCallId: 'toolCallId',
+              result: { some: 'result' },
+              experimental_content: [
+                { type: 'image', data: 'dGVzdA==', mimeType: 'image/png' },
+              ],
+            },
+          ],
+        },
+        {},
+      );
+
+      expect(result).toEqual({
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            result: { some: 'result' },
+            toolCallId: 'toolCallId',
+            toolName: 'toolName',
+            content: [
+              { type: 'image', data: 'dGVzdA==', mimeType: 'image/png' },
+            ],
+          },
+        ],
       });
     });
   });
