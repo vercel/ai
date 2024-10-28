@@ -4,12 +4,14 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { DocumentFormat, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
-import crypto from 'crypto';
 import {
   BedrockAssistantMessage,
   BedrockMessagesPrompt,
   BedrockUserMessage,
 } from './bedrock-chat-prompt';
+import { createIdGenerator, generateId } from '@ai-sdk/provider-utils';
+
+const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
 export function convertToBedrockChatMessages(
   prompt: LanguageModelV1Prompt,
@@ -81,15 +83,12 @@ export function convertToBedrockChatMessages(
                       });
                     }
 
-                    const hash = crypto.createHash('sha256');
-                    hash.update(part.data);
-                    const hashKey = hash.digest('hex');
                     bedrockContent.push({
                       document: {
                         format: part.mimeType?.split(
                           '/',
                         )?.[1] as DocumentFormat,
-                        name: hashKey,
+                        name: generateFileId(),
                         source: {
                           bytes: Buffer.from(part.data, 'base64'),
                         },
