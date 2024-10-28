@@ -1,17 +1,5 @@
 import { JSONSchema7Definition } from '@ai-sdk/provider';
 
-export function isEmptyObjectSchema(
-  jsonSchema: JSONSchema7Definition,
-): boolean {
-  return (
-    jsonSchema != null &&
-    typeof jsonSchema === 'object' &&
-    jsonSchema.type === 'object' &&
-    (jsonSchema.properties == null ||
-      Object.keys(jsonSchema.properties).length === 0)
-  );
-}
-
 /**
  * Converts JSON Schema 7 to OpenAPI Schema 3.0
  */
@@ -96,4 +84,14 @@ export function convertJSONSchemaToOpenAPISchema(
   if (minLength !== undefined) result.minLength = minLength;
 
   return result;
+}
+
+function isEmptyObjectSchema(jsonSchema: JSONSchema7Definition): boolean {
+  return (
+    jsonSchema != null &&
+    typeof jsonSchema === 'object' &&
+    jsonSchema.type === 'object' &&
+    (jsonSchema.properties == null ||
+      Object.keys(jsonSchema.properties).length === 0)
+  );
 }
