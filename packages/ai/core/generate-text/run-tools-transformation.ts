@@ -90,7 +90,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   // keep track of active tool calls for tool call streaming:
   const activeToolCalls: Record<string, boolean> = {};
 
-  // keep track of outstanding tool results for streaming closing:
+  // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
 
   let canClose = false;
