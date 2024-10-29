@@ -12,7 +12,7 @@ const provider = createCohere({ apiKey: 'test-api-key' });
 const model = provider.textEmbeddingModel('embed-english-v3.0');
 
 describe('doEmbed', () => {
-  const server = new JsonTestServer('https://api.cohere.com/v1/embed');
+  const server = new JsonTestServer('https://api.cohere.com/v2/embed');
 
   server.setupTestEnvironment();
 
@@ -26,7 +26,7 @@ describe('doEmbed', () => {
     server.responseBodyJson = {
       id: 'test-id',
       texts: testValues,
-      embeddings,
+      embeddings: { float: embeddings },
       meta,
     };
   }
@@ -50,7 +50,7 @@ describe('doEmbed', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
-      'content-length': '175',
+      'content-length': '185',
       'content-type': 'application/json',
 
       // custom header
@@ -75,6 +75,7 @@ describe('doEmbed', () => {
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'embed-english-v3.0',
+      embedding_types: ['float'],
       texts: testValues,
       input_type: 'search_query',
     });
@@ -91,6 +92,7 @@ describe('doEmbed', () => {
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'embed-english-v3.0',
+      embedding_types: ['float'],
       texts: testValues,
       input_type: 'search_document',
     });
