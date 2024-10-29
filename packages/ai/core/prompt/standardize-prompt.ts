@@ -6,6 +6,7 @@ import { Prompt } from './prompt';
 import { detectPromptType } from './detect-prompt-type';
 import { convertToCoreMessages } from './convert-to-core-messages';
 import { UIMessage } from './ui-message';
+import { CoreTool } from '../tool/tool';
 
 export type StandardizedPrompt = {
   /**
@@ -25,7 +26,13 @@ export type StandardizedPrompt = {
   messages: CoreMessage[];
 };
 
-export function standardizePrompt(prompt: Prompt): StandardizedPrompt {
+export function standardizePrompt<TOOLS extends Record<string, CoreTool>>({
+  prompt,
+  tools,
+}: {
+  prompt: Prompt;
+  tools: undefined | TOOLS;
+}): StandardizedPrompt {
   if (prompt.prompt == null && prompt.messages == null) {
     throw new InvalidPromptError({
       prompt,
@@ -83,7 +90,9 @@ export function standardizePrompt(prompt: Prompt): StandardizedPrompt {
 
     const messages: CoreMessage[] =
       promptType === 'ui-messages'
-        ? convertToCoreMessages(prompt.messages as UIMessage[]) // TODO tools
+        ? convertToCoreMessages(prompt.messages as UIMessage[], {
+            tools,
+          })
         : (prompt.messages as CoreMessage[]);
 
     const validationResult = safeValidateTypes({

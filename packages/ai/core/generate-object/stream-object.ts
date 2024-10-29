@@ -430,18 +430,21 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
 
       switch (mode) {
         case 'json': {
-          const standardPrompt = standardizePrompt({
-            system:
-              outputStrategy.jsonSchema == null
-                ? injectJsonInstruction({ prompt: system })
-                : model.supportsStructuredOutputs
-                ? system
-                : injectJsonInstruction({
-                    prompt: system,
-                    schema: outputStrategy.jsonSchema,
-                  }),
-            prompt,
-            messages,
+          const standardizedPrompt = standardizePrompt({
+            prompt: {
+              system:
+                outputStrategy.jsonSchema == null
+                  ? injectJsonInstruction({ prompt: system })
+                  : model.supportsStructuredOutputs
+                  ? system
+                  : injectJsonInstruction({
+                      prompt: system,
+                      schema: outputStrategy.jsonSchema,
+                    }),
+              prompt,
+              messages,
+            },
+            tools: undefined,
           });
 
           callOptions = {
@@ -452,9 +455,9 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
               description: schemaDescription,
             },
             ...prepareCallSettings(settings),
-            inputFormat: standardPrompt.type,
+            inputFormat: standardizedPrompt.type,
             prompt: await convertToLanguageModelPrompt({
-              prompt: standardPrompt,
+              prompt: standardizedPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
               modelSupportsUrl: model.supportsUrl,
             }),
@@ -482,10 +485,9 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
         }
 
         case 'tool': {
-          const validatedPrompt = standardizePrompt({
-            system,
-            prompt,
-            messages,
+          const standardizedPrompt = standardizePrompt({
+            prompt: { system, prompt, messages },
+            tools: undefined,
           });
 
           callOptions = {
@@ -499,9 +501,9 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
               },
             },
             ...prepareCallSettings(settings),
-            inputFormat: validatedPrompt.type,
+            inputFormat: standardizedPrompt.type,
             prompt: await convertToLanguageModelPrompt({
-              prompt: validatedPrompt,
+              prompt: standardizedPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
               modelSupportsUrl: model.supportsUrl,
             }),

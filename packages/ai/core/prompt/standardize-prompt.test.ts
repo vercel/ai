@@ -5,12 +5,15 @@ describe('message prompt', () => {
   it('should throw InvalidPromptError when system message has parts', () => {
     expect(() => {
       standardizePrompt({
-        messages: [
-          {
-            role: 'system',
-            content: [{ type: 'text', text: 'test' }] as any,
-          },
-        ],
+        prompt: {
+          messages: [
+            {
+              role: 'system',
+              content: [{ type: 'text', text: 'test' }] as any,
+            },
+          ],
+        },
+        tools: undefined,
       });
     }).toThrow(InvalidPromptError);
   });

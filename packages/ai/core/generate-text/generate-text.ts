@@ -207,7 +207,10 @@ changing the tool call and result types in the result.
     settings: { ...settings, maxRetries },
   });
 
-  const initialPrompt = standardizePrompt({ system, prompt, messages });
+  const initialPrompt = standardizePrompt({
+    prompt: { system, prompt, messages },
+    tools,
+  });
 
   const tracer = getTracer(telemetry);
 

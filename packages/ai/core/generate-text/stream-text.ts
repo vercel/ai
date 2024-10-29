@@ -278,7 +278,10 @@ need to be added separately.
 
   const tracer = getTracer(telemetry);
 
-  const initialPrompt = standardizePrompt({ system, prompt, messages });
+  const initialPrompt = standardizePrompt({
+    prompt: { system, prompt, messages },
+    tools,
+  });
 
   return recordSpan({
     name: 'ai.streamText',

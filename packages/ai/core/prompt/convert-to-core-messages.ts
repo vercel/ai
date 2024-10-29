@@ -10,7 +10,7 @@ with the AI core functions (e.g. `streamText`).
  */
 export function convertToCoreMessages<
   TOOLS extends Record<string, CoreTool> = never,
->(messages: Array<UIMessage>, options?: { tools: TOOLS }) {
+>(messages: Array<UIMessage>, options?: { tools?: TOOLS }) {
   const tools = options?.tools ?? ({} as TOOLS);
   const coreMessages: CoreMessage[] = [];
 
