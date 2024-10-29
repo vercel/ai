@@ -1,5 +1,13 @@
 # ai
 
+## 3.4.24
+
+### Patch Changes
+
+- d92fd9f: feat (ui/svelte): support Svelte 5 peer dependency
+- Updated dependencies [d92fd9f]
+  - @ai-sdk/svelte@0.0.56
+
 ## 3.4.23
 
 ### Patch Changes
