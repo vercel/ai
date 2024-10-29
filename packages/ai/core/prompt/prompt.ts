@@ -1,4 +1,5 @@
 import { CoreMessage } from './message';
+import { UIMessage } from './ui-message';
 
 /**
 Prompt part of the AI function options.
@@ -18,5 +19,5 @@ A simple text prompt. You can either use `prompt` or `messages` but not both.
   /**
 A list of messages. You can either use `prompt` or `messages` but not both.
    */
-  messages?: Array<CoreMessage>;
+  messages?: Array<CoreMessage> | Array<UIMessage>;
 };

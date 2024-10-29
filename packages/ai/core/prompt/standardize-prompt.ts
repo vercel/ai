@@ -3,6 +3,9 @@ import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { CoreMessage, coreMessageSchema } from './message';
 import { Prompt } from './prompt';
+import { detectPromptType } from './detect-prompt-type';
+import { convertToCoreMessages } from './convert-to-core-messages';
+import { UIMessage } from './ui-message';
 
 export type StandardizedPrompt = {
   /**
@@ -69,22 +72,36 @@ export function standardizePrompt(prompt: Prompt): StandardizedPrompt {
 
   // type: messages
   if (prompt.messages != null) {
+    const promptType = detectPromptType(prompt.messages);
+
+    if (promptType === 'other') {
+      throw new InvalidPromptError({
+        prompt,
+        message: 'messages must be an array of CoreMessage or UIMessage',
+      });
+    }
+
+    const messages: CoreMessage[] =
+      promptType === 'ui-messages'
+        ? convertToCoreMessages(prompt.messages as UIMessage[]) // TODO tools
+        : (prompt.messages as CoreMessage[]);
+
     const validationResult = safeValidateTypes({
-      value: prompt.messages,
+      value: messages,
       schema: z.array(coreMessageSchema),
     });
 
     if (!validationResult.success) {
       throw new InvalidPromptError({
         prompt,
-        message: 'messages must be an array of CoreMessage',
+        message: 'messages must be an array of CoreMessage or UIMessage',
         cause: validationResult.error,
       });
     }
 
     return {
       type: 'messages',
-      messages: prompt.messages!, // only possible case bc of checks above
+      messages,
       system: prompt.system,
     };
   }
