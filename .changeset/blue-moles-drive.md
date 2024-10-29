@@ -3,4 +3,4 @@
 'ai': patch
 ---
 
-feat (ai/svelte): support Svelte 5 peer dependency
+feat (ui/svelte): support Svelte 5 peer dependency
