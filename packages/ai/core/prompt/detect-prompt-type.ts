@@ -1,8 +1,12 @@
 export function detectPromptType(
   prompt: Array<any>,
 ): 'ui-messages' | 'messages' | 'other' {
-  if (!Array.isArray(prompt) || prompt.length === 0) {
+  if (!Array.isArray(prompt)) {
     return 'other';
+  }
+
+  if (prompt.length === 0) {
+    return 'messages';
   }
 
   const characteristics = prompt.map(detectSingleMessageCharacteristics);

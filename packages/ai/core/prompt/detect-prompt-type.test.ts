@@ -2,11 +2,14 @@ import { detectPromptType } from './detect-prompt-type';
 import type { UIMessage } from './ui-message';
 import type { CoreMessage } from './message';
 
-it('should return "other" for empty or invalid inputs', () => {
-  expect(detectPromptType([])).toBe('other');
+it('should return "other" for invalid inputs', () => {
   expect(detectPromptType(null as any)).toBe('other');
   expect(detectPromptType(undefined as any)).toBe('other');
   expect(detectPromptType('not an array' as any)).toBe('other');
+});
+
+it('should return "messages" for empty arrays', () => {
+  expect(detectPromptType([])).toBe('messages');
 });
 
 it('should detect UI messages with function role', () => {
