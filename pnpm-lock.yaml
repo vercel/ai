@@ -1583,6 +1583,9 @@ importers:
       ai:
         specifier: 3.4.27
         version: link:../ai
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
     devDependencies:
       '@types/node':
         specifier: ^18

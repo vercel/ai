@@ -1,5 +1,13 @@
-import { CoreMessage, generateText, LanguageModel } from 'ai';
+import {
+  CoreMessage,
+  CoreTool,
+  FinishReason,
+  generateText,
+  GenerateTextResult,
+  LanguageModel,
+} from 'ai';
 import { Agent } from './agent';
+import { z } from 'zod';
 
 export async function runSwarm({
   agent,
@@ -17,40 +25,58 @@ export async function runSwarm({
   text: string;
   responseMessages: CoreMessage[];
   activeAgent: Agent;
+  finishReason: FinishReason;
 }> {
-  let activeAgent = agent;
   const variables = { ...context }; // TODO use context
+
+  let activeAgent = agent;
+  let lastResult: GenerateTextResult<Record<string, CoreTool>>;
   const responseMessages: Array<CoreMessage> = [];
 
-  while (
-    responseMessages.filter(message => message.role === 'assistant').length <
-    maxSteps
-  ) {
-    const result = await generateText({
+  do {
+    lastResult = await generateText({
       model: agent.model ?? defaultModel,
       system: agent.system,
-      tools: agent.tools, // TODO map tools??
+      tools: Object.fromEntries(
+        Object.entries(agent.tools ?? {}).map(
+          ([name, tool]): [string, CoreTool] => [
+            name,
+            tool.type === 'agent'
+              ? {
+                  type: 'function',
+                  description: tool.description,
+                  parameters: z.object({}),
+                  // no execute function
+                }
+              : tool,
+          ],
+        ),
+      ),
       maxSteps,
       messages: [...initialMessages, ...responseMessages],
     });
 
-    responseMessages.push(...result.response.messages);
+    responseMessages.push(...lastResult.response.messages);
 
-    switch (result.finishReason) {
+    switch (lastResult.finishReason) {
+      case 'tool-calls': {
+        // TODO handle tool calls and agent switching
+        // TODO introduce special agent tools and mapping to CoreTool
+      }
+
       case 'stop':
-        return { responseMessages, activeAgent, text: result.text };
-
-      // TODO handle tool calls and agent switching
-      // TODO introduce special agent tools and mapping to CoreTool
-
       default:
-        throw new Error(`Unexpected finish reason: ${result.finishReason}`);
+        break;
     }
-  }
+  } while (
+    responseMessages.filter(message => message.role === 'assistant').length <
+    maxSteps
+  );
 
   return {
     responseMessages,
     activeAgent,
-    text: '',
+    text: lastResult.text,
+    finishReason: lastResult.finishReason,
   };
 }
