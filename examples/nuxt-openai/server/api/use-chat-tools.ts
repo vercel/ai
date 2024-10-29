@@ -1,5 +1,5 @@
-import { convertToCoreMessages, streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 import { z } from 'zod';
 
 export default defineLazyEventHandler(async () => {
@@ -12,7 +12,7 @@ export default defineLazyEventHandler(async () => {
 
     const result = await streamText({
       model: openai('gpt-4-turbo'),
-      messages: convertToCoreMessages(messages),
+      messages,
       experimental_toolCallStreaming: true,
       maxSteps: 5, // multi-steps for server-side tools
       tools: {

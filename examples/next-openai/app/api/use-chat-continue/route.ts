@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { convertToCoreMessages, streamText } from 'ai';
+import { streamText } from 'ai';
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 60;
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     maxSteps: 10,
     experimental_continueSteps: true,
     system: 'Stop when sufficient information was provided.',
-    messages: convertToCoreMessages(messages),
+    messages,
   });
 
   return result.toDataStreamResponse();

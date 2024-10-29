@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToCoreMessages, StreamData, streamText } from 'ai';
+import { StreamData, streamText } from 'ai';
 
 export default defineLazyEventHandler(async () => {
   const openai = createOpenAI({
@@ -15,7 +15,7 @@ export default defineLazyEventHandler(async () => {
 
     const result = await streamText({
       model: openai('gpt-4o'),
-      messages: convertToCoreMessages(messages),
+      messages,
       onFinish() {
         data.append('call completed');
         data.close();

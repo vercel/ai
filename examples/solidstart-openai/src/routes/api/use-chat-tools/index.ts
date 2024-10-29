@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { APIEvent } from '@solidjs/start/server';
-import { convertToCoreMessages, streamText } from 'ai';
+import { streamText } from 'ai';
 import { z } from 'zod';
 
 export const POST = async (event: APIEvent) => {
@@ -8,7 +8,7 @@ export const POST = async (event: APIEvent) => {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages: convertToCoreMessages(messages),
+    messages,
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {

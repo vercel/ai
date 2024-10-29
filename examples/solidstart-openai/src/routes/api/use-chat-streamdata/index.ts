@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { APIEvent } from '@solidjs/start/server';
-import { convertToCoreMessages, StreamData, streamText } from 'ai';
+import { StreamData, streamText } from 'ai';
 
 export const POST = async (event: APIEvent) => {
   const { messages } = await event.request.json();
@@ -11,7 +11,7 @@ export const POST = async (event: APIEvent) => {
 
   const result = await streamText({
     model: openai('gpt-4o'),
-    messages: convertToCoreMessages(messages),
+    messages,
     onFinish() {
       data.append('call completed');
       data.close();

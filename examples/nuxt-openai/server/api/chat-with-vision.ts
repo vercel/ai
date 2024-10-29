@@ -1,5 +1,5 @@
-import { convertToCoreMessages, streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 
 export default defineLazyEventHandler(async () => {
   const apiKey = useRuntimeConfig().openaiApiKey;
@@ -20,7 +20,7 @@ export default defineLazyEventHandler(async () => {
       model: openai('gpt-4o'),
       maxTokens: 150,
       messages: [
-        ...convertToCoreMessages(initialMessages),
+        ...initialMessages,
         {
           role: 'user',
           content: [
