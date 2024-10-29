@@ -87,9 +87,11 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
     },
   });
 
-  // keep track of active tool calls
+  // keep track of active tool calls for tool call streaming:
   const activeToolCalls: Record<string, boolean> = {};
-  const outstandingToolCalls = new Set<string>();
+
+  // keep track of outstanding tool results for streaming closing:
+  const outstandingToolResults = new Set<string>();
 
   let canClose = false;
   let finishChunk:
@@ -98,7 +100,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
 
   function attemptClose() {
     // close the tool results controller if no more outstanding tool calls
-    if (canClose && outstandingToolCalls.size === 0) {
+    if (canClose && outstandingToolResults.size === 0) {
       // we delay sending the finish chunk until all tool results (incl. delayed ones)
       // are received to ensure that the frontend receives tool results before a message
       // finish event arrives.
@@ -191,7 +193,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
 
             if (tool.execute != null) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
-              outstandingToolCalls.add(toolExecutionId);
+              outstandingToolResults.add(toolExecutionId);
 
               // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
               // because we want to process the next chunk as soon as possible.
@@ -222,7 +224,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                         result,
                       } as any);
 
-                      outstandingToolCalls.delete(toolExecutionId);
+                      outstandingToolResults.delete(toolExecutionId);
 
                       attemptClose();
 
@@ -251,7 +253,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                         error,
                       });
 
-                      outstandingToolCalls.delete(toolExecutionId);
+                      outstandingToolResults.delete(toolExecutionId);
                       attemptClose();
                     },
                   ),
