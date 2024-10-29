@@ -16,6 +16,11 @@ The `useChat` hook uses a message structure (`Message`) that pre-dates the AI SD
 
 ## Solution
 
+<Note title="warning">
+  This solution is outdated. The AI SDK now automatically converts the incoming
+  messages to the `CoreMessage` format.
+</Note>
+
 To resolve this issue, convert the incoming messages to the `CoreMessage` format using the [`convertToCoreMessages`](/docs/reference/ai-sdk-ui/convert-to-core-messages) function.
 
 ```tsx highlight="9"

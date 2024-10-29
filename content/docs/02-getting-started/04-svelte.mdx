@@ -84,7 +84,7 @@ Create a SvelteKit Endpoint, `src/routes/api/chat/+server.ts` and add the follow
 
 ```tsx filename="src/routes/api/chat/+server.ts"
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, convertToCoreMessages } from 'ai';
+import { streamText } from 'ai';
 import type { RequestHandler } from './$types';
 
 import { env } from '$env/dynamic/private';
@@ -98,7 +98,7 @@ export const POST = (async ({ request }) => {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages: convertToCoreMessages(messages),
+    messages,
   });
 
   return result.toDataStreamResponse();
@@ -174,7 +174,7 @@ Modify your `src/routes/api/chat/+server.ts` file to include the new weather too
 
 ```tsx filename="src/routes/api/chat/+server.ts" highlight="2,4,18-32"
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, convertToCoreMessages, tool } from 'ai';
+import { streamText, tool } from 'ai';
 import type { RequestHandler } from './$types';
 import { z } from 'zod';
 
@@ -189,7 +189,7 @@ export const POST = (async ({ request }) => {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages: convertToCoreMessages(messages),
+    messages,
     tools: {
       weather: tool({
         description: 'Get the weather in a location (farenheit)',
@@ -291,7 +291,7 @@ Update your `src/routes/api/chat/+server.ts` file to add a new tool to convert t
 
 ```tsx filename="src/routes/api/chat/+server.ts" highlight="32-45"
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, convertToCoreMessages, tool } from 'ai';
+import { streamText, tool } from 'ai';
 import type { RequestHandler } from './$types';
 import { z } from 'zod';
 
@@ -306,7 +306,7 @@ export const POST = (async ({ request }) => {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages: convertToCoreMessages(messages),
+    messages,
     tools: {
       weather: tool({
         description: 'Get the weather in a location (farenheit)',

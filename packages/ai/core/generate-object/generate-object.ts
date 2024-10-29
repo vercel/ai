@@ -408,22 +408,25 @@ export async function generateObject<SCHEMA, RESULT>({
 
       switch (mode) {
         case 'json': {
-          const standardPrompt = standardizePrompt({
-            system:
-              outputStrategy.jsonSchema == null
-                ? injectJsonInstruction({ prompt: system })
-                : model.supportsStructuredOutputs
-                ? system
-                : injectJsonInstruction({
-                    prompt: system,
-                    schema: outputStrategy.jsonSchema,
-                  }),
-            prompt,
-            messages,
+          const standardizedPrompt = standardizePrompt({
+            prompt: {
+              system:
+                outputStrategy.jsonSchema == null
+                  ? injectJsonInstruction({ prompt: system })
+                  : model.supportsStructuredOutputs
+                  ? system
+                  : injectJsonInstruction({
+                      prompt: system,
+                      schema: outputStrategy.jsonSchema,
+                    }),
+              prompt,
+              messages,
+            },
+            tools: undefined,
           });
 
           const promptMessages = await convertToLanguageModelPrompt({
-            prompt: standardPrompt,
+            prompt: standardizedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
             modelSupportsUrl: model.supportsUrl,
           });
@@ -440,7 +443,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   }),
                   ...baseTelemetryAttributes,
                   'ai.prompt.format': {
-                    input: () => standardPrompt.type,
+                    input: () => standardizedPrompt.type,
                   },
                   'ai.prompt.messages': {
                     input: () => JSON.stringify(promptMessages),
@@ -468,7 +471,7 @@ export async function generateObject<SCHEMA, RESULT>({
                     description: schemaDescription,
                   },
                   ...prepareCallSettings(settings),
-                  inputFormat: standardPrompt.type,
+                  inputFormat: standardizedPrompt.type,
                   prompt: promptMessages,
                   providerMetadata,
                   abortSignal,
@@ -535,18 +538,17 @@ export async function generateObject<SCHEMA, RESULT>({
         }
 
         case 'tool': {
-          const validatedPrompt = standardizePrompt({
-            system,
-            prompt,
-            messages,
+          const standardizedPrompt = standardizePrompt({
+            prompt: { system, prompt, messages },
+            tools: undefined,
           });
 
           const promptMessages = await convertToLanguageModelPrompt({
-            prompt: validatedPrompt,
+            prompt: standardizedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
             modelSupportsUrl: model.supportsUrl,
           });
-          const inputFormat = validatedPrompt.type;
+          const inputFormat = standardizedPrompt.type;
 
           const generateResult = await retry(() =>
             recordSpan({

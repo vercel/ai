@@ -16,7 +16,7 @@ The last message is the user's message, and we add the image URL to it.
 
 ```tsx filename='app/api/chat/route.ts' highlight="8,9,23"
 import { openai } from '@ai-sdk/openai';
-import { convertToCoreMessages, streamText } from 'ai';
+import { streamText } from 'ai';
 
 export const maxDuration = 60;
 
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   const result = await streamText({
     model: openai('gpt-4-turbo'),
     messages: [
-      ...convertToCoreMessages(initialMessages),
+      ...initialMessages,
       {
         role: 'user',
         content: [

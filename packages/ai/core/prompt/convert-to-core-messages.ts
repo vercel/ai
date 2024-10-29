@@ -1,24 +1,8 @@
-import { Attachment, ToolInvocation } from '@ai-sdk/ui-utils';
 import { CoreMessage, ToolCallPart, ToolResultPart } from '../prompt';
+import { CoreTool } from '../tool/tool';
 import { attachmentsToParts } from './attachments-to-parts';
 import { MessageConversionError } from './message-conversion-error';
-import { CoreTool } from '../tool/tool';
-
-// Compatible with Message. Interface is limited to increase flexibility.
-// Only exposed internally.
-export type ConvertibleMessage = {
-  role:
-    | 'system'
-    | 'user'
-    | 'assistant'
-    | 'function' // @deprecated
-    | 'data'
-    | 'tool'; // @deprecated
-
-  content: string;
-  toolInvocations?: ToolInvocation[];
-  experimental_attachments?: Attachment[];
-};
+import { UIMessage } from './ui-message';
 
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
@@ -26,7 +10,7 @@ with the AI core functions (e.g. `streamText`).
  */
 export function convertToCoreMessages<
   TOOLS extends Record<string, CoreTool> = never,
->(messages: Array<ConvertibleMessage>, options?: { tools: TOOLS }) {
+>(messages: Array<UIMessage>, options?: { tools?: TOOLS }) {
   const tools = options?.tools ?? ({} as TOOLS);
   const coreMessages: CoreMessage[] = [];
 

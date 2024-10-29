@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToCoreMessages, StreamData, streamText } from 'ai';
+import { StreamData, streamText } from 'ai';
 
 import { env } from '$env/dynamic/private';
 // You may want to replace the above with a static private env variable
@@ -22,7 +22,7 @@ export const POST = (async ({ request }) => {
 
   const result = await streamText({
     model: openai('gpt-4o'),
-    messages: convertToCoreMessages(messages),
+    messages,
     onFinish() {
       data.append('call completed');
       data.close();

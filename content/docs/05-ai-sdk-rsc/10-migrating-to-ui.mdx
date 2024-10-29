@@ -102,18 +102,16 @@ The `streamUI` function combines generating text and rendering the user interfac
 The `streamText` function executes as part of a route handler and streams the response to the client. The `useChat` hook on the client decodes this stream and renders the response within the chat interface.
 
 ```ts filename="@/app/api/chat/route.ts"
-import { streamText, convertToCoreMessages } from 'ai';
+import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(request) {
   const { messages } = await request.json();
 
-  const coreMessages = convertToCoreMessages(messages);
-
   const result = await streamText({
     model: openai('gpt-4o'),
     system: 'you are a friendly assistant!',
-    messages: coreMessages,
+    messages,
     tools: {
       // tool definitions
     },
@@ -218,17 +216,15 @@ The `streamText` function streams the props data as response to the client, whil
 import { z } from 'zod';
 import { openai } from '@ai-sdk/openai';
 import { getWeather } from '@/utils/queries';
-import { streamText, convertToCoreMessages } from 'ai';
+import { streamText } from 'ai';
 
 export async function POST(request) {
   const { messages } = await request.json();
 
-  const coreMessages = convertToCoreMessages(messages);
-
   const result = await streamText({
     model: openai('gpt-4o'),
     system: 'you are a friendly assistant!',
-    messages: coreMessages,
+    messages,
     tools: {
       displayWeather: {
         description: 'Display the weather for a location',
