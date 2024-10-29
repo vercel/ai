@@ -6,7 +6,7 @@ import { CoreTool } from '../tool/tool';
 
 // Compatible with Message. Interface is limited to increase flexibility.
 // Only exposed internally.
-export type ConvertibleMessage = {
+export type UIMessage = {
   role:
     | 'system'
     | 'user'
@@ -26,7 +26,7 @@ with the AI core functions (e.g. `streamText`).
  */
 export function convertToCoreMessages<
   TOOLS extends Record<string, CoreTool> = never,
->(messages: Array<ConvertibleMessage>, options?: { tools: TOOLS }) {
+>(messages: Array<UIMessage>, options?: { tools: TOOLS }) {
   const tools = options?.tools ?? ({} as TOOLS);
   const coreMessages: CoreMessage[] = [];
 
