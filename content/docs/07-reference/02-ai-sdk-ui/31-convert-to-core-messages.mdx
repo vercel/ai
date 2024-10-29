@@ -5,6 +5,11 @@ description: Convert useChat messages to CoreMessages for AI core functions (API
 
 # `convertToCoreMessages()`
 
+<Note title="warning">
+  The `convertToCoreMessages` function is no longer required. The AI SDK now
+  automatically converts the incoming messages to the `CoreMessage` format.
+</Note>
+
 The `convertToCoreMessages` function is used to transform an array of UI messages from the `useChat` hook into an array of `CoreMessage` objects. These `CoreMessage` objects are compatible with AI core functions like `streamText`.
 
 ```ts filename="app/api/chat/route.ts"
