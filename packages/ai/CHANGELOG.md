@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.25
+
+### Patch Changes
+
+- 6e0fa1c: fix (ai/core): wait for tool results to arrive before sending finish event
+
 ## 3.4.24
 
 ### Patch Changes
