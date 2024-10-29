@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.27
+
+### Patch Changes
+
+- fa772ae: feat (ai/core): automatically convert ui messages to core messages
+
 ## 3.4.26
 
 ### Patch Changes
