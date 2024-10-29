@@ -39,6 +39,12 @@ export async function POST(req: Request) {
       description:
         'An array of UI messages from the useChat hook to be converted',
     },
+    {
+      name: 'options',
+      type: '{ tools?: Record<string, Tool> }',
+      description:
+        'Optional configuration object. Provide tools to enable multi-modal tool responses.',
+    },
   ]}
 />
 
@@ -55,3 +61,29 @@ An array of [`CoreMessage`](/docs/reference/ai-sdk-core/core-message) objects.
     },
   ]}
 />
+
+## Multi-modal Tool Responses
+
+The `convertToCoreMessages` function supports tools that can return multi-modal content. This is useful when tools need to return non-text content like images.
+
+```ts
+import { tool } from 'ai';
+import { z } from 'zod';
+
+const screenshotTool = tool({
+  parameters: z.object({}),
+  execute: async () => 'imgbase64',
+  experimental_toToolResultContent: result => [{ type: 'image', data: result }],
+});
+
+const result = await streamText({
+  model: openai('gpt-4'),
+  messages: convertToCoreMessages(messages, {
+    tools: {
+      screenshot: screenshotTool,
+    },
+  }),
+});
+```
+
+Tools can implement the optional `experimental_toToolResultContent` method to transform their results into multi-modal content. The content is an array of content parts, where each part has a `type` (e.g., 'text', 'image') and corresponding data.
