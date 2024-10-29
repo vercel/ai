@@ -1,7 +1,8 @@
 import { Attachment, ToolInvocation } from '@ai-sdk/ui-utils';
-import { CoreMessage } from '../prompt';
+import { CoreMessage, ToolCallPart, ToolResultPart } from '../prompt';
 import { attachmentsToParts } from './attachments-to-parts';
 import { MessageConversionError } from './message-conversion-error';
+import { CoreTool } from '../tool/tool';
 
 // Compatible with Message. Interface is limited to increase flexibility.
 // Only exposed internally.
@@ -23,7 +24,10 @@ export type ConvertibleMessage = {
 Converts an array of messages from useChat into an array of CoreMessages that can be used
 with the AI core functions (e.g. `streamText`).
  */
-export function convertToCoreMessages(messages: Array<ConvertibleMessage>) {
+export function convertToCoreMessages<
+  TOOLS extends Record<string, CoreTool> = never,
+>(messages: Array<ConvertibleMessage>, options?: { tools: TOOLS }) {
+  const tools = options?.tools ?? ({} as TOOLS);
   const coreMessages: CoreMessage[] = [];
 
   for (const message of messages) {
@@ -63,37 +67,48 @@ export function convertToCoreMessages(messages: Array<ConvertibleMessage>) {
           role: 'assistant',
           content: [
             { type: 'text', text: content },
-            ...toolInvocations.map(({ toolCallId, toolName, args }) => ({
-              type: 'tool-call' as const,
-              toolCallId,
-              toolName,
-              args,
-            })),
+            ...toolInvocations.map(
+              ({ toolCallId, toolName, args }): ToolCallPart => ({
+                type: 'tool-call' as const,
+                toolCallId,
+                toolName,
+                args,
+              }),
+            ),
           ],
         });
 
         // tool message with tool results
         coreMessages.push({
           role: 'tool',
-          content: toolInvocations.map(ToolInvocation => {
-            if (!('result' in ToolInvocation)) {
+          content: toolInvocations.map((toolInvocation): ToolResultPart => {
+            if (!('result' in toolInvocation)) {
               throw new MessageConversionError({
                 originalMessage: message,
                 message:
                   'ToolInvocation must have a result: ' +
-                  JSON.stringify(ToolInvocation),
+                  JSON.stringify(toolInvocation),
               });
             }
 
-            const { toolCallId, toolName, args, result } = ToolInvocation;
+            const { toolCallId, toolName, result } = toolInvocation;
 
-            return {
-              type: 'tool-result' as const,
-              toolCallId,
-              toolName,
-              args,
-              result,
-            };
+            const tool = tools[toolName];
+            return tool?.experimental_toToolResultContent != null
+              ? {
+                  type: 'tool-result',
+                  toolCallId,
+                  toolName,
+                  result: tool.experimental_toToolResultContent(result),
+                  experimental_content:
+                    tool.experimental_toToolResultContent(result),
+                }
+              : {
+                  type: 'tool-result',
+                  toolCallId,
+                  toolName,
+                  result,
+                };
           }),
         });
 
