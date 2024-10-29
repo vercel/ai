@@ -149,8 +149,9 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'messages',
-      type: 'Array<CoreSystemMessage | CoreUserMessage | CoreAssistantMessage | CoreToolMessage>',
-      description: 'A list of messages that represent a conversation.',
+      type: 'Array<CoreSystemMessage | CoreUserMessage | CoreAssistantMessage | CoreToolMessage> | Array<UIMessage>',
+      description:
+        'A list of messages that represent a conversation. Automatically converts UI messages from the useChat hook.',
       properties: [
         {
           type: 'CoreSystemMessage',
