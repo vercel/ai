@@ -107,37 +107,23 @@ const computerTool = anthropic.tools.computer_20241022({
       }
     }
   },
+  experimental_toToolResultContent(result) {
+    return typeof result === 'string'
+      ? [{ type: 'text', text: result }]
+      : [{ type: 'image', data: result.data, mimeType: 'image/png' }];
+  },
 });
 ```
 
-Remember, you have to implement the execution logic (like the `getScreenshot` and `executeComputerAction` functions) to handle the actual computer interactions. The `execute` function in the Computer Tool configuration should handle all low-level interactions with the operating system.
+The `computerTool` handles two main actions: taking screenshots via `getScreenshot()` and executing computer actions like mouse movements and clicks through `executeComputerAction()`. Remember, you have to implement the execution logic (like the `getScreenshot` and `executeComputerAction` functions) to handle the actual computer interactions. The `execute` function should handle all low-level interactions with the operating system.
+
+Finally, to send tool results back to the model, use the [`experimental_toToolResultContent()`](/docs/foundations/prompts#multi-modal-tool-results) function to convert text and image responses into a format the model can process. The AI SDK includes experimental support for these multi-modal tool results when using Anthropic's models.
 
 <Note>
   Computer Use requires appropriate safety measures like using virtual machines,
   limiting access to sensitive data, and implementing human oversight for
   critical actions.
 </Note>
-
-### Converting Multi-modal Tool Results
-
-To send tool results back to the model, use the [`experimental_toToolResultContent()`](/docs/foundations/prompts#multi-modal-tool-results) function to convert text and image responses into a format the model can process. The AI SDK includes experimental support for these multi-modal tool results when using Anthropic's models. Here's how to handle multi-part tool results in your application:
-
-```ts highlight="9-13"
-import { anthropic } from "@ai-sdk/anthropic";
-import { ... } from "@/utils/computer-use";
-
-const computerTool = anthropic.tools.computer_20241022({
-  displayWidthPx: 1920,
-  displayHeightPx: 1080,
-  execute: async ({ action, coordinate, text }) => { ... },
-  // map to tool result content for LLM consumption:
-  experimental_toToolResultContent(result) {
-    return typeof result === "string"
-      ? [{ type: "text", text: result }]
-      : [{ type: "image", data: result.data, mimeType: "image/png" }];
-  },
-});
-```
 
 ### Using Computer Tools with Text Generation
 
