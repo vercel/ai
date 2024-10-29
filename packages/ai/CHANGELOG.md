@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.26
+
+### Patch Changes
+
+- 57f39ea: feat (ai/core): support multi-modal tool results in convertToCoreMessages
+
 ## 3.4.25
 
 ### Patch Changes
