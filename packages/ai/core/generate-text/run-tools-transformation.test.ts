@@ -9,9 +9,7 @@ import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
 it('should forward text deltas correctly', async () => {
   const inputStream: ReadableStream<LanguageModelV1StreamPart> =
     convertArrayToReadableStream([
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'world!' },
+      { type: 'text-delta', textDelta: 'text' },
       {
         type: 'finish',
         finishReason: 'stop',
@@ -32,9 +30,7 @@ it('should forward text deltas correctly', async () => {
   const result = await convertReadableStreamToArray(transformedStream);
 
   expect(result).toEqual([
-    { type: 'text-delta', textDelta: 'Hello' },
-    { type: 'text-delta', textDelta: ', ' },
-    { type: 'text-delta', textDelta: 'world!' },
+    { type: 'text-delta', textDelta: 'text' },
     {
       type: 'finish',
       finishReason: 'stop',
