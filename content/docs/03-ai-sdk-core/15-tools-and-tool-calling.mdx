@@ -346,6 +346,32 @@ const result = await generateText({
 });
 ```
 
+When working with multi-modal tool results in a chat context, you'll need to provide the tools to `convertToCoreMessages` to properly convert the tool results back into content. This is particularly important when passing messages between the UI and core functions:
+
+```ts
+import { convertToCoreMessages, generateText } from 'ai';
+
+// Define your tools with multi-modal capabilities
+const tools = {
+  screenshot: tool({
+    // ... tool definition
+    experimental_toToolResultContent: result => [
+      { type: 'image', data: result.data },
+    ],
+  }),
+};
+
+// When converting UI messages to core messages, pass the tools
+const coreMessages = convertToCoreMessages(uiMessages, { tools });
+
+const result = await generateText({
+  model: anthropic('claude-3-5-sonnet-20241022'),
+  messages: coreMessages,
+  tools,
+  // ... other options
+});
+```
+
 ## Examples
 
 You can see tools in action using various frameworks in the following examples:

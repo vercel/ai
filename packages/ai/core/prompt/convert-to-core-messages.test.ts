@@ -254,6 +254,16 @@ describe('assistant message', () => {
   });
 
   it('should handle assistant message with tool invocations that have multi-part responses', () => {
+    const tools = {
+      screenshot: tool({
+        parameters: z.object({}),
+        execute: async () => 'imgbase64',
+        experimental_toToolResultContent: result => [
+          { type: 'image', data: result },
+        ],
+      }),
+    };
+
     const result = convertToCoreMessages(
       [
         {
@@ -270,17 +280,7 @@ describe('assistant message', () => {
           ],
         },
       ],
-      {
-        tools: {
-          screenshot: tool({
-            parameters: z.object({}),
-            execute: async () => 'imgbase64',
-            experimental_toToolResultContent: result => [
-              { type: 'image', data: result },
-            ],
-          }),
-        },
-      },
+      { tools }, // separate tools to ensure that types are inferred correctly
     );
 
     expect(result).toEqual([
