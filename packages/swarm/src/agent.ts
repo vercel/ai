@@ -1,8 +1,20 @@
 import { CoreTool, LanguageModel } from 'ai';
 
-export interface Agent {
-  name: string;
-  model: LanguageModel;
-  system: string;
-  tools: Record<string, CoreTool>;
+export class Agent {
+  readonly name: string;
+  readonly model: LanguageModel | undefined;
+  readonly system: string | undefined;
+  readonly tools: Record<string, CoreTool> | undefined;
+
+  constructor(options: {
+    name: string;
+    system?: string;
+    model?: LanguageModel;
+    tools?: Record<string, CoreTool>;
+  }) {
+    this.name = options.name;
+    this.model = options.model;
+    this.system = options.system;
+    this.tools = options.tools;
+  }
 }
