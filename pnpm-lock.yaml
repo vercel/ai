@@ -1630,7 +1630,7 @@ importers:
   packages/swarm:
     dependencies:
       ai:
-        specifier: 3.4.28
+        specifier: 3.4.29
         version: link:../ai
       zod:
         specifier: 3.23.8
