@@ -150,7 +150,7 @@ const result = await streamText({
   tools: { computer: computerTool },
 });
 
-for await (const chunk of stream) {
+for await (const chunk of result.textStream) {
   console.log(chunk);
 }
 ```
