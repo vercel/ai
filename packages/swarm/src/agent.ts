@@ -30,6 +30,7 @@ export type AgentHandoverTool = {
 
 export type AgentTool = AgentFunctionTool | AgentHandoverTool;
 
+// TODO other settings such as temperature, etc.
 export class Agent {
   readonly name: string;
   readonly model: LanguageModel | undefined;

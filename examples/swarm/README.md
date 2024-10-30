@@ -1,6 +1,6 @@
-# Basic Examples
+# AI SDK Swarm Examples
 
-Basic examples for the `ai/core` functions (script usage).
+Basic examples for the experimental, unstable, unmaintained `@ai-sdk/swarm` package.
 
 ## Usage
 
@@ -18,7 +18,7 @@ pnpm install
 pnpm build
 ```
 
-3. Run any example (from the `examples/ai-core` directory) with the following command:
+3. Run any example (from the `examples/swarm` directory) with the following command:
 
 ```sh
 pnpm tsx src/path/to/example.ts

@@ -13,18 +13,18 @@ import {
 import { Agent, AgentHandoverTool } from './agent';
 import { z } from 'zod';
 
+// TODO streamSwarm function
+// TODO support context
 export async function runSwarm({
   agent: activeAgent,
   messages: initialMessages,
-  context = {},
   model,
   maxSteps = 100,
-  onStepFinish, // TODO would be nice to have agent information as well
+  onStepFinish, // TODO include agent information
 }: {
   agent: Agent;
   messages: CoreMessage[];
   model: LanguageModel;
-  context?: Record<string, any>;
   maxSteps?: number;
   onStepFinish?: (event: StepResult<any>) => Promise<void> | void;
 }): Promise<{
@@ -33,8 +33,6 @@ export async function runSwarm({
   activeAgent: Agent;
   finishReason: FinishReason;
 }> {
-  const variables = { ...context }; // TODO use context
-
   let lastResult: GenerateTextResult<any>;
   const responseMessages: Array<CoreMessage> = [];
 
@@ -133,7 +131,7 @@ export async function runSwarm({
     maxSteps
   );
 
-  // TODO special finish reason
+  // TODO special finish reasons: done, maxSteps, etc.
 
   return {
     responseMessages,
