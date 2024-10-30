@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.29
+
+### Patch Changes
+
+- 54b56f7: feat (ai/core): send tool and tool choice telemetry data
+
 ## 3.4.28
 
 ### Patch Changes
