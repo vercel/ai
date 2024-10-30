@@ -22,7 +22,7 @@ async function main() {
   const { text } = await runSwarm({
     agent: agentA,
     model: openai('gpt-4o', { structuredOutputs: true }),
-    messages: [{ role: 'user', content: 'I want to talk to agent B.' }],
+    prompt: 'I want to talk to agent B.',
   });
 
   console.log(text);

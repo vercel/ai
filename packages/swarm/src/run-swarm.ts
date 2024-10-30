@@ -17,13 +17,13 @@ import { z } from 'zod';
 // TODO support context
 export async function runSwarm({
   agent: activeAgent,
-  messages: initialMessages,
+  prompt,
   model,
   maxSteps = 100,
   onStepFinish, // TODO include agent information
 }: {
   agent: Agent;
-  messages: CoreMessage[];
+  prompt: CoreMessage[] | string;
   model: LanguageModel;
   maxSteps?: number;
   onStepFinish?: (event: StepResult<any>) => Promise<void> | void;
@@ -33,6 +33,11 @@ export async function runSwarm({
   activeAgent: Agent;
   finishReason: FinishReason;
 }> {
+  const initialMessages =
+    typeof prompt === 'string'
+      ? [{ role: 'user' as const, content: prompt }]
+      : prompt;
+
   let lastResult: GenerateTextResult<any>;
   const responseMessages: Array<CoreMessage> = [];
 
