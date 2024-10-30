@@ -5,16 +5,18 @@ import { delay as delayFunction } from '../../util/delay';
  *
  * @param options - The configuration options
  * @param options.values - Array of values to be emitted by the stream
- * @param options.delayInMs - Optional delay in milliseconds between emitting each value (default: 0)
+ * @param options.chunkDelayInMs - Optional delay in milliseconds between emitting each value (default: 0)
  * @returns A ReadableStream that emits the provided values
  */
 export function simulateReadableStream<T>({
   values,
-  delayInMs = 0,
+  initialDelayInMs = 0,
+  chunkDelayInMs = 0,
   _internal,
 }: {
   values: T[];
-  delayInMs?: number;
+  initialDelayInMs?: number;
+  chunkDelayInMs?: number;
   _internal?: {
     delay?: (ms: number) => Promise<void>;
   };
@@ -26,7 +28,7 @@ export function simulateReadableStream<T>({
   return new ReadableStream({
     async pull(controller) {
       if (index < values.length) {
-        await delay(delayInMs);
+        await delay(index === 0 ? initialDelayInMs : chunkDelayInMs);
         controller.enqueue(values[index++]);
       } else {
         controller.close();

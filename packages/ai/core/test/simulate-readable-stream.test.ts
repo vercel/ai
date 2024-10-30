@@ -1,4 +1,3 @@
-import { describe, it, expect, vi } from 'vitest';
 import { simulateReadableStream } from './simulate-readable-stream';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 
@@ -10,20 +9,23 @@ describe('simulateReadableStream', () => {
     expect(await convertReadableStreamToArray(stream)).toEqual(values);
   });
 
-  it('should respect the delay setting', async () => {
-    const mockDelay = vi.fn();
-    const delaySetting = 100;
+  it('should respect the chunkDelayInMs setting', async () => {
+    const delayValues: number[] = [];
+    const mockDelay = (ms: number) => {
+      delayValues.push(ms);
+      return Promise.resolve();
+    };
 
     const stream = simulateReadableStream({
       values: [1, 2, 3],
-      delayInMs: delaySetting,
+      initialDelayInMs: 500,
+      chunkDelayInMs: 100,
       _internal: { delay: mockDelay },
     });
 
     await convertReadableStreamToArray(stream); // consume stream
 
-    expect(mockDelay).toHaveBeenCalledTimes(3);
-    expect(mockDelay).toHaveBeenCalledWith(delaySetting);
+    expect(delayValues).toEqual([500, 100, 100]);
   });
 
   it('should handle empty values array', async () => {
