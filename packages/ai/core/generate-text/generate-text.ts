@@ -293,6 +293,16 @@ changing the tool call and result types in the result.
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
                 },
+                'ai.prompt.tools': {
+                  // convert the language model level tools:
+                  input: () => mode.tools?.map(tool => JSON.stringify(tool)),
+                },
+                'ai.prompt.toolChoice': {
+                  input: () =>
+                    mode.toolChoice != null
+                      ? JSON.stringify(mode.toolChoice)
+                      : undefined,
+                },
 
                 // standardized gen-ai llm span attributes:
                 'gen_ai.system': model.provider,
