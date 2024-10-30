@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.28
+
+### Patch Changes
+
+- 29f1390: feat (ai/test): add simulateReadableStream helper
+
 ## 3.4.27
 
 ### Patch Changes
