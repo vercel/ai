@@ -2,12 +2,6 @@ import { openai } from '@ai-sdk/openai';
 import { Ratelimit } from '@upstash/ratelimit';
 import { kv } from '@vercel/kv';
 import { streamText } from 'ai';
-import OpenAI from 'openai';
-
-// Create an OpenAI API client (that's edge friendly!)
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -45,10 +39,6 @@ export async function POST(req: Request) {
   const result = await streamText({
     model: openai('gpt-4o'),
     messages,
-    async onFinish({ text, toolCalls, toolResults, usage, finishReason }) {
-      // implement your own logic here, e.g. for storing messages
-      // or recording token usage
-    },
   });
 
   // Respond with the stream
