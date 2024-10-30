@@ -1,12 +1,34 @@
-import { CoreTool, LanguageModel } from 'ai';
+import { LanguageModel, Schema } from 'ai';
+import { z } from 'zod';
 
-export type AgentTool =
-  | CoreTool
-  | {
-      type: 'agent';
-      description: string;
-      agent: () => Agent;
-    };
+type Parameters = z.ZodTypeAny | Schema<any>;
+type inferParameters<PARAMETERS extends Parameters> =
+  PARAMETERS extends Schema<any>
+    ? PARAMETERS['_type']
+    : PARAMETERS extends z.ZodTypeAny
+    ? z.infer<PARAMETERS>
+    : never;
+
+export type AgentFunctionTool<
+  PARAMETERS extends Parameters = any,
+  RESULT = any,
+> = {
+  type?: undefined | 'function';
+  description?: string;
+  parameters: PARAMETERS;
+  execute: (
+    args: inferParameters<PARAMETERS>,
+    options: { abortSignal?: AbortSignal },
+  ) => PromiseLike<RESULT>;
+};
+
+export type AgentHandoverTool = {
+  type: 'handover';
+  description?: string;
+  agent: () => Agent;
+};
+
+export type AgentTool = AgentFunctionTool | AgentHandoverTool;
 
 export class Agent {
   readonly name: string;

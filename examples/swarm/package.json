@@ -1,0 +1,27 @@
+{
+  "name": "ai-swarm-examples",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@ai-sdk/anthropic": "latest",
+    "@ai-sdk/google": "latest",
+    "@ai-sdk/google-vertex": "latest",
+    "@ai-sdk/groq": "latest",
+    "@ai-sdk/mistral": "latest",
+    "@ai-sdk/openai": "latest",
+    "@ai-sdk/swarm": "latest",
+    "ai": "latest",
+    "dotenv": "16.4.5",
+    "zod": "3.23.8",
+    "zod-to-json-schema": "3.23.2",
+    "@google/generative-ai": "0.21.0"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.20",
+    "tsx": "4.7.1",
+    "typescript": "5.5.4"
+  }
+}

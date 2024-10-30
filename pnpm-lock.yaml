@@ -990,6 +990,55 @@ importers:
         specifier: ^5
         version: 5.2.11
 
+  examples/swarm:
+    dependencies:
+      '@ai-sdk/anthropic':
+        specifier: latest
+        version: link:../../packages/anthropic
+      '@ai-sdk/google':
+        specifier: latest
+        version: link:../../packages/google
+      '@ai-sdk/google-vertex':
+        specifier: latest
+        version: link:../../packages/google-vertex
+      '@ai-sdk/groq':
+        specifier: latest
+        version: link:../../packages/groq
+      '@ai-sdk/mistral':
+        specifier: latest
+        version: link:../../packages/mistral
+      '@ai-sdk/openai':
+        specifier: latest
+        version: link:../../packages/openai
+      '@ai-sdk/swarm':
+        specifier: latest
+        version: link:../../packages/swarm
+      '@google/generative-ai':
+        specifier: 0.21.0
+        version: 0.21.0
+      ai:
+        specifier: latest
+        version: link:../../packages/ai
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+      zod-to-json-schema:
+        specifier: 3.23.2
+        version: 3.23.2(zod@3.23.8)
+    devDependencies:
+      '@types/node':
+        specifier: 20.11.20
+        version: 20.11.20
+      tsx:
+        specifier: 4.7.1
+        version: 4.7.1
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+
   packages/ai:
     dependencies:
       '@ai-sdk/provider':
@@ -1790,7 +1839,7 @@ packages:
   /@anthropic-ai/sdk@0.18.0:
     resolution: {integrity: sha512-3XsWEn/4nPGRd4AdSguugbSDFy6Z2AWTNOeI3iK+aV22+w23+vY9CEb3Hiy0kvKIQuxSmZz/+5WKC8nPWy8gVg==}
     dependencies:
-      '@types/node': 18.19.43
+      '@types/node': 18.19.54
       '@types/node-fetch': 2.6.11
       abort-controller: 3.0.0
       agentkeepalive: 4.5.0
