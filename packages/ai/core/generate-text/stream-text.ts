@@ -321,6 +321,11 @@ need to be added separately.
           modelSupportsUrl: model.supportsUrl,
         });
 
+        const mode = {
+          type: 'regular' as const,
+          ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
+        };
+
         const {
           result: { stream, warnings, rawResponse, request },
           doStreamSpan,
@@ -342,6 +347,16 @@ need to be added separately.
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
                 },
+                'ai.prompt.tools': {
+                  // convert the language model level tools:
+                  input: () => mode.tools?.map(tool => JSON.stringify(tool)),
+                },
+                'ai.prompt.toolChoice': {
+                  input: () =>
+                    mode.toolChoice != null
+                      ? JSON.stringify(mode.toolChoice)
+                      : undefined,
+                },
 
                 // standardized gen-ai llm span attributes:
                 'gen_ai.system': model.provider,
@@ -361,14 +376,7 @@ need to be added separately.
               startTimestampMs: now(), // get before the call
               doStreamSpan,
               result: await model.doStream({
-                mode: {
-                  type: 'regular',
-                  ...prepareToolsAndToolChoice({
-                    tools,
-                    toolChoice,
-                    activeTools,
-                  }),
-                },
+                mode,
                 ...prepareCallSettings(settings),
                 inputFormat: promptFormat,
                 prompt: promptMessages,
