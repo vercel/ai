@@ -1,8 +1,8 @@
-// ./app/api/chat/route.ts
-import OpenAI from 'openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
-import { kv } from '@vercel/kv';
+import { openai } from '@ai-sdk/openai';
 import { Ratelimit } from '@upstash/ratelimit';
+import { kv } from '@vercel/kv';
+import { streamText } from 'ai';
+import OpenAI from 'openai';
 
 // Create an OpenAI API client (that's edge friendly!)
 const openai = new OpenAI({
@@ -38,21 +38,19 @@ export async function POST(req: Request) {
     }
   }
 
-  // Extract the `prompt` from the body of the request
+  // Extract the `messages` from the body of the request
   const { messages } = await req.json();
 
-  // Ask OpenAI for a streaming chat completion given the prompt
-  const response = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
-    stream: true,
-    messages: messages.map((message: any) => ({
-      content: message.content,
-      role: message.role,
-    })),
+  // Call the language model
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    messages,
+    async onFinish({ text, toolCalls, toolResults, usage, finishReason }) {
+      // implement your own logic here, e.g. for storing messages
+      // or recording token usage
+    },
   });
 
-  // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response);
   // Respond with the stream
-  return new StreamingTextResponse(stream);
+  return result.toDataStreamResponse();
 }
