@@ -5,6 +5,7 @@ import { delay as delayFunction } from '../../util/delay';
  *
  * @param options - The configuration options
  * @param options.values - Array of values to be emitted by the stream
+ * @param options.initialDelayInMs - Optional initial delay in milliseconds before emitting the first value (default: 0)
  * @param options.chunkDelayInMs - Optional delay in milliseconds between emitting each value (default: 0)
  * @returns A ReadableStream that emits the provided values
  */
