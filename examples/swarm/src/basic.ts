@@ -19,13 +19,17 @@ async function main() {
     system: 'Only speak in Haikus.',
   });
 
-  const { text } = await runSwarm({
+  const { text, responseMessages } = await runSwarm({
     agent: agentA,
-    model: openai('gpt-4o'),
+    model: openai('gpt-4o', { structuredOutputs: true }),
     messages: [{ role: 'user', content: 'I want to talk to agent B.' }],
+    onStepFinish: async event => {
+      console.log(event);
+    },
   });
 
   console.log(text);
+  console.log(JSON.stringify(responseMessages, null, 2));
 }
 
 main().catch(console.error);

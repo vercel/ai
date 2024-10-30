@@ -7,24 +7,26 @@ import {
   generateText,
   GenerateTextResult,
   LanguageModel,
+  StepResult,
   ToolResultPart,
 } from 'ai';
 import { Agent, AgentHandoverTool } from './agent';
 import { z } from 'zod';
 
 export async function runSwarm({
-  agent,
+  agent: activeAgent,
   messages: initialMessages,
   context = {},
   model,
   maxSteps = 100,
+  onStepFinish, // TODO would be nice to have agent information as well
 }: {
   agent: Agent;
   messages: CoreMessage[];
   model: LanguageModel;
   context?: Record<string, any>;
   maxSteps?: number;
-  // TODO callbacks
+  onStepFinish?: (event: StepResult<any>) => Promise<void> | void;
 }): Promise<{
   text: string;
   responseMessages: CoreMessage[];
@@ -33,16 +35,15 @@ export async function runSwarm({
 }> {
   const variables = { ...context }; // TODO use context
 
-  let activeAgent = agent;
   let lastResult: GenerateTextResult<any>;
   const responseMessages: Array<CoreMessage> = [];
 
   do {
     lastResult = await generateText({
-      model: agent.model ?? model,
-      system: agent.system,
+      model: activeAgent.model ?? model,
+      system: activeAgent.system,
       tools: Object.fromEntries(
-        Object.entries(agent.tools ?? {}).map(
+        Object.entries(activeAgent.tools ?? {}).map(
           ([name, tool]): [string, CoreTool] => [
             name,
             tool.type === 'handover'
@@ -57,6 +58,7 @@ export async function runSwarm({
         ),
       ),
       maxSteps,
+      onStepFinish,
       messages: [...initialMessages, ...responseMessages],
     });
 
