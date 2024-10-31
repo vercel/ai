@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.50
+
+### Patch Changes
+
+- a85c965: fix (ai/ui): send message annotations from onChunk
+
 ## 0.0.49
 
 ### Patch Changes
