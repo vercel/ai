@@ -69,7 +69,7 @@ export async function processDataProtocolResponse({
   const data: JSONValue[] = [];
 
   // keep list of current message annotations for message
-  let message_annotations: JSONValue[] | undefined = undefined;
+  let messageAnnotations: JSONValue[] | undefined = undefined;
 
   // keep track of partial tool calls
   const partialToolCalls: Record<
@@ -124,7 +124,7 @@ export async function processDataProtocolResponse({
     // are associated with the previous message until then to
     // support sending them in onFinish and onStepFinish:
     if (
-      nextPrefixMap &&
+      nextPrefixMap != null &&
       (type === 'text' ||
         type === 'tool_call' ||
         type === 'tool_call_streaming_start' ||
@@ -312,41 +312,43 @@ export async function processDataProtocolResponse({
     let responseMessage = prefixMap['text'];
 
     if (type === 'message_annotations') {
-      if (!message_annotations) {
-        message_annotations = [...value];
+      if (!messageAnnotations) {
+        messageAnnotations = [...value];
       } else {
-        message_annotations.push(...value);
+        messageAnnotations.push(...value);
       }
 
       // Update any existing message with the latest annotations
       functionCallMessage = assignAnnotationsToMessage(
         prefixMap['function_call'],
-        message_annotations,
+        messageAnnotations,
       );
       toolCallMessage = assignAnnotationsToMessage(
         prefixMap['tool_calls'],
-        message_annotations,
+        messageAnnotations,
       );
       responseMessage = assignAnnotationsToMessage(
         prefixMap['text'],
-        message_annotations,
+        messageAnnotations,
       );
 
       // trigger update for streaming by copying adding a update id that changes
       // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-      (prefixMap.text! as any).internalUpdateId = generateId();
+      if (prefixMap.text != null) {
+        (prefixMap.text! as any).internalUpdateId = generateId();
+      }
     }
 
     // keeps the prefixMap up to date with the latest annotations, even if annotations preceded the message
-    if (message_annotations?.length) {
+    if (messageAnnotations?.length) {
       if (prefixMap.text) {
-        prefixMap.text.annotations = [...message_annotations!];
+        prefixMap.text.annotations = [...messageAnnotations!];
       }
       if (prefixMap.function_call) {
-        prefixMap.function_call.annotations = [...message_annotations!];
+        prefixMap.function_call.annotations = [...messageAnnotations!];
       }
       if (prefixMap.tool_calls) {
-        prefixMap.tool_calls.annotations = [...message_annotations!];
+        prefixMap.tool_calls.annotations = [...messageAnnotations!];
       }
     }
 
@@ -354,7 +356,7 @@ export async function processDataProtocolResponse({
     const merged = [functionCallMessage, toolCallMessage, responseMessage]
       .filter(Boolean)
       .map(message => ({
-        ...assignAnnotationsToMessage(message, message_annotations),
+        ...assignAnnotationsToMessage(message, messageAnnotations),
       })) as Message[];
 
     update([...previousMessages, ...merged], [...data]); // make a copy of the data array
