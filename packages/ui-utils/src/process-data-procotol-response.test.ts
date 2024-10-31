@@ -464,3 +464,113 @@ describe('scenario: delayed message annotations in onFinish', () => {
     ]);
   });
 });
+
+describe('scenario: message annotations in onChunk', () => {
+  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
+
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatStreamPart('message_annotations', ['annotation1']),
+      formatStreamPart('text', 't1'),
+      formatStreamPart('message_annotations', ['annotation2']),
+      formatStreamPart('text', 't2'),
+      formatStreamPart('finish_step', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+        isContinued: false,
+      }),
+      formatStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+      }),
+    ]);
+
+    result = await processDataProtocolResponse({
+      reader: stream.getReader(),
+      update,
+      onFinish,
+      generateId: vi.fn().mockReturnValue('mock-id'),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+    });
+  });
+
+  it('should return the correct messages', async () => {
+    expect(result.messages).toStrictEqual([
+      {
+        id: 'mock-id',
+        role: 'assistant',
+        content: 't1t2',
+        createdAt: new Date('2023-01-01'),
+        annotations: ['annotation1', 'annotation2'],
+        internalUpdateId: 'mock-id',
+      },
+    ]);
+  });
+
+  it('should call the update function with the correct arguments', async () => {
+    expect(updateCalls).toStrictEqual([
+      {
+        newMessages: [],
+        data: [],
+      },
+      {
+        newMessages: [
+          {
+            content: 't1',
+            createdAt: '2023-01-01T00:00:00.000Z',
+            id: 'mock-id',
+            role: 'assistant',
+            annotations: ['annotation1'],
+          },
+        ],
+        data: [],
+      },
+      {
+        newMessages: [
+          {
+            content: 't1',
+            createdAt: '2023-01-01T00:00:00.000Z',
+            id: 'mock-id',
+            role: 'assistant',
+            annotations: ['annotation1', 'annotation2'],
+          },
+        ],
+        data: [],
+      },
+      {
+        newMessages: [
+          {
+            content: 't1t2',
+            createdAt: '2023-01-01T00:00:00.000Z',
+            id: 'mock-id',
+            role: 'assistant',
+            annotations: ['annotation1', 'annotation2'],
+            internalUpdateId: 'mock-id',
+          },
+        ],
+        data: [],
+      },
+    ]);
+  });
+
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toStrictEqual([
+      {
+        message: {
+          content: 't1t2',
+          createdAt: '2023-01-01T00:00:00.000Z',
+          id: 'mock-id',
+          role: 'assistant',
+          annotations: ['annotation1', 'annotation2'],
+          internalUpdateId: 'mock-id',
+        },
+        finishReason: 'stop',
+        usage: {
+          completionTokens: 5,
+          promptTokens: 10,
+          totalTokens: 15,
+        },
+      },
+    ]);
+  });
+});

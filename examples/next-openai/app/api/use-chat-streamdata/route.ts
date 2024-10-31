@@ -14,6 +14,9 @@ export async function POST(req: Request) {
   const result = await streamText({
     model: openai('gpt-4o'),
     messages,
+    onChunk() {
+      data.appendMessageAnnotation({ chunk: '123' });
+    },
     onFinish() {
       // message annotation:
       data.appendMessageAnnotation({
