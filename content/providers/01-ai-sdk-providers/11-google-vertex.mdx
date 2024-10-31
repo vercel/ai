@@ -280,3 +280,36 @@ const result = await generateObject({
   The table above lists popular models. You can also pass any available provider
   model ID as a string if needed.
 </Note>
+
+## Embedding Models
+
+You can create models that call the Google Vertex AI embeddings API using the `.textEmbeddingModel()` factory method:
+
+```ts
+const model = vertex.textEmbeddingModel('text-embedding-004');
+```
+
+Google Vertex AI embedding models support additional settings. You can pass them as an options argument:
+
+```ts
+const model = vertex.textEmbeddingModel('text-embedding-004', {
+  outputDimensionality: 512, // optional, number of dimensions for the embedding
+});
+```
+
+The following optional settings are available for Google Vertex AI embedding models:
+
+- **outputDimensionality**: _number_
+
+  Optional reduced dimension for the output embedding. If set, excessive values in the output embedding are truncated from the end.
+
+### Model Capabilities
+
+| Model                | Max Values Per Call | Parallel Calls      |
+| -------------------- | ------------------- | ------------------- |
+| `text-embedding-004` | 2048                | <Check size={18} /> |
+
+<Note>
+  The table above lists popular models. You can also pass any available provider
+  model ID as a string if needed.
+</Note>
