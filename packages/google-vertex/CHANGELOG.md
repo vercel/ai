@@ -1,5 +1,12 @@
 # @ai-sdk/google-vertex
 
+## 0.0.43
+
+### Patch Changes
+
+- 4360e2d: feat (provider/vertex): expose search grounding metadata
+- e7823a3: feat (provider/vertex): add embedding support
+
 ## 0.0.42
 
 ### Patch Changes
