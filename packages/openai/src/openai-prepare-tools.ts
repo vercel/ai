@@ -153,7 +153,9 @@ export function prepareTools({
       };
     default: {
       const _exhaustiveCheck: never = type;
-      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
+      throw new UnsupportedFunctionalityError({
+        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+      });
     }
   }
 }

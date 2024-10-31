@@ -1,4 +1,8 @@
-import { LanguageModelV1, LanguageModelV1CallWarning } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  LanguageModelV1CallWarning,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
 
 export function prepareTools(
@@ -96,7 +100,9 @@ export function prepareTools(
       };
     default: {
       const _exhaustiveCheck: never = type;
-      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
+      throw new UnsupportedFunctionalityError({
+        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+      });
     }
   }
 }
