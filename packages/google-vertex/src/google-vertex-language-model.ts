@@ -274,6 +274,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
+    let providerMetadata: { vertex: { groundingMetadata: any } } | undefined;
 
     return {
       stream: convertAsyncGeneratorToReadableStream(stream).pipeThrough(
@@ -299,6 +300,14 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
                   finishReason: candidate.finishReason,
                   hasToolCalls,
                 });
+              }
+
+              if (candidate.groundingMetadata != null) {
+                providerMetadata = {
+                  vertex: {
+                    groundingMetadata: candidate.groundingMetadata as any,
+                  },
+                };
               }
 
               const content = candidate.content;
@@ -344,6 +353,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
                 type: 'finish',
                 finishReason,
                 usage,
+                providerMetadata,
               });
             },
           },
