@@ -249,6 +249,13 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
         rawPrompt: contentRequest,
         rawSettings: {},
       },
+      providerMetadata: this.settings.useSearchGrounding
+        ? {
+            vertex: {
+              groundingMetadata: firstCandidate.groundingMetadata as any,
+            },
+          }
+        : undefined,
       warnings,
     };
   }
