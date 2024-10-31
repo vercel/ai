@@ -1,4 +1,8 @@
-import { LanguageModelV1, LanguageModelV1CallWarning } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  LanguageModelV1CallWarning,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
 import {
   FunctionCallingMode,
   FunctionDeclaration,
@@ -104,7 +108,9 @@ export function prepareTools({
       };
     default: {
       const _exhaustiveCheck: never = type;
-      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
+      throw new UnsupportedFunctionalityError({
+        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+      });
     }
   }
 }
