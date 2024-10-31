@@ -1,10 +1,10 @@
-import { google } from '@ai-sdk/google';
+import { vertex } from '@ai-sdk/google-vertex';
 import { embed } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const { embedding, usage } = await embed({
-    model: google.textEmbeddingModel('text-embedding-004'),
+    model: vertex.textEmbeddingModel('text-embedding-004'),
     value: 'sunny day at the beach',
   });
 
