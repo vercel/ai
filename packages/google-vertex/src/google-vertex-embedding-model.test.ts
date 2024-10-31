@@ -27,7 +27,7 @@ describe('GoogleVertexEmbeddingModel', () => {
 
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
-    tokenCounts = [5, 5],
+    tokenCounts = [5, 3],
   } = {}) {
     server.responseBodyJson = {
       predictions: embeddings.map((embedding, index) => ({
@@ -47,7 +47,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     const { embeddings, usage } = await model.doEmbed({ values: testValues });
 
     expect(embeddings).toStrictEqual(dummyEmbeddings);
-    expect(usage).toStrictEqual({ tokens: 10 });
+    expect(usage).toStrictEqual({ tokens: 8 });
   });
 
   it('should pass the correct request body', async () => {
