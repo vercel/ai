@@ -75,25 +75,9 @@ export function prepareTools(
       // Cohere does not support 'none' tool choice, so we remove the tools.
       return { tools: undefined, tool_choice: 'any', toolWarnings };
 
-    case 'tool':
-      // Cohere does not support tool mode directly, so we filter the tools and
-      // force the tool choice through 'any'.
-      //
-      // TODO(shaper): `any` is not documented at
-      // https://sdk.vercel.ai/docs/ai-sdk-core/tools-and-tool-calling#tool-choice
-      // Perhaps it's referring to the option in a particular other provider's
-      // API? Consider whether we should treat this as unsupported functionality
-      // instead.
-      return {
-        tools: cohereTools.filter(
-          tool => tool.function.name === toolChoice.toolName,
-        ),
-        tool_choice: 'any',
-        toolWarnings,
-      };
-
     case 'required':
-      // Cohere does not support 'required' tool choice.
+    case 'tool':
+      // Cohere does not support forcing tool calls
       throw new UnsupportedFunctionalityError({
         functionality: `Unsupported tool choice type: ${type}`,
       });
