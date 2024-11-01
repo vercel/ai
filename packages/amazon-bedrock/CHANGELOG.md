@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.34
+
+### Patch Changes
+
+- b01bbb7: fix (provider/bedrock): tool calling broken w/ sonnet 3.5
+
 ## 0.0.33
 
 ### Patch Changes
