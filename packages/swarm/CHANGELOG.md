@@ -1,5 +1,11 @@
 # @ai-sdk/swarm
 
+## 0.0.6
+
+### Patch Changes
+
+- 8b20772: feat (ai/swarm) context, repl, debug, toolChoice
+
 ## 0.0.5
 
 ### Patch Changes
