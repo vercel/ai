@@ -14,16 +14,17 @@ import { Agent, AgentHandoverTool } from './agent';
 import { z } from 'zod';
 
 // TODO streamSwarm function
-// TODO support context
-export async function runSwarm({
+export async function runSwarm<CONTEXT = any>({
   agent: activeAgent,
   prompt,
+  context,
   model,
   maxSteps = 100,
   onStepFinish, // TODO include agent information
 }: {
   agent: Agent;
   prompt: CoreMessage[] | string;
+  context?: CONTEXT;
   model: LanguageModel;
   maxSteps?: number;
   onStepFinish?: (event: StepResult<any>) => Promise<void> | void;
@@ -44,7 +45,10 @@ export async function runSwarm({
   do {
     lastResult = await generateText({
       model: activeAgent.model ?? model,
-      system: activeAgent.system,
+      system:
+        typeof activeAgent.system === 'function'
+          ? activeAgent.system(context)
+          : activeAgent.system,
       tools: Object.fromEntries(
         Object.entries(activeAgent.tools ?? {}).map(
           ([name, tool]): [string, CoreTool] => [
@@ -56,7 +60,13 @@ export async function runSwarm({
                   parameters: z.object({}),
                   // no execute function
                 }
-              : tool,
+              : {
+                  type: 'function',
+                  description: tool.description,
+                  parameters: tool.parameters,
+                  execute: (args, { abortSignal }) =>
+                    tool.execute(args, { context, abortSignal }),
+                },
           ],
         ),
       ),
@@ -91,7 +101,7 @@ export async function runSwarm({
         handoverCalls[0].toolName
       ]! as AgentHandoverTool;
 
-      activeAgent = handoverTool.agent();
+      activeAgent = handoverTool.execute({ context }).agent;
 
       handoverToolResult = {
         type: 'tool-result',

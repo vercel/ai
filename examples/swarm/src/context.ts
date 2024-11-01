@@ -16,12 +16,17 @@ async function main() {
 
   const agentB = new Agent({
     name: 'Agent B',
-    system: 'Only speak in Haikus.',
+    system: ({ speechType }: { speechType: string }) =>
+      `Only speak in ${speechType}.`,
   });
 
   const { text } = await runSwarm({
     agent: agentA,
-    context: {},
+    context: {
+      // speechType: 'Haikus',
+      // speechType: 'Limericks',
+      speechType: 'Sonnets',
+    },
     model: openai('gpt-4o', { structuredOutputs: true }),
     prompt: 'I want to talk to agent B.',
   });

@@ -11,6 +11,7 @@ type inferParameters<PARAMETERS extends Parameters> =
 
 export type AgentFunctionTool<
   PARAMETERS extends Parameters = any,
+  CONTEXT = any,
   RESULT = any,
 > = {
   type?: undefined | 'function';
@@ -18,30 +19,38 @@ export type AgentFunctionTool<
   parameters: PARAMETERS;
   execute: (
     args: inferParameters<PARAMETERS>,
-    options: { abortSignal?: AbortSignal },
+    options: {
+      abortSignal?: AbortSignal;
+      context: CONTEXT;
+    },
   ) => PromiseLike<RESULT>;
 };
 
-export type AgentHandoverTool = {
+export type AgentHandoverTool<CONTEXT = any> = {
   type: 'handover';
   description?: string;
-  agent: () => Agent;
+  execute: (options: { context: CONTEXT }) => {
+    agent: Agent<CONTEXT>;
+    context?: CONTEXT;
+  };
 };
 
-export type AgentTool = AgentFunctionTool | AgentHandoverTool;
+export type AgentTool<CONTEXT = any> =
+  | AgentFunctionTool<any, CONTEXT, any>
+  | AgentHandoverTool<CONTEXT>;
 
 // TODO other settings such as temperature, etc.
-export class Agent {
+export class Agent<CONTEXT = any> {
   readonly name: string;
   readonly model: LanguageModel | undefined;
-  readonly system: string | undefined;
-  readonly tools: Record<string, AgentTool> | undefined;
+  readonly system: ((context: CONTEXT) => string) | string | undefined;
+  readonly tools: Record<string, AgentTool<CONTEXT>> | undefined;
 
   constructor(options: {
     name: string;
-    system?: string;
+    system?: ((context: CONTEXT) => string) | string | undefined;
     model?: LanguageModel;
-    tools?: Record<string, AgentTool>;
+    tools?: Record<string, AgentTool<CONTEXT>>;
   }) {
     this.name = options.name;
     this.model = options.model;
