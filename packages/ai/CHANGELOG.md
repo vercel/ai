@@ -1,5 +1,12 @@
 # ai
 
+## 3.4.31
+
+### Patch Changes
+
+- Updated dependencies [2dfb93e]
+  - @ai-sdk/react@0.0.70
+
 ## 3.4.30
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.70
+
+### Patch Changes
+
+- 2dfb93e: feat (ui/react): introduce experimental_throttle in useChat, useCompletion
+
 ## 0.0.69
 
 ### Patch Changes
