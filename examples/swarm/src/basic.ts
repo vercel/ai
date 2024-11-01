@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent, runSwarm } from '@ai-sdk/swarm';
 import 'dotenv/config';
+import { z } from 'zod';
 
 async function main() {
   const agentA = new Agent({
@@ -9,7 +10,8 @@ async function main() {
     tools: {
       transferToAgentB: {
         type: 'handover',
-        agent: () => agentB,
+        parameters: z.object({}),
+        execute: () => ({ agent: agentB }),
       },
     },
   });
@@ -21,6 +23,7 @@ async function main() {
 
   const { text } = await runSwarm({
     agent: agentA,
+    context: {},
     model: openai('gpt-4o', { structuredOutputs: true }),
     prompt: 'I want to talk to agent B.',
   });

@@ -2,6 +2,7 @@ import {
   CoreAssistantMessage,
   CoreMessage,
   CoreTool,
+  CoreToolChoice,
   CoreToolMessage,
   FinishReason,
   generateText,
@@ -14,18 +15,23 @@ import { Agent, AgentHandoverTool } from './agent';
 import { z } from 'zod';
 
 // TODO streamSwarm function
-// TODO support context
-export async function runSwarm({
+export async function runSwarm<CONTEXT = any>({
   agent: activeAgent,
   prompt,
+  context,
   model,
   maxSteps = 100,
+  toolChoice,
+  debug = false,
   onStepFinish, // TODO include agent information
 }: {
   agent: Agent;
   prompt: CoreMessage[] | string;
+  context?: CONTEXT;
   model: LanguageModel;
   maxSteps?: number;
+  toolChoice?: CoreToolChoice<any>;
+  debug?: boolean;
   onStepFinish?: (event: StepResult<any>) => Promise<void> | void;
 }): Promise<{
   text: string;
@@ -44,7 +50,10 @@ export async function runSwarm({
   do {
     lastResult = await generateText({
       model: activeAgent.model ?? model,
-      system: activeAgent.system,
+      system:
+        typeof activeAgent.system === 'function'
+          ? activeAgent.system(context)
+          : activeAgent.system,
       tools: Object.fromEntries(
         Object.entries(activeAgent.tools ?? {}).map(
           ([name, tool]): [string, CoreTool] => [
@@ -56,11 +65,18 @@ export async function runSwarm({
                   parameters: z.object({}),
                   // no execute function
                 }
-              : tool,
+              : {
+                  type: 'function',
+                  description: tool.description,
+                  parameters: tool.parameters,
+                  execute: (args, { abortSignal }) =>
+                    tool.execute(args, { context, abortSignal }),
+                },
           ],
         ),
       ),
       maxSteps,
+      toolChoice: activeAgent.toolChoice ?? toolChoice,
       onStepFinish,
       messages: [...initialMessages, ...responseMessages],
     });
@@ -89,9 +105,27 @@ export async function runSwarm({
     if (handoverCalls.length > 0) {
       const handoverTool = activeAgent.tools?.[
         handoverCalls[0].toolName
-      ]! as AgentHandoverTool;
+      ]! as AgentHandoverTool<CONTEXT, any>;
 
-      activeAgent = handoverTool.agent();
+      const result = handoverTool.execute(handoverCalls[0].args, {
+        context: context as any,
+      });
+
+      activeAgent = result.agent;
+      context = result.context ?? context; // TODO how to reconcile context?
+
+      if (debug) {
+        console.log(`\x1b[36mHanding over to agent ${activeAgent.name}\x1b[0m`);
+        if (result.context != null) {
+          console.log(
+            `\x1b[36mUpdated context: ${JSON.stringify(
+              result.context,
+              null,
+              2,
+            )}\x1b[0m`,
+          );
+        }
+      }
 
       handoverToolResult = {
         type: 'tool-result',
