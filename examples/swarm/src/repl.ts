@@ -1,11 +1,13 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent, runSwarm } from '@ai-sdk/swarm';
 import 'dotenv/config';
-import { z } from 'zod';
 import * as fs from 'fs';
+import { z } from 'zod';
 
 async function main() {
-  const manager = new Agent<{ text: string }>({
+  type Context = { text: string; speechType?: string; targetLanguage?: string };
+
+  const manager = new Agent<Context>({
     name: 'Manager',
     system: 'You transfer conversations to the appropriate agent.',
     tools: {
@@ -36,18 +38,18 @@ async function main() {
     },
   });
 
-  const translator = new Agent<{ text: string; targetLanguage: string }>({
+  const translator = new Agent<Context>({
     name: 'Translator',
     system: ({ text, targetLanguage }) =>
       `Translate the following text to ${targetLanguage}:\n\n${text}`,
   });
 
-  const summarizer = new Agent<{ text: string }>({
+  const summarizer = new Agent<Context>({
     name: 'Summarizer',
     system: ({ text }) => `Summarize the following text :\n\n${text}`,
   });
 
-  const rewriter = new Agent<{ speechType: string; text: string }>({
+  const rewriter = new Agent<Context>({
     name: 'Rewriter',
     system: ({ text, speechType }) =>
       `Rewrite the following text in ${speechType}:\n\n${text}`,
@@ -59,7 +61,8 @@ async function main() {
       text: fs.readFileSync('./data/2024-world-series.txt', 'utf8'),
     },
     model: openai('gpt-4o', { structuredOutputs: true }),
-    prompt: 'Please summary the text in a few sentences.',
+    prompt: `Please translate the text to German.`,
+    debug: true,
   });
 
   console.log(text);

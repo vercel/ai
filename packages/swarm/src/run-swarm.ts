@@ -2,6 +2,7 @@ import {
   CoreAssistantMessage,
   CoreMessage,
   CoreTool,
+  CoreToolChoice,
   CoreToolMessage,
   FinishReason,
   generateText,
@@ -20,6 +21,8 @@ export async function runSwarm<CONTEXT = any>({
   context,
   model,
   maxSteps = 100,
+  toolChoice,
+  debug = false,
   onStepFinish, // TODO include agent information
 }: {
   agent: Agent;
@@ -27,6 +30,8 @@ export async function runSwarm<CONTEXT = any>({
   context?: CONTEXT;
   model: LanguageModel;
   maxSteps?: number;
+  toolChoice?: CoreToolChoice<any>;
+  debug?: boolean;
   onStepFinish?: (event: StepResult<any>) => Promise<void> | void;
 }): Promise<{
   text: string;
@@ -71,6 +76,7 @@ export async function runSwarm<CONTEXT = any>({
         ),
       ),
       maxSteps,
+      toolChoice: activeAgent.toolChoice ?? toolChoice,
       onStepFinish,
       messages: [...initialMessages, ...responseMessages],
     });
@@ -99,7 +105,7 @@ export async function runSwarm<CONTEXT = any>({
     if (handoverCalls.length > 0) {
       const handoverTool = activeAgent.tools?.[
         handoverCalls[0].toolName
-      ]! as AgentHandoverTool<any, CONTEXT>;
+      ]! as AgentHandoverTool<CONTEXT, any>;
 
       const result = handoverTool.execute(handoverCalls[0].args, {
         context: context as any,
@@ -107,6 +113,19 @@ export async function runSwarm<CONTEXT = any>({
 
       activeAgent = result.agent;
       context = result.context ?? context; // TODO how to reconcile context?
+
+      if (debug) {
+        console.log(`\x1b[36mHanding over to agent ${activeAgent.name}\x1b[0m`);
+        if (result.context != null) {
+          console.log(
+            `\x1b[36mUpdated context: ${JSON.stringify(
+              result.context,
+              null,
+              2,
+            )}\x1b[0m`,
+          );
+        }
+      }
 
       handoverToolResult = {
         type: 'tool-result',

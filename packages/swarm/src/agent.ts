@@ -1,4 +1,4 @@
-import { LanguageModel, Schema } from 'ai';
+import { CoreToolChoice, LanguageModel, Schema } from 'ai';
 import { z } from 'zod';
 
 type Parameters = z.ZodTypeAny | Schema<any>;
@@ -10,8 +10,8 @@ type inferParameters<PARAMETERS extends Parameters> =
     : never;
 
 export type AgentFunctionTool<
-  PARAMETERS extends Parameters = any,
   CONTEXT = any,
+  PARAMETERS extends Parameters = any,
   RESULT = any,
 > = {
   type?: undefined | 'function';
@@ -26,9 +26,21 @@ export type AgentFunctionTool<
   ) => PromiseLike<RESULT>;
 };
 
-export type AgentHandoverTool<
-  PARAMETERS extends Parameters = any,
+export function functionTool<
   CONTEXT = any,
+  PARAMETERS extends Parameters = any,
+>(tool: {
+  type?: 'function';
+  description?: string;
+  parameters: PARAMETERS;
+  execute: AgentFunctionTool<CONTEXT, PARAMETERS>['execute'];
+}): AgentFunctionTool<CONTEXT, PARAMETERS> {
+  return tool;
+}
+
+export type AgentHandoverTool<
+  CONTEXT = any,
+  PARAMETERS extends Parameters = any,
 > = {
   type: 'handover';
   description?: string;
@@ -45,9 +57,21 @@ export type AgentHandoverTool<
   };
 };
 
+export function handoverTool<
+  CONTEXT = any,
+  PARAMETERS extends Parameters = any,
+>(tool: {
+  type: 'handover';
+  description?: string;
+  parameters: PARAMETERS;
+  execute: AgentHandoverTool<CONTEXT, PARAMETERS>['execute'];
+}): AgentHandoverTool<CONTEXT, PARAMETERS> {
+  return tool;
+}
+
 export type AgentTool<CONTEXT = any> =
-  | AgentFunctionTool<any, CONTEXT, any>
-  | AgentHandoverTool<any, CONTEXT>;
+  | AgentFunctionTool<CONTEXT, any, any>
+  | AgentHandoverTool<CONTEXT, any>;
 
 // TODO other settings such as temperature, etc.
 export class Agent<CONTEXT = any> {
@@ -55,16 +79,19 @@ export class Agent<CONTEXT = any> {
   readonly model: LanguageModel | undefined;
   readonly system: ((context: CONTEXT) => string) | string | undefined;
   readonly tools: Record<string, AgentTool<CONTEXT>> | undefined;
+  readonly toolChoice: CoreToolChoice<any> | undefined;
 
   constructor(options: {
     name: string;
     system?: ((context: CONTEXT) => string) | string | undefined;
     model?: LanguageModel;
     tools?: Record<string, AgentTool>;
+    toolChoice?: CoreToolChoice<any>;
   }) {
     this.name = options.name;
     this.model = options.model;
     this.system = options.system;
     this.tools = options.tools;
+    this.toolChoice = options.toolChoice;
   }
 }
