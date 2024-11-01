@@ -99,9 +99,14 @@ export async function runSwarm<CONTEXT = any>({
     if (handoverCalls.length > 0) {
       const handoverTool = activeAgent.tools?.[
         handoverCalls[0].toolName
-      ]! as AgentHandoverTool;
+      ]! as AgentHandoverTool<any, CONTEXT>;
 
-      activeAgent = handoverTool.execute({ context }).agent;
+      const result = handoverTool.execute(handoverCalls[0].args, {
+        context: context as any,
+      });
+
+      activeAgent = result.agent;
+      context = result.context ?? context; // TODO how to reconcile context?
 
       handoverToolResult = {
         type: 'tool-result',

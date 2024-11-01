@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent, runSwarm } from '@ai-sdk/swarm';
 import 'dotenv/config';
+import { z } from 'zod';
 
 async function main() {
   const agentA = new Agent({
@@ -9,6 +10,7 @@ async function main() {
     tools: {
       transferToAgentB: {
         type: 'handover',
+        parameters: z.object({}),
         execute: () => ({ agent: agentB }),
       },
     },

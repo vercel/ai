@@ -26,10 +26,20 @@ export type AgentFunctionTool<
   ) => PromiseLike<RESULT>;
 };
 
-export type AgentHandoverTool<CONTEXT = any> = {
+export type AgentHandoverTool<
+  PARAMETERS extends Parameters = any,
+  CONTEXT = any,
+> = {
   type: 'handover';
   description?: string;
-  execute: (options: { context: CONTEXT }) => {
+  parameters: PARAMETERS;
+  execute: (
+    args: inferParameters<PARAMETERS>,
+    options: {
+      abortSignal?: AbortSignal;
+      context: CONTEXT;
+    },
+  ) => {
     agent: Agent<CONTEXT>;
     context?: CONTEXT;
   };
@@ -37,7 +47,7 @@ export type AgentHandoverTool<CONTEXT = any> = {
 
 export type AgentTool<CONTEXT = any> =
   | AgentFunctionTool<any, CONTEXT, any>
-  | AgentHandoverTool<CONTEXT>;
+  | AgentHandoverTool<any, CONTEXT>;
 
 // TODO other settings such as temperature, etc.
 export class Agent<CONTEXT = any> {
@@ -50,7 +60,7 @@ export class Agent<CONTEXT = any> {
     name: string;
     system?: ((context: CONTEXT) => string) | string | undefined;
     model?: LanguageModel;
-    tools?: Record<string, AgentTool<CONTEXT>>;
+    tools?: Record<string, AgentTool>;
   }) {
     this.name = options.name;
     this.model = options.model;
