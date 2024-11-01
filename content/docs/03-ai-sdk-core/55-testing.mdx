@@ -149,8 +149,8 @@ export async function POST(req: Request) {
         `0:"This"\n`,
         `0:" is an"\n`,
         `0:"example."\n`,
-        `d:{"finishMessage":"unknown","usage":{"promptTokens":20,"completionTokens":50},"isContinued":false}`,
-        `d:{"finishMessage":"unknown","usage":{"promptTokens":20,"completionTokens":50},"isContinued":false}`,
+        `e:{"finishReason":"stop","usage":{"promptTokens":20,"completionTokens":50},"isContinued":false}\n`,
+        `d:{"finishReason":"stop","usage":{"promptTokens":20,"completionTokens":50}}\n`,
       ],
     }).pipeThrough(new TextEncoderStream()),
     {
