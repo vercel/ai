@@ -1,6 +1,6 @@
 'use client';
 
-import { useCompletion } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useLayoutEffect, useRef } from 'react';
 import throttle from 'throttleit';
 
@@ -10,23 +10,30 @@ export default function Chat() {
     console.log(`component rendered #${++renderCount.current}`);
   });
 
-  const { completion, input, handleInputChange, handleSubmit } = useCompletion({
-    api: '/api/use-completion-throttle',
-    experimental_throttle: f => throttle(f, 50),
-  });
+  const { messages, input, isLoading, error, handleInputChange, handleSubmit } =
+    useChat({
+      api: '/api/use-chat-throttle',
+      experimental_throttle: f => throttle(f, 50),
+    });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       <h4 className="pb-4 text-xl font-bold text-gray-900 md:text-xl">
-        useCompletion throttle example
+        useChat throttle example
       </h4>
-      {completion}
+      {messages.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
       <form onSubmit={handleSubmit}>
         <input
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}
-          placeholder="Book topic..."
+          placeholder="Say something..."
           onChange={handleInputChange}
+          disabled={isLoading || error != null}
         />
       </form>
     </div>

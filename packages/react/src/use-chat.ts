@@ -194,6 +194,8 @@ const getStreamedResponse = async (
   });
 };
 
+type ThrottleFunction = <T extends (...args: any[]) => any>(f: T) => T;
+
 export function useChat({
   api = '/api/chat',
   id,
@@ -219,6 +221,7 @@ export function useChat({
   generateId = generateIdFunc,
   fetch,
   keepLastMessageOnError = false,
+  experimental_throttle: throttle = f => f,
 }: UseChatOptions & {
   key?: string;
 
@@ -246,6 +249,12 @@ export function useChat({
     requestData?: JSONValue;
     requestBody?: object;
   }) => JSONValue;
+
+  /**
+Custom function that throttles the completion state updates.
+It needs to return a throttled version of the function that is passed as a parameter.
+   */
+  experimental_throttle?: ThrottleFunction;
 
   /**
 Maximum number of automatic roundtrips for tool calls.
@@ -372,8 +381,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
             getStreamedResponse(
               api,
               chatRequest,
-              mutate,
-              mutateStreamData,
+              // throttle streamed ui updates:
+              throttle(mutate),
+              throttle(mutateStreamData),
               streamDataRef,
               extraMetadataRef,
               messagesRef,
@@ -454,6 +464,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       generateId,
       fetch,
       keepLastMessageOnError,
+      throttle,
     ],
   );
 

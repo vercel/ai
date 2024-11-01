@@ -63,7 +63,7 @@ export type UseCompletionHelpers = {
   data?: JSONValue[];
 };
 
-export type ThrottleFunction = <T extends (...args: any[]) => any>(f: T) => T;
+type ThrottleFunction = <T extends (...args: any[]) => any>(f: T) => T;
 
 export function useCompletion({
   api = '/api/completion',
@@ -81,6 +81,10 @@ export function useCompletion({
   onError,
   experimental_throttle: throttle = f => f,
 }: UseCompletionOptions & {
+  /**
+Custom function that throttles the completion state updates.
+It needs to return a throttled version of the function that is passed as a parameter.
+   */
   experimental_throttle?: ThrottleFunction;
 } = {}): UseCompletionHelpers {
   // streamMode is deprecated, use streamProtocol instead.
@@ -129,14 +133,6 @@ export function useCompletion({
 
   const triggerRequest = useCallback(
     async (prompt: string, options?: RequestOptions) => {
-      const throttledSetCompletion = throttle((completion: string) =>
-        mutate(completion, false),
-      );
-
-      const throttledSetStreamData = throttle((data: JSONValue[]) =>
-        mutateStreamData([...(streamData ?? []), ...(data ?? [])], false),
-      );
-
       return callCompletionApi({
         api,
         prompt,
@@ -148,14 +144,19 @@ export function useCompletion({
         },
         streamProtocol,
         fetch,
-        setCompletion: throttledSetCompletion,
+        // throttle streamed ui updates:
+        setCompletion: throttle((completion: string) =>
+          mutate(completion, false),
+        ),
+        onData: throttle((data: JSONValue[]) =>
+          mutateStreamData([...(streamData ?? []), ...(data ?? [])], false),
+        ),
         setLoading: mutateLoading,
         setError,
         setAbortController,
         onResponse,
         onFinish,
         onError,
-        onData: throttledSetStreamData,
       });
     },
     [
