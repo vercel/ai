@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       `Write a book in Markdown format. ` +
       `First write a table of contents. ` +
       `Then write each chapter. ` +
-      `Each chapter test MUST HAVE at least 1000 words.`,
+      `Each chapter MUST HAVE at least 1000 words.`,
     prompt: `Write a book about ${prompt}.`,
   });
 
