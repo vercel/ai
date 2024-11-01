@@ -128,6 +128,20 @@ return (
 
 When the user clicks the "Stop" button, the fetch request will be aborted. This avoids consuming unnecessary resources and improves the UX of your application.
 
+### Throttling UI Updates
+
+<Note>This feature is currently only available for React.</Note>
+
+By default, the `useCompletion` hook will trigger a render every time a new chunk is received.
+You can throttle the UI updates with the `experimental_throttle` option.
+
+```tsx filename="page.tsx" highlight="2-3"
+const { completion, ... } = useCompletion({
+  // Throttle the completion and data updates to 50ms:
+  experimental_throttle: 50
+})
+```
+
 ## Event Callbacks
 
 `useCompletion` also provides optional event callbacks that you can use to handle different stages of the chatbot lifecycle. These callbacks can be used to trigger additional actions, such as logging, analytics, or custom UI updates.
