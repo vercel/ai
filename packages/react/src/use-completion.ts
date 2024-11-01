@@ -131,8 +131,8 @@ export function useCompletion({
   }, [credentials, headers, body]);
 
   const triggerRequest = useCallback(
-    async (prompt: string, options?: RequestOptions) => {
-      return callCompletionApi({
+    async (prompt: string, options?: RequestOptions) =>
+      callCompletionApi({
         api,
         prompt,
         credentials: extraMetadataRef.current.credentials,
@@ -159,8 +159,7 @@ export function useCompletion({
         onResponse,
         onFinish,
         onError,
-      });
-    },
+      }),
     [
       mutate,
       mutateLoading,
