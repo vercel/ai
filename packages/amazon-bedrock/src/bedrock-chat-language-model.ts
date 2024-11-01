@@ -138,11 +138,11 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { toolConfiguration, toolWarnings } = prepareTools(mode);
+        const { toolConfig, toolWarnings } = prepareTools(mode);
         return {
           command: {
             ...baseArgs,
-            ...(toolConfiguration.tools?.length ? { toolConfiguration } : {}),
+            ...(toolConfig.tools?.length ? { toolConfig } : {}),
           },
           warnings: [...warnings, ...toolWarnings],
         };

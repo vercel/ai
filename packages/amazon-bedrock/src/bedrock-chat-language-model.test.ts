@@ -286,6 +286,83 @@ describe('doGenerate', () => {
 
     expect(response.providerMetadata?.bedrock.trace).toMatchObject(mockTrace);
   });
+
+  it('should pass tools and tool choice correctly', async () => {
+    bedrockMock.on(ConverseCommand).resolves({
+      output: {
+        message: { role: 'assistant', content: [{ text: 'Testing' }] },
+      },
+    });
+
+    await provider('amazon.titan-tg1-large').doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool-1',
+            description: 'A test tool',
+            parameters: {
+              type: 'object',
+              properties: {
+                param1: { type: 'string' },
+                param2: { type: 'number' },
+              },
+              required: ['param1'],
+              additionalProperties: false,
+            },
+          },
+          {
+            type: 'provider-defined',
+            name: 'unsupported-tool',
+            id: 'provider.unsupported-tool',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'auto' },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const calls = bedrockMock.commandCalls(ConverseCommand);
+    expect(calls.length).toBe(1);
+    expect(calls[0].args[0].input).toStrictEqual({
+      additionalModelRequestFields: undefined,
+      guardrailConfig: undefined,
+      inferenceConfig: {
+        maxTokens: undefined,
+        stopSequences: undefined,
+        temperature: undefined,
+        topP: undefined,
+      },
+      modelId: 'amazon.titan-tg1-large',
+      messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+      system: [{ text: 'System Prompt' }],
+      toolConfig: {
+        tools: [
+          {
+            toolSpec: {
+              name: 'test-tool-1',
+              description: 'A test tool',
+              inputSchema: {
+                json: {
+                  type: 'object',
+                  properties: {
+                    param1: { type: 'string' },
+                    param2: { type: 'number' },
+                  },
+                  required: ['param1'],
+                  additionalProperties: false,
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: { auto: {} },
+      },
+    });
+  });
 });
 
 describe('doStream', () => {
