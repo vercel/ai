@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.71
+
+### Patch Changes
+
+- 54a3a59: fix (provider/openai): support object-json mode without schema
+
 ## 0.0.70
 
 ### Patch Changes
