@@ -1,8 +1,8 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
+  Attachment,
   ChatRequest,
   ChatRequestOptions,
-  Attachment,
   CreateMessage,
   IdGenerator,
   JSONValue,
@@ -16,6 +16,7 @@ import {
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
+import { throttle } from './throttle';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -194,8 +195,6 @@ const getStreamedResponse = async (
   });
 };
 
-type ThrottleFunction = <T extends (...args: any[]) => any>(f: T) => T;
-
 export function useChat({
   api = '/api/chat',
   id,
@@ -221,7 +220,7 @@ export function useChat({
   generateId = generateIdFunc,
   fetch,
   keepLastMessageOnError = false,
-  experimental_throttle: throttle = f => f,
+  experimental_throttle: throttleWaitMs,
 }: UseChatOptions & {
   key?: string;
 
@@ -251,10 +250,10 @@ export function useChat({
   }) => JSONValue;
 
   /**
-Custom function that throttles the chat messages and data updates.
-It needs to return a throttled version of the function that is passed as a parameter.
+Custom throttle wait in ms for the chat messages and data updates.
+Default is undefined, which disables throttling.
    */
-  experimental_throttle?: ThrottleFunction;
+  experimental_throttle?: number;
 
   /**
 Maximum number of automatic roundtrips for tool calls.
@@ -382,8 +381,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
               api,
               chatRequest,
               // throttle streamed ui updates:
-              throttle(mutate),
-              throttle(mutateStreamData),
+              throttle(mutate, throttleWaitMs),
+              throttle(mutateStreamData, throttleWaitMs),
               streamDataRef,
               extraMetadataRef,
               messagesRef,
@@ -464,7 +463,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       generateId,
       fetch,
       keepLastMessageOnError,
-      throttle,
+      throttleWaitMs,
     ],
   );
 

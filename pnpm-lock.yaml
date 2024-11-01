@@ -527,9 +527,6 @@ importers:
       react-markdown:
         specifier: 9.0.1
         version: 9.0.1(@types/react@18.3.3)(react@18.3.1)
-      throttleit:
-        specifier: 2.1.0
-        version: 2.1.0
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1610,6 +1607,9 @@ importers:
       swr:
         specifier: ^2.2.5
         version: 2.2.5(react@18.3.1)
+      throttleit:
+        specifier: 2.1.0
+        version: 2.1.0
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.4.8

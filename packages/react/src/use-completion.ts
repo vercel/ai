@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
+import { throttle } from './throttle';
 
 export type { UseCompletionOptions };
 
@@ -63,8 +64,6 @@ export type UseCompletionHelpers = {
   data?: JSONValue[];
 };
 
-type ThrottleFunction = <T extends (...args: any[]) => any>(f: T) => T;
-
 export function useCompletion({
   api = '/api/completion',
   id,
@@ -79,13 +78,13 @@ export function useCompletion({
   onResponse,
   onFinish,
   onError,
-  experimental_throttle: throttle = f => f,
+  experimental_throttle: throttleWaitMs,
 }: UseCompletionOptions & {
   /**
-Custom function that throttles the completion and data updates.
-It needs to return a throttled version of the function that is passed as a parameter.
+   * Custom throttle wait in ms for the completion and data updates.
+   * Default is undefined, which disables throttling.
    */
-  experimental_throttle?: ThrottleFunction;
+  experimental_throttle?: number;
 } = {}): UseCompletionHelpers {
   // streamMode is deprecated, use streamProtocol instead.
   if (streamMode) {
@@ -145,11 +144,14 @@ It needs to return a throttled version of the function that is passed as a param
         streamProtocol,
         fetch,
         // throttle streamed ui updates:
-        setCompletion: throttle((completion: string) =>
-          mutate(completion, false),
+        setCompletion: throttle(
+          (completion: string) => mutate(completion, false),
+          throttleWaitMs,
         ),
-        onData: throttle((data: JSONValue[]) =>
-          mutateStreamData([...(streamData ?? []), ...(data ?? [])], false),
+        onData: throttle(
+          (data: JSONValue[]) =>
+            mutateStreamData([...(streamData ?? []), ...(data ?? [])], false),
+          throttleWaitMs,
         ),
         setLoading: mutateLoading,
         setError,
@@ -173,7 +175,7 @@ It needs to return a throttled version of the function that is passed as a param
       streamProtocol,
       fetch,
       mutateStreamData,
-      throttle,
+      throttleWaitMs,
     ],
   );
 

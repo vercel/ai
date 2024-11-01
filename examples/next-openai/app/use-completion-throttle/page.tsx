@@ -2,7 +2,6 @@
 
 import { useCompletion } from 'ai/react';
 import { useLayoutEffect, useRef } from 'react';
-import throttle from 'throttleit';
 
 export default function Chat() {
   const renderCount = useRef(0);
@@ -12,7 +11,7 @@ export default function Chat() {
 
   const { completion, input, handleInputChange, handleSubmit } = useCompletion({
     api: '/api/use-completion-throttle',
-    experimental_throttle: f => throttle(f, 50),
+    experimental_throttle: 50,
   });
 
   return (

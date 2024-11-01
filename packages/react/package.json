@@ -31,7 +31,8 @@
   "dependencies": {
     "@ai-sdk/provider-utils": "1.0.22",
     "@ai-sdk/ui-utils": "0.0.50",
-    "swr": "^2.2.5"
+    "swr": "^2.2.5",
+    "throttleit": "2.1.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.8",

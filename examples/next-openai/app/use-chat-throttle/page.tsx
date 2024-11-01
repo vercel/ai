@@ -2,7 +2,6 @@
 
 import { useChat } from '@ai-sdk/react';
 import { useLayoutEffect, useRef } from 'react';
-import throttle from 'throttleit';
 
 export default function Chat() {
   const renderCount = useRef(0);
@@ -13,7 +12,7 @@ export default function Chat() {
   const { messages, input, isLoading, error, handleInputChange, handleSubmit } =
     useChat({
       api: '/api/use-chat-throttle',
-      experimental_throttle: f => throttle(f, 50),
+      experimental_throttle: 50,
     });
 
   return (
