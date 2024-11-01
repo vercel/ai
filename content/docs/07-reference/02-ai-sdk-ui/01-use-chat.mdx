@@ -200,6 +200,13 @@ Allows you to easily create a conversational user interface for your chatbot app
       description:
         'Experimental (React only). When a function is provided, it will be used to prepare the request body for the chat API. This can be useful for customizing the request body based on the messages and data in the chat.',
     },
+    {
+      name: 'experimental_throttle',
+      type: '<T extends Function>(f: T) => T',
+      isOptional: true,
+      description:
+        'React only. A custom function that throttles the message and data updates. It should take a function as input and return a throttled version of that function.',
+    },
   ]}
 />
 

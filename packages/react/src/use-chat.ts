@@ -251,7 +251,7 @@ export function useChat({
   }) => JSONValue;
 
   /**
-Custom function that throttles the completion state updates.
+Custom function that throttles the chat messages and data updates.
 It needs to return a throttled version of the function that is passed as a parameter.
    */
   experimental_throttle?: ThrottleFunction;

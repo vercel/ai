@@ -123,6 +123,13 @@ Allows you to create text completion based capabilities for your application. It
       description:
         'Optional. A custom fetch function to be used for the API call. Defaults to the global fetch function.',
     },
+    {
+      name: 'experimental_throttle',
+      type: '<T extends Function>(f: T) => T',
+      isOptional: true,
+      description:
+        'React only. A custom function that throttles the completion state updates. It should take a function as input and return a throttled version of that function.',
+    },
   ]}
 />
 

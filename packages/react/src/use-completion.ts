@@ -82,7 +82,7 @@ export function useCompletion({
   experimental_throttle: throttle = f => f,
 }: UseCompletionOptions & {
   /**
-Custom function that throttles the completion state updates.
+Custom function that throttles the completion and data updates.
 It needs to return a throttled version of the function that is passed as a parameter.
    */
   experimental_throttle?: ThrottleFunction;
