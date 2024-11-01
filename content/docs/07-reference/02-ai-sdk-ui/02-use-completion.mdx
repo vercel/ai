@@ -125,10 +125,10 @@ Allows you to create text completion based capabilities for your application. It
     },
     {
       name: 'experimental_throttle',
-      type: '<T extends Function>(f: T) => T',
+      type: 'number',
       isOptional: true,
       description:
-        'React only. A custom function that throttles the completion state updates. It should take a function as input and return a throttled version of that function.',
+        'React only. Custom throttle wait time in milliseconds for the completion and data updates. When specified, throttles how often the UI updates during streaming. Default is undefined, which disables throttling.',
     },
   ]}
 />
