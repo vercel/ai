@@ -210,8 +210,7 @@ describe('doGenerate', () => {
   });
 
   describe('should pass tools', async () => {
-    // TODO(shaper): Add tests for `toolChoice` as `auto`, `none`, `required`, `tool`.
-    it.skip('should support "none" tool choice', async () => {
+    it('should support "none" tool choice', async () => {
       prepareJsonResponse({});
 
       await model.doGenerate({
@@ -219,7 +218,7 @@ describe('doGenerate', () => {
         mode: {
           type: 'regular',
           toolChoice: {
-            type: 'required',
+            type: 'none',
           },
           tools: [
             {
@@ -245,20 +244,9 @@ describe('doGenerate', () => {
         messages: [
           {
             role: 'system',
-            content: [{ type: 'text', text: 'you are a friendly bot!' }],
+            content: 'you are a friendly bot!',
           },
-          { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
-        ],
-        tools: [
-          {
-            name: 'test-tool',
-            parameterDefinitions: {
-              value: {
-                type: 'str',
-                required: true,
-              },
-            },
-          },
+          { role: 'user', content: 'Hello' },
         ],
       });
     });
