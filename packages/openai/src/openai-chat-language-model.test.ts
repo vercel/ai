@@ -710,6 +710,32 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should allow for undefined schema in object-json mode', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider.chat('gpt-4o-2024-08-06', {
+      structuredOutputs: true,
+    });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-json',
+        name: 'test-name',
+        description: 'test description',
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-4o-2024-08-06',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
+        type: 'json_object',
+      },
+    });
+  });
+
   it('should set strict in object-tool mode', async () => {
     prepareJsonResponse({
       tool_calls: [
