@@ -63,6 +63,8 @@ export type UseCompletionHelpers = {
   data?: JSONValue[];
 };
 
+export type ThrottleFunction = <T extends (...args: any[]) => any>(f: T) => T;
+
 export function useCompletion({
   api = '/api/completion',
   id,
@@ -77,7 +79,10 @@ export function useCompletion({
   onResponse,
   onFinish,
   onError,
-}: UseCompletionOptions = {}): UseCompletionHelpers {
+  experimental_throttle: throttle = f => f,
+}: UseCompletionOptions & {
+  experimental_throttle?: ThrottleFunction;
+} = {}): UseCompletionHelpers {
   // streamMode is deprecated, use streamProtocol instead.
   if (streamMode) {
     streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
@@ -113,6 +118,7 @@ export function useCompletion({
     headers,
     body,
   });
+
   useEffect(() => {
     extraMetadataRef.current = {
       credentials,
@@ -122,8 +128,16 @@ export function useCompletion({
   }, [credentials, headers, body]);
 
   const triggerRequest = useCallback(
-    async (prompt: string, options?: RequestOptions) =>
-      callCompletionApi({
+    async (prompt: string, options?: RequestOptions) => {
+      const throttledSetCompletion = throttle((completion: string) =>
+        mutate(completion, false),
+      );
+
+      const throttledSetStreamData = throttle((data: JSONValue[]) =>
+        mutateStreamData([...(streamData ?? []), ...(data ?? [])], false),
+      );
+
+      return callCompletionApi({
         api,
         prompt,
         credentials: extraMetadataRef.current.credentials,
@@ -134,17 +148,16 @@ export function useCompletion({
         },
         streamProtocol,
         fetch,
-        setCompletion: completion => mutate(completion, false),
+        setCompletion: throttledSetCompletion,
         setLoading: mutateLoading,
         setError,
         setAbortController,
         onResponse,
         onFinish,
         onError,
-        onData: data => {
-          mutateStreamData([...(streamData || []), ...(data || [])], false);
-        },
-      }),
+        onData: throttledSetStreamData,
+      });
+    },
     [
       mutate,
       mutateLoading,
@@ -159,6 +172,7 @@ export function useCompletion({
       streamProtocol,
       fetch,
       mutateStreamData,
+      throttle,
     ],
   );
 
@@ -193,9 +207,12 @@ export function useCompletion({
     [input, complete],
   );
 
-  const handleInputChange = (e: any) => {
-    setInput(e.target.value);
-  };
+  const handleInputChange = useCallback(
+    (e: any) => {
+      setInput(e.target.value);
+    },
+    [setInput],
+  );
 
   return {
     completion,
