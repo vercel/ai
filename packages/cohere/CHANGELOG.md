@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 0.0.28
+
+### Patch Changes
+
+- a7cbdf6: feat (provider/cohere): Use Cohere v2 API
+
 ## 0.0.27
 
 ### Patch Changes
