@@ -102,10 +102,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const messagesPrompt = convertToAnthropicMessagesPrompt({
-      prompt,
-      cacheControl: this.settings.cacheControl ?? false,
-    });
+    const { prompt: messagesPrompt, betas: messagesBetas } =
+      convertToAnthropicMessagesPrompt({
+        prompt,
+        cacheControl: this.settings.cacheControl ?? false,
+      });
 
     const baseArgs = {
       // model id:
@@ -127,12 +128,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { tools, tool_choice, toolWarnings, betas } = prepareTools(mode);
+        const {
+          tools,
+          tool_choice,
+          toolWarnings,
+          betas: toolsBetas,
+        } = prepareTools(mode);
 
         return {
           args: { ...baseArgs, tools, tool_choice },
           warnings: [...warnings, ...toolWarnings],
-          betas,
+          betas: new Set([...messagesBetas, ...toolsBetas]),
         };
       }
 
@@ -152,7 +158,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
             tool_choice: { type: 'tool', name },
           },
           warnings,
-          betas: new Set<string>(),
+          betas: messagesBetas,
         };
       }
 
