@@ -78,6 +78,86 @@ describe('user messages', () => {
       betas: new Set(),
     });
   });
+
+  it('should add PDF file parts', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata',
+              mimeType: 'application/pdf',
+            },
+          ],
+        },
+      ],
+      cacheControl: false,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'base64',
+                  media_type: 'application/pdf',
+                  data: 'base64PDFdata',
+                },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['pdfs-2024-09-25']),
+    });
+  });
+
+  it('should throw error for non-PDF file types', async () => {
+    expect(() =>
+      convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'base64data',
+                mimeType: 'text/plain',
+              },
+            ],
+          },
+        ],
+        cacheControl: false,
+      }),
+    ).toThrow('Non-PDF files in user messages');
+  });
+
+  it('should throw error for URL-based file parts', async () => {
+    expect(() =>
+      convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'base64data',
+                mimeType: 'text/plain',
+              },
+            ],
+          },
+        ],
+        cacheControl: false,
+      }),
+    ).toThrow('Non-PDF files in user messages');
+  });
 });
 
 describe('tool messages', () => {
