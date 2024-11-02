@@ -6,6 +6,7 @@ it('should return undefined tools and tool_choice when tools are null', () => {
     tools: undefined,
     tool_choice: undefined,
     toolWarnings: [],
+    betas: new Set(),
   });
 });
 
@@ -15,6 +16,7 @@ it('should return undefined tools and tool_choice when tools are empty', () => {
     tools: undefined,
     tool_choice: undefined,
     toolWarnings: [],
+    betas: new Set(),
   });
 });
 

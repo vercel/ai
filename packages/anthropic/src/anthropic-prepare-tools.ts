@@ -13,14 +13,16 @@ export function prepareTools(
   tools: Array<AnthropicTool> | undefined;
   tool_choice: AnthropicToolChoice | undefined;
   toolWarnings: LanguageModelV1CallWarning[];
+  betas: Set<string>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
 
   const toolWarnings: LanguageModelV1CallWarning[] = [];
+  const betas = new Set<string>();
 
   if (tools == null) {
-    return { tools: undefined, tool_choice: undefined, toolWarnings };
+    return { tools: undefined, tool_choice: undefined, toolWarnings, betas };
   }
 
   const anthropicTools: AnthropicTool[] = [];
@@ -35,6 +37,7 @@ export function prepareTools(
         });
         break;
       case 'provider-defined':
+        betas.add('computer-use-2024-10-22');
         switch (tool.id) {
           case 'anthropic.computer_20241022':
             anthropicTools.push({
@@ -71,7 +74,12 @@ export function prepareTools(
   const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
-    return { tools: anthropicTools, tool_choice: undefined, toolWarnings };
+    return {
+      tools: anthropicTools,
+      tool_choice: undefined,
+      toolWarnings,
+      betas,
+    };
   }
 
   const type = toolChoice.type;
@@ -82,21 +90,24 @@ export function prepareTools(
         tools: anthropicTools,
         tool_choice: { type: 'auto' },
         toolWarnings,
+        betas,
       };
     case 'required':
       return {
         tools: anthropicTools,
         tool_choice: { type: 'any' },
         toolWarnings,
+        betas,
       };
     case 'none':
       // Anthropic does not support 'none' tool choice, so we remove the tools:
-      return { tools: undefined, tool_choice: undefined, toolWarnings };
+      return { tools: undefined, tool_choice: undefined, toolWarnings, betas };
     case 'tool':
       return {
         tools: anthropicTools,
         tool_choice: { type: 'tool', name: toolChoice.toolName },
         toolWarnings,
+        betas,
       };
     default: {
       const _exhaustiveCheck: never = type;
