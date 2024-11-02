@@ -334,8 +334,7 @@ describe('doGenerate', () => {
   });
 });
 
-// TODO(shaper): Fix streaming.
-describe.skip('doStream', () => {
+describe('doStream', () => {
   const server = new StreamingTestServer('https://api.cohere.com/v2/chat');
 
   server.setupTestEnvironment();
@@ -356,22 +355,15 @@ describe.skip('doStream', () => {
     finish_reason?: string;
   }) {
     server.responseChunks = [
-      `{"is_finished":false,"event_type":"stream-start","generation_id":"586ac33f-9c64-452c-8f8d-e5890e73b6fb"}\n`,
+      `event: message-start\ndata: {"type":"message-start","id":"586ac33f-9c64-452c-8f8d-e5890e73b6fb"}\n\n`,
       ...content.map(
         text =>
-          `{"is_finished":false,"event_type":"text-generation","text":"${text}"}\n`,
+          `event: content-delta\ndata: {"type":"content-delta","delta":{"message":{"content":{"text":"${text}"}}}}\n\n`,
       ),
-      `{"is_finished":true,"event_type":"stream-end","response":` +
-        `{"response_id":"ac6d5f86-f5a7-4db9-bacf-f01b98697a5b",` +
-        `"text":"${content.join('')}",` +
-        `"generation_id":"586ac33f-9c64-452c-8f8d-e5890e73b6fb",` +
-        `"chat_history":[{"role":"USER","message":"Invent a new holiday and describe its traditions."},` +
-        `{"role":"CHATBOT","message":"${content.join('')}"}],` +
-        `"finish_reason":"${finish_reason}","meta":{"api_version":{"version":"1"},` +
-        `"billed_units":{"input_tokens":9,"output_tokens":20},` +
-        `"tokens":${JSON.stringify(
-          usage,
-        )}}},"finish_reason":"${finish_reason}"}\n`,
+      `event: message-end\ndata: {"type":"message-end","delta":` +
+        `{"finish_reason":"${finish_reason}",` +
+        `"usage":{"tokens":{"input_tokens":${usage.input_tokens},"output_tokens":${usage.output_tokens}}}}}\n\n`,
+      `data: [DONE]\n\n`,
     ];
   }
 
@@ -407,36 +399,21 @@ describe.skip('doStream', () => {
 
   it('should stream tool deltas', async () => {
     server.responseChunks = [
-      `{"event_type":"stream-start","generation_id":"29f14a5a-11de-4cae-9800-25e4747408ea"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":"I"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" will"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" use"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" the"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" get"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":"Stock"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":"Price"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" tool"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" to"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" find"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" the"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" price"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" of"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" AAPL"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":" stock"}\n\n`,
-      `{"event_type":"tool-calls-chunk","text":"."}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"name":"test-tool"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"{\\n    \\""}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"ticker"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"_"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"symbol"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\":"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":" \\""}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"AAPL"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\""}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\n"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"}"}}\n\n`,
-      `{"event_type":"tool-calls-generation","tool_calls":[{"name":"test-tool-a","parameters":{"ticker_symbol":"AAPL"}}]}\n\n`,
-      `{"event_type":"stream-end","finish_reason":"COMPLETE","response":{"meta":{"tokens":{"input_tokens":893,"output_tokens":62}}}}\n\n`,
+      `event: message-start\ndata: {"type":"message-start","id":"29f14a5a-11de-4cae-9800-25e4747408ea"}\n\n`,
+      `event: tool-call-start\ndata: {"type":"tool-call-start","delta":{"message":{"tool_calls":{"id":"test-id-1","type":"function","function":{"name":"test-tool","arguments":""}}}}}\n\n`,
+      `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"{\\n    \\""}}}}}\n\n`,
+      `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"ticker"}}}}}\n\n`,
+      `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"_"}}}}}\n\n`,
+      `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"symbol"}}}}}\n\n`,
+      `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"\\":"}}}}}\n\n`,
+      `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":" \\""}}}}}\n\n`,
+      `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"AAPL"}}}}}\n\n`,
+      `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"\\""}}}}}\n\n`,
+      `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"\\n"}}}}}\n\n`,
+      `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"}"}}}}}\n\n`,
+      `event: tool-call-end\ndata: {"type":"tool-call-end"}\n\n`,
+      `event: message-end\ndata: {"type":"message-end","delta":{"finish_reason":"COMPLETE","usage":{"tokens":{"input_tokens":893,"output_tokens":62}}}}\n\n`,
+      `data: [DONE]\n\n`,
     ];
 
     const { stream } = await model.doStream({
@@ -568,263 +545,8 @@ describe.skip('doStream', () => {
     expect(new Set(toolCallIds)).toStrictEqual(new Set(['test-id-1']));
   });
 
-  it('should handle out of order tool deltas', async () => {
-    server.responseChunks = [
-      `{"event_type":"stream-start","generation_id":"29f14a5a-11de-4cae-9800-25e4747408ea"}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"name":"test-tool-a"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"name":"test-tool-b"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"{\\n    \\""}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"{\\n    \\""}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"ticker"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"ticker"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"_"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"_"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"symbol"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"symbol"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\":"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"\\":"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":" \\""}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":" \\""}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"TSLA"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"AAPL"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\""}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"\\""}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\n"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"\\n"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"}"}}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"}"}}\n\n`,
-      `{"event_type":"tool-calls-generation","tool_calls":[{"name":"test-tool-a","parameters":{"ticker_symbol":"AAPL"}},{"name":"test-tool-b","parameters":{"ticker_symbol":"TSLA"}}]}\n\n`,
-      `{"event_type":"stream-end","finish_reason":"COMPLETE","response":{"meta":{"tokens":{"input_tokens":893,"output_tokens":62}}}}\n\n`,
-    ];
-
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      prompt: TEST_PROMPT,
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool-a',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-          {
-            type: 'function',
-            name: 'test-tool-b',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        ],
-      },
-    });
-
-    const responseArray = await convertReadableStreamToArray(stream);
-
-    expect(responseArray).toStrictEqual([
-      { type: 'response-metadata', id: '29f14a5a-11de-4cae-9800-25e4747408ea' },
-      {
-        type: 'tool-call-delta',
-        toolCallType: 'function',
-        toolCallId: 'test-id-2',
-        toolName: 'test-tool-a',
-        argsTextDelta: '',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallType: 'function',
-        toolCallId: 'test-id-3',
-        toolName: 'test-tool-b',
-        argsTextDelta: '',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-a',
-        argsTextDelta: '{\n    "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-3',
-        toolCallType: 'function',
-        toolName: 'test-tool-b',
-        argsTextDelta: '{\n    "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-a',
-        argsTextDelta: 'ticker',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-3',
-        toolCallType: 'function',
-        toolName: 'test-tool-b',
-        argsTextDelta: 'ticker',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-a',
-        argsTextDelta: '_',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-3',
-        toolCallType: 'function',
-        toolName: 'test-tool-b',
-        argsTextDelta: '_',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-a',
-        argsTextDelta: 'symbol',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-3',
-        toolCallType: 'function',
-        toolName: 'test-tool-b',
-        argsTextDelta: 'symbol',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-a',
-        argsTextDelta: '":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-3',
-        toolCallType: 'function',
-        toolName: 'test-tool-b',
-        argsTextDelta: '":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-a',
-        argsTextDelta: ' "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-3',
-        toolCallType: 'function',
-        toolName: 'test-tool-b',
-        argsTextDelta: ' "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-3',
-        toolCallType: 'function',
-        toolName: 'test-tool-b',
-        argsTextDelta: 'TSLA',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-a',
-        argsTextDelta: 'AAPL',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-a',
-        argsTextDelta: '"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-3',
-        toolCallType: 'function',
-        toolName: 'test-tool-b',
-        argsTextDelta: '"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-a',
-        argsTextDelta: '\n',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-3',
-        toolCallType: 'function',
-        toolName: 'test-tool-b',
-        argsTextDelta: '\n',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-a',
-        argsTextDelta: '}',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-3',
-        toolCallType: 'function',
-        toolName: 'test-tool-b',
-        argsTextDelta: '}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-a',
-        args: '{"ticker_symbol":"AAPL"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id-3',
-        toolCallType: 'function',
-        toolName: 'test-tool-b',
-        args: '{"ticker_symbol":"TSLA"}',
-      },
-      {
-        finishReason: 'stop',
-        type: 'finish',
-        usage: {
-          completionTokens: 62,
-          promptTokens: 893,
-        },
-      },
-    ]);
-
-    // Check if the tool call ID is the same in the tool call delta and the tool call
-    const toolCallIds = responseArray
-      .filter(
-        chunk => chunk.type === 'tool-call-delta' || chunk.type === 'tool-call',
-      )
-      .map(chunk => chunk.toolCallId);
-
-    expect(new Set(toolCallIds)).toStrictEqual(
-      new Set(['test-id-2', 'test-id-3']),
-    );
-  });
-
   it('should handle unparsable stream parts', async () => {
-    server.responseChunks = [`{unparsable}\n`];
+    server.responseChunks = [`event: foo-message\ndata: {unparsable}\n\n`];
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -833,7 +555,6 @@ describe.skip('doStream', () => {
     });
 
     const elements = await convertReadableStreamToArray(stream);
-
     expect(elements.length).toBe(2);
     expect(elements[0].type).toBe('error');
     expect(elements[1]).toStrictEqual({
@@ -882,11 +603,14 @@ describe.skip('doStream', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       stream: true,
       model: 'command-r-plus',
-      message: 'Hello',
-      chat_history: [
+      messages: [
         {
-          role: 'SYSTEM',
-          message: 'you are a friendly bot!',
+          role: 'system',
+          content: 'you are a friendly bot!',
+        },
+        {
+          role: 'user',
+          content: 'Hello',
         },
       ],
     });
@@ -931,7 +655,7 @@ describe.skip('doStream', () => {
     });
 
     expect(request).toStrictEqual({
-      body: '{"model":"command-r-plus","chat_history":[{"role":"SYSTEM","message":"you are a friendly bot!"}],"message":"Hello","stream":true}',
+      body: '{"model":"command-r-plus","messages":[{"role":"system","content":"you are a friendly bot!"},{"role":"user","content":"Hello"}],"stream":true}',
     });
   });
 });

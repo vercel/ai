@@ -339,7 +339,8 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                   toolCallId: pendingToolCallDelta.toolCallId,
                   toolName: pendingToolCallDelta.toolName,
                   toolCallType: 'function',
-                  argsTextDelta: pendingToolCallDelta.argsTextDelta,
+                  argsTextDelta:
+                    value.delta.message.tool_calls.function.arguments,
                 });
                 return;
               }
@@ -352,7 +353,9 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                   toolCallId: pendingToolCallDelta.toolCallId,
                   toolName: pendingToolCallDelta.toolName,
                   toolCallType: 'function',
-                  args: pendingToolCallDelta.argsTextDelta,
+                  args: JSON.stringify(
+                    JSON.parse(pendingToolCallDelta.argsTextDelta),
+                  ),
                 });
 
                 // Clear the pending tool call. We rely on the API always
@@ -488,10 +491,6 @@ const cohereChatChunkSchema = z.discriminatedUnion('type', [
     delta: z.object({
       finish_reason: z.string(),
       usage: z.object({
-        billed_units: z.object({
-          input_tokens: z.number(),
-          output_tokens: z.number(),
-        }),
         tokens: z.object({
           input_tokens: z.number(),
           output_tokens: z.number(),
