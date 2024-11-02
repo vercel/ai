@@ -23,7 +23,7 @@ import { mapCohereFinishReason } from '../src/map-cohere-finish-reason';
 import { prepareTools } from './cohere-prepare-tools';
 import {
   CohereChatPrompt,
-  CohereChatbotMessage,
+  CohereAssistantMessage,
   CohereUserMessage,
   CohereSystemMessage,
 } from './cohere-chat-prompt';
@@ -144,7 +144,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
         ): message is
           | CohereSystemMessage
           | CohereUserMessage
-          | CohereChatbotMessage => 'content' in message,
+          | CohereAssistantMessage => 'content' in message,
       )
       .map(message => message.content)
       .join('');
@@ -261,11 +261,6 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
-
-    const toolCalls: Array<{
-      toolCallId: string;
-      toolName: string;
-    }> = [];
 
     let pendingToolCallDelta: {
       toolCallId: string;

@@ -5,8 +5,6 @@ import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
-  console.log(weatherTool);
-
   const result = await generateText({
     model: cohere('command-r-plus'),
     maxTokens: 512,
@@ -54,7 +52,8 @@ async function main() {
     }
   }
 
-  console.log(JSON.stringify(result, null, 2));
+  console.log(result.text);
+  console.log(JSON.stringify(result.toolCalls, null, 2));
 }
 
 main().catch(console.error);
