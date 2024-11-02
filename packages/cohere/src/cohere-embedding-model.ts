@@ -67,6 +67,11 @@ export class CohereEmbeddingModel implements EmbeddingModelV1<string> {
       headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
+        // TODO(shaper): There are other embedding types. Do we need to support them?
+        // For now we only support 'float' embeddings which are also the only ones
+        // the Cohere API docs state are supported for all models.
+        // https://docs.cohere.com/v2/reference/embed#request.body.embedding_types
+        embedding_types: ['float'],
         texts: values,
         input_type: this.settings.inputType ?? 'search_query',
         truncate: this.settings.truncate,
@@ -80,7 +85,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV1<string> {
     });
 
     return {
-      embeddings: response.embeddings,
+      embeddings: response.embeddings.float,
       usage: { tokens: response.meta.billed_units.input_tokens },
       rawResponse: { headers: responseHeaders },
     };
@@ -90,7 +95,9 @@ export class CohereEmbeddingModel implements EmbeddingModelV1<string> {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const cohereTextEmbeddingResponseSchema = z.object({
-  embeddings: z.array(z.array(z.number())),
+  embeddings: z.object({
+    float: z.array(z.array(z.number())),
+  }),
   meta: z.object({
     billed_units: z.object({
       input_tokens: z.number(),

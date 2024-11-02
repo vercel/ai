@@ -11,94 +11,50 @@ export function prepareTools(
   },
 ): {
   tools:
-    | undefined
     | Array<{
-        name: string;
-        description: string | undefined;
-        parameterDefinitions: Record<
-          string,
-          {
-            required: boolean;
-            type: 'str' | 'float' | 'int' | 'bool';
-            description: string;
-          }
-        >;
-      }>;
-  force_single_step: boolean | undefined;
+        type: 'function';
+        function: {
+          name: string | undefined;
+          description: string | undefined;
+          parameters: unknown;
+        };
+      }>
+    | undefined;
+  tool_choice:
+    | { type: 'function'; function: { name: string } }
+    | 'auto'
+    | 'none'
+    | 'any'
+    | undefined;
   toolWarnings: LanguageModelV1CallWarning[];
 } {
   const tools = mode.tools?.length ? mode.tools : undefined;
   const toolWarnings: LanguageModelV1CallWarning[] = [];
 
   if (tools == null) {
-    return { tools: undefined, force_single_step: undefined, toolWarnings };
+    return { tools: undefined, tool_choice: undefined, toolWarnings };
   }
 
   const cohereTools: Array<{
-    name: string;
-    description: string | undefined;
-    parameterDefinitions: Record<
-      string,
-      {
-        required: boolean;
-        type: 'str' | 'float' | 'int' | 'bool';
-        description: string;
-      }
-    >;
+    type: 'function';
+    function: {
+      name: string;
+      description: string | undefined;
+      parameters: unknown;
+    };
   }> = [];
 
   for (const tool of tools) {
     if (tool.type === 'provider-defined') {
       toolWarnings.push({ type: 'unsupported-tool', tool });
     } else {
-      const { properties, required } = tool.parameters;
-      const parameterDefinitions: Record<string, any> = {};
-
-      if (properties) {
-        for (const [key, value] of Object.entries(properties)) {
-          if (typeof value === 'object' && value !== null) {
-            const { type: JSONType, description } = value;
-
-            let type: 'str' | 'float' | 'int' | 'bool';
-
-            if (typeof JSONType === 'string') {
-              switch (JSONType) {
-                case 'string':
-                  type = 'str';
-                  break;
-                case 'number':
-                  type = 'float';
-                  break;
-                case 'integer':
-                  type = 'int';
-                  break;
-                case 'boolean':
-                  type = 'bool';
-                  break;
-                default:
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `Unsupported tool parameter type: ${JSONType}`,
-                  });
-              }
-            } else {
-              throw new UnsupportedFunctionalityError({
-                functionality: `Unsupported tool parameter type: ${JSONType}`,
-              });
-            }
-
-            parameterDefinitions[key] = {
-              required: required ? required.includes(key) : false,
-              type,
-              description,
-            };
-          }
-        }
-      }
-
       cohereTools.push({
-        name: tool.name,
-        description: tool.description,
-        parameterDefinitions,
+        type: 'function',
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters,
+        },
       });
     }
   }
@@ -106,29 +62,26 @@ export function prepareTools(
   const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
-    return { tools: cohereTools, force_single_step: false, toolWarnings };
+    return { tools: cohereTools, tool_choice: undefined, toolWarnings };
   }
 
   const type = toolChoice.type;
 
   switch (type) {
     case 'auto':
-      return { tools: cohereTools, force_single_step: false, toolWarnings };
-    case 'required':
-      return { tools: cohereTools, force_single_step: true, toolWarnings };
+      return { tools: cohereTools, tool_choice: type, toolWarnings };
 
-    // cohere does not support 'none' tool choice, so we remove the tools:
     case 'none':
-      return { tools: undefined, force_single_step: false, toolWarnings };
+      // Cohere does not support 'none' tool choice, so we remove the tools.
+      return { tools: undefined, tool_choice: 'any', toolWarnings };
 
-    // cohere does not support tool mode directly,
-    // so we filter the tools and force the tool choice through 'any'
+    case 'required':
     case 'tool':
-      return {
-        tools: cohereTools.filter(tool => tool.name === toolChoice.toolName),
-        force_single_step: true,
-        toolWarnings,
-      };
+      // Cohere does not support forcing tool calls
+      throw new UnsupportedFunctionalityError({
+        functionality: `Unsupported tool choice type: ${type}`,
+      });
+
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({

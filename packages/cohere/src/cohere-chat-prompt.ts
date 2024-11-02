@@ -7,18 +7,18 @@ export type CohereChatMessage =
   | CohereToolMessage;
 
 export interface CohereSystemMessage {
-  role: 'SYSTEM';
-  message: string;
+  role: 'system';
+  content: string;
 }
 
 export interface CohereUserMessage {
-  role: 'USER';
-  message: string;
+  role: 'user';
+  content: string;
 }
 
 export interface CohereChatbotMessage {
-  role: 'CHATBOT';
-  message: string;
+  role: 'assistant';
+  content: string;
   tool_calls?: Array<{
     name: string;
     parameters: object;
@@ -26,7 +26,7 @@ export interface CohereChatbotMessage {
 }
 
 export interface CohereToolMessage {
-  role: 'TOOL';
+  role: 'tool';
   tool_results: Array<{
     call: {
       name: string;

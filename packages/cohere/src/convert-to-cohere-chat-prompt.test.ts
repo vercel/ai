@@ -22,8 +22,8 @@ describe('tool messages', () => {
 
     expect(result).toEqual([
       {
-        message: 'Calling a tool',
-        role: 'CHATBOT',
+        content: 'Calling a tool',
+        role: 'assistant',
         tool_calls: [
           {
             name: 'tool-1',
@@ -51,7 +51,7 @@ describe('tool messages', () => {
 
     expect(result).toEqual([
       {
-        role: 'TOOL',
+        role: 'tool',
         tool_results: [
           {
             call: {
@@ -88,7 +88,7 @@ describe('tool messages', () => {
 
     expect(result).toEqual([
       {
-        role: 'TOOL',
+        role: 'tool',
         tool_results: [
           {
             call: {
