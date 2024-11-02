@@ -127,11 +127,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { tools, tool_choice, toolWarnings } = prepareTools(mode);
+        const { tools, tool_choice, toolWarnings, betas } = prepareTools(mode);
 
         return {
           args: { ...baseArgs, tools, tool_choice },
           warnings: [...warnings, ...toolWarnings],
+          betas,
         };
       }
 
@@ -151,6 +152,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
             tool_choice: { type: 'tool', name },
           },
           warnings,
+          betas: new Set<string>(),
         };
       }
 
@@ -182,14 +184,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, betas } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: this.getHeaders({
-        betas: new Set(),
-        headers: options.headers,
-      }),
+      headers: this.getHeaders({ betas, headers: options.headers }),
       body: args,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -258,16 +257,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, betas } = await this.getArgs(options);
 
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: this.getHeaders({
-        betas: new Set(),
-        headers: options.headers,
-      }),
+      headers: this.getHeaders({ betas, headers: options.headers }),
       body,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
