@@ -1,5 +1,12 @@
 # @ai-sdk/anthropic
 
+## 0.0.54
+
+### Patch Changes
+
+- 4d2e53b: feat (provider/anthropic): pdf support
+- c8afcb5: feat (provider/anthropic): allow using computer use and cache control at the same time
+
 ## 0.0.53
 
 ### Patch Changes
