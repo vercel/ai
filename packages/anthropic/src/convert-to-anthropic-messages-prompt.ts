@@ -18,7 +18,11 @@ export function convertToAnthropicMessagesPrompt({
 }: {
   prompt: LanguageModelV1Prompt;
   cacheControl: boolean;
-}): AnthropicMessagesPrompt {
+}): {
+  prompt: AnthropicMessagesPrompt;
+  betas: Set<string>;
+} {
+  const betas = new Set<string>();
   const blocks = groupIntoBlocks(prompt);
 
   let system: AnthropicMessagesPrompt['system'] = undefined;
@@ -95,6 +99,7 @@ export function convertToAnthropicMessagesPrompt({
                     });
                     break;
                   }
+
                   case 'image': {
                     if (part.image instanceof URL) {
                       // The AI SDK automatically downloads images for user image parts with URLs
@@ -109,6 +114,35 @@ export function convertToAnthropicMessagesPrompt({
                         type: 'base64',
                         media_type: part.mimeType ?? 'image/jpeg',
                         data: convertUint8ArrayToBase64(part.image),
+                      },
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
+
+                  case 'file': {
+                    if (part.data instanceof URL) {
+                      // The AI SDK automatically downloads files for user file parts with URLs
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'Image URLs in user messages',
+                      });
+                    }
+
+                    if (part.mimeType !== 'application/pdf') {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'Non-PDF files in user messages',
+                      });
+                    }
+
+                    betas.add('pdfs-2024-09-25');
+
+                    anthropicContent.push({
+                      type: 'document',
+                      source: {
+                        type: 'base64',
+                        media_type: 'application/pdf',
+                        data: part.data,
                       },
                       cache_control: cacheControl,
                     });
@@ -247,8 +281,8 @@ export function convertToAnthropicMessagesPrompt({
   }
 
   return {
-    system,
-    messages,
+    prompt: { system, messages },
+    betas,
   };
 }
 

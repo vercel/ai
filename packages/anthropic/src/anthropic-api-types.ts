@@ -12,7 +12,10 @@ export type AnthropicCacheControl = { type: 'ephemeral' };
 export interface AnthropicUserMessage {
   role: 'user';
   content: Array<
-    AnthropicTextContent | AnthropicImageContent | AnthropicToolResultContent
+    | AnthropicTextContent
+    | AnthropicImageContent
+    | AnthropicDocumentContent
+    | AnthropicToolResultContent
   >;
 }
 
@@ -32,6 +35,16 @@ export interface AnthropicImageContent {
   source: {
     type: 'base64';
     media_type: string;
+    data: string;
+  };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicDocumentContent {
+  type: 'document';
+  source: {
+    type: 'base64';
+    media_type: 'application/pdf';
     data: string;
   };
   cache_control: AnthropicCacheControl | undefined;
