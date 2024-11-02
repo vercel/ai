@@ -26,8 +26,12 @@ describe('tool messages', () => {
         role: 'assistant',
         tool_calls: [
           {
-            name: 'tool-1',
-            parameters: { test: 'This is a tool message' },
+            id: 'tool-call-1',
+            type: 'function',
+            function: {
+              name: 'tool-1',
+              arguments: JSON.stringify({ test: 'This is a tool message' }),
+            },
           },
         ],
       },
@@ -52,15 +56,8 @@ describe('tool messages', () => {
     expect(result).toEqual([
       {
         role: 'tool',
-        tool_results: [
-          {
-            call: {
-              name: 'tool-1',
-              parameters: {},
-            },
-            outputs: [{ test: 'This is a tool message' }],
-          },
-        ],
+        content: JSON.stringify({ test: 'This is a tool message' }),
+        tool_call_id: 'tool-call-1',
       },
     ]);
   });
@@ -89,22 +86,13 @@ describe('tool messages', () => {
     expect(result).toEqual([
       {
         role: 'tool',
-        tool_results: [
-          {
-            call: {
-              name: 'tool-1',
-              parameters: {},
-            },
-            outputs: [{ test: 'This is a tool message' }],
-          },
-          {
-            call: {
-              name: 'tool-2',
-              parameters: {},
-            },
-            outputs: [{ something: 'else' }],
-          },
-        ],
+        content: JSON.stringify({ test: 'This is a tool message' }),
+        tool_call_id: 'tool-call-1',
+      },
+      {
+        role: 'tool',
+        content: JSON.stringify({ something: 'else' }),
+        tool_call_id: 'tool-call-2',
       },
     ]);
   });
