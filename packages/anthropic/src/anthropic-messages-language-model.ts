@@ -161,15 +161,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     }
   }
 
-  private getHeaders(
-    optionHeaders: Record<string, string | undefined> | undefined,
-  ) {
+  private getHeaders({
+    betas,
+    headers,
+  }: {
+    betas: Set<string>;
+    headers: Record<string, string | undefined> | undefined;
+  }) {
+    if (this.settings.cacheControl) {
+      betas.add('prompt-caching-2024-07-31');
+    }
+
     return combineHeaders(
       this.config.headers(),
-      this.settings.cacheControl
-        ? { 'anthropic-beta': 'prompt-caching-2024-07-31' }
-        : {},
-      optionHeaders,
+      betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
+      headers,
     );
   }
 
@@ -180,7 +186,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: this.getHeaders(options.headers),
+      headers: this.getHeaders({
+        betas: new Set(),
+        headers: options.headers,
+      }),
       body: args,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -255,7 +264,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: this.getHeaders(options.headers),
+      headers: this.getHeaders({
+        betas: new Set(),
+        headers: options.headers,
+      }),
       body,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
