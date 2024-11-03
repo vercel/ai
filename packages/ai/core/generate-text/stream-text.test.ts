@@ -1654,12 +1654,7 @@ describe('result.response', () => {
     // consume stream (runs in parallel)
     convertAsyncIterableToArray(result.textStream);
 
-    assert.deepStrictEqual(await result.response, {
-      id: 'id-0',
-      modelId: 'mock-model-id',
-      timestamp: new Date(0),
-      headers: { call: '2' },
-    });
+    expect(await result.response).toMatchSnapshot();
   });
 });
 
