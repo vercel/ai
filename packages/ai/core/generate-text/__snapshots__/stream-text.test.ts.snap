@@ -2283,6 +2283,28 @@ exports[`result.pipeDataStreamToResponse > should write data stream parts to a N
 ]
 `;
 
+exports[`result.response > should resolve with response information 1`] = `
+{
+  "headers": {
+    "call": "2",
+  },
+  "id": "id-0",
+  "messages": [
+    {
+      "content": [
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+  ],
+  "modelId": "mock-model-id",
+  "timestamp": 1970-01-01T00:00:00.000Z,
+}
+`;
+
 exports[`result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
 [
   {

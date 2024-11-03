@@ -1027,6 +1027,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 resolveResponse({
                   ...stepResponse,
                   headers: rawResponse?.headers,
+                  messages: responseMessages,
                 });
                 resolveSteps(stepResults);
                 resolveResponseMessages(responseMessages);
