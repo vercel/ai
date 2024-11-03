@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.32
+
+### Patch Changes
+
+- 6bb9e51: fix (ai/core): expose response.messages in streamText
+
 ## 3.4.31
 
 ### Patch Changes
