@@ -106,6 +106,36 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should remove trailing whitespace from last assistant message with multi-part content when there is no further user message', async () => {
+    const result = convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'user content' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'assistant ' },
+          { type: 'text', text: 'content  ' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ text: 'assistant ' }, { text: 'content' }],
+        },
+      ],
+      system: undefined,
+    });
+  });
+
   it('should keep trailing whitespace from assistant message when there is a further user message', async () => {
     const result = convertToBedrockChatMessages([
       {
