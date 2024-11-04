@@ -230,7 +230,7 @@ describe('result.providerMetadata', () => {
   });
 });
 
-describe('result.responseMessages', () => {
+describe('result.response.messages', () => {
   it('should contain assistant response message when there are no tool calls', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
@@ -242,7 +242,7 @@ describe('result.responseMessages', () => {
       prompt: 'test-input',
     });
 
-    expect(result.responseMessages).toMatchSnapshot();
+    expect(result.response.messages).toMatchSnapshot();
   });
 
   it('should contain assistant response message and tool message when there are tool calls with results', async () => {
@@ -523,7 +523,7 @@ describe('options.maxSteps', () => {
     });
   });
 
-  describe('3 steps: initial, continue, continue', () => {
+  describe('4 steps: initial, continue, continue, continue', () => {
     let result: GenerateTextResult<any>;
     let onStepFinishResults: StepResult<any>[];
 
@@ -591,9 +591,8 @@ describe('options.maxSteps', () => {
 
                 return {
                   ...dummyResponseValues,
-                  // leading whitespace is to be discarded when there is whitespace
-                  // (for models such as Anthropic that trim trailing whitespace in their inputs):
-                  text: '  no-whitespace',
+                  // case where there is no leading nor trailing whitespace:
+                  text: 'no-whitespace',
                   finishReason: 'length',
                   response: {
                     id: 'test-id-2-from-model',
@@ -641,11 +640,60 @@ describe('options.maxSteps', () => {
 
                 return {
                   ...dummyResponseValues,
-                  // leading whitespace is to be kept when there is no preceding whitespace:
-                  text: ' final value keep all whitespace\n end',
-                  finishReason: 'stop',
+                  // set up trailing whitespace for next step:
+                  text: 'immediatefollow  ',
+                  finishReason: 'length',
                   response: {
                     id: 'test-id-3-from-model',
+                    timestamp: new Date(20000),
+                    modelId: 'test-response-model-id',
+                  },
+                  usage: { completionTokens: 2, promptTokens: 3 },
+                };
+              }
+              case 3: {
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: undefined,
+                  tools: undefined,
+                });
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'part 1 \n ',
+                        providerMetadata: undefined,
+                      },
+                      {
+                        type: 'text',
+                        text: 'no-whitespace',
+                        providerMetadata: undefined,
+                      },
+                      {
+                        type: 'text',
+                        text: 'immediatefollow  ',
+                        providerMetadata: undefined,
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  ...dummyResponseValues,
+                  // leading whitespace is to be discarded when there is whitespace from previous step
+                  // (for models such as Anthropic that trim trailing whitespace in their inputs):
+                  text: '  final value keep all whitespace\n end',
+                  finishReason: 'stop',
+                  response: {
+                    id: 'test-id-4-from-model',
                     timestamp: new Date(20000),
                     modelId: 'test-response-model-id',
                   },
@@ -668,7 +716,7 @@ describe('options.maxSteps', () => {
 
     it('result.text should return text from both steps separated by space', async () => {
       expect(result.text).toStrictEqual(
-        'part 1 \n no-whitespace final value keep all whitespace\n end',
+        'part 1 \n no-whitespaceimmediatefollow  final value keep all whitespace\n end',
       );
     });
 
@@ -685,7 +733,11 @@ describe('options.maxSteps', () => {
               type: 'text',
             },
             {
-              text: ' final value keep all whitespace\n end',
+              text: 'immediatefollow  ',
+              type: 'text',
+            },
+            {
+              text: 'final value keep all whitespace\n end',
               type: 'text',
             },
           ],
@@ -696,9 +748,9 @@ describe('options.maxSteps', () => {
 
     it('result.usage should sum token usage', () => {
       expect(result.usage).toStrictEqual({
-        completionTokens: 27,
-        promptTokens: 43,
-        totalTokens: 70,
+        completionTokens: 29,
+        promptTokens: 46,
+        totalTokens: 75,
       });
     });
 
