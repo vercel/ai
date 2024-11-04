@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.55
+
+### Patch Changes
+
+- ac380e3: fix (provider/anthropic): continuation mode with 3+ steps
+
 ## 0.0.54
 
 ### Patch Changes

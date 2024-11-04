@@ -1,5 +1,11 @@
 # ai
 
+## 3.4.33
+
+### Patch Changes
+
+- ac380e3: fix (provider/anthropic): continuation mode with 3+ steps
+
 ## 3.4.32
 
 ### Patch Changes
