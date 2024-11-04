@@ -15,7 +15,7 @@ includes mock providers and test helpers. You can import the following helpers f
 - `MockLanguageModelV1`: A mock language model using the [language model v1 specification](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v1/language-model-v1.ts).
 - `mockId`: Provides an incrementing integer ID.
 - `mockValues`: Iterates over an array of values with each call. Returns the last value when the array is exhausted.
-- `convertArrayToReadableStream`: Converts an array to a readable stream.
+- `simulateReadableStream`: Simulates a readable stream with delays.
 
 With mock providers and test helpers, you can control the output of the AI SDK
 and test your code in a repeatable and deterministic way without actually calling
@@ -48,22 +48,24 @@ const result = await generateText({
 
 ```ts
 import { streamText } from 'ai';
-import { convertArrayToReadableStream, MockLanguageModelV1 } from 'ai/test';
+import { simulateReadableStream, MockLanguageModelV1 } from 'ai/test';
 
 const result = await streamText({
   model: new MockLanguageModelV1({
     doStream: async () => ({
-      stream: convertArrayToReadableStream([
-        { type: 'text-delta', textDelta: 'Hello' },
-        { type: 'text-delta', textDelta: ', ' },
-        { type: 'text-delta', textDelta: `world!` },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          usage: { completionTokens: 10, promptTokens: 3 },
-        },
-      ]),
+      stream: simulateReadableStream({
+        values: [
+          { type: 'text-delta', textDelta: 'Hello' },
+          { type: 'text-delta', textDelta: ', ' },
+          { type: 'text-delta', textDelta: `world!` },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            logprobs: undefined,
+            usage: { completionTokens: 10, promptTokens: 3 },
+          },
+        ],
+      }),
       rawCall: { rawPrompt: null, rawSettings: {} },
     }),
   }),
@@ -97,31 +99,67 @@ const result = await generateObject({
 
 ```ts
 import { streamObject } from 'ai';
-import { convertArrayToReadableStream, MockLanguageModelV1 } from 'ai/test';
+import { simulateReadableStream, MockLanguageModelV1 } from 'ai/test';
 import { z } from 'zod';
 
 const result = await streamObject({
   model: new MockLanguageModelV1({
     defaultObjectGenerationMode: 'json',
     doStream: async () => ({
-      stream: convertArrayToReadableStream([
-        { type: 'text-delta', textDelta: '{ ' },
-        { type: 'text-delta', textDelta: '"content": ' },
-        { type: 'text-delta', textDelta: `"Hello, ` },
-        { type: 'text-delta', textDelta: `world` },
-        { type: 'text-delta', textDelta: `!"` },
-        { type: 'text-delta', textDelta: ' }' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          usage: { completionTokens: 10, promptTokens: 3 },
-        },
-      ]),
+      stream: simulateReadableStream({
+        values: [
+          { type: 'text-delta', textDelta: '{ ' },
+          { type: 'text-delta', textDelta: '"content": ' },
+          { type: 'text-delta', textDelta: `"Hello, ` },
+          { type: 'text-delta', textDelta: `world` },
+          { type: 'text-delta', textDelta: `!"` },
+          { type: 'text-delta', textDelta: ' }' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            logprobs: undefined,
+            usage: { completionTokens: 10, promptTokens: 3 },
+          },
+        ],
+      }),
       rawCall: { rawPrompt: null, rawSettings: {} },
     }),
   }),
   schema: z.object({ content: z.string() }),
   prompt: 'Hello, test!',
 });
+```
+
+### Simulate Data Stream Protocol Responses
+
+You can also simulate [Data Stream Protocol](/docs/ai-sdk-ui/stream-protocol#data-stream-protocol) responses for testing,
+debugging, or demonstration purposes.
+
+Here is a Next example:
+
+```ts filename="route.ts"
+import { simulateReadableStream } from 'ai/test';
+
+export async function POST(req: Request) {
+  return new Response(
+    simulateReadableStream({
+      initialDelayInMs: 1000, // Delay before the first chunk
+      chunkDelayInMs: 300, // Delay between chunks
+      values: [
+        `0:"This"\n`,
+        `0:" is an"\n`,
+        `0:"example."\n`,
+        `e:{"finishReason":"stop","usage":{"promptTokens":20,"completionTokens":50},"isContinued":false}\n`,
+        `d:{"finishReason":"stop","usage":{"promptTokens":20,"completionTokens":50}}\n`,
+      ],
+    }).pipeThrough(new TextEncoderStream()),
+    {
+      status: 200,
+      headers: {
+        'X-Vercel-AI-Data-Stream': 'v1',
+        'Content-Type': 'text/plain; charset=utf-8',
+      },
+    },
+  );
+}
 ```

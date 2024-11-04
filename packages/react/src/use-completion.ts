@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
+import { throttle } from './throttle';
 
 export type { UseCompletionOptions };
 
@@ -77,7 +78,14 @@ export function useCompletion({
   onResponse,
   onFinish,
   onError,
-}: UseCompletionOptions = {}): UseCompletionHelpers {
+  experimental_throttle: throttleWaitMs,
+}: UseCompletionOptions & {
+  /**
+   * Custom throttle wait in ms for the completion and data updates.
+   * Default is undefined, which disables throttling.
+   */
+  experimental_throttle?: number;
+} = {}): UseCompletionHelpers {
   // streamMode is deprecated, use streamProtocol instead.
   if (streamMode) {
     streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
@@ -113,6 +121,7 @@ export function useCompletion({
     headers,
     body,
   });
+
   useEffect(() => {
     extraMetadataRef.current = {
       credentials,
@@ -134,16 +143,22 @@ export function useCompletion({
         },
         streamProtocol,
         fetch,
-        setCompletion: completion => mutate(completion, false),
+        // throttle streamed ui updates:
+        setCompletion: throttle(
+          (completion: string) => mutate(completion, false),
+          throttleWaitMs,
+        ),
+        onData: throttle(
+          (data: JSONValue[]) =>
+            mutateStreamData([...(streamData ?? []), ...(data ?? [])], false),
+          throttleWaitMs,
+        ),
         setLoading: mutateLoading,
         setError,
         setAbortController,
         onResponse,
         onFinish,
         onError,
-        onData: data => {
-          mutateStreamData([...(streamData || []), ...(data || [])], false);
-        },
       }),
     [
       mutate,
@@ -159,6 +174,7 @@ export function useCompletion({
       streamProtocol,
       fetch,
       mutateStreamData,
+      throttleWaitMs,
     ],
   );
 
@@ -193,9 +209,12 @@ export function useCompletion({
     [input, complete],
   );
 
-  const handleInputChange = (e: any) => {
-    setInput(e.target.value);
-  };
+  const handleInputChange = useCallback(
+    (e: any) => {
+      setInput(e.target.value);
+    },
+    [setInput],
+  );
 
   return {
     completion,

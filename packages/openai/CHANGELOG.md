@@ -1,5 +1,24 @@
 # @ai-sdk/openai
 
+## 0.0.71
+
+### Patch Changes
+
+- 54a3a59: fix (provider/openai): support object-json mode without schema
+
+## 0.0.70
+
+### Patch Changes
+
+- 3b1b69a: feat: provider-defined tools
+- Updated dependencies [aa98cdb]
+- Updated dependencies [1486128]
+- Updated dependencies [7b937c5]
+- Updated dependencies [3b1b69a]
+- Updated dependencies [811a317]
+  - @ai-sdk/provider-utils@1.0.22
+  - @ai-sdk/provider@0.0.26
+
 ## 0.0.69
 
 ### Patch Changes

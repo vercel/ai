@@ -1654,12 +1654,7 @@ describe('result.response', () => {
     // consume stream (runs in parallel)
     convertAsyncIterableToArray(result.textStream);
 
-    assert.deepStrictEqual(await result.response, {
-      id: 'id-0',
-      modelId: 'mock-model-id',
-      timestamp: new Date(0),
-      headers: { call: '2' },
-    });
+    expect(await result.response).toMatchSnapshot();
   });
 });
 
@@ -2234,6 +2229,8 @@ describe('options.maxSteps', () => {
                         toolCallId: 'call-1',
                         toolName: 'tool1',
                         result: 'result1',
+                        content: undefined,
+                        isError: undefined,
                         providerMetadata: undefined,
                       },
                     ],
@@ -2352,7 +2349,7 @@ describe('options.maxSteps', () => {
     });
   });
 
-  describe('3 steps: initial, continue, continue', () => {
+  describe('4 steps: initial, continue, continue, continue', () => {
     beforeEach(async () => {
       result = undefined as any;
       onFinishResult = undefined as any;
@@ -2385,6 +2382,7 @@ describe('options.maxSteps', () => {
                       modelId: 'mock-model-id',
                       timestamp: new Date(0),
                     },
+                    // trailing text is to be discarded, trailing whitespace is to be kept:
                     { type: 'text-delta', textDelta: 'pa' },
                     { type: 'text-delta', textDelta: 'rt ' },
                     { type: 'text-delta', textDelta: '1 \n' },
@@ -2434,6 +2432,7 @@ describe('options.maxSteps', () => {
                       modelId: 'mock-model-id',
                       timestamp: new Date(1000),
                     },
+                    // case where there is no leading nor trailing whitespace:
                     { type: 'text-delta', textDelta: 'no-' },
                     { type: 'text-delta', textDelta: 'whitespace' },
                     {
@@ -2481,11 +2480,71 @@ describe('options.maxSteps', () => {
                   stream: convertArrayToReadableStream([
                     {
                       type: 'response-metadata',
-                      id: 'id-1',
+                      id: 'id-2',
                       modelId: 'mock-model-id',
                       timestamp: new Date(1000),
                     },
-                    { type: 'text-delta', textDelta: 'final' },
+                    // set up trailing whitespace for next step:
+                    { type: 'text-delta', textDelta: 'immediatefollow  ' },
+                    {
+                      type: 'finish',
+                      finishReason: 'length',
+                      logprobs: undefined,
+                      usage: { completionTokens: 2, promptTokens: 3 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                  rawResponse: { headers: { call: '3' } },
+                };
+              }
+              case 3: {
+                expect(mode).toStrictEqual({
+                  type: 'regular',
+                  toolChoice: undefined,
+                  tools: undefined,
+                });
+
+                expect(prompt).toStrictEqual([
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                    providerMetadata: undefined,
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'part 1 \n ',
+                        providerMetadata: undefined,
+                      },
+                      {
+                        type: 'text',
+                        text: 'no-whitespace',
+                        providerMetadata: undefined,
+                      },
+                      {
+                        type: 'text',
+                        text: 'immediatefollow  ',
+                        providerMetadata: undefined,
+                      },
+                    ],
+                    providerMetadata: undefined,
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-3',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    // leading whitespace is to be discarded when there is whitespace from previous step
+                    // (for models such as Anthropic that trim trailing whitespace in their inputs):
+                    { type: 'text-delta', textDelta: ' ' }, // split into 2 chunks for test coverage
+                    { type: 'text-delta', textDelta: '  final' },
                     { type: 'text-delta', textDelta: ' va' },
                     { type: 'text-delta', textDelta: 'lue keep all w' },
                     { type: 'text-delta', textDelta: 'hitespace' },
@@ -2528,107 +2587,7 @@ describe('options.maxSteps', () => {
     it('should contain text deltas from all steps', async () => {
       expect(
         await convertAsyncIterableToArray(result.fullStream),
-      ).toStrictEqual([
-        {
-          textDelta: 'part ',
-          type: 'text-delta',
-        },
-        {
-          textDelta: '1 \n',
-          type: 'text-delta',
-        },
-        {
-          textDelta: ' ',
-          type: 'text-delta',
-        },
-        {
-          experimental_providerMetadata: undefined,
-          finishReason: 'length',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          type: 'step-finish',
-          usage: {
-            completionTokens: 20,
-            promptTokens: 10,
-            totalTokens: 30,
-          },
-          isContinued: true,
-        },
-        {
-          textDelta: 'no-whitespace',
-          type: 'text-delta',
-        },
-        {
-          experimental_providerMetadata: undefined,
-          finishReason: 'length',
-          logprobs: undefined,
-          response: {
-            id: 'id-1',
-            modelId: 'mock-model-id',
-            timestamp: new Date(1000),
-          },
-          type: 'step-finish',
-          usage: {
-            completionTokens: 5,
-            promptTokens: 30,
-            totalTokens: 35,
-          },
-          isContinued: true,
-        },
-        {
-          textDelta: 'final ',
-          type: 'text-delta',
-        },
-        {
-          textDelta: 'value keep all ',
-          type: 'text-delta',
-        },
-        {
-          textDelta: 'whitespace\n ',
-          type: 'text-delta',
-        },
-        {
-          textDelta: 'end',
-          type: 'text-delta',
-        },
-        {
-          experimental_providerMetadata: undefined,
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-1',
-            modelId: 'mock-model-id',
-            timestamp: new Date(1000),
-          },
-          type: 'step-finish',
-          usage: {
-            completionTokens: 2,
-            promptTokens: 3,
-            totalTokens: 5,
-          },
-          isContinued: false,
-        },
-        {
-          experimental_providerMetadata: undefined,
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-1',
-            modelId: 'mock-model-id',
-            timestamp: new Date(1000),
-          },
-          type: 'finish',
-          usage: {
-            completionTokens: 27,
-            promptTokens: 43,
-            totalTokens: 70,
-          },
-        },
-      ]);
+      ).toMatchSnapshot();
     });
 
     describe('callbacks', () => {
@@ -2652,9 +2611,9 @@ describe('options.maxSteps', () => {
 
       it('result.usage should contain total token usage', async () => {
         expect(await result.usage).toStrictEqual({
-          completionTokens: 27,
-          promptTokens: 43,
-          totalTokens: 70,
+          completionTokens: 29,
+          promptTokens: 46,
+          totalTokens: 75,
         });
       });
 
@@ -2665,7 +2624,7 @@ describe('options.maxSteps', () => {
       it('result.text should contain combined text from all steps', async () => {
         assert.strictEqual(
           await result.text,
-          'part 1 \n no-whitespacefinal value keep all whitespace\n end',
+          'part 1 \n no-whitespaceimmediatefollow  final value keep all whitespace\n end',
         );
       });
 
@@ -2677,21 +2636,25 @@ describe('options.maxSteps', () => {
         assert.deepStrictEqual(result.rawResponse, { headers: { call: '3' } });
       });
 
-      it('result.responseMessages should contain an assistant message with the combined text', async () => {
-        expect(await result.responseMessages).toStrictEqual([
+      it('result.response.messages should contain an assistant message with the combined text', async () => {
+        expect((await result.response).messages).toStrictEqual([
           {
             content: [
               {
+                type: 'text',
                 text: 'part 1 \n ',
-                type: 'text',
               },
               {
+                type: 'text',
                 text: 'no-whitespace',
-                type: 'text',
               },
               {
-                text: 'final value keep all whitespace\n end',
                 type: 'text',
+                text: 'immediatefollow  ',
+              },
+              {
+                type: 'text',
+                text: 'final value keep all whitespace\n end',
               },
             ],
             role: 'assistant',
@@ -3104,5 +3067,94 @@ describe('tools with custom schema', () => {
     expect(
       await convertAsyncIterableToArray(result.fullStream),
     ).toMatchSnapshot();
+  });
+});
+
+describe('options.messages', () => {
+  it('should detect and convert ui messages', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt }) => {
+          expect(prompt).toStrictEqual([
+            {
+              content: [
+                {
+                  text: 'prompt',
+                  type: 'text',
+                },
+              ],
+              providerMetadata: undefined,
+              role: 'user',
+            },
+            {
+              content: [
+                {
+                  args: {
+                    value: 'test-value',
+                  },
+                  providerMetadata: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'test-tool',
+                  type: 'tool-call',
+                },
+              ],
+              providerMetadata: undefined,
+              role: 'assistant',
+            },
+            {
+              content: [
+                {
+                  content: undefined,
+                  isError: undefined,
+                  providerMetadata: undefined,
+                  result: 'test result',
+                  toolCallId: 'call-1',
+                  toolName: 'test-tool',
+                  type: 'tool-result',
+                },
+              ],
+              providerMetadata: undefined,
+              role: 'tool',
+            },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      messages: [
+        {
+          role: 'user',
+          content: 'prompt',
+        },
+        {
+          role: 'assistant',
+          content: '',
+          toolInvocations: [
+            {
+              state: 'result',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              args: { value: 'test-value' },
+              result: 'test result',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(await convertAsyncIterableToArray(result.textStream)).toStrictEqual([
+      'Hello',
+    ]);
   });
 });

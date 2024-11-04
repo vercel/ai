@@ -79,7 +79,7 @@ Built-in tools allow models to use tools to generate better answers. For example
 
 ```ts highlight="1,8,9,10,11,12,13,14,15"
 import { friendli } from '@friendliai/ai-provider';
-import { convertToCoreMessages, streamText } from 'ai';
+import { streamText } from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
         { type: 'code:python-interpreter' }, // and more tools..!!
       ],
     }),
-    messages: convertToCoreMessages(messages),
+    messages,
   });
 
   return result.toDataStreamResponse();

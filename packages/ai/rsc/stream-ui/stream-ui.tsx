@@ -252,7 +252,10 @@ functionality that can be fully encapsulated in the provider.
   }
 
   const retry = retryWithExponentialBackoff({ maxRetries });
-  const validatedPrompt = standardizePrompt({ system, prompt, messages });
+  const validatedPrompt = standardizePrompt({
+    prompt: { system, prompt, messages },
+    tools: undefined, // streamUI tools don't support multi-modal tool result conversion
+  });
   const result = await retry(async () =>
     model.doStream({
       mode: {

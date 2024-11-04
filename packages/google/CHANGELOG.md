@@ -1,5 +1,26 @@
 # @ai-sdk/google
 
+## 0.0.55
+
+### Patch Changes
+
+- 11beb9d: fix (provider/google): support tool calls without parameters
+
+## 0.0.54
+
+### Patch Changes
+
+- 1486128: feat: add supportsUrl to language model specification
+- 1486128: feat (provider/google): support native file URLs without download
+- 3b1b69a: feat: provider-defined tools
+- Updated dependencies [aa98cdb]
+- Updated dependencies [1486128]
+- Updated dependencies [7b937c5]
+- Updated dependencies [3b1b69a]
+- Updated dependencies [811a317]
+  - @ai-sdk/provider-utils@1.0.22
+  - @ai-sdk/provider@0.0.26
+
 ## 0.0.53
 
 ### Patch Changes

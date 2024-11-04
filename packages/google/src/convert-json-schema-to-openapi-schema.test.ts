@@ -466,3 +466,30 @@ it('should handle descriptions', () => {
 
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
+
+it('should return undefined for empty object schemas', () => {
+  const emptyObjectSchemas = [
+    { type: 'object' },
+    { type: 'object', properties: {} },
+  ] as const;
+
+  emptyObjectSchemas.forEach(schema => {
+    expect(convertJSONSchemaToOpenAPISchema(schema)).toBeUndefined();
+  });
+});
+
+it('should handle non-empty object schemas', () => {
+  const nonEmptySchema = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+    },
+  } as const;
+
+  expect(convertJSONSchemaToOpenAPISchema(nonEmptySchema)).toEqual({
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+    },
+  });
+});

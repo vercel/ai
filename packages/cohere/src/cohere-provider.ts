@@ -5,7 +5,6 @@ import {
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
-  generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
@@ -42,7 +41,7 @@ Creates a model for text generation.
 export interface CohereProviderSettings {
   /**
 Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://api.cohere.com/v1`.
+The default prefix is `https://api.cohere.com/v2`.
    */
   baseURL?: string;
 
@@ -62,8 +61,6 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
-
-  generateId?: () => string;
 }
 
 /**
@@ -73,7 +70,7 @@ export function createCohere(
   options: CohereProviderSettings = {},
 ): CohereProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ?? 'https://api.cohere.com/v1';
+    withoutTrailingSlash(options.baseURL) ?? 'https://api.cohere.com/v2';
 
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
@@ -92,7 +89,6 @@ export function createCohere(
       provider: 'cohere.chat',
       baseURL,
       headers: getHeaders,
-      generateId: options.generateId ?? generateId,
       fetch: options.fetch,
     });
 

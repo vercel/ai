@@ -1,5 +1,121 @@
 # ai
 
+## 3.4.33
+
+### Patch Changes
+
+- ac380e3: fix (provider/anthropic): continuation mode with 3+ steps
+
+## 3.4.32
+
+### Patch Changes
+
+- 6bb9e51: fix (ai/core): expose response.messages in streamText
+
+## 3.4.31
+
+### Patch Changes
+
+- Updated dependencies [2dfb93e]
+  - @ai-sdk/react@0.0.70
+
+## 3.4.30
+
+### Patch Changes
+
+- Updated dependencies [a85c965]
+  - @ai-sdk/ui-utils@0.0.50
+  - @ai-sdk/react@0.0.69
+  - @ai-sdk/solid@0.0.54
+  - @ai-sdk/svelte@0.0.57
+  - @ai-sdk/vue@0.0.59
+
+## 3.4.29
+
+### Patch Changes
+
+- 54b56f7: feat (ai/core): send tool and tool choice telemetry data
+
+## 3.4.28
+
+### Patch Changes
+
+- 29f1390: feat (ai/test): add simulateReadableStream helper
+
+## 3.4.27
+
+### Patch Changes
+
+- fa772ae: feat (ai/core): automatically convert ui messages to core messages
+
+## 3.4.26
+
+### Patch Changes
+
+- 57f39ea: feat (ai/core): support multi-modal tool results in convertToCoreMessages
+
+## 3.4.25
+
+### Patch Changes
+
+- 6e0fa1c: fix (ai/core): wait for tool results to arrive before sending finish event
+
+## 3.4.24
+
+### Patch Changes
+
+- d92fd9f: feat (ui/svelte): support Svelte 5 peer dependency
+- Updated dependencies [d92fd9f]
+  - @ai-sdk/svelte@0.0.56
+
+## 3.4.23
+
+### Patch Changes
+
+- 8301e41: fix (ai/react): update React peer dependency version to allow rc releases.
+- Updated dependencies [8301e41]
+  - @ai-sdk/react@0.0.68
+
+## 3.4.22
+
+### Patch Changes
+
+- Updated dependencies [3bf8da0]
+  - @ai-sdk/ui-utils@0.0.49
+  - @ai-sdk/react@0.0.67
+  - @ai-sdk/solid@0.0.53
+  - @ai-sdk/svelte@0.0.55
+  - @ai-sdk/vue@0.0.58
+
+## 3.4.21
+
+### Patch Changes
+
+- 3954471: (experimental) fix passing "experimental_toToolResultContent" into PoolResultPart
+
+## 3.4.20
+
+### Patch Changes
+
+- aa98cdb: chore: more flexible dependency versioning
+- 1486128: feat: add supportsUrl to language model specification
+- 3b1b69a: feat: provider-defined tools
+- 85b98da: revert fix (ai/core): handle tool calls without results in message conversion
+- 7ceed77: feat (ai/core): expose response message for each step
+- 811a317: feat (ai/core): multi-part tool results (incl. images)
+- Updated dependencies [aa98cdb]
+- Updated dependencies [1486128]
+- Updated dependencies [7b937c5]
+- Updated dependencies [3b1b69a]
+- Updated dependencies [811a317]
+  - @ai-sdk/provider-utils@1.0.22
+  - @ai-sdk/provider@0.0.26
+  - @ai-sdk/ui-utils@0.0.48
+  - @ai-sdk/svelte@0.0.54
+  - @ai-sdk/react@0.0.66
+  - @ai-sdk/vue@0.0.57
+  - @ai-sdk/solid@0.0.52
+
 ## 3.4.19
 
 ### Patch Changes

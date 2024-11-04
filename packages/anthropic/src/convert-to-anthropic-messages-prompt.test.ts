@@ -8,8 +8,11 @@ describe('system messages', () => {
     });
 
     expect(result).toEqual({
-      messages: [],
-      system: [{ type: 'text', text: 'This is a system message' }],
+      prompt: {
+        messages: [],
+        system: [{ type: 'text', text: 'This is a system message' }],
+      },
+      betas: new Set(),
     });
   });
 
@@ -23,11 +26,14 @@ describe('system messages', () => {
     });
 
     expect(result).toEqual({
-      messages: [],
-      system: [
-        { type: 'text', text: 'This is a system message' },
-        { type: 'text', text: 'This is another system message' },
-      ],
+      prompt: {
+        messages: [],
+        system: [
+          { type: 'text', text: 'This is a system message' },
+          { type: 'text', text: 'This is another system message' },
+        ],
+      },
+      betas: new Set(),
     });
   });
 });
@@ -51,23 +57,106 @@ describe('user messages', () => {
     });
 
     expect(result).toEqual({
-      messages: [
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  data: 'AAECAw==',
+                  media_type: 'image/png',
+                  type: 'base64',
+                },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should add PDF file parts', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
         {
           role: 'user',
           content: [
             {
-              type: 'image',
-              source: {
-                data: 'AAECAw==',
-                media_type: 'image/png',
-                type: 'base64',
-              },
+              type: 'file',
+              data: 'base64PDFdata',
+              mimeType: 'application/pdf',
             },
           ],
         },
       ],
-      system: undefined,
+      cacheControl: false,
     });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'base64',
+                  media_type: 'application/pdf',
+                  data: 'base64PDFdata',
+                },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['pdfs-2024-09-25']),
+    });
+  });
+
+  it('should throw error for non-PDF file types', async () => {
+    expect(() =>
+      convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'base64data',
+                mimeType: 'text/plain',
+              },
+            ],
+          },
+        ],
+        cacheControl: false,
+      }),
+    ).toThrow('Non-PDF files in user messages');
+  });
+
+  it('should throw error for URL-based file parts', async () => {
+    expect(() =>
+      convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'base64data',
+                mimeType: 'text/plain',
+              },
+            ],
+          },
+        ],
+        cacheControl: false,
+      }),
+    ).toThrow('Non-PDF files in user messages');
   });
 });
 
@@ -91,20 +180,23 @@ describe('tool messages', () => {
     });
 
     expect(result).toEqual({
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'tool_result',
-              tool_use_id: 'tool-call-1',
-              is_error: undefined,
-              content: JSON.stringify({ test: 'This is a tool message' }),
-            },
-          ],
-        },
-      ],
-      system: undefined,
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'tool-call-1',
+                is_error: undefined,
+                content: JSON.stringify({ test: 'This is a tool message' }),
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
     });
   });
 
@@ -133,26 +225,29 @@ describe('tool messages', () => {
     });
 
     expect(result).toEqual({
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'tool_result',
-              tool_use_id: 'tool-call-1',
-              is_error: undefined,
-              content: JSON.stringify({ test: 'This is a tool message' }),
-            },
-            {
-              type: 'tool_result',
-              tool_use_id: 'tool-call-2',
-              is_error: undefined,
-              content: JSON.stringify({ something: 'else' }),
-            },
-          ],
-        },
-      ],
-      system: undefined,
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'tool-call-1',
+                is_error: undefined,
+                content: JSON.stringify({ test: 'This is a tool message' }),
+              },
+              {
+                type: 'tool_result',
+                tool_use_id: 'tool-call-2',
+                is_error: undefined,
+                content: JSON.stringify({ something: 'else' }),
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
     });
   });
 
@@ -179,21 +274,83 @@ describe('tool messages', () => {
     });
 
     expect(result).toEqual({
-      messages: [
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'tool-call-1',
+                is_error: undefined,
+                content: JSON.stringify({ test: 'This is a tool message' }),
+              },
+              { type: 'text', text: 'This is a user message' },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should handle tool result with content parts', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
         {
-          role: 'user',
+          role: 'tool',
           content: [
             {
-              type: 'tool_result',
-              tool_use_id: 'tool-call-1',
-              is_error: undefined,
-              content: JSON.stringify({ test: 'This is a tool message' }),
+              type: 'tool-result',
+              toolName: 'image-generator',
+              toolCallId: 'image-gen-1',
+              result: 'Image generated successfully',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Image generated successfully',
+                },
+                {
+                  type: 'image',
+                  data: 'AAECAw==',
+                  mimeType: 'image/png',
+                },
+              ],
             },
-            { type: 'text', text: 'This is a user message' },
           ],
         },
       ],
-      system: undefined,
+      cacheControl: false,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'image-gen-1',
+                is_error: undefined,
+                content: [
+                  { type: 'text', text: 'Image generated successfully' },
+                  {
+                    type: 'image',
+                    source: {
+                      type: 'base64',
+                      data: 'AAECAw==',
+                      media_type: 'image/png',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      betas: new Set(),
     });
   });
 });
@@ -215,17 +372,57 @@ describe('assistant messages', () => {
     });
 
     expect(result).toEqual({
-      messages: [
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'user content' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'assistant content' }],
+          },
+        ],
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should remove trailing whitespace from last assistant message with multi-part content when there is no further user message', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
         {
           role: 'user',
           content: [{ type: 'text', text: 'user content' }],
         },
         {
           role: 'assistant',
-          content: [{ type: 'text', text: 'assistant content' }],
+          content: [
+            { type: 'text', text: 'assistant ' },
+            { type: 'text', text: 'content  ' },
+          ],
         },
       ],
-      system: undefined,
+      cacheControl: false,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'user content' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'assistant ' },
+              { type: 'text', text: 'content' },
+            ],
+          },
+        ],
+      },
+      betas: new Set(),
     });
   });
 
@@ -249,21 +446,23 @@ describe('assistant messages', () => {
     });
 
     expect(result).toEqual({
-      messages: [
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'user content' }],
-        },
-        {
-          role: 'assistant',
-          content: [{ type: 'text', text: 'assistant content  ' }],
-        },
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'user content 2' }],
-        },
-      ],
-      system: undefined,
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'user content' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'assistant content  ' }],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'user content 2' }],
+          },
+        ],
+      },
+      betas: new Set(),
     });
   });
 
@@ -279,18 +478,20 @@ describe('assistant messages', () => {
     });
 
     expect(result).toEqual({
-      messages: [
-        { role: 'user', content: [{ type: 'text', text: 'Hi!' }] },
-        {
-          role: 'assistant',
-          content: [
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: 'World' },
-            { type: 'text', text: '!' },
-          ],
-        },
-      ],
-      system: undefined,
+      prompt: {
+        messages: [
+          { role: 'user', content: [{ type: 'text', text: 'Hi!' }] },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'Hello' },
+              { type: 'text', text: 'World' },
+              { type: 'text', text: '!' },
+            ],
+          },
+        ],
+      },
+      betas: new Set(),
     });
   });
 });
@@ -312,14 +513,17 @@ describe('cache control', () => {
       });
 
       expect(result).toEqual({
-        messages: [],
-        system: [
-          {
-            type: 'text',
-            text: 'system message',
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
+        prompt: {
+          messages: [],
+          system: [
+            {
+              type: 'text',
+              text: 'system message',
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+        },
+        betas: new Set(),
       });
     });
   });
@@ -347,19 +551,21 @@ describe('cache control', () => {
       });
 
       expect(result).toEqual({
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'test',
-                cache_control: { type: 'ephemeral' },
-              },
-            ],
-          },
-        ],
-        system: undefined,
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'test',
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
       });
     });
 
@@ -383,24 +589,26 @@ describe('cache control', () => {
       });
 
       expect(result).toEqual({
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'part1',
-                cache_control: undefined,
-              },
-              {
-                type: 'text',
-                text: 'part2',
-                cache_control: { type: 'ephemeral' },
-              },
-            ],
-          },
-        ],
-        system: undefined,
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'part1',
+                  cache_control: undefined,
+                },
+                {
+                  type: 'text',
+                  text: 'part2',
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
       });
     });
   });
@@ -429,20 +637,22 @@ describe('cache control', () => {
       });
 
       expect(result).toEqual({
-        messages: [
-          { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'text',
-                text: 'test',
-                cache_control: { type: 'ephemeral' },
-              },
-            ],
-          },
-        ],
-        system: undefined,
+        prompt: {
+          messages: [
+            { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'test',
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
       });
     });
 
@@ -471,22 +681,24 @@ describe('cache control', () => {
       });
 
       expect(result).toEqual({
-        messages: [
-          { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool_use',
-                name: 'test-tool',
-                id: 'test-id',
-                input: { some: 'arg' },
-                cache_control: { type: 'ephemeral' },
-              },
-            ],
-          },
-        ],
-        system: undefined,
+        prompt: {
+          messages: [
+            { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool_use',
+                  name: 'test-tool',
+                  id: 'test-id',
+                  input: { some: 'arg' },
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
       });
     });
 
@@ -511,25 +723,27 @@ describe('cache control', () => {
       });
 
       expect(result).toEqual({
-        messages: [
-          { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'text',
-                text: 'part1',
-                cache_control: undefined,
-              },
-              {
-                type: 'text',
-                text: 'part2',
-                cache_control: { type: 'ephemeral' },
-              },
-            ],
-          },
-        ],
-        system: undefined,
+        prompt: {
+          messages: [
+            { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'part1',
+                  cache_control: undefined,
+                },
+                {
+                  type: 'text',
+                  text: 'part2',
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
       });
     });
   });
@@ -559,21 +773,23 @@ describe('cache control', () => {
       });
 
       expect(result).toEqual({
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'tool_result',
-                content: '{"test":"test"}',
-                is_error: undefined,
-                tool_use_id: 'test',
-                cache_control: { type: 'ephemeral' },
-              },
-            ],
-          },
-        ],
-        system: undefined,
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'tool_result',
+                  content: '{"test":"test"}',
+                  is_error: undefined,
+                  tool_use_id: 'test',
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
       });
     });
 
@@ -607,28 +823,30 @@ describe('cache control', () => {
       });
 
       expect(result).toEqual({
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'tool_result',
-                tool_use_id: 'part1',
-                content: '{"test":"part1"}',
-                is_error: undefined,
-                cache_control: undefined,
-              },
-              {
-                type: 'tool_result',
-                tool_use_id: 'part2',
-                content: '{"test":"part2"}',
-                is_error: undefined,
-                cache_control: { type: 'ephemeral' },
-              },
-            ],
-          },
-        ],
-        system: undefined,
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'tool_result',
+                  tool_use_id: 'part1',
+                  content: '{"test":"part1"}',
+                  is_error: undefined,
+                  cache_control: undefined,
+                },
+                {
+                  type: 'tool_result',
+                  tool_use_id: 'part2',
+                  content: '{"test":"part2"}',
+                  is_error: undefined,
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
       });
     });
   });
@@ -656,19 +874,21 @@ describe('cache control', () => {
       });
 
       expect(result).toEqual({
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'test',
-                cache_control: undefined,
-              },
-            ],
-          },
-        ],
-        system: undefined,
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'test',
+                  cache_control: undefined,
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
       });
     });
   });

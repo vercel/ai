@@ -303,7 +303,13 @@ describe('doGenerate', () => {
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'object-json', schema: { type: 'object' } },
+        mode: {
+          type: 'object-json',
+          schema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+          },
+        },
         prompt: TEST_PROMPT,
       });
 
@@ -318,6 +324,11 @@ describe('doGenerate', () => {
           responseMimeType: 'application/json',
           responseSchema: {
             type: 'object',
+            properties: {
+              location: {
+                type: 'string',
+              },
+            },
           },
         },
       });

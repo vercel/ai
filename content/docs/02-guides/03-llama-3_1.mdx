@@ -54,6 +54,7 @@ const { text } = await generateText({
   [Groq](/providers/ai-sdk-providers/groq), [Amazon
   Bedrock](/providers/ai-sdk-providers/amazon-bedrock),
   [Perplexity](/providers/ai-sdk-providers/perplexity),
+  [Baseten](/providers/openai-compatible-providers/baseten)
   [Fireworks](/providers/ai-sdk-providers/fireworks), and more.
 </Note>
 
@@ -212,7 +213,7 @@ With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useC
 Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and Llama 3.1 (via [Groq](https://groq.com/)):
 
 ```tsx filename="app/api/chat/route.ts"
-import { convertToCoreMessages, streamText } from 'ai';
+import { streamText } from 'ai';
 import { createOpenAI as createGroq } from '@ai-sdk/openai';
 
 const groq = createGroq({
@@ -229,7 +230,7 @@ export async function POST(req: Request) {
   const result = await streamText({
     model: groq('llama-3.1-70b-versatile'),
     system: 'You are a helpful assistant.',
-    messages: convertToCoreMessages(messages),
+    messages,
   });
 
   return result.toDataStreamResponse();

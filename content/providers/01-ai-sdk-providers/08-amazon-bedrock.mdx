@@ -157,8 +157,6 @@ const model = bedrock('anthropic.claude-3-sonnet-20240229-v1:0', {
 
 Documentation for additional settings based on the selected model can be found within the [Amazon Bedrock Inference Parameter Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html).
 
-### Example
-
 You can use Amazon Bedrock language models to generate text with the `generateText` function:
 
 ```ts
@@ -173,6 +171,37 @@ const { text } = await generateText({
 
 Amazon Bedrock language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
+
+### File Inputs
+
+<Note type="warning">
+  Amazon Bedrock supports file inputs on in combination with specific models,
+  e.g. `anthropic.claude-3-haiku-20240307-v1:0`.
+</Note>
+
+The Amazon Bedrock provider supports file inputs, e.g. PDF files.
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the pdf in detail.' },
+        {
+          type: 'file',
+          data: fs.readFileSync('./data/ai.pdf'),
+          mimeType: 'application/pdf',
+        },
+      ],
+    },
+  ],
+});
+```
 
 ### Guardrails
 

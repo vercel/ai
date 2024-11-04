@@ -322,7 +322,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
 ]
 `;
 
-exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish should be called for each step 1`] = `
+exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onStepFinish should be called for each step 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
@@ -403,8 +403,8 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
   },
   {
     "experimental_providerMetadata": undefined,
-    "finishReason": "stop",
-    "isContinued": false,
+    "finishReason": "length",
+    "isContinued": true,
     "logprobs": undefined,
     "request": {},
     "response": {
@@ -420,6 +420,53 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
             },
             {
               "text": "no-whitespace",
+              "type": "text",
+            },
+            {
+              "text": "immediatefollow  ",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:20.000Z,
+    },
+    "stepType": "continue",
+    "text": "immediatefollow  ",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 2,
+      "promptTokens": 3,
+      "totalTokens": 5,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "test-id-4-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+            {
+              "text": "no-whitespace",
+              "type": "text",
+            },
+            {
+              "text": "immediatefollow  ",
               "type": "text",
             },
             {
@@ -449,7 +496,7 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > onStepFinish 
 ]
 `;
 
-exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps should contain all steps 1`] = `
+exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > result.steps should contain all steps 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
@@ -530,8 +577,8 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
   },
   {
     "experimental_providerMetadata": undefined,
-    "finishReason": "stop",
-    "isContinued": false,
+    "finishReason": "length",
+    "isContinued": true,
     "logprobs": undefined,
     "request": {},
     "response": {
@@ -547,6 +594,53 @@ exports[`options.maxSteps > 3 steps: initial, continue, continue > result.steps 
             },
             {
               "text": "no-whitespace",
+              "type": "text",
+            },
+            {
+              "text": "immediatefollow  ",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:20.000Z,
+    },
+    "stepType": "continue",
+    "text": "immediatefollow  ",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 2,
+      "promptTokens": 3,
+      "totalTokens": 5,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "test-id-4-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+            {
+              "text": "no-whitespace",
+              "type": "text",
+            },
+            {
+              "text": "immediatefollow  ",
               "type": "text",
             },
             {
@@ -598,7 +692,7 @@ exports[`result.response > should contain response information 1`] = `
 }
 `;
 
-exports[`result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
+exports[`result.response.messages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
 [
   {
     "content": [
@@ -631,7 +725,7 @@ exports[`result.responseMessages > should contain assistant response message and
 ]
 `;
 
-exports[`result.responseMessages > should contain assistant response message when there are no tool calls 1`] = `
+exports[`result.response.messages > should contain assistant response message when there are no tool calls 1`] = `
 [
   {
     "content": [
@@ -731,6 +825,10 @@ exports[`telemetry > should record successful tool call 1`] = `
       "ai.operationId": "ai.generateText.doGenerate",
       "ai.prompt.format": "prompt",
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+      "ai.prompt.toolChoice": "{"type":"auto"}",
+      "ai.prompt.tools": [
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+      ],
       "ai.response.finishReason": "stop",
       "ai.response.id": "test-id",
       "ai.response.model": "mock-model-id",

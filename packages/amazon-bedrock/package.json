@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "0.0.31",
+  "version": "0.0.35",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,8 +30,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.25",
-    "@ai-sdk/provider-utils": "1.0.21",
+    "@ai-sdk/provider": "0.0.26",
+    "@ai-sdk/provider-utils": "1.0.22",
     "@aws-sdk/client-bedrock-runtime": "^3.663.0"
   },
   "devDependencies": {

@@ -13,17 +13,15 @@ Let's create a weather tool that fetches weather data for a given location and r
 import { z } from 'zod';
 import { openai } from '@ai-sdk/openai';
 import { getWeather } from '@/utils/queries';
-import { streamText, convertToCoreMessages } from 'ai';
+import { streamText } from 'ai';
 
 export function POST(request) {
   const { messages } = await request.json();
 
-  const coreMessages = convertToCoreMessages(messages);
-
   const result = await streamText({
     model: openai('gpt-4o'),
     system: 'you are a friendly assistant!',
-    messages: coreMessages,
+    messages,
     tools: {
       displayWeather: {
         description: 'Display the weather for a location',

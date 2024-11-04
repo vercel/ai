@@ -75,9 +75,6 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   telemetry: TelemetrySettings | undefined;
   abortSignal: AbortSignal | undefined;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
-  let canClose = false;
-  const outstandingToolCalls = new Set<string>();
-
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
     SingleRequestTextStreamPart<TOOLS>
@@ -90,8 +87,30 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
     },
   });
 
-  // keep track of active tool calls
+  // keep track of active tool calls for tool call streaming:
   const activeToolCalls: Record<string, boolean> = {};
+
+  // keep track of outstanding tool results for stream closing:
+  const outstandingToolResults = new Set<string>();
+
+  let canClose = false;
+  let finishChunk:
+    | (SingleRequestTextStreamPart<TOOLS> & { type: 'finish' })
+    | undefined = undefined;
+
+  function attemptClose() {
+    // close the tool results controller if no more outstanding tool calls
+    if (canClose && outstandingToolResults.size === 0) {
+      // we delay sending the finish chunk until all tool results (incl. delayed ones)
+      // are received to ensure that the frontend receives tool results before a message
+      // finish event arrives.
+      if (finishChunk != null) {
+        toolResultsStreamController!.enqueue(finishChunk);
+      }
+
+      toolResultsStreamController!.close();
+    }
+  }
 
   // forward stream
   const forwardStream = new TransformStream<
@@ -174,7 +193,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
 
             if (tool.execute != null) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
-              outstandingToolCalls.add(toolExecutionId);
+              outstandingToolResults.add(toolExecutionId);
 
               // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
               // because we want to process the next chunk as soon as possible.
@@ -205,12 +224,9 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                         result,
                       } as any);
 
-                      outstandingToolCalls.delete(toolExecutionId);
+                      outstandingToolResults.delete(toolExecutionId);
 
-                      // close the tool results controller if no more outstanding tool calls
-                      if (canClose && outstandingToolCalls.size === 0) {
-                        toolResultsStreamController!.close();
-                      }
+                      attemptClose();
 
                       // record telemetry
                       try {
@@ -237,12 +253,8 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                         error,
                       });
 
-                      outstandingToolCalls.delete(toolExecutionId);
-
-                      // close the tool results controller if no more outstanding tool calls
-                      if (canClose && outstandingToolCalls.size === 0) {
-                        toolResultsStreamController!.close();
-                      }
+                      outstandingToolResults.delete(toolExecutionId);
+                      attemptClose();
                     },
                   ),
               });
@@ -257,15 +269,14 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
           break;
         }
 
-        // process finish:
         case 'finish': {
-          controller.enqueue({
+          finishChunk = {
             type: 'finish',
             finishReason: chunk.finishReason,
             logprobs: chunk.logprobs,
             usage: calculateLanguageModelUsage(chunk.usage),
             experimental_providerMetadata: chunk.providerMetadata,
-          });
+          };
           break;
         }
 
@@ -278,10 +289,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
 
     flush() {
       canClose = true;
-
-      if (outstandingToolCalls.size === 0) {
-        toolResultsStreamController!.close();
-      }
+      attemptClose();
     },
   });
 

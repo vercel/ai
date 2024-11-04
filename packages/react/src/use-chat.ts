@@ -1,8 +1,8 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
+  Attachment,
   ChatRequest,
   ChatRequestOptions,
-  Attachment,
   CreateMessage,
   IdGenerator,
   JSONValue,
@@ -16,6 +16,7 @@ import {
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
+import { throttle } from './throttle';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -221,6 +222,7 @@ export function useChat({
   generateId = generateIdFunc,
   fetch,
   keepLastMessageOnError = false,
+  experimental_throttle: throttleWaitMs,
 }: UseChatOptions & {
   key?: string;
 
@@ -248,6 +250,12 @@ export function useChat({
     requestData?: JSONValue;
     requestBody?: object;
   }) => JSONValue;
+
+  /**
+Custom throttle wait in ms for the chat messages and data updates.
+Default is undefined, which disables throttling.
+   */
+  experimental_throttle?: number;
 
   /**
 Maximum number of automatic roundtrips for tool calls.
@@ -374,8 +382,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
             getStreamedResponse(
               api,
               chatRequest,
-              mutate,
-              mutateStreamData,
+              // throttle streamed ui updates:
+              throttle(mutate, throttleWaitMs),
+              throttle(mutateStreamData, throttleWaitMs),
               streamDataRef,
               extraMetadataRef,
               messagesRef,
@@ -456,6 +465,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       generateId,
       fetch,
       keepLastMessageOnError,
+      throttleWaitMs,
     ],
   );
 

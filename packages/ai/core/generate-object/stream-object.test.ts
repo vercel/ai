@@ -1879,3 +1879,110 @@ describe('telemetry', () => {
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });
+
+describe('options.messages', () => {
+  it('should detect and convert ui messages', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt }) => {
+          expect(prompt).toStrictEqual([
+            {
+              role: 'system',
+              content:
+                'JSON schema:\n' +
+                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+            },
+            {
+              content: [
+                {
+                  text: 'prompt',
+                  type: 'text',
+                },
+              ],
+              providerMetadata: undefined,
+              role: 'user',
+            },
+            {
+              content: [
+                {
+                  args: {
+                    value: 'test-value',
+                  },
+                  providerMetadata: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'test-tool',
+                  type: 'tool-call',
+                },
+              ],
+              providerMetadata: undefined,
+              role: 'assistant',
+            },
+            {
+              content: [
+                {
+                  content: undefined,
+                  isError: undefined,
+                  providerMetadata: undefined,
+                  result: 'test result',
+                  toolCallId: 'call-1',
+                  toolName: 'test-tool',
+                  type: 'tool-result',
+                },
+              ],
+              providerMetadata: undefined,
+              role: 'tool',
+            },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      messages: [
+        {
+          role: 'user',
+          content: 'prompt',
+        },
+        {
+          role: 'assistant',
+          content: '',
+          toolInvocations: [
+            {
+              state: 'result',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              args: { value: 'test-value' },
+              result: 'test result',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(
+      await convertAsyncIterableToArray(result.partialObjectStream),
+    ).toStrictEqual([
+      {},
+      { content: 'Hello, ' },
+      { content: 'Hello, world' },
+      { content: 'Hello, world!' },
+    ]);
+  });
+});

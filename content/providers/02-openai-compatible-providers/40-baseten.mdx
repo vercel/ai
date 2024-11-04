@@ -1,0 +1,145 @@
+---
+title: Baseten
+description: Use a Baseten OpenAI compatible API with the AI SDK.
+---
+
+# Baseten Provider
+
+[Baseten](https://baseten.co/) is a platform for running and testing LLMs.
+It allows you to deploy models that are OpenAI API compatible that you can use with the AI SDK.
+
+## Setup
+
+The Baseten provider is available via the `@ai-sdk/openai` module as it is compatible with the OpenAI API.
+You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use Baseten, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const BASETEN_MODEL_ID = '<deployment-id>';
+const BASETEN_DEPLOYMENT_ID = null;
+
+// see https://docs.baseten.co/api-reference/openai for more information
+const basetenExtraPayload = {
+  model_id: BASETEN_MODEL_ID,
+  deployment_id: BASETEN_DEPLOYMENT_ID,
+};
+
+const baseten = createOpenAI({
+  name: 'baseten',
+  apiKey: process.env.BASETEN_API_KEY ?? '',
+  baseURL: 'https://bridge.baseten.co/v1/direct',
+  fetch: async (url, request) => {
+    const bodyWithBasetenPayload = JSON.stringify({
+      ...JSON.parse(request.body),
+      baseten: basetenExtraPayload,
+    });
+    return await fetch(url, { ...request, body: bodyWithBasetenPayload });
+  },
+});
+```
+
+Be sure to have your `BASETEN_API_KEY` set in your environment and the model `deployment id` ready. The `deployment_id` will be given after you have deployed the model on Baseten.
+
+## Language Models
+
+You can create [Baseten models](https://baseten.co/models) using a provider instance.
+The first argument is the served model name, e.g. `ultravox`.
+
+```ts
+const model = baseten('ultravox');
+```
+
+### Example
+
+You can use Baseten language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const BASETEN_MODEL_ID = '<deployment-id>';
+const BASETEN_DEPLOYMENT_ID = null;
+
+// see https://docs.baseten.co/api-reference/openai for more information
+const basetenExtraPayload = {
+  model_id: BASETEN_MODEL_ID,
+  deployment_id: BASETEN_DEPLOYMENT_ID,
+};
+
+const baseten = createOpenAI({
+  name: 'baseten',
+  apiKey: process.env.BASETEN_API_KEY ?? '',
+  baseURL: 'https://bridge.baseten.co/v1/direct',
+  fetch: async (url, request) => {
+    const bodyWithBasetenPayload = JSON.stringify({
+      ...JSON.parse(request.body),
+      baseten: basetenExtraPayload,
+    });
+    return await fetch(url, { ...request, body: bodyWithBasetenPayload });
+  },
+});
+
+const { text } = await generateText({
+  model: baseten('ultravox'),
+  prompt: 'Tell me about yourself in one sentence',
+});
+
+console.log(text);
+```
+
+Baseten language models are also able to generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const BASETEN_MODEL_ID = '<deployment-id>';
+const BASETEN_DEPLOYMENT_ID = null;
+
+// see https://docs.baseten.co/api-reference/openai for more information
+const basetenExtraPayload = {
+  model_id: BASETEN_MODEL_ID,
+  deployment_id: BASETEN_DEPLOYMENT_ID,
+};
+
+const baseten = createOpenAI({
+  name: 'baseten',
+  apiKey: process.env.BASETEN_API_KEY ?? '',
+  baseURL: 'https://bridge.baseten.co/v1/direct',
+  fetch: async (url, request) => {
+    const bodyWithBasetenPayload = JSON.stringify({
+      ...JSON.parse(request.body),
+      baseten: basetenExtraPayload,
+    });
+    return await fetch(url, { ...request, body: bodyWithBasetenPayload });
+  },
+});
+
+const result = await streamText({
+  model: baseten('ultravox'),
+  prompt: 'Tell me about yourself in one sentence',
+});
+
+for await (const message of result.textStream) {
+  console.log(message);
+}
+```
+
+Baseten language models can also be used in the `generateObject`, and `streamObject` functions.

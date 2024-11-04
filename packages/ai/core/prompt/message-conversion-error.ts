@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { ConvertibleMessage } from './convert-to-core-messages';
+import { UIMessage } from './ui-message';
 
 const name = 'AI_MessageConversionError';
 const marker = `vercel.ai.error.${name}`;
@@ -8,13 +8,13 @@ const symbol = Symbol.for(marker);
 export class MessageConversionError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
-  readonly originalMessage: ConvertibleMessage;
+  readonly originalMessage: UIMessage;
 
   constructor({
     originalMessage,
     message,
   }: {
-    originalMessage: ConvertibleMessage;
+    originalMessage: UIMessage;
     message: string;
   }) {
     super({ name, message });

@@ -18,6 +18,8 @@ standardized instrumentation for collecting telemetry data.
 The following observability integrations support AI SDK Telemetry data:
 
 - [Langfuse](https://langfuse.com/docs/integrations/vercel-ai-sdk)
+- [LangSmith](https://docs.smith.langchain.com/observability/how_to_guides/tracing/trace_with_vercel_ai_sdk)
+- [Braintrust](https://www.braintrust.dev/docs/cookbook/recipes/OTEL-logging)
 
 <Note>
   Do you have an observability integration that supports AI SDK Telemetry data
@@ -106,6 +108,11 @@ const result = await generateText({
   - `ai.operationId`: `"ai.generateText.doGenerate"`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
+  - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined`.
+    Function tools have a `name`, `description` (optional), and `parameters` (JSON schema).
+    Provider-defined tools have a `name`, `id`, and `args` (Record).
+  - `ai.prompt.toolChoice`: the stringified tool choice setting (JSON). It has a `type` property
+    (`auto`, `none`, `required`, `tool`), and if the type is `tool`, a `toolName` property with the specific tool.
   - `ai.response.text`: the text that was generated
   - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.response.finishReason`: the reason why the generation finished
@@ -135,6 +142,11 @@ const result = await generateText({
   - `ai.operationId`: `"ai.streamText.doStream"`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
+  - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined`.
+    Function tools have a `name`, `description` (optional), and `parameters` (JSON schema).
+    Provider-defined tools have a `name`, `id`, and `args` (Record).
+  - `ai.prompt.toolChoice`: the stringified tool choice setting (JSON). It has a `type` property
+    (`auto`, `none`, `required`, `tool`), and if the type is `tool`, a `toolName` property with the specific tool.
   - `ai.response.text`: the text that was generated
   - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.response.msToFirstChunk`: the time it took to receive the first chunk in milliseconds

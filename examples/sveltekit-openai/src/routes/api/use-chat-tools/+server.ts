@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToCoreMessages, streamText } from 'ai';
+import { streamText } from 'ai';
 import { z } from 'zod';
 
 import { env } from '$env/dynamic/private';
@@ -19,7 +19,7 @@ export const POST = (async ({ request }) => {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages: convertToCoreMessages(messages),
+    messages,
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {

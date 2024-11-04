@@ -16,7 +16,6 @@ The flow is as follows:
 
 1. The user enters a message in the chat UI.
 1. The message is sent to the API route.
-1. The messages from the client are converted to AI SDK Core messages using `convertToCoreMessages`.
 1. In your server side route, the language model generates tool calls during the `streamText` call.
 1. All tool calls are forwarded to the client.
 1. Server-side tools are executed using their `execute` method and their results are forwarded to the client.
@@ -52,7 +51,7 @@ In this example, we'll use three tools:
 
 ```tsx filename='app/api/chat/route.ts'
 import { openai } from '@ai-sdk/openai';
-import { convertToCoreMessages, streamText } from 'ai';
+import { streamText } from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
@@ -63,7 +62,7 @@ export async function POST(req: Request) {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages: convertToCoreMessages(messages),
+    messages,
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {
@@ -247,7 +246,7 @@ This works when all invoked tools have an `execute` function on the server side.
 
 ```tsx filename='app/api/chat/route.ts' highlight="15-21,24"
 import { openai } from '@ai-sdk/openai';
-import { convertToCoreMessages, streamText } from 'ai';
+import { streamText } from 'ai';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
@@ -255,7 +254,7 @@ export async function POST(req: Request) {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages: convertToCoreMessages(messages),
+    messages,
     tools: {
       getWeatherInformation: {
         description: 'show the weather in a given city to the user',

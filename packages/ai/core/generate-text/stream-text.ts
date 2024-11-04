@@ -17,10 +17,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
-import {
-  StandardizedPrompt,
-  standardizePrompt,
-} from '../prompt/standardize-prompt';
+import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -281,7 +278,10 @@ need to be added separately.
 
   const tracer = getTracer(telemetry);
 
-  const initialPrompt = standardizePrompt({ system, prompt, messages });
+  const initialPrompt = standardizePrompt({
+    prompt: { system, prompt, messages },
+    tools,
+  });
 
   return recordSpan({
     name: 'ai.streamText',
@@ -321,6 +321,11 @@ need to be added separately.
           modelSupportsUrl: model.supportsUrl,
         });
 
+        const mode = {
+          type: 'regular' as const,
+          ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
+        };
+
         const {
           result: { stream, warnings, rawResponse, request },
           doStreamSpan,
@@ -342,6 +347,16 @@ need to be added separately.
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
                 },
+                'ai.prompt.tools': {
+                  // convert the language model level tools:
+                  input: () => mode.tools?.map(tool => JSON.stringify(tool)),
+                },
+                'ai.prompt.toolChoice': {
+                  input: () =>
+                    mode.toolChoice != null
+                      ? JSON.stringify(mode.toolChoice)
+                      : undefined,
+                },
 
                 // standardized gen-ai llm span attributes:
                 'gen_ai.system': model.provider,
@@ -361,14 +376,7 @@ need to be added separately.
               startTimestampMs: now(), // get before the call
               doStreamSpan,
               result: await model.doStream({
-                mode: {
-                  type: 'regular',
-                  ...prepareToolsAndToolChoice({
-                    tools,
-                    toolChoice,
-                    activeTools,
-                  }),
-                },
+                mode,
                 ...prepareCallSettings(settings),
                 inputFormat: promptFormat,
                 prompt: promptMessages,
@@ -424,6 +432,7 @@ need to be added separately.
         now,
         currentDate,
         generateId,
+        tools,
       });
     },
   });
@@ -482,6 +491,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     now,
     currentDate,
     generateId,
+    tools,
   }: {
     stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
     warnings: StreamTextResult<TOOLS>['warnings'];
@@ -510,6 +520,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
+    tools: TOOLS | undefined;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -598,6 +609,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       stepType,
       previousStepText = '',
       stepRequest,
+      hasLeadingWhitespace,
     }: {
       stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
       startTimestamp: number;
@@ -608,6 +620,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       stepType: 'initial' | 'continue' | 'tool-result';
       previousStepText?: string;
       stepRequest: LanguageModelRequestMetadata;
+      hasLeadingWhitespace: boolean;
     }) {
       const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
       const stepToolResults: ToolResultUnion<TOOLS>[] = [];
@@ -631,6 +644,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       // chunk buffer when using continue:
       let chunkBuffer = '';
       let chunkTextPublished = false;
+      let inWhitespacePrefix = true;
+      let hasWhitespaceSuffix = false; // for next step. when true, step ended with whitespace
 
       async function publishTextChunk({
         controller,
@@ -644,6 +659,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         stepText += chunk.textDelta;
         fullStepText += chunk.textDelta;
         chunkTextPublished = true;
+        hasWhitespaceSuffix = chunk.textDelta.trimEnd() !== chunk.textDelta;
 
         await onChunk?.({ chunk });
       }
@@ -685,7 +701,19 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
               switch (chunkType) {
                 case 'text-delta': {
                   if (continueSteps) {
-                    chunkBuffer += chunk.textDelta;
+                    // when a new step starts, leading whitespace is to be discarded
+                    // when there is already preceding whitespace in the chunk buffer
+                    const trimmedChunkText =
+                      inWhitespacePrefix && hasLeadingWhitespace
+                        ? chunk.textDelta.trimStart()
+                        : chunk.textDelta;
+
+                    if (trimmedChunkText.length === 0) {
+                      break;
+                    }
+
+                    inWhitespacePrefix = false;
+                    chunkBuffer += trimmedChunkText;
 
                     const split = splitOnLastWhitespace(chunkBuffer);
 
@@ -884,7 +912,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 ] as CoreAssistantMessage;
 
                 if (typeof lastMessage.content === 'string') {
-                  lastMessage.content = stepText;
+                  lastMessage.content += stepText;
                 } else {
                   lastMessage.content.push({
                     text: stepText,
@@ -895,6 +923,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 responseMessages.push(
                   ...toResponseMessages({
                     text: stepText,
+                    tools: tools ?? ({} as TOOLS),
                     toolCalls: stepToolCalls,
                     toolResults: stepToolResults,
                   }),
@@ -958,6 +987,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   stepType: nextStepType,
                   previousStepText: fullStepText,
                   stepRequest: result.request,
+                  hasLeadingWhitespace: hasWhitespaceSuffix,
                 });
 
                 return;
@@ -1015,6 +1045,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 resolveResponse({
                   ...stepResponse,
                   headers: rawResponse?.headers,
+                  messages: responseMessages,
                 });
                 resolveSteps(stepResults);
                 resolveResponseMessages(responseMessages);
@@ -1064,6 +1095,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       usage: undefined,
       stepType: 'initial',
       stepRequest: request,
+      hasLeadingWhitespace: false,
     });
   }
 

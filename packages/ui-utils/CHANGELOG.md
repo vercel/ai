@@ -1,5 +1,31 @@
 # @ai-sdk/ui-utils
 
+## 0.0.50
+
+### Patch Changes
+
+- a85c965: fix (ai/ui): send message annotations from onChunk
+
+## 0.0.49
+
+### Patch Changes
+
+- 3bf8da0: fix (ai/ui): update latest message with stream data message annotations until new message starts
+
+## 0.0.48
+
+### Patch Changes
+
+- aa98cdb: chore: more flexible dependency versioning
+- 811a317: feat (ai/core): multi-part tool results (incl. images)
+- Updated dependencies [aa98cdb]
+- Updated dependencies [1486128]
+- Updated dependencies [7b937c5]
+- Updated dependencies [3b1b69a]
+- Updated dependencies [811a317]
+  - @ai-sdk/provider-utils@1.0.22
+  - @ai-sdk/provider@0.0.26
+
 ## 0.0.47
 
 ### Patch Changes

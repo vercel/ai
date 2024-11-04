@@ -211,7 +211,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           args: {
             ...baseArgs,
             response_format:
-              this.settings.structuredOutputs === true
+              this.settings.structuredOutputs === true && mode.schema != null
                 ? {
                     type: 'json_schema',
                     json_schema: {

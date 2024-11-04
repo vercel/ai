@@ -6,8 +6,7 @@ import { bedrock } from '@ai-sdk/amazon-bedrock';
 
 async function main() {
   const result = await generateText({
-    model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
-    maxTokens: 512,
+    model: bedrock('anthropic.claude-3-5-sonnet-20240620-v1:0'),
     tools: {
       weather: weatherTool,
       cityAttractions: tool({
@@ -52,7 +51,8 @@ async function main() {
     }
   }
 
-  console.log(JSON.stringify(result, null, 2));
+  console.log(result.text);
+  console.log(JSON.stringify(result.toolCalls, null, 2));
 }
 
 main().catch(console.error);

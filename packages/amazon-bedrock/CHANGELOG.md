@@ -1,5 +1,36 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.35
+
+### Patch Changes
+
+- ac380e3: fix (provider/anthropic): continuation mode with 3+ steps
+
+## 0.0.34
+
+### Patch Changes
+
+- b01bbb7: fix (provider/bedrock): tool calling broken w/ sonnet 3.5
+
+## 0.0.33
+
+### Patch Changes
+
+- bc0ffc5: feat (provider/bedrock): add file content part support
+
+## 0.0.32
+
+### Patch Changes
+
+- 3b1b69a: feat: provider-defined tools
+- Updated dependencies [aa98cdb]
+- Updated dependencies [1486128]
+- Updated dependencies [7b937c5]
+- Updated dependencies [3b1b69a]
+- Updated dependencies [811a317]
+  - @ai-sdk/provider-utils@1.0.22
+  - @ai-sdk/provider@0.0.26
+
 ## 0.0.31
 
 ### Patch Changes

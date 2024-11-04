@@ -207,7 +207,10 @@ changing the tool call and result types in the result.
     settings: { ...settings, maxRetries },
   });
 
-  const initialPrompt = standardizePrompt({ system, prompt, messages });
+  const initialPrompt = standardizePrompt({
+    prompt: { system, prompt, messages },
+    tools,
+  });
 
   const tracer = getTracer(telemetry);
 
@@ -289,6 +292,16 @@ changing the tool call and result types in the result.
                 'ai.prompt.format': { input: () => promptFormat },
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
+                },
+                'ai.prompt.tools': {
+                  // convert the language model level tools:
+                  input: () => mode.tools?.map(tool => JSON.stringify(tool)),
+                },
+                'ai.prompt.toolChoice': {
+                  input: () =>
+                    mode.toolChoice != null
+                      ? JSON.stringify(mode.toolChoice)
+                      : undefined,
                 },
 
                 // standardized gen-ai llm span attributes:
@@ -412,12 +425,17 @@ changing the tool call and result types in the result.
         }
 
         // text:
+        const originalText = currentModelResponse.text ?? '';
+        const stepTextLeadingWhitespaceTrimmed =
+          stepType === 'continue' && // only for continue steps
+          text.trimEnd() !== text // only trim when there is preceding whitespace
+            ? originalText.trimStart()
+            : originalText;
         const stepText =
           nextStepType === 'continue'
-            ? removeTextAfterLastWhitespace(currentModelResponse.text ?? '')
-            : currentModelResponse.text ?? '';
+            ? removeTextAfterLastWhitespace(stepTextLeadingWhitespaceTrimmed)
+            : stepTextLeadingWhitespaceTrimmed;
 
-        // text updates
         text =
           nextStepType === 'continue' || stepType === 'continue'
             ? text + stepText
@@ -433,7 +451,7 @@ changing the tool call and result types in the result.
           ] as CoreAssistantMessage;
 
           if (typeof lastMessage.content === 'string') {
-            lastMessage.content = text;
+            lastMessage.content += stepText;
           } else {
             lastMessage.content.push({
               text: stepText,
@@ -444,6 +462,7 @@ changing the tool call and result types in the result.
           responseMessages.push(
             ...toResponseMessages({
               text,
+              tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
               toolResults: currentToolResults,
             }),

@@ -1,15 +1,14 @@
-import { CoreMessage, convertToCoreMessages, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
-  const { messages }: { messages: CoreMessage[] } = await req.json();
+  const { messages } = await req.json();
 
   const result = await streamText({
     model: openai('gpt-4'),
     system: 'You are a helpful assistant.',
-    // @ts-expect-error TODO: fix messages type
-    messages: convertToCoreMessages(messages),
+    messages,
     tools: {
       getWeatherInformation: {
         description: 'show the weather in a given city to the user',

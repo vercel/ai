@@ -102,10 +102,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const messagesPrompt = convertToAnthropicMessagesPrompt({
-      prompt,
-      cacheControl: this.settings.cacheControl ?? false,
-    });
+    const { prompt: messagesPrompt, betas: messagesBetas } =
+      convertToAnthropicMessagesPrompt({
+        prompt,
+        cacheControl: this.settings.cacheControl ?? false,
+      });
 
     const baseArgs = {
       // model id:
@@ -127,11 +128,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { tools, tool_choice, toolWarnings } = prepareTools(mode);
+        const {
+          tools,
+          tool_choice,
+          toolWarnings,
+          betas: toolsBetas,
+        } = prepareTools(mode);
 
         return {
           args: { ...baseArgs, tools, tool_choice },
           warnings: [...warnings, ...toolWarnings],
+          betas: new Set([...messagesBetas, ...toolsBetas]),
         };
       }
 
@@ -151,6 +158,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
             tool_choice: { type: 'tool', name },
           },
           warnings,
+          betas: messagesBetas,
         };
       }
 
@@ -161,26 +169,32 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     }
   }
 
-  private getHeaders(
-    optionHeaders: Record<string, string | undefined> | undefined,
-  ) {
+  private getHeaders({
+    betas,
+    headers,
+  }: {
+    betas: Set<string>;
+    headers: Record<string, string | undefined> | undefined;
+  }) {
+    if (this.settings.cacheControl) {
+      betas.add('prompt-caching-2024-07-31');
+    }
+
     return combineHeaders(
       this.config.headers(),
-      this.settings.cacheControl
-        ? { 'anthropic-beta': 'prompt-caching-2024-07-31' }
-        : {},
-      optionHeaders,
+      betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
+      headers,
     );
   }
 
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, betas } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: this.getHeaders(options.headers),
+      headers: this.getHeaders({ betas, headers: options.headers }),
       body: args,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -249,13 +263,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, betas } = await this.getArgs(options);
 
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: this.getHeaders(options.headers),
+      headers: this.getHeaders({ betas, headers: options.headers }),
       body,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

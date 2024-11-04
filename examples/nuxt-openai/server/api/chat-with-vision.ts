@@ -1,12 +1,10 @@
-import { convertToCoreMessages, streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 
 export default defineLazyEventHandler(async () => {
   const apiKey = useRuntimeConfig().openaiApiKey;
   if (!apiKey) throw new Error('Missing OpenAI API key');
-  const openai = createOpenAI({
-    apiKey: apiKey,
-  });
+  const openai = createOpenAI({ apiKey });
 
   return defineEventHandler(async (event: any) => {
     // Extract the `prompt` from the body of the request
@@ -20,7 +18,7 @@ export default defineLazyEventHandler(async () => {
       model: openai('gpt-4o'),
       maxTokens: 150,
       messages: [
-        ...convertToCoreMessages(initialMessages),
+        ...initialMessages,
         {
           role: 'user',
           content: [

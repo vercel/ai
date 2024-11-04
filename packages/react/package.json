@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "0.0.65",
+  "version": "0.0.70",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,9 +29,10 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@ai-sdk/provider-utils": "1.0.21",
-    "@ai-sdk/ui-utils": "0.0.47",
-    "swr": "^2.2.5"
+    "@ai-sdk/provider-utils": "1.0.22",
+    "@ai-sdk/ui-utils": "0.0.50",
+    "swr": "^2.2.5",
+    "throttleit": "2.1.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.8",
@@ -51,7 +52,7 @@
     "zod": "3.23.8"
   },
   "peerDependencies": {
-    "react": "^18 || ^19",
+    "react": "^18 || ^19 || ^19.0.0-rc",
     "zod": "^3.0.0"
   },
   "peerDependenciesMeta": {
