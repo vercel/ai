@@ -552,6 +552,7 @@ describe('options.maxSteps', () => {
 
                 return {
                   ...dummyResponseValues,
+                  // trailing text is to be discarded, trailing whitespace is to be kept:
                   text: 'part 1 \n to-be-discarded',
                   finishReason: 'length', // trigger continue
                   usage: { completionTokens: 20, promptTokens: 10 },
@@ -590,7 +591,9 @@ describe('options.maxSteps', () => {
 
                 return {
                   ...dummyResponseValues,
-                  text: 'no-whitespace',
+                  // leading whitespace is to be discarded when there is whitespace
+                  // (for models such as Anthropic that trim trailing whitespace in their inputs):
+                  text: '  no-whitespace',
                   finishReason: 'length',
                   response: {
                     id: 'test-id-2-from-model',
@@ -638,7 +641,8 @@ describe('options.maxSteps', () => {
 
                 return {
                   ...dummyResponseValues,
-                  text: 'final value keep all whitespace\n end',
+                  // leading whitespace is to be kept when there is no preceding whitespace:
+                  text: ' final value keep all whitespace\n end',
                   finishReason: 'stop',
                   response: {
                     id: 'test-id-3-from-model',
@@ -664,12 +668,12 @@ describe('options.maxSteps', () => {
 
     it('result.text should return text from both steps separated by space', async () => {
       expect(result.text).toStrictEqual(
-        'part 1 \n no-whitespacefinal value keep all whitespace\n end',
+        'part 1 \n no-whitespace final value keep all whitespace\n end',
       );
     });
 
-    it('result.responseMessages should contain an assistant message with the combined text', () => {
-      expect(result.responseMessages).toStrictEqual([
+    it('result.response.messages should contain an assistant message with the combined text', () => {
+      expect(result.response.messages).toStrictEqual([
         {
           content: [
             {
@@ -681,7 +685,7 @@ describe('options.maxSteps', () => {
               type: 'text',
             },
             {
-              text: 'final value keep all whitespace\n end',
+              text: ' final value keep all whitespace\n end',
               type: 'text',
             },
           ],

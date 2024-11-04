@@ -425,12 +425,17 @@ changing the tool call and result types in the result.
         }
 
         // text:
+        const originalText = currentModelResponse.text ?? '';
+        const stepTextLeadingWhitespaceTrimmed =
+          stepType === 'continue' && // only for continue steps
+          text.trimEnd() !== text // only trim when there is preceding whitespace
+            ? originalText.trimStart()
+            : originalText;
         const stepText =
           nextStepType === 'continue'
-            ? removeTextAfterLastWhitespace(currentModelResponse.text ?? '')
-            : currentModelResponse.text ?? '';
+            ? removeTextAfterLastWhitespace(stepTextLeadingWhitespaceTrimmed)
+            : stepTextLeadingWhitespaceTrimmed;
 
-        // text updates
         text =
           nextStepType === 'continue' || stepType === 'continue'
             ? text + stepText
