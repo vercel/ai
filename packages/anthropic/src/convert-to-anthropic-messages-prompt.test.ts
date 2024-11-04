@@ -388,6 +388,44 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should remove trailing whitespace from last assistant message with multi-part content when there is no further user message', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'assistant ' },
+            { type: 'text', text: 'content  ' },
+          ],
+        },
+      ],
+      cacheControl: false,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'user content' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'assistant ' },
+              { type: 'text', text: 'content' },
+            ],
+          },
+        ],
+      },
+      betas: new Set(),
+    });
+  });
+
   it('should keep trailing whitespace from assistant message when there is a further user message', async () => {
     const result = convertToAnthropicMessagesPrompt({
       prompt: [

@@ -895,7 +895,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 ] as CoreAssistantMessage;
 
                 if (typeof lastMessage.content === 'string') {
-                  lastMessage.content = stepText;
+                  lastMessage.content += stepText;
                 } else {
                   lastMessage.content.push({
                     text: stepText,

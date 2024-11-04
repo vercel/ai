@@ -446,7 +446,7 @@ changing the tool call and result types in the result.
           ] as CoreAssistantMessage;
 
           if (typeof lastMessage.content === 'string') {
-            lastMessage.content = text;
+            lastMessage.content += stepText;
           } else {
             lastMessage.content.push({
               text: stepText,
