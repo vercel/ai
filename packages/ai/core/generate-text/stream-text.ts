@@ -609,6 +609,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       stepType,
       previousStepText = '',
       stepRequest,
+      hasLeadingWhitespace,
     }: {
       stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
       startTimestamp: number;
@@ -619,6 +620,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       stepType: 'initial' | 'continue' | 'tool-result';
       previousStepText?: string;
       stepRequest: LanguageModelRequestMetadata;
+      hasLeadingWhitespace: boolean;
     }) {
       const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
       const stepToolResults: ToolResultUnion<TOOLS>[] = [];
@@ -642,6 +644,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       // chunk buffer when using continue:
       let chunkBuffer = '';
       let chunkTextPublished = false;
+      let inWhitespacePrefix = true;
+      let hasWhitespaceSuffix = false; // for next step. when true, step ended with whitespace
 
       async function publishTextChunk({
         controller,
@@ -655,6 +659,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         stepText += chunk.textDelta;
         fullStepText += chunk.textDelta;
         chunkTextPublished = true;
+        hasWhitespaceSuffix = chunk.textDelta.trimEnd() !== chunk.textDelta;
 
         await onChunk?.({ chunk });
       }
@@ -696,7 +701,19 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
               switch (chunkType) {
                 case 'text-delta': {
                   if (continueSteps) {
-                    chunkBuffer += chunk.textDelta;
+                    // when a new step starts, leading whitespace is to be discarded
+                    // when there is already preceding whitespace in the chunk buffer
+                    const trimmedChunkText =
+                      inWhitespacePrefix && hasLeadingWhitespace
+                        ? chunk.textDelta.trimStart()
+                        : chunk.textDelta;
+
+                    if (trimmedChunkText.length === 0) {
+                      break;
+                    }
+
+                    inWhitespacePrefix = false;
+                    chunkBuffer += trimmedChunkText;
 
                     const split = splitOnLastWhitespace(chunkBuffer);
 
@@ -970,6 +987,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   stepType: nextStepType,
                   previousStepText: fullStepText,
                   stepRequest: result.request,
+                  hasLeadingWhitespace: hasWhitespaceSuffix,
                 });
 
                 return;
@@ -1077,6 +1095,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       usage: undefined,
       stepType: 'initial',
       stepRequest: request,
+      hasLeadingWhitespace: false,
     });
   }
 
