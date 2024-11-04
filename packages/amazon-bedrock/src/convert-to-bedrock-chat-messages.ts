@@ -23,6 +23,7 @@ export function convertToBedrockChatMessages(
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
+    const isLastBlock = i === blocks.length - 1;
     const type = block.type;
 
     switch (type) {
@@ -132,11 +133,14 @@ export function convertToBedrockChatMessages(
         // combines multiple assistant messages in this block into a single message:
         const bedrockContent: BedrockAssistantMessage['content'] = [];
 
-        for (const message of block.messages) {
+        for (let j = 0; j < block.messages.length; j++) {
+          const message = block.messages[j];
+          const isLastMessage = j === block.messages.length - 1;
           const { content } = message;
 
-          for (let j = 0; j < content.length; j++) {
-            const part = content[j];
+          for (let k = 0; k < content.length; k++) {
+            const part = content[k];
+            const isLastContentPart = k === content.length - 1;
 
             switch (part.type) {
               case 'text': {
@@ -145,7 +149,7 @@ export function convertToBedrockChatMessages(
                     // trim the last text part if it's the last message in the block
                     // because Bedrock does not allow trailing whitespace
                     // in pre-filled assistant responses
-                    i === blocks.length - 1 && j === block.messages.length - 1
+                    isLastBlock && isLastMessage && isLastContentPart
                       ? part.text.trim()
                       : part.text,
                 });
