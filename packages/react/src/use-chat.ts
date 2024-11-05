@@ -81,7 +81,7 @@ export type UseChatHelpers = {
   ) => void;
 };
 
-const getStreamedResponse = async (
+const processResponseStream = async (
   api: string,
   chatRequest: ChatRequest,
   mutate: KeyedMutator<Message[]>,
@@ -348,7 +348,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
-        await getStreamedResponse(
+        await processResponseStream(
           api,
           chatRequest,
           // throttle streamed ui updates:
