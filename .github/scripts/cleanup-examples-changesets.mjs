@@ -11,30 +11,40 @@ import {
   writeFileSync,
   unlinkSync,
   readdirSync,
-  statSync
-} from 'node:fs'
-import { fileURLToPath } from 'url'
-import { join } from 'path'
+  statSync,
+} from 'node:fs';
+import { fileURLToPath } from 'url';
+import { join } from 'path';
 
-const examplesUrl = new URL('../../examples', import.meta.url)
-const examplesDir = fileURLToPath(examplesUrl)
+function cleanup(app, url) {
+  const appPath = join(fileURLToPath(url), app);
 
-console.log('Cleaning up examples...', examplesDir)
+  console.log('Cleaning up', appPath);
 
-for (const app of readdirSync(examplesDir)) {
-  const appPath = join(examplesDir, app)
   if (statSync(appPath).isDirectory()) {
-    const packageJsonPath = join(appPath, 'package.json')
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
-    packageJson.version = '0.0.0'
-    writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n')
+    const packageJsonPath = join(appPath, 'package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+    packageJson.version = '0.0.0';
+    writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
 
     try {
-      const changelogUrl = new URL(`examples/${app}/CHANGELOG.md`, examplesUrl)
-      console.log('Deleting', changelogUrl)
-      unlinkSync(changelogUrl)
+      const changelogUrl = new URL(`examples/${app}/CHANGELOG.md`, url);
+      console.log('Deleting', changelogUrl);
+      unlinkSync(changelogUrl);
     } catch (err) {
-      if (err.code !== 'ENOENT') throw err
+      if (err.code !== 'ENOENT') throw err;
     }
   }
 }
+
+// examples
+const examplesUrl = new URL('../../examples', import.meta.url);
+for (const app of readdirSync(fileURLToPath(examplesUrl))) {
+  cleanup(app, examplesUrl);
+}
+
+// next test server
+cleanup(
+  '.',
+  new URL('../../packages/ai/tests/e2e/next-server', import.meta.url),
+);
