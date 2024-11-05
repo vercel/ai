@@ -4,7 +4,6 @@ export type {
   createStreamableUI,
   createStreamableValue,
   streamUI,
-  render,
   createAI,
 } from './rsc-server';
 
