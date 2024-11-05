@@ -9,14 +9,6 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
   },
-  {
-    entry: ['prompts/index.ts'],
-    format: ['cjs', 'esm'],
-    external: ['react', 'svelte', 'vue'],
-    outDir: 'prompts/dist',
-    dts: true,
-    sourcemap: true,
-  },
   // Test utilities
   {
     entry: ['test/index.ts'],
