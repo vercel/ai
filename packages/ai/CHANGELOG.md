@@ -1,5 +1,18 @@
 # ai
 
+## 4.0.0-canary.1
+
+### Major Changes
+
+- 8bf5756: chore: remove legacy function/tool calling
+
+### Patch Changes
+
+- 1c58337: chore (ai): remove 2.x prompt helpers
+- Updated dependencies [8bf5756]
+  - @ai-sdk/ui-utils@1.0.0-canary.1
+  - @ai-sdk/react@1.0.0-canary.1
+
 ## 4.0.0-canary.0
 
 ### Major Changes
