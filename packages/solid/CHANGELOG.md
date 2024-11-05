@@ -1,5 +1,16 @@
 # @ai-sdk/solid
 
+## 1.0.0-canary.1
+
+### Major Changes
+
+- 8bf5756: chore: remove legacy function/tool calling
+
+### Patch Changes
+
+- Updated dependencies [8bf5756]
+  - @ai-sdk/ui-utils@1.0.0-canary.1
+
 ## 1.0.0-canary.0
 
 ### Major Changes

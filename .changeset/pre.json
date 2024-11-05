@@ -46,6 +46,8 @@
     "@vercel/ai-tsconfig": "0.0.0"
   },
   "changesets": [
+    "calm-emus-roll",
+    "perfect-trees-wait",
     "poor-ants-prove",
     "poor-melons-camp",
     "shy-ties-lie",
