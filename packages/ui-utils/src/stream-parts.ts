@@ -3,13 +3,7 @@ import {
   ToolCall as CoreToolCall,
   ToolResult as CoreToolResult,
 } from '@ai-sdk/provider-utils';
-import {
-  AssistantMessage,
-  DataMessage,
-  FunctionCall,
-  JSONValue,
-  ToolCall,
-} from './types';
+import { AssistantMessage, DataMessage, JSONValue } from './types';
 
 export type StreamString =
   `${(typeof StreamStringPrefixes)[keyof typeof StreamStringPrefixes]}:${string}\n`;
@@ -28,37 +22,6 @@ const textStreamPart: StreamPart<'0', 'text', string> = {
       throw new Error('"text" parts expect a string value.');
     }
     return { type: 'text', value };
-  },
-};
-
-const functionCallStreamPart: StreamPart<
-  '1',
-  'function_call',
-  { function_call: FunctionCall }
-> = {
-  code: '1',
-  name: 'function_call',
-  parse: (value: JSONValue) => {
-    if (
-      value == null ||
-      typeof value !== 'object' ||
-      !('function_call' in value) ||
-      typeof value.function_call !== 'object' ||
-      value.function_call == null ||
-      !('name' in value.function_call) ||
-      !('arguments' in value.function_call) ||
-      typeof value.function_call.name !== 'string' ||
-      typeof value.function_call.arguments !== 'string'
-    ) {
-      throw new Error(
-        '"function_call" parts expect an object with a "function_call" property.',
-      );
-    }
-
-    return {
-      type: 'function_call',
-      value: value as unknown as { function_call: FunctionCall },
-    };
   },
 };
 
@@ -182,49 +145,6 @@ const dataMessageStreamPart: StreamPart<'6', 'data_message', DataMessage> = {
     return {
       type: 'data_message',
       value: value as DataMessage,
-    };
-  },
-};
-
-const toolCallsStreamPart: StreamPart<
-  '7',
-  'tool_calls',
-  { tool_calls: ToolCall[] }
-> = {
-  code: '7',
-  name: 'tool_calls',
-  parse: (value: JSONValue) => {
-    if (
-      value == null ||
-      typeof value !== 'object' ||
-      !('tool_calls' in value) ||
-      typeof value.tool_calls !== 'object' ||
-      value.tool_calls == null ||
-      !Array.isArray(value.tool_calls) ||
-      value.tool_calls.some(
-        tc =>
-          tc == null ||
-          typeof tc !== 'object' ||
-          !('id' in tc) ||
-          typeof tc.id !== 'string' ||
-          !('type' in tc) ||
-          typeof tc.type !== 'string' ||
-          !('function' in tc) ||
-          tc.function == null ||
-          typeof tc.function !== 'object' ||
-          !('arguments' in tc.function) ||
-          typeof tc.function.name !== 'string' ||
-          typeof tc.function.arguments !== 'string',
-      )
-    ) {
-      throw new Error(
-        '"tool_calls" parts expect an object with a ToolCallPayload.',
-      );
-    }
-
-    return {
-      type: 'tool_calls',
-      value: value as unknown as { tool_calls: ToolCall[] },
     };
   },
 };
@@ -495,13 +415,11 @@ const finishStepStreamPart: StreamPart<
 
 const streamParts = [
   textStreamPart,
-  functionCallStreamPart,
   dataStreamPart,
   errorStreamPart,
   assistantMessageStreamPart,
   assistantControlDataStreamPart,
   dataMessageStreamPart,
-  toolCallsStreamPart,
   messageAnnotationsStreamPart,
   toolCallStreamPart,
   toolResultStreamPart,
@@ -514,13 +432,11 @@ const streamParts = [
 // union type of all stream parts
 type StreamParts =
   | typeof textStreamPart
-  | typeof functionCallStreamPart
   | typeof dataStreamPart
   | typeof errorStreamPart
   | typeof assistantMessageStreamPart
   | typeof assistantControlDataStreamPart
   | typeof dataMessageStreamPart
-  | typeof toolCallsStreamPart
   | typeof messageAnnotationsStreamPart
   | typeof toolCallStreamPart
   | typeof toolResultStreamPart
@@ -538,13 +454,11 @@ type StreamPartValueType = {
 
 export type StreamPartType =
   | ReturnType<typeof textStreamPart.parse>
-  | ReturnType<typeof functionCallStreamPart.parse>
   | ReturnType<typeof dataStreamPart.parse>
   | ReturnType<typeof errorStreamPart.parse>
   | ReturnType<typeof assistantMessageStreamPart.parse>
   | ReturnType<typeof assistantControlDataStreamPart.parse>
   | ReturnType<typeof dataMessageStreamPart.parse>
-  | ReturnType<typeof toolCallsStreamPart.parse>
   | ReturnType<typeof messageAnnotationsStreamPart.parse>
   | ReturnType<typeof toolCallStreamPart.parse>
   | ReturnType<typeof toolResultStreamPart.parse>
@@ -555,13 +469,11 @@ export type StreamPartType =
 
 export const streamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
-  [functionCallStreamPart.code]: functionCallStreamPart,
   [dataStreamPart.code]: dataStreamPart,
   [errorStreamPart.code]: errorStreamPart,
   [assistantMessageStreamPart.code]: assistantMessageStreamPart,
   [assistantControlDataStreamPart.code]: assistantControlDataStreamPart,
   [dataMessageStreamPart.code]: dataMessageStreamPart,
-  [toolCallsStreamPart.code]: toolCallsStreamPart,
   [messageAnnotationsStreamPart.code]: messageAnnotationsStreamPart,
   [toolCallStreamPart.code]: toolCallStreamPart,
   [toolResultStreamPart.code]: toolResultStreamPart,
@@ -595,13 +507,11 @@ export const streamPartsByCode = {
  */
 export const StreamStringPrefixes = {
   [textStreamPart.name]: textStreamPart.code,
-  [functionCallStreamPart.name]: functionCallStreamPart.code,
   [dataStreamPart.name]: dataStreamPart.code,
   [errorStreamPart.name]: errorStreamPart.code,
   [assistantMessageStreamPart.name]: assistantMessageStreamPart.code,
   [assistantControlDataStreamPart.name]: assistantControlDataStreamPart.code,
   [dataMessageStreamPart.name]: dataMessageStreamPart.code,
-  [toolCallsStreamPart.name]: toolCallsStreamPart.code,
   [messageAnnotationsStreamPart.name]: messageAnnotationsStreamPart.code,
   [toolCallStreamPart.name]: toolCallStreamPart.code,
   [toolResultStreamPart.name]: toolResultStreamPart.code,

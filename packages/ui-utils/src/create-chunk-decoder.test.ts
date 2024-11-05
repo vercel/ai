@@ -11,33 +11,6 @@ it('should correctly decode text chunk in complex mode', () => {
   expect(values).toStrictEqual([{ type: 'text', value: 'Hello, world!' }]);
 });
 
-it('should correctly decode function chunk in complex mode', () => {
-  const functionCall = {
-    name: 'get_current_weather',
-    arguments:
-      '{\n"location": "Charlottesville, Virginia",\n"format": "celsius"\n}',
-  };
-
-  const decoder = createChunkDecoder(true);
-
-  const encoder = new TextEncoder();
-  const chunk = encoder.encode(
-    formatStreamPart('function_call', {
-      function_call: functionCall,
-    }),
-  );
-  const values = decoder(chunk);
-
-  expect(values).toStrictEqual([
-    {
-      type: 'function_call',
-      value: {
-        function_call: functionCall,
-      },
-    },
-  ]);
-});
-
 it('should correctly decode data chunk in complex mode', () => {
   const data = [{ test: 'value' }];
 

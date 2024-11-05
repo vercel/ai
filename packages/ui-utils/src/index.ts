@@ -13,7 +13,6 @@ export type { DeepPartial } from './deep-partial';
 export { isDeepEqualData } from './is-deep-equal-data';
 export { processDataProtocolResponse } from './process-data-protocol-response';
 export { parsePartialJson } from './parse-partial-json';
-export { processChatStream } from './process-chat-stream';
 export { readDataStream } from './read-data-stream';
 export { asSchema, jsonSchema, zodSchema } from './schema';
 export type { Schema } from './schema';
