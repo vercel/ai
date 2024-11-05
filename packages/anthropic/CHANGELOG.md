@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.56
+
+### Patch Changes
+
+- e6042b1: feat (provider/anthropic): add haiku 3.5 model ids
+
 ## 0.0.55
 
 ### Patch Changes

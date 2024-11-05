@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.36
+
+### Patch Changes
+
+- e6042b1: feat (provider/anthropic): add haiku 3.5 model ids
+
 ## 0.0.35
 
 ### Patch Changes
