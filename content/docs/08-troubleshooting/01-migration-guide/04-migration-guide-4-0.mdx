@@ -11,6 +11,12 @@ description: Learn how to upgrade AI SDK 3.3 to 4.0.
   progress.
 </Note>
 
+## Recommended Process
+
+1. [migrate to AI SDK 3.3](/docs/08-troubleshooting/01-migration-guide/03-migration-guide-3-3).
+2. Resolve all deprecation warnings.
+3. Upgrade to AI SDK 4.0 and follow the breaking changes guide below.
+
 ## Breaking Changes
 
 ### Removed Svelte, Vue, and SolidJS exports
@@ -37,8 +43,22 @@ Please use the `streamUI` function instead or switch to AI SDK UI.
 
 ### Removed 2.x legacy providers
 
-Legacy providers from AI SDK 2.x have been removed.
+Legacy providers from AI SDK 2.x have been removed. Please use the new [AI SDK provider architecture](/docs/foundations/providers-and-models) instead.
 
 ### Removed 2.x prompt helpers
 
-Prompt helpers for constructing message prompts are no longer needed and have been removed.
+Prompt helpers for constructing message prompts are no longer needed with the AI SDK provider architectureand have been removed.
+
+### Removed 2.x legacy function and tool calling
+
+The legacy `function_call` and `tools` options have been removed.
+Please use the [AI SDK Core tool calling](/docs/ai-sdk-core/tools-and-tool-calling) instead.
+
+### Removed useChat `options` parameter
+
+The `options` parameter in the `useChat` hook have been removed.
+Please use the `headers` and `body` parameters instead.
+
+### Removed `name` from UI message
+
+The `name` property from the `Message` type has been removed.

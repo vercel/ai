@@ -1,27 +1,11 @@
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { parsePartialJson } from './parse-partial-json';
 import { readDataStream } from './read-data-stream';
-import type {
-  FunctionCall,
-  JSONValue,
-  Message,
-  ToolCall,
-  UseChatOptions,
-} from './types';
+import type { JSONValue, Message, UseChatOptions } from './types';
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 
 type PrefixMap = {
   text?: Message;
-  // @deprecated
-  function_call?: Message & {
-    role: 'assistant';
-    function_call: FunctionCall;
-  };
-  // @deprecated
-  tool_calls?: Message & {
-    role: 'assistant';
-    tool_calls: ToolCall[];
-  };
 };
 
 function assignAnnotationsToMessage<T extends Message | null | undefined>(
@@ -133,12 +117,6 @@ export async function processDataProtocolResponse({
     ) {
       if (prefixMap.text) {
         previousMessages.push(prefixMap.text);
-      }
-      if (prefixMap.function_call) {
-        previousMessages.push(prefixMap.function_call);
-      }
-      if (prefixMap.tool_calls) {
-        previousMessages.push(prefixMap.tool_calls);
       }
 
       prefixMap = nextPrefixMap;
@@ -276,35 +254,6 @@ export async function processDataProtocolResponse({
       };
     }
 
-    let functionCallMessage: Message | null | undefined = null;
-
-    if (type === 'function_call') {
-      prefixMap['function_call'] = {
-        id: generateId(),
-        role: 'assistant',
-        content: '',
-        function_call: value.function_call,
-        name: value.function_call.name,
-        createdAt,
-      };
-
-      functionCallMessage = prefixMap['function_call'];
-    }
-
-    let toolCallMessage: Message | null | undefined = null;
-
-    if (type === 'tool_calls') {
-      prefixMap['tool_calls'] = {
-        id: generateId(),
-        role: 'assistant',
-        content: '',
-        tool_calls: value.tool_calls,
-        createdAt,
-      };
-
-      toolCallMessage = prefixMap['tool_calls'];
-    }
-
     if (type === 'data') {
       data.push(...value);
     }
@@ -319,14 +268,6 @@ export async function processDataProtocolResponse({
       }
 
       // Update any existing message with the latest annotations
-      functionCallMessage = assignAnnotationsToMessage(
-        prefixMap['function_call'],
-        messageAnnotations,
-      );
-      toolCallMessage = assignAnnotationsToMessage(
-        prefixMap['tool_calls'],
-        messageAnnotations,
-      );
       responseMessage = assignAnnotationsToMessage(
         prefixMap['text'],
         messageAnnotations,
@@ -344,20 +285,12 @@ export async function processDataProtocolResponse({
       if (prefixMap.text) {
         prefixMap.text.annotations = [...messageAnnotations!];
       }
-      if (prefixMap.function_call) {
-        prefixMap.function_call.annotations = [...messageAnnotations!];
-      }
-      if (prefixMap.tool_calls) {
-        prefixMap.tool_calls.annotations = [...messageAnnotations!];
-      }
     }
 
-    // We add function & tool calls and response messages to the messages[], but data is its own thing
-    const merged = [functionCallMessage, toolCallMessage, responseMessage]
-      .filter(Boolean)
-      .map(message => ({
-        ...assignAnnotationsToMessage(message, messageAnnotations),
-      })) as Message[];
+    // We add response messages to the messages[], but data is its own thing
+    const merged = [responseMessage].filter(Boolean).map(message => ({
+      ...assignAnnotationsToMessage(message, messageAnnotations),
+    })) as Message[];
 
     update([...previousMessages, ...merged], [...data]); // make a copy of the data array
   }
@@ -365,11 +298,7 @@ export async function processDataProtocolResponse({
   onFinish?.({ message: prefixMap.text, finishReason, usage });
 
   return {
-    messages: [
-      prefixMap.text,
-      prefixMap.function_call,
-      prefixMap.tool_calls,
-    ].filter(Boolean) as Message[],
+    messages: [prefixMap.text].filter(Boolean) as Message[],
     data,
   };
 }
