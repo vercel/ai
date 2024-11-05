@@ -1,5 +1,16 @@
 # @ai-sdk/react
 
+## 1.0.0-canary.0
+
+### Major Changes
+
+- 84edae5: chore (release): bump ui package versions for 4.0 release
+
+### Patch Changes
+
+- Updated dependencies [7e89ccb]
+  - @ai-sdk/ui-utils@1.0.0-canary.0
+
 ## 0.0.70
 
 ### Patch Changes

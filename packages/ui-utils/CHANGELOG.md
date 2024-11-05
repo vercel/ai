@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.0.0-canary.0
+
+### Major Changes
+
+- 7e89ccb: chore: remove nanoid export
+
 ## 0.0.50
 
 ### Patch Changes

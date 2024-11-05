@@ -1,5 +1,20 @@
 # ai
 
+## 4.0.0-canary.0
+
+### Major Changes
+
+- a40a93d: chore (ai/ui): remove vue, svelte, solid re-export and dependency
+
+### Patch Changes
+
+- a7ad35a: chore: remove legacy providers & rsc render
+- 7e89ccb: chore: remove nanoid export
+- Updated dependencies [84edae5]
+- Updated dependencies [7e89ccb]
+  - @ai-sdk/react@1.0.0-canary.0
+  - @ai-sdk/ui-utils@1.0.0-canary.0
+
 ## 3.4.33
 
 ### Patch Changes

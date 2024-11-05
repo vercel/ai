@@ -45,5 +45,10 @@
     "eslint-config-vercel-ai": "0.0.0",
     "@vercel/ai-tsconfig": "0.0.0"
   },
-  "changesets": []
+  "changesets": [
+    "poor-ants-prove",
+    "poor-melons-camp",
+    "shy-ties-lie",
+    "stale-kings-move"
+  ]
 }
