@@ -1,0 +1,27 @@
+---
+title: Migrate 3.3 to 4.0
+description: Learn how to upgrade AI SDK 3.3 to 4.0.
+---
+
+# Migrate AI SDK 3.3 to 4.0
+
+<Note type="warning">
+  AI SDK 4.0 has not been released yet. It is currently a canary version and
+  there will be more breaking changes. We will update this guide as we make
+  progress.
+</Note>
+
+## Breaking Changes
+
+### Removed Svelte, Vue, and SolidJS exports
+
+The `ai` package no longer exports Svelte, Vue, and SolidJS UI integrations.
+You need to install the `@ai-sdk/svelte`, `@ai-sdk/vue`, and `@ai-sdk/solid` packages directly.
+
+```ts filename="AI SDK 3.3"
+import { useChat } from 'ai/svelte';
+```
+
+```ts filename="AI SDK 4.0"
+import { useChat } from '@ai-sdk/svelte';
+```
