@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.72
+
+### Patch Changes
+
+- 0bc4115: feat (provider/openai): support predicted outputs
+
 ## 0.0.71
 
 ### Patch Changes
