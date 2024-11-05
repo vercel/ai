@@ -130,3 +130,9 @@ Please use the `isInstance` method of the corresponding error class instead.
 ### Removed `toJSON` method
 
 The `toJSON` method has been removed from AI SDK errors.
+The `name` property from the `Message` type has been removed.
+
+### Increased default size of generated IDs
+
+The [`generateId`](/docs/reference/stream-helpers/generate-id) function now
+generates 16-character IDs. The previous default was 7 characters.
