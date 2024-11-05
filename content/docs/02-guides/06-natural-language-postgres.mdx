@@ -2,6 +2,7 @@
 title: Natural Language Postgres
 description: Learn how to build a Next.js app that uses AI to interact with a PostgreSQL database using natural language.
 ---
+
 # Natural Language Postgres Guide
 
 In this guide, you will learn how to build an app that uses AI to interact with a PostgreSQL database using natural language.
@@ -36,7 +37,7 @@ Clone the starter repository:
   text={[
     'git clone https://github.com/vercel/ai-sql-starter',
     'cd ai-sql-starter',
-    'git checkout starter'
+    'git checkout starter',
   ]}
 />
 
@@ -46,19 +47,11 @@ Let's set up the project and load the dataset:
 
 1. Install dependencies:
 
-<Snippet
-  text={[
-    'pnpm install'
-  ]}
-/>
+<Snippet text={['pnpm install']} />
 
 2. Copy the environment variables file:
 
-<Snippet
-  text={[
-    'cp .env.example .env'
-  ]}
-/>
+<Snippet text={['cp .env.example .env']} />
 
 3. Add your environment variables to `.env`:
 
@@ -95,11 +88,7 @@ This dataset contains over 1000 rows of data over 7 columns, giving us plenty of
 
 5. Now that you have the dataset downloaded and added to your project, you can initialize the database with the following command:
 
-<Snippet
-  text={[
-    'pnpm run seed'
-  ]}
-/>
+<Snippet text={['pnpm run seed']} />
 
 You should see a message indicating that the database has been seeded successfully.
 
@@ -110,11 +99,7 @@ You should see a message indicating that the database has been seeded successful
 
 6. Start the development server:
 
-<Snippet
-  text={[
-    'pnpm run dev'
-  ]}
-/>
+<Snippet text={['pnpm run dev']} />
 
 Your application should now be running at [http://localhost:3000](http://localhost:3000).
 
@@ -238,16 +223,16 @@ Add a new action. This action should be asynchronous and take in one parameter -
 ```ts filename="app/actions.ts"
 // rest of the file
 
-export const generateQuery = async (input: string) => {}
+export const generateQuery = async (input: string) => {};
 ```
 
 In this action, you'll use the `generateObject` function from the AI SDK which allows you to constrain the model's output to a pre-defined schema. This process, sometimes called structured output, ensures the model returns only the SQL query without any additional prefixes, explanations, or formatting that would require manual parsing.
 
 ```ts filename="app/actions.ts"
 // other imports
-import { generateObject } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { z } from 'zod'
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 // rest of the file
 
@@ -258,15 +243,15 @@ export const generateQuery = async (input: string) => {
       system: `You are a SQL (postgres) ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Generate the query necessary to retrieve the data the user wants: ${input}`,
       schema: z.object({
-        query: z.string()
-      })
-    })
-    return result.object.query
+        query: z.string(),
+      }),
+    });
+    return result.object.query;
   } catch (e) {
-    console.error(e)
-    throw new Error('Failed to generate query')
+    console.error(e);
+    throw new Error('Failed to generate query');
   }
-}
+};
 ```
 
 Note, you are constraining the output to a single string field called `query` using `zod`, a TypeScript schema validation library. This will ensure the model only returns the SQL query itself. The resulting generated query will then be returned.
@@ -279,49 +264,49 @@ Import the `generateQuery` function and call it with the user's input.
 
 ```typescript filename="app/page.tsx" highlight="21"
 // rest of the imports
-import { runGeneratedSQLQuery, generateQuery } from './actions'
+import { runGeneratedSQLQuery, generateQuery } from './actions';
 
 // rest of the file
 
 const handleSubmit = async (suggestion?: string) => {
-  clearExistingData()
+  clearExistingData();
 
-  const question = suggestion ?? inputValue
-  if (inputValue.length === 0 && !suggestion) return
+  const question = suggestion ?? inputValue;
+  if (inputValue.length === 0 && !suggestion) return;
 
   if (question.trim()) {
-    setSubmitted(true)
+    setSubmitted(true);
   }
 
-  setLoading(true)
-  setLoadingStep(1)
-  setActiveQuery('')
+  setLoading(true);
+  setLoadingStep(1);
+  setActiveQuery('');
 
   try {
-    const query = generateQuery(question)
+    const query = generateQuery(question);
 
     if (query === undefined) {
-      toast.error('An error occurred. Please try again.')
-      setLoading(false)
-      return
+      toast.error('An error occurred. Please try again.');
+      setLoading(false);
+      return;
     }
 
-    setActiveQuery(query)
-    setLoadingStep(2)
+    setActiveQuery(query);
+    setLoadingStep(2);
 
-    const companies = await runGeneratedSQLQuery(query)
-    const columns = companies.length > 0 ? Object.keys(companies[0]) : []
-    setResults(companies)
-    setColumns(columns)
+    const companies = await runGeneratedSQLQuery(query);
+    const columns = companies.length > 0 ? Object.keys(companies[0]) : [];
+    setResults(companies);
+    setColumns(columns);
 
-    setLoading(false)
+    setLoading(false);
 
     // TODO: Generate chart config & update chart config state with result
   } catch (e) {
-    toast.error('An error occurred. Please try again.')
-    setLoading(false)
+    toast.error('An error occurred. Please try again.');
+    setLoading(false);
   }
-}
+};
 
 // rest of the file
 ```
@@ -366,12 +351,12 @@ This action takes two parameters - the original natural language input and the g
 
 ```ts filename="app/actions.ts"
 // other imports
-import { explanationsSchema } from '@/lib/types'
+import { explanationsSchema } from '@/lib/types';
 
 // rest of the file
 
 export const explainQuery = async (input: string, sqlQuery: string) => {
-  'use server'
+  'use server';
   try {
     const result = await generateObject({
       model: openai('gpt-4o'),
@@ -384,15 +369,16 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
 
       Generated SQL Query:
       ${sqlQuery}`,
-      output: 'array'
-    })
-    return result.object
+      output: 'array',
+    });
+    return result.object;
   } catch (e) {
-    console.error(e)
-    throw new Error('Failed to generate query')
+    console.error(e);
+    throw new Error('Failed to generate query');
   }
-}
+};
 ```
+
 <Note>
   Don't forget to import the `explanationsSchema` from the `types.ts` file.
 </Note>
@@ -402,28 +388,28 @@ This action uses the `generateObject` function again. However, you haven't defin
 Update your `lib/types.ts` file to include the schema for the explanations:
 
 ```ts filename="lib/types.ts"
-import { z } from 'zod'
+import { z } from 'zod';
 
 // rest of the file
 
 export const explanationSchema = z.object({
   section: z.string(),
-  explanation: z.string()
-})
+  explanation: z.string(),
+});
 
-export type QueryExplanation = z.infer<typeof explanationSchema>
+export type QueryExplanation = z.infer<typeof explanationSchema>;
 ```
 
 This schema defines the structure of the explanation that the model will generate. Each explanation will have a `section` and an `explanation`. The `section` is the part of the query being explained, and the `explanation` is the plain English explanation of that section. Go back to your `actions.ts` file and import and use the `explanationSchema`:
 
 ```ts filename="app/actions.ts" highlight="2,19,20"
 // other imports
-import { explanationSchema } from '@/lib/types'
+import { explanationSchema } from '@/lib/types';
 
 // rest of the file
 
 export const explainQuery = async (input: string, sqlQuery: string) => {
-  'use server'
+  'use server';
   try {
     const result = await generateObject({
       model: openai('gpt-4o'),
@@ -436,14 +422,14 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
       Generated SQL Query:
       ${sqlQuery}`,
       schema: explanationSchema,
-      output: 'array'
-    })
-    return result.object
+      output: 'array',
+    });
+    return result.object;
   } catch (e) {
-    console.error(e)
-    throw new Error('Failed to generate query')
+    console.error(e);
+    throw new Error('Failed to generate query');
   }
-}
+};
 ```
 
 <Note>
@@ -457,19 +443,19 @@ Next, update the `query-viewer.tsx` component to display these explanations. The
 
 ```ts filename="components/query-viewer.tsx" highlight="2,10,11"
 // rest of imports
-import { explainQuery } from '@/app/actions'
+import { explainQuery } from '@/app/actions';
 
 // rest of component
 
 const handleExplainQuery = async () => {
-  setQueryExpanded(true)
-  setLoadingExplanation(true)
+  setQueryExpanded(true);
+  setLoadingExplanation(true);
 
-  const explanations = await explainQuery(inputValue, activeQuery)
-  setQueryExplanations(explanations)
+  const explanations = await explainQuery(inputValue, activeQuery);
+  setQueryExplanations(explanations);
 
-  setLoadingExplanation(false)
-}
+  setLoadingExplanation(false);
+};
 
 // rest of component
 ```
@@ -505,7 +491,7 @@ For this feature, you'll create a Server Action that takes the query results and
 Let's start by defining the schema for the chart configuration in `lib/types.ts`:
 
 ```ts filename="lib/types.ts"
-export type QueryExplanation = z.infer<typeof explanationSchema>
+export type QueryExplanation = z.infer<typeof explanationSchema>;
 
 // Define the schema for chart configuration
 export const configSchema = z
@@ -513,7 +499,7 @@ export const configSchema = z
     description: z
       .string()
       .describe(
-        'Describe the chart. What is it showing? What is interesting about the way the data is displayed?'
+        'Describe the chart. What is it showing? What is interesting about the way the data is displayed?',
       ),
     takeaway: z.string().describe('What is the main takeaway from the chart?'),
     type: z.enum(['bar', 'line', 'area', 'pie']).describe('Type of chart'),
@@ -522,38 +508,38 @@ export const configSchema = z
     yKeys: z
       .array(z.string())
       .describe(
-        'Key(s) for y-axis values this is typically the quantitative column'
+        'Key(s) for y-axis values this is typically the quantitative column',
       ),
     multipleLines: z
       .boolean()
       .describe(
-        'For line charts only: whether the chart is comparing groups of data.'
+        'For line charts only: whether the chart is comparing groups of data.',
       )
       .optional(),
     measurementColumn: z
       .string()
       .describe(
-        'For line charts only: key for quantitative y-axis column to measure against (eg. values, counts etc.)'
+        'For line charts only: key for quantitative y-axis column to measure against (eg. values, counts etc.)',
       )
       .optional(),
     lineCategories: z
       .array(z.string())
       .describe(
-        'For line charts only: Categories used to compare different lines or data series. Each category represents a distinct line in the chart.'
+        'For line charts only: Categories used to compare different lines or data series. Each category represents a distinct line in the chart.',
       )
       .optional(),
     colors: z
       .record(
         z.string().describe('Any of the yKeys'),
-        z.string().describe('Color value in CSS format (e.g., hex, rgb, hsl)')
+        z.string().describe('Color value in CSS format (e.g., hex, rgb, hsl)'),
       )
       .describe('Mapping of data keys to color values for chart elements')
       .optional(),
-    legend: z.boolean().describe('Whether to show legend')
+    legend: z.boolean().describe('Whether to show legend'),
   })
-  .describe('Chart configuration object')
+  .describe('Chart configuration object');
 
-export type Config = z.infer<typeof configSchema>
+export type Config = z.infer<typeof configSchema>;
 ```
 
 This schema makes extensive use of Zod's `.describe()` function to give the model extra context about each of the key's you are expecting in the chart configuration. This will help the model understand the purpose of each key and generate more accurate results.
@@ -566,15 +552,15 @@ Create the chart generation action in `app/actions.ts`:
 
 ```ts
 // rest of imports
-import { Config, configSchema, explanationsSchema, Result } from '@/lib/types'
+import { Config, configSchema, explanationsSchema, Result } from '@/lib/types';
 
 // rest of file
 
 export const generateChartConfig = async (
   results: Result[],
-  userQuery: string
+  userQuery: string,
 ) => {
-  'use server'
+  'use server';
 
   try {
     const { object: config } = await generateObject({
@@ -601,22 +587,22 @@ export const generateChartConfig = async (
 
       Data:
       ${JSON.stringify(results, null, 2)}`,
-      schema: configSchema
-    })
+      schema: configSchema,
+    });
 
     // Override with shadcn theme colors
-    const colors: Record<string, string> = {}
+    const colors: Record<string, string> = {};
     config.yKeys.forEach((key, index) => {
-      colors[key] = `hsl(var(--chart-${index + 1}))`
-    })
+      colors[key] = `hsl(var(--chart-${index + 1}))`;
+    });
 
-    const updatedConfig = { ...config, colors }
-    return { config: updatedConfig }
+    const updatedConfig = { ...config, colors };
+    return { config: updatedConfig };
   } catch (e) {
-    console.error(e)
-    throw new Error('Failed to generate chart suggestion')
+    console.error(e);
+    throw new Error('Failed to generate chart suggestion');
   }
-}
+};
 ```
 
 #### Update the Chart Component
@@ -627,49 +613,49 @@ Update the `handleSubmit` function in your root page (`app/page.tsx`) to generat
 
 ```typescript filename="app/page.tsx"
 // rest of imports
-import { getCompanies, generateQuery, generateChartConfig } from './actions'
+import { getCompanies, generateQuery, generateChartConfig } from './actions';
 
 // rest of file
 const handleSubmit = async (suggestion?: string) => {
-  clearExistingData()
+  clearExistingData();
 
-  const question = suggestion ?? inputValue
-  if (inputValue.length === 0 && !suggestion) return
+  const question = suggestion ?? inputValue;
+  if (inputValue.length === 0 && !suggestion) return;
 
   if (question.trim()) {
-    setSubmitted(true)
+    setSubmitted(true);
   }
 
-  setLoading(true)
-  setLoadingStep(1)
-  setActiveQuery('')
+  setLoading(true);
+  setLoadingStep(1);
+  setActiveQuery('');
 
   try {
-    const query = await generateQuery(question)
+    const query = await generateQuery(question);
 
     if (query === undefined) {
-      toast.error('An error occurred. Please try again.')
-      setLoading(false)
-      return
+      toast.error('An error occurred. Please try again.');
+      setLoading(false);
+      return;
     }
 
-    setActiveQuery(query)
-    setLoadingStep(2)
+    setActiveQuery(query);
+    setLoadingStep(2);
 
-    const companies = await runGeneratedSQLQuery(query)
-    const columns = companies.length > 0 ? Object.keys(companies[0]) : []
-    setResults(companies)
-    setColumns(columns)
+    const companies = await runGeneratedSQLQuery(query);
+    const columns = companies.length > 0 ? Object.keys(companies[0]) : [];
+    setResults(companies);
+    setColumns(columns);
 
-    setLoading(false)
+    setLoading(false);
 
-    const { config } = await generateChartConfig(companies, question)
-    setChartConfig(config)
+    const { config } = await generateChartConfig(companies, question);
+    setChartConfig(config);
   } catch (e) {
-    toast.error('An error occurred. Please try again.')
-    setLoading(false)
+    toast.error('An error occurred. Please try again.');
+    setLoading(false);
   }
-}
+};
 ```
 
 Now when users submit queries, the application will:
