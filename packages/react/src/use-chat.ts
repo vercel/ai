@@ -462,21 +462,17 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const reload = useCallback(
     async ({ data, headers, body }: ChatRequestOptions = {}) => {
-      if (messagesRef.current.length === 0) return null;
+      const messages = messagesRef.current;
 
-      // Remove last assistant message and retry last user message.
-      const lastMessage = messagesRef.current[messagesRef.current.length - 1];
-      if (lastMessage.role === 'assistant') {
-        return triggerRequest({
-          messages: messagesRef.current.slice(0, -1),
-          headers,
-          body,
-          data,
-        });
+      if (messages.length === 0) {
+        return null;
       }
 
+      // Remove last assistant message and retry last user message.
+      const lastMessage = messages[messages.length - 1];
       return triggerRequest({
-        messages: messagesRef.current,
+        messages:
+          lastMessage.role === 'assistant' ? messages.slice(0, -1) : messages,
         headers,
         body,
         data,
