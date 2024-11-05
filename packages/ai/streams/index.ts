@@ -32,12 +32,6 @@ export type {
 import { generateId as generateIdImpl } from '@ai-sdk/provider-utils';
 export const generateId = generateIdImpl;
 
-/**
-@deprecated Use `generateId` instead.
- */
-// TODO remove nanoid export (breaking change)
-export const nanoid = generateIdImpl;
-
 export * from '../core/index';
 export * from '../errors/index';
 

@@ -453,7 +453,7 @@ either synchronously or asynchronously.
 
   /**
    * A way to provide a function that is going to be used for ids for messages.
-   * If not provided nanoid is used by default.
+   * If not provided the default AI SDK `generateId` is used.
    */
   generateId?: IdGenerator;
 
