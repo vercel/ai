@@ -107,18 +107,6 @@ Additional data to be sent to the server.
   data?: JSONValue;
 };
 
-export type RequestOptions = {
-  /**
-An optional object of headers to be passed to the API endpoint.
- */
-  headers?: Record<string, string> | Headers;
-
-  /**
-An optional object to be passed to the API endpoint.
-   */
-  body?: object;
-};
-
 export type ChatRequestOptions = {
   /**
 Additional headers that should be to be passed to the API endpoint.
