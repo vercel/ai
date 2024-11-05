@@ -1,4 +1,4 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { anthropic } from '@ai-sdk/anthropic';
 import { CoreMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
@@ -18,7 +18,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = await streamText({
-      model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+      model: anthropic('claude-3-5-sonnet-latest'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',
