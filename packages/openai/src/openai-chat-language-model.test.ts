@@ -982,6 +982,33 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send prediction extension setting', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: {
+          prediction: {
+            type: 'content',
+            content: 'Hello, World!',
+          },
+        },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      prediction: {
+        type: 'content',
+        content: 'Hello, World!',
+      },
+    });
+  });
+
   it('should send store extension setting', async () => {
     prepareJsonResponse({ content: '' });
 
