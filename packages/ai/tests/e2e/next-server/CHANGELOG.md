@@ -1,5 +1,14 @@
 # ai-core-e2e-next-server
 
+## 0.0.1-canary.0
+
+### Patch Changes
+
+- Updated dependencies [a40a93d]
+- Updated dependencies [a7ad35a]
+- Updated dependencies [7e89ccb]
+  - ai@4.0.0-canary.0
+
 ## null
 
 ### Patch Changes

@@ -1011,10 +1011,10 @@ importers:
         specifier: 1.0.22
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 0.0.70
+        specifier: 1.0.0-canary.0
         version: link:../react
       '@ai-sdk/ui-utils':
-        specifier: 0.0.50
+        specifier: 1.0.0-canary.0
         version: link:../ui-utils
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1416,7 +1416,7 @@ importers:
         specifier: 1.0.22
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.50
+        specifier: 1.0.0-canary.0
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
@@ -1480,7 +1480,7 @@ importers:
         specifier: 1.0.22
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.50
+        specifier: 1.0.0-canary.0
         version: link:../ui-utils
       solid-js:
         specifier: ^1.7.7
@@ -1532,7 +1532,7 @@ importers:
         specifier: 1.0.22
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.50
+        specifier: 1.0.0-canary.0
         version: link:../ui-utils
       sswr:
         specifier: ^2.1.0
@@ -1563,7 +1563,7 @@ importers:
   packages/swarm:
     dependencies:
       ai:
-        specifier: 3.4.33
+        specifier: 4.0.0-canary.0
         version: link:../ai
       zod:
         specifier: 3.23.8
@@ -1628,7 +1628,7 @@ importers:
         specifier: 1.0.22
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.50
+        specifier: 1.0.0-canary.0
         version: link:../ui-utils
       swrv:
         specifier: ^1.0.4
