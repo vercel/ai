@@ -4,7 +4,6 @@ import {
   type ParsedEvent,
   type ReconnectInterval,
 } from 'eventsource-parser';
-import { OpenAIStreamCallbacks } from './openai-stream';
 
 export interface FunctionCallPayload {
   name: string;
@@ -134,7 +133,7 @@ export function createEventStreamTransformer(
  * const transformer = createCallbacksTransformer(callbacks);
  */
 export function createCallbacksTransformer(
-  cb: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks | undefined,
+  cb: AIStreamCallbacksAndOptions | undefined,
 ): TransformStream<string | { isText: false; content: string }, Uint8Array> {
   const textEncoder = new TextEncoder();
   let aggregatedResponse = '';
@@ -159,25 +158,13 @@ export function createCallbacksTransformer(
     },
 
     async flush(): Promise<void> {
-      const isOpenAICallbacks = isOfTypeOpenAIStreamCallbacks(callbacks);
-      // If it's OpenAICallbacks, it has an experimental_onFunctionCall which means that the createFunctionCallTransformer
-      // will handle calling onComplete.
       if (callbacks.onCompletion) {
         await callbacks.onCompletion(aggregatedResponse);
-      }
-
-      if (callbacks.onFinal && !isOpenAICallbacks) {
-        await callbacks.onFinal(aggregatedResponse);
       }
     },
   });
 }
 
-function isOfTypeOpenAIStreamCallbacks(
-  callbacks: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks,
-): callbacks is OpenAIStreamCallbacks {
-  return 'experimental_onFunctionCall' in callbacks;
-}
 /**
  * Returns a stateful function that, when invoked, trims leading whitespace
  * from the input text. The trimming only occurs on the first invocation, ensuring that
