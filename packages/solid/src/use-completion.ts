@@ -135,12 +135,7 @@ export function useCompletion(
         ...extraMetadata.body,
         ...options?.body,
       },
-      // streamMode is deprecated, use streamProtocol instead:
-      streamProtocol:
-        useCompletionOptions().streamProtocol?.() ??
-        useCompletionOptions().streamMode?.() === 'text'
-          ? 'text'
-          : undefined,
+      streamProtocol: useCompletionOptions().streamProtocol?.(),
       setCompletion: mutate,
       setLoading: setIsLoading,
       setError,

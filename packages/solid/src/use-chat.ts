@@ -101,7 +101,7 @@ const processStreamedResponse = async (
   messagesRef: Message[],
   abortController: AbortController | null,
   generateId: IdGenerator,
-  streamProtocol: UseChatOptions['streamProtocol'],
+  streamProtocol: UseChatOptions['streamProtocol'] = 'data',
   onFinish: UseChatOptions['onFinish'],
   onResponse: UseChatOptions['onResponse'] | undefined,
   onToolCall: UseChatOptions['onToolCall'] | undefined,
@@ -269,11 +269,7 @@ export function useChat(
         messagesRef,
         abortController,
         generateId(),
-        // streamMode is deprecated, use streamProtocol instead:
-        useChatOptions().streamProtocol?.() ??
-          useChatOptions().streamMode?.() === 'text'
-          ? 'text'
-          : undefined,
+        useChatOptions().streamProtocol?.(),
         useChatOptions().onFinish?.(),
         useChatOptions().onResponse?.(),
         useChatOptions().onToolCall?.(),

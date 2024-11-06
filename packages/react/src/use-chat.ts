@@ -182,8 +182,7 @@ export function useChat({
   maxAutomaticRoundtrips = experimental_maxAutomaticRoundtrips,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
-  streamMode,
-  streamProtocol,
+  streamProtocol = 'data',
   onResponse,
   onFinish,
   onError,
@@ -271,11 +270,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
     result: any;
   }) => void;
 } {
-  // streamMode is deprecated, use streamProtocol instead.
-  if (streamMode) {
-    streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
-  }
-
   // Generate a unique id for the chat if not provided.
   const hookId = useId();
   const idKey = id ?? hookId;

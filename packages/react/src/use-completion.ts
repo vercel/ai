@@ -72,8 +72,7 @@ export function useCompletion({
   credentials,
   headers,
   body,
-  streamMode,
-  streamProtocol,
+  streamProtocol = 'data',
   fetch,
   onResponse,
   onFinish,
@@ -86,11 +85,6 @@ export function useCompletion({
    */
   experimental_throttle?: number;
 } = {}): UseCompletionHelpers {
-  // streamMode is deprecated, use streamProtocol instead.
-  if (streamMode) {
-    streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
-  }
-
   // Generate an unique id for the completion if not provided.
   const hookId = useId();
   const completionId = id || hookId;
