@@ -79,22 +79,4 @@ export class APICallError extends AISDKError {
         typeof (error as APICallError).data === 'object')
     );
   }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      url: this.url,
-      requestBodyValues: this.requestBodyValues,
-      statusCode: this.statusCode,
-      responseHeaders: this.responseHeaders,
-      responseBody: this.responseBody,
-      cause: this.cause,
-      isRetryable: this.isRetryable,
-      data: this.data,
-    };
-  }
 }

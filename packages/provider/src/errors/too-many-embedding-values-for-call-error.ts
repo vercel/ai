@@ -57,20 +57,4 @@ export class TooManyEmbeddingValuesForCallError extends AISDKError {
       Array.isArray(error.values)
     );
   }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      stack: this.stack,
-
-      provider: this.provider,
-      modelId: this.modelId,
-      maxEmbeddingsPerCall: this.maxEmbeddingsPerCall,
-      values: this.values,
-    };
-  }
 }
