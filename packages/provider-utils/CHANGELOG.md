@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 2.0.0-canary.0
+
+### Major Changes
+
+- b469a7e: chore: remove isXXXError methods
+- db46ce5: chore (provider-utils): remove isParseableJson export
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [c0ddc24]
+  - @ai-sdk/provider@1.0.0-canary.0
+
 ## 1.0.22
 
 ### Patch Changes

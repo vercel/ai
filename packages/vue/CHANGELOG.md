@@ -1,5 +1,19 @@
 # @ai-sdk/vue
 
+## 1.0.0-canary.2
+
+### Major Changes
+
+- 7814c4b: chore (ui): remove streamMode setting from useChat & useCompletion
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [7814c4b]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0-canary.0
+  - @ai-sdk/ui-utils@1.0.0-canary.2
+
 ## 1.0.0-canary.1
 
 ### Major Changes

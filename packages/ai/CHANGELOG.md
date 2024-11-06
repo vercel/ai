@@ -1,5 +1,24 @@
 # ai
 
+## 4.0.0-canary.2
+
+### Major Changes
+
+- b469a7e: chore: remove isXXXError methods
+- c0ddc24: chore (ai): remove toJSON method from AI SDK errors
+
+### Patch Changes
+
+- Updated dependencies [e117b54]
+- Updated dependencies [b469a7e]
+- Updated dependencies [7814c4b]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/react@1.0.0-canary.2
+  - @ai-sdk/provider-utils@2.0.0-canary.0
+  - @ai-sdk/provider@1.0.0-canary.0
+  - @ai-sdk/ui-utils@1.0.0-canary.2
+
 ## 4.0.0-canary.1
 
 ### Major Changes
