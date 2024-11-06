@@ -15,22 +15,6 @@ export type { CreateMessage, Message };
 
 export type UseChatOptions = SharedUseChatOptions & {
   /**
-  Maximum number of automatic roundtrips for tool calls.
-
-  An automatic tool call roundtrip is a call to the server with the
-  tool call results when all tool calls in the last assistant
-  message have results.
-
-  A maximum number is required to prevent infinite loops in the
-  case of misconfigured tools.
-
-  By default, it's set to 0, which will disable the feature.
-
-@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
-     */
-  maxToolRoundtrips?: number;
-
-  /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
 
 A maximum number is required to prevent infinite loops in the case of misconfigured tools.
@@ -219,8 +203,7 @@ export function useChat({
   generateId = generateIdFunc,
   fetch,
   keepLastMessageOnError = false,
-  maxToolRoundtrips = 0,
-  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
+  maxSteps = 1,
 }: UseChatOptions = {}): UseChatHelpers & {
   addToolResult: ({
     toolCallId,
