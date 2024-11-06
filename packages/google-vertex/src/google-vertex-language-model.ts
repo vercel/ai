@@ -94,13 +94,11 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     }
 
     const generationConfig: GenerationConfig = {
-      // model specific settings:
-      topK: topK ?? this.settings.topK,
-
       // standardized settings:
       maxOutputTokens: maxTokens,
       frequencyPenalty,
       temperature,
+      topK,
       topP,
       stopSequences,
 
