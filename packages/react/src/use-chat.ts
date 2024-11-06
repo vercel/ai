@@ -178,10 +178,7 @@ export function useChat({
   sendExtraMessageFields,
   onToolCall,
   experimental_prepareRequestBody,
-  experimental_maxAutomaticRoundtrips = 0,
-  maxAutomaticRoundtrips = experimental_maxAutomaticRoundtrips,
-  maxToolRoundtrips = maxAutomaticRoundtrips,
-  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
+  maxSteps = 1,
   streamProtocol = 'data',
   onResponse,
   onFinish,
@@ -195,16 +192,6 @@ export function useChat({
   experimental_throttle: throttleWaitMs,
 }: UseChatOptions & {
   key?: string;
-
-  /**
-@deprecated Use `maxToolRoundtrips` instead.
-   */
-  experimental_maxAutomaticRoundtrips?: number;
-
-  /**
-@deprecated Use `maxToolRoundtrips` instead.
-   */
-  maxAutomaticRoundtrips?: number;
 
   /**
    * Experimental (React only). When a function is provided, it will be used
@@ -226,22 +213,6 @@ Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
-
-  /**
-Maximum number of automatic roundtrips for tool calls.
-
-An automatic tool call roundtrip is a call to the server with the
-tool call results when all tool calls in the last assistant
-message have results.
-
-A maximum number is required to prevent infinite loops in the
-case of misconfigured tools.
-
-By default, it's set to 0, which will disable the feature.
-
-@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
-     */
-  maxToolRoundtrips?: number;
 
   /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
