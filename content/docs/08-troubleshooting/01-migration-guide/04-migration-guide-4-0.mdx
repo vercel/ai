@@ -17,6 +17,27 @@ description: Learn how to upgrade AI SDK 3.3 to 4.0.
 2. Resolve all deprecation warnings.
 3. Upgrade to AI SDK 4.0 and follow the breaking changes guide below.
 
+## Provider Changes
+
+### Removed `baseUrl` option
+
+The `baseUrl` option has been removed from all providers. Please use the `baseURL` option instead.
+
+### Anthropic Provider: Removed `Anthropic` facade
+
+The `Anthropic` facade has been removed from the Anthropic provider.
+Please use the `anthropic` object or the `createAnthropic` function instead.
+
+### Google Vertex Provider: Removed `topK` setting
+
+The model specific `topK` setting has been removed from the Google Vertex provider.
+You can use the standard `topK` setting instead.
+
+### OpenAI Provider: Removed `OpenAI` facade
+
+The `OpenAI` facade has been removed from the OpenAI provider.
+Please use the `openai` object or the `createOpenAI` function instead.
+
 ## AI SDK 2.x Legacy Changes
 
 ### Removed 2.x prompt helpers
@@ -32,21 +53,6 @@ Legacy providers from AI SDK 2.x have been removed. Please use the new [AI SDK p
 ### Removed `nanoid` export
 
 The `nanoid` export has been removed. Please use [`generateId`](/docs/reference/stream-helpers/generate-id) instead.
-
-## Provider Changes
-
-### Removed `baseUrl` option
-
-The `baseUrl` option has been removed from all providers. Please use the `baseURL` option instead.
-
-### OpenAI Provider: Removed `OpenAI` facade
-
-The `OpenAI` facade has been removed from the OpenAI provider. Please use the `openai` object or the `createOpenAI` function instead.
-
-### Google Vertex Provider: Removed `topK` setting
-
-The model specific `topK` setting has been removed from the Google Vertex provider.
-You can use the standard `topK` setting instead.
 
 ## AI SDK RSC Changes
 
