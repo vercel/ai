@@ -32,14 +32,6 @@ export interface GroqAssistantMessage {
   role: 'assistant';
   content?: string | null;
   tool_calls?: Array<GroqMessageToolCall>;
-  /**
-   * Legacy function calling interface.
-   * @deprecated
-   */
-  function_call?: {
-    arguments: string;
-    name: string;
-  };
 }
 
 export interface GroqMessageToolCall {
