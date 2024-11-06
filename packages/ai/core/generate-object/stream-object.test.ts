@@ -865,7 +865,7 @@ describe('output = "object"', () => {
           assert.fail('Expected object promise to be rejected');
         })
         .catch(error => {
-          expect(TypeValidationError.isTypeValidationError(error)).toBeTruthy();
+          expect(TypeValidationError.isInstance(error)).toBeTruthy();
         });
     });
 
