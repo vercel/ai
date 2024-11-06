@@ -24,8 +24,7 @@ export class Anthropic {
    */
   constructor(options: AnthropicProviderSettings = {}) {
     this.baseURL =
-      withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
-      'https://api.anthropic.com/v1';
+      withoutTrailingSlash(options.baseURL) ?? 'https://api.anthropic.com/v1';
     this.apiKey = options.apiKey;
     this.headers = options.headers;
   }
