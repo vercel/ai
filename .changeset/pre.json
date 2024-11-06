@@ -46,11 +46,17 @@
     "@vercel/ai-tsconfig": "0.0.0"
   },
   "changesets": [
+    "afraid-trains-shout",
     "calm-emus-roll",
+    "clever-horses-love",
+    "cuddly-snails-give",
+    "moody-kiwis-jog",
     "perfect-trees-wait",
     "poor-ants-prove",
     "poor-melons-camp",
+    "poor-needles-double",
     "shy-ties-lie",
-    "stale-kings-move"
+    "stale-kings-move",
+    "tough-trees-rhyme"
   ]
 }

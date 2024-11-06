@@ -1,5 +1,12 @@
 # @ai-sdk/provider
 
+## 1.0.0-canary.0
+
+### Major Changes
+
+- b469a7e: chore: remove isXXXError methods
+- c0ddc24: chore (ai): remove toJSON method from AI SDK errors
+
 ## 0.0.26
 
 ### Patch Changes
