@@ -223,16 +223,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
  */
   maxSteps?: number;
 } = {}): UseChatHelpers & {
-  /**
-   * @deprecated Use `addToolResult` instead.
-   */
-  experimental_addToolResult: ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: any;
-  }) => void;
   addToolResult: ({
     toolCallId,
     result,
@@ -585,7 +575,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
     handleSubmit,
     isLoading,
     addToolResult,
-    experimental_addToolResult: addToolResult,
   };
 }
 
