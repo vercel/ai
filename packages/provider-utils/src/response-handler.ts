@@ -1,7 +1,7 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
 import {
   EventSourceParserStream,
-  ParsedEvent,
+  EventSourceMessage,
 } from 'eventsource-parser/stream';
 import { ZodSchema } from 'zod';
 import { extractResponseHeaders } from './extract-response-headers';
@@ -99,7 +99,7 @@ export const createEventSourceResponseHandler =
         .pipeThrough(new TextDecoderStream())
         .pipeThrough(new EventSourceParserStream())
         .pipeThrough(
-          new TransformStream<ParsedEvent, ParseResult<T>>({
+          new TransformStream<EventSourceMessage, ParseResult<T>>({
             transform({ data }, controller) {
               // ignore the 'DONE' event that e.g. OpenAI sends:
               if (data === '[DONE]') {

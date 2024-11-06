@@ -1,8 +1,7 @@
 import {
   createParser,
+  EventSourceMessage,
   type EventSourceParser,
-  type ParsedEvent,
-  type ReconnectInterval,
 } from 'eventsource-parser';
 
 export interface FunctionCallPayload {
@@ -70,7 +69,7 @@ export interface AIStreamParser {
  * @param {AIStreamParser} customParser - Function to handle event data.
  * @returns {TransformStream<Uint8Array, string>} TransformStream parsing events.
  */
-export function createEventStreamTransformer(
+function createEventStreamTransformer(
   customParser?: AIStreamParser,
 ): TransformStream<Uint8Array, string | { isText: false; content: string }> {
   const textDecoder = new TextDecoder();
@@ -78,30 +77,30 @@ export function createEventStreamTransformer(
 
   return new TransformStream({
     async start(controller): Promise<void> {
-      eventSourceParser = createParser(
-        (event: ParsedEvent | ReconnectInterval) => {
+      eventSourceParser = createParser({
+        onEvent: (message: EventSourceMessage) => {
           if (
-            ('data' in event &&
-              event.type === 'event' &&
-              event.data === '[DONE]') ||
+            ('data' in message &&
+              message.event === 'event' &&
+              message.data === '[DONE]') ||
             // Replicate doesn't send [DONE] but does send a 'done' event
             // @see https://replicate.com/docs/streaming
-            (event as any).event === 'done'
+            (message as any).event === 'done'
           ) {
             controller.terminate();
             return;
           }
 
-          if ('data' in event) {
+          if ('data' in message) {
             const parsedMessage = customParser
-              ? customParser(event.data, {
-                  event: event.event,
+              ? customParser(message.data, {
+                  event: message.event,
                 })
-              : event.data;
+              : message.data;
             if (parsedMessage) controller.enqueue(parsedMessage);
           }
         },
-      );
+      });
     },
 
     transform(chunk) {
@@ -260,25 +259,6 @@ function createEmptyReadableStream(): ReadableStream {
   return new ReadableStream({
     start(controller) {
       controller.close();
-    },
-  });
-}
-
-/**
- * Implements ReadableStream.from(asyncIterable), which isn't documented in MDN and isn't implemented in node.
- * https://github.com/whatwg/streams/commit/8d7a0bf26eb2cc23e884ddbaac7c1da4b91cf2bc
- */
-export function readableFromAsyncIterable<T>(iterable: AsyncIterable<T>) {
-  let it = iterable[Symbol.asyncIterator]();
-  return new ReadableStream<T>({
-    async pull(controller) {
-      const { done, value } = await it.next();
-      if (done) controller.close();
-      else controller.enqueue(value);
-    },
-
-    async cancel(reason) {
-      await it.return?.(reason);
     },
   });
 }
