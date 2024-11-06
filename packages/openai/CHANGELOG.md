@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 1.0.0-canary.1
+
+### Major Changes
+
+- 79644e9: chore (provider/openai): remove OpenAI facade
+- 0d3d3f5: chore (providers): remove baseUrl option
+
+### Patch Changes
+
+- Updated dependencies [b1da952]
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+
 ## 1.0.0-canary.0
 
 ### Major Changes
