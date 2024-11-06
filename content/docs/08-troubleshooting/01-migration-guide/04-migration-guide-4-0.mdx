@@ -1,5 +1,5 @@
 ---
-title: Migrate 3.3 to 4.0
+title: Migrate AI SDK 3.3 to 4.0
 description: Learn how to upgrade AI SDK 3.3 to 4.0.
 ---
 
@@ -41,42 +41,32 @@ The `nanoid` export has been removed. Please use [`generateId`](/docs/reference/
 The AI SDK RSC 3.0 `render` function has been removed.
 Please use the `streamUI` function instead or switch to AI SDK UI.
 
-### Removed 2.x legacy providers
-
-Legacy providers from AI SDK 2.x have been removed. Please use the new [AI SDK provider architecture](/docs/foundations/providers-and-models) instead.
-
 ### Removed 2.x prompt helpers
 
 Prompt helpers for constructing message prompts are no longer needed with the AI SDK provider architectureand have been removed.
 
-### Removed 2.x legacy function and tool calling
+### Providers
 
-The legacy `function_call` and `tools` options have been removed.
-Please use the [AI SDK Core tool calling](/docs/ai-sdk-core/tools-and-tool-calling) instead.
-
-### Providers: Removed `baseUrl` option
-
-The `baseUrl` option has been removed from all providers. Please use the `baseURL` option instead.
-
-### OpenAI Provider: Remove `OpenAI` facade
+#### OpenAI Provider: Removed `OpenAI` facade
 
 The `OpenAI` facade has been removed from the OpenAI provider. Please use the `openai` object or the `createOpenAI` function instead.
 
-### Removed useChat `options` parameter
+#### Removed `baseUrl` option
 
-The `options` parameter in the `useChat` hook have been removed.
-Please use the `headers` and `body` parameters instead.
+The `baseUrl` option has been removed from all providers. Please use the `baseURL` option instead.
 
-### Removed `name` from UI message
+### `useChat` hook
 
-The `name` property from the `Message` type has been removed.
+#### Removed `streamMode` option
 
-### Removed `streamMode` from `useChat` and `useCompletion`
-
-The `streamMode` parameter has been removed from the `useChat` and `useCompletion` hooks.
+The `streamMode` options has been removed from the `useChat` hook.
 Please use the `streamProtocol` parameter instead.
 
-### `useChat`: Replaced roundtrip options with `maxSteps`
+#### Removed 2.x legacy providers
+
+Legacy providers from AI SDK 2.x have been removed. Please use the new [AI SDK provider architecture](/docs/foundations/providers-and-models) instead.
+
+### Replaced roundtrip options with `maxSteps`
 
 The following options have been removed from the `useChat` hook:
 
@@ -84,13 +74,42 @@ The following options have been removed from the `useChat` hook:
 - `maxAutomaticRoundtrips`
 - `maxToolRoundtrips`
 
-Please use the [`maxSteps`](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) parameter instead. Note: `maxStep` is equal to `maxAutomaticRoundtrips` + 1.
+Please use the [`maxSteps`](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) option instead.
+The value of `maxSteps` is equal to roundtrips + 1.
 
-### Errors: Removed `isXXXError` static methods
+### Removed `options` parameter
+
+The `options` parameter in the `useChat` hook has been removed.
+Please use the `headers` and `body` parameters instead.
+
+#### Removed `name` from UI message
+
+The `name` property from the `Message` type has been removed.
+
+#### Removed 2.x legacy function and tool calling
+
+The legacy `function_call` and `tools` options have been removed.
+Please use the [AI SDK Core tool calling](/docs/ai-sdk-core/tools-and-tool-calling) instead.
+
+#### Removed `experimental_addToolResult` method
+
+The `experimental_addToolResult` method has been removed from the `useChat` hook.
+Please use the `addToolResult` method instead.
+
+### `useCompletion` hook
+
+#### Removed `streamMode` option
+
+The `streamMode` options has been removed from the `useCompletion` hook.
+Please use the `streamProtocol` parameter instead.
+
+### AI SDK Errors
+
+### Removed `isXXXError` static methods
 
 The `isXXXError` static methods have been removed from AI SDK errors.
 Please use the `isInstance` method of the corresponding error class instead.
 
-### Errors: Removed `toJSON` method
+### Removed `toJSON` method
 
 The `toJSON` method has been removed from AI SDK errors.
