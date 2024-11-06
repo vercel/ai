@@ -121,8 +121,3 @@ export function isParsableJson(input: string): boolean {
     return false;
   }
 }
-
-/**
-@deprecated Use `isParsableJson` instead.
- */
-export const isParseableJson = isParsableJson;
