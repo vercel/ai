@@ -1020,8 +1020,8 @@ importers:
         specifier: 1.9.0
         version: 1.9.0
       eventsource-parser:
-        specifier: 1.1.2
-        version: 1.1.2
+        specifier: ^3.0.0
+        version: 3.0.0
       json-schema:
         specifier: ^0.4.0
         version: 0.4.0
@@ -1382,8 +1382,8 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       eventsource-parser:
-        specifier: ^1.1.2
-        version: 1.1.2
+        specifier: ^3.0.0
+        version: 3.0.0
       nanoid:
         specifier: ^3.3.7
         version: 3.3.7
@@ -15082,9 +15082,9 @@ packages:
     resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
     engines: {node: '>=0.8.x'}
 
-  /eventsource-parser@1.1.2:
-    resolution: {integrity: sha512-v0eOBUbiaFojBu2s2NPBfYUoRR9GjcDNvCXVaqEf5vVfpIAh9f8RCo4vXTP8c63QRKCFwoLpMpTdPwwhEKVgzA==}
-    engines: {node: '>=14.18'}
+  /eventsource-parser@3.0.0:
+    resolution: {integrity: sha512-T1C0XCUimhxVQzW4zFipdx0SficT651NnkR0ZSH3yQwh+mFMdLfgjABVi4YtMTtaL4s168593DaoaRLMqryavA==}
+    engines: {node: '>=18.0.0'}
     dev: false
 
   /execa@5.1.1:
