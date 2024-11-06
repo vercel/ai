@@ -1,0 +1,19 @@
+pattern rewrite_framework_imports() {
+  or {
+    `import { useChat } from 'ai/svelte';` => `import { useChat } from '@ai-sdk/svelte';`,
+    `import { useChat } from 'ai/vue';` => `import { useChat } from '@ai-sdk/vue';`,
+    `import { useChat } from 'ai/solid';` => `import { useChat } from '@ai-sdk/solid';`
+  }
+
+  // TODO(shaper): Surely there's a way to parameterize the above, e.g.:
+
+//   `import { useChat } from 'ai/$framework';` where {
+//     $framework <: contains {
+//       or {
+//         "svelte",
+//         "vue",
+//         "solid"
+//       } => `import { useChat } from '@ai-sdk/$framework';`
+//   }
+// }
+}

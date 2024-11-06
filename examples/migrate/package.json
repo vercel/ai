@@ -1,0 +1,19 @@
+{
+  "name": "migrate",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@ai-sdk/cohere": "0.0.28",
+    "@getgrit/launcher": "^0.0.29",
+    "ai": "3.4.33",
+    "dotenv": "16.4.5"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.20",
+    "tsx": "4.7.1",
+    "typescript": "5.5.4"
+  }
+}

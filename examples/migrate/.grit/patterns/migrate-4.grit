@@ -1,0 +1,14 @@
+pattern migrate_4() {
+  or {
+    replace_nanoid(),
+    rewrite_framework_imports()
+  }
+
+  // TODO(shaper): `or` seems odd. Trying the below with or without
+  // `bubble` (which I theorize isn't needed) panics with a Rust error.
+
+  // sequential {
+  //   bubble replace_nanoid(),
+  //   bubble rewrite_framework_imports()
+  // }
+}

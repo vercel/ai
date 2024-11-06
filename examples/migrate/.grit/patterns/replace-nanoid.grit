@@ -1,0 +1,6 @@
+pattern replace_nanoid() {
+  or {
+    `import { nanoid } from 'ai';` => `import { generateId } from 'ai';`,
+    `{ generateId: nanoid }` => `{ generateId }`
+  }
+}
