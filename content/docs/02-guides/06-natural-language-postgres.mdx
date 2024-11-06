@@ -7,7 +7,7 @@ description: Learn how to build a Next.js app that lets you talk to a PostgreSQL
 
 In this guide, you will learn how to build an app that uses AI to interact with a PostgreSQL database using natural language.
 
-The application will use AI to:
+The application will:
 
 - Generate SQL queries from a natural language input
 - Explain query components in plain English
@@ -15,7 +15,7 @@ The application will use AI to:
 
 You can find a completed version of this project at [natural-language-postgres.vercel.app](https://natural-language-postgres.vercel.app).
 
-## Project Setup
+## Project setup
 
 This project uses the following stack:
 
@@ -27,11 +27,11 @@ This project uses the following stack:
 - [shadcn-ui](https://ui.shadcn.com) and [TailwindCSS](https://tailwindcss.com) for styling
 - [Recharts](https://recharts.org) for data visualization
 
-### Clone Repo
+### Clone repo
 
-To focus on the AI-powered functionality, rather than project setup and configuration, we've prepared a starter repository. This includes a database schema and a few components to help you concentrate on building the AI features.
+To focus on the AI-powered functionality rather than project setup and configuration we've prepared a starter repository which includes a database schema and a few components.
 
-Clone the starter repository:
+Clone the starter repository and check out the `starter` branch:
 
 <Snippet
   text={[
@@ -41,22 +41,22 @@ Clone the starter repository:
   ]}
 />
 
-### Project Setup and Data
+### Project setup and data
 
-Let's set up the project and load the dataset:
+Let's set up the project and seed the database with the dataset:
 
 1. Install dependencies:
 
 <Snippet text={['pnpm install']} />
 
-2. Copy the environment variables file:
+2. Copy the example environment variables file:
 
 <Snippet text={['cp .env.example .env']} />
 
 3. Add your environment variables to `.env`:
 
 ```bash filename=".env"
-OPENAI_API_KEY=your_api_key_here
+OPENAI_API_KEY="your_api_key_here"
 POSTGRES_URL="..."
 POSTGRES_PRISMA_URL="..."
 POSTGRES_URL_NO_SSL="..."
@@ -67,12 +67,16 @@ POSTGRES_PASSWORD="..."
 POSTGRES_DATABASE="..."
 ```
 
-4. This project uses CB Insights' unicorn companies dataset. You can download the dataset by following these instructions:
+<Note>
+  This project uses Vercel Postgres. You can learn more about how to set up at [Vercel Postgres](https://vercel.com/postgres).
+</Note>
+
+4. This project uses CB Insights' Unicorn Companies dataset. You can download the dataset by following these instructions:
    - Navigate to [CB Insights Unicorn Companies](https://www.cbinsights.com/research-unicorn-companies)
    - Enter in your email. You will receive a link to download the dataset.
    - Save it as `unicorns.csv` in your project root
 
-### About the Dataset
+### About the dataset
 
 The Unicorn List dataset contains the following information about unicorn startups (companies with a valuation above $1bn):
 
@@ -103,16 +107,17 @@ You should see a message indicating that the database has been seeded successful
 
 Your application should now be running at [http://localhost:3000](http://localhost:3000).
 
-## Project Structure
+## Project structure
 
-The starter repository already includes all the components that you will need, including:
+The starter repository already includes everything that you will need, including:
 
 - Database seed script (`lib/seed.ts`)
 - Basic components built with shadcn/ui (`components/`)
 - Function to run SQL queries (`app/actions.ts`)
-- Type definitions for the database schema
+- Type definitions for the database schema (`lib/types.ts`)
 
-The application contains a single page in `app/page.tsx` that serves as the main interface. Here are the key components you'll work with:
+### Existing components
+The application contains a single page in `app/page.tsx` that serves as the main interface.
 
 At the top, you'll find a header (`header.tsx`) displaying the application title and description. Below that is an input field and search button (`search.tsx`) where you can enter natural language queries.
 
@@ -130,9 +135,9 @@ After you implement the core functionality:
 - A toggle button will allow switching between table and chart views
 - The chart view will visualize your query results
 
-All the necessary components are included in the starter repository. Let's implement the AI-powered functionality to bring it all together.
+Let's implement the AI-powered functionality to bring it all together.
 
-## Building the Application
+## Building the application
 
 As a reminder, this application will have three main features:
 
@@ -140,13 +145,13 @@ As a reminder, this application will have three main features:
 2. Create a chart from the query results
 3. Explain SQL queries in plain English
 
-For each of these features, you'll use the AI SDK via Server Actions to interact with OpenAI's GPT-4o and GPT-4o-mini models. Server Actions are a powerful React Server Component feature that allows you to call server-side functions directly from your frontend code.
+For each of these features, you'll use the AI SDK via [ Server Actions ](https://react.dev/reference/rsc/server-actions) to interact with OpenAI's GPT-4o and GPT-4o-mini models. Server Actions are a powerful React Server Component feature that allows you to call server-side functions directly from your frontend code.
 
 Let's start with generating a SQL query from natural language.
 
-### Generate SQL Queries
+## Generate SQL queries
 
-#### Providing Content
+### Providing context
 
 For the model to generate accurate SQL queries, it needs context about your database schema, tables, and relationships. You will communicate this information through a prompt that should include:
 
@@ -212,7 +217,7 @@ There are several important elements of this prompt:
 
 This prompt structure provides a strong foundation for query generation, but you should experiment and iterate based on your specific needs and the model you're using.
 
-#### Create a Server Action
+### Create a Server Action
 
 With the prompt done, let's create a Server Action.
 
@@ -221,7 +226,7 @@ Open `app/actions.ts`. You should see one action already defined (`runGeneratedS
 Add a new action. This action should be asynchronous and take in one parameter - the natural language query.
 
 ```ts filename="app/actions.ts"
-// rest of the file
+/* ...rest of the file... */
 
 export const generateQuery = async (input: string) => {};
 ```
@@ -229,14 +234,15 @@ export const generateQuery = async (input: string) => {};
 In this action, you'll use the `generateObject` function from the AI SDK which allows you to constrain the model's output to a pre-defined schema. This process, sometimes called structured output, ensures the model returns only the SQL query without any additional prefixes, explanations, or formatting that would require manual parsing.
 
 ```ts filename="app/actions.ts"
-// other imports
+/* ...other imports... */
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
-// rest of the file
+/* ...rest of the file... */
 
 export const generateQuery = async (input: string) => {
+  "use server";
   try {
     const result = await generateObject({
       model: openai('gpt-4o'),
@@ -256,17 +262,17 @@ export const generateQuery = async (input: string) => {
 
 Note, you are constraining the output to a single string field called `query` using `zod`, a TypeScript schema validation library. This will ensure the model only returns the SQL query itself. The resulting generated query will then be returned.
 
-#### Update the frontend
+### Update the frontend
 
 With the Server Action in place, you can now update the frontend to call this action when the user submits a natural language query. In the root page (`app/page.tsx`), you should see a `handleSubmit` function that is called when the user submits a query.
 
 Import the `generateQuery` function and call it with the user's input.
 
 ```typescript filename="app/page.tsx" highlight="21"
-// rest of the imports
+/* ...other imports... */
 import { runGeneratedSQLQuery, generateQuery } from './actions';
 
-// rest of the file
+/* ...rest of the file... */
 
 const handleSubmit = async (suggestion?: string) => {
   clearExistingData();
@@ -308,7 +314,7 @@ const handleSubmit = async (suggestion?: string) => {
   }
 };
 
-// rest of the file
+/* ...rest of the file... */
 ```
 
 Now, when the user submits a natural language query (ie. "how many unicorns are from San Francisco?"), that question will be sent to your newly created Server Action. The Server Action will call the model, passing in your system prompt and the users query, and return the generated SQL query in a structured format. This query is then passed to the `runGeneratedSQLQuery` action to run the query against your database. The results are then saved in local state and displayed to the user.
@@ -317,7 +323,7 @@ Save the file, make sure the dev server is running, and then head to `localhost:
 
 Try clicking the SQL query to see the full query if it's too long to display in the input field. You should see a button on the right side of the input field with a question mark icon. Clicking this button currently does nothing, but you'll add the "explain query" functionality to it in the next step.
 
-### Explain SQL Queries
+## Explain SQL Queries
 
 Next, let's add the ability to explain SQL queries in plain English. This feature helps users understand how the generated SQL query works by breaking it down into logical sections.
 As with the SQL query generation, you'll need a prompt to guide the model when explaining queries.
@@ -343,7 +349,7 @@ If a section doesnt have any explanation, include it, but leave the explanation 
 
 Like the prompt for generating SQL queries, you provide the model with the schema of the database. Additionally, you provide an example of what each section of the query might look like. This helps the model understand the structure of the query and how to break it down into logical sections.
 
-#### Create a Server Action
+### Create a Server Action
 
 Add a new Server Action to generate explanations for SQL queries.
 
@@ -353,7 +359,7 @@ This action takes two parameters - the original natural language input and the g
 // other imports
 import { explanationsSchema } from '@/lib/types';
 
-// rest of the file
+/* ...rest of the file... */
 
 export const explainQuery = async (input: string, sqlQuery: string) => {
   'use server';
@@ -383,14 +389,14 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
   Don't forget to import the `explanationsSchema` from the `types.ts` file.
 </Note>
 
-This action uses the `generateObject` function again. However, you haven't defined the schema yet. Let's define it in another file so it can also be used by your components to render the generation.
+This action uses the `generateObject` function again. However, you haven't defined the schema yet. Let's define it in another file so it can also be used as a type in your components.
 
 Update your `lib/types.ts` file to include the schema for the explanations:
 
 ```ts filename="lib/types.ts"
 import { z } from 'zod';
 
-// rest of the file
+/* ...rest of the file... */
 
 export const explanationSchema = z.object({
   section: z.string(),
@@ -406,7 +412,7 @@ This schema defines the structure of the explanation that the model will generat
 // other imports
 import { explanationSchema } from '@/lib/types';
 
-// rest of the file
+/* ...rest of the file... */
 
 export const explainQuery = async (input: string, sqlQuery: string) => {
   'use server';
@@ -437,15 +443,15 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
   array of objects matching the schema to be returned.
 </Note>
 
-#### Update Query Viewer
+### Update query viewer
 
-Next, update the `query-viewer.tsx` component to display these explanations. The `handleExplainQuery` function is called every time the user clicks the question icon button on the right side of the query. Let's update this function to the new `explainQuery` action and updates the component state with the explanations:
+Next, update the `query-viewer.tsx` component to display these explanations. The `handleExplainQuery` function is called every time the user clicks the question icon button on the right side of the query. Let's update this function to use the new `explainQuery` action:
 
 ```ts filename="components/query-viewer.tsx" highlight="2,10,11"
-// rest of imports
+/* ...other imports... */
 import { explainQuery } from '@/app/actions';
 
-// rest of component
+/* ...rest of the component... */
 
 const handleExplainQuery = async () => {
   setQueryExpanded(true);
@@ -457,43 +463,42 @@ const handleExplainQuery = async () => {
   setLoadingExplanation(false);
 };
 
-// rest of component
+/* ...rest of the component... */
 ```
 
 Now when users click the explanation button (the question mark icon), the component will:
 
 1. Show a loading state
-2. Send the active SQL query and the users natural language query to your server action
-3. The model will generation an array of explanations
+2. Send the active SQL query and the users natural language query to your Server Action
+3. The model will generate an array of explanations
 4. The explanations will be set in the component state and rendered in the UI
 
-Try submitting a query and clicking the explanation button. Now try hovering over different elements of the query. You should see the explanations for each section!
+Submit a new query and then click the explanation button. Hover over different elements of the query. You should see the explanations for each section!
 
-### Generate Chart Visualizations
+## Visualizing query results
 
-Finally, let's try and render the query results in a chart. There are two approaches you could take:
+Finally, let's render the query results visually in a chart. There are two approaches you could take:
 
-1. Send both the query and data to the model and ask it to return the data in a visualization-ready format. While this provides complete control over the visualization, it requires the model to send back all of the data, which increases latency and costs.
+1. Send both the query and data to the model and ask it to return the data in a visualization-ready format. While this provides complete control over the visualization, it requires the model to send back all of the data, which significantly increases latency and costs.
 
-2. Send the query and data to the model and ask it to generate a chart configuration (fixed-size and not many tokens) that maps your data appropriately. This configuration specifies how to visualize the information while delivering the insights from your natural language query, without requiring the model to process and return the full dataset.
+2. Send the query and data to the model and ask it to generate a chart configuration (fixed-size and not many tokens) that maps your data appropriately. This configuration specifies how to visualize the information while delivering the insights from your natural language query. Importnatly, this is done without requiring the model return the full dataset.
 
 Since you don't know the SQL query or data shape beforehand, let's use the second approach to dynamically generate chart configurations based on the query results and user intent.
 
-#### Generate Chart Configurations
+### Generate the chart configuration
 
-For this feature, you'll create a Server Action that takes the query results and the user's original natural language query to determine the best visualization approach. Your application is already set up to use `shadcn` charts (which uses `Recharts` under the hood) so the model will need to generate:
+For this feature, you'll create a Server Action that takes the query results and the user's original natural language query to determine the best visualization approach. Your application is already set up to use `shadcn` charts (which uses [`Recharts`](https://recharts.org/en-US/) under the hood) so the model will need to generate:
 
 - Chart type (bar, line, area, or pie)
 - Axis mappings
-- Data transformations
 - Visual styling
 
 Let's start by defining the schema for the chart configuration in `lib/types.ts`:
 
 ```ts filename="lib/types.ts"
+/* ...rest of the file... */
 export type QueryExplanation = z.infer<typeof explanationSchema>;
 
-// Define the schema for chart configuration
 export const configSchema = z
   .object({
     description: z
@@ -544,17 +549,17 @@ export type Config = z.infer<typeof configSchema>;
 
 This schema makes extensive use of Zod's `.describe()` function to give the model extra context about each of the key's you are expecting in the chart configuration. This will help the model understand the purpose of each key and generate more accurate results.
 
-Another important technique to note here is that you are defining `description` and `takeaway` fields. Not only are these useful for the user to quickly understand what the chart means and what they should take away from it, but they also force the model to generate a description of the data first, before it attempts to generate configuration attributes like Axis and columns. This will help the model generate more accurate and relevant chart configurations.
+Another important technique to note here is that you are defining `description` and `takeaway` fields. Not only are these useful for the user to quickly understand what the chart means and what they should take away from it, but they also force the model to generate a description of the data first, before it attempts to generate configuration attributes like axis and columns. This will help the model generate more accurate and relevant chart configurations.
 
-#### Create the Server Action
+### Create the Server Action
 
-Create the chart generation action in `app/actions.ts`:
+Create a new action in `app/actions.ts`:
 
 ```ts
-// rest of imports
+/* ...other imports... */
 import { Config, configSchema, explanationsSchema, Result } from '@/lib/types';
 
-// rest of file
+/* ...rest of the file... */
 
 export const generateChartConfig = async (
   results: Result[],
@@ -605,17 +610,17 @@ export const generateChartConfig = async (
 };
 ```
 
-#### Update the Chart Component
+### Update the chart component
 
-With the chart generation action in place, you'll want to trigger it automatically after receiving query results. This ensures the visualization appears almost immediately after data loads
+With the action in place, you'll want to trigger it automatically after receiving query results. This ensures the visualization appears almost immediately after data loads.
 
 Update the `handleSubmit` function in your root page (`app/page.tsx`) to generate and set the chart configuration after running the query:
 
 ```typescript filename="app/page.tsx"
-// rest of imports
+/* ...other imports... */
 import { getCompanies, generateQuery, generateChartConfig } from './actions';
 
-// rest of file
+/* ...rest of the file... */
 const handleSubmit = async (suggestion?: string) => {
   clearExistingData();
 
@@ -656,6 +661,8 @@ const handleSubmit = async (suggestion?: string) => {
     setLoading(false);
   }
 };
+
+/* ...rest of the file... */
 ```
 
 Now when users submit queries, the application will:
@@ -667,8 +674,7 @@ Now when users submit queries, the application will:
 
 Head back to the browser and test the application with a few queries. You should see the chart visualization appear after the table results.
 
-
-### Next Steps
+## Next steps
 You've built an AI-powered SQL analysis tool that can convert natural language to SQL queries, visualize query results, and explain SQL queries in plain English.
 
 Consider extending the application by using your own data sources or adding more advanced features like customizing the chart configuration schema to support more chart types and options and adding more complex SQL query generation capabilities.
