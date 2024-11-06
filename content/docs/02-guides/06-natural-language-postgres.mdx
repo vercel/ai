@@ -308,8 +308,6 @@ const handleSubmit = async (suggestion?: string) => {
     setColumns(columns);
 
     setLoading(false);
-
-    // TODO: Generate chart config & update chart config state with result
   } catch (e) {
     toast.error('An error occurred. Please try again.');
     setLoading(false);
