@@ -48,11 +48,4 @@ export class TypeValidationError extends AISDKError {
       ? cause
       : new TypeValidationError({ value, cause });
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isTypeValidationError(error: unknown): error is TypeValidationError {
-    return error instanceof Error && error.name === name;
-  }
 }

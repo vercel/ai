@@ -21,17 +21,4 @@ export class UnsupportedFunctionalityError extends AISDKError {
   static isInstance(error: unknown): error is UnsupportedFunctionalityError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated Use isInstance instead.
-   */
-  static isUnsupportedFunctionalityError(
-    error: unknown,
-  ): error is UnsupportedFunctionalityError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      typeof (error as UnsupportedFunctionalityError).functionality === 'string'
-    );
-  }
 }

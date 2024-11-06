@@ -24,17 +24,4 @@ export class InvalidMessageRoleError extends AISDKError {
   static isInstance(error: unknown): error is InvalidMessageRoleError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isInvalidMessageRoleError(
-    error: unknown,
-  ): error is InvalidMessageRoleError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      typeof (error as InvalidMessageRoleError).role === 'string'
-    );
-  }
 }

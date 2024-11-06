@@ -19,13 +19,4 @@ export class NoContentGeneratedError extends AISDKError {
   static isInstance(error: unknown): error is NoContentGeneratedError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated Use isInstance instead.
-   */
-  static isNoContentGeneratedError(
-    error: unknown,
-  ): error is NoContentGeneratedError {
-    return error instanceof Error && error.name === name;
-  }
 }
