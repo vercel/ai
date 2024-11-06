@@ -921,8 +921,8 @@ describe('tool invocations', () => {
   );
 });
 
-describe('maxToolRoundtrips', () => {
-  describe('single automatic tool roundtrip', () => {
+describe('maxSteps', () => {
+  describe('two steps with automatic tool call', () => {
     let onToolCallInvoked = false;
 
     const TestComponent = () => {
@@ -934,7 +934,7 @@ describe('maxToolRoundtrips', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxToolRoundtrips: 5,
+        maxSteps: 5,
       });
 
       return (
@@ -1000,7 +1000,7 @@ describe('maxToolRoundtrips', () => {
     );
   });
 
-  describe('single roundtrip with error response', () => {
+  describe('two steps with error response', () => {
     let onToolCallCounter = 0;
 
     const TestComponent = () => {
@@ -1011,7 +1011,7 @@ describe('maxToolRoundtrips', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxToolRoundtrips: 5,
+        maxSteps: 5,
       });
 
       return (
