@@ -88,8 +88,7 @@ export function useChat(
     initialMessages = [],
     initialInput = '',
     sendExtraMessageFields,
-    streamMode,
-    streamProtocol,
+    streamProtocol = 'data',
     onResponse,
     onFinish,
     onError,
@@ -112,11 +111,6 @@ export function useChat(
     maxSteps: 1,
   },
 ): UseChatHelpers {
-  // streamMode is deprecated, use streamProtocol instead.
-  if (streamMode) {
-    streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
-  }
-
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
 
