@@ -67,3 +67,13 @@ The `name` property from the `Message` type has been removed.
 
 The `streamMode` parameter has been removed from the `useChat` and `useCompletion` hooks.
 Please use the `streamProtocol` parameter instead.
+
+### `useChat`: Replaced roundtrip options with `maxSteps`
+
+The following options have been removed from the `useChat` hook:
+
+- `experimental_maxAutomaticRoundtrips`
+- `maxAutomaticRoundtrips`
+- `maxToolRoundtrips`
+
+Please use the `maxSteps` parameter instead.

@@ -166,22 +166,6 @@ const [store, setStore] = createStore<Record<string, Message[]>>({});
 
 export type UseChatOptions = SharedUseChatOptions & {
   /**
-Maximum number of automatic roundtrips for tool calls.
-
-An automatic tool call roundtrip is a call to the server with the
-tool call results when all tool calls in the last assistant
-message have results.
-
-A maximum number is required to prevent infinite loops in the
-case of misconfigured tools.
-
-By default, it's set to 0, which will disable the feature.
-
-@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
-     */
-  maxToolRoundtrips?: number;
-
-  /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
 
 A maximum number is required to prevent infinite loops in the case of misconfigured tools.
@@ -296,9 +280,8 @@ export function useChat(
       setIsLoading(false);
     }
 
-    const maxSteps =
-      useChatOptions().maxSteps?.() ??
-      (useChatOptions().maxToolRoundtrips?.() ?? 0) + 1;
+    const maxSteps = useChatOptions().maxSteps?.() ?? 1;
+
     // auto-submit when all tool calls in the last assistant message have results:
     const messages = messagesRef;
     const lastMessage = messages[messages.length - 1];
