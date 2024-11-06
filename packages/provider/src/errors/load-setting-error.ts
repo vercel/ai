@@ -14,11 +14,4 @@ export class LoadSettingError extends AISDKError {
   static isInstance(error: unknown): error is LoadSettingError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated Use isInstance instead.
-   */
-  static isLoadSettingError(error: unknown): error is LoadSettingError {
-    return error instanceof Error && error.name === name;
-  }
 }

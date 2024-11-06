@@ -58,7 +58,7 @@ async function _retryWithExponentialBackoff<OUTPUT>(
 
     if (
       error instanceof Error &&
-      APICallError.isAPICallError(error) &&
+      APICallError.isInstance(error) &&
       error.isRetryable === true &&
       tryNumber <= maxRetries
     ) {

@@ -32,17 +32,4 @@ export class NoSuchToolError extends AISDKError {
   static isInstance(error: unknown): error is NoSuchToolError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isNoSuchToolError(error: unknown): error is NoSuchToolError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      'toolName' in error &&
-      error.toolName != undefined &&
-      typeof error.name === 'string'
-    );
-  }
 }

@@ -38,16 +38,4 @@ export class RetryError extends AISDKError {
   static isInstance(error: unknown): error is RetryError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isRetryError(error: unknown): error is RetryError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      typeof (error as RetryError).reason === 'string' &&
-      Array.isArray((error as RetryError).errors)
-    );
-  }
 }

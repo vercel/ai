@@ -31,16 +31,4 @@ export class InvalidArgumentError extends AISDKError {
   static isInstance(error: unknown): error is InvalidArgumentError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isInvalidArgumentError(error: unknown): error is InvalidArgumentError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      typeof (error as InvalidArgumentError).parameter === 'string' &&
-      typeof (error as InvalidArgumentError).value === 'string'
-    );
-  }
 }
