@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 1.0.0-canary.1
+
+### Major Changes
+
+- 8c5daa3: chore (provider/vertex): remove topK model setting
+
+### Patch Changes
+
+- Updated dependencies [b1da952]
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+
 ## 1.0.0-canary.0
 
 ### Major Changes

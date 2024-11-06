@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.0.0-canary.1
+
+### Major Changes
+
+- b1da952: chore (provider-utils): remove convertStreamToArray
+
 ## 2.0.0-canary.0
 
 ### Major Changes

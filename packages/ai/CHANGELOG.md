@@ -1,5 +1,15 @@
 # ai
 
+## 4.0.0-canary.3
+
+### Patch Changes
+
+- Updated dependencies [68d30e9]
+- Updated dependencies [b1da952]
+  - @ai-sdk/react@1.0.0-canary.3
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+  - @ai-sdk/ui-utils@1.0.0-canary.3
+
 ## 4.0.0-canary.2
 
 ### Major Changes

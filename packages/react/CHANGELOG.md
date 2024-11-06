@@ -1,5 +1,17 @@
 # @ai-sdk/react
 
+## 1.0.0-canary.3
+
+### Major Changes
+
+- 68d30e9: chore (ui/react): remove experimental_addToolResult
+
+### Patch Changes
+
+- Updated dependencies [b1da952]
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+  - @ai-sdk/ui-utils@1.0.0-canary.3
+
 ## 1.0.0-canary.2
 
 ### Major Changes

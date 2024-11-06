@@ -1008,13 +1008,13 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 1.0.0-canary.2
+        specifier: 1.0.0-canary.3
         version: link:../react
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.2
+        specifier: 1.0.0-canary.3
         version: link:../ui-utils
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1120,7 +1120,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
       '@aws-sdk/client-bedrock-runtime':
         specifier: ^3.663.0
@@ -1154,7 +1154,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1176,13 +1176,13 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.0-canary.0
+        specifier: 1.0.0-canary.1
         version: link:../openai
       '@ai-sdk/provider':
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1207,7 +1207,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1232,7 +1232,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1257,7 +1257,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
     devDependencies:
       '@google-cloud/vertexai':
@@ -1285,7 +1285,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1310,7 +1310,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1335,7 +1335,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1413,10 +1413,10 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.2
+        specifier: 1.0.0-canary.3
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
@@ -1477,10 +1477,10 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.2
+        specifier: 1.0.0-canary.3
         version: link:../ui-utils
       solid-js:
         specifier: ^1.7.7
@@ -1529,10 +1529,10 @@ importers:
   packages/svelte:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.2
+        specifier: 1.0.0-canary.3
         version: link:../ui-utils
       sswr:
         specifier: ^2.1.0
@@ -1563,7 +1563,7 @@ importers:
   packages/swarm:
     dependencies:
       ai:
-        specifier: 4.0.0-canary.2
+        specifier: 4.0.0-canary.3
         version: link:../ai
       zod:
         specifier: 3.23.8
@@ -1588,7 +1588,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
       json-schema:
         specifier: ^0.4.0
@@ -1625,10 +1625,10 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.0
+        specifier: 2.0.0-canary.1
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.2
+        specifier: 1.0.0-canary.3
         version: link:../ui-utils
       swrv:
         specifier: ^1.0.4
