@@ -30,11 +30,4 @@ export class InvalidPromptError extends AISDKError {
   static isInstance(error: unknown): error is InvalidPromptError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isInvalidPromptError(error: unknown): error is InvalidPromptError {
-    return error instanceof Error && error.name === name && prompt != null;
-  }
 }

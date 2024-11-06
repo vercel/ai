@@ -17,13 +17,4 @@ export class NoObjectGeneratedError extends AISDKError {
   static isInstance(error: unknown): error is NoObjectGeneratedError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated Use isInstance instead.
-   */
-  static isNoObjectGeneratedError(
-    error: unknown,
-  ): error is NoObjectGeneratedError {
-    return error instanceof Error && error.name === name;
-  }
 }

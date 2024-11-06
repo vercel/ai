@@ -47,8 +47,8 @@ export function parseJSON<T>({
     return validateTypes({ value, schema });
   } catch (error) {
     if (
-      JSONParseError.isJSONParseError(error) ||
-      TypeValidationError.isTypeValidationError(error)
+      JSONParseError.isInstance(error) ||
+      TypeValidationError.isInstance(error)
     ) {
       throw error;
     }
@@ -106,7 +106,7 @@ export function safeParseJSON<T>({
   } catch (error) {
     return {
       success: false,
-      error: JSONParseError.isJSONParseError(error)
+      error: JSONParseError.isInstance(error)
         ? error
         : new JSONParseError({ text, cause: error }),
     };

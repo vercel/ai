@@ -30,16 +30,4 @@ export class NoSuchModelError extends AISDKError {
   static isInstance(error: unknown): error is NoSuchModelError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isNoSuchModelError(error: unknown): error is NoSuchModelError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      typeof (error as NoSuchModelError).modelId === 'string' &&
-      typeof (error as NoSuchModelError).modelType === 'string'
-    );
-  }
 }

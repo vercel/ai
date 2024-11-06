@@ -14,13 +14,4 @@ export class EmptyResponseBodyError extends AISDKError {
   static isInstance(error: unknown): error is EmptyResponseBodyError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isEmptyResponseBodyError(
-    error: unknown,
-  ): error is EmptyResponseBodyError {
-    return error instanceof Error && error.name === name;
-  }
 }
