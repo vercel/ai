@@ -38,18 +38,4 @@ export class JSONParseError extends AISDKError {
       typeof error.text === 'string'
     );
   }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      cause: this.cause,
-      stack: this.stack,
-
-      valueText: this.text,
-    };
-  }
 }

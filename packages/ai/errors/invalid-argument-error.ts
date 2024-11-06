@@ -43,15 +43,4 @@ export class InvalidArgumentError extends AISDKError {
       typeof (error as InvalidArgumentError).value === 'string'
     );
   }
-
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      stack: this.stack,
-
-      parameter: this.parameter,
-      value: this.value,
-    };
-  }
 }

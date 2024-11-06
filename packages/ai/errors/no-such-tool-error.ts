@@ -45,18 +45,4 @@ export class NoSuchToolError extends AISDKError {
       typeof error.name === 'string'
     );
   }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      stack: this.stack,
-
-      toolName: this.toolName,
-      availableTools: this.availableTools,
-    };
-  }
 }

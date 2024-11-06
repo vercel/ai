@@ -44,21 +44,4 @@ export class NoSuchProviderError extends NoSuchModelError {
       Array.isArray((error as NoSuchProviderError).availableProviders)
     );
   }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      stack: this.stack,
-
-      modelId: this.modelId,
-      modelType: this.modelType,
-
-      providerId: this.providerId,
-      availableProviders: this.availableProviders,
-    };
-  }
 }

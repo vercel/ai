@@ -46,19 +46,4 @@ export class InvalidToolArgumentsError extends AISDKError {
       typeof (error as InvalidToolArgumentsError).toolArgs === 'string'
     );
   }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      cause: this.cause,
-      stack: this.stack,
-
-      toolName: this.toolName,
-      toolArgs: this.toolArgs,
-    };
-  }
 }

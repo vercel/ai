@@ -51,18 +51,4 @@ export class DownloadError extends AISDKError {
         typeof (error as DownloadError).statusText === 'string')
     );
   }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      url: this.url,
-      statusCode: this.statusCode,
-      statusText: this.statusText,
-      cause: this.cause,
-    };
-  }
 }
