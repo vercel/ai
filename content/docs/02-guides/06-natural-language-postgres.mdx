@@ -68,7 +68,8 @@ POSTGRES_DATABASE="..."
 ```
 
 <Note>
-  This project uses Vercel Postgres. You can learn more about how to set up at [Vercel Postgres](https://vercel.com/postgres).
+  This project uses Vercel Postgres. You can learn more about how to set up at
+  [Vercel Postgres](https://vercel.com/postgres).
 </Note>
 
 4. This project uses CB Insights' Unicorn Companies dataset. You can download the dataset by following these instructions:
@@ -117,6 +118,7 @@ The starter repository already includes everything that you will need, including
 - Type definitions for the database schema (`lib/types.ts`)
 
 ### Existing components
+
 The application contains a single page in `app/page.tsx` that serves as the main interface.
 
 At the top, you'll find a header (`header.tsx`) displaying the application title and description. Below that is an input field and search button (`search.tsx`) where you can enter natural language queries.
@@ -242,7 +244,7 @@ import { z } from 'zod';
 /* ...rest of the file... */
 
 export const generateQuery = async (input: string) => {
-  "use server";
+  'use server';
   try {
     const result = await generateObject({
       model: openai('gpt-4o'),
@@ -675,6 +677,7 @@ Now when users submit queries, the application will:
 Head back to the browser and test the application with a few queries. You should see the chart visualization appear after the table results.
 
 ## Next steps
+
 You've built an AI-powered SQL analysis tool that can convert natural language to SQL queries, visualize query results, and explain SQL queries in plain English.
 
 Consider extending the application by using your own data sources or adding more advanced features like customizing the chart configuration schema to support more chart types and options and adding more complex SQL query generation capabilities.
