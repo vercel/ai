@@ -1,5 +1,21 @@
 # @ai-sdk/azure
 
+## 1.0.0-canary.0
+
+### Major Changes
+
+- 66060f7: chore (release): bump major version to 4.0
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [66060f7]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0-canary.0
+  - @ai-sdk/provider@1.0.0-canary.0
+  - @ai-sdk/openai@1.0.0-canary.0
+
 ## 0.0.52
 
 ### Patch Changes
