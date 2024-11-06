@@ -1,5 +1,11 @@
 # @ai-sdk/swarm
 
+## 0.0.9-canary.3
+
+### Patch Changes
+
+- ai@4.0.0-canary.3
+
 ## 0.0.9-canary.2
 
 ### Patch Changes

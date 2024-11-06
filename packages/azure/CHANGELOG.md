@@ -1,5 +1,15 @@
 # @ai-sdk/azure
 
+## 1.0.0-canary.1
+
+### Patch Changes
+
+- Updated dependencies [79644e9]
+- Updated dependencies [0d3d3f5]
+- Updated dependencies [b1da952]
+  - @ai-sdk/openai@1.0.0-canary.1
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+
 ## 1.0.0-canary.0
 
 ### Major Changes
