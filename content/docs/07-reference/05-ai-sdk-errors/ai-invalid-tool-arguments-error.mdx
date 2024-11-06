@@ -4,9 +4,11 @@ description: Learn how to fix AI_InvalidToolArgumentsError
 ---
 
 # AI_InvalidToolArgumentsError
+
 This error occurs when invalid tool argument was provided.
 
 ## Properties
+
 - `toolName`: The name of the tool with invalid arguments
 - `toolArgs`: The invalid tool arguments
 - `message`: The error message
@@ -17,9 +19,9 @@ This error occurs when invalid tool argument was provided.
 You can check if an error is an instance of `AI_InvalidToolArgumentsError` using:
 
 ```typescript
-import { InvalidToolArgumentsError } from "ai";
+import { InvalidToolArgumentsError } from 'ai';
 
 if (InvalidToolArgumentsError.isInstance(error)) {
-    // Handle the error
+  // Handle the error
 }
 ```

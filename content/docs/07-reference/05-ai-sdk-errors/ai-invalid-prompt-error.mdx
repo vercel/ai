@@ -4,9 +4,11 @@ description: Learn how to fix AI_InvalidPromptError
 ---
 
 # AI_InvalidPromptError
+
 This error occurs when the prompt provided is invalid.
 
 ## Properties
+
 - `prompt`: The invalid prompt value
 - `message`: The error message
 - `cause`: The cause of the error
@@ -16,9 +18,9 @@ This error occurs when the prompt provided is invalid.
 You can check if an error is an instance of `AI_InvalidPromptError` using:
 
 ```typescript
-import { InvalidPromptError } from "ai";
+import { InvalidPromptError } from 'ai';
 
 if (InvalidPromptError.isInstance(error)) {
-    // Handle the error
+  // Handle the error
 }
 ```
