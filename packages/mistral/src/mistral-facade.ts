@@ -24,8 +24,7 @@ export class Mistral {
    */
   constructor(options: MistralProviderSettings = {}) {
     this.baseURL =
-      withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
-      'https://api.mistral.ai/v1';
+      withoutTrailingSlash(options.baseURL) ?? 'https://api.mistral.ai/v1';
 
     this.apiKey = options.apiKey;
     this.headers = options.headers;
