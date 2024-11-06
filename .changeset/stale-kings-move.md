@@ -1,6 +1,6 @@
 ---
 '@ai-sdk/ui-utils': major
-'ai': patch
+'ai': major
 ---
 
 chore: remove nanoid export
