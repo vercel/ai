@@ -214,7 +214,12 @@ describe('doGenerate', () => {
     const { model, mockVertexAI } = createModel({
       modelId: 'test-model',
       settings: {
-        topK: 0.1,
+        safetySettings: [
+          {
+            category: 'HARM_CATEGORY_UNSPECIFIED',
+            threshold: 'BLOCK_NONE',
+          },
+        ],
       },
       generateContent: prepareResponse({}),
     });
@@ -226,6 +231,7 @@ describe('doGenerate', () => {
       temperature: 0.5,
       maxTokens: 100,
       topP: 0.9,
+      topK: 0.1,
       stopSequences: ['abc', 'def'],
       frequencyPenalty: 0.15,
     });
@@ -244,7 +250,12 @@ describe('doGenerate', () => {
       },
       tools: undefined,
       toolConfig: undefined,
-      safetySettings: undefined,
+      safetySettings: [
+        {
+          category: 'HARM_CATEGORY_UNSPECIFIED',
+          threshold: 'BLOCK_NONE',
+        },
+      ],
     });
   });
 
