@@ -1168,7 +1168,6 @@ However, the LLM results are expected to be small enough to not cause issues.
       async flush(): Promise<void> {
         if (callbacks.onCompletion)
           await callbacks.onCompletion(aggregatedResponse);
-        if (callbacks.onFinal) await callbacks.onFinal(aggregatedResponse);
       },
     });
 

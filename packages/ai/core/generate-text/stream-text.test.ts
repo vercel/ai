@@ -985,9 +985,6 @@ describe('result.toAIStream', () => {
           onCompletion(completion) {
             events.push(`completion:${completion}`);
           },
-          onFinal(completion) {
-            events.push(`final:${completion}`);
-          },
         })
         .pipeThrough(new TextDecoderStream()),
     );
@@ -1001,7 +998,6 @@ describe('result.toAIStream', () => {
       'token:world!',
       'text:world!',
       'completion:Hello, world!',
-      'final:Hello, world!',
     ]);
   });
 });
