@@ -41,36 +41,52 @@ export function convertToGoogleGenerativeAIMessages(
               parts.push({ text: part.text });
               break;
             }
-            case 'image': {
-              if (part.image instanceof URL) {
-                // The AI SDK automatically downloads images for user image parts with URLs
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'Image URLs in user messages',
-                });
-              }
 
-              parts.push({
-                inlineData: {
-                  mimeType: part.mimeType ?? 'image/jpeg',
-                  data: convertUint8ArrayToBase64(part.image),
-                },
-              });
+            case 'image': {
+              parts.push(
+                part.image instanceof URL
+                  ? {
+                      fileData: {
+                        mimeType: part.mimeType ?? 'image/jpeg',
+                        fileUri: part.image.toString(),
+                      },
+                    }
+                  : {
+                      inlineData: {
+                        mimeType: part.mimeType ?? 'image/jpeg',
+                        data: convertUint8ArrayToBase64(part.image),
+                      },
+                    },
+              );
 
               break;
             }
-            case 'file': {
-              if (part.data instanceof URL) {
-                // The AI SDK automatically downloads files for user file parts with URLs
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'File URLs in user messages',
-                });
-              }
 
-              parts.push({
-                inlineData: { mimeType: part.mimeType, data: part.data },
-              });
+            case 'file': {
+              parts.push(
+                part.data instanceof URL
+                  ? {
+                      fileData: {
+                        mimeType: part.mimeType,
+                        fileUri: part.data.toString(),
+                      },
+                    }
+                  : {
+                      inlineData: {
+                        mimeType: part.mimeType,
+                        data: part.data,
+                      },
+                    },
+              );
 
               break;
+            }
+
+            default: {
+              const _exhaustiveCheck: never = part;
+              throw new UnsupportedFunctionalityError({
+                functionality: `prompt part: ${_exhaustiveCheck}`,
+              });
             }
           }
         }

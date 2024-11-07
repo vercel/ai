@@ -14,6 +14,11 @@ export function selectTelemetryAttributes({
       | undefined;
   };
 }): Attributes {
+  // when telemetry is disabled, return an empty object to avoid serialization overhead:
+  if (telemetry?.isEnabled !== true) {
+    return {};
+  }
+
   return Object.entries(attributes).reduce((attributes, [key, value]) => {
     if (value === undefined) {
       return attributes;

@@ -19,7 +19,7 @@ Text prompts are strings.
 They are ideal for simple generation use cases,
 e.g. repeatedly generating content for variants of the same prompt text.
 
-You can set text prompts using the `prompt` property made available by AI SDK functions like [`generateText`](/docs/reference/ai-sdk-core/generate-text) or [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui).
+You can set text prompts using the `prompt` property made available by AI SDK functions like [`streamText`](/docs/reference/ai-sdk-core/stream-text) or [`generateObject`](/docs/reference/ai-sdk-core/generate-object).
 You can structure the text in any way and inject variables, e.g. using a template literal.
 
 ```ts highlight="3"
@@ -197,10 +197,12 @@ const result = await generateText({
 #### File Parts
 
 <Note type="warning">
-  Only a few providers currently support file parts. If you want to explore this
-  feature, check out the [Google Generative AI
-  provider](/providers/ai-sdk-providers/google-generative-ai) or the [Google
-  Vertex AI provider](/providers/ai-sdk-providers/google-vertex).
+  Only a few providers and models currently support file parts: [Google
+  Generative AI](/providers/ai-sdk-providers/google-generative-ai), [Google
+  Vertex AI](/providers/ai-sdk-providers/google-vertex),
+  [OpenAI](/providers/ai-sdk-providers/openai) (for `wav` and `mp3` audio with
+  `gpt-4o-audio-preview`), [Anthropic](/providers/ai-sdk-providers/anthropic)
+  (for `pdf`).
 </Note>
 
 User messages can include file parts. A file can be one of the following:
@@ -216,11 +218,16 @@ User messages can include file parts. A file can be one of the following:
   - http(s) URL `string`, e.g. `https://example.com/some.pdf`
   - `URL` object, e.g. `new URL('https://example.com/some.pdf')`
 
-##### Example: Binary file (Buffer)
+You need to specify the MIME type of the file you are sending.
 
-```ts highlight="8-11"
+##### Example: PDF file from Buffer
+
+```ts highlight="12-14"
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
 const result = await generateText({
-  model,
+  model: google('gemini-1.5-flash'),
   messages: [
     {
       role: 'user',
@@ -228,7 +235,32 @@ const result = await generateText({
         { type: 'text', text: 'What is the file about?' },
         {
           type: 'file',
-          data: fs.readFileSync('./data/some.pdf'),
+          mimeType: 'application/pdf',
+          data: fs.readFileSync('./data/example.pdf'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+##### Example: mp3 audio file from Buffer
+
+```ts highlight="12-14"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-4o-audio-preview'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is the audio saying?' },
+        {
+          type: 'file',
+          mimeType: 'audio/mpeg',
+          data: fs.readFileSync('./data/galileo.mp3'),
         },
       ],
     },
@@ -323,6 +355,55 @@ const result = await generateText({
           },
         },
         // there could be more tool results here (parallel calling)
+      ],
+    },
+  ],
+});
+```
+
+#### Multi-modal Tool Results
+
+<Note type="warning">
+  Multi-part tool results are experimental and only supported by Anthropic.
+</Note>
+
+Tool results can be multi-part and multi-modal, e.g. a text and an image.
+You can use the `experimental_content` property on tool parts to specify multi-part tool results.
+
+```ts highlight="20-32"
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    // ...
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: '12345', // needs to match the tool call id
+          toolName: 'get-nutrition-data',
+          // for models that do not support multi-part tool results,
+          // you can include a regular result part:
+          result: {
+            name: 'Cheese, roquefort',
+            calories: 369,
+            fat: 31,
+            protein: 22,
+          },
+          // for models that support multi-part tool results,
+          // you can include a multi-part content part:
+          content: [
+            {
+              type: 'text',
+              text: 'Here is an image of the nutrition data for the cheese:',
+            },
+            {
+              type: 'image',
+              data: fs.readFileSync('./data/roquefort-nutrition-data.png'),
+              mimeType: 'image/png',
+            },
+          ],
+        },
       ],
     },
   ],

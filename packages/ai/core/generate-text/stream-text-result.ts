@@ -1,24 +1,20 @@
 import { ServerResponse } from 'node:http';
-import {
-  AIStreamCallbacksAndOptions,
-  CoreAssistantMessage,
-  CoreToolMessage,
-  StreamData,
-} from '../../streams';
+import { StreamData } from '../../streams/stream-data';
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { CoreTool } from '../tool';
 import {
   CallWarning,
   FinishReason,
-  LanguageModelResponseMetadata,
-  LanguageModelResponseMetadataWithHeaders,
+  LanguageModelRequestMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { StepResult } from './step-result';
-import { ToToolCall } from './tool-call';
-import { ToToolResult } from './tool-result';
+import { ToolCallUnion } from './tool-call';
+import { ToolResultUnion } from './tool-result';
 
 /**
 A result object for accessing different stream types and additional information.
@@ -64,14 +60,14 @@ The tool calls that have been executed in the last step.
 
 Resolved when the response is finished.
      */
-  readonly toolCalls: Promise<ToToolCall<TOOLS>[]>;
+  readonly toolCalls: Promise<ToolCallUnion<TOOLS>[]>;
 
   /**
 The tool results that have been generated in the last step.
 
 Resolved when the all tool executions are finished.
      */
-  readonly toolResults: Promise<ToToolResult<TOOLS>[]>;
+  readonly toolResults: Promise<ToolResultUnion<TOOLS>[]>;
 
   /**
 Optional raw response data.
@@ -87,14 +83,7 @@ Optional raw response data.
   };
 
   /**
-The response messages that were generated during the call. It consists of an assistant message,
-potentially containing tool calls.
-
-When there are tool results, there is an additional tool message with the tool results that are available.
-If there are tools that do not have execute functions, they are not included in the tool results and
-need to be added separately.
-
-Resolved when the response is finished.
+@deprecated use `response.messages` instead.
      */
   readonly responseMessages: Promise<
     Array<CoreAssistantMessage | CoreToolMessage>
@@ -108,9 +97,26 @@ such as the tool calls or the response headers.
   readonly steps: Promise<Array<StepResult<TOOLS>>>;
 
   /**
-Additional response information.
+Additional request information from the last step.
  */
-  readonly response: Promise<LanguageModelResponseMetadataWithHeaders>;
+  readonly request: Promise<LanguageModelRequestMetadata>;
+
+  /**
+Additional response information from the last step.
+ */
+  readonly response: Promise<
+    LanguageModelResponseMetadata & {
+      /**
+The response messages that were generated during the call. It consists of an assistant message,
+potentially containing tool calls.
+
+When there are tool results, there is an additional tool message with the tool results that are available.
+If there are tools that do not have execute functions, they are not included in the tool results and
+need to be added separately.
+       */
+      messages: Array<CoreAssistantMessage | CoreToolMessage>;
+    }
+  >;
 
   /**
   A text stream that returns only the generated text deltas. You can use it
@@ -128,21 +134,6 @@ Additional response information.
   readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
 
   /**
-  Converts the result to an `AIStream` object that is compatible with `StreamingTextResponse`.
-  It can be used with the `useChat` and `useCompletion` hooks.
-
-  @param callbacks
-  Stream callbacks that will be called when the stream emits events.
-
-  @returns A data stream.
-
-  @deprecated Use `toDataStream` instead.
-     */
-  toAIStream(
-    callbacks?: AIStreamCallbacksAndOptions,
-  ): ReadableStream<Uint8Array>;
-
-  /**
   Converts the result to a data stream.
 
   @param data an optional StreamData object that will be merged into the stream.
@@ -156,21 +147,6 @@ Additional response information.
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean; // default to true (change to false in v4: secure by default)
   }): ReadableStream<Uint8Array>;
-
-  /**
-  Writes stream data output to a Node.js response-like object.
-  It sets a `Content-Type` header to `text/plain; charset=utf-8` and
-  writes each stream data part as a separate chunk.
-
-  @param response A Node.js response-like object (ServerResponse).
-  @param init Optional headers and status code.
-
-  @deprecated Use `pipeDataStreamToResponse` instead.
-     */
-  pipeAIStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ): void;
 
   /**
   Writes data stream output to a Node.js response-like object.
@@ -209,21 +185,6 @@ Additional response information.
   You can also pass in a ResponseInit directly (deprecated).
 
   @return A response object.
-
-  @deprecated Use `toDataStreamResponse` instead.
-     */
-  toAIStreamResponse(
-    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
-  ): Response;
-
-  /**
-  Converts the result to a streamed response object with a stream data part stream.
-  It can be used with the `useChat` and `useCompletion` hooks.
-
-  @param options An object with an init property (ResponseInit) and a data property.
-  You can also pass in a ResponseInit directly (deprecated).
-
-  @return A response object.
      */
   toDataStreamResponse(
     options?:
@@ -253,7 +214,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
     }
   | ({
       type: 'tool-call';
-    } & ToToolCall<TOOLS>)
+    } & ToolCallUnion<TOOLS>)
   | {
       type: 'tool-call-streaming-start';
       toolCallId: string;
@@ -267,7 +228,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
     }
   | ({
       type: 'tool-result';
-    } & ToToolResult<TOOLS>)
+    } & ToolResultUnion<TOOLS>)
   | {
       type: 'step-finish';
       finishReason: FinishReason;

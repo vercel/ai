@@ -2,7 +2,6 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { setTestTracer } from '../telemetry/get-tracer';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
@@ -32,7 +31,7 @@ describe('output = "object"', () => {
               },
             });
 
-            assert.deepStrictEqual(prompt, [
+            expect(prompt).toStrictEqual([
               {
                 role: 'system',
                 content:
@@ -40,7 +39,11 @@ describe('output = "object"', () => {
                   '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                   'You MUST answer with a JSON object that matches the JSON schema above.',
               },
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -75,8 +78,12 @@ describe('output = "object"', () => {
               },
             });
 
-            assert.deepStrictEqual(prompt, [
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+            expect(prompt).toStrictEqual([
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -111,8 +118,12 @@ describe('output = "object"', () => {
               },
             });
 
-            assert.deepStrictEqual(prompt, [
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+            expect(prompt).toStrictEqual([
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -150,8 +161,13 @@ describe('output = "object"', () => {
                 },
               },
             });
-            assert.deepStrictEqual(prompt, [
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+
+            expect(prompt).toStrictEqual([
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -194,8 +210,12 @@ describe('output = "object"', () => {
                 },
               },
             });
-            assert.deepStrictEqual(prompt, [
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+            expect(prompt).toStrictEqual([
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -219,6 +239,57 @@ describe('output = "object"', () => {
       });
 
       assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+    });
+  });
+
+  describe('result.request', () => {
+    it('should contain request information with json mode', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+      });
+
+      expect(result.request).toStrictEqual({
+        body: 'test body',
+      });
+    });
+
+    it('should contain request information with tool mode', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                args: `{ "content": "Hello, world!" }`,
+              },
+            ],
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'tool',
+        prompt: 'prompt',
+      });
+
+      expect(result.request).toStrictEqual({
+        body: 'test body',
+      });
     });
   });
 
@@ -314,7 +385,7 @@ describe('output = "object"', () => {
                 type: 'object',
               },
             });
-            assert.deepStrictEqual(prompt, [
+            expect(prompt).toStrictEqual([
               {
                 role: 'system',
                 content:
@@ -322,7 +393,11 @@ describe('output = "object"', () => {
                   '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                   'You MUST answer with a JSON object that matches the JSON schema above.',
               },
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -357,7 +432,7 @@ describe('output = "object"', () => {
                 type: 'object',
               },
             });
-            assert.deepStrictEqual(prompt, [
+            expect(prompt).toStrictEqual([
               {
                 role: 'system',
                 content:
@@ -365,7 +440,11 @@ describe('output = "object"', () => {
                   '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                   'You MUST answer with a JSON object that matches the JSON schema above.',
               },
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -404,7 +483,7 @@ describe('output = "object"', () => {
                 additionalProperties: false,
               },
             });
-            assert.deepStrictEqual(prompt, [
+            expect(prompt).toStrictEqual([
               {
                 role: 'system',
                 content:
@@ -412,7 +491,11 @@ describe('output = "object"', () => {
                   '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}\n' +
                   'You MUST answer with a JSON object that matches the JSON schema above.',
               },
-              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
             ]);
 
             return {
@@ -642,7 +725,7 @@ describe('output = "array"', () => {
             },
           });
 
-          assert.deepStrictEqual(prompt, [
+          expect(prompt).toStrictEqual([
             {
               role: 'system',
               content:
@@ -651,7 +734,11 @@ describe('output = "array"', () => {
                 `\n` +
                 'You MUST answer with a JSON object that matches the JSON schema above.',
             },
-            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'prompt' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -743,9 +830,13 @@ describe('output = "no-schema"', () => {
             schema: undefined,
           });
 
-          assert.deepStrictEqual(prompt, [
+          expect(prompt).toStrictEqual([
             { role: 'system', content: 'You MUST answer with JSON.' },
-            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'prompt' }],
+              providerMetadata: undefined,
+            },
           ]);
 
           return {
@@ -767,11 +858,6 @@ describe('telemetry', () => {
 
   beforeEach(() => {
     tracer = new MockTracer();
-    setTestTracer(tracer);
-  });
-
-  afterEach(() => {
-    setTestTracer(undefined);
   });
 
   it('should not record any telemetry data when not explicitly enabled', async () => {
@@ -824,6 +910,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
+        tracer,
       },
     });
 
@@ -871,6 +958,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
+        tracer,
       },
     });
 
@@ -897,6 +985,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
+        tracer,
       },
     });
 
@@ -930,9 +1019,98 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
+        tracer,
       },
     });
 
     expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+});
+
+describe('options.messages', () => {
+  it('should detect and convert ui messages', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt }) => {
+          expect(prompt).toStrictEqual([
+            {
+              role: 'system',
+              content:
+                'JSON schema:\n' +
+                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+            },
+            {
+              content: [
+                {
+                  text: 'prompt',
+                  type: 'text',
+                },
+              ],
+              providerMetadata: undefined,
+              role: 'user',
+            },
+            {
+              content: [
+                {
+                  args: {
+                    value: 'test-value',
+                  },
+                  providerMetadata: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'test-tool',
+                  type: 'tool-call',
+                },
+              ],
+              providerMetadata: undefined,
+              role: 'assistant',
+            },
+            {
+              content: [
+                {
+                  content: undefined,
+                  isError: undefined,
+                  providerMetadata: undefined,
+                  result: 'test result',
+                  toolCallId: 'call-1',
+                  toolName: 'test-tool',
+                  type: 'tool-result',
+                },
+              ],
+              providerMetadata: undefined,
+              role: 'tool',
+            },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      messages: [
+        {
+          role: 'user',
+          content: 'prompt',
+        },
+        {
+          role: 'assistant',
+          content: '',
+          toolInvocations: [
+            {
+              state: 'result',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              args: { value: 'test-value' },
+              result: 'test result',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.object).toStrictEqual({ content: 'Hello, world!' });
   });
 });

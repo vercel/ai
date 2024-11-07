@@ -3,12 +3,15 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { ImageFormat } from '@aws-sdk/client-bedrock-runtime';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { DocumentFormat, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
 import {
   BedrockAssistantMessage,
   BedrockMessagesPrompt,
   BedrockUserMessage,
 } from './bedrock-chat-prompt';
+
+const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
 export function convertToBedrockChatMessages(
   prompt: LanguageModelV1Prompt,
@@ -20,6 +23,7 @@ export function convertToBedrockChatMessages(
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
+    const isLastBlock = i === blocks.length - 1;
     const type = block.type;
 
     switch (type) {
@@ -72,6 +76,28 @@ export function convertToBedrockChatMessages(
 
                     break;
                   }
+                  case 'file': {
+                    if (part.data instanceof URL) {
+                      // The AI SDK automatically downloads files for user file parts with URLs
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'File URLs in user messages',
+                      });
+                    }
+
+                    bedrockContent.push({
+                      document: {
+                        format: part.mimeType?.split(
+                          '/',
+                        )?.[1] as DocumentFormat,
+                        name: generateFileId(),
+                        source: {
+                          bytes: Buffer.from(part.data, 'base64'),
+                        },
+                      },
+                    });
+
+                    break;
+                  }
                 }
               }
 
@@ -107,11 +133,14 @@ export function convertToBedrockChatMessages(
         // combines multiple assistant messages in this block into a single message:
         const bedrockContent: BedrockAssistantMessage['content'] = [];
 
-        for (const message of block.messages) {
+        for (let j = 0; j < block.messages.length; j++) {
+          const message = block.messages[j];
+          const isLastMessage = j === block.messages.length - 1;
           const { content } = message;
 
-          for (let j = 0; j < content.length; j++) {
-            const part = content[j];
+          for (let k = 0; k < content.length; k++) {
+            const part = content[k];
+            const isLastContentPart = k === content.length - 1;
 
             switch (part.type) {
               case 'text': {
@@ -120,7 +149,7 @@ export function convertToBedrockChatMessages(
                     // trim the last text part if it's the last message in the block
                     // because Bedrock does not allow trailing whitespace
                     // in pre-filled assistant responses
-                    i === blocks.length - 1 && j === block.messages.length - 1
+                    isLastBlock && isLastMessage && isLastContentPart
                       ? part.text.trim()
                       : part.text,
                 });

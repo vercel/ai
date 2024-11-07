@@ -9,12 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "latest",
-    "@upstash/ratelimit": "^0.4.3",
-    "@vercel/kv": "^0.2.2",
+    "@ai-sdk/openai": "latest",
+    "@vercel/functions": "latest",
     "ai": "latest",
     "next": "latest",
-    "openai": "4.52.6",
     "react": "^18",
     "react-dom": "^18",
     "sonner": "^0.6.2"
@@ -28,6 +26,6 @@
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.23",
     "tailwindcss": "^3.3.2",
-    "typescript": "5.5.4"
+    "typescript": "5.6.3"
   }
 }

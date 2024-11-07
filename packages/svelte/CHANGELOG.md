@@ -1,5 +1,94 @@
 # @ai-sdk/svelte
 
+## 1.0.0-canary.3
+
+### Patch Changes
+
+- Updated dependencies [b1da952]
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+  - @ai-sdk/ui-utils@1.0.0-canary.3
+
+## 1.0.0-canary.2
+
+### Major Changes
+
+- e117b54: chore (ui): remove deprecated useChat roundtrip options
+- 7814c4b: chore (ui): remove streamMode setting from useChat & useCompletion
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [7814c4b]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0-canary.0
+  - @ai-sdk/ui-utils@1.0.0-canary.2
+
+## 1.0.0-canary.1
+
+### Major Changes
+
+- 8bf5756: chore: remove legacy function/tool calling
+
+### Patch Changes
+
+- Updated dependencies [8bf5756]
+  - @ai-sdk/ui-utils@1.0.0-canary.1
+
+## 1.0.0-canary.0
+
+### Major Changes
+
+- 84edae5: chore (release): bump ui package versions for 4.0 release
+
+### Patch Changes
+
+- Updated dependencies [7e89ccb]
+  - @ai-sdk/ui-utils@1.0.0-canary.0
+
+## 0.0.57
+
+### Patch Changes
+
+- Updated dependencies [a85c965]
+  - @ai-sdk/ui-utils@0.0.50
+
+## 0.0.56
+
+### Patch Changes
+
+- d92fd9f: feat (ui/svelte): support Svelte 5 peer dependency
+
+## 0.0.55
+
+### Patch Changes
+
+- Updated dependencies [3bf8da0]
+  - @ai-sdk/ui-utils@0.0.49
+
+## 0.0.54
+
+### Patch Changes
+
+- aa98cdb: chore: more flexible dependency versioning
+- Updated dependencies [aa98cdb]
+- Updated dependencies [7b937c5]
+- Updated dependencies [811a317]
+  - @ai-sdk/provider-utils@1.0.22
+  - @ai-sdk/ui-utils@0.0.48
+
+## 0.0.53
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.21
+- @ai-sdk/ui-utils@0.0.47
+
+## 0.0.52
+
+### Patch Changes
+
+- caedcda: feat (ai/ui): add setData helper to useChat
+
 ## 0.0.51
 
 ### Patch Changes

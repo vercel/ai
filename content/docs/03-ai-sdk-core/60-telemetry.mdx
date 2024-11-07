@@ -5,14 +5,27 @@ description: Using OpenTelemetry with AI SDK Core
 
 # Telemetry
 
+<Note type="warning">
+  AI SDK Telemetry is experimental and may change in the future.
+</Note>
+
 The AI SDK uses [OpenTelemetry](https://opentelemetry.io/) to collect telemetry data.
 OpenTelemetry is an open-source observability framework designed to provide
 standardized instrumentation for collecting telemetry data.
 
-<Note type="warning">
-  This feature is experimental and may change in the future. The following AI
-  SDK functions support telemetry: `generateText`, `streamText`,
-  `generateObject`, `streamObject`, `embed`, and `embedMany`.
+## Observability Integrations
+
+The following observability integrations support AI SDK Telemetry data:
+
+- [Langfuse](https://langfuse.com/docs/integrations/vercel-ai-sdk)
+- [LangSmith](https://docs.smith.langchain.com/observability/how_to_guides/tracing/trace_with_vercel_ai_sdk)
+- [Braintrust](https://www.braintrust.dev/docs/cookbook/recipes/OTEL-logging)
+- [Laminar](https://docs.lmnr.ai/tracing/vercel-ai-sdk)
+
+<Note>
+  Do you have an observability integration that supports AI SDK Telemetry data
+  and has an integration guide? Please open a pull request to add it to the
+  list.
 </Note>
 
 ## Enabling telemetry
@@ -55,6 +68,23 @@ const result = await generateText({
 });
 ```
 
+## Custom Tracer
+
+You may provide a `tracer` which must return an OpenTelemetry `Tracer`. This is useful in situations where
+you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton.
+
+```ts highlight="7"
+const tracerProvider = new NodeTracerProvider();
+const result = await generateText({
+  model: openai('gpt-4-turbo'),
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: {
+    isEnabled: true,
+    tracer: tracerProvider.getTracer('ai'),
+  },
+});
+```
+
 ## Collected Data
 
 ### generateText function
@@ -79,6 +109,11 @@ const result = await generateText({
   - `ai.operationId`: `"ai.generateText.doGenerate"`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
+  - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined`.
+    Function tools have a `name`, `description` (optional), and `parameters` (JSON schema).
+    Provider-defined tools have a `name`, `id`, and `args` (Record).
+  - `ai.prompt.toolChoice`: the stringified tool choice setting (JSON). It has a `type` property
+    (`auto`, `none`, `required`, `tool`), and if the type is `tool`, a `toolName` property with the specific tool.
   - `ai.response.text`: the text that was generated
   - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.response.finishReason`: the reason why the generation finished
@@ -108,6 +143,11 @@ const result = await generateText({
   - `ai.operationId`: `"ai.streamText.doStream"`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
+  - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined`.
+    Function tools have a `name`, `description` (optional), and `parameters` (JSON schema).
+    Provider-defined tools have a `name`, `id`, and `args` (Record).
+  - `ai.prompt.toolChoice`: the stringified tool choice setting (JSON). It has a `type` property
+    (`auto`, `none`, `required`, `tool`), and if the type is `tool`, a `toolName` property with the specific tool.
   - `ai.response.text`: the text that was generated
   - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.response.msToFirstChunk`: the time it took to receive the first chunk in milliseconds

@@ -37,40 +37,4 @@ export class TooManyEmbeddingValuesForCallError extends AISDKError {
   ): error is TooManyEmbeddingValuesForCallError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isTooManyEmbeddingValuesForCallError(
-    error: unknown,
-  ): error is TooManyEmbeddingValuesForCallError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      'provider' in error &&
-      typeof error.provider === 'string' &&
-      'modelId' in error &&
-      typeof error.modelId === 'string' &&
-      'maxEmbeddingsPerCall' in error &&
-      typeof error.maxEmbeddingsPerCall === 'number' &&
-      'values' in error &&
-      Array.isArray(error.values)
-    );
-  }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      stack: this.stack,
-
-      provider: this.provider,
-      modelId: this.modelId,
-      maxEmbeddingsPerCall: this.maxEmbeddingsPerCall,
-      values: this.values,
-    };
-  }
 }

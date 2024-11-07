@@ -5,7 +5,7 @@ import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-e
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { CoreTool } from '../tool';
 import { inferParameters } from '../tool/tool';
-import { ToToolCall } from './tool-call';
+import { ToolCallUnion } from './tool-call';
 
 export function parseToolCall<TOOLS extends Record<string, CoreTool>>({
   toolCall,
@@ -13,7 +13,7 @@ export function parseToolCall<TOOLS extends Record<string, CoreTool>>({
 }: {
   toolCall: LanguageModelV1FunctionToolCall;
   tools?: TOOLS;
-}): ToToolCall<TOOLS> {
+}): ToolCallUnion<TOOLS> {
   const toolName = toolCall.toolName as keyof TOOLS & string;
 
   if (tools == null) {

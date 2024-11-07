@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const { embedding, usage } = await embed({
-    model: google.embedding('text-embedding-004'),
+    model: google.textEmbeddingModel('text-embedding-004'),
     value: 'sunny day at the beach',
   });
 

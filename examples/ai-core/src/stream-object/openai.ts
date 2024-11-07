@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = await streamObject({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o-mini', { structuredOutputs: true }),
     schema: z.object({
       characters: z.array(
         z.object({

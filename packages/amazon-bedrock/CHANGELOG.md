@@ -1,5 +1,77 @@
 # @ai-sdk/amazon-bedrock
 
+## 1.0.0-canary.1
+
+### Patch Changes
+
+- Updated dependencies [b1da952]
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+
+## 1.0.0-canary.0
+
+### Major Changes
+
+- 66060f7: chore (release): bump major version to 4.0
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0-canary.0
+  - @ai-sdk/provider@1.0.0-canary.0
+
+## 0.0.36
+
+### Patch Changes
+
+- e6042b1: feat (provider/anthropic): add haiku 3.5 model ids
+
+## 0.0.35
+
+### Patch Changes
+
+- ac380e3: fix (provider/anthropic): continuation mode with 3+ steps
+
+## 0.0.34
+
+### Patch Changes
+
+- b01bbb7: fix (provider/bedrock): tool calling broken w/ sonnet 3.5
+
+## 0.0.33
+
+### Patch Changes
+
+- bc0ffc5: feat (provider/bedrock): add file content part support
+
+## 0.0.32
+
+### Patch Changes
+
+- 3b1b69a: feat: provider-defined tools
+- Updated dependencies [aa98cdb]
+- Updated dependencies [1486128]
+- Updated dependencies [7b937c5]
+- Updated dependencies [3b1b69a]
+- Updated dependencies [811a317]
+  - @ai-sdk/provider-utils@1.0.22
+  - @ai-sdk/provider@0.0.26
+
+## 0.0.31
+
+### Patch Changes
+
+- Updated dependencies [b9b0d7b]
+  - @ai-sdk/provider@0.0.25
+  - @ai-sdk/provider-utils@1.0.21
+
+## 0.0.30
+
+### Patch Changes
+
+- 59d1abf: feat (provider/bedrock): support Bedrock amazon.titan-embed-text-v1 and amazon.titan-embed-text-v2:0 embeddings
+
 ## 0.0.29
 
 ### Patch Changes

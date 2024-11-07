@@ -5,10 +5,6 @@ import {
   LanguageModelV1Prompt,
   LanguageModelV1TextPart,
 } from '@ai-sdk/provider';
-import {
-  convertUint8ArrayToBase64,
-  getErrorMessage,
-} from '@ai-sdk/provider-utils';
 import { download } from '../../util/download';
 import { CoreMessage } from '../prompt/message';
 import { detectImageMimeType } from '../util/detect-image-mimetype';
@@ -16,58 +12,38 @@ import { FilePart, ImagePart, TextPart } from './content-part';
 import {
   convertDataContentToBase64String,
   convertDataContentToUint8Array,
+  DataContent,
 } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { splitDataUrl } from './split-data-url';
-import { ValidatedPrompt } from './validate-prompt';
+import { StandardizedPrompt } from './standardize-prompt';
 
 export async function convertToLanguageModelPrompt({
   prompt,
   modelSupportsImageUrls = true,
+  modelSupportsUrl = () => false,
   downloadImplementation = download,
 }: {
-  prompt: ValidatedPrompt;
+  prompt: StandardizedPrompt;
   modelSupportsImageUrls: boolean | undefined;
+  modelSupportsUrl: undefined | ((url: URL) => boolean);
   downloadImplementation?: typeof download;
 }): Promise<LanguageModelV1Prompt> {
-  const languageModelMessages: LanguageModelV1Prompt = [];
+  const downloadedAssets = await downloadAssets(
+    prompt.messages,
+    downloadImplementation,
+    modelSupportsImageUrls,
+    modelSupportsUrl,
+  );
 
-  if (prompt.system != null) {
-    languageModelMessages.push({ role: 'system', content: prompt.system });
-  }
-
-  const downloadedAssets =
-    modelSupportsImageUrls || prompt.messages == null
-      ? null
-      : await downloadAssets(prompt.messages, downloadImplementation);
-
-  const promptType = prompt.type;
-  switch (promptType) {
-    case 'prompt': {
-      languageModelMessages.push({
-        role: 'user',
-        content: [{ type: 'text', text: prompt.prompt }],
-      });
-      break;
-    }
-
-    case 'messages': {
-      languageModelMessages.push(
-        ...prompt.messages.map(
-          (message): LanguageModelV1Message =>
-            convertToLanguageModelMessage(message, downloadedAssets),
-        ),
-      );
-      break;
-    }
-
-    default: {
-      const _exhaustiveCheck: never = promptType;
-      throw new Error(`Unsupported prompt type: ${_exhaustiveCheck}`);
-    }
-  }
-
-  return languageModelMessages;
+  return [
+    ...(prompt.system != null
+      ? [{ role: 'system' as const, content: prompt.system }]
+      : []),
+    ...prompt.messages.map(message =>
+      convertToLanguageModelMessage(message, downloadedAssets),
+    ),
+  ];
 }
 
 /**
@@ -82,7 +58,7 @@ export function convertToLanguageModelMessage(
   downloadedAssets: Record<
     string,
     { mimeType: string | undefined; data: Uint8Array }
-  > | null,
+  >,
 ): LanguageModelV1Message {
   const role = message.role;
   switch (role) {
@@ -106,213 +82,7 @@ export function convertToLanguageModelMessage(
       return {
         role: 'user',
         content: message.content
-          .map(
-            (
-              part,
-            ):
-              | LanguageModelV1TextPart
-              | LanguageModelV1ImagePart
-              | LanguageModelV1FilePart => {
-              switch (part.type) {
-                case 'text': {
-                  return {
-                    type: 'text',
-                    text: part.text,
-                    providerMetadata: part.experimental_providerMetadata,
-                  };
-                }
-
-                case 'image': {
-                  if (part.image instanceof URL) {
-                    if (downloadedAssets == null) {
-                      return {
-                        type: 'image',
-                        image: part.image,
-                        mimeType: part.mimeType,
-                        providerMetadata: part.experimental_providerMetadata,
-                      };
-                    } else {
-                      const downloadedImage =
-                        downloadedAssets[part.image.toString()];
-                      return {
-                        type: 'image',
-                        image: downloadedImage.data,
-                        mimeType: part.mimeType ?? downloadedImage.mimeType,
-                        providerMetadata: part.experimental_providerMetadata,
-                      };
-                    }
-                  }
-
-                  // try to convert string image parts to urls
-                  if (typeof part.image === 'string') {
-                    try {
-                      const url = new URL(part.image);
-
-                      switch (url.protocol) {
-                        case 'http:':
-                        case 'https:': {
-                          if (downloadedAssets == null) {
-                            return {
-                              type: 'image',
-                              image: url,
-                              mimeType: part.mimeType,
-                              providerMetadata:
-                                part.experimental_providerMetadata,
-                            };
-                          } else {
-                            const downloadedImage =
-                              downloadedAssets[url.toString()];
-                            return {
-                              type: 'image',
-                              image: downloadedImage.data,
-                              mimeType:
-                                part.mimeType ?? downloadedImage.mimeType,
-                              providerMetadata:
-                                part.experimental_providerMetadata,
-                            };
-                          }
-                        }
-                        case 'data:': {
-                          try {
-                            const { mimeType, base64Content } = splitDataUrl(
-                              part.image,
-                            );
-
-                            if (mimeType == null || base64Content == null) {
-                              throw new Error('Invalid data URL format');
-                            }
-
-                            return {
-                              type: 'image',
-                              image:
-                                convertDataContentToUint8Array(base64Content),
-                              mimeType,
-                              providerMetadata:
-                                part.experimental_providerMetadata,
-                            };
-                          } catch (error) {
-                            throw new Error(
-                              `Error processing data URL: ${getErrorMessage(
-                                message,
-                              )}`,
-                            );
-                          }
-                        }
-                      }
-                    } catch (_ignored) {
-                      // not a URL
-                    }
-                  }
-
-                  const imageUint8 = convertDataContentToUint8Array(part.image);
-
-                  return {
-                    type: 'image',
-                    image: imageUint8,
-                    mimeType: part.mimeType ?? detectImageMimeType(imageUint8),
-                    providerMetadata: part.experimental_providerMetadata,
-                  };
-                }
-
-                case 'file': {
-                  if (part.data instanceof URL) {
-                    if (downloadedAssets == null) {
-                      return {
-                        type: 'file',
-                        data: part.data,
-                        mimeType: part.mimeType,
-                        providerMetadata: part.experimental_providerMetadata,
-                      };
-                    } else {
-                      const downloadedImage =
-                        downloadedAssets[part.data.toString()];
-                      return {
-                        type: 'file',
-                        data: convertUint8ArrayToBase64(downloadedImage.data),
-                        mimeType: part.mimeType ?? downloadedImage.mimeType,
-                        providerMetadata: part.experimental_providerMetadata,
-                      };
-                    }
-                  }
-
-                  // try to convert string image parts to urls
-                  if (typeof part.data === 'string') {
-                    try {
-                      const url = new URL(part.data);
-
-                      switch (url.protocol) {
-                        case 'http:':
-                        case 'https:': {
-                          if (downloadedAssets == null) {
-                            return {
-                              type: 'file',
-                              data: url,
-                              mimeType: part.mimeType,
-                              providerMetadata:
-                                part.experimental_providerMetadata,
-                            };
-                          } else {
-                            const downloadedImage =
-                              downloadedAssets[url.toString()];
-                            return {
-                              type: 'file',
-                              data: convertUint8ArrayToBase64(
-                                downloadedImage.data,
-                              ),
-                              mimeType:
-                                part.mimeType ?? downloadedImage.mimeType,
-                              providerMetadata:
-                                part.experimental_providerMetadata,
-                            };
-                          }
-                        }
-                        case 'data:': {
-                          try {
-                            const { mimeType, base64Content } = splitDataUrl(
-                              part.data,
-                            );
-
-                            if (mimeType == null || base64Content == null) {
-                              throw new Error('Invalid data URL format');
-                            }
-
-                            return {
-                              type: 'file',
-                              data: convertDataContentToBase64String(
-                                base64Content,
-                              ),
-                              mimeType,
-                              providerMetadata:
-                                part.experimental_providerMetadata,
-                            };
-                          } catch (error) {
-                            throw new Error(
-                              `Error processing data URL: ${getErrorMessage(
-                                message,
-                              )}`,
-                            );
-                          }
-                        }
-                      }
-                    } catch (_ignored) {
-                      // not a URL
-                    }
-                  }
-
-                  const imageBase64 = convertDataContentToBase64String(
-                    part.data,
-                  );
-
-                  return {
-                    type: 'file',
-                    data: imageBase64,
-                    mimeType: part.mimeType,
-                    providerMetadata: part.experimental_providerMetadata,
-                  };
-                }
-              }
-            },
-          )
+          .map(part => convertPartToLanguageModelPart(part, downloadedAssets))
           // remove empty text parts:
           .filter(part => part.type !== 'text' || part.text !== ''),
         providerMetadata: message.experimental_providerMetadata,
@@ -354,6 +124,8 @@ export function convertToLanguageModelMessage(
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           result: part.result,
+          content: part.experimental_content,
+          isError: part.isError,
           providerMetadata: part.experimental_providerMetadata,
         })),
         providerMetadata: message.experimental_providerMetadata,
@@ -373,6 +145,8 @@ export function convertToLanguageModelMessage(
 async function downloadAssets(
   messages: CoreMessage[],
   downloadImplementation: typeof download,
+  modelSupportsImageUrls: boolean | undefined,
+  modelSupportsUrl: (url: URL) => boolean,
 ): Promise<Record<string, { mimeType: string | undefined; data: Uint8Array }>> {
   const urls = messages
     .filter(message => message.role === 'user')
@@ -385,6 +159,14 @@ async function downloadAssets(
       (part): part is ImagePart | FilePart =>
         part.type === 'image' || part.type === 'file',
     )
+    /**
+     * Filter out image parts if the model supports image URLs, before letting it
+     * decide if it supports a particular URL.
+     */
+    .filter(
+      (part): part is ImagePart | FilePart =>
+        !(part.type === 'image' && modelSupportsImageUrls === true),
+    )
     .map(part => (part.type === 'image' ? part.image : part.data))
     .map(part =>
       // support string urls:
@@ -393,7 +175,11 @@ async function downloadAssets(
         ? new URL(part)
         : part,
     )
-    .filter((image): image is URL => image instanceof URL);
+    .filter((image): image is URL => image instanceof URL)
+    /**
+     * Filter out URLs that the model supports natively, so we don't download them.
+     */
+    .filter(url => !modelSupportsUrl(url));
 
   // download in parallel:
   const downloadedImages = await Promise.all(
@@ -406,4 +192,125 @@ async function downloadAssets(
   return Object.fromEntries(
     downloadedImages.map(({ url, data }) => [url.toString(), data]),
   );
+}
+
+/**
+ * Convert part of a message to a LanguageModelV1Part.
+ * @param part The part to convert.
+ * @param downloadedAssets A map of URLs to their downloaded data. Only
+ *  available if the model does not support URLs, null otherwise.
+ *
+ * @returns The converted part.
+ */
+function convertPartToLanguageModelPart(
+  part: TextPart | ImagePart | FilePart,
+  downloadedAssets: Record<
+    string,
+    { mimeType: string | undefined; data: Uint8Array }
+  >,
+):
+  | LanguageModelV1TextPart
+  | LanguageModelV1ImagePart
+  | LanguageModelV1FilePart {
+  if (part.type === 'text') {
+    return {
+      type: 'text',
+      text: part.text,
+      providerMetadata: part.experimental_providerMetadata,
+    };
+  }
+
+  let mimeType: string | undefined = part.mimeType;
+  let data: DataContent | URL;
+  let content: URL | ArrayBuffer | string;
+  let normalizedData: Uint8Array | URL;
+
+  const type = part.type;
+  switch (type) {
+    case 'image':
+      data = part.image;
+      break;
+    case 'file':
+      data = part.data;
+      break;
+    default:
+      throw new Error(`Unsupported part type: ${type}`);
+  }
+
+  // Attempt to create a URL from the data. If it fails, we can assume the data
+  // is not a URL and likely some other sort of data.
+  try {
+    content = typeof data === 'string' ? new URL(data) : data;
+  } catch (error) {
+    content = data;
+  }
+
+  // If we successfully created a URL, we can use that to normalize the data
+  // either by passing it through or converting normalizing the base64 content
+  // to a Uint8Array.
+  if (content instanceof URL) {
+    // If the content is a data URL, we want to convert that to a Uint8Array
+    if (content.protocol === 'data:') {
+      const { mimeType: dataUrlMimeType, base64Content } = splitDataUrl(
+        content.toString(),
+      );
+
+      if (dataUrlMimeType == null || base64Content == null) {
+        throw new Error(`Invalid data URL format in part ${type}`);
+      }
+
+      mimeType = dataUrlMimeType;
+      normalizedData = convertDataContentToUint8Array(base64Content);
+    } else {
+      /**
+       * If the content is a URL, we should first see if it was downloaded. And if not,
+       * we can let the model decide if it wants to support the URL. This also allows
+       * for non-HTTP URLs to be passed through (e.g. gs://).
+       */
+      const downloadedFile = downloadedAssets[content.toString()];
+      if (downloadedFile) {
+        normalizedData = downloadedFile.data;
+        mimeType ??= downloadedFile.mimeType;
+      } else {
+        normalizedData = content;
+      }
+    }
+  } else {
+    // Since we know know the content is not a URL, we can attempt to normalize the data
+    // assuming it is some sort of data.
+    normalizedData = convertDataContentToUint8Array(content);
+  }
+
+  // Now that we have the normalized data either as a URL or a Uint8Array,
+  // we can create the LanguageModelV1Part.
+  switch (type) {
+    case 'image':
+      // We give a best effort to detect the mime type if it is not provided.
+      // otherwise, we use the provided mime type.
+      if (mimeType == null && normalizedData instanceof Uint8Array) {
+        mimeType = detectImageMimeType(normalizedData);
+      }
+
+      return {
+        type: 'image',
+        image: normalizedData,
+        mimeType,
+        providerMetadata: part.experimental_providerMetadata,
+      };
+    case 'file':
+      // We should have a mimeType at this point, if not, throw an error.
+      if (mimeType == null) {
+        throw new Error(`Mime type is missing for file part`);
+      }
+
+      return {
+        type: 'file',
+        data:
+          normalizedData instanceof Uint8Array
+            ? convertDataContentToBase64String(normalizedData)
+            : normalizedData,
+        mimeType,
+        providerMetadata: part.experimental_providerMetadata,
+      };
+  }
 }

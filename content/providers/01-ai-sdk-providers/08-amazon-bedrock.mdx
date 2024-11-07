@@ -157,8 +157,6 @@ const model = bedrock('anthropic.claude-3-sonnet-20240229-v1:0', {
 
 Documentation for additional settings based on the selected model can be found within the [Amazon Bedrock Inference Parameter Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html).
 
-### Example
-
 You can use Amazon Bedrock language models to generate text with the `generateText` function:
 
 ```ts
@@ -173,6 +171,37 @@ const { text } = await generateText({
 
 Amazon Bedrock language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
+
+### File Inputs
+
+<Note type="warning">
+  Amazon Bedrock supports file inputs on in combination with specific models,
+  e.g. `anthropic.claude-3-haiku-20240307-v1:0`.
+</Note>
+
+The Amazon Bedrock provider supports file inputs, e.g. PDF files.
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the pdf in detail.' },
+        {
+          type: 'file',
+          data: fs.readFileSync('./data/ai.pdf'),
+          mimeType: 'application/pdf',
+        },
+      ],
+    },
+  ],
+});
+```
 
 ### Guardrails
 
@@ -212,7 +241,9 @@ See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/be
 | ------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `amazon.titan-tg1-large`                    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `amazon.titan-text-express-v1`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `anthropic.claude-3-5-sonnet-20241022-v2:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-sonnet-20240620-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-3-5-haiku-20241022-v1:0`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `anthropic.claude-3-opus-20240229-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-sonnet-20240229-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-haiku-20240307-v1:0`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -232,3 +263,39 @@ See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/be
   The table above lists popular models. You can also pass any available provider
   model ID as a string if needed.
 </Note>
+
+## Embedding Models
+
+You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html)
+using the `.embedding()` factory method.
+
+```ts
+const model = bedrock.embedding('amazon.titan-embed-text-v1');
+```
+
+Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several aditional settings.
+You can pass them as an options argument:
+
+```ts
+const model = bedrock.embedding('amazon.titan-embed-text-v2:0', {
+  dimensions: 512 // optional, number of dimensions for the embedding
+  normalize: true // optional  normalize the output embeddings
+})
+```
+
+The following optional settings are available for Bedrock Titan embedding models:
+
+- **dimensions**: _number_
+
+  The number of dimensions the output embeddings should have. The following values are accepted: 1024 (default), 512, 256.
+
+- **normalize** _boolean_
+
+  Flag indicating whether or not to normalize the output embeddings. Defaults to true.
+
+### Model Capabilities
+
+| Model                          | Default Dimensions | Custom Dimensions   |
+| ------------------------------ | ------------------ | ------------------- |
+| `amazon.titan-embed-text-v1`   | 1024               | <Cross size={18} /> |
+| `amazon.titan-embed-text-v2:0` | 1024               | <Check size={18} /> |

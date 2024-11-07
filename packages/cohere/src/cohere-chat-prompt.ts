@@ -3,35 +3,36 @@ export type CohereChatPrompt = Array<CohereChatMessage>;
 export type CohereChatMessage =
   | CohereSystemMessage
   | CohereUserMessage
-  | CohereChatbotMessage
+  | CohereAssistantMessage
   | CohereToolMessage;
 
 export interface CohereSystemMessage {
-  role: 'SYSTEM';
-  message: string;
+  role: 'system';
+  content: string;
 }
 
 export interface CohereUserMessage {
-  role: 'USER';
-  message: string;
+  role: 'user';
+  content: string;
 }
 
-export interface CohereChatbotMessage {
-  role: 'CHATBOT';
-  message: string;
-  tool_calls?: Array<{
-    name: string;
-    parameters: object;
-  }>;
+export interface CohereAssistantMessage {
+  role: 'assistant';
+  content: string | undefined;
+  tool_calls:
+    | Array<{
+        id: string;
+        type: 'function';
+        function: {
+          name: string;
+          arguments: string;
+        };
+      }>
+    | undefined;
 }
 
 export interface CohereToolMessage {
-  role: 'TOOL';
-  tool_results: Array<{
-    call: {
-      name: string;
-      parameters: object;
-    };
-    outputs: Array<object>;
-  }>;
+  role: 'tool';
+  content: string;
+  tool_call_id: string;
 }

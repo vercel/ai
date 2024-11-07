@@ -6,11 +6,7 @@ import type {
   Message,
   UseChatOptions,
 } from '@ai-sdk/ui-utils';
-import {
-  callChatApi,
-  generateId as generateIdFunc,
-  processChatStream,
-} from '@ai-sdk/ui-utils';
+import { callChatApi, generateId as generateIdFunc } from '@ai-sdk/ui-utils';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
 import { ref, unref } from 'vue';
@@ -60,8 +56,15 @@ export type UseChatHelpers = {
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;
 
-  /** Additional data added on the server via StreamData */
+  /** Additional data added on the server via StreamData. */
   data: Ref<JSONValue[] | undefined>;
+  /** Set the data of the chat. You can use this to transform or clear the chat data. */
+  setData: (
+    data:
+      | JSONValue[]
+      | undefined
+      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+  ) => void;
 
   addToolResult: ({
     toolCallId,
@@ -85,9 +88,7 @@ export function useChat(
     initialMessages = [],
     initialInput = '',
     sendExtraMessageFields,
-    experimental_onFunctionCall,
-    streamMode,
-    streamProtocol,
+    streamProtocol = 'data',
     onResponse,
     onFinish,
     onError,
@@ -110,11 +111,6 @@ export function useChat(
     maxSteps: 1,
   },
 ): UseChatHelpers {
-  // streamMode is deprecated, use streamProtocol instead.
-  if (streamMode) {
-    streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
-  }
-
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
 
@@ -150,7 +146,7 @@ export function useChat(
 
   async function triggerRequest(
     messagesSnapshot: Message[],
-    { options, data, headers, body }: ChatRequestOptions = {},
+    { data, headers, body }: ChatRequestOptions = {},
   ) {
     const messageCount = messages.value.length;
 
@@ -165,86 +161,58 @@ export function useChat(
       const previousMessages = messagesSnapshot;
       mutate(messagesSnapshot);
 
-      const requestOptions = {
-        headers: headers ?? options?.headers,
-        body: body ?? options?.body,
-      };
-
-      let chatRequest: ChatRequest = {
+      const chatRequest: ChatRequest = {
         messages: messagesSnapshot,
-        options: requestOptions,
-        body: requestOptions.body,
-        headers: requestOptions.headers,
+        body,
+        headers,
         data,
       };
 
-      await processChatStream({
-        getStreamedResponse: async () => {
-          const existingData = (streamData.value ?? []) as JSONValue[];
+      const existingData = (streamData.value ?? []) as JSONValue[];
 
-          const constructedMessagesPayload = sendExtraMessageFields
-            ? chatRequest.messages
-            : chatRequest.messages.map(
-                ({
-                  role,
-                  content,
-                  name,
-                  data,
-                  annotations,
-                  toolInvocations,
-                  function_call,
-                }) => ({
-                  role,
-                  content,
-                  ...(name !== undefined && { name }),
-                  ...(data !== undefined && { data }),
-                  ...(annotations !== undefined && { annotations }),
-                  ...(toolInvocations !== undefined && { toolInvocations }),
-                  // outdated function/tool call handling (TODO deprecate):
-                  ...(function_call !== undefined && { function_call }),
-                }),
-              );
+      const constructedMessagesPayload = sendExtraMessageFields
+        ? chatRequest.messages
+        : chatRequest.messages.map(
+            ({ role, content, data, annotations, toolInvocations }) => ({
+              role,
+              content,
+              ...(data !== undefined && { data }),
+              ...(annotations !== undefined && { annotations }),
+              ...(toolInvocations !== undefined && { toolInvocations }),
+            }),
+          );
 
-          return await callChatApi({
-            api,
-            body: {
-              messages: constructedMessagesPayload,
-              data: chatRequest.data,
-              ...unref(metadataBody), // Use unref to unwrap the ref value
-              ...requestOptions.body,
-            },
-            streamProtocol,
-            headers: {
-              ...metadataHeaders,
-              ...requestOptions.headers,
-            },
-            abortController: () => abortController,
-            credentials,
-            onResponse,
-            onUpdate(merged, data) {
-              mutate([...chatRequest.messages, ...merged]);
-              streamData.value = [...existingData, ...(data ?? [])];
-            },
-            onFinish,
-            restoreMessagesOnFailure() {
-              // Restore the previous messages if the request fails.
-              if (!keepLastMessageOnError) {
-                mutate(previousMessages);
-              }
-            },
-            generateId,
-            onToolCall,
-            fetch,
-          });
+      await callChatApi({
+        api,
+        body: {
+          messages: constructedMessagesPayload,
+          data: chatRequest.data,
+          ...unref(metadataBody), // Use unref to unwrap the ref value
+          ...body,
         },
-        experimental_onFunctionCall,
-        updateChatRequest(newChatRequest) {
-          chatRequest = newChatRequest;
+        streamProtocol,
+        headers: {
+          ...metadataHeaders,
+          ...headers,
         },
-        getCurrentMessages: () => messages.value,
+        abortController: () => abortController,
+        credentials,
+        onResponse,
+        onUpdate(merged, data) {
+          mutate([...chatRequest.messages, ...merged]);
+          streamData.value = [...existingData, ...(data ?? [])];
+        },
+        onFinish,
+        restoreMessagesOnFailure() {
+          // Restore the previous messages if the request fails.
+          if (!keepLastMessageOnError) {
+            mutate(previousMessages);
+          }
+        },
+        generateId,
+        onToolCall,
+        fetch,
       });
-
-      abortController = null;
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
@@ -258,6 +226,7 @@ export function useChat(
 
       error.value = err as Error;
     } finally {
+      abortController = null;
       mutateLoading(() => false);
     }
 
@@ -315,6 +284,19 @@ export function useChat(
     }
 
     mutate(messagesArg);
+  };
+
+  const setData = (
+    dataArg:
+      | JSONValue[]
+      | undefined
+      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+  ) => {
+    if (typeof dataArg === 'function') {
+      dataArg = dataArg(streamData.value as JSONValue[] | undefined);
+    }
+
+    streamData.value = dataArg;
   };
 
   const input = ref(initialInput);
@@ -388,6 +370,7 @@ export function useChat(
     handleSubmit,
     isLoading,
     data: streamData as Ref<undefined | JSONValue[]>,
+    setData,
     addToolResult,
   };
 }

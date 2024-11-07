@@ -90,7 +90,7 @@ Create a route handler, `app/api/chat/route.ts` and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText, convertToCoreMessages } from 'ai';
+import { streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages: convertToCoreMessages(messages),
+    messages,
   });
 
   return result.toDataStreamResponse();
@@ -186,7 +186,7 @@ Modify your `app/api/chat/route.ts` file to include the new weather tool:
 
 ```tsx filename="app/api/chat/route.ts" highlight="2,13-27"
 import { openai } from '@ai-sdk/openai';
-import { streamText, convertToCoreMessages, tool } from 'ai';
+import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
 export const maxDuration = 30;
@@ -196,7 +196,7 @@ export async function POST(req: Request) {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages: convertToCoreMessages(messages),
+    messages,
     tools: {
       weather: tool({
         description: 'Get the weather in a location (farenheit)',
@@ -276,7 +276,7 @@ Now, when you ask about the weather, you'll see the tool invocation and its resu
 
 ## Enabling Multi-Step Tool Calls
 
-You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has techincally completed its generation.
+You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
 To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `useChat` hook. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
 
@@ -308,7 +308,7 @@ Update your `app/api/chat/route.ts` file to add a new tool to convert the temper
 
 ```tsx filename="app/api/chat/route.ts" highlight="27-40"
 import { openai } from '@ai-sdk/openai';
-import { streamText, convertToCoreMessages, tool } from 'ai';
+import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
 export const maxDuration = 30;
@@ -318,7 +318,7 @@ export async function POST(req: Request) {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages: convertToCoreMessages(messages),
+    messages,
     tools: {
       weather: tool({
         description: 'Get the weather in a location (farenheit)',

@@ -35,6 +35,24 @@ const provider = createGoogleGenerativeAI({
 });
 const model = provider.chat('gemini-pro');
 
+describe('supportsUrl', () => {
+  it('should return false if it is not a Gemini files URL', () => {
+    expect(
+      model.supportsUrl?.(new URL('https://example.com/foo/bar')),
+    ).toStrictEqual(false);
+  });
+
+  it('should return true if it is a Gemini files URL', () => {
+    expect(
+      model.supportsUrl?.(
+        new URL(
+          'https://generativelanguage.googleapis.com/v1beta/files/00000000-00000000-00000000-00000000',
+        ),
+      ),
+    ).toStrictEqual(true);
+  });
+});
+
 describe('doGenerate', () => {
   const prepareJsonResponse = ({
     content = '',
@@ -285,7 +303,13 @@ describe('doGenerate', () => {
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'object-json', schema: { type: 'object' } },
+        mode: {
+          type: 'object-json',
+          schema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+          },
+        },
         prompt: TEST_PROMPT,
       });
 
@@ -300,6 +324,11 @@ describe('doGenerate', () => {
           responseMimeType: 'application/json',
           responseSchema: {
             type: 'object',
+            properties: {
+              location: {
+                type: 'string',
+              },
+            },
           },
         },
       });
@@ -488,6 +517,21 @@ describe('doGenerate', () => {
       });
     }),
   );
+
+  it(
+    'should send request body',
+    withTestServer(prepareJsonResponse({}), async () => {
+      const { request } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(request).toStrictEqual({
+        body: '{"generationConfig":{},"contents":[{"role":"user","parts":[{"text":"Hello"}]}]}',
+      });
+    }),
+  );
 });
 
 describe('doStream', () => {
@@ -637,5 +681,20 @@ describe('doStream', () => {
         });
       },
     ),
+  );
+
+  it(
+    'should send request body',
+    withTestServer(prepareStreamResponse({ content: [''] }), async () => {
+      const { request } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(request).toStrictEqual({
+        body: '{"generationConfig":{},"contents":[{"role":"user","parts":[{"text":"Hello"}]}]}',
+      });
+    }),
   );
 });

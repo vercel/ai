@@ -37,7 +37,8 @@ If you need a customized setup, you can import `createOllama` from `ollama-ai-pr
 import { createOllama } from 'ollama-ai-provider';
 
 const ollama = createOllama({
-  // custom settings
+  // optional settings, e.g.
+  baseURL: 'https://api.ollama.com',
 });
 ```
 
@@ -45,8 +46,12 @@ You can use the following optional settings to customize the Ollama provider ins
 
 - **baseURL** _string_
 
-Use a different URL prefix for API calls, e.g., to use proxy servers.
-The default prefix is `http://localhost:11434/api`.
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `http://localhost:11434/api`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
 
 ## Language Models
 
@@ -61,7 +66,15 @@ You can find more models on the [Ollama Library](https://ollama.com/library) hom
 
 ### Model Capabilities
 
-This provider is capable of generating and streaming text and objects. Image input depends on models with multi-modal capabilities.
+This provider is capable of generating and streaming text and objects. Object generation may fail depending
+on the model used and the schema used.
+
+The following models have been tested with image inputs:
+
+- llava
+- llava-llama3
+- llava-phi3
+- moondream
 
 ## Embedding Models
 

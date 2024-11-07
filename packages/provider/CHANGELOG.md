@@ -1,5 +1,28 @@
 # @ai-sdk/provider
 
+## 1.0.0-canary.0
+
+### Major Changes
+
+- b469a7e: chore: remove isXXXError methods
+- c0ddc24: chore (ai): remove toJSON method from AI SDK errors
+
+## 0.0.26
+
+### Patch Changes
+
+- aa98cdb: chore: more flexible dependency versioning
+- 1486128: feat: add supportsUrl to language model specification
+- 7b937c5: feat (provider-utils): improve id generator robustness
+- 3b1b69a: feat: provider-defined tools
+- 811a317: feat (ai/core): multi-part tool results (incl. images)
+
+## 0.0.25
+
+### Patch Changes
+
+- b9b0d7b: feat (ai): access raw request body
+
 ## 0.0.24
 
 ### Patch Changes

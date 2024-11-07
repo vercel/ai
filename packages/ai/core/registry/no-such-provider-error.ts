@@ -32,33 +32,4 @@ export class NoSuchProviderError extends NoSuchModelError {
   static isInstance(error: unknown): error is NoSuchProviderError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isNoSuchProviderError(error: unknown): error is NoSuchProviderError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      typeof (error as NoSuchProviderError).providerId === 'string' &&
-      Array.isArray((error as NoSuchProviderError).availableProviders)
-    );
-  }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      stack: this.stack,
-
-      modelId: this.modelId,
-      modelType: this.modelType,
-
-      providerId: this.providerId,
-      availableProviders: this.availableProviders,
-    };
-  }
 }

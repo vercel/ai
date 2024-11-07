@@ -1,0 +1,48 @@
+---
+title: createStreamableValue
+description: Reference for the createStreamableValue function from the AI SDK RSC
+---
+
+# `createStreamableValue`
+
+<Note type="warning">
+  AI SDK RSC is currently experimental. We recommend using [AI SDK
+  UI](/docs/ai-sdk-ui/overview) for production. For guidance on migrating from
+  RSC to UI, see our [migration guide](/docs/ai-sdk-rsc/migrating-to-ui).
+</Note>
+
+Create a stream that sends values from the server to the client. The value can be any serializable data.
+
+## Import
+
+<Snippet
+  text={`import { createStreamableValue } from "ai/rsc"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'value',
+      type: 'any',
+      description: 'Any data that RSC supports. Example, JSON.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'value',
+      type: 'streamable',
+      description:
+        'This creates a special value that can be returned from Actions to the client. It holds the data inside and can be updated via the update method.',
+    },
+  ]}
+/>

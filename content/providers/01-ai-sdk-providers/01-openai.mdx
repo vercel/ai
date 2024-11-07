@@ -55,6 +55,11 @@ You can use the following optional settings to customize the OpenAI provider ins
   API key that is being send using the `Authorization` header.
   It defaults to the `OPENAI_API_KEY` environment variable.
 
+- **name** _string_
+
+  The provider name. You can set this when using OpenAI compatible providers
+  to change the model provider property. Defaults to `openai`.
+
 - **organization** _string_
 
   OpenAI Organization.
@@ -117,23 +122,6 @@ const { text } = await generateText({
 
 OpenAI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
-
-### Model Capabilities
-
-| Model           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| --------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-4o`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4-turbo`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-3.5-turbo` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o1-preview`    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `o1-mini`       | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-
-<Note>
-  The table above lists popular models. You can also pass any available provider
-  model ID as a string if needed.
-</Note>
 
 ### Chat Models
 
@@ -262,6 +250,36 @@ You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 </Note>
 
+#### Predicted Outputs
+
+OpenAI supports [predicted outputs](https://platform.openai.com/docs/guides/latency-optimization#use-predicted-outputs) for `gpt-4o` and `gpt-4o-mini`.
+Predicted outputs help you reduce latency by allowing you to specify a base text that the model should modify.
+You can enable predicted outputs by adding the `prediction` option to the `experimental_providerMetadata.openai` object:
+
+```ts highlight="15-18"
+const result = await streamText({
+  model: openai('gpt-4o'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Replace the Username property with an Email property.',
+    },
+    {
+      role: 'user',
+      content: existingCode,
+    },
+  ],
+  experimental_providerMetadata: {
+    openai: {
+      prediction: {
+        type: 'content',
+        content: existingCode,
+      },
+    },
+  },
+});
+```
+
 #### Image Detail
 
 You can use the `openai` provider metadata to set the [image generation detail](https://platform.openai.com/docs/guides/vision/low-or-high-fidelity-image-understanding) to `high`, `low`, or `auto`:
@@ -306,6 +324,9 @@ async function main() {
     experimental_providerMetadata: {
       openai: {
         store: true,
+        metadata: {
+          custom: 'value',
+        },
       },
     },
   });
@@ -381,6 +402,37 @@ console.log(`usage:`, {
 });
 ```
 
+#### Audio Input
+
+With the `gpt-4o-audio-preview` model, you can pass audio files to the model.
+
+<Note type="warning">
+  The `gpt-4o-audio-preview` model is currently in preview and requires at least
+  some audio inputs. It will not work with non-audio data.
+</Note>
+
+```ts highlight="12-14"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-4o-audio-preview'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is the audio saying?' },
+        {
+          type: 'file',
+          mimeType: 'audio/mpeg',
+          data: fs.readFileSync('./data/galileo.mp3'),
+        },
+      ],
+    },
+  ],
+});
+```
+
 ### Completion Models
 
 You can create models that call the [OpenAI completions API](https://platform.openai.com/docs/api-reference/completions) using the `.completion()` factory method.
@@ -448,6 +500,24 @@ The following optional settings are available for OpenAI completion models:
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
 
+### Model Capabilities
+
+| Model                  | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
+| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-4o`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-audio-preview` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4-turbo`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-3.5-turbo`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `o1-preview`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `o1-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+<Note>
+  The table above lists popular models. You can also pass any available provider
+  model ID as a string if needed.
+</Note>
+
 ## Embedding Models
 
 You can create models that call the [OpenAI embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
@@ -471,7 +541,8 @@ The following optional settings are available for OpenAI embedding models:
 
 - **dimensions**: _number_
 
-  Echo back the prompt in addition to the completion.
+  The number of dimensions the resulting output embeddings should have.
+  Only supported in text-embedding-3 and later models.
 
 - **user** _string_
 

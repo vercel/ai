@@ -97,7 +97,7 @@ With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useC
 Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and OpenAI o1:
 
 ```tsx filename="app/api/chat/route.ts"
-import { convertToCoreMessages, generateText } from 'ai';
+import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 // Allow responses up to 5 minutes
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
 
   const { text } = await generateText({
     model: openai('o1-preview'),
-    messages: convertToCoreMessages(messages),
+    messages,
   });
 
   return new Response(text);

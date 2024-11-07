@@ -8,11 +8,7 @@ import type {
   Message,
   UseChatOptions as SharedUseChatOptions,
 } from '@ai-sdk/ui-utils';
-import {
-  callChatApi,
-  generateId as generateIdFunc,
-  processChatStream,
-} from '@ai-sdk/ui-utils';
+import { callChatApi, generateId as generateIdFunc } from '@ai-sdk/ui-utils';
 import {
   Accessor,
   JSX,
@@ -77,8 +73,16 @@ export type UseChatHelpers = {
   ) => void;
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
+
   /** Additional data added on the server via StreamData */
   data: Accessor<JSONValue[] | undefined>;
+  /** Set the data of the chat. You can use this to transform or clear the chat data. */
+  setData: (
+    data:
+      | JSONValue[]
+      | undefined
+      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+  ) => void;
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -87,7 +91,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 };
 
-const getStreamedResponse = async (
+const processStreamedResponse = async (
   api: string,
   chatRequest: ChatRequest,
   mutate: (data: Message[]) => void,
@@ -97,7 +101,7 @@ const getStreamedResponse = async (
   messagesRef: Message[],
   abortController: AbortController | null,
   generateId: IdGenerator,
-  streamProtocol: UseChatOptions['streamProtocol'],
+  streamProtocol: UseChatOptions['streamProtocol'] = 'data',
   onFinish: UseChatOptions['onFinish'],
   onResponse: UseChatOptions['onResponse'] | undefined,
   onToolCall: UseChatOptions['onToolCall'] | undefined,
@@ -116,10 +120,9 @@ const getStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({ role, content, name, data, annotations, toolInvocations }) => ({
+        ({ role, content, data, annotations, toolInvocations }) => ({
           role,
           content,
-          ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
@@ -162,22 +165,6 @@ const getStreamedResponse = async (
 const [store, setStore] = createStore<Record<string, Message[]>>({});
 
 export type UseChatOptions = SharedUseChatOptions & {
-  /**
-Maximum number of automatic roundtrips for tool calls.
-
-An automatic tool call roundtrip is a call to the server with the
-tool call results when all tool calls in the last assistant
-message have results.
-
-A maximum number is required to prevent infinite loops in the
-case of misconfigured tools.
-
-By default, it's set to 0, which will disable the feature.
-
-@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
-     */
-  maxToolRoundtrips?: number;
-
   /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
 
@@ -256,37 +243,24 @@ export function useChat(
 
       abortController = new AbortController();
 
-      await processChatStream({
-        getStreamedResponse: () =>
-          getStreamedResponse(
-            api(),
-            chatRequest,
-            mutate,
-            setStreamData,
-            streamData,
-            extraMetadata,
-            messagesRef,
-            abortController,
-            generateId(),
-            // streamMode is deprecated, use streamProtocol instead:
-            useChatOptions().streamProtocol?.() ??
-              useChatOptions().streamMode?.() === 'text'
-              ? 'text'
-              : undefined,
-            useChatOptions().onFinish?.(),
-            useChatOptions().onResponse?.(),
-            useChatOptions().onToolCall?.(),
-            useChatOptions().sendExtraMessageFields?.(),
-            useChatOptions().fetch?.(),
-            useChatOptions().keepLastMessageOnError?.() ?? false,
-          ),
-        experimental_onFunctionCall:
-          useChatOptions().experimental_onFunctionCall?.(),
-        updateChatRequest(newChatRequest) {
-          chatRequest = newChatRequest;
-        },
-        getCurrentMessages: () => messagesRef,
-      });
+      await processStreamedResponse(
+        api(),
+        chatRequest,
+        mutate,
+        setStreamData,
+        streamData,
+        extraMetadata,
+        messagesRef,
+        abortController,
+        generateId(),
+        useChatOptions().streamProtocol?.(),
+        useChatOptions().onFinish?.(),
+        useChatOptions().onResponse?.(),
+        useChatOptions().onToolCall?.(),
+        useChatOptions().sendExtraMessageFields?.(),
+        useChatOptions().fetch?.(),
+        useChatOptions().keepLastMessageOnError?.() ?? false,
+      );
 
       abortController = null;
     } catch (err) {
@@ -306,9 +280,8 @@ export function useChat(
       setIsLoading(false);
     }
 
-    const maxSteps =
-      useChatOptions().maxSteps?.() ??
-      (useChatOptions().maxToolRoundtrips?.() ?? 0) + 1;
+    const maxSteps = useChatOptions().maxSteps?.() ?? 1;
+
     // auto-submit when all tool calls in the last assistant message have results:
     const messages = messagesRef;
     const lastMessage = messages[messages.length - 1];
@@ -330,64 +303,40 @@ export function useChat(
 
   const append: UseChatHelpers['append'] = async (
     message,
-    { options, data, headers, body } = {},
+    { data, headers, body } = {},
   ) => {
     if (!message.id) {
       message.id = generateId()();
     }
 
-    const requestOptions = {
-      headers: headers ?? options?.headers,
-      body: body ?? options?.body,
-    };
-
-    const chatRequest: ChatRequest = {
+    return triggerRequest({
       messages: messagesRef.concat(message as Message),
-      options: requestOptions,
-      headers: requestOptions.headers,
-      body: requestOptions.body,
+      headers,
+      body,
       data,
-    };
-
-    return triggerRequest(chatRequest);
+    });
   };
 
   const reload: UseChatHelpers['reload'] = async ({
-    options,
     data,
     headers,
     body,
   } = {}) => {
-    if (messagesRef.length === 0) return null;
-
-    const requestOptions = {
-      headers: headers ?? options?.headers,
-      body: body ?? options?.body,
-    };
+    if (messagesRef.length === 0) {
+      return null;
+    }
 
     // Remove last assistant message and retry last user message.
     const lastMessage = messagesRef[messagesRef.length - 1];
-    if (lastMessage.role === 'assistant') {
-      const chatRequest: ChatRequest = {
-        messages: messagesRef.slice(0, -1),
-        options: requestOptions,
-        headers: requestOptions.headers,
-        body: requestOptions.body,
-        data,
-      };
-
-      return triggerRequest(chatRequest);
-    }
-
-    const chatRequest: ChatRequest = {
-      messages: messagesRef,
-      options: requestOptions,
-      headers: requestOptions.headers,
-      body: requestOptions.body,
+    return triggerRequest({
+      messages:
+        lastMessage.role === 'assistant'
+          ? messagesRef.slice(0, -1)
+          : messagesRef,
+      headers,
+      body,
       data,
-    };
-
-    return triggerRequest(chatRequest);
+    });
   };
 
   const stop = () => {
@@ -406,6 +355,19 @@ export function useChat(
 
     mutate(messagesArg);
     messagesRef = messagesArg;
+  };
+
+  const setData = (
+    dataArg:
+      | JSONValue[]
+      | undefined
+      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+  ) => {
+    if (typeof dataArg === 'function') {
+      dataArg = dataArg(streamData());
+    }
+
+    setStreamData(dataArg);
   };
 
   const [input, setInput] = createSignal(
@@ -429,12 +391,7 @@ export function useChat(
       };
     }
 
-    const requestOptions = {
-      headers: options.headers ?? options.options?.headers,
-      body: options.body ?? options.options?.body,
-    };
-
-    const chatRequest: ChatRequest = {
+    triggerRequest({
       messages:
         !inputValue && options.allowEmptySubmit
           ? messagesRef
@@ -444,13 +401,10 @@ export function useChat(
               content: inputValue,
               createdAt: new Date(),
             }),
-      options: requestOptions,
-      body: requestOptions.body,
-      headers: requestOptions.headers,
+      headers: options.headers,
+      body: options.body,
       data: options.data,
-    };
-
-    triggerRequest(chatRequest);
+    });
 
     setInput('');
   };
@@ -506,6 +460,7 @@ export function useChat(
     handleSubmit,
     isLoading,
     data: streamData,
+    setData,
     addToolResult,
   };
 }

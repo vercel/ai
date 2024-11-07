@@ -1,5 +1,66 @@
 # @ai-sdk/google
 
+## 1.0.0-canary.1
+
+### Major Changes
+
+- 0d3d3f5: chore (providers): remove baseUrl option
+
+### Patch Changes
+
+- Updated dependencies [b1da952]
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+
+## 1.0.0-canary.0
+
+### Major Changes
+
+- 66060f7: chore (release): bump major version to 4.0
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0-canary.0
+  - @ai-sdk/provider@1.0.0-canary.0
+
+## 0.0.55
+
+### Patch Changes
+
+- 11beb9d: fix (provider/google): support tool calls without parameters
+
+## 0.0.54
+
+### Patch Changes
+
+- 1486128: feat: add supportsUrl to language model specification
+- 1486128: feat (provider/google): support native file URLs without download
+- 3b1b69a: feat: provider-defined tools
+- Updated dependencies [aa98cdb]
+- Updated dependencies [1486128]
+- Updated dependencies [7b937c5]
+- Updated dependencies [3b1b69a]
+- Updated dependencies [811a317]
+  - @ai-sdk/provider-utils@1.0.22
+  - @ai-sdk/provider@0.0.26
+
+## 0.0.53
+
+### Patch Changes
+
+- b9b0d7b: feat (ai): access raw request body
+- Updated dependencies [b9b0d7b]
+  - @ai-sdk/provider@0.0.25
+  - @ai-sdk/provider-utils@1.0.21
+
+## 0.0.52
+
+### Patch Changes
+
+- 7944e61: feat (provider/google): enable frequencyPenalty and presencePenalty settings
+
 ## 0.0.51
 
 ### Patch Changes

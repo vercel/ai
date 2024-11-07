@@ -1,0 +1,85 @@
+---
+title: LangChainStream
+description: API Reference for LangChainStream.
+---
+
+# `LangChainStream`
+
+<Note type="warning">LangChainStream has been removed in AI SDK 4.0.</Note>
+
+<Note type="warning">
+  LangChainStream is part of the legacy LangChain integration. It is recommended
+  to use the [LangChain Adapter](/providers/adapters/langchain) instead.
+</Note>
+
+Helps with the integration of LangChain. It is compatible with useChat and useCompletion.
+
+## Import
+
+<Snippet text={`import { LangChainStream } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callbacks',
+      type: 'AIStreamCallbacksAndOptions',
+      isOptional: true,
+      description:
+        'An object containing callback functions to handle the start, each token, and completion of the AI response. In the absence of this parameter, default behavior is implemented.',
+      properties: [
+        {
+          type: 'AIStreamCallbacksAndOptions',
+          parameters: [
+            {
+              name: 'onStart',
+              type: '() => Promise<void>',
+              description:
+                'An optional function that is called at the start of the stream processing.',
+            },
+            {
+              name: 'onCompletion',
+              type: '(completion: string) => Promise<void>',
+              description:
+                "An optional function that is called for every completion. It's passed the completion as a string.",
+            },
+            {
+              name: 'onFinal',
+              type: '(completion: string) => Promise<void>',
+              description:
+                'An optional function that is called once when the stream is closed with the final completion message.',
+            },
+            {
+              name: 'onToken',
+              type: '(token: string) => Promise<void>',
+              description:
+                "An optional function that is called for each token in the stream. It's passed the token as a string.",
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'stream',
+      type: 'ReadableStream',
+      description:
+        'This is the readable stream that can be piped into another stream. This stream contains the results of the LangChain process.',
+    },
+    {
+      name: 'handlers',
+      type: 'LangChainCallbacks',
+      description:
+        'This object contains handlers that can be used to handle certain callbacks provided by LangChain.',
+    },
+  ]}
+/>

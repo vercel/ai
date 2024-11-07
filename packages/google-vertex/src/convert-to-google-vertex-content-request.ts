@@ -37,34 +37,41 @@ export function convertToGoogleVertexContentRequest(
             }
 
             case 'image': {
-              if (part.image instanceof URL) {
-                // The AI SDK automatically downloads images for user image parts with URLs
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'Image URLs in user messages',
-                });
-              }
-
-              parts.push({
-                inlineData: {
-                  mimeType: part.mimeType ?? 'image/jpeg',
-                  data: convertUint8ArrayToBase64(part.image),
-                },
-              });
+              parts.push(
+                part.image instanceof URL
+                  ? {
+                      fileData: {
+                        mimeType: part.mimeType ?? 'image/jpeg',
+                        fileUri: part.image.toString(),
+                      },
+                    }
+                  : {
+                      inlineData: {
+                        mimeType: part.mimeType ?? 'image/jpeg',
+                        data: convertUint8ArrayToBase64(part.image),
+                      },
+                    },
+              );
 
               break;
             }
 
             case 'file': {
-              if (part.data instanceof URL) {
-                // The AI SDK automatically downloads files for user file parts with URLs
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'File URLs in user messages',
-                });
-              }
-
-              parts.push({
-                inlineData: { mimeType: part.mimeType, data: part.data },
-              });
+              parts.push(
+                part.data instanceof URL
+                  ? {
+                      fileData: {
+                        mimeType: part.mimeType,
+                        fileUri: part.data.toString(),
+                      },
+                    }
+                  : {
+                      inlineData: {
+                        mimeType: part.mimeType,
+                        data: part.data,
+                      },
+                    },
+              );
 
               break;
             }

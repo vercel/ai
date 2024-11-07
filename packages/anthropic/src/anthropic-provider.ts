@@ -13,6 +13,7 @@ import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
+import { anthropicTools } from './anthropic-tools';
 
 export interface AnthropicProvider extends ProviderV1 {
   /**
@@ -46,6 +47,11 @@ Creates a model for text generation.
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
   ): LanguageModelV1;
+
+  /**
+Anthropic-specific computer use tool.
+   */
+  tools: typeof anthropicTools;
 }
 
 export interface AnthropicProviderSettings {
@@ -54,11 +60,6 @@ Use a different URL prefix for API calls, e.g. to use proxy servers.
 The default prefix is `https://api.anthropic.com/v1`.
    */
   baseURL?: string;
-
-  /**
-@deprecated Use `baseURL` instead.
-   */
-  baseUrl?: string;
 
   /**
 API key that is being send using the `x-api-key` header.
@@ -87,8 +88,7 @@ export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
-    'https://api.anthropic.com/v1';
+    withoutTrailingSlash(options.baseURL) ?? 'https://api.anthropic.com/v1';
 
   const getHeaders = () => ({
     'anthropic-version': '2023-06-01',
@@ -130,6 +130,8 @@ export function createAnthropic(
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
+
+  provider.tools = anthropicTools;
 
   return provider as AnthropicProvider;
 }

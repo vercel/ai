@@ -7,7 +7,7 @@ import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { validatePrompt } from '../prompt/validate-prompt';
+import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -18,10 +18,11 @@ import {
   CallWarning,
   FinishReason,
   LanguageModel,
-  LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { calculateLanguageModelUsage } from '../types/usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
@@ -30,7 +31,7 @@ import { NoObjectGeneratedError } from './no-object-generated-error';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aiobj-', size: 24 });
+const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -360,7 +361,8 @@ export async function generateObject<SCHEMA, RESULT>({
     settings: { ...settings, maxRetries },
   });
 
-  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  const tracer = getTracer(telemetry);
+
   return recordSpan({
     name: 'ai.generateObject',
     attributes: selectTelemetryAttributes({
@@ -400,31 +402,34 @@ export async function generateObject<SCHEMA, RESULT>({
       let warnings: CallWarning[] | undefined;
       let rawResponse: { headers?: Record<string, string> } | undefined;
       let response: LanguageModelResponseMetadata;
+      let request: LanguageModelRequestMetadata;
       let logprobs: LogProbs | undefined;
       let resultProviderMetadata: ProviderMetadata | undefined;
 
       switch (mode) {
         case 'json': {
-          const validatedPrompt = validatePrompt({
-            system:
-              outputStrategy.jsonSchema == null
-                ? injectJsonInstruction({ prompt: system })
-                : model.supportsStructuredOutputs
-                ? system
-                : injectJsonInstruction({
-                    prompt: system,
-                    schema: outputStrategy.jsonSchema,
-                  }),
-            prompt,
-            messages,
+          const standardizedPrompt = standardizePrompt({
+            prompt: {
+              system:
+                outputStrategy.jsonSchema == null
+                  ? injectJsonInstruction({ prompt: system })
+                  : model.supportsStructuredOutputs
+                  ? system
+                  : injectJsonInstruction({
+                      prompt: system,
+                      schema: outputStrategy.jsonSchema,
+                    }),
+              prompt,
+              messages,
+            },
+            tools: undefined,
           });
 
           const promptMessages = await convertToLanguageModelPrompt({
-            prompt: validatedPrompt,
+            prompt: standardizedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
+            modelSupportsUrl: model.supportsUrl,
           });
-
-          const inputFormat = validatedPrompt.type;
 
           const generateResult = await retry(() =>
             recordSpan({
@@ -438,7 +443,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   }),
                   ...baseTelemetryAttributes,
                   'ai.prompt.format': {
-                    input: () => inputFormat,
+                    input: () => standardizedPrompt.type,
                   },
                   'ai.prompt.messages': {
                     input: () => JSON.stringify(promptMessages),
@@ -466,7 +471,7 @@ export async function generateObject<SCHEMA, RESULT>({
                     description: schemaDescription,
                   },
                   ...prepareCallSettings(settings),
-                  inputFormat,
+                  inputFormat: standardizedPrompt.type,
                   prompt: promptMessages,
                   providerMetadata,
                   abortSignal,
@@ -526,23 +531,24 @@ export async function generateObject<SCHEMA, RESULT>({
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
           resultProviderMetadata = generateResult.providerMetadata;
+          request = generateResult.request ?? {};
           response = generateResult.responseData;
 
           break;
         }
 
         case 'tool': {
-          const validatedPrompt = validatePrompt({
-            system,
-            prompt,
-            messages,
+          const standardizedPrompt = standardizePrompt({
+            prompt: { system, prompt, messages },
+            tools: undefined,
           });
 
           const promptMessages = await convertToLanguageModelPrompt({
-            prompt: validatedPrompt,
+            prompt: standardizedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
+            modelSupportsUrl: model.supportsUrl,
           });
-          const inputFormat = validatedPrompt.type;
+          const inputFormat = standardizedPrompt.type;
 
           const generateResult = await retry(() =>
             recordSpan({
@@ -650,6 +656,7 @@ export async function generateObject<SCHEMA, RESULT>({
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
           resultProviderMetadata = generateResult.providerMetadata;
+          request = generateResult.request ?? {};
           response = generateResult.responseData;
 
           break;
@@ -708,6 +715,7 @@ export async function generateObject<SCHEMA, RESULT>({
         finishReason,
         usage: calculateLanguageModelUsage(usage),
         warnings,
+        request,
         response: {
           ...response,
           headers: rawResponse?.headers,
@@ -728,6 +736,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly logprobs: GenerateObjectResult<T>['logprobs'];
   readonly experimental_providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
   readonly response: GenerateObjectResult<T>['response'];
+  readonly request: GenerateObjectResult<T>['request'];
 
   constructor(options: {
     object: GenerateObjectResult<T>['object'];
@@ -737,6 +746,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     logprobs: GenerateObjectResult<T>['logprobs'];
     providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
     response: GenerateObjectResult<T>['response'];
+    request: GenerateObjectResult<T>['request'];
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
@@ -744,7 +754,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.warnings = options.warnings;
     this.experimental_providerMetadata = options.providerMetadata;
     this.response = options.response;
-
+    this.request = options.request;
     // deprecated:
     this.rawResponse = {
       headers: options.response.headers,
@@ -761,8 +771,3 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     });
   }
 }
-
-/**
- * @deprecated Use `generateObject` instead.
- */
-export const experimental_generateObject = generateObject;

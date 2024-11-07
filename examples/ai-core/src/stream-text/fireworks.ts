@@ -3,6 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 const fireworks = createOpenAI({
+  name: 'fireworks',
   apiKey: process.env.FIREWORKS_API_KEY ?? '',
   baseURL: 'https://api.fireworks.ai/inference/v1',
 });

@@ -18,7 +18,7 @@ This example uses [Vercel KV](https://vercel.com/storage/kv) and Next.js to cach
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { convertToCoreMessages, formatStreamPart, streamText } from 'ai';
+import { formatStreamPart, streamText } from 'ai';
 import kv from '@vercel/kv';
 
 // Allow streaming responses up to 30 seconds
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   // Call the language model:
   const result = await streamText({
     model: openai('gpt-4o'),
-    messages: convertToCoreMessages(messages),
+    messages,
     async onFinish({ text }) {
       // Cache the response text:
       await kv.set(key, text);

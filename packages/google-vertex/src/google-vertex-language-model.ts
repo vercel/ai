@@ -6,7 +6,7 @@ import {
   LanguageModelV1StreamPart,
   NoContentGeneratedError,
 } from '@ai-sdk/provider';
-import { convertAsyncGeneratorToReadableStream } from '@ai-sdk/provider-utils';
+import { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
 import {
   FunctionCallingMode,
   FunctionDeclarationSchema,
@@ -15,17 +15,17 @@ import {
   Part,
   ResponseSchema,
   SafetySetting,
-  Tool,
-  ToolConfig,
   VertexAI,
 } from '@google-cloud/vertexai';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
+import { prepareTools } from './google-vertex-prepare-tools';
 import {
   GoogleVertexModelId,
   GoogleVertexSettings,
 } from './google-vertex-settings';
 import { mapGoogleVertexFinishReason } from './map-google-vertex-finish-reason';
+
 type GoogleVertexAIConfig = {
   vertexAI: VertexAI;
   generateId: () => string;
@@ -94,13 +94,11 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     }
 
     const generationConfig: GenerationConfig = {
-      // model specific settings:
-      topK: topK ?? this.settings.topK,
-
       // standardized settings:
       maxOutputTokens: maxTokens,
       frequencyPenalty,
       temperature,
+      topK,
       topP,
       stopSequences,
 
@@ -123,13 +121,16 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
+        const { tools, toolConfig, toolWarnings } = prepareTools({
+          mode,
+          useSearchGrounding: this.settings.useSearchGrounding ?? false,
+        });
+
         const configuration = {
           model: this.modelId,
           generationConfig,
-          ...prepareToolsAndToolConfig({
-            mode,
-            useSearchGrounding: this.settings.useSearchGrounding ?? false,
-          }),
+          tools,
+          toolConfig,
           safetySettings: this.settings.safetySettings as
             | undefined
             | Array<SafetySetting>,
@@ -138,7 +139,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
         return {
           model: this.config.vertexAI.getGenerativeModel(configuration),
           contentRequest: convertToGoogleVertexContentRequest(prompt),
-          warnings,
+          warnings: [...warnings, ...toolWarnings],
         };
       }
 
@@ -207,6 +208,10 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     }
   }
 
+  supportsUrl(url: URL): boolean {
+    return url.protocol === 'gs:';
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
@@ -242,6 +247,13 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
         rawPrompt: contentRequest,
         rawSettings: {},
       },
+      providerMetadata: this.settings.useSearchGrounding
+        ? {
+            vertex: {
+              groundingMetadata: firstCandidate.groundingMetadata as any,
+            },
+          }
+        : undefined,
       warnings,
     };
   }
@@ -260,9 +272,10 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
+    let providerMetadata: { vertex: { groundingMetadata: any } } | undefined;
 
     return {
-      stream: convertAsyncGeneratorToReadableStream(stream).pipeThrough(
+      stream: convertAsyncIteratorToReadableStream(stream).pipeThrough(
         new TransformStream<GenerateContentResponse, LanguageModelV1StreamPart>(
           {
             transform(chunk, controller) {
@@ -285,6 +298,14 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
                   finishReason: candidate.finishReason,
                   hasToolCalls,
                 });
+              }
+
+              if (candidate.groundingMetadata != null) {
+                providerMetadata = {
+                  vertex: {
+                    groundingMetadata: candidate.groundingMetadata as any,
+                  },
+                };
               }
 
               const content = candidate.content;
@@ -330,6 +351,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
                 type: 'finish',
                 finishReason,
                 usage,
+                providerMetadata,
               });
             },
           },
@@ -341,92 +363,6 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       },
       warnings,
     };
-  }
-}
-
-function prepareToolsAndToolConfig({
-  useSearchGrounding,
-  mode,
-}: {
-  useSearchGrounding: boolean;
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  };
-}): {
-  tools: Tool[] | undefined;
-  toolConfig: ToolConfig | undefined;
-} {
-  // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
-
-  const mappedTools: Tool[] =
-    tools == null
-      ? []
-      : [
-          {
-            functionDeclarations: tools.map(tool => ({
-              name: tool.name,
-              description: tool.description ?? '',
-              parameters: convertJSONSchemaToOpenAPISchema(
-                tool.parameters,
-              ) as FunctionDeclarationSchema,
-            })),
-          },
-        ];
-
-  if (useSearchGrounding) {
-    mappedTools.push({ googleSearchRetrieval: {} });
-  }
-
-  const finalTools = mappedTools.length > 0 ? mappedTools : undefined;
-
-  const toolChoice = mode.toolChoice;
-
-  if (toolChoice == null) {
-    return {
-      tools: finalTools,
-      toolConfig: undefined,
-    };
-  }
-
-  const type = toolChoice.type;
-
-  switch (type) {
-    case 'auto':
-      return {
-        tools: finalTools,
-        toolConfig: {
-          functionCallingConfig: { mode: FunctionCallingMode.AUTO },
-        },
-      };
-    case 'none':
-      return {
-        tools: finalTools,
-        toolConfig: {
-          functionCallingConfig: { mode: FunctionCallingMode.NONE },
-        },
-      };
-    case 'required':
-      return {
-        tools: finalTools,
-        toolConfig: {
-          functionCallingConfig: { mode: FunctionCallingMode.ANY },
-        },
-      };
-    case 'tool':
-      return {
-        tools: finalTools,
-        toolConfig: {
-          functionCallingConfig: {
-            mode: FunctionCallingMode.ANY,
-            allowedFunctionNames: [toolChoice.toolName],
-          },
-        },
-      };
-    default: {
-      const _exhaustiveCheck: never = type;
-      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
-    }
   }
 }
 

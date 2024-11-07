@@ -23,6 +23,7 @@ import {
 } from './anthropic-messages-settings';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { prepareTools } from './anthropic-prepare-tools';
 
 type AnthropicMessagesConfig = {
   provider: string;
@@ -101,10 +102,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const messagesPrompt = convertToAnthropicMessagesPrompt({
-      prompt,
-      cacheControl: this.settings.cacheControl ?? false,
-    });
+    const { prompt: messagesPrompt, betas: messagesBetas } =
+      convertToAnthropicMessagesPrompt({
+        prompt,
+        cacheControl: this.settings.cacheControl ?? false,
+      });
 
     const baseArgs = {
       // model id:
@@ -126,9 +128,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
+        const {
+          tools,
+          tool_choice,
+          toolWarnings,
+          betas: toolsBetas,
+        } = prepareTools(mode);
+
         return {
-          args: { ...baseArgs, ...prepareToolsAndToolChoice(mode) },
-          warnings,
+          args: { ...baseArgs, tools, tool_choice },
+          warnings: [...warnings, ...toolWarnings],
+          betas: new Set([...messagesBetas, ...toolsBetas]),
         };
       }
 
@@ -148,6 +158,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
             tool_choice: { type: 'tool', name },
           },
           warnings,
+          betas: messagesBetas,
         };
       }
 
@@ -158,26 +169,32 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     }
   }
 
-  private getHeaders(
-    optionHeaders: Record<string, string | undefined> | undefined,
-  ) {
+  private getHeaders({
+    betas,
+    headers,
+  }: {
+    betas: Set<string>;
+    headers: Record<string, string | undefined> | undefined;
+  }) {
+    if (this.settings.cacheControl) {
+      betas.add('prompt-caching-2024-07-31');
+    }
+
     return combineHeaders(
       this.config.headers(),
-      this.settings.cacheControl
-        ? { 'anthropic-beta': 'prompt-caching-2024-07-31' }
-        : {},
-      optionHeaders,
+      betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
+      headers,
     );
   }
 
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, betas } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: this.getHeaders(options.headers),
+      headers: this.getHeaders({ betas, headers: options.headers }),
       body: args,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -239,18 +256,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
               },
             }
           : undefined,
+      request: { body: JSON.stringify(args) },
     };
   }
 
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, betas } = await this.getArgs(options);
+
+    const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: this.getHeaders(options.headers),
-      body: { ...args, stream: true },
+      headers: this.getHeaders({ betas, headers: options.headers }),
+      body,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         anthropicMessagesChunkSchema,
@@ -437,6 +457,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
+      request: { body: JSON.stringify(body) },
     };
   }
 }
@@ -538,49 +559,3 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
     type: z.literal('ping'),
   }),
 ]);
-
-function prepareToolsAndToolChoice(
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-) {
-  // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
-
-  if (tools == null) {
-    return { tools: undefined, tool_choice: undefined };
-  }
-
-  const mappedTools = tools.map(tool => ({
-    name: tool.name,
-    description: tool.description,
-    input_schema: tool.parameters,
-  }));
-
-  const toolChoice = mode.toolChoice;
-
-  if (toolChoice == null) {
-    return { tools: mappedTools, tool_choice: undefined };
-  }
-
-  const type = toolChoice.type;
-
-  switch (type) {
-    case 'auto':
-      return { tools: mappedTools, tool_choice: { type: 'auto' } };
-    case 'required':
-      return { tools: mappedTools, tool_choice: { type: 'any' } };
-    case 'none':
-      // Anthropic does not support 'none' tool choice, so we remove the tools:
-      return { tools: undefined, tool_choice: undefined };
-    case 'tool':
-      return {
-        tools: mappedTools,
-        tool_choice: { type: 'tool', name: toolChoice.toolName },
-      };
-    default: {
-      const _exhaustiveCheck: never = type;
-      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
-    }
-  }
-}

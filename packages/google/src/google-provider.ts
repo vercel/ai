@@ -74,11 +74,6 @@ The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
   baseURL?: string;
 
   /**
-@deprecated Use `baseURL` instead.
-   */
-  baseUrl?: string;
-
-  /**
 API key that is being send using the `x-goog-api-key` header.
 It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
    */
@@ -105,7 +100,7 @@ export function createGoogleGenerativeAI(
   options: GoogleGenerativeAIProviderSettings = {},
 ): GoogleGenerativeAIProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
+    withoutTrailingSlash(options.baseURL) ??
     'https://generativelanguage.googleapis.com/v1beta';
 
   const getHeaders = () => ({

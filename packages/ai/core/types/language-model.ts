@@ -58,25 +58,3 @@ export type CoreToolChoice<TOOLS extends Record<string, unknown>> =
   | 'none'
   | 'required'
   | { type: 'tool'; toolName: keyof TOOLS };
-
-export type LanguageModelResponseMetadata = {
-  /**
-ID for the generated response.
-     */
-  id: string;
-
-  /**
-Timestamp for the start of the generated response.
-*/
-  timestamp: Date;
-
-  /**
-The ID of the response model that was used to generate the response.
-*/
-  modelId: string;
-};
-
-export type LanguageModelResponseMetadataWithHeaders =
-  LanguageModelResponseMetadata & {
-    headers?: Record<string, string>;
-  };

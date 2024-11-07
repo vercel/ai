@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToCoreMessages, streamText } from 'ai';
+import { streamText } from 'ai';
 import type { RequestHandler } from './$types';
 
 import { env } from '$env/dynamic/private';
@@ -20,7 +20,7 @@ export const POST = (async ({ request }) => {
   // Call the language model
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages: convertToCoreMessages(messages),
+    messages,
     async onFinish({ text, toolCalls, toolResults, usage, finishReason }) {
       // implement your own logic here, e.g. for storing messages
       // or recording token usage

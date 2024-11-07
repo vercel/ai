@@ -126,6 +126,20 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send request body', async () => {
+    prepareJsonResponse({});
+
+    const { request } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"gpt-3.5-turbo-instruct","prompt":"Hello"}',
+    });
+  });
+
   it('should send additional response information', async () => {
     prepareJsonResponse({
       id: 'test-id',
@@ -416,6 +430,20 @@ describe('doStream', () => {
         completionTokens: NaN,
         promptTokens: NaN,
       },
+    });
+  });
+
+  it('should send request body', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const { request } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(request).toStrictEqual({
+      body: '{"model":"gpt-3.5-turbo-instruct","prompt":"Hello","stream":true,"stream_options":{"include_usage":true}}',
     });
   });
 

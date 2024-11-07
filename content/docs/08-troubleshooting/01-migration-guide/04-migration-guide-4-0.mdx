@@ -1,0 +1,182 @@
+---
+title: Migrate AI SDK 3.3 to 4.0
+description: Learn how to upgrade AI SDK 3.3 to 4.0.
+---
+
+# Migrate AI SDK 3.3 to 4.0
+
+<Note type="warning">
+  AI SDK 4.0 has not been released yet. It is currently a canary version and
+  there will be more breaking changes. We will update this guide as we make
+  progress.
+</Note>
+
+## Recommended Process
+
+1. [Migrate to AI SDK 3.3](/docs/08-troubleshooting/migration-guide/migration-guide-3-3).
+2. Resolve all deprecation warnings.
+3. Upgrade to AI SDK 4.0 and follow the breaking changes guide below.
+
+## Provider Changes
+
+### Removed `baseUrl` option
+
+The `baseUrl` option has been removed from all providers. Please use the `baseURL` option instead.
+
+### Anthropic Provider: Removed `Anthropic` facade
+
+The `Anthropic` facade has been removed from the Anthropic provider.
+Please use the `anthropic` object or the `createAnthropic` function instead.
+
+### Google Vertex Provider: Removed `topK` setting
+
+The model specific `topK` setting has been removed from the Google Vertex provider.
+You can use the standard `topK` setting instead.
+
+### Mistral Provider: Removed `Mistral` facade
+
+The `Mistral` facade has been removed from the Mistral provider.
+Please use the `mistral` object or the `createMistral` function instead.
+
+### OpenAI Provider: Removed `OpenAI` facade
+
+The `OpenAI` facade has been removed from the OpenAI provider.
+Please use the `openai` object or the `createOpenAI` function instead.
+
+## AI SDK 2.x Legacy Changes
+
+### Removed 2.x prompt helpers
+
+Prompt helpers for constructing message prompts are no longer needed with the AI SDK provider architectureand have been removed.
+
+### Removed 2.x legacy providers
+
+Legacy providers from AI SDK 2.x have been removed. Please use the new [AI SDK provider architecture](/docs/foundations/providers-and-models) instead.
+
+### Removed 2.x `AIStream` legacy exports
+
+The `AIStream` exports have been removed. Please use the new `streamText` functions instead.
+
+## AI SDK Core Changes
+
+### Remove roundtrips
+
+The `maxToolRoundtrips` and `maxAutomaticRoundtrips` options have been removed from the `generateText` and `streamText` functions.
+Please use the `maxSteps` option instead.
+
+The `roundtrips` property has been removed from the `GenerateTextResult` type.
+Please use the `steps` property instead.
+
+### Removed `nanoid` export
+
+The `nanoid` export has been removed. Please use [`generateId`](/docs/reference/stream-helpers/generate-id) instead.
+
+### Removed `ExperimentalMessage` types
+
+The following types have been removed:
+
+- `ExperimentalMessage` (use `CoreMessage` instead)
+- `ExperimentalUserMessage` (use `CoreUserMessage` instead)
+- `ExperimentalAssistantMessage` (use `CoreAssistantMessage` instead)
+- `ExperimentalToolMessage` (use `CoreToolMessage` instead)
+
+### Removed experimental AI function exports
+
+The following exports have been removed:
+
+- `experimental_generateText` (use `generateText` instead)
+- `experimental_streamText` (use `streamText` instead)
+- `experimental_generateObject` (use `generateObject` instead)
+- `experimental_streamObject` (use `streamObject` instead)
+
+## Removed AI-stream related methods from `streamText`
+
+The following methods have been removed from the `streamText` result:
+
+- `toAIStream`
+- `pipeAIStreamToResponse`
+- `toAIStreamResponse`
+
+## AI SDK RSC Changes
+
+### Removed `render` function
+
+The AI SDK RSC 3.0 `render` function has been removed.
+Please use the `streamUI` function instead or switch to AI SDK UI.
+
+## AI SDK UI Changes
+
+### Removed Svelte, Vue, and SolidJS exports
+
+The `ai` package no longer exports Svelte, Vue, and SolidJS UI integrations.
+You need to install the `@ai-sdk/svelte`, `@ai-sdk/vue`, and `@ai-sdk/solid` packages directly.
+
+```ts filename="AI SDK 3.3"
+import { useChat } from 'ai/svelte';
+```
+
+```ts filename="AI SDK 4.0"
+import { useChat } from '@ai-sdk/svelte';
+```
+
+### `useChat` hook
+
+#### Removed `streamMode` option
+
+The `streamMode` options has been removed from the `useChat` hook.
+Please use the `streamProtocol` parameter instead.
+
+#### Replaced roundtrip options with `maxSteps`
+
+The following options have been removed from the `useChat` hook:
+
+- `experimental_maxAutomaticRoundtrips`
+- `maxAutomaticRoundtrips`
+- `maxToolRoundtrips`
+
+Please use the [`maxSteps`](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) option instead.
+The value of `maxSteps` is equal to roundtrips + 1.
+
+#### Removed `options` parameter
+
+The `options` parameter in the `useChat` hook has been removed.
+Please use the `headers` and `body` parameters instead.
+
+#### Removed `name` from UI message
+
+The `name` property from the `Message` type has been removed.
+
+#### Removed 2.x legacy function and tool calling
+
+The legacy `function_call` and `tools` options have been removed.
+Please use the [AI SDK Core tool calling](/docs/ai-sdk-core/tools-and-tool-calling) instead.
+
+#### Removed `experimental_addToolResult` method
+
+The `experimental_addToolResult` method has been removed from the `useChat` hook.
+Please use the `addToolResult` method instead.
+
+### `useCompletion` hook
+
+#### Removed `streamMode` option
+
+The `streamMode` options has been removed from the `useCompletion` hook.
+Please use the `streamProtocol` parameter instead.
+
+### `useAssistant` hook
+
+#### Removed `experimental_useAssistant` export
+
+The `experimental_useAssistant` export has been removed from the `useAssistant` hook.
+Please use the `useAssistant` hook directly instead.
+
+## AI SDK Errors
+
+### Removed `isXXXError` static methods
+
+The `isXXXError` static methods have been removed from AI SDK errors.
+Please use the `isInstance` method of the corresponding error class instead.
+
+### Removed `toJSON` method
+
+The `toJSON` method has been removed from AI SDK errors.

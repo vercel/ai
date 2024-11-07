@@ -1,0 +1,71 @@
+---
+title: Fireworks
+description: Use the Fireworks OpenAI compatible API with the AI SDK.
+---
+
+# Fireworks Provider
+
+[Fireworks](https://fireworks.ai/) is a platform for running and testing LLMs.
+It offers an OpenAI compatible API that you can use with the AI SDK.
+
+## Setup
+
+The Fireworks provider is available via the `@ai-sdk/openai` module as it is compatible with the OpenAI API.
+You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use Fireworks, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const fireworks = createOpenAI({
+  name: 'fireworks',
+  apiKey: process.env.FIREWORKS_API_KEY ?? '',
+  baseURL: 'https://api.fireworks.ai/inference/v1',
+});
+```
+
+## Language Models
+
+You can create [Fireworks models](https://fireworks.ai/models) using a provider instance.
+The first argument is the model id, e.g. `accounts/fireworks/models/firefunction-v1`.
+
+```ts
+const model = fireworks('accounts/fireworks/models/firefunction-v1');
+```
+
+### Example
+
+You can use Fireworks language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai'
+import { generateText } from 'ai'
+
+const fireworks = createOpenAI({
+  name: 'fireworks',
+  apiKey: process.env.FIREWORKS_API_KEY ?? '',
+  baseURL: 'https://api.fireworks.ai/inference/v1'
+})
+
+const { text } = await generateText({
+  model: fireworks('accounts/fireworks/models/firefunction-v1')
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
+})
+```
+
+Fireworks language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions.

@@ -1,5 +1,7 @@
 import { Attachment, Message } from '@ai-sdk/ui-utils';
 import { convertToCoreMessages } from './convert-to-core-messages';
+import { tool } from '../tool/tool';
+import { z } from 'zod';
 
 describe('system message', () => {
   it('should convert a simple system message', () => {
@@ -244,8 +246,65 @@ describe('assistant message', () => {
             type: 'tool-result',
             toolCallId: 'call1',
             toolName: 'calculator',
-            args: { operation: 'add', numbers: [1, 2] },
             result: '3',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should handle assistant message with tool invocations that have multi-part responses', () => {
+    const tools = {
+      screenshot: tool({
+        parameters: z.object({}),
+        execute: async () => 'imgbase64',
+        experimental_toToolResultContent: result => [
+          { type: 'image', data: result },
+        ],
+      }),
+    };
+
+    const result = convertToCoreMessages(
+      [
+        {
+          role: 'assistant',
+          content: 'Let me calculate that for you.',
+          toolInvocations: [
+            {
+              state: 'result',
+              toolCallId: 'call1',
+              toolName: 'screenshot',
+              args: {},
+              result: 'imgbase64',
+            },
+          ],
+        },
+      ],
+      { tools }, // separate tools to ensure that types are inferred correctly
+    );
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Let me calculate that for you.' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'screenshot',
+            args: {},
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call1',
+            toolName: 'screenshot',
+            result: [{ type: 'image', data: 'imgbase64' }],
+            experimental_content: [{ type: 'image', data: 'imgbase64' }],
           },
         ],
       },

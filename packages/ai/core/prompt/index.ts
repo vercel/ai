@@ -1,4 +1,5 @@
 export type {
+  FilePart,
   ImagePart,
   TextPart,
   ToolCallPart,
@@ -13,10 +14,6 @@ export type {
   CoreSystemMessage,
   CoreToolMessage,
   CoreUserMessage,
-  ExperimentalAssistantMessage,
-  ExperimentalMessage,
-  ExperimentalToolMessage,
-  ExperimentalUserMessage,
   ToolContent,
   UserContent,
 } from './message';

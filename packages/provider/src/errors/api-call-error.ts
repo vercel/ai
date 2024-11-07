@@ -56,45 +56,4 @@ export class APICallError extends AISDKError {
   static isInstance(error: unknown): error is APICallError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated Use isInstance instead.
-   */
-  static isAPICallError(error: unknown): error is APICallError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      typeof (error as APICallError).url === 'string' &&
-      typeof (error as APICallError).requestBodyValues === 'object' &&
-      ((error as APICallError).statusCode == null ||
-        typeof (error as APICallError).statusCode === 'number') &&
-      ((error as APICallError).responseHeaders == null ||
-        typeof (error as APICallError).responseHeaders === 'object') &&
-      ((error as APICallError).responseBody == null ||
-        typeof (error as APICallError).responseBody === 'string') &&
-      ((error as APICallError).cause == null ||
-        typeof (error as APICallError).cause === 'object') &&
-      typeof (error as APICallError).isRetryable === 'boolean' &&
-      ((error as APICallError).data == null ||
-        typeof (error as APICallError).data === 'object')
-    );
-  }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      url: this.url,
-      requestBodyValues: this.requestBodyValues,
-      statusCode: this.statusCode,
-      responseHeaders: this.responseHeaders,
-      responseBody: this.responseBody,
-      cause: this.cause,
-      isRetryable: this.isRetryable,
-      data: this.data,
-    };
-  }
 }

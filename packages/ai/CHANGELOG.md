@@ -1,5 +1,259 @@
 # ai
 
+## 4.0.0-canary.3
+
+### Patch Changes
+
+- Updated dependencies [68d30e9]
+- Updated dependencies [b1da952]
+  - @ai-sdk/react@1.0.0-canary.3
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+  - @ai-sdk/ui-utils@1.0.0-canary.3
+
+## 4.0.0-canary.2
+
+### Major Changes
+
+- b469a7e: chore: remove isXXXError methods
+- c0ddc24: chore (ai): remove toJSON method from AI SDK errors
+
+### Patch Changes
+
+- Updated dependencies [e117b54]
+- Updated dependencies [b469a7e]
+- Updated dependencies [7814c4b]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/react@1.0.0-canary.2
+  - @ai-sdk/provider-utils@2.0.0-canary.0
+  - @ai-sdk/provider@1.0.0-canary.0
+  - @ai-sdk/ui-utils@1.0.0-canary.2
+
+## 4.0.0-canary.1
+
+### Major Changes
+
+- 8bf5756: chore: remove legacy function/tool calling
+
+### Patch Changes
+
+- 1c58337: chore (ai): remove 2.x prompt helpers
+- Updated dependencies [8bf5756]
+  - @ai-sdk/ui-utils@1.0.0-canary.1
+  - @ai-sdk/react@1.0.0-canary.1
+
+## 4.0.0-canary.0
+
+### Major Changes
+
+- a40a93d: chore (ai/ui): remove vue, svelte, solid re-export and dependency
+
+### Patch Changes
+
+- a7ad35a: chore: remove legacy providers & rsc render
+- 7e89ccb: chore: remove nanoid export
+- Updated dependencies [84edae5]
+- Updated dependencies [7e89ccb]
+  - @ai-sdk/react@1.0.0-canary.0
+  - @ai-sdk/ui-utils@1.0.0-canary.0
+
+## 3.4.33
+
+### Patch Changes
+
+- ac380e3: fix (provider/anthropic): continuation mode with 3+ steps
+
+## 3.4.32
+
+### Patch Changes
+
+- 6bb9e51: fix (ai/core): expose response.messages in streamText
+
+## 3.4.31
+
+### Patch Changes
+
+- Updated dependencies [2dfb93e]
+  - @ai-sdk/react@0.0.70
+
+## 3.4.30
+
+### Patch Changes
+
+- Updated dependencies [a85c965]
+  - @ai-sdk/ui-utils@0.0.50
+  - @ai-sdk/react@0.0.69
+  - @ai-sdk/solid@0.0.54
+  - @ai-sdk/svelte@0.0.57
+  - @ai-sdk/vue@0.0.59
+
+## 3.4.29
+
+### Patch Changes
+
+- 54b56f7: feat (ai/core): send tool and tool choice telemetry data
+
+## 3.4.28
+
+### Patch Changes
+
+- 29f1390: feat (ai/test): add simulateReadableStream helper
+
+## 3.4.27
+
+### Patch Changes
+
+- fa772ae: feat (ai/core): automatically convert ui messages to core messages
+
+## 3.4.26
+
+### Patch Changes
+
+- 57f39ea: feat (ai/core): support multi-modal tool results in convertToCoreMessages
+
+## 3.4.25
+
+### Patch Changes
+
+- 6e0fa1c: fix (ai/core): wait for tool results to arrive before sending finish event
+
+## 3.4.24
+
+### Patch Changes
+
+- d92fd9f: feat (ui/svelte): support Svelte 5 peer dependency
+- Updated dependencies [d92fd9f]
+  - @ai-sdk/svelte@0.0.56
+
+## 3.4.23
+
+### Patch Changes
+
+- 8301e41: fix (ai/react): update React peer dependency version to allow rc releases.
+- Updated dependencies [8301e41]
+  - @ai-sdk/react@0.0.68
+
+## 3.4.22
+
+### Patch Changes
+
+- Updated dependencies [3bf8da0]
+  - @ai-sdk/ui-utils@0.0.49
+  - @ai-sdk/react@0.0.67
+  - @ai-sdk/solid@0.0.53
+  - @ai-sdk/svelte@0.0.55
+  - @ai-sdk/vue@0.0.58
+
+## 3.4.21
+
+### Patch Changes
+
+- 3954471: (experimental) fix passing "experimental_toToolResultContent" into PoolResultPart
+
+## 3.4.20
+
+### Patch Changes
+
+- aa98cdb: chore: more flexible dependency versioning
+- 1486128: feat: add supportsUrl to language model specification
+- 3b1b69a: feat: provider-defined tools
+- 85b98da: revert fix (ai/core): handle tool calls without results in message conversion
+- 7ceed77: feat (ai/core): expose response message for each step
+- 811a317: feat (ai/core): multi-part tool results (incl. images)
+- Updated dependencies [aa98cdb]
+- Updated dependencies [1486128]
+- Updated dependencies [7b937c5]
+- Updated dependencies [3b1b69a]
+- Updated dependencies [811a317]
+  - @ai-sdk/provider-utils@1.0.22
+  - @ai-sdk/provider@0.0.26
+  - @ai-sdk/ui-utils@0.0.48
+  - @ai-sdk/svelte@0.0.54
+  - @ai-sdk/react@0.0.66
+  - @ai-sdk/vue@0.0.57
+  - @ai-sdk/solid@0.0.52
+
+## 3.4.19
+
+### Patch Changes
+
+- b9b0d7b: feat (ai): access raw request body
+- Updated dependencies [b9b0d7b]
+  - @ai-sdk/provider@0.0.25
+  - @ai-sdk/provider-utils@1.0.21
+  - @ai-sdk/ui-utils@0.0.47
+  - @ai-sdk/react@0.0.65
+  - @ai-sdk/solid@0.0.51
+  - @ai-sdk/svelte@0.0.53
+  - @ai-sdk/vue@0.0.56
+
+## 3.4.18
+
+### Patch Changes
+
+- 95c67b4: fix (ai/core): handle tool calls without results in message conversion
+
+## 3.4.17
+
+### Patch Changes
+
+- e4ff512: fix (core): prevent unnecessary input/output serialization when telemetry is not enabled
+
+## 3.4.16
+
+### Patch Changes
+
+- 01dcc44: feat (ai/core): add experimental activeTools option to generateText and streamText
+
+## 3.4.15
+
+### Patch Changes
+
+- Updated dependencies [98a3b08]
+  - @ai-sdk/react@0.0.64
+
+## 3.4.14
+
+### Patch Changes
+
+- e930f40: feat (ai/core): expose core tool result and tool call types
+
+## 3.4.13
+
+### Patch Changes
+
+- fc39158: fix (ai/core): add abortSignal to tool helper function
+
+## 3.4.12
+
+### Patch Changes
+
+- a23da5b: feat (ai/core): forward abort signal to tools
+
+## 3.4.11
+
+### Patch Changes
+
+- caedcda: feat (ai/ui): add setData helper to useChat
+- Updated dependencies [caedcda]
+  - @ai-sdk/svelte@0.0.52
+  - @ai-sdk/react@0.0.63
+  - @ai-sdk/solid@0.0.50
+  - @ai-sdk/vue@0.0.55
+
+## 3.4.10
+
+### Patch Changes
+
+- 0b557d7: feat (ai/core): add tracer option to telemetry settings
+- 44f6bc5: feat (ai/core): expose StepResult type
+
+## 3.4.9
+
+### Patch Changes
+
+- d347538: fix (ai/core): export FilePart interface
+
 ## 3.4.8
 
 ### Patch Changes

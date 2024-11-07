@@ -214,7 +214,12 @@ describe('doGenerate', () => {
     const { model, mockVertexAI } = createModel({
       modelId: 'test-model',
       settings: {
-        topK: 0.1,
+        safetySettings: [
+          {
+            category: 'HARM_CATEGORY_UNSPECIFIED',
+            threshold: 'BLOCK_NONE',
+          },
+        ],
       },
       generateContent: prepareResponse({}),
     });
@@ -226,6 +231,7 @@ describe('doGenerate', () => {
       temperature: 0.5,
       maxTokens: 100,
       topP: 0.9,
+      topK: 0.1,
       stopSequences: ['abc', 'def'],
       frequencyPenalty: 0.15,
     });
@@ -244,7 +250,12 @@ describe('doGenerate', () => {
       },
       tools: undefined,
       toolConfig: undefined,
-      safetySettings: undefined,
+      safetySettings: [
+        {
+          category: 'HARM_CATEGORY_UNSPECIFIED',
+          threshold: 'BLOCK_NONE',
+        },
+      ],
     });
   });
 
@@ -500,6 +511,72 @@ describe('doGenerate', () => {
       },
     ]);
   });
+
+  it('should include grounding metadata when useSearchGrounding is enabled', async () => {
+    const { model } = createModel({
+      settings: {
+        useSearchGrounding: true,
+      },
+      generateContent: prepareResponse({
+        text: 'Response with grounding',
+        parts: [{ text: 'Response with grounding' }],
+        finishReason: 'STOP' as FinishReason,
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      }),
+    });
+
+    const mockGroundingMetadata = {
+      webSearchQueries: ['test query'],
+      webSearchResults: [
+        {
+          url: 'https://example.com',
+          title: 'Example Result',
+          snippet: 'Example snippet',
+        },
+      ],
+    };
+
+    // Override the prepareResponse to include groundingMetadata
+    (model as any).config.vertexAI.getGenerativeModel = () =>
+      ({
+        generateContent: async () => ({
+          response: {
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: 'Response with grounding' }],
+                  role: 'model',
+                },
+                index: 0,
+                finishReason: 'STOP',
+                groundingMetadata: mockGroundingMetadata,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 10,
+              candidatesTokenCount: 20,
+              totalTokenCount: 30,
+            },
+          },
+        }),
+      } as any);
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      vertex: {
+        groundingMetadata: mockGroundingMetadata,
+      },
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -553,6 +630,72 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
         usage: { promptTokens: 9, completionTokens: 403 },
+        providerMetadata: undefined,
+      },
+    ]);
+  });
+
+  it('should include grounding metadata in stream when useSearchGrounding is enabled', async () => {
+    const mockGroundingMetadata = {
+      webSearchQueries: ['test query'],
+      webSearchResults: [
+        {
+          url: 'https://example.com',
+          title: 'Example Result',
+          snippet: 'Example snippet',
+        },
+      ],
+    };
+
+    const { model } = createModel({
+      settings: {
+        useSearchGrounding: true,
+      },
+      generateContentStream: async function* () {
+        yield {
+          candidates: [
+            {
+              content: { parts: [{ text: 'Response ' }], role: 'model' },
+              index: 0,
+            },
+          ],
+        };
+        yield {
+          candidates: [
+            {
+              content: { parts: [{ text: 'with grounding' }], role: 'model' },
+              index: 0,
+              groundingMetadata: mockGroundingMetadata,
+              finishReason: 'STOP' as FinishReason,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        };
+      },
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      { type: 'text-delta', textDelta: 'Response ' },
+      { type: 'text-delta', textDelta: 'with grounding' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 10, completionTokens: 20 },
+        providerMetadata: {
+          vertex: {
+            groundingMetadata: mockGroundingMetadata,
+          },
+        },
       },
     ]);
   });

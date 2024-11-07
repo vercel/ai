@@ -30,7 +30,7 @@ export class Google {
    */
   constructor(options: GoogleGenerativeAIProviderSettings = {}) {
     this.baseURL =
-      withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
+      withoutTrailingSlash(options.baseURL) ??
       'https://generativelanguage.googleapis.com/v1beta';
     this.apiKey = options.apiKey;
     this.headers = options.headers;

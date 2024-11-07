@@ -1,4 +1,4 @@
-import { JSONSchema7Definition } from 'json-schema';
+import { JSONSchema7Definition } from '@ai-sdk/provider';
 
 /**
  * Converts JSON Schema 7 to OpenAPI Schema 3.0

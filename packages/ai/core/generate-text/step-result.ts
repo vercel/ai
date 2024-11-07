@@ -1,15 +1,20 @@
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { CoreTool } from '../tool';
 import {
   CallWarning,
   FinishReason,
-  LanguageModelResponseMetadataWithHeaders,
+  LanguageModelRequestMetadata,
+  LanguageModelResponseMetadata,
   LogProbs,
   ProviderMetadata,
 } from '../types';
 import { LanguageModelUsage } from '../types/usage';
-import { ToToolCallArray } from './tool-call';
-import { ToToolResultArray } from './tool-result';
+import { ToolCallArray } from './tool-call';
+import { ToolResultArray } from './tool-result';
 
+/**
+ * The result of a single step in the generation process.
+ */
 export type StepResult<TOOLS extends Record<string, CoreTool>> = {
   /**
 The generated text.
@@ -19,12 +24,12 @@ The generated text.
   /**
 The tool calls that were made during the generation.
 */
-  readonly toolCalls: ToToolCallArray<TOOLS>;
+  readonly toolCalls: ToolCallArray<TOOLS>;
 
   /**
 The results of the tool calls.
 */
-  readonly toolResults: ToToolResultArray<TOOLS>;
+  readonly toolResults: ToolResultArray<TOOLS>;
 
   /**
 The reason why the generation finished.
@@ -60,9 +65,20 @@ Response headers.
   };
 
   /**
+Additional request information.
+   */
+  readonly request: LanguageModelRequestMetadata;
+
+  /**
 Additional response information.
 */
-  readonly response: LanguageModelResponseMetadataWithHeaders;
+  readonly response: LanguageModelResponseMetadata & {
+    /**
+The response messages that were generated during the call. It consists of an assistant message,
+potentially containing tool calls.
+*/
+    readonly messages: Array<CoreAssistantMessage | CoreToolMessage>;
+  };
 
   /**
 Additional provider-specific metadata. They are passed through

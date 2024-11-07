@@ -84,7 +84,7 @@ export const postToApi = async <T>({
           requestBodyValues: body.values,
         });
       } catch (error) {
-        if (isAbortError(error) || APICallError.isAPICallError(error)) {
+        if (isAbortError(error) || APICallError.isInstance(error)) {
           throw error;
         }
 
@@ -109,7 +109,7 @@ export const postToApi = async <T>({
       });
     } catch (error) {
       if (error instanceof Error) {
-        if (isAbortError(error) || APICallError.isAPICallError(error)) {
+        if (isAbortError(error) || APICallError.isInstance(error)) {
           throw error;
         }
       }

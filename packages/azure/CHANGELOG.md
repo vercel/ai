@@ -1,5 +1,94 @@
 # @ai-sdk/azure
 
+## 1.0.0-canary.1
+
+### Patch Changes
+
+- Updated dependencies [79644e9]
+- Updated dependencies [0d3d3f5]
+- Updated dependencies [b1da952]
+  - @ai-sdk/openai@1.0.0-canary.1
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+
+## 1.0.0-canary.0
+
+### Major Changes
+
+- 66060f7: chore (release): bump major version to 4.0
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [66060f7]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0-canary.0
+  - @ai-sdk/provider@1.0.0-canary.0
+  - @ai-sdk/openai@1.0.0-canary.0
+
+## 0.0.52
+
+### Patch Changes
+
+- Updated dependencies [0bc4115]
+  - @ai-sdk/openai@0.0.72
+
+## 0.0.51
+
+### Patch Changes
+
+- Updated dependencies [54a3a59]
+  - @ai-sdk/openai@0.0.71
+
+## 0.0.50
+
+### Patch Changes
+
+- Updated dependencies [aa98cdb]
+- Updated dependencies [1486128]
+- Updated dependencies [7b937c5]
+- Updated dependencies [3b1b69a]
+- Updated dependencies [811a317]
+  - @ai-sdk/provider-utils@1.0.22
+  - @ai-sdk/provider@0.0.26
+  - @ai-sdk/openai@0.0.70
+
+## 0.0.49
+
+### Patch Changes
+
+- Updated dependencies [b9b0d7b]
+  - @ai-sdk/provider@0.0.25
+  - @ai-sdk/openai@0.0.69
+  - @ai-sdk/provider-utils@1.0.21
+
+## 0.0.48
+
+### Patch Changes
+
+- Updated dependencies [741ca51]
+  - @ai-sdk/openai@0.0.68
+
+## 0.0.47
+
+### Patch Changes
+
+- 861fb35: fix (provider/azure): support token usage information when streaming
+
+## 0.0.46
+
+### Patch Changes
+
+- Updated dependencies [39fccee]
+  - @ai-sdk/openai@0.0.67
+
+## 0.0.45
+
+### Patch Changes
+
+- Updated dependencies [3f29c10]
+  - @ai-sdk/openai@0.0.66
+
 ## 0.0.44
 
 ### Patch Changes

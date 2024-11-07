@@ -10,6 +10,11 @@ import {
   GoogleVertexModelId,
   GoogleVertexSettings,
 } from './google-vertex-settings';
+import {
+  GoogleVertexEmbeddingModelId,
+  GoogleVertexEmbeddingSettings,
+} from './google-vertex-embedding-settings';
+import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 
 export interface GoogleVertexProvider extends ProviderV1 {
   /**
@@ -64,20 +69,26 @@ Create a Google Vertex AI provider instance.
 export function createVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
+  const loadVertexProject = () =>
+    loadSetting({
+      settingValue: options.project,
+      settingName: 'project',
+      environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
+      description: 'Google Vertex project',
+    });
+
+  const loadVertexLocation = () =>
+    loadSetting({
+      settingValue: options.location,
+      settingName: 'location',
+      environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
+      description: 'Google Vertex location',
+    });
+
   const createVertexAI = () => {
     const config = {
-      project: loadSetting({
-        settingValue: options.project,
-        settingName: 'project',
-        environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
-        description: 'Google Vertex project',
-      }),
-      location: loadSetting({
-        settingValue: options.location,
-        settingName: 'location',
-        environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
-        description: 'Google Vertex location',
-      }),
+      project: loadVertexProject(),
+      location: loadVertexLocation(),
       googleAuthOptions: options.googleAuthOptions,
     };
 
@@ -93,6 +104,20 @@ export function createVertex(
       generateId: options.generateId ?? generateId,
     });
 
+  const createEmbeddingModel = (
+    modelId: GoogleVertexEmbeddingModelId,
+    settings: GoogleVertexEmbeddingSettings = {},
+  ) => {
+    const vertexAI = createVertexAI();
+
+    return new GoogleVertexEmbeddingModel(modelId, settings, {
+      provider: 'google.vertex',
+      region: loadVertexLocation(),
+      project: loadVertexProject(),
+      generateAuthToken: () => (vertexAI as any).googleAuth.getAccessToken(),
+    });
+  };
+
   const provider = function (
     modelId: GoogleVertexModelId,
     settings?: GoogleVertexSettings,
@@ -107,9 +132,7 @@ export function createVertex(
   };
 
   provider.languageModel = createChatModel;
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
-  };
+  provider.textEmbeddingModel = createEmbeddingModel;
 
   return provider as GoogleVertexProvider;
 }

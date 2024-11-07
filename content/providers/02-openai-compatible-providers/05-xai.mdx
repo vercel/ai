@@ -1,0 +1,79 @@
+---
+title: xAI
+description: Use the xAI API with the AI SDK.
+---
+
+# xAI Provider
+
+[xAI](https://docs.x.ai/docs) is an AI service from X.
+It offers an OpenAI compatible API that you can use with the AI SDK.
+
+## Setup
+
+The xAI provider is available via the `@ai-sdk/openai` module as it is compatible with the OpenAI API.
+You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use xAI, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const xai = createOpenAI({
+  name: 'xai',
+  baseURL: 'https://api.x.ai/v1',
+  apiKey: process.env.XAI_API_KEY ?? '',
+});
+```
+
+## Language Models
+
+You can interact with xAI language models using a provider instance.
+The first argument is the model id, e.g. `grok-beta`.
+
+```ts
+const model = xai('grok-beta');
+```
+
+### Example
+
+You can use xAI language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const xai = createOpenAI({
+  name: 'xai',
+  baseURL: 'https://api.x.ai/v1',
+  apiKey: process.env.XAI_API_KEY ?? '',
+});
+
+const { text } = await generateText({
+  model: xai('grok-beta'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+xAI language models can also be used with `streamText`.
+
+## Embedding Models
+
+You can create models that call the xAI embeddings API using the `.embedding()` factory method.
+
+```ts
+const model = xai.embedding('embedding-model-name');
+```
