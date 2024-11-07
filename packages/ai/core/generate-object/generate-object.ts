@@ -718,7 +718,6 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly finishReason: GenerateObjectResult<T>['finishReason'];
   readonly usage: GenerateObjectResult<T>['usage'];
   readonly warnings: GenerateObjectResult<T>['warnings'];
-  readonly rawResponse: GenerateObjectResult<T>['rawResponse'];
   readonly logprobs: GenerateObjectResult<T>['logprobs'];
   readonly experimental_providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
   readonly response: GenerateObjectResult<T>['response'];
@@ -741,10 +740,6 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.experimental_providerMetadata = options.providerMetadata;
     this.response = options.response;
     this.request = options.request;
-    // deprecated:
-    this.rawResponse = {
-      headers: options.response.headers,
-    };
     this.logprobs = options.logprobs;
   }
 

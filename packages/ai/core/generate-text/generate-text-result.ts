@@ -61,18 +61,6 @@ such as the tool calls or the response headers.
   readonly steps: Array<StepResult<TOOLS>>;
 
   /**
-Optional raw response data.
-
-@deprecated Use `response.headers` instead.
-   */
-  readonly rawResponse?: {
-    /**
-  Response headers.
-   */
-    readonly headers?: Record<string, string>;
-  };
-
-  /**
 Additional request information.
    */
   readonly request: LanguageModelRequestMetadata;

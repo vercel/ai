@@ -74,11 +74,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
-  "rawResponse": {
-    "headers": {
-      "call": "1",
-    },
-  },
   "request": {},
   "response": {
     "headers": {
@@ -172,11 +167,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
       "finishReason": "tool-calls",
       "isContinued": false,
       "logprobs": undefined,
-      "rawResponse": {
-        "headers": {
-          "call": "1",
-        },
-      },
       "request": {},
       "response": {
         "headers": {
@@ -251,11 +241,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
-      "rawResponse": {
-        "headers": {
-          "call": "2",
-        },
-      },
       "request": {},
       "response": {
         "headers": {
@@ -335,11 +320,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFi
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
-    "rawResponse": {
-      "headers": {
-        "call": "1",
-      },
-    },
     "request": {},
     "response": {
       "headers": {
@@ -414,11 +394,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFi
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
-    "rawResponse": {
-      "headers": {
-        "call": "2",
-      },
-    },
     "request": {},
     "response": {
       "headers": {
@@ -736,11 +711,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
-    "rawResponse": {
-      "headers": {
-        "call": "1",
-      },
-    },
     "request": {},
     "response": {
       "headers": {
@@ -815,11 +785,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
-    "rawResponse": {
-      "headers": {
-        "call": "2",
-      },
-    },
     "request": {},
     "response": {
       "headers": {
@@ -887,7 +852,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
-  "rawResponse": undefined,
   "request": {},
   "response": {
     "headers": undefined,
@@ -951,7 +915,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
-      "rawResponse": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -988,7 +951,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
-      "rawResponse": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -1028,11 +990,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
-      "rawResponse": {
-        "headers": {
-          "call": "3",
-        },
-      },
       "request": {},
       "response": {
         "headers": {
@@ -1078,11 +1035,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
-      "rawResponse": {
-        "headers": {
-          "call": "3",
-        },
-      },
       "request": {},
       "response": {
         "headers": {
@@ -1151,7 +1103,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
-    "rawResponse": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1188,7 +1139,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
-    "rawResponse": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1228,11 +1178,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
-    "rawResponse": {
-      "headers": {
-        "call": "3",
-      },
-    },
     "request": {},
     "response": {
       "headers": {
@@ -1278,11 +1223,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
-    "rawResponse": {
-      "headers": {
-        "call": "3",
-      },
-    },
     "request": {},
     "response": {
       "headers": {
@@ -1692,7 +1632,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > val
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
-    "rawResponse": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1729,7 +1668,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > val
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
-    "rawResponse": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1769,11 +1707,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > val
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
-    "rawResponse": {
-      "headers": {
-        "call": "3",
-      },
-    },
     "request": {},
     "response": {
       "headers": {
@@ -1819,11 +1752,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > val
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
-    "rawResponse": {
-      "headers": {
-        "call": "3",
-      },
-    },
     "request": {},
     "response": {
       "headers": {
@@ -1882,11 +1810,6 @@ exports[`options.onFinish > options.onFinish should send correct information 1`]
   },
   "finishReason": "stop",
   "logprobs": undefined,
-  "rawResponse": {
-    "headers": {
-      "call": "2",
-    },
-  },
   "request": {},
   "response": {
     "headers": {
@@ -1966,11 +1889,6 @@ exports[`options.onFinish > options.onFinish should send correct information 1`]
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
-      "rawResponse": {
-        "headers": {
-          "call": "2",
-        },
-      },
       "request": {},
       "response": {
         "headers": {
