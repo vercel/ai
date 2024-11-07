@@ -1,4 +1,4 @@
-import { JSONSchema7 } from 'json-schema';
+import { JSONSchema7 } from '@ai-sdk/provider';
 
 const DEFAULT_SCHEMA_PREFIX = 'JSON schema:';
 const DEFAULT_SCHEMA_SUFFIX =

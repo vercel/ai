@@ -2,20 +2,20 @@ import {
   isJSONArray,
   isJSONObject,
   JSONObject,
+  JSONSchema7,
   JSONValue,
   TypeValidationError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { safeValidateTypes, ValidationResult } from '@ai-sdk/provider-utils';
 import { asSchema, DeepPartial, Schema } from '@ai-sdk/ui-utils';
-import { NoObjectGeneratedError } from './no-object-generated-error';
-import { JSONSchema7 } from 'json-schema';
-import { ObjectStreamPart } from './stream-object-result';
+import { z } from 'zod';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
-import { z } from 'zod';
+import { NoObjectGeneratedError } from './no-object-generated-error';
+import { ObjectStreamPart } from './stream-object-result';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'enum' | 'no-schema';
