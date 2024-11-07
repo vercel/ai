@@ -2244,10 +2244,6 @@ describe('options.maxSteps', () => {
         expect(await result.steps).toMatchSnapshot();
       });
 
-      it('result.rawResponse should contain rawResponse from last step', async () => {
-        assert.deepStrictEqual(result.rawResponse, { headers: { call: '2' } });
-      });
-
       it('result.responseMessages should contain response messages from all steps', async () => {
         expect(await result.responseMessages).toMatchSnapshot();
       });
@@ -2540,10 +2536,6 @@ describe('options.maxSteps', () => {
 
       it('result.steps should contain all steps', async () => {
         expect(await result.steps).toMatchSnapshot();
-      });
-
-      it('result.rawResponse should contain rawResponse from last step', async () => {
-        assert.deepStrictEqual(result.rawResponse, { headers: { call: '3' } });
       });
 
       it('result.response.messages should contain an assistant message with the combined text', async () => {

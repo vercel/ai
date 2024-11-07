@@ -1,5 +1,13 @@
 # @ai-sdk/ui-utils
 
+## 1.0.0-canary.5
+
+### Patch Changes
+
+- 9f81e66: chore (ui-utils): remove unnecessary dependencies
+- Updated dependencies [8426f55]
+  - @ai-sdk/provider-utils@2.0.0-canary.3
+
 ## 1.0.0-canary.4
 
 ### Patch Changes

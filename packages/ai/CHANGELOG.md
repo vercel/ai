@@ -1,5 +1,23 @@
 # ai
 
+## 4.0.0-canary.5
+
+### Major Changes
+
+- 4d61295: chore (ai): remove streamToResponse and streamingTextResponse
+- d3ae4f6: chore (ui/react): remove useObject setInput helper
+- 6090cea: chore (ai): remove rawResponse from generate/stream result objects
+- 2f09717: chore (ai): remove deprecated telemetry data
+
+### Patch Changes
+
+- Updated dependencies [9f81e66]
+- Updated dependencies [d3ae4f6]
+- Updated dependencies [8426f55]
+  - @ai-sdk/ui-utils@1.0.0-canary.5
+  - @ai-sdk/react@1.0.0-canary.5
+  - @ai-sdk/provider-utils@2.0.0-canary.3
+
 ## 4.0.0-canary.4
 
 ### Major Changes

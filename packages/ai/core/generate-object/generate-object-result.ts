@@ -33,18 +33,6 @@ export interface GenerateObjectResult<T> {
   readonly warnings: CallWarning[] | undefined;
 
   /**
- Optional raw response data.
-
-@deprecated Use `response.headers` instead.
-     */
-  readonly rawResponse?: {
-    /**
-  Response headers.
-   */
-    headers?: Record<string, string>;
-  };
-
-  /**
 Additional request information.
    */
   readonly request: LanguageModelRequestMetadata;
