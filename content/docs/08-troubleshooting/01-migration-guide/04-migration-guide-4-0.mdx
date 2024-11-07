@@ -50,6 +50,14 @@ Legacy providers from AI SDK 2.x have been removed. Please use the new [AI SDK p
 
 ## AI SDK Core Changes
 
+### Remove roundtrips
+
+The `maxToolRoundtrips` and `maxAutomaticRoundtrips` options have been removed from the `generateText` and `streamText` functions.
+Please use the `maxSteps` option instead.
+
+The `roundtrips` property has been removed from the `GenerateTextResult` type.
+Please use the `steps` property instead.
+
 ### Removed `nanoid` export
 
 The `nanoid` export has been removed. Please use [`generateId`](/docs/reference/stream-helpers/generate-id) instead.

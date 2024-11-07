@@ -54,14 +54,6 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   readonly responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
 
   /**
-Response information for every roundtrip.
-You can use this to get information about intermediate steps, such as the tool calls or the response headers.
-
-@deprecated use `steps` instead.
-   */
-  readonly roundtrips: Array<StepResult<TOOLS>>;
-
-  /**
 Details for all steps.
 You can use this to get information about intermediate steps,
 such as the tool calls or the response headers.
