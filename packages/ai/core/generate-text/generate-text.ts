@@ -594,11 +594,11 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
   readonly warnings: GenerateTextResult<TOOLS>['warnings'];
   readonly responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
   readonly steps: GenerateTextResult<TOOLS>['steps'];
-  readonly rawResponse: GenerateTextResult<TOOLS>['rawResponse'];
   readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
   readonly experimental_providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
   readonly response: GenerateTextResult<TOOLS>['response'];
   readonly request: GenerateTextResult<TOOLS>['request'];
+
   constructor(options: {
     text: GenerateTextResult<TOOLS>['text'];
     toolCalls: GenerateTextResult<TOOLS>['toolCalls'];
@@ -624,11 +624,6 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.responseMessages = options.responseMessages;
     this.steps = options.steps;
     this.experimental_providerMetadata = options.providerMetadata;
-
-    // deprecated:
-    this.rawResponse = {
-      headers: options.response.headers,
-    };
     this.logprobs = options.logprobs;
   }
 }

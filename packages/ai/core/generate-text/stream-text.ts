@@ -437,7 +437,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   // TODO needs to be changed to readonly async in v4 (and only return value from last step)
   // (can't change before v4 because of backwards compatibility)
   warnings: StreamTextResult<TOOLS>['warnings'];
-  rawResponse: StreamTextResult<TOOLS>['rawResponse'];
+
+  private rawResponse: { headers?: Record<string, string> } | undefined;
 
   readonly usage: StreamTextResult<TOOLS>['usage'];
   readonly finishReason: StreamTextResult<TOOLS>['finishReason'];
@@ -473,7 +474,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   }: {
     stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
     warnings: StreamTextResult<TOOLS>['warnings'];
-    rawResponse: StreamTextResult<TOOLS>['rawResponse'];
+    rawResponse: DefaultStreamTextResult<TOOLS>['rawResponse'];
     request: Awaited<StreamTextResult<TOOLS>['request']>;
     onChunk: Parameters<typeof streamText>[0]['onChunk'];
     onFinish:
@@ -906,7 +907,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 warnings: self.warnings,
                 logprobs: stepLogProbs,
                 request: stepRequest,
-                rawResponse: self.rawResponse,
                 response: {
                   ...stepResponse,
                   headers: self.rawResponse?.headers,
@@ -1021,7 +1021,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   // The type exposed to the users will be correctly inferred.
                   toolResults: stepToolResults as any,
                   request: stepRequest,
-                  rawResponse,
                   response: {
                     ...stepResponse,
                     headers: rawResponse?.headers,

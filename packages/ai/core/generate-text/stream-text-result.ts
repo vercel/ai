@@ -70,19 +70,6 @@ Resolved when the all tool executions are finished.
   readonly toolResults: Promise<ToolResultUnion<TOOLS>[]>;
 
   /**
-Optional raw response data.
-
-@deprecated Use `response` instead.
-     */
-  // TODO removed in v4
-  readonly rawResponse?: {
-    /**
-  Response headers.
-       */
-    headers?: Record<string, string>;
-  };
-
-  /**
 @deprecated use `response.messages` instead.
      */
   readonly responseMessages: Promise<
