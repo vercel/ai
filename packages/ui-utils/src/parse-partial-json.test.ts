@@ -1,8 +1,9 @@
-import SecureJSON from 'secure-json-parse';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { fixJson } from './fix-json';
 import { parsePartialJson } from './parse-partial-json';
+import { JSONParseError } from '@ai-sdk/provider';
 
-vi.mock('secure-json-parse');
+vi.mock('@ai-sdk/provider-utils');
 vi.mock('./fix-json');
 
 it('should handle nullish input', () => {
@@ -15,13 +16,16 @@ it('should handle nullish input', () => {
 it('should parse valid JSON', () => {
   const validJson = '{"key": "value"}';
   const parsedValue = { key: 'value' };
-  vi.mocked(SecureJSON.parse).mockReturnValueOnce(parsedValue);
+  vi.mocked(safeParseJSON).mockReturnValueOnce({
+    success: true,
+    value: parsedValue,
+  });
 
   expect(parsePartialJson(validJson)).toEqual({
     value: parsedValue,
     state: 'successful-parse',
   });
-  expect(SecureJSON.parse).toHaveBeenCalledWith(validJson);
+  expect(safeParseJSON).toHaveBeenCalledWith({ text: validJson });
 });
 
 it('should repair and parse partial JSON', () => {
@@ -29,27 +33,29 @@ it('should repair and parse partial JSON', () => {
   const fixedJson = '{"key": "value"}';
   const parsedValue = { key: 'value' };
 
-  vi.mocked(SecureJSON.parse)
-    .mockImplementationOnce(() => {
-      throw new Error('Invalid JSON');
+  vi.mocked(safeParseJSON)
+    .mockReturnValueOnce({
+      success: false,
+      error: new JSONParseError({ text: partialJson, cause: undefined }),
     })
-    .mockReturnValueOnce(parsedValue);
+    .mockReturnValueOnce({ success: true, value: parsedValue });
   vi.mocked(fixJson).mockReturnValueOnce(fixedJson);
 
   expect(parsePartialJson(partialJson)).toEqual({
     value: parsedValue,
     state: 'repaired-parse',
   });
-  expect(SecureJSON.parse).toHaveBeenCalledWith(partialJson);
+  expect(safeParseJSON).toHaveBeenCalledWith({ text: partialJson });
   expect(fixJson).toHaveBeenCalledWith(partialJson);
-  expect(SecureJSON.parse).toHaveBeenCalledWith(fixedJson);
+  expect(safeParseJSON).toHaveBeenCalledWith({ text: fixedJson });
 });
 
 it('should handle invalid JSON that cannot be repaired', () => {
   const invalidJson = 'not json at all';
 
-  vi.mocked(SecureJSON.parse).mockImplementation(() => {
-    throw new Error('Invalid JSON');
+  vi.mocked(safeParseJSON).mockReturnValue({
+    success: false,
+    error: new JSONParseError({ text: invalidJson, cause: undefined }),
   });
   vi.mocked(fixJson).mockReturnValueOnce(invalidJson);
 
@@ -57,7 +63,7 @@ it('should handle invalid JSON that cannot be repaired', () => {
     value: undefined,
     state: 'failed-parse',
   });
-  expect(SecureJSON.parse).toHaveBeenCalledWith(invalidJson);
+  expect(safeParseJSON).toHaveBeenCalledWith({ text: invalidJson });
   expect(fixJson).toHaveBeenCalledWith(invalidJson);
-  expect(SecureJSON.parse).toHaveBeenCalledWith(invalidJson);
+  expect(safeParseJSON).toHaveBeenCalledWith({ text: invalidJson });
 });
