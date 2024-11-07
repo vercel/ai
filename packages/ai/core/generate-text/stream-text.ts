@@ -657,16 +657,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                 doStreamSpan.addEvent('ai.stream.firstChunk', {
                   'ai.response.msToFirstChunk': msToFirstChunk,
-
-                  // deprecated:
-                  'ai.stream.msToFirstChunk': msToFirstChunk,
                 });
 
                 doStreamSpan.setAttributes({
                   'ai.response.msToFirstChunk': msToFirstChunk,
-
-                  // deprecated:
-                  'ai.stream.msToFirstChunk': msToFirstChunk,
                 });
               }
 
@@ -845,13 +839,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.usage.promptTokens': stepUsage.promptTokens,
                       'ai.usage.completionTokens': stepUsage.completionTokens,
 
-                      // deprecated
-                      'ai.finishReason': stepFinishReason,
-                      'ai.result.text': { output: () => stepText },
-                      'ai.result.toolCalls': {
-                        output: () => stepToolCallsJson,
-                      },
-
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [stepFinishReason],
                       'gen_ai.response.id': stepResponse.id,
@@ -1001,13 +988,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.usage.promptTokens': combinedUsage.promptTokens,
                       'ai.usage.completionTokens':
                         combinedUsage.completionTokens,
-
-                      // deprecated
-                      'ai.finishReason': stepFinishReason,
-                      'ai.result.text': { output: () => fullStepText },
-                      'ai.result.toolCalls': {
-                        output: () => stepToolCallsJson,
-                      },
                     },
                   }),
                 );

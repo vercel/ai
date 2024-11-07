@@ -504,10 +504,6 @@ export async function generateObject<SCHEMA, RESULT>({
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
 
-                      // deprecated:
-                      'ai.finishReason': result.finishReason,
-                      'ai.result.object': { output: () => result.text },
-
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
                       'gen_ai.response.id': responseData.id,
@@ -629,10 +625,6 @@ export async function generateObject<SCHEMA, RESULT>({
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
 
-                      // deprecated:
-                      'ai.finishReason': result.finishReason,
-                      'ai.result.object': { output: () => objectText },
-
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
                       'gen_ai.response.id': responseData.id,
@@ -700,12 +692,6 @@ export async function generateObject<SCHEMA, RESULT>({
 
             'ai.usage.promptTokens': usage.promptTokens,
             'ai.usage.completionTokens': usage.completionTokens,
-
-            // deprecated:
-            'ai.finishReason': finishReason,
-            'ai.result.object': {
-              output: () => JSON.stringify(validationResult.value),
-            },
           },
         }),
       );
