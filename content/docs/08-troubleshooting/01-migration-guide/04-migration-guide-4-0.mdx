@@ -112,6 +112,11 @@ The following telemetry data values have been removed:
 - `ai.result.toolCalls` (now in `ai.response.toolCalls`)
 - `ai.stream.msToFirstChunk` (now in `ai.response.msToFirstChunk`)
 
+## Removed `rawResponse` from results
+
+The `rawResponse` property has been removed from the `generateText`, `streamText`, `generateObject`, and `streamObject` results.
+You can use the `response` property instead.
+
 ## AI SDK RSC Changes
 
 ### Removed `render` function
