@@ -1219,53 +1219,24 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   pipeDataStreamToResponse(
     response: ServerResponse,
-    options?:
-      | ResponseInit
-      | {
-          init?: ResponseInit;
-          data?: StreamData;
-          getErrorMessage?: (error: unknown) => string;
-          sendUsage?: boolean;
-        },
+    {
+      status,
+      statusText,
+      headers,
+      data,
+      getErrorMessage,
+      sendUsage,
+    }: ResponseInit & {
+      data?: StreamData;
+      getErrorMessage?: (error: unknown) => string;
+      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+    } = {},
   ) {
-    const init: ResponseInit | undefined =
-      options == null
-        ? undefined
-        : 'init' in options
-        ? options.init
-        : {
-            headers: 'headers' in options ? options.headers : undefined,
-            status: 'status' in options ? options.status : undefined,
-            statusText:
-              'statusText' in options ? options.statusText : undefined,
-          };
-
-    const data: StreamData | undefined =
-      options == null
-        ? undefined
-        : 'data' in options
-        ? options.data
-        : undefined;
-
-    const getErrorMessage: ((error: unknown) => string) | undefined =
-      options == null
-        ? undefined
-        : 'getErrorMessage' in options
-        ? options.getErrorMessage
-        : undefined;
-
-    const sendUsage: boolean | undefined =
-      options == null
-        ? undefined
-        : 'sendUsage' in options
-        ? options.sendUsage
-        : undefined;
-
     writeToServerResponse({
       response,
-      status: init?.status,
-      statusText: init?.statusText,
-      headers: prepareOutgoingHttpHeaders(init, {
+      status,
+      statusText,
+      headers: prepareOutgoingHttpHeaders(headers, {
         contentType: 'text/plain; charset=utf-8',
         dataStreamVersion: 'v1',
       }),
@@ -1278,7 +1249,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       response,
       status: init?.status,
       statusText: init?.statusText,
-      headers: prepareOutgoingHttpHeaders(init, {
+      headers: prepareOutgoingHttpHeaders(init?.headers, {
         contentType: 'text/plain; charset=utf-8',
       }),
       stream: this.textStream.pipeThrough(new TextEncoderStream()),
@@ -1298,55 +1269,24 @@ However, the LLM results are expected to be small enough to not cause issues.
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
   }
 
-  toDataStreamResponse(
-    options?:
-      | ResponseInit
-      | {
-          init?: ResponseInit;
-          data?: StreamData;
-          getErrorMessage?: (error: unknown) => string;
-          sendUsage?: boolean;
-        },
-  ): Response {
-    const init: ResponseInit | undefined =
-      options == null
-        ? undefined
-        : 'init' in options
-        ? options.init
-        : {
-            headers: 'headers' in options ? options.headers : undefined,
-            status: 'status' in options ? options.status : undefined,
-            statusText:
-              'statusText' in options ? options.statusText : undefined,
-          };
-
-    const data: StreamData | undefined =
-      options == null
-        ? undefined
-        : 'data' in options
-        ? options.data
-        : undefined;
-
-    const getErrorMessage: ((error: unknown) => string) | undefined =
-      options == null
-        ? undefined
-        : 'getErrorMessage' in options
-        ? options.getErrorMessage
-        : undefined;
-
-    const sendUsage: boolean | undefined =
-      options == null
-        ? undefined
-        : 'sendUsage' in options
-        ? options.sendUsage
-        : undefined;
-
+  toDataStreamResponse({
+    headers,
+    status,
+    statusText,
+    data,
+    getErrorMessage,
+    sendUsage,
+  }: ResponseInit & {
+    data?: StreamData;
+    getErrorMessage?: (error: unknown) => string;
+    sendUsage?: boolean;
+  } = {}): Response {
     return new Response(
       this.toDataStream({ data, getErrorMessage, sendUsage }),
       {
-        status: init?.status ?? 200,
-        statusText: init?.statusText,
-        headers: prepareResponseHeaders(init, {
+        status,
+        statusText,
+        headers: prepareResponseHeaders(headers, {
           contentType: 'text/plain; charset=utf-8',
           dataStreamVersion: 'v1',
         }),
@@ -1357,7 +1297,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   toTextStreamResponse(init?: ResponseInit): Response {
     return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
       status: init?.status ?? 200,
-      headers: prepareResponseHeaders(init, {
+      headers: prepareResponseHeaders(init?.headers, {
         contentType: 'text/plain; charset=utf-8',
       }),
     });

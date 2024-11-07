@@ -139,19 +139,20 @@ need to be added separately.
   Writes data stream output to a Node.js response-like object.
 
   @param response A Node.js response-like object (ServerResponse).
-  @param options An object with an init property (ResponseInit) and a data property.
-  You can also pass in a ResponseInit directly (deprecated).
+  @param options.status The status code.
+  @param options.statusText The status text.
+  @param options.headers The headers.
+  @param options.data The stream data.
+  @param options.getErrorMessage An optional function that converts an error to an error message.
+  @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
      */
   pipeDataStreamToResponse(
     response: ServerResponse,
-    options?:
-      | ResponseInit
-      | {
-          init?: ResponseInit;
-          data?: StreamData;
-          getErrorMessage?: (error: unknown) => string;
-          sendUsage?: boolean; // default to true (change to false in v4: secure by default)
-        },
+    options?: ResponseInit & {
+      data?: StreamData;
+      getErrorMessage?: (error: unknown) => string;
+      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+    },
   ): void;
 
   /**
@@ -168,20 +169,21 @@ need to be added separately.
   Converts the result to a streamed response object with a stream data part stream.
   It can be used with the `useChat` and `useCompletion` hooks.
 
-  @param options An object with an init property (ResponseInit) and a data property.
-  You can also pass in a ResponseInit directly (deprecated).
+  @param options.status The status code.
+  @param options.statusText The status text.
+  @param options.headers The headers.
+  @param options.data The stream data.
+  @param options.getErrorMessage An optional function that converts an error to an error message.
+  @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
 
   @return A response object.
      */
   toDataStreamResponse(
-    options?:
-      | ResponseInit
-      | {
-          init?: ResponseInit;
-          data?: StreamData;
-          getErrorMessage?: (error: unknown) => string;
-          sendUsage?: boolean; // default to true (change to false in v4: secure by default)
-        },
+    options?: ResponseInit & {
+      data?: StreamData;
+      getErrorMessage?: (error: unknown) => string;
+      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+    },
   ): Response;
 
   /**

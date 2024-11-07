@@ -746,7 +746,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   toJsonResponse(init?: ResponseInit): Response {
     return new Response(JSON.stringify(this.object), {
       status: init?.status ?? 200,
-      headers: prepareResponseHeaders(init, {
+      headers: prepareResponseHeaders(init?.headers, {
         contentType: 'application/json; charset=utf-8',
       }),
     });
