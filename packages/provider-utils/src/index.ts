@@ -1,13 +1,13 @@
 export * from './combine-headers';
-export * from './convert-async-generator-to-readable-stream';
+export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export * from './extract-response-headers';
 export * from './fetch-function';
 export { createIdGenerator, generateId } from './generate-id';
 export * from './get-error-message';
 export * from './is-abort-error';
 export * from './load-api-key';
-export { loadSetting } from './load-setting';
 export { loadOptionalSetting } from './load-optional-setting';
+export { loadSetting } from './load-setting';
 export * from './parse-json';
 export * from './post-to-api';
 export * from './response-handler';
