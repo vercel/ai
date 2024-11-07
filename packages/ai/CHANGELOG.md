@@ -1,5 +1,15 @@
 # ai
 
+## 4.0.0-canary.6
+
+### Major Changes
+
+- b801982: chore (ai/core): remove init option from streamText result methods
+
+### Patch Changes
+
+- f9bb30c: chore (ai): remove unnecessary dev dependencies
+
 ## 4.0.0-canary.5
 
 ### Major Changes
