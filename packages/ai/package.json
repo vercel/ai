@@ -15,7 +15,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
+    "build": "tsup",
     "clean": "rm -rf dist && rm -rf react/dist && rm -rf rsc/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
@@ -66,7 +66,6 @@
     "@opentelemetry/api": "1.9.0",
     "jsondiffpatch": "0.6.0",
     "json-schema": "^0.4.0",
-    "secure-json-parse": "^2.7.0",
     "zod-to-json-schema": "^3.23.3"
   },
   "devDependencies": {
