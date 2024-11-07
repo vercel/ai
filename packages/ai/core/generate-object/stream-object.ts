@@ -1024,11 +1024,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 }
 
-/**
- * @deprecated Use `streamObject` instead.
- */
-export const experimental_streamObject = streamObject;
-
 export type ObjectStreamInputPart =
   | {
       type: 'error';
