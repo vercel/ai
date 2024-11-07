@@ -22,13 +22,11 @@ export type {
   Attachment,
 } from '@ai-sdk/ui-utils';
 
-import { generateId as generateIdImpl } from '@ai-sdk/provider-utils';
-export const generateId = generateIdImpl;
+export { generateId } from '@ai-sdk/provider-utils';
 
 export * from '../core/index';
 export * from '../errors/index';
 
-export * from './ai-stream';
 export * from './assistant-response';
 export * as LangChainAdapter from './langchain-adapter';
 export * as LlamaIndexAdapter from './llamaindex-adapter';

@@ -1,10 +1,7 @@
 import { ServerResponse } from 'node:http';
-import {
-  AIStreamCallbacksAndOptions,
-  CoreAssistantMessage,
-  CoreToolMessage,
-  StreamData,
-} from '../../streams';
+import { AIStreamCallbacksAndOptions } from '../../streams/ai-stream';
+import { StreamData } from '../../streams/stream-data';
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { CoreTool } from '../tool';
 import {
   CallWarning,
@@ -13,10 +10,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import {
-  LanguageModelResponseMetadata,
-  LanguageModelResponseMetadataWithHeaders,
-} from '../types/language-model-response-metadata';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { StepResult } from './step-result';

@@ -1,19 +1,15 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { formatStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import {
-  AIStreamCallbacksAndOptions,
-  CoreAssistantMessage,
-  CoreToolMessage,
-  formatStreamPart,
-  InvalidArgumentError,
-  StreamData,
-  TextStreamPart,
-} from '../../streams';
+import { InvalidArgumentError } from '../../errors/invalid-argument-error';
+import { AIStreamCallbacksAndOptions } from '../../streams/ai-stream';
+import { StreamData } from '../../streams/stream-data';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
@@ -51,7 +47,7 @@ import {
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
 import { StepResult } from './step-result';
-import { StreamTextResult } from './stream-text-result';
+import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
