@@ -879,10 +879,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   'ai.usage.promptTokens': finalUsage.promptTokens,
                   'ai.usage.completionTokens': finalUsage.completionTokens,
 
-                  // deprecated
-                  'ai.finishReason': finishReason,
-                  'ai.result.object': { output: () => JSON.stringify(object) },
-
                   // standardized gen-ai llm span attributes:
                   'gen_ai.response.finish_reasons': [finishReason],
                   'gen_ai.response.id': response.id,
@@ -906,9 +902,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   'ai.response.object': {
                     output: () => JSON.stringify(object),
                   },
-
-                  // deprecated
-                  'ai.result.object': { output: () => JSON.stringify(object) },
                 },
               }),
             );
@@ -1023,11 +1016,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     });
   }
 }
-
-/**
- * @deprecated Use `streamObject` instead.
- */
-export const experimental_streamObject = streamObject;
 
 export type ObjectStreamInputPart =
   | {

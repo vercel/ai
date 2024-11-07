@@ -1,5 +1,5 @@
 import { JSONValue } from '@ai-sdk/provider';
-import SecureJSON from 'secure-json-parse';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { fixJson } from './fix-json';
 
 export function parsePartialJson(jsonText: string | undefined): {
@@ -14,22 +14,16 @@ export function parsePartialJson(jsonText: string | undefined): {
     return { value: undefined, state: 'undefined-input' };
   }
 
-  try {
-    // first attempt a regular JSON parse:
-    return {
-      value: SecureJSON.parse(jsonText),
-      state: 'successful-parse',
-    };
-  } catch (ignored) {
-    try {
-      // then try to fix the partial JSON and parse it:
-      return {
-        value: SecureJSON.parse(fixJson(jsonText)),
-        state: 'repaired-parse',
-      };
-    } catch (ignored) {
-      // ignored
-    }
+  let result = safeParseJSON({ text: jsonText });
+
+  if (result.success) {
+    return { value: result.value, state: 'successful-parse' };
+  }
+
+  result = safeParseJSON({ text: fixJson(jsonText) });
+
+  if (result.success) {
+    return { value: result.value, state: 'repaired-parse' };
   }
 
   return { value: undefined, state: 'failed-parse' };

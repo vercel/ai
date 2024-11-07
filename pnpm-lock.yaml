@@ -50,6 +50,9 @@ importers:
       turbo:
         specifier: ^1.10.13
         version: 1.13.4
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
       vitest:
         specifier: 1.6.0
         version: 1.6.0
@@ -118,8 +121,8 @@ importers:
         specifier: 4.7.1
         version: 4.7.1
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/express:
     dependencies:
@@ -146,8 +149,8 @@ importers:
         specifier: 4.7.1
         version: 4.7.1
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/fastify:
     dependencies:
@@ -171,8 +174,8 @@ importers:
         specifier: 4.7.1
         version: 4.7.1
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/hono:
     dependencies:
@@ -199,8 +202,8 @@ importers:
         specifier: 4.7.1
         version: 4.7.1
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/nest:
     dependencies:
@@ -257,7 +260,7 @@ importers:
         specifier: ^8.42.0
         version: 8.57.0
       eslint-config-prettier:
-        specifier: ^9.0.0
+        specifier: ^9.1.0
         version: 9.1.0(eslint@8.57.0)
       eslint-plugin-prettier:
         specifier: ^5.0.0
@@ -331,7 +334,7 @@ importers:
         version: 7.32.0
       eslint-config-next:
         specifier: 14.2.3
-        version: 14.2.3(eslint@7.32.0)(typescript@5.5.4)
+        version: 14.2.3(eslint@7.32.0)(typescript@5.6.3)
       postcss:
         specifier: ^8.4.23
         version: 8.4.38
@@ -339,8 +342,8 @@ importers:
         specifier: ^3.3.2
         version: 3.4.4
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/next-langchain:
     dependencies:
@@ -386,7 +389,7 @@ importers:
         version: 7.32.0
       eslint-config-next:
         specifier: 14.2.3
-        version: 14.2.3(eslint@7.32.0)(typescript@5.5.4)
+        version: 14.2.3(eslint@7.32.0)(typescript@5.6.3)
       postcss:
         specifier: ^8.4.23
         version: 8.4.31
@@ -394,8 +397,8 @@ importers:
         specifier: ^3.3.2
         version: 3.3.5
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/next-openai:
     dependencies:
@@ -450,7 +453,7 @@ importers:
         version: 7.32.0
       eslint-config-next:
         specifier: 14.2.3
-        version: 14.2.3(eslint@7.32.0)(typescript@5.5.4)
+        version: 14.2.3(eslint@7.32.0)(typescript@5.6.3)
       postcss:
         specifier: ^8.4.23
         version: 8.4.41
@@ -458,8 +461,8 @@ importers:
         specifier: ^3.3.2
         version: 3.4.7
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/next-openai-kasada-bot-protection:
     dependencies:
@@ -502,7 +505,7 @@ importers:
         version: 7.32.0
       eslint-config-next:
         specifier: 14.2.3
-        version: 14.2.3(eslint@7.32.0)(typescript@5.5.4)
+        version: 14.2.3(eslint@7.32.0)(typescript@5.6.3)
       postcss:
         specifier: ^8.4.23
         version: 8.4.47
@@ -510,8 +513,8 @@ importers:
         specifier: ^3.3.2
         version: 3.4.7
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/next-openai-pages:
     dependencies:
@@ -624,7 +627,7 @@ importers:
         version: 7.32.0
       eslint-config-next:
         specifier: 14.2.3
-        version: 14.2.3(eslint@7.32.0)(typescript@5.5.4)
+        version: 14.2.3(eslint@7.32.0)(typescript@5.6.3)
       postcss:
         specifier: ^8.4.23
         version: 8.4.39
@@ -632,8 +635,8 @@ importers:
         specifier: ^3.3.2
         version: 3.4.4
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/next-openai-telemetry-sentry:
     dependencies:
@@ -697,7 +700,7 @@ importers:
         version: 7.32.0
       eslint-config-next:
         specifier: 14.2.3
-        version: 14.2.3(eslint@7.32.0)(typescript@5.5.4)
+        version: 14.2.3(eslint@7.32.0)(typescript@5.6.3)
       postcss:
         specifier: ^8.4.23
         version: 8.4.39
@@ -705,8 +708,8 @@ importers:
         specifier: ^3.3.2
         version: 3.4.4
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/next-openai-upstash-rate-limits:
     dependencies:
@@ -752,7 +755,7 @@ importers:
         version: 7.32.0
       eslint-config-next:
         specifier: 14.2.3
-        version: 14.2.3(eslint@7.32.0)(typescript@5.5.4)
+        version: 14.2.3(eslint@7.32.0)(typescript@5.6.3)
       postcss:
         specifier: ^8.4.23
         version: 8.4.47
@@ -760,8 +763,8 @@ importers:
         specifier: ^3.3.2
         version: 3.4.7
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/node-http-server:
     dependencies:
@@ -797,8 +800,8 @@ importers:
         specifier: 4.7.1
         version: 4.7.1
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/nuxt-openai:
     dependencies:
@@ -841,7 +844,7 @@ importers:
         version: 3.4.31
       nuxt:
         specifier: ^3.12.3
-        version: 3.12.3(@opentelemetry/api@1.9.0)(@types/node@18.18.9)(eslint@7.32.0)(vite@5.3.3)
+        version: 3.12.3(@opentelemetry/api@1.9.0)(@types/node@18.18.9)(eslint@7.32.0)(typescript@5.6.3)(vite@5.3.3)
       openai:
         specifier: 4.52.6
         version: 4.52.6
@@ -856,7 +859,7 @@ importers:
         version: 2.3.1
       vue:
         specifier: ^3.4.31
-        version: 3.4.31
+        version: 3.4.31(typescript@5.6.3)
       vue-router:
         specifier: 4.4.0
         version: 4.4.0(vue@3.4.31)
@@ -947,8 +950,8 @@ importers:
         specifier: ^2.6.0
         version: 2.6.2
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       vite:
         specifier: ^5
         version: 5.2.11(@types/node@18.18.9)
@@ -999,8 +1002,8 @@ importers:
         specifier: 4.7.1
         version: 4.7.1
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   packages/ai:
     dependencies:
@@ -1008,32 +1011,23 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../react
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../ui-utils
       '@opentelemetry/api':
         specifier: 1.9.0
         version: 1.9.0
-      eventsource-parser:
-        specifier: ^3.0.0
-        version: 3.0.0
-      json-schema:
-        specifier: ^0.4.0
-        version: 0.4.0
       jsondiffpatch:
         specifier: 0.6.0
         version: 0.6.0
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
         version: 18.3.1
-      secure-json-parse:
-        specifier: ^2.7.0
-        version: 2.7.0
       zod-to-json-schema:
         specifier: ^3.23.3
         version: 3.23.3(zod@3.23.8)
@@ -1079,7 +1073,7 @@ importers:
         version: 24.1.1
       msw:
         specifier: 2.3.1
-        version: 2.3.1(typescript@5.5.4)
+        version: 2.3.1(typescript@5.6.3)
       openai:
         specifier: 4.52.6
         version: 4.52.6
@@ -1091,10 +1085,10 @@ importers:
         version: 18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1)(react@18.3.1)(webpack@5.95.0)
       tsup:
         specifier: ^7.2.0
-        version: 7.2.0(typescript@5.5.4)
+        version: 7.2.0(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1106,13 +1100,13 @@ importers:
         version: link:../../..
       next:
         specifier: canary
-        version: 15.0.3-canary.7(@playwright/test@1.46.0)(react-dom@19.0.0-rc-33c7bd9a-20241104)(react@19.0.0-rc-33c7bd9a-20241104)
+        version: 15.0.3-canary.8(@playwright/test@1.46.0)(react-dom@19.0.0-rc-66855b96-20241106)(react@19.0.0-rc-66855b96-20241106)
       react:
         specifier: rc
-        version: 19.0.0-rc-33c7bd9a-20241104
+        version: 19.0.0-rc-66855b96-20241106
       react-dom:
         specifier: rc
-        version: 19.0.0-rc-33c7bd9a-20241104(react@19.0.0-rc-33c7bd9a-20241104)
+        version: 19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106)
 
   packages/amazon-bedrock:
     dependencies:
@@ -1120,7 +1114,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@aws-sdk/client-bedrock-runtime':
         specifier: ^3.663.0
@@ -1140,10 +1134,10 @@ importers:
         version: 4.0.2
       tsup:
         specifier: ^8.3.0
-        version: 8.3.0(typescript@5.5.4)
+        version: 8.3.0(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1154,7 +1148,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1165,10 +1159,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.0.2(typescript@5.5.4)
+        version: 8.0.2(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1176,13 +1170,13 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.0-canary.1
+        specifier: 1.0.0-canary.2
         version: link:../openai
       '@ai-sdk/provider':
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1193,10 +1187,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.0.2(typescript@5.5.4)
+        version: 8.0.2(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1207,7 +1201,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1218,10 +1212,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.0.2(typescript@5.5.4)
+        version: 8.0.2(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1232,7 +1226,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1243,10 +1237,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.0.2(typescript@5.5.4)
+        version: 8.0.2(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1257,7 +1251,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@google-cloud/vertexai':
@@ -1271,10 +1265,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.0.2(typescript@5.5.4)
+        version: 8.0.2(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1285,7 +1279,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1296,10 +1290,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.3.0(typescript@5.5.4)
+        version: 8.3.0(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1310,7 +1304,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1321,10 +1315,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.0.2(typescript@5.5.4)
+        version: 8.0.2(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1335,7 +1329,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1346,10 +1340,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.2.4(typescript@5.5.4)
+        version: 8.2.4(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1371,10 +1365,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.0.2(typescript@5.5.4)
+        version: 8.0.2(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   packages/provider-utils:
     dependencies:
@@ -1399,13 +1393,13 @@ importers:
         version: link:../../tools/tsconfig
       msw:
         specifier: 2.3.1
-        version: 2.3.1(typescript@5.5.4)
+        version: 2.3.1(typescript@5.6.3)
       tsup:
         specifier: ^8
-        version: 8.0.2(typescript@5.5.4)
+        version: 8.0.2(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1413,10 +1407,10 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
@@ -1460,16 +1454,16 @@ importers:
         version: 24.0.0
       msw:
         specifier: 2.3.1
-        version: 2.3.1(typescript@5.5.4)
+        version: 2.3.1(typescript@5.6.3)
       react-dom:
         specifier: ^18
         version: 18.2.0(react@18.3.1)
       tsup:
         specifier: ^7.2.0
-        version: 7.2.0(typescript@5.5.4)
+        version: 7.2.0(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1477,10 +1471,10 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../ui-utils
       solid-js:
         specifier: ^1.7.7
@@ -1515,13 +1509,13 @@ importers:
         version: 24.0.0
       msw:
         specifier: 2.3.1
-        version: 2.3.1(typescript@5.5.4)
+        version: 2.3.1(typescript@5.6.3)
       tsup:
         specifier: ^7.2.0
-        version: 7.2.0(typescript@5.5.4)
+        version: 7.2.0(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       vite-plugin-solid:
         specifier: 2.7.2
         version: 2.7.2(solid-js@1.8.7)(vite@4.5.5)
@@ -1529,10 +1523,10 @@ importers:
   packages/svelte:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../ui-utils
       sswr:
         specifier: ^2.1.0
@@ -1555,15 +1549,15 @@ importers:
         version: link:../../tools/eslint-config
       tsup:
         specifier: ^7.2.0
-        version: 7.2.0(typescript@5.5.4)
+        version: 7.2.0(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   packages/swarm:
     dependencies:
       ai:
-        specifier: 4.0.0-canary.3
+        specifier: 4.0.0-canary.4
         version: link:../ai
       zod:
         specifier: 3.23.8
@@ -1577,10 +1571,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.3.0(typescript@5.5.4)
+        version: 8.3.0(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   packages/ui-utils:
     dependencies:
@@ -1588,14 +1582,8 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
-      json-schema:
-        specifier: ^0.4.0
-        version: 0.4.0
-      secure-json-parse:
-        specifier: ^2.7.0
-        version: 2.7.0
       zod-to-json-schema:
         specifier: ^3.23.3
         version: 3.23.3(zod@3.23.8)
@@ -1614,10 +1602,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.0.2(typescript@5.5.4)
+        version: 8.0.2(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1625,17 +1613,17 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../ui-utils
       swrv:
         specifier: ^1.0.4
         version: 1.0.4(vue@3.3.8)
       vue:
         specifier: ^3.3.4
-        version: 3.3.8(typescript@5.5.4)
+        version: 3.3.8(typescript@5.6.3)
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.4.5
@@ -1666,22 +1654,22 @@ importers:
         version: 24.0.0
       msw:
         specifier: 2.3.1
-        version: 2.3.1(typescript@5.5.4)
+        version: 2.3.1(typescript@5.6.3)
       tsup:
         specifier: ^7.2.0
-        version: 7.2.0(typescript@5.5.4)
+        version: 7.2.0(typescript@5.6.3)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: 5.6.3
+        version: 5.6.3
 
   tools/eslint-config:
     dependencies:
       eslint-config-next:
         specifier: ^14.2.3
-        version: 14.2.3(eslint@8.57.1)(typescript@5.5.4)
+        version: 14.2.3(eslint@8.57.1)(typescript@5.6.3)
       eslint-config-prettier:
-        specifier: ^8.3.0
-        version: 8.10.0(eslint@8.57.1)
+        specifier: ^9.1.0
+        version: 9.1.0(eslint@8.57.1)
       eslint-config-turbo:
         specifier: ^1.13.3
         version: 1.13.3(eslint@8.57.1)
@@ -6122,8 +6110,8 @@ packages:
     resolution: {integrity: sha512-c0Zr0ModK5OX7D4ZV8Jt/wqoXtitLNPwUfG9zElCZztdaZyNVnN40rDXVZ/+FGuR4CcNV5AEfM6N8f+Ener7Dg==}
     dev: false
 
-  /@next/env@15.0.3-canary.7:
-    resolution: {integrity: sha512-3ieAudx0IoGXwpVkzWGe85uWmE4/tFrC9q72vvEcfZOFKuWoJBZ9ikvSIiCiwsbAxxxlliblVS2gzJGxi7laDg==}
+  /@next/env@15.0.3-canary.8:
+    resolution: {integrity: sha512-/j1fApGbGtmhdEBGhxYQypWh1o0krJmzLI9Mr6xiNkJYreR9dDQwj4XbKuzbgOvy2sDf0dyuxTlsI0YZ0kCvfg==}
     dev: false
 
   /@next/eslint-plugin-next@14.2.3:
@@ -6149,8 +6137,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-darwin-arm64@15.0.3-canary.7:
-    resolution: {integrity: sha512-GMBqo2Uq1adN4AmFHdKf4iWJ4qiI2Rt97VZ9MzoQJINLD7q66kHM+RwwTTUsvwoICH160N0E3Tg0qgEy6tI3ZA==}
+  /@next/swc-darwin-arm64@15.0.3-canary.8:
+    resolution: {integrity: sha512-BomyJoZ2sZPzJKqf64JVMCXwfLHveXV2jrRJLoB8t3LSCJUYd8uIsD3MBOXP+HQTDfUpOj8OjGI6GkdcRsAyTQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
@@ -6176,8 +6164,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-darwin-x64@15.0.3-canary.7:
-    resolution: {integrity: sha512-zem1KcaMdHpOTLSeXNkNj9i7Z/lKI1hCcaDrkY8FzgJmQmFxKUsm/VJ+EdzqeNi5RXh3vNNq7FlWmwXTzj/aWA==}
+  /@next/swc-darwin-x64@15.0.3-canary.8:
+    resolution: {integrity: sha512-zThLQVFOBam+v40Nm99nz4iYCk/XkNaYHYV4mldYHhlq21qY8mlnKBDC+S+ndVYdVbImrljKHxQvd0SNZiFb7w==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
@@ -6203,8 +6191,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-arm64-gnu@15.0.3-canary.7:
-    resolution: {integrity: sha512-rw1V3fraOELjSJ7d+SxUmlrjIktxVO8JTXwSvJVlC4os3QZUXZKiZlTnV6SgecFmyx1MotBxebYAAfkl6gSpHA==}
+  /@next/swc-linux-arm64-gnu@15.0.3-canary.8:
+    resolution: {integrity: sha512-8x6BM5ehsqxYsasziBLNecGQxHhB4338PDlCdhSs3NxzAHednRivkWEml3J0R3Nvhofa/m9jYYOJB4tnLMd3HA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -6230,8 +6218,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-arm64-musl@15.0.3-canary.7:
-    resolution: {integrity: sha512-/g3PWa3r2wXgqhvqhx/gVIr8loydQidEej5g2PcKPevR+r+xE7MD4w9OGEDv8scsoj4iiODQJ+Xifilb33IaZg==}
+  /@next/swc-linux-arm64-musl@15.0.3-canary.8:
+    resolution: {integrity: sha512-FQImuLu88+2C+BRcEU3wj1EPKzRya7EzEVInVhL/w/qxxYAuoRf0qq/oTTZEPlddPRD581s8MZDUy+M7w7zJnQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -6257,8 +6245,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-x64-gnu@15.0.3-canary.7:
-    resolution: {integrity: sha512-a7vmMOcf84sjAh461btalo2flRblkP8yC1ksohg4lZRm+ckxfGxuEJgFlokse/DQDAwRRLJvbt7R4C5udSgBMg==}
+  /@next/swc-linux-x64-gnu@15.0.3-canary.8:
+    resolution: {integrity: sha512-JFWKJ/IyFvTZqZP/J/nHKo4yMx+Swz0SxV8HEsm5EL+s0P1k5l1Ev1u8vWZyNG2kIOSHyya8QJqAcsw0uQuRWw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -6284,8 +6272,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-x64-musl@15.0.3-canary.7:
-    resolution: {integrity: sha512-kYablMfuR9xY0ueEIXP5yRDft5MDdvV5J4rAu8mKCGB5s1Tglx212xg38f/BEk1tjR4R1IVuSyZ3oJ7TlxfaYw==}
+  /@next/swc-linux-x64-musl@15.0.3-canary.8:
+    resolution: {integrity: sha512-JINuRcv7aDCJXspr3qejIAflxSIyJhAPKE+pbnNuPtCdNySh94EuCNkOXyGzJ9tL4BllMl7kFCdPmDUucKl97g==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -6311,8 +6299,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-win32-arm64-msvc@15.0.3-canary.7:
-    resolution: {integrity: sha512-aouGO9vQx2apnJhBSd03JVW6k+FKFODhs2D9A5Rz6jrbQSWr8m+nacn/5wlUWLa2Aww7u79cE7Suweel9qr8Jg==}
+  /@next/swc-win32-arm64-msvc@15.0.3-canary.8:
+    resolution: {integrity: sha512-/IwuuDx7v8RRfXNgm+lcaYmfuajz0imtXiyjrB4vzM8zKpg1RKf/fGg8kEnf/a9V0cLVhZHjGoCfr9hGGSv8yA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
@@ -6347,8 +6335,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-win32-x64-msvc@15.0.3-canary.7:
-    resolution: {integrity: sha512-1+8BdbpyvJwAVI/FNEA+ikVd0JT/K21oMW85TVKHrpmxjipe2QUmlblgmmgjWR1OEJr51XQJ87X+DiJFptCA1A==}
+  /@next/swc-win32-x64-msvc@15.0.3-canary.8:
+    resolution: {integrity: sha512-iLMVslgcoLga7eBTI4/axE3CdGzg8LoFNl2MNX3E71KhElt09UNpDuP88X50dRBMJBMszCy/cjXW3K19I1y29A==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -6542,7 +6530,7 @@ packages:
     resolution: {integrity: sha512-zjuslnkj5zboZGis5QpmR5gvRTx5N8Ha/Rll+RRT8YZhXVNBincifhZ9apUQ9f6T0xJE8IHPyVyPx6WokomdYw==}
     dev: true
 
-  /@nuxt/vite-builder@3.12.3(@types/node@18.18.9)(eslint@7.32.0)(vue@3.4.31):
+  /@nuxt/vite-builder@3.12.3(@types/node@18.18.9)(eslint@7.32.0)(typescript@5.6.3)(vue@3.4.31):
     resolution: {integrity: sha512-8xfeOgSUaXTYgLx1DA5qEFwU3/vL5DVAIv8sgPn2rnmB50nPJVXrVa+tXhO0I1Q8L4ycXRqq2dxOPGq8CSYo+A==}
     engines: {node: ^14.18.0 || >=16.10.0}
     peerDependencies:
@@ -6579,8 +6567,8 @@ packages:
       unplugin: 1.11.0
       vite: 5.3.3(@types/node@18.18.9)
       vite-node: 1.6.0(@types/node@18.18.9)
-      vite-plugin-checker: 0.7.0(eslint@7.32.0)(vite@5.3.3)
-      vue: 3.4.31
+      vite-plugin-checker: 0.7.0(eslint@7.32.0)(typescript@5.6.3)(vite@5.3.3)
+      vue: 3.4.31(typescript@5.6.3)
       vue-bundle-renderer: 2.1.0
     transitivePeerDependencies:
       - '@types/node'
@@ -9986,7 +9974,7 @@ packages:
       '@testing-library/dom': 9.3.3
       '@vue/compiler-sfc': 3.5.10
       '@vue/test-utils': 2.4.2(vue@3.3.8)
-      vue: 3.3.8(typescript@5.5.4)
+      vue: 3.3.8(typescript@5.6.3)
     transitivePeerDependencies:
       - '@vue/server-renderer'
     dev: true
@@ -10538,7 +10526,7 @@ packages:
       - supports-color
     dev: true
 
-  /@typescript-eslint/parser@7.2.0(eslint@7.32.0)(typescript@5.5.4):
+  /@typescript-eslint/parser@7.2.0(eslint@7.32.0)(typescript@5.6.3):
     resolution: {integrity: sha512-5FKsVcHTk6TafQKQbuIVkXq58Fnbkd2wDL4LB7AURN7RUOu1utVP+G8+6u3ZhEroW3DF6hyo3ZEXxgKgp4KeCg==}
     engines: {node: ^16.0.0 || >=18.0.0}
     peerDependencies:
@@ -10550,16 +10538,16 @@ packages:
     dependencies:
       '@typescript-eslint/scope-manager': 7.2.0
       '@typescript-eslint/types': 7.2.0
-      '@typescript-eslint/typescript-estree': 7.2.0(typescript@5.5.4)
+      '@typescript-eslint/typescript-estree': 7.2.0(typescript@5.6.3)
       '@typescript-eslint/visitor-keys': 7.2.0
       debug: 4.3.6
       eslint: 7.32.0
-      typescript: 5.5.4
+      typescript: 5.6.3
     transitivePeerDependencies:
       - supports-color
     dev: true
 
-  /@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.5.4):
+  /@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3):
     resolution: {integrity: sha512-5FKsVcHTk6TafQKQbuIVkXq58Fnbkd2wDL4LB7AURN7RUOu1utVP+G8+6u3ZhEroW3DF6hyo3ZEXxgKgp4KeCg==}
     engines: {node: ^16.0.0 || >=18.0.0}
     peerDependencies:
@@ -10571,11 +10559,11 @@ packages:
     dependencies:
       '@typescript-eslint/scope-manager': 7.2.0
       '@typescript-eslint/types': 7.2.0
-      '@typescript-eslint/typescript-estree': 7.2.0(typescript@5.5.4)
+      '@typescript-eslint/typescript-estree': 7.2.0(typescript@5.6.3)
       '@typescript-eslint/visitor-keys': 7.2.0
       debug: 4.3.6
       eslint: 8.57.1
-      typescript: 5.5.4
+      typescript: 5.6.3
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -10666,7 +10654,7 @@ packages:
       - supports-color
     dev: true
 
-  /@typescript-eslint/typescript-estree@7.2.0(typescript@5.5.4):
+  /@typescript-eslint/typescript-estree@7.2.0(typescript@5.6.3):
     resolution: {integrity: sha512-cyxS5WQQCoBwSakpMrvMXuMDEbhOo9bNHHrNcEWis6XHx6KF518tkF1wBvKIn/tpq5ZpUYK7Bdklu8qY0MsFIA==}
     engines: {node: ^16.0.0 || >=18.0.0}
     peerDependencies:
@@ -10682,8 +10670,8 @@ packages:
       is-glob: 4.0.3
       minimatch: 9.0.3
       semver: 7.6.3
-      ts-api-utils: 1.3.0(typescript@5.5.4)
-      typescript: 5.5.4
+      ts-api-utils: 1.3.0(typescript@5.6.3)
+      typescript: 5.6.3
     transitivePeerDependencies:
       - supports-color
 
@@ -10779,7 +10767,7 @@ packages:
       '@unhead/shared': 1.9.15
       hookable: 5.5.3
       unhead: 1.9.15
-      vue: 3.4.31
+      vue: 3.4.31(typescript@5.6.3)
     dev: true
 
   /@upstash/core-analytics@0.0.6:
@@ -10975,7 +10963,7 @@ packages:
       '@babel/plugin-transform-typescript': 7.24.7(@babel/core@7.24.7)
       '@vue/babel-plugin-jsx': 1.2.2(@babel/core@7.24.7)
       vite: 5.3.3(@types/node@18.18.9)
-      vue: 3.4.31
+      vue: 3.4.31(typescript@5.6.3)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -10988,7 +10976,7 @@ packages:
       vue: ^3.2.25
     dependencies:
       vite: 4.5.5(@types/node@18.18.9)
-      vue: 3.5.10(typescript@5.5.4)
+      vue: 3.5.10(typescript@5.6.3)
     dev: true
 
   /@vitejs/plugin-vue@4.5.0(vite@5.4.8)(vue@3.3.8):
@@ -10999,7 +10987,7 @@ packages:
       vue: ^3.2.25
     dependencies:
       vite: 5.4.8(@types/node@18.18.9)
-      vue: 3.3.8(typescript@5.5.4)
+      vue: 3.3.8(typescript@5.6.3)
     dev: true
 
   /@vitejs/plugin-vue@5.0.5(vite@5.3.3)(vue@3.4.31):
@@ -11010,7 +10998,7 @@ packages:
       vue: ^3.2.25
     dependencies:
       vite: 5.3.3(@types/node@18.18.9)
-      vue: 3.4.31
+      vue: 3.4.31(typescript@5.6.3)
     dev: true
 
   /@vitest/expect@1.6.0:
@@ -11085,7 +11073,7 @@ packages:
       ast-kit: 0.12.2
       local-pkg: 0.5.0
       magic-string-ast: 0.6.2
-      vue: 3.4.31
+      vue: 3.4.31(typescript@5.6.3)
     transitivePeerDependencies:
       - rollup
     dev: true
@@ -11377,7 +11365,7 @@ packages:
     dependencies:
       '@vue/compiler-ssr': 3.3.8
       '@vue/shared': 3.3.8
-      vue: 3.3.8(typescript@5.5.4)
+      vue: 3.3.8(typescript@5.6.3)
 
   /@vue/server-renderer@3.4.31(vue@3.4.31):
     resolution: {integrity: sha512-D5BLbdvrlR9PE3by9GaUp1gQXlCNadIZytMIb8H2h3FMWJd4oUfkUTEH2wAr3qxoRz25uxbTcbqd3WKlm9EHQA==}
@@ -11386,7 +11374,7 @@ packages:
     dependencies:
       '@vue/compiler-ssr': 3.4.31
       '@vue/shared': 3.4.31
-      vue: 3.4.31
+      vue: 3.4.31(typescript@5.6.3)
     dev: true
 
   /@vue/server-renderer@3.5.10(vue@3.5.10):
@@ -11396,7 +11384,7 @@ packages:
     dependencies:
       '@vue/compiler-ssr': 3.5.10
       '@vue/shared': 3.5.10
-      vue: 3.5.10(typescript@5.5.4)
+      vue: 3.5.10(typescript@5.6.3)
     dev: true
 
   /@vue/shared@3.3.8:
@@ -11420,7 +11408,7 @@ packages:
         optional: true
     dependencies:
       js-beautify: 1.14.11
-      vue: 3.3.8(typescript@5.5.4)
+      vue: 3.3.8(typescript@5.6.3)
       vue-component-type-helpers: 1.8.22
     dev: true
 
@@ -14321,7 +14309,7 @@ packages:
       - supports-color
     dev: true
 
-  /eslint-config-next@14.2.3(eslint@7.32.0)(typescript@5.5.4):
+  /eslint-config-next@14.2.3(eslint@7.32.0)(typescript@5.6.3):
     resolution: {integrity: sha512-ZkNztm3Q7hjqvB1rRlOX8P9E/cXRL9ajRcs8jufEtwMfTVYRqnmtnaSu57QqHyBlovMuiB8LEzfLBkh5RYV6Fg==}
     peerDependencies:
       eslint: ^7.23.0 || ^8.0.0
@@ -14332,7 +14320,7 @@ packages:
     dependencies:
       '@next/eslint-plugin-next': 14.2.3
       '@rushstack/eslint-patch': 1.10.4
-      '@typescript-eslint/parser': 7.2.0(eslint@7.32.0)(typescript@5.5.4)
+      '@typescript-eslint/parser': 7.2.0(eslint@7.32.0)(typescript@5.6.3)
       eslint: 7.32.0
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0)(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@7.32.0)
@@ -14340,13 +14328,13 @@ packages:
       eslint-plugin-jsx-a11y: 6.9.0(eslint@7.32.0)
       eslint-plugin-react: 7.35.0(eslint@7.32.0)
       eslint-plugin-react-hooks: 4.6.2(eslint@7.32.0)
-      typescript: 5.5.4
+      typescript: 5.6.3
     transitivePeerDependencies:
       - eslint-import-resolver-webpack
       - supports-color
     dev: true
 
-  /eslint-config-next@14.2.3(eslint@8.57.1)(typescript@5.5.4):
+  /eslint-config-next@14.2.3(eslint@8.57.1)(typescript@5.6.3):
     resolution: {integrity: sha512-ZkNztm3Q7hjqvB1rRlOX8P9E/cXRL9ajRcs8jufEtwMfTVYRqnmtnaSu57QqHyBlovMuiB8LEzfLBkh5RYV6Fg==}
     peerDependencies:
       eslint: ^7.23.0 || ^8.0.0
@@ -14357,7 +14345,7 @@ packages:
     dependencies:
       '@next/eslint-plugin-next': 14.2.3
       '@rushstack/eslint-patch': 1.10.4
-      '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.5.4)
+      '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.6.3)
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0)(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.57.1)
@@ -14365,19 +14353,10 @@ packages:
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.35.0(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
-      typescript: 5.5.4
+      typescript: 5.6.3
     transitivePeerDependencies:
       - eslint-import-resolver-webpack
       - supports-color
-    dev: false
-
-  /eslint-config-prettier@8.10.0(eslint@8.57.1):
-    resolution: {integrity: sha512-SM8AMJdeQqRYT9O9zguiruQZaN7+z+E4eAP9oiLNGKMtomwaB1E9dcgUD6ZAn/eQAb52USbvezbiljfZUhbJcg==}
-    hasBin: true
-    peerDependencies:
-      eslint: '>=7.0.0'
-    dependencies:
-      eslint: 8.57.1
     dev: false
 
   /eslint-config-prettier@9.1.0(eslint@8.57.0):
@@ -14388,6 +14367,15 @@ packages:
     dependencies:
       eslint: 8.57.0
     dev: true
+
+  /eslint-config-prettier@9.1.0(eslint@8.57.1):
+    resolution: {integrity: sha512-NSWl5BFQWEPi1j4TjVNItzYV7dZXZ+wP6I6ZhrBGpChQhZRUaElihE9uRRkcbRnNb76UMKDF3r+WTmNcGPKsqw==}
+    hasBin: true
+    peerDependencies:
+      eslint: '>=7.0.0'
+    dependencies:
+      eslint: 8.57.1
+    dev: false
 
   /eslint-config-turbo@1.13.3(eslint@8.57.1):
     resolution: {integrity: sha512-if/QtwEiWZ5b7Bg8yZBPSvS0TeCG2Zvfa/+XBYANS7uSYucjmW+BBC8enJB0PqpB/YLGGOumeo3x7h1Nuba9iw==}
@@ -14474,7 +14462,7 @@ packages:
       eslint-import-resolver-webpack:
         optional: true
     dependencies:
-      '@typescript-eslint/parser': 7.2.0(eslint@7.32.0)(typescript@5.5.4)
+      '@typescript-eslint/parser': 7.2.0(eslint@7.32.0)(typescript@5.6.3)
       debug: 3.2.7
       eslint: 7.32.0
       eslint-import-resolver-node: 0.3.9
@@ -14504,7 +14492,7 @@ packages:
       eslint-import-resolver-webpack:
         optional: true
     dependencies:
-      '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.5.4)
+      '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.6.3)
       debug: 3.2.7
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
@@ -14534,7 +14522,7 @@ packages:
       eslint-import-resolver-webpack:
         optional: true
     dependencies:
-      '@typescript-eslint/parser': 7.2.0(eslint@7.32.0)(typescript@5.5.4)
+      '@typescript-eslint/parser': 7.2.0(eslint@7.32.0)(typescript@5.6.3)
       debug: 3.2.7
       eslint: 7.32.0
       eslint-import-resolver-node: 0.3.9
@@ -14564,7 +14552,7 @@ packages:
       eslint-import-resolver-webpack:
         optional: true
     dependencies:
-      '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.5.4)
+      '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.6.3)
       debug: 3.2.7
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
@@ -14583,7 +14571,7 @@ packages:
       '@typescript-eslint/parser':
         optional: true
     dependencies:
-      '@typescript-eslint/parser': 7.2.0(eslint@7.32.0)(typescript@5.5.4)
+      '@typescript-eslint/parser': 7.2.0(eslint@7.32.0)(typescript@5.6.3)
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
       array.prototype.flat: 1.3.2
@@ -14618,7 +14606,7 @@ packages:
       '@typescript-eslint/parser':
         optional: true
     dependencies:
-      '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.5.4)
+      '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.6.3)
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
       array.prototype.flat: 1.3.2
@@ -18947,7 +18935,7 @@ packages:
   /ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
-  /msw@2.3.1(typescript@5.5.4):
+  /msw@2.3.1(typescript@5.6.3):
     resolution: {integrity: sha512-ocgvBCLn/5l3jpl1lssIb3cniuACJLoOfZu01e3n5dbJrpA5PeeWn28jCLgQDNt6d7QT8tF2fYRzm9JoEHtiig==}
     engines: {node: '>=18'}
     hasBin: true
@@ -18974,7 +18962,7 @@ packages:
       path-to-regexp: 6.2.2
       strict-event-emitter: 0.5.1
       type-fest: 4.23.0
-      typescript: 5.5.4
+      typescript: 5.6.3
       yargs: 17.7.2
     dev: true
 
@@ -19232,8 +19220,8 @@ packages:
       - babel-plugin-macros
     dev: false
 
-  /next@15.0.3-canary.7(@playwright/test@1.46.0)(react-dom@19.0.0-rc-33c7bd9a-20241104)(react@19.0.0-rc-33c7bd9a-20241104):
-    resolution: {integrity: sha512-+4dPrCnz6WJpAcRSRlBYUnxOqABVb1RhlR+3w8oAqHFOyCoTKYoklsjHrxj80PHuR5edgR2Zzq95LbwqibxJ2A==}
+  /next@15.0.3-canary.8(@playwright/test@1.46.0)(react-dom@19.0.0-rc-66855b96-20241106)(react@19.0.0-rc-66855b96-20241106):
+    resolution: {integrity: sha512-DhUP16iF/GfMxfSylDhbJxqO6XP5PBk5Eym+mn+4V/Wa9xcw6G+MYmXqVoBJZiR9OkZd3jY49DxmTGKd8ktjzw==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
     hasBin: true
     peerDependencies:
@@ -19253,25 +19241,25 @@ packages:
       sass:
         optional: true
     dependencies:
-      '@next/env': 15.0.3-canary.7
+      '@next/env': 15.0.3-canary.8
       '@playwright/test': 1.46.0
       '@swc/counter': 0.1.3
       '@swc/helpers': 0.5.13
       busboy: 1.6.0
       caniuse-lite: 1.0.30001666
       postcss: 8.4.31
-      react: 19.0.0-rc-33c7bd9a-20241104
-      react-dom: 19.0.0-rc-33c7bd9a-20241104(react@19.0.0-rc-33c7bd9a-20241104)
-      styled-jsx: 5.1.6(react@19.0.0-rc-33c7bd9a-20241104)
+      react: 19.0.0-rc-66855b96-20241106
+      react-dom: 19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106)
+      styled-jsx: 5.1.6(react@19.0.0-rc-66855b96-20241106)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 15.0.3-canary.7
-      '@next/swc-darwin-x64': 15.0.3-canary.7
-      '@next/swc-linux-arm64-gnu': 15.0.3-canary.7
-      '@next/swc-linux-arm64-musl': 15.0.3-canary.7
-      '@next/swc-linux-x64-gnu': 15.0.3-canary.7
-      '@next/swc-linux-x64-musl': 15.0.3-canary.7
-      '@next/swc-win32-arm64-msvc': 15.0.3-canary.7
-      '@next/swc-win32-x64-msvc': 15.0.3-canary.7
+      '@next/swc-darwin-arm64': 15.0.3-canary.8
+      '@next/swc-darwin-x64': 15.0.3-canary.8
+      '@next/swc-linux-arm64-gnu': 15.0.3-canary.8
+      '@next/swc-linux-arm64-musl': 15.0.3-canary.8
+      '@next/swc-linux-x64-gnu': 15.0.3-canary.8
+      '@next/swc-linux-x64-musl': 15.0.3-canary.8
+      '@next/swc-win32-arm64-msvc': 15.0.3-canary.8
+      '@next/swc-win32-x64-msvc': 15.0.3-canary.8
       sharp: 0.33.5
     transitivePeerDependencies:
       - '@babel/core'
@@ -19624,7 +19612,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /nuxt@3.12.3(@opentelemetry/api@1.9.0)(@types/node@18.18.9)(eslint@7.32.0)(vite@5.3.3):
+  /nuxt@3.12.3(@opentelemetry/api@1.9.0)(@types/node@18.18.9)(eslint@7.32.0)(typescript@5.6.3)(vite@5.3.3):
     resolution: {integrity: sha512-Qdkc+ucWwFcKsiL/OTF87jbgyFSymwPRKiiu0mvzsd/RXTn4hGiBduAlF3f7Yy0F9pDjSj8XHKDSnHYsDzm6rA==}
     engines: {node: ^14.18.0 || >=16.10.0}
     hasBin: true
@@ -19642,7 +19630,7 @@ packages:
       '@nuxt/kit': 3.12.3(magicast@0.3.4)
       '@nuxt/schema': 3.12.3
       '@nuxt/telemetry': 2.5.4
-      '@nuxt/vite-builder': 3.12.3(@types/node@18.18.9)(eslint@7.32.0)(vue@3.4.31)
+      '@nuxt/vite-builder': 3.12.3(@types/node@18.18.9)(eslint@7.32.0)(typescript@5.6.3)(vue@3.4.31)
       '@types/node': 18.18.9
       '@unhead/dom': 1.9.15
       '@unhead/ssr': 1.9.15
@@ -19692,7 +19680,7 @@ packages:
       unplugin-vue-router: 0.10.0(vue-router@4.4.0)(vue@3.4.31)
       unstorage: 1.10.2(ioredis@5.3.2)
       untyped: 1.4.2
-      vue: 3.4.31
+      vue: 3.4.31(typescript@5.6.3)
       vue-bundle-renderer: 2.1.0
       vue-devtools-stub: 0.1.0
       vue-router: 4.4.0(vue@3.4.31)
@@ -21213,13 +21201,13 @@ packages:
       react: 18.3.1
       scheduler: 0.23.2
 
-  /react-dom@19.0.0-rc-33c7bd9a-20241104(react@19.0.0-rc-33c7bd9a-20241104):
-    resolution: {integrity: sha512-aqHzKcC69Wj46yl854PaBinBzcivb9HAApmKbpEj/nFonpjgXpgHoTQDtpzcbnl/j9G88dziszm9TsFSKBDOIA==}
+  /react-dom@19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106):
+    resolution: {integrity: sha512-D25vdaytZ1wFIRiwNU98NPQ/upS2P8Co4/oNoa02PzHbh8deWdepjm5qwZM/46OdSiGv4WSWwxP55RO9obqJEQ==}
     peerDependencies:
-      react: 19.0.0-rc-33c7bd9a-20241104
+      react: 19.0.0-rc-66855b96-20241106
     dependencies:
-      react: 19.0.0-rc-33c7bd9a-20241104
-      scheduler: 0.25.0-rc-33c7bd9a-20241104
+      react: 19.0.0-rc-66855b96-20241106
+      scheduler: 0.25.0-rc-66855b96-20241106
     dev: false
 
   /react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607):
@@ -21297,8 +21285,8 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /react@19.0.0-rc-33c7bd9a-20241104:
-    resolution: {integrity: sha512-HssE7oCtchydtLiQ5GvbZmH4rbi9Jq1jGRAFivnbMSRx9Tu6tdDioOcdTQqOIHslUFmMmbPh1gUGMIhPtQ1PhA==}
+  /react@19.0.0-rc-66855b96-20241106:
+    resolution: {integrity: sha512-klH7xkT71SxRCx4hb1hly5FJB21Hz0ACyxbXYAECEqssUjtJeFUAaI2U1DgJAzkGEnvEm3DkxuBchMC/9K4ipg==}
     engines: {node: '>=0.10.0'}
     dev: false
 
@@ -21837,8 +21825,8 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /scheduler@0.25.0-rc-33c7bd9a-20241104:
-    resolution: {integrity: sha512-brsBJz8VQV4KU/AjYz77UVSAwisgxgDfISvnxkhYSgcvtIG2At2rW5Ggqj67kN8nUvncwYCm7XQ3gW8kv9QMDA==}
+  /scheduler@0.25.0-rc-66855b96-20241106:
+    resolution: {integrity: sha512-HQXp/Mnp/MMRSXMQF7urNFla+gmtXW/Gr1KliuR0iboTit4KvZRY8KYaq5ccCTAOJiUqQh2rE2F3wgUekmgdlA==}
     dev: false
 
   /scheduler@0.25.0-rc-cc1ec60d0d-20240607:
@@ -22639,7 +22627,7 @@ packages:
       react: 18.3.1
     dev: false
 
-  /styled-jsx@5.1.6(react@19.0.0-rc-33c7bd9a-20241104):
+  /styled-jsx@5.1.6(react@19.0.0-rc-66855b96-20241106):
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
     engines: {node: '>= 12.0.0'}
     peerDependencies:
@@ -22653,7 +22641,7 @@ packages:
         optional: true
     dependencies:
       client-only: 0.0.1
-      react: 19.0.0-rc-33c7bd9a-20241104
+      react: 19.0.0-rc-66855b96-20241106
     dev: false
 
   /styled-jsx@5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607):
@@ -22785,8 +22773,8 @@ packages:
       picocolors: 1.0.0
       sade: 1.8.1
       svelte: 4.2.3
-      svelte-preprocess: 5.1.4(svelte@4.2.3)(typescript@5.5.4)
-      typescript: 5.5.4
+      svelte-preprocess: 5.1.4(svelte@4.2.3)(typescript@5.6.3)
+      typescript: 5.6.3
     transitivePeerDependencies:
       - '@babel/core'
       - coffeescript
@@ -22808,7 +22796,7 @@ packages:
       svelte: 4.2.3
     dev: true
 
-  /svelte-preprocess@5.1.4(svelte@4.2.3)(typescript@5.5.4):
+  /svelte-preprocess@5.1.4(svelte@4.2.3)(typescript@5.6.3):
     resolution: {integrity: sha512-IvnbQ6D6Ao3Gg6ftiM5tdbR6aAETwjhHV+UKGf5bHGYR69RQvF1ho0JKPcbUON4vy4R7zom13jPjgdOWCQ5hDA==}
     engines: {node: '>= 16.0.0'}
     requiresBuild: true
@@ -22852,7 +22840,7 @@ packages:
       sorcery: 0.11.0
       strip-indent: 3.0.0
       svelte: 4.2.3
-      typescript: 5.5.4
+      typescript: 5.6.3
     dev: true
 
   /svelte@4.2.18:
@@ -22931,7 +22919,7 @@ packages:
     peerDependencies:
       vue: '>=3.2.26 < 4'
     dependencies:
-      vue: 3.3.8(typescript@5.5.4)
+      vue: 3.3.8(typescript@5.6.3)
     dev: false
 
   /symbol-observable@4.0.0:
@@ -23389,6 +23377,15 @@ packages:
       typescript: '>=4.2.0'
     dependencies:
       typescript: 5.5.4
+    dev: true
+
+  /ts-api-utils@1.3.0(typescript@5.6.3):
+    resolution: {integrity: sha512-UQMIo7pb8WRomKR1/+MFVLTroIvDVtMX3K6OUir8ynLyzB8Jeriont2bTAtmNPa1ekAgN7YPDyf6V+ygrdU+eQ==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      typescript: '>=4.2.0'
+    dependencies:
+      typescript: 5.6.3
 
   /ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
@@ -23519,7 +23516,7 @@ packages:
     engines: {node: '>=0.6.x'}
     dev: true
 
-  /tsup@7.2.0(typescript@5.5.4):
+  /tsup@7.2.0(typescript@5.6.3):
     resolution: {integrity: sha512-vDHlczXbgUvY3rWvqFEbSqmC1L7woozbzngMqTtL2PGBODTtWlRwGDDawhvWzr5c1QjKe4OAKqJGfE1xeXUvtQ==}
     engines: {node: '>=16.14'}
     hasBin: true
@@ -23549,13 +23546,13 @@ packages:
       source-map: 0.8.0-beta.0
       sucrase: 3.35.0
       tree-kill: 1.2.2
-      typescript: 5.5.4
+      typescript: 5.6.3
     transitivePeerDependencies:
       - supports-color
       - ts-node
     dev: true
 
-  /tsup@8.0.2(typescript@5.5.4):
+  /tsup@8.0.2(typescript@5.6.3):
     resolution: {integrity: sha512-NY8xtQXdH7hDUAZwcQdY/Vzlw9johQsaqf7iwZ6g1DOUlFYQ5/AtVAjTvihhEyeRlGo4dLRVHtrRaL35M1daqQ==}
     engines: {node: '>=18'}
     hasBin: true
@@ -23588,13 +23585,13 @@ packages:
       source-map: 0.8.0-beta.0
       sucrase: 3.34.0
       tree-kill: 1.2.2
-      typescript: 5.5.4
+      typescript: 5.6.3
     transitivePeerDependencies:
       - supports-color
       - ts-node
     dev: true
 
-  /tsup@8.2.4(typescript@5.5.4):
+  /tsup@8.2.4(typescript@5.6.3):
     resolution: {integrity: sha512-akpCPePnBnC/CXgRrcy72ZSntgIEUa1jN0oJbbvpALWKNOz1B7aM+UVDWGRGIO/T/PZugAESWDJUAb5FD48o8Q==}
     engines: {node: '>=18'}
     hasBin: true
@@ -23629,7 +23626,7 @@ packages:
       source-map: 0.8.0-beta.0
       sucrase: 3.35.0
       tree-kill: 1.2.2
-      typescript: 5.5.4
+      typescript: 5.6.3
     transitivePeerDependencies:
       - jiti
       - supports-color
@@ -23637,7 +23634,7 @@ packages:
       - yaml
     dev: true
 
-  /tsup@8.3.0(typescript@5.5.4):
+  /tsup@8.3.0(typescript@5.6.3):
     resolution: {integrity: sha512-ALscEeyS03IomcuNdFdc0YWGVIkwH1Ws7nfTbAPuoILvEV2hpGQAY72LIOjglGo4ShWpZfpBqP/jpQVCzqYQag==}
     engines: {node: '>=18'}
     hasBin: true
@@ -23672,7 +23669,7 @@ packages:
       sucrase: 3.35.0
       tinyglobby: 0.2.9
       tree-kill: 1.2.2
-      typescript: 5.5.4
+      typescript: 5.6.3
     transitivePeerDependencies:
       - jiti
       - supports-color
@@ -23872,6 +23869,12 @@ packages:
 
   /typescript@5.5.4:
     resolution: {integrity: sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+    dev: true
+
+  /typescript@5.6.3:
+    resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -24461,7 +24464,7 @@ packages:
       - terser
     dev: true
 
-  /vite-plugin-checker@0.7.0(eslint@7.32.0)(vite@5.3.3):
+  /vite-plugin-checker@0.7.0(eslint@7.32.0)(typescript@5.6.3)(vite@5.3.3):
     resolution: {integrity: sha512-F3MdUORNLcPC0oDB9zxmPDhUC8X/3fzDShU5Izk4bqE4uTgxbQdOuOCa99bS6OSyWVC0uhHG4yAtWUXM2jOx9A==}
     engines: {node: '>=14.16'}
     peerDependencies:
@@ -24504,6 +24507,7 @@ packages:
       npm-run-path: 4.0.1
       strip-ansi: 6.0.1
       tiny-invariant: 1.3.1
+      typescript: 5.6.3
       vite: 5.3.3(@types/node@18.18.9)
       vscode-languageclient: 7.0.0
       vscode-languageserver: 7.0.0
@@ -24988,10 +24992,10 @@ packages:
       vue: ^3.2.0
     dependencies:
       '@vue/devtools-api': 6.5.1
-      vue: 3.4.31
+      vue: 3.4.31(typescript@5.6.3)
     dev: true
 
-  /vue@3.3.8(typescript@5.5.4):
+  /vue@3.3.8(typescript@5.6.3):
     resolution: {integrity: sha512-5VSX/3DabBikOXMsxzlW8JyfeLKlG9mzqnWgLQLty88vdZL7ZJgrdgBOmrArwxiLtmS+lNNpPcBYqrhE6TQW5w==}
     peerDependencies:
       typescript: '*'
@@ -25004,9 +25008,9 @@ packages:
       '@vue/runtime-dom': 3.3.8
       '@vue/server-renderer': 3.3.8(vue@3.3.8)
       '@vue/shared': 3.3.8
-      typescript: 5.5.4
+      typescript: 5.6.3
 
-  /vue@3.4.31:
+  /vue@3.4.31(typescript@5.6.3):
     resolution: {integrity: sha512-njqRrOy7W3YLAlVqSKpBebtZpDVg21FPoaq1I7f/+qqBThK9ChAIjkRWgeP6Eat+8C+iia4P3OYqpATP21BCoQ==}
     peerDependencies:
       typescript: '*'
@@ -25019,9 +25023,10 @@ packages:
       '@vue/runtime-dom': 3.4.31
       '@vue/server-renderer': 3.4.31(vue@3.4.31)
       '@vue/shared': 3.4.31
+      typescript: 5.6.3
     dev: true
 
-  /vue@3.5.10(typescript@5.5.4):
+  /vue@3.5.10(typescript@5.6.3):
     resolution: {integrity: sha512-Vy2kmJwHPlouC/tSnIgXVg03SG+9wSqT1xu1Vehc+ChsXsRd7jLkKgMltVEFOzUdBr3uFwBCG+41LJtfAcBRng==}
     peerDependencies:
       typescript: '*'
@@ -25034,7 +25039,7 @@ packages:
       '@vue/runtime-dom': 3.5.10
       '@vue/server-renderer': 3.5.10(vue@3.5.10)
       '@vue/shared': 3.5.10
-      typescript: 5.5.4
+      typescript: 5.6.3
     dev: true
 
   /w3c-xmlserializer@5.0.0:

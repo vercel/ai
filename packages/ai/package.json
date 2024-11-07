@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "4.0.0-canary.3",
+  "version": "4.0.0-canary.4",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -15,7 +15,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
+    "build": "tsup",
     "clean": "rm -rf dist && rm -rf react/dist && rm -rf rsc/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
@@ -60,14 +60,11 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "1.0.0-canary.0",
-    "@ai-sdk/provider-utils": "2.0.0-canary.1",
-    "@ai-sdk/react": "1.0.0-canary.3",
-    "@ai-sdk/ui-utils": "1.0.0-canary.3",
+    "@ai-sdk/provider-utils": "2.0.0-canary.2",
+    "@ai-sdk/react": "1.0.0-canary.4",
+    "@ai-sdk/ui-utils": "1.0.0-canary.4",
     "@opentelemetry/api": "1.9.0",
-    "eventsource-parser": "^3.0.0",
     "jsondiffpatch": "0.6.0",
-    "json-schema": "^0.4.0",
-    "secure-json-parse": "^2.7.0",
     "zod-to-json-schema": "^3.23.3"
   },
   "devDependencies": {
@@ -89,7 +86,7 @@
     "react-dom": "^18",
     "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
     "tsup": "^7.2.0",
-    "typescript": "5.5.4",
+    "typescript": "5.6.3",
     "zod": "3.23.8"
   },
   "peerDependencies": {

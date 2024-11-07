@@ -1,9 +1,9 @@
 import { mergeStreams } from '../core/util/merge-streams';
 import { prepareResponseHeaders } from '../core/util/prepare-response-headers';
 import {
-  AIStreamCallbacksAndOptions,
   createCallbacksTransformer,
-} from './ai-stream';
+  StreamCallbacks,
+} from './stream-callbacks';
 import { createStreamDataTransformer, StreamData } from './stream-data';
 
 type LangChainImageDetail = 'auto' | 'low' | 'high';
@@ -59,7 +59,7 @@ export function toAIStream(
     | ReadableStream<LangChainStreamEvent>
     | ReadableStream<LangChainAIMessageChunk>
     | ReadableStream<string>,
-  callbacks?: AIStreamCallbacksAndOptions,
+  callbacks?: StreamCallbacks,
 ) {
   return toDataStream(stream, callbacks);
 }
@@ -76,7 +76,7 @@ export function toDataStream(
     | ReadableStream<LangChainStreamEvent>
     | ReadableStream<LangChainAIMessageChunk>
     | ReadableStream<string>,
-  callbacks?: AIStreamCallbacksAndOptions,
+  callbacks?: StreamCallbacks,
 ) {
   return stream
     .pipeThrough(
@@ -119,7 +119,7 @@ export function toDataStreamResponse(
   options?: {
     init?: ResponseInit;
     data?: StreamData;
-    callbacks?: AIStreamCallbacksAndOptions;
+    callbacks?: StreamCallbacks;
   },
 ) {
   const dataStream = toDataStream(stream, options?.callbacks);

@@ -1,19 +1,14 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { formatStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import {
-  AIStreamCallbacksAndOptions,
-  CoreAssistantMessage,
-  CoreToolMessage,
-  formatStreamPart,
-  InvalidArgumentError,
-  StreamData,
-  TextStreamPart,
-} from '../../streams';
+import { InvalidArgumentError } from '../../errors/invalid-argument-error';
+import { StreamData } from '../../streams/stream-data';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
@@ -51,7 +46,7 @@ import {
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
 import { StepResult } from './step-result';
-import { StreamTextResult } from './stream-text-result';
+import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
@@ -115,8 +110,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   maxRetries,
   abortSignal,
   headers,
-  maxToolRoundtrips = 0,
-  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
+  maxSteps = 1,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
@@ -147,22 +141,6 @@ The tools that the model can call. The model needs to support calling tools.
 The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: CoreToolChoice<TOOLS>;
-
-    /**
-Maximum number of automatic roundtrips for tool calls.
-
-An automatic tool call roundtrip is another LLM call with the
-tool call results when all tool calls of the last assistant
-message have results.
-
-A maximum number is required to prevent infinite loops in the
-case of misconfigured tools.
-
-By default, it's set to 0, which will disable the feature.
-
-@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
-     */
-    maxToolRoundtrips?: number;
 
     /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
@@ -679,16 +657,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                 doStreamSpan.addEvent('ai.stream.firstChunk', {
                   'ai.response.msToFirstChunk': msToFirstChunk,
-
-                  // deprecated:
-                  'ai.stream.msToFirstChunk': msToFirstChunk,
                 });
 
                 doStreamSpan.setAttributes({
                   'ai.response.msToFirstChunk': msToFirstChunk,
-
-                  // deprecated:
-                  'ai.stream.msToFirstChunk': msToFirstChunk,
                 });
               }
 
@@ -867,13 +839,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.usage.promptTokens': stepUsage.promptTokens,
                       'ai.usage.completionTokens': stepUsage.completionTokens,
 
-                      // deprecated
-                      'ai.finishReason': stepFinishReason,
-                      'ai.result.text': { output: () => stepText },
-                      'ai.result.toolCalls': {
-                        output: () => stepToolCallsJson,
-                      },
-
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [stepFinishReason],
                       'gen_ai.response.id': stepResponse.id,
@@ -1023,13 +988,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.usage.promptTokens': combinedUsage.promptTokens,
                       'ai.usage.completionTokens':
                         combinedUsage.completionTokens,
-
-                      // deprecated
-                      'ai.finishReason': stepFinishReason,
-                      'ai.result.text': { output: () => fullStepText },
-                      'ai.result.toolCalls': {
-                        output: () => stepToolCallsJson,
-                      },
                     },
                   }),
                 );
@@ -1133,16 +1091,10 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  toAIStream(callbacks: AIStreamCallbacksAndOptions = {}) {
-    return this.toDataStreamInternal({ callbacks });
-  }
-
   private toDataStreamInternal({
-    callbacks = {},
     getErrorMessage = () => '', // mask error messages for safety by default
     sendUsage = true,
   }: {
-    callbacks?: AIStreamCallbacksAndOptions;
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean;
   } = {}) {
@@ -1152,27 +1104,12 @@ However, the LLM results are expected to be small enough to not cause issues.
       TextStreamPart<TOOLS>,
       TextStreamPart<TOOLS>
     >({
-      async start(): Promise<void> {
-        if (callbacks.onStart) await callbacks.onStart();
-      },
-
       async transform(chunk, controller): Promise<void> {
         controller.enqueue(chunk);
 
         if (chunk.type === 'text-delta') {
-          const textDelta = chunk.textDelta;
-
-          aggregatedResponse += textDelta;
-
-          if (callbacks.onToken) await callbacks.onToken(textDelta);
-          if (callbacks.onText) await callbacks.onText(textDelta);
+          aggregatedResponse += chunk.textDelta;
         }
-      },
-
-      async flush(): Promise<void> {
-        if (callbacks.onCompletion)
-          await callbacks.onCompletion(aggregatedResponse);
-        if (callbacks.onFinal) await callbacks.onFinal(aggregatedResponse);
       },
     });
 
@@ -1281,13 +1218,6 @@ However, the LLM results are expected to be small enough to not cause issues.
       .pipeThrough(new TextEncoderStream());
   }
 
-  pipeAIStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ): void {
-    return this.pipeDataStreamToResponse(response, init);
-  }
-
   pipeDataStreamToResponse(
     response: ServerResponse,
     options?:
@@ -1354,12 +1284,6 @@ However, the LLM results are expected to be small enough to not cause issues.
       }),
       stream: this.textStream.pipeThrough(new TextEncoderStream()),
     });
-  }
-
-  toAIStreamResponse(
-    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
-  ): Response {
-    return this.toDataStreamResponse(options);
   }
 
   toDataStream(options?: {
@@ -1440,8 +1364,3 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 }
-
-/**
- * @deprecated Use `streamText` instead.
- */
-export const experimental_streamText = streamText;

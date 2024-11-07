@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "1.0.0-canary.1",
+  "version": "1.0.0-canary.2",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "1.0.0-canary.0",
-    "@ai-sdk/provider-utils": "2.0.0-canary.1",
+    "@ai-sdk/provider-utils": "2.0.0-canary.2",
     "@aws-sdk/client-bedrock-runtime": "^3.663.0"
   },
   "devDependencies": {
@@ -40,7 +40,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "aws-sdk-client-mock": "^4.0.2",
     "tsup": "^8.3.0",
-    "typescript": "5.5.4",
+    "typescript": "5.6.3",
     "zod": "3.23.8"
   },
   "peerDependencies": {

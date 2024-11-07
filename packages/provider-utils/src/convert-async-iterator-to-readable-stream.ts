@@ -1,12 +1,12 @@
 /**
- * Converts an AsyncGenerator to a ReadableStream.
+ * Converts an AsyncIterator to a ReadableStream.
  *
- * @template T - The type of elements produced by the AsyncGenerator.
- * @param {AsyncGenerator<T>} stream - The AsyncGenerator to convert.
- * @returns {ReadableStream<T>} - A ReadableStream that provides the same data as the AsyncGenerator.
+ * @template T - The type of elements produced by the AsyncIterator.
+ * @param { <T>} iterator - The AsyncIterator to convert.
+ * @returns {ReadableStream<T>} - A ReadableStream that provides the same data as the AsyncIterator.
  */
-export function convertAsyncGeneratorToReadableStream<T>(
-  stream: AsyncGenerator<T>,
+export function convertAsyncIteratorToReadableStream<T>(
+  iterator: AsyncIterator<T>,
 ): ReadableStream<T> {
   return new ReadableStream<T>({
     /**
@@ -17,7 +17,7 @@ export function convertAsyncGeneratorToReadableStream<T>(
      */
     async pull(controller) {
       try {
-        const { value, done } = await stream.next();
+        const { value, done } = await iterator.next();
         if (done) {
           controller.close();
         } else {

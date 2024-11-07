@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "1.0.0-canary.3",
+  "version": "1.0.0-canary.4",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,8 +29,8 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@ai-sdk/provider-utils": "2.0.0-canary.1",
-    "@ai-sdk/ui-utils": "1.0.0-canary.3",
+    "@ai-sdk/provider-utils": "2.0.0-canary.2",
+    "@ai-sdk/ui-utils": "1.0.0-canary.4",
     "swr": "^2.2.5",
     "throttleit": "2.1.0"
   },
@@ -48,7 +48,7 @@
     "msw": "2.3.1",
     "react-dom": "^18",
     "tsup": "^7.2.0",
-    "typescript": "5.5.4",
+    "typescript": "5.6.3",
     "zod": "3.23.8"
   },
   "peerDependencies": {

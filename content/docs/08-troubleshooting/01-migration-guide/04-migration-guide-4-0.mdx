@@ -33,6 +33,11 @@ Please use the `anthropic` object or the `createAnthropic` function instead.
 The model specific `topK` setting has been removed from the Google Vertex provider.
 You can use the standard `topK` setting instead.
 
+### Mistral Provider: Removed `Mistral` facade
+
+The `Mistral` facade has been removed from the Mistral provider.
+Please use the `mistral` object or the `createMistral` function instead.
+
 ### OpenAI Provider: Removed `OpenAI` facade
 
 The `OpenAI` facade has been removed from the OpenAI provider.
@@ -48,7 +53,34 @@ Prompt helpers for constructing message prompts are no longer needed with the AI
 
 Legacy providers from AI SDK 2.x have been removed. Please use the new [AI SDK provider architecture](/docs/foundations/providers-and-models) instead.
 
+### Removed 2.x `AIStream`
+
+The `AIStream` function and related exports have been removed. Please use the new `streamText` functions instead.
+
+### Removed 2.x `StreamingTextResponse`
+
+The `StreamingTextResponse` function has been removed. Use
+`streamText.toDataStreamResponse()` instead.
+
+### Removed 2.x `streamToResponse`
+
+The `streamToResponse` function has been removed. Use
+`pipeDataStreamToResponse` from `streamText` instead.
+
+### Removed 2.x RSC `Tokens` streaming
+
+The legacy `Tokens` RSC streaming from 2.x has been removed.
+`Tokens` were implemented prior to AI SDK RSC and are no longer needed.
+
 ## AI SDK Core Changes
+
+### Remove roundtrips
+
+The `maxToolRoundtrips` and `maxAutomaticRoundtrips` options have been removed from the `generateText` and `streamText` functions.
+Please use the `maxSteps` option instead.
+
+The `roundtrips` property has been removed from the `GenerateTextResult` type.
+Please use the `steps` property instead.
 
 ### Removed `nanoid` export
 
@@ -58,6 +90,42 @@ The `nanoid` export has been removed. Please use [`generateId`](/docs/reference/
 
 The [`generateId`](/docs/reference/stream-helpers/generate-id) function now
 generates 16-character IDs. The previous default was 7 characters.
+
+### Removed `ExperimentalMessage` types
+
+The following types have been removed:
+
+- `ExperimentalMessage` (use `CoreMessage` instead)
+- `ExperimentalUserMessage` (use `CoreUserMessage` instead)
+- `ExperimentalAssistantMessage` (use `CoreAssistantMessage` instead)
+- `ExperimentalToolMessage` (use `CoreToolMessage` instead)
+
+### Removed experimental AI function exports
+
+The following exports have been removed:
+
+- `experimental_generateText` (use `generateText` instead)
+- `experimental_streamText` (use `streamText` instead)
+- `experimental_generateObject` (use `generateObject` instead)
+- `experimental_streamObject` (use `streamObject` instead)
+
+## Removed AI-stream related methods from `streamText`
+
+The following methods have been removed from the `streamText` result:
+
+- `toAIStream`
+- `pipeAIStreamToResponse`
+- `toAIStreamResponse`
+
+## Removed deprecated telemetry data
+
+The following telemetry data values have been removed:
+
+- `ai.finishReason` (now in `ai.response.finishReason`)
+- `ai.result.object` (now in `ai.response.object`)
+- `ai.result.text` (now in `ai.response.text`)
+- `ai.result.toolCalls` (now in `ai.response.toolCalls`)
+- `ai.stream.msToFirstChunk` (now in `ai.response.msToFirstChunk`)
 
 ## AI SDK RSC Changes
 
@@ -124,6 +192,18 @@ Please use the `addToolResult` method instead.
 
 The `streamMode` options has been removed from the `useCompletion` hook.
 Please use the `streamProtocol` parameter instead.
+
+### `useAssistant` hook
+
+#### Removed `experimental_useAssistant` export
+
+The `experimental_useAssistant` export has been removed from the `useAssistant` hook.
+Please use the `useAssistant` hook directly instead.
+
+### `experimental_useObject` hook
+
+The `setInput` helper has been removed from the `experimental_useObject` hook.
+Please use the `submit` helper instead.
 
 ## AI SDK Errors
 

@@ -6,7 +6,7 @@ import {
   LanguageModelV1StreamPart,
   NoContentGeneratedError,
 } from '@ai-sdk/provider';
-import { convertAsyncGeneratorToReadableStream } from '@ai-sdk/provider-utils';
+import { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
 import {
   FunctionCallingMode,
   FunctionDeclarationSchema,
@@ -275,7 +275,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     let providerMetadata: { vertex: { groundingMetadata: any } } | undefined;
 
     return {
-      stream: convertAsyncGeneratorToReadableStream(stream).pipeThrough(
+      stream: convertAsyncIteratorToReadableStream(stream).pipeThrough(
         new TransformStream<GenerateContentResponse, LanguageModelV1StreamPart>(
           {
             transform(chunk, controller) {

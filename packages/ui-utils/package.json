@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/ui-utils",
-  "version": "1.0.0-canary.3",
+  "version": "1.0.0-canary.4",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -38,9 +38,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "1.0.0-canary.0",
-    "@ai-sdk/provider-utils": "2.0.0-canary.1",
-    "json-schema": "^0.4.0",
-    "secure-json-parse": "^2.7.0",
+    "@ai-sdk/provider-utils": "2.0.0-canary.2",
     "zod-to-json-schema": "^3.23.3"
   },
   "devDependencies": {
@@ -49,7 +47,7 @@
     "@types/react": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
-    "typescript": "5.5.4",
+    "typescript": "5.6.3",
     "zod": "3.23.8"
   },
   "peerDependencies": {
