@@ -1,8 +1,7 @@
 /**
- * Configuration options and helper callback methods for AIStream stream lifecycle events.
- * @interface
+ * Configuration options and helper callback methods for stream lifecycle events.
  */
-export interface AIStreamCallbacksAndOptions {
+export interface StreamCallbacks {
   /** `onStart`: Called once when the stream is initialized. */
   onStart?: () => Promise<void> | void;
   /** `onCompletion`: Called for each tokenized message. */
@@ -25,7 +24,7 @@ export interface AIStreamCallbacksAndOptions {
  *
  * This function is useful when you want to process a stream of messages and perform specific actions during the stream's lifecycle.
  *
- * @param {AIStreamCallbacksAndOptions} [callbacks] - An object containing the callback functions.
+ * @param {StreamCallbacks} [callbacks] - An object containing the callback functions.
  * @return {TransformStream<string, Uint8Array>} A transform stream that encodes input messages as Uint8Array and allows the execution of custom logic through callbacks.
  *
  * @example
@@ -38,11 +37,10 @@ export interface AIStreamCallbacksAndOptions {
  * const transformer = createCallbacksTransformer(callbacks);
  */
 export function createCallbacksTransformer(
-  cb: AIStreamCallbacksAndOptions | undefined,
-): TransformStream<string | { isText: false; content: string }, Uint8Array> {
+  callbacks: StreamCallbacks | undefined = {},
+): TransformStream<string, Uint8Array> {
   const textEncoder = new TextEncoder();
   let aggregatedResponse = '';
-  const callbacks = cb || {};
 
   return new TransformStream({
     async start(): Promise<void> {
@@ -50,13 +48,11 @@ export function createCallbacksTransformer(
     },
 
     async transform(message, controller): Promise<void> {
-      const content = typeof message === 'string' ? message : message.content;
+      controller.enqueue(textEncoder.encode(message));
 
-      controller.enqueue(textEncoder.encode(content));
+      aggregatedResponse += message;
 
-      aggregatedResponse += content;
-
-      if (callbacks.onToken) await callbacks.onToken(content);
+      if (callbacks.onToken) await callbacks.onToken(message);
       if (callbacks.onText && typeof message === 'string') {
         await callbacks.onText(message);
       }
@@ -68,31 +64,4 @@ export function createCallbacksTransformer(
       }
     },
   });
-}
-
-/**
- * Returns a stateful function that, when invoked, trims leading whitespace
- * from the input text. The trimming only occurs on the first invocation, ensuring that
- * subsequent calls do not alter the input text. This is particularly useful in scenarios
- * where a text stream is being processed and only the initial whitespace should be removed.
- *
- * @return {function(string): string} A function that takes a string as input and returns a string
- * with leading whitespace removed if it is the first invocation; otherwise, it returns the input unchanged.
- *
- * @example
- * const trimStart = trimStartOfStreamHelper();
- * const output1 = trimStart("   text"); // "text"
- * const output2 = trimStart("   text"); // "   text"
- *
- */
-export function trimStartOfStreamHelper(): (text: string) => string {
-  let isStreamStart = true;
-
-  return (text: string): string => {
-    if (isStreamStart) {
-      text = text.trimStart();
-      if (text) isStreamStart = false;
-    }
-    return text;
-  };
 }

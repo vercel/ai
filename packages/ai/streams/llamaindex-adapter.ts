@@ -1,11 +1,11 @@
 import { mergeStreams } from '../core/util/merge-streams';
 import { prepareResponseHeaders } from '../core/util/prepare-response-headers';
-import { createStreamDataTransformer, StreamData } from './stream-data';
 import {
-  AIStreamCallbacksAndOptions,
+  StreamCallbacks,
   createCallbacksTransformer,
-  trimStartOfStreamHelper,
-} from './ai-stream';
+} from './stream-callbacks';
+import { createStreamDataTransformer, StreamData } from './stream-data';
+import { trimStartOfStream } from './trim-start-of-stream';
 
 type EngineResponse = {
   delta: string;
@@ -13,7 +13,7 @@ type EngineResponse = {
 
 export function toDataStream(
   stream: AsyncIterable<EngineResponse>,
-  callbacks?: AIStreamCallbacksAndOptions,
+  callbacks?: StreamCallbacks,
 ) {
   return toReadableStream(stream)
     .pipeThrough(createCallbacksTransformer(callbacks))
@@ -25,7 +25,7 @@ export function toDataStreamResponse(
   options: {
     init?: ResponseInit;
     data?: StreamData;
-    callbacks?: AIStreamCallbacksAndOptions;
+    callbacks?: StreamCallbacks;
   } = {},
 ) {
   const { init, data, callbacks } = options;
@@ -46,7 +46,7 @@ export function toDataStreamResponse(
 
 function toReadableStream(res: AsyncIterable<EngineResponse>) {
   const it = res[Symbol.asyncIterator]();
-  const trimStartOfStream = trimStartOfStreamHelper();
+  const trimStart = trimStartOfStream();
 
   return new ReadableStream<string>({
     async pull(controller): Promise<void> {
@@ -55,7 +55,7 @@ function toReadableStream(res: AsyncIterable<EngineResponse>) {
         controller.close();
         return;
       }
-      const text = trimStartOfStream(value.delta ?? '');
+      const text = trimStart(value.delta ?? '');
       if (text) {
         controller.enqueue(text);
       }
