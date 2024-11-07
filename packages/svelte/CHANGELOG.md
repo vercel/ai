@@ -1,5 +1,14 @@
 # @ai-sdk/svelte
 
+## 1.0.0-canary.5
+
+### Patch Changes
+
+- Updated dependencies [9f81e66]
+- Updated dependencies [8426f55]
+  - @ai-sdk/ui-utils@1.0.0-canary.5
+  - @ai-sdk/provider-utils@2.0.0-canary.3
+
 ## 1.0.0-canary.4
 
 ### Patch Changes
