@@ -298,8 +298,3 @@ export function useAssistant({
     stop,
   };
 }
-
-/**
- * @deprecated Use `useAssistant` instead.
- */
-export const experimental_useAssistant = useAssistant;

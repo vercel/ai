@@ -3,7 +3,6 @@ import { formatStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
-import { AIStreamCallbacksAndOptions } from '../../streams/ai-stream';
 import { StreamData } from '../../streams/stream-data';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
@@ -1112,16 +1111,10 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  toAIStream(callbacks: AIStreamCallbacksAndOptions = {}) {
-    return this.toDataStreamInternal({ callbacks });
-  }
-
   private toDataStreamInternal({
-    callbacks = {},
     getErrorMessage = () => '', // mask error messages for safety by default
     sendUsage = true,
   }: {
-    callbacks?: AIStreamCallbacksAndOptions;
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean;
   } = {}) {
@@ -1131,27 +1124,12 @@ However, the LLM results are expected to be small enough to not cause issues.
       TextStreamPart<TOOLS>,
       TextStreamPart<TOOLS>
     >({
-      async start(): Promise<void> {
-        if (callbacks.onStart) await callbacks.onStart();
-      },
-
       async transform(chunk, controller): Promise<void> {
         controller.enqueue(chunk);
 
         if (chunk.type === 'text-delta') {
-          const textDelta = chunk.textDelta;
-
-          aggregatedResponse += textDelta;
-
-          if (callbacks.onToken) await callbacks.onToken(textDelta);
-          if (callbacks.onText) await callbacks.onText(textDelta);
+          aggregatedResponse += chunk.textDelta;
         }
-      },
-
-      async flush(): Promise<void> {
-        if (callbacks.onCompletion)
-          await callbacks.onCompletion(aggregatedResponse);
-        if (callbacks.onFinal) await callbacks.onFinal(aggregatedResponse);
       },
     });
 
@@ -1260,13 +1238,6 @@ However, the LLM results are expected to be small enough to not cause issues.
       .pipeThrough(new TextEncoderStream());
   }
 
-  pipeAIStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ): void {
-    return this.pipeDataStreamToResponse(response, init);
-  }
-
   pipeDataStreamToResponse(
     response: ServerResponse,
     options?:
@@ -1333,12 +1304,6 @@ However, the LLM results are expected to be small enough to not cause issues.
       }),
       stream: this.textStream.pipeThrough(new TextEncoderStream()),
     });
-  }
-
-  toAIStreamResponse(
-    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
-  ): Response {
-    return this.toDataStreamResponse(options);
   }
 
   toDataStream(options?: {

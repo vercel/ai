@@ -89,6 +89,14 @@ The following exports have been removed:
 - `experimental_generateObject` (use `generateObject` instead)
 - `experimental_streamObject` (use `streamObject` instead)
 
+## Removed AI-stream related methods from `streamText`
+
+The following methods have been removed from the `streamText` result:
+
+- `toAIStream`
+- `pipeAIStreamToResponse`
+- `toAIStreamResponse`
+
 ## AI SDK RSC Changes
 
 ### Removed `render` function
@@ -154,6 +162,13 @@ Please use the `addToolResult` method instead.
 
 The `streamMode` options has been removed from the `useCompletion` hook.
 Please use the `streamProtocol` parameter instead.
+
+### `useAssistant` hook
+
+#### Removed `experimental_useAssistant` export
+
+The `experimental_useAssistant` export has been removed from the `useAssistant` hook.
+Please use the `useAssistant` hook directly instead.
 
 ## AI SDK Errors
 

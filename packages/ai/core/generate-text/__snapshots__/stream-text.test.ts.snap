@@ -2699,21 +2699,6 @@ exports[`result.responseMessages > should contain assistant response message whe
 ]
 `;
 
-exports[`result.toAIStream > should transform textStream through callbacks and data transformers 1`] = `
-[
-  "0:"Hello"
-",
-  "0:", "
-",
-  "0:"world!"
-",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
-",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
-",
-]
-`;
-
 exports[`result.toDataStream > should create a data stream 1`] = `
 [
   "0:"Hello"
