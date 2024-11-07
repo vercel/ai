@@ -32,18 +32,4 @@ export class InvalidToolArgumentsError extends AISDKError {
   static isInstance(error: unknown): error is InvalidToolArgumentsError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isInvalidToolArgumentsError(
-    error: unknown,
-  ): error is InvalidToolArgumentsError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      typeof (error as InvalidToolArgumentsError).toolName === 'string' &&
-      typeof (error as InvalidToolArgumentsError).toolArgs === 'string'
-    );
-  }
 }
