@@ -8,7 +8,6 @@
     "ai-sdk-hono-example": "0.0.0",
     "ai-sdk-nest-example": "0.0.0",
     "next-fastapi": "0.0.0",
-    "next-huggingface": "0.0.0",
     "next-inkeep": "0.0.0",
     "next-langchain": "0.0.0",
     "next-openai": "0.0.0",

@@ -2,7 +2,9 @@
   "$schema": "https://turbo.build/schema.json",
   "pipeline": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "env": [
         "ANTHROPIC_API_KEY",
         "AWS_REGION",
@@ -14,7 +16,6 @@
         "GOOGLE_API_KEY",
         "GOOGLE_GENERATIVE_AI_API_KEY",
         "GROQ_API_KEY",
-        "HUGGINGFACE_API_KEY",
         "MISTRAL_API_KEY",
         "OPENAI_API_KEY",
         "OPENAI_API_BASE",
@@ -31,22 +32,39 @@
         "NEXT_RUNTIME",
         "XAI_API_KEY"
       ],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": [
+        "^lint"
+      ]
     },
     "type-check": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": [
+        "^build",
+        "build"
+      ]
     },
     "test": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": [
+        "^build",
+        "build"
+      ]
     },
     "publint": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": [
+        "^build",
+        "build"
+      ]
     },
     "clean": {
-      "dependsOn": ["^clean"]
+      "dependsOn": [
+        "^clean"
+      ]
     },
     "dev": {
       "cache": false,
@@ -54,8 +72,14 @@
     },
     "prettier-check": {},
     "integration-test": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": [
+        "^build",
+        "build"
+      ]
     }
   },
-  "globalEnv": ["CI", "PORT"]
+  "globalEnv": [
+    "CI",
+    "PORT"
+  ]
 }
