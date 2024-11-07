@@ -565,14 +565,12 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should record teleme
 [
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText",
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.response.finishReason": "stop",
       "ai.response.text": "Hello, world!",
-      "ai.result.text": "Hello, world!",
       "ai.settings.maxSteps": 3,
       "ai.usage.completionTokens": 15,
       "ai.usage.promptTokens": 4,
@@ -583,7 +581,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should record teleme
   },
   {
     "attributes": {
-      "ai.finishReason": "tool-calls",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
@@ -602,9 +599,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should record teleme
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
-      "ai.result.text": "",
-      "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
-      "ai.stream.msToFirstChunk": 100,
       "ai.usage.completionTokens": 10,
       "ai.usage.promptTokens": 3,
       "gen_ai.request.model": "mock-model-id",
@@ -622,7 +616,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should record teleme
       {
         "attributes": {
           "ai.response.msToFirstChunk": 100,
-          "ai.stream.msToFirstChunk": 100,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -647,7 +640,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should record teleme
   },
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
@@ -665,8 +657,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should record teleme
       "ai.response.msToFirstChunk": 400,
       "ai.response.text": "Hello, world!",
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-      "ai.result.text": "Hello, world!",
-      "ai.stream.msToFirstChunk": 400,
       "ai.usage.completionTokens": 5,
       "ai.usage.promptTokens": 1,
       "gen_ai.request.model": "mock-model-id",
@@ -684,7 +674,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should record teleme
       {
         "attributes": {
           "ai.response.msToFirstChunk": 400,
-          "ai.stream.msToFirstChunk": 400,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -1507,16 +1496,12 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
 [
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText",
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.response.finishReason": "stop",
       "ai.response.text": "part 1 
- no-whitespaceimmediatefollow  final value keep all whitespace
- end",
-      "ai.result.text": "part 1 
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
       "ai.settings.maxSteps": 5,
@@ -1529,7 +1514,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
   },
   {
     "attributes": {
-      "ai.finishReason": "length",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
@@ -1544,9 +1528,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
       "ai.response.text": "part 1 
  ",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.result.text": "part 1 
- ",
-      "ai.stream.msToFirstChunk": 100,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "gen_ai.request.model": "mock-model-id",
@@ -1564,7 +1545,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
       {
         "attributes": {
           "ai.response.msToFirstChunk": 100,
-          "ai.stream.msToFirstChunk": 100,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -1577,7 +1557,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
   },
   {
     "attributes": {
-      "ai.finishReason": "length",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
@@ -1591,8 +1570,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
       "ai.response.msToFirstChunk": 400,
       "ai.response.text": "no-whitespace",
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-      "ai.result.text": "no-whitespace",
-      "ai.stream.msToFirstChunk": 400,
       "ai.usage.completionTokens": 5,
       "ai.usage.promptTokens": 30,
       "gen_ai.request.model": "mock-model-id",
@@ -1610,7 +1587,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
       {
         "attributes": {
           "ai.response.msToFirstChunk": 400,
-          "ai.stream.msToFirstChunk": 400,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -1623,7 +1599,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
   },
   {
     "attributes": {
-      "ai.finishReason": "length",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
@@ -1637,8 +1612,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
       "ai.response.msToFirstChunk": 0,
       "ai.response.text": "immediatefollow  ",
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-      "ai.result.text": "immediatefollow  ",
-      "ai.stream.msToFirstChunk": 0,
       "ai.usage.completionTokens": 2,
       "ai.usage.promptTokens": 3,
       "gen_ai.request.model": "mock-model-id",
@@ -1656,7 +1629,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
       {
         "attributes": {
           "ai.response.msToFirstChunk": 0,
-          "ai.stream.msToFirstChunk": 0,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -1669,7 +1641,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
   },
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
@@ -1684,9 +1655,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
       "ai.response.text": "final value keep all whitespace
  end",
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-      "ai.result.text": "final value keep all whitespace
- end",
-      "ai.stream.msToFirstChunk": 0,
       "ai.usage.completionTokens": 2,
       "ai.usage.promptTokens": 3,
       "gen_ai.request.model": "mock-model-id",
@@ -1704,7 +1672,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
       {
         "attributes": {
           "ai.response.msToFirstChunk": 0,
-          "ai.stream.msToFirstChunk": 0,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -2882,7 +2849,6 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
 [
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText",
@@ -2897,7 +2863,6 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
   },
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
@@ -2908,7 +2873,6 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
       "ai.response.msToFinish": 500,
       "ai.response.msToFirstChunk": 100,
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.stream.msToFirstChunk": 100,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "gen_ai.request.model": "mock-model-id",
@@ -2926,7 +2890,6 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
       {
         "attributes": {
           "ai.response.msToFirstChunk": 100,
-          "ai.stream.msToFirstChunk": 100,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -2954,7 +2917,6 @@ exports[`telemetry > should record successful tool call 1`] = `
 [
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText",
@@ -2962,8 +2924,6 @@ exports[`telemetry > should record successful tool call 1`] = `
       "ai.response.finishReason": "stop",
       "ai.response.text": "",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
-      "ai.result.text": "",
-      "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.settings.maxSteps": 1,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
@@ -2974,7 +2934,6 @@ exports[`telemetry > should record successful tool call 1`] = `
   },
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
@@ -2993,9 +2952,6 @@ exports[`telemetry > should record successful tool call 1`] = `
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
-      "ai.result.text": "",
-      "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
-      "ai.stream.msToFirstChunk": 100,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "gen_ai.request.model": "mock-model-id",
@@ -3013,7 +2969,6 @@ exports[`telemetry > should record successful tool call 1`] = `
       {
         "attributes": {
           "ai.response.msToFirstChunk": 100,
-          "ai.stream.msToFirstChunk": 100,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -3043,7 +2998,6 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
 [
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText",
@@ -3052,7 +3006,6 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "ai.request.headers.header2": "value2",
       "ai.response.finishReason": "stop",
       "ai.response.text": "Hello, world!",
-      "ai.result.text": "Hello, world!",
       "ai.settings.frequencyPenalty": 0.3,
       "ai.settings.maxSteps": 1,
       "ai.settings.presencePenalty": 0.4,
@@ -3075,7 +3028,6 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
   },
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
@@ -3091,7 +3043,6 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "ai.response.msToFirstChunk": 100,
       "ai.response.text": "Hello, world!",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.result.text": "Hello, world!",
       "ai.settings.frequencyPenalty": 0.3,
       "ai.settings.presencePenalty": 0.4,
       "ai.settings.stopSequences": [
@@ -3100,7 +3051,6 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "ai.settings.temperature": 0.5,
       "ai.settings.topK": 0.1,
       "ai.settings.topP": 0.2,
-      "ai.stream.msToFirstChunk": 100,
       "ai.telemetry.functionId": "test-function-id",
       "ai.telemetry.metadata.test1": "value1",
       "ai.telemetry.metadata.test2": false,
@@ -3130,7 +3080,6 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       {
         "attributes": {
           "ai.response.msToFirstChunk": 100,
-          "ai.stream.msToFirstChunk": 100,
         },
         "name": "ai.stream.firstChunk",
       },

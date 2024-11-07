@@ -112,6 +112,16 @@ The following methods have been removed from the `streamText` result:
 - `pipeAIStreamToResponse`
 - `toAIStreamResponse`
 
+## Removed deprecated telemetry data
+
+The following telemetry data values have been removed:
+
+- `ai.finishReason` (now in `ai.response.finishReason`)
+- `ai.result.object` (now in `ai.response.object`)
+- `ai.result.text` (now in `ai.response.text`)
+- `ai.result.toolCalls` (now in `ai.response.toolCalls`)
+- `ai.stream.msToFirstChunk` (now in `ai.response.msToFirstChunk`)
+
 ## AI SDK RSC Changes
 
 ### Removed `render` function

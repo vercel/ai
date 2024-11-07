@@ -332,15 +332,6 @@ changing the tool call and result types in the result.
                     'ai.usage.promptTokens': result.usage.promptTokens,
                     'ai.usage.completionTokens': result.usage.completionTokens,
 
-                    // deprecated:
-                    'ai.finishReason': result.finishReason,
-                    'ai.result.text': {
-                      output: () => result.text,
-                    },
-                    'ai.result.toolCalls': {
-                      output: () => JSON.stringify(result.toolCalls),
-                    },
-
                     // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [result.finishReason],
                     'gen_ai.response.id': responseData.id,
@@ -489,15 +480,6 @@ changing the tool call and result types in the result.
             'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
             'ai.usage.completionTokens':
               currentModelResponse.usage.completionTokens,
-
-            // deprecated:
-            'ai.finishReason': currentModelResponse.finishReason,
-            'ai.result.text': {
-              output: () => currentModelResponse.text,
-            },
-            'ai.result.toolCalls': {
-              output: () => JSON.stringify(currentModelResponse.toolCalls),
-            },
           },
         }),
       );
