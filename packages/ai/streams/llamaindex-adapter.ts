@@ -6,7 +6,6 @@ import {
   StreamCallbacks,
 } from './stream-callbacks';
 import { createStreamDataTransformer, StreamData } from './stream-data';
-import { trimStartOfStream } from './trim-start-of-stream';
 
 type EngineResponse = {
   delta: string;
@@ -52,4 +51,16 @@ export function toDataStreamResponse(
       dataStreamVersion: 'v1',
     }),
   });
+}
+
+function trimStartOfStream(): (text: string) => string {
+  let isStreamStart = true;
+
+  return (text: string): string => {
+    if (isStreamStart) {
+      text = text.trimStart();
+      if (text) isStreamStart = false;
+    }
+    return text;
+  };
 }
