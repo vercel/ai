@@ -54,6 +54,11 @@ Legacy providers from AI SDK 2.x have been removed. Please use the new [AI SDK p
 
 The `nanoid` export has been removed. Please use [`generateId`](/docs/reference/stream-helpers/generate-id) instead.
 
+### Increased default size of generated IDs
+
+The [`generateId`](/docs/reference/stream-helpers/generate-id) function now
+generates 16-character IDs. The previous default was 7 characters.
+
 ## AI SDK RSC Changes
 
 ### Removed `render` function
@@ -131,8 +136,3 @@ Please use the `isInstance` method of the corresponding error class instead.
 
 The `toJSON` method has been removed from AI SDK errors.
 The `name` property from the `Message` type has been removed.
-
-### Increased default size of generated IDs
-
-The [`generateId`](/docs/reference/stream-helpers/generate-id) function now
-generates 16-character IDs. The previous default was 7 characters.
