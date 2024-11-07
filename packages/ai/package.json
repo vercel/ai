@@ -65,8 +65,6 @@
     "@ai-sdk/ui-utils": "1.0.0-canary.3",
     "@opentelemetry/api": "1.9.0",
     "jsondiffpatch": "0.6.0",
-    "json-schema": "^0.4.0",
-    "secure-json-parse": "^2.7.0",
     "zod-to-json-schema": "^3.23.3"
   },
   "devDependencies": {
