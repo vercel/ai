@@ -128,10 +128,10 @@ Mistral language models can also be used in the `streamText`, `generateObject`, 
 ## Embedding Models
 
 You can create models that call the [Mistral embeddings API](https://docs.mistral.ai/api/#operation/createEmbedding)
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = mistral.embedding('mistral-embed');
+const model = mistral.textEmbeddingModel('mistral-embed');
 ```
 
 ### Model Capabilities

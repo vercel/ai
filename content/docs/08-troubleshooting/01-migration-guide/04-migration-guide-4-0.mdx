@@ -33,10 +33,17 @@ Please use the `anthropic` object or the `createAnthropic` function instead.
 The model specific `topK` setting has been removed from the Google Vertex provider.
 You can use the standard `topK` setting instead.
 
-### Mistral Provider: Removed `Mistral` facade
+### Mistral Provider
+
+#### Removed `Mistral` facade
 
 The `Mistral` facade has been removed from the Mistral provider.
 Please use the `mistral` object or the `createMistral` function instead.
+
+#### Removed `embedding` and `textEmbedding` exports
+
+The `embedding` and `textEmbedding` exports have been removed from the Mistral provider.
+Please use the `textEmbeddingModel` export instead.
 
 ### OpenAI Provider: Removed `OpenAI` facade
 
