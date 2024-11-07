@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o'),
     prompt: 'Invent a new holiday and describe its traditions.',
     onFinish({ usage, finishReason, text, toolCalls, toolResults, response }) {
       console.log();
