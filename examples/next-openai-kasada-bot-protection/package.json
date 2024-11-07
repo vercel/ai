@@ -13,7 +13,7 @@
     "@vercel/functions": "latest",
     "ai": "latest",
     "next": "latest",
-    "react": "^18",
+    "react": "^19.0.0-rc-66855b96-20241106",
     "react-dom": "^18",
     "sonner": "^0.6.2"
   },
