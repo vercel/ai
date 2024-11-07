@@ -87,9 +87,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   maxRetries,
   abortSignal,
   headers,
-  maxAutomaticRoundtrips = 0,
-  maxToolRoundtrips = maxAutomaticRoundtrips,
-  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
+  maxSteps = 1,
   experimental_continuationSteps,
   experimental_continueSteps: continueSteps = experimental_continuationSteps ??
     false,
@@ -118,27 +116,6 @@ The tools that the model can call. The model needs to support calling tools.
 The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: CoreToolChoice<TOOLS>;
-
-    /**
-@deprecated Use `maxToolRoundtrips` instead.
-     */
-    maxAutomaticRoundtrips?: number;
-
-    /**
-Maximum number of automatic roundtrips for tool calls.
-
-An automatic tool call roundtrip is another LLM call with the
-tool call results when all tool calls of the last assistant
-message have results.
-
-A maximum number is required to prevent infinite loops in the
-case of misconfigured tools.
-
-By default, it's set to 0, which will disable the feature.
-
-@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
-     */
-    maxToolRoundtrips?: number;
 
     /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
@@ -634,7 +611,6 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
   readonly usage: GenerateTextResult<TOOLS>['usage'];
   readonly warnings: GenerateTextResult<TOOLS>['warnings'];
   readonly responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
-  readonly roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
   readonly steps: GenerateTextResult<TOOLS>['steps'];
   readonly rawResponse: GenerateTextResult<TOOLS>['rawResponse'];
   readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
@@ -664,7 +640,6 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.request = options.request;
     this.response = options.response;
     this.responseMessages = options.responseMessages;
-    this.roundtrips = options.steps;
     this.steps = options.steps;
     this.experimental_providerMetadata = options.providerMetadata;
 
