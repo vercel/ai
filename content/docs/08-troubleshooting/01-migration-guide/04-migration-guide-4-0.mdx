@@ -33,6 +33,11 @@ Please use the `anthropic` object or the `createAnthropic` function instead.
 The model specific `topK` setting has been removed from the Google Vertex provider.
 You can use the standard `topK` setting instead.
 
+### Mistral Provider: Removed `Mistral` facade
+
+The `Mistral` facade has been removed from the Mistral provider.
+Please use the `mistral` object or the `createMistral` function instead.
+
 ### OpenAI Provider: Removed `OpenAI` facade
 
 The `OpenAI` facade has been removed from the OpenAI provider.
@@ -54,9 +59,26 @@ The `AIStream` exports have been removed. Please use the new `streamText` functi
 
 ## AI SDK Core Changes
 
+### Remove roundtrips
+
+The `maxToolRoundtrips` and `maxAutomaticRoundtrips` options have been removed from the `generateText` and `streamText` functions.
+Please use the `maxSteps` option instead.
+
+The `roundtrips` property has been removed from the `GenerateTextResult` type.
+Please use the `steps` property instead.
+
 ### Removed `nanoid` export
 
 The `nanoid` export has been removed. Please use [`generateId`](/docs/reference/stream-helpers/generate-id) instead.
+
+### Removed `ExperimentalMessage` types
+
+The following types have been removed:
+
+- `ExperimentalMessage` (use `CoreMessage` instead)
+- `ExperimentalUserMessage` (use `CoreUserMessage` instead)
+- `ExperimentalAssistantMessage` (use `CoreAssistantMessage` instead)
+- `ExperimentalToolMessage` (use `CoreToolMessage` instead)
 
 ## AI SDK RSC Changes
 

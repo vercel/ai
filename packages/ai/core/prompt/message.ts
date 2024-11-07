@@ -40,11 +40,6 @@ export const coreSystemMessageSchema: z.ZodType<CoreSystemMessage> = z.object({
 });
 
 /**
- * @deprecated Use `CoreMessage` instead.
- */
-export type ExperimentalMessage = CoreMessage;
-
-/**
 A user message. It can contain text or a combination of text and images.
  */
 export type CoreUserMessage = {
@@ -67,11 +62,6 @@ export const coreUserMessageSchema: z.ZodType<CoreUserMessage> = z.object({
   ]),
   experimental_providerMetadata: providerMetadataSchema.optional(),
 });
-
-/**
- * @deprecated Use `CoreUserMessage` instead.
- */
-export type ExperimentalUserMessage = CoreUserMessage;
 
 /**
 Content of a user message. It can be a string or an array of text and image parts.
@@ -104,11 +94,6 @@ export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
   });
 
 /**
- * @deprecated Use `CoreAssistantMessage` instead.
- */
-export type ExperimentalAssistantMessage = CoreAssistantMessage;
-
-/**
 Content of an assistant message. It can be a string or an array of text and tool call parts.
  */
 export type AssistantContent = string | Array<TextPart | ToolCallPart>;
@@ -133,11 +118,6 @@ export const coreToolMessageSchema: z.ZodType<CoreToolMessage> = z.object({
   content: z.array(toolResultPartSchema),
   experimental_providerMetadata: providerMetadataSchema.optional(),
 });
-
-/**
- * @deprecated Use `CoreToolMessage` instead.
- */
-export type ExperimentalToolMessage = CoreToolMessage;
 
 /**
 Content of a tool message. It is an array of tool result parts.

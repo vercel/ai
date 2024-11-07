@@ -66,7 +66,7 @@ async function simulateFlightServerRender(node: React.ReactNode) {
     if (!node) return {};
 
     // Let's only do one level of promise resolution here. As it's only for testing purposes.
-    const props = await recursiveResolve({ ...node.props } || {});
+    const props = await recursiveResolve({ ...node.props });
 
     const { type } = node;
     const { children, ...otherProps } = props;
