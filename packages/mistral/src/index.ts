@@ -1,4 +1,3 @@
-export * from './mistral-facade';
 export { createMistral, mistral } from './mistral-provider';
 export type {
   MistralProvider,
