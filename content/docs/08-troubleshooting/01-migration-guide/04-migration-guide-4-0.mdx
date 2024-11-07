@@ -53,11 +53,21 @@ Prompt helpers for constructing message prompts are no longer needed with the AI
 
 Legacy providers from AI SDK 2.x have been removed. Please use the new [AI SDK provider architecture](/docs/foundations/providers-and-models) instead.
 
-### Removed 2.x `AIStream` legacy exports
+### Removed 2.x `AIStream`
 
-The `AIStream` exports have been removed. Please use the new `streamText` functions instead.
+The `AIStream` function and related exports have been removed. Please use the new `streamText` functions instead.
 
-### Remove 2.x RSC `Tokens` streaming
+### Removed 2.x `StreamingTextResponse`
+
+The `StreamingTextResponse` function has been removed. Use
+`streamText.toDataStreamResponse()` instead.
+
+### Removed 2.x `streamToResponse`
+
+The `streamToResponse` function has been removed. Use
+`pipeDataStreamToResponse` from `streamText` instead.
+
+### Removed 2.x RSC `Tokens` streaming
 
 The legacy `Tokens` RSC streaming from 2.x has been removed.
 `Tokens` were implemented prior to AI SDK RSC and are no longer needed.

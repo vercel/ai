@@ -31,5 +31,3 @@ export * from './assistant-response';
 export * as LangChainAdapter from './langchain-adapter';
 export * as LlamaIndexAdapter from './llamaindex-adapter';
 export * from './stream-data';
-export * from './stream-to-response';
-export * from './streaming-text-response';
