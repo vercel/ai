@@ -1,25 +1,25 @@
 export function prepareOutgoingHttpHeaders(
-  init: ResponseInit | undefined,
+  headers: HeadersInit | undefined,
   {
     contentType,
     dataStreamVersion,
   }: { contentType: string; dataStreamVersion?: 'v1' | undefined },
 ) {
-  const headers: Record<string, string | number | string[]> = {};
+  const outgoingHeaders: Record<string, string | number | string[]> = {};
 
-  if (init?.headers != null) {
-    for (const [key, value] of Object.entries(init.headers)) {
-      headers[key] = value;
+  if (headers != null) {
+    for (const [key, value] of Object.entries(headers)) {
+      outgoingHeaders[key] = value;
     }
   }
 
-  if (headers['Content-Type'] == null) {
-    headers['Content-Type'] = contentType;
+  if (outgoingHeaders['Content-Type'] == null) {
+    outgoingHeaders['Content-Type'] = contentType;
   }
 
   if (dataStreamVersion !== undefined) {
-    headers['X-Vercel-AI-Data-Stream'] = dataStreamVersion;
+    outgoingHeaders['X-Vercel-AI-Data-Stream'] = dataStreamVersion;
   }
 
-  return headers;
+  return outgoingHeaders;
 }

@@ -46,7 +46,7 @@ export function toDataStreamResponse(
   return new Response(responseStream, {
     status: init?.status ?? 200,
     statusText: init?.statusText,
-    headers: prepareResponseHeaders(init, {
+    headers: prepareResponseHeaders(init?.headers, {
       contentType: 'text/plain; charset=utf-8',
       dataStreamVersion: 'v1',
     }),
