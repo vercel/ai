@@ -1,5 +1,13 @@
 # @ai-sdk/ui-utils
 
+## 1.0.0-canary.4
+
+### Patch Changes
+
+- Updated dependencies [dce4158]
+- Updated dependencies [dce4158]
+  - @ai-sdk/provider-utils@2.0.0-canary.2
+
 ## 1.0.0-canary.3
 
 ### Patch Changes

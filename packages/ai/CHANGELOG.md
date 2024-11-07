@@ -1,5 +1,26 @@
 # ai
 
+## 4.0.0-canary.4
+
+### Major Changes
+
+- f0cb69d: chore (ai/core): remove experimental function exports
+- da8c609: chore (ai): remove Tokens RSC helper
+- cbab571: chore (ai): remove ExperimentalXXXMessage types
+- 60e69ed: chore (ai/core): remove ai-stream related methods from streamText
+- 073f282: chore (ai): remove AIStream and related exports
+- 545d133: chore (ai): remove deprecated roundtrip settings from streamText / generateText
+
+### Patch Changes
+
+- dce4158: chore (dependencies): update eventsource-parser to 3.0.0
+- Updated dependencies [dce4158]
+- Updated dependencies [ca3e586]
+- Updated dependencies [dce4158]
+  - @ai-sdk/provider-utils@2.0.0-canary.2
+  - @ai-sdk/react@1.0.0-canary.4
+  - @ai-sdk/ui-utils@1.0.0-canary.4
+
 ## 4.0.0-canary.3
 
 ### Patch Changes

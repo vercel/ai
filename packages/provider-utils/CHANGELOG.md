@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 2.0.0-canary.2
+
+### Patch Changes
+
+- dce4158: chore (dependencies): update eventsource-parser to 3.0.0
+- dce4158: chore (dependencies): update nanoid to 5.0.8
+
 ## 2.0.0-canary.1
 
 ### Major Changes

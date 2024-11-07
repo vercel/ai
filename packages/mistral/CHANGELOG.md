@@ -1,5 +1,17 @@
 # @ai-sdk/mistral
 
+## 1.0.0-canary.2
+
+### Major Changes
+
+- afe9283: chore (provider/mistral): remove Mistral facade
+
+### Patch Changes
+
+- Updated dependencies [dce4158]
+- Updated dependencies [dce4158]
+  - @ai-sdk/provider-utils@2.0.0-canary.2
+
 ## 1.0.0-canary.1
 
 ### Major Changes
