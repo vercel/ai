@@ -20,13 +20,12 @@ async function main() {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const { text, toolCalls, toolResults, responseMessages } =
-      await generateText({
-        model: cohere('command-r-plus'),
-        tools: { weatherTool },
-        system: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
-        messages,
-      });
+    const { text, toolCalls, toolResults, response } = await generateText({
+      model: cohere('command-r-plus'),
+      tools: { weatherTool },
+      system: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
+      messages,
+    });
 
     toolResponseAvailable = false;
 
@@ -48,7 +47,7 @@ async function main() {
 
     process.stdout.write('\n\n');
 
-    messages.push(...responseMessages);
+    messages.push(...response.messages);
 
     toolResponseAvailable = toolCalls.length > 0;
   }
