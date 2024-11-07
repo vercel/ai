@@ -1022,18 +1022,12 @@ importers:
       '@opentelemetry/api':
         specifier: 1.9.0
         version: 1.9.0
-      json-schema:
-        specifier: ^0.4.0
-        version: 0.4.0
       jsondiffpatch:
         specifier: 0.6.0
         version: 0.6.0
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
         version: 18.3.1
-      secure-json-parse:
-        specifier: ^2.7.0
-        version: 2.7.0
       zod-to-json-schema:
         specifier: ^3.23.3
         version: 3.23.3(zod@3.23.8)
