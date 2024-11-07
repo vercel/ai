@@ -1011,29 +1011,23 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../react
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../ui-utils
       '@opentelemetry/api':
         specifier: 1.9.0
         version: 1.9.0
-      json-schema:
-        specifier: ^0.4.0
-        version: 0.4.0
       jsondiffpatch:
         specifier: 0.6.0
         version: 0.6.0
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
         version: 18.3.1
-      secure-json-parse:
-        specifier: ^2.7.0
-        version: 2.7.0
       zod-to-json-schema:
         specifier: ^3.23.3
         version: 3.23.3(zod@3.23.8)
@@ -1106,13 +1100,13 @@ importers:
         version: link:../../..
       next:
         specifier: canary
-        version: 15.0.3-canary.7(@playwright/test@1.46.0)(react-dom@19.0.0-rc-33c7bd9a-20241104)(react@19.0.0-rc-33c7bd9a-20241104)
+        version: 15.0.3-canary.8(@playwright/test@1.46.0)(react-dom@19.0.0-rc-66855b96-20241106)(react@19.0.0-rc-66855b96-20241106)
       react:
         specifier: rc
-        version: 19.0.0-rc-33c7bd9a-20241104
+        version: 19.0.0-rc-66855b96-20241106
       react-dom:
         specifier: rc
-        version: 19.0.0-rc-33c7bd9a-20241104(react@19.0.0-rc-33c7bd9a-20241104)
+        version: 19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106)
 
   packages/amazon-bedrock:
     dependencies:
@@ -1120,7 +1114,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@aws-sdk/client-bedrock-runtime':
         specifier: ^3.663.0
@@ -1154,7 +1148,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1176,13 +1170,13 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.0-canary.1
+        specifier: 1.0.0-canary.2
         version: link:../openai
       '@ai-sdk/provider':
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1207,7 +1201,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1232,7 +1226,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1257,7 +1251,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@google-cloud/vertexai':
@@ -1285,7 +1279,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1310,7 +1304,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1335,7 +1329,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1413,10 +1407,10 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
@@ -1477,10 +1471,10 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../ui-utils
       solid-js:
         specifier: ^1.7.7
@@ -1529,10 +1523,10 @@ importers:
   packages/svelte:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../ui-utils
       sswr:
         specifier: ^2.1.0
@@ -1563,7 +1557,7 @@ importers:
   packages/swarm:
     dependencies:
       ai:
-        specifier: 4.0.0-canary.3
+        specifier: 4.0.0-canary.4
         version: link:../ai
       zod:
         specifier: 3.23.8
@@ -1588,7 +1582,7 @@ importers:
         specifier: 1.0.0-canary.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       json-schema:
         specifier: ^0.4.0
@@ -1625,10 +1619,10 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.1
+        specifier: 2.0.0-canary.2
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.0.0-canary.3
+        specifier: 1.0.0-canary.4
         version: link:../ui-utils
       swrv:
         specifier: ^1.0.4
@@ -6122,8 +6116,8 @@ packages:
     resolution: {integrity: sha512-c0Zr0ModK5OX7D4ZV8Jt/wqoXtitLNPwUfG9zElCZztdaZyNVnN40rDXVZ/+FGuR4CcNV5AEfM6N8f+Ener7Dg==}
     dev: false
 
-  /@next/env@15.0.3-canary.7:
-    resolution: {integrity: sha512-3ieAudx0IoGXwpVkzWGe85uWmE4/tFrC9q72vvEcfZOFKuWoJBZ9ikvSIiCiwsbAxxxlliblVS2gzJGxi7laDg==}
+  /@next/env@15.0.3-canary.8:
+    resolution: {integrity: sha512-/j1fApGbGtmhdEBGhxYQypWh1o0krJmzLI9Mr6xiNkJYreR9dDQwj4XbKuzbgOvy2sDf0dyuxTlsI0YZ0kCvfg==}
     dev: false
 
   /@next/eslint-plugin-next@14.2.3:
@@ -6149,8 +6143,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-darwin-arm64@15.0.3-canary.7:
-    resolution: {integrity: sha512-GMBqo2Uq1adN4AmFHdKf4iWJ4qiI2Rt97VZ9MzoQJINLD7q66kHM+RwwTTUsvwoICH160N0E3Tg0qgEy6tI3ZA==}
+  /@next/swc-darwin-arm64@15.0.3-canary.8:
+    resolution: {integrity: sha512-BomyJoZ2sZPzJKqf64JVMCXwfLHveXV2jrRJLoB8t3LSCJUYd8uIsD3MBOXP+HQTDfUpOj8OjGI6GkdcRsAyTQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
@@ -6176,8 +6170,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-darwin-x64@15.0.3-canary.7:
-    resolution: {integrity: sha512-zem1KcaMdHpOTLSeXNkNj9i7Z/lKI1hCcaDrkY8FzgJmQmFxKUsm/VJ+EdzqeNi5RXh3vNNq7FlWmwXTzj/aWA==}
+  /@next/swc-darwin-x64@15.0.3-canary.8:
+    resolution: {integrity: sha512-zThLQVFOBam+v40Nm99nz4iYCk/XkNaYHYV4mldYHhlq21qY8mlnKBDC+S+ndVYdVbImrljKHxQvd0SNZiFb7w==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
@@ -6203,8 +6197,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-arm64-gnu@15.0.3-canary.7:
-    resolution: {integrity: sha512-rw1V3fraOELjSJ7d+SxUmlrjIktxVO8JTXwSvJVlC4os3QZUXZKiZlTnV6SgecFmyx1MotBxebYAAfkl6gSpHA==}
+  /@next/swc-linux-arm64-gnu@15.0.3-canary.8:
+    resolution: {integrity: sha512-8x6BM5ehsqxYsasziBLNecGQxHhB4338PDlCdhSs3NxzAHednRivkWEml3J0R3Nvhofa/m9jYYOJB4tnLMd3HA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -6230,8 +6224,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-arm64-musl@15.0.3-canary.7:
-    resolution: {integrity: sha512-/g3PWa3r2wXgqhvqhx/gVIr8loydQidEej5g2PcKPevR+r+xE7MD4w9OGEDv8scsoj4iiODQJ+Xifilb33IaZg==}
+  /@next/swc-linux-arm64-musl@15.0.3-canary.8:
+    resolution: {integrity: sha512-FQImuLu88+2C+BRcEU3wj1EPKzRya7EzEVInVhL/w/qxxYAuoRf0qq/oTTZEPlddPRD581s8MZDUy+M7w7zJnQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -6257,8 +6251,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-x64-gnu@15.0.3-canary.7:
-    resolution: {integrity: sha512-a7vmMOcf84sjAh461btalo2flRblkP8yC1ksohg4lZRm+ckxfGxuEJgFlokse/DQDAwRRLJvbt7R4C5udSgBMg==}
+  /@next/swc-linux-x64-gnu@15.0.3-canary.8:
+    resolution: {integrity: sha512-JFWKJ/IyFvTZqZP/J/nHKo4yMx+Swz0SxV8HEsm5EL+s0P1k5l1Ev1u8vWZyNG2kIOSHyya8QJqAcsw0uQuRWw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -6284,8 +6278,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-x64-musl@15.0.3-canary.7:
-    resolution: {integrity: sha512-kYablMfuR9xY0ueEIXP5yRDft5MDdvV5J4rAu8mKCGB5s1Tglx212xg38f/BEk1tjR4R1IVuSyZ3oJ7TlxfaYw==}
+  /@next/swc-linux-x64-musl@15.0.3-canary.8:
+    resolution: {integrity: sha512-JINuRcv7aDCJXspr3qejIAflxSIyJhAPKE+pbnNuPtCdNySh94EuCNkOXyGzJ9tL4BllMl7kFCdPmDUucKl97g==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -6311,8 +6305,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-win32-arm64-msvc@15.0.3-canary.7:
-    resolution: {integrity: sha512-aouGO9vQx2apnJhBSd03JVW6k+FKFODhs2D9A5Rz6jrbQSWr8m+nacn/5wlUWLa2Aww7u79cE7Suweel9qr8Jg==}
+  /@next/swc-win32-arm64-msvc@15.0.3-canary.8:
+    resolution: {integrity: sha512-/IwuuDx7v8RRfXNgm+lcaYmfuajz0imtXiyjrB4vzM8zKpg1RKf/fGg8kEnf/a9V0cLVhZHjGoCfr9hGGSv8yA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
@@ -6347,8 +6341,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-win32-x64-msvc@15.0.3-canary.7:
-    resolution: {integrity: sha512-1+8BdbpyvJwAVI/FNEA+ikVd0JT/K21oMW85TVKHrpmxjipe2QUmlblgmmgjWR1OEJr51XQJ87X+DiJFptCA1A==}
+  /@next/swc-win32-x64-msvc@15.0.3-canary.8:
+    resolution: {integrity: sha512-iLMVslgcoLga7eBTI4/axE3CdGzg8LoFNl2MNX3E71KhElt09UNpDuP88X50dRBMJBMszCy/cjXW3K19I1y29A==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -19232,8 +19226,8 @@ packages:
       - babel-plugin-macros
     dev: false
 
-  /next@15.0.3-canary.7(@playwright/test@1.46.0)(react-dom@19.0.0-rc-33c7bd9a-20241104)(react@19.0.0-rc-33c7bd9a-20241104):
-    resolution: {integrity: sha512-+4dPrCnz6WJpAcRSRlBYUnxOqABVb1RhlR+3w8oAqHFOyCoTKYoklsjHrxj80PHuR5edgR2Zzq95LbwqibxJ2A==}
+  /next@15.0.3-canary.8(@playwright/test@1.46.0)(react-dom@19.0.0-rc-66855b96-20241106)(react@19.0.0-rc-66855b96-20241106):
+    resolution: {integrity: sha512-DhUP16iF/GfMxfSylDhbJxqO6XP5PBk5Eym+mn+4V/Wa9xcw6G+MYmXqVoBJZiR9OkZd3jY49DxmTGKd8ktjzw==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
     hasBin: true
     peerDependencies:
@@ -19253,25 +19247,25 @@ packages:
       sass:
         optional: true
     dependencies:
-      '@next/env': 15.0.3-canary.7
+      '@next/env': 15.0.3-canary.8
       '@playwright/test': 1.46.0
       '@swc/counter': 0.1.3
       '@swc/helpers': 0.5.13
       busboy: 1.6.0
       caniuse-lite: 1.0.30001666
       postcss: 8.4.31
-      react: 19.0.0-rc-33c7bd9a-20241104
-      react-dom: 19.0.0-rc-33c7bd9a-20241104(react@19.0.0-rc-33c7bd9a-20241104)
-      styled-jsx: 5.1.6(react@19.0.0-rc-33c7bd9a-20241104)
+      react: 19.0.0-rc-66855b96-20241106
+      react-dom: 19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106)
+      styled-jsx: 5.1.6(react@19.0.0-rc-66855b96-20241106)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 15.0.3-canary.7
-      '@next/swc-darwin-x64': 15.0.3-canary.7
-      '@next/swc-linux-arm64-gnu': 15.0.3-canary.7
-      '@next/swc-linux-arm64-musl': 15.0.3-canary.7
-      '@next/swc-linux-x64-gnu': 15.0.3-canary.7
-      '@next/swc-linux-x64-musl': 15.0.3-canary.7
-      '@next/swc-win32-arm64-msvc': 15.0.3-canary.7
-      '@next/swc-win32-x64-msvc': 15.0.3-canary.7
+      '@next/swc-darwin-arm64': 15.0.3-canary.8
+      '@next/swc-darwin-x64': 15.0.3-canary.8
+      '@next/swc-linux-arm64-gnu': 15.0.3-canary.8
+      '@next/swc-linux-arm64-musl': 15.0.3-canary.8
+      '@next/swc-linux-x64-gnu': 15.0.3-canary.8
+      '@next/swc-linux-x64-musl': 15.0.3-canary.8
+      '@next/swc-win32-arm64-msvc': 15.0.3-canary.8
+      '@next/swc-win32-x64-msvc': 15.0.3-canary.8
       sharp: 0.33.5
     transitivePeerDependencies:
       - '@babel/core'
@@ -20604,6 +20598,23 @@ packages:
       yaml: 2.5.0
     dev: true
 
+  /postcss-load-config@4.0.2(postcss@8.4.47):
+    resolution: {integrity: sha512-bSVhyJGL00wMVoPUzAVAnbEoWyqRxkjv64tUl427SKnPrENtq6hJwUojroMz2VB+Q1edmi4IfrAPpami5VVgMQ==}
+    engines: {node: '>= 14'}
+    peerDependencies:
+      postcss: '>=8.0.9'
+      ts-node: '>=9.0.0'
+    peerDependenciesMeta:
+      postcss:
+        optional: true
+      ts-node:
+        optional: true
+    dependencies:
+      lilconfig: 3.1.2
+      postcss: 8.4.47
+      yaml: 2.5.0
+    dev: true
+
   /postcss-load-config@6.0.1:
     resolution: {integrity: sha512-oPtTM4oerL+UXmx+93ytZVN82RrlY/wPUV8IeDxFrzIjXOLF1pN+EmKPLbubvKHT2HC20xXsCAH2Z+CKV6Oz/g==}
     engines: {node: '>= 18'}
@@ -21213,13 +21224,13 @@ packages:
       react: 18.3.1
       scheduler: 0.23.2
 
-  /react-dom@19.0.0-rc-33c7bd9a-20241104(react@19.0.0-rc-33c7bd9a-20241104):
-    resolution: {integrity: sha512-aqHzKcC69Wj46yl854PaBinBzcivb9HAApmKbpEj/nFonpjgXpgHoTQDtpzcbnl/j9G88dziszm9TsFSKBDOIA==}
+  /react-dom@19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106):
+    resolution: {integrity: sha512-D25vdaytZ1wFIRiwNU98NPQ/upS2P8Co4/oNoa02PzHbh8deWdepjm5qwZM/46OdSiGv4WSWwxP55RO9obqJEQ==}
     peerDependencies:
-      react: 19.0.0-rc-33c7bd9a-20241104
+      react: 19.0.0-rc-66855b96-20241106
     dependencies:
-      react: 19.0.0-rc-33c7bd9a-20241104
-      scheduler: 0.25.0-rc-33c7bd9a-20241104
+      react: 19.0.0-rc-66855b96-20241106
+      scheduler: 0.25.0-rc-66855b96-20241106
     dev: false
 
   /react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607):
@@ -21297,8 +21308,8 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /react@19.0.0-rc-33c7bd9a-20241104:
-    resolution: {integrity: sha512-HssE7oCtchydtLiQ5GvbZmH4rbi9Jq1jGRAFivnbMSRx9Tu6tdDioOcdTQqOIHslUFmMmbPh1gUGMIhPtQ1PhA==}
+  /react@19.0.0-rc-66855b96-20241106:
+    resolution: {integrity: sha512-klH7xkT71SxRCx4hb1hly5FJB21Hz0ACyxbXYAECEqssUjtJeFUAaI2U1DgJAzkGEnvEm3DkxuBchMC/9K4ipg==}
     engines: {node: '>=0.10.0'}
     dev: false
 
@@ -21837,8 +21848,8 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /scheduler@0.25.0-rc-33c7bd9a-20241104:
-    resolution: {integrity: sha512-brsBJz8VQV4KU/AjYz77UVSAwisgxgDfISvnxkhYSgcvtIG2At2rW5Ggqj67kN8nUvncwYCm7XQ3gW8kv9QMDA==}
+  /scheduler@0.25.0-rc-66855b96-20241106:
+    resolution: {integrity: sha512-HQXp/Mnp/MMRSXMQF7urNFla+gmtXW/Gr1KliuR0iboTit4KvZRY8KYaq5ccCTAOJiUqQh2rE2F3wgUekmgdlA==}
     dev: false
 
   /scheduler@0.25.0-rc-cc1ec60d0d-20240607:
@@ -22639,7 +22650,7 @@ packages:
       react: 18.3.1
     dev: false
 
-  /styled-jsx@5.1.6(react@19.0.0-rc-33c7bd9a-20241104):
+  /styled-jsx@5.1.6(react@19.0.0-rc-66855b96-20241106):
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
     engines: {node: '>= 12.0.0'}
     peerDependencies:
@@ -22653,7 +22664,7 @@ packages:
         optional: true
     dependencies:
       client-only: 0.0.1
-      react: 19.0.0-rc-33c7bd9a-20241104
+      react: 19.0.0-rc-66855b96-20241106
     dev: false
 
   /styled-jsx@5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607):
@@ -23552,7 +23563,7 @@ packages:
       execa: 5.1.1
       globby: 11.1.0
       joycon: 3.1.1
-      postcss-load-config: 4.0.2(postcss@8.4.41)
+      postcss-load-config: 4.0.2(postcss@8.4.47)
       resolve-from: 5.0.0
       rollup: 3.29.4
       source-map: 0.8.0-beta.0
