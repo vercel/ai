@@ -1584,12 +1584,6 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 2.0.0-canary.2
         version: link:../provider-utils
-      json-schema:
-        specifier: ^0.4.0
-        version: 0.4.0
-      secure-json-parse:
-        specifier: ^2.7.0
-        version: 2.7.0
       zod-to-json-schema:
         specifier: ^3.23.3
         version: 3.23.3(zod@3.23.8)
@@ -20598,23 +20592,6 @@ packages:
       yaml: 2.5.0
     dev: true
 
-  /postcss-load-config@4.0.2(postcss@8.4.47):
-    resolution: {integrity: sha512-bSVhyJGL00wMVoPUzAVAnbEoWyqRxkjv64tUl427SKnPrENtq6hJwUojroMz2VB+Q1edmi4IfrAPpami5VVgMQ==}
-    engines: {node: '>= 14'}
-    peerDependencies:
-      postcss: '>=8.0.9'
-      ts-node: '>=9.0.0'
-    peerDependenciesMeta:
-      postcss:
-        optional: true
-      ts-node:
-        optional: true
-    dependencies:
-      lilconfig: 3.1.2
-      postcss: 8.4.47
-      yaml: 2.5.0
-    dev: true
-
   /postcss-load-config@6.0.1:
     resolution: {integrity: sha512-oPtTM4oerL+UXmx+93ytZVN82RrlY/wPUV8IeDxFrzIjXOLF1pN+EmKPLbubvKHT2HC20xXsCAH2Z+CKV6Oz/g==}
     engines: {node: '>= 18'}
@@ -23563,7 +23540,7 @@ packages:
       execa: 5.1.1
       globby: 11.1.0
       joycon: 3.1.1
-      postcss-load-config: 4.0.2(postcss@8.4.47)
+      postcss-load-config: 4.0.2(postcss@8.4.41)
       resolve-from: 5.0.0
       rollup: 3.29.4
       source-map: 0.8.0-beta.0
