@@ -1419,8 +1419,3 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 }
-
-/**
- * @deprecated Use `streamText` instead.
- */
-export const experimental_streamText = streamText;

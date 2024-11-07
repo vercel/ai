@@ -771,8 +771,3 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     });
   }
 }
-
-/**
- * @deprecated Use `generateObject` instead.
- */
-export const experimental_generateObject = generateObject;
