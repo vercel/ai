@@ -650,8 +650,3 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.logprobs = options.logprobs;
   }
 }
-
-/**
- * @deprecated Use `generateText` instead.
- */
-export const experimental_generateText = generateText;
