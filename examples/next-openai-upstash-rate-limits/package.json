@@ -23,7 +23,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",
-    "eslint": "^7.32.0",
+    "eslint": "^9.14.0",
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.23",
     "tailwindcss": "^3.3.2",
