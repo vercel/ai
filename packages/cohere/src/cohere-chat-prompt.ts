@@ -19,6 +19,7 @@ export interface CohereUserMessage {
 export interface CohereAssistantMessage {
   role: 'assistant';
   content: string | undefined;
+  tool_plan: string | undefined;
   tool_calls:
     | Array<{
         id: string;
