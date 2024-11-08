@@ -7,10 +7,7 @@ export * from './embedding-model';
 export * from './language-model';
 
 export type { LanguageModelRequestMetadata } from './language-model-request-metadata';
-export type {
-  LanguageModelResponseMetadata,
-  LanguageModelResponseMetadataWithHeaders,
-} from './language-model-response-metadata';
+export type { LanguageModelResponseMetadata } from './language-model-response-metadata';
 
 export type { Provider } from './provider';
 export type { ProviderMetadata } from './provider-metadata';
