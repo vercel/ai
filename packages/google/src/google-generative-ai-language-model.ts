@@ -89,7 +89,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       // standardized settings:
       maxOutputTokens: maxTokens,
       temperature,
-      topK: topK ?? this.settings.topK,
+      topK,
       topP,
       frequencyPenalty,
       presencePenalty,
