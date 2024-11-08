@@ -127,11 +127,11 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: latest
-        version: 0.0.72(zod@3.23.8)
+        specifier: 1.0.0-canary.3
+        version: 1.0.0-canary.3(zod@3.23.8)
       ai:
-        specifier: latest
-        version: 3.4.33(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(solid-js@1.8.17)(sswr@2.1.0(svelte@4.2.18))(svelte@4.2.18)(vue@3.5.10(typescript@5.6.3))(zod@3.23.8)
+        specifier: 4.0.0-canary.8
+        version: 4.0.0-canary.8(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
@@ -155,11 +155,11 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: latest
-        version: 0.0.72(zod@3.23.8)
+        specifier: 1.0.0-canary.3
+        version: 1.0.0-canary.3(zod@3.23.8)
       ai:
-        specifier: latest
-        version: 3.4.33(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(solid-js@1.8.17)(sswr@2.1.0(svelte@4.2.18))(svelte@4.2.18)(vue@3.5.10(typescript@5.6.3))(zod@3.23.8)
+        specifier: 4.0.0-canary.8
+        version: 4.0.0-canary.8(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
@@ -180,14 +180,14 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: latest
-        version: 0.0.72(zod@3.23.8)
+        specifier: 1.0.0-canary.3
+        version: 1.0.0-canary.3(zod@3.23.8)
       '@hono/node-server':
         specifier: 1.12.2
         version: 1.12.2(hono@4.5.11)
       ai:
-        specifier: latest
-        version: 3.4.33(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(solid-js@1.8.17)(sswr@2.1.0(svelte@4.2.18))(svelte@4.2.18)(vue@3.5.10(typescript@5.6.3))(zod@3.23.8)
+        specifier: 4.0.0-canary.8
+        version: 4.0.0-canary.8(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
@@ -208,8 +208,8 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: latest
-        version: 0.0.72(zod@3.23.8)
+        specifier: 1.0.0-canary.3
+        version: 1.0.0-canary.3(zod@3.23.8)
       '@nestjs/common':
         specifier: ^10.0.0
         version: 10.4.2(reflect-metadata@0.2.2)(rxjs@7.8.1)
@@ -220,8 +220,8 @@ importers:
         specifier: ^10.0.0
         version: 10.4.2(@nestjs/common@10.4.2(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)
       ai:
-        specifier: latest
-        version: 3.4.33(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(solid-js@1.8.17)(sswr@2.1.0(svelte@4.2.18))(svelte@4.2.18)(vue@3.5.10(typescript@5.5.4))(zod@3.23.8)
+        specifier: 4.0.0-canary.8
+        version: 4.0.0-canary.8(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)
       reflect-metadata:
         specifier: ^0.2.0
         version: 0.2.2
@@ -296,11 +296,11 @@ importers:
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/ui-utils':
-        specifier: latest
-        version: 0.0.50(zod@3.23.8)
+        specifier: 1.0.0-canary.6
+        version: 1.0.0-canary.6(zod@3.23.8)
       ai:
-        specifier: latest
-        version: 3.4.33(openai@4.52.6)(react@18.2.0)(solid-js@1.8.17)(sswr@2.1.0(svelte@4.2.18))(svelte@4.2.18)(vue@3.5.10(typescript@5.6.3))(zod@3.23.8)
+        specifier: 4.0.0-canary.8
+        version: 4.0.0-canary.8(openai@4.52.6)(react@18.2.0)(zod@3.23.8)
       geist:
         specifier: ^1.3.1
         version: 1.3.1(next@15.0.3(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))
@@ -348,8 +348,8 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/react':
-        specifier: latest
-        version: 0.0.70(react@18.2.0)(zod@3.23.8)
+        specifier: 1.0.0-canary.6
+        version: 1.0.0-canary.6(react@18.2.0)(zod@3.23.8)
       '@langchain/core':
         specifier: 0.1.63
         version: 0.1.63(openai@4.52.6)
@@ -357,8 +357,8 @@ importers:
         specifier: 0.0.28
         version: 0.0.28
       ai:
-        specifier: latest
-        version: 3.4.33(openai@4.52.6)(react@18.2.0)(solid-js@1.8.17)(sswr@2.1.0(svelte@4.2.18))(svelte@4.2.18)(vue@3.5.10(typescript@5.6.3))(zod@3.23.8)
+        specifier: 4.0.0-canary.8
+        version: 4.0.0-canary.8(openai@4.52.6)(react@18.2.0)(zod@3.23.8)
       langchain:
         specifier: 0.1.36
         version: 0.1.36(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-runtime@3.663.0)(@aws-sdk/credential-provider-node@3.662.0(@aws-sdk/client-sts@3.662.0))(@smithy/util-utf8@2.3.0)(@upstash/redis@1.34.3)(@vercel/kv@0.2.4)(fast-xml-parser@4.4.1)(ignore@5.3.2)(ioredis@5.4.1)(jsdom@24.0.0)(lodash@4.17.21)(openai@4.52.6)(playwright@1.46.0)(ws@8.18.0)
@@ -13876,6 +13876,16 @@ snapshots:
       react: 19.0.0-rc-cc1ec60d0d-20240607
       zod: 3.23.8
 
+  '@ai-sdk/react@1.0.0-canary.6(react@18.2.0)(zod@3.23.8)':
+    dependencies:
+      '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
+      '@ai-sdk/ui-utils': 1.0.0-canary.6(zod@3.23.8)
+      swr: 2.2.5(react@18.2.0)
+      throttleit: 2.1.0
+    optionalDependencies:
+      react: 18.2.0
+      zod: 3.23.8
+
   '@ai-sdk/react@1.0.0-canary.6(react@18.3.1)(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
@@ -13972,16 +13982,6 @@ snapshots:
       swrv: 1.0.4(vue@3.5.10(typescript@5.4.5))
     optionalDependencies:
       vue: 3.5.10(typescript@5.4.5)
-    transitivePeerDependencies:
-      - zod
-
-  '@ai-sdk/vue@0.0.59(vue@3.5.10(typescript@5.5.4))(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
-      '@ai-sdk/ui-utils': 0.0.50(zod@3.23.8)
-      swrv: 1.0.4(vue@3.5.10(typescript@5.5.4))
-    optionalDependencies:
-      vue: 3.5.10(typescript@5.5.4)
     transitivePeerDependencies:
       - zod
 
@@ -19704,12 +19704,6 @@ snapshots:
       '@vue/shared': 3.5.10
       vue: 3.5.10(typescript@5.4.5)
 
-  '@vue/server-renderer@3.5.10(vue@3.5.10(typescript@5.5.4))':
-    dependencies:
-      '@vue/compiler-ssr': 3.5.10
-      '@vue/shared': 3.5.10
-      vue: 3.5.10(typescript@5.5.4)
-
   '@vue/server-renderer@3.5.10(vue@3.5.10(typescript@5.6.3))':
     dependencies:
       '@vue/compiler-ssr': 3.5.10
@@ -19997,31 +19991,6 @@ snapshots:
       - solid-js
       - vue
 
-  ai@3.4.33(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(solid-js@1.8.17)(sswr@2.1.0(svelte@4.2.18))(svelte@4.2.18)(vue@3.5.10(typescript@5.5.4))(zod@3.23.8):
-    dependencies:
-      '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
-      '@ai-sdk/react': 0.0.70(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)
-      '@ai-sdk/solid': 0.0.54(solid-js@1.8.17)(zod@3.23.8)
-      '@ai-sdk/svelte': 0.0.57(svelte@4.2.18)(zod@3.23.8)
-      '@ai-sdk/ui-utils': 0.0.50(zod@3.23.8)
-      '@ai-sdk/vue': 0.0.59(vue@3.5.10(typescript@5.5.4))(zod@3.23.8)
-      '@opentelemetry/api': 1.9.0
-      eventsource-parser: 1.1.2
-      json-schema: 0.4.0
-      jsondiffpatch: 0.6.0
-      secure-json-parse: 2.7.0
-      zod-to-json-schema: 3.23.3(zod@3.23.8)
-    optionalDependencies:
-      openai: 4.52.6
-      react: 19.0.0-rc-cc1ec60d0d-20240607
-      sswr: 2.1.0(svelte@4.2.18)
-      svelte: 4.2.18
-      zod: 3.23.8
-    transitivePeerDependencies:
-      - solid-js
-      - vue
-
   ai@3.4.33(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(solid-js@1.8.17)(sswr@2.1.0(svelte@4.2.18))(svelte@4.2.18)(vue@3.5.10(typescript@5.6.3))(zod@3.23.8):
     dependencies:
       '@ai-sdk/provider': 0.0.26
@@ -20071,6 +20040,20 @@ snapshots:
     transitivePeerDependencies:
       - solid-js
       - vue
+
+  ai@4.0.0-canary.8(openai@4.52.6)(react@18.2.0)(zod@3.23.8):
+    dependencies:
+      '@ai-sdk/provider': 1.0.0-canary.0
+      '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
+      '@ai-sdk/react': 1.0.0-canary.6(react@18.2.0)(zod@3.23.8)
+      '@ai-sdk/ui-utils': 1.0.0-canary.6(zod@3.23.8)
+      '@opentelemetry/api': 1.9.0
+      jsondiffpatch: 0.6.0
+      zod-to-json-schema: 3.23.3(zod@3.23.8)
+    optionalDependencies:
+      openai: 4.52.6
+      react: 18.2.0
+      zod: 3.23.8
 
   ai@4.0.0-canary.8(openai@4.52.6)(react@18.3.1)(zod@3.23.8):
     dependencies:
@@ -27710,10 +27693,6 @@ snapshots:
     dependencies:
       vue: 3.5.10(typescript@5.4.5)
 
-  swrv@1.0.4(vue@3.5.10(typescript@5.5.4)):
-    dependencies:
-      vue: 3.5.10(typescript@5.5.4)
-
   swrv@1.0.4(vue@3.5.10(typescript@5.6.3)):
     dependencies:
       vue: 3.5.10(typescript@5.6.3)
@@ -29248,16 +29227,6 @@ snapshots:
       '@vue/shared': 3.5.10
     optionalDependencies:
       typescript: 5.4.5
-
-  vue@3.5.10(typescript@5.5.4):
-    dependencies:
-      '@vue/compiler-dom': 3.5.10
-      '@vue/compiler-sfc': 3.5.10
-      '@vue/runtime-dom': 3.5.10
-      '@vue/server-renderer': 3.5.10(vue@3.5.10(typescript@5.5.4))
-      '@vue/shared': 3.5.10
-    optionalDependencies:
-      typescript: 5.5.4
 
   vue@3.5.10(typescript@5.6.3):
     dependencies:
