@@ -51,25 +51,6 @@ Converts LangChain output streams to AIStream.
 The following streams are supported:
 - `LangChainAIMessageChunk` streams (LangChain `model.stream` output)
 - `string` streams (LangChain `StringOutputParser` output)
-
-@deprecated Use `toDataStream` instead.
- */
-export function toAIStream(
-  stream:
-    | ReadableStream<LangChainStreamEvent>
-    | ReadableStream<LangChainAIMessageChunk>
-    | ReadableStream<string>,
-  callbacks?: StreamCallbacks,
-) {
-  return toDataStream(stream, callbacks);
-}
-
-/**
-Converts LangChain output streams to AIStream.
-
-The following streams are supported:
-- `LangChainAIMessageChunk` streams (LangChain `model.stream` output)
-- `string` streams (LangChain `StringOutputParser` output)
  */
 export function toDataStream(
   stream:
