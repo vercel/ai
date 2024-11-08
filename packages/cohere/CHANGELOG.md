@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 1.0.0-canary.4
+
+### Patch Changes
+
+- 3fc69d6: feat (provider/cohere): Pass along tool-plan response content.
+
 ## 1.0.0-canary.3
 
 ### Patch Changes
