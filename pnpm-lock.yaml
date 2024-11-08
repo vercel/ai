@@ -60,32 +60,32 @@ importers:
   examples/ai-core:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: latest
-        version: 0.0.36(zod@3.23.8)
+        specifier: 1.0.0-canary.3
+        version: 1.0.0-canary.3(zod@3.23.8)
       '@ai-sdk/anthropic':
-        specifier: latest
-        version: 0.0.56(zod@3.23.8)
+        specifier: 1.0.0-canary.4
+        version: 1.0.0-canary.4(zod@3.23.8)
       '@ai-sdk/azure':
-        specifier: latest
-        version: 0.0.52(zod@3.23.8)
+        specifier: 1.0.0-canary.3
+        version: 1.0.0-canary.3(zod@3.23.8)
       '@ai-sdk/cohere':
-        specifier: latest
-        version: 0.0.28(zod@3.23.8)
+        specifier: 1.0.0-canary.4
+        version: 1.0.0-canary.4(zod@3.23.8)
       '@ai-sdk/google':
-        specifier: latest
-        version: 0.0.55(zod@3.23.8)
+        specifier: 1.0.0-canary.4
+        version: 1.0.0-canary.4(zod@3.23.8)
       '@ai-sdk/google-vertex':
-        specifier: latest
-        version: 0.0.43(@google-cloud/vertexai@1.8.1)(zod@3.23.8)
+        specifier: 1.0.0-canary.3
+        version: 1.0.0-canary.3(@google-cloud/vertexai@1.8.1)(zod@3.23.8)
       '@ai-sdk/groq':
-        specifier: latest
-        version: 0.0.3(zod@3.23.8)
+        specifier: 1.0.0-canary.3
+        version: 1.0.0-canary.3(zod@3.23.8)
       '@ai-sdk/mistral':
-        specifier: latest
-        version: 0.0.46(zod@3.23.8)
+        specifier: 1.0.0-canary.3
+        version: 1.0.0-canary.3(zod@3.23.8)
       '@ai-sdk/openai':
-        specifier: latest
-        version: 0.0.72(zod@3.23.8)
+        specifier: 1.0.0-canary.3
+        version: 1.0.0-canary.3(zod@3.23.8)
       '@google/generative-ai':
         specifier: 0.21.0
         version: 0.21.0
@@ -99,8 +99,8 @@ importers:
         specifier: 1.25.0
         version: 1.25.0(@opentelemetry/api@1.9.0)
       ai:
-        specifier: latest
-        version: 3.4.33(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(solid-js@1.8.17)(sswr@2.1.0(svelte@4.2.18))(svelte@4.2.18)(vue@3.5.10(typescript@5.6.3))(zod@3.23.8)
+        specifier: 4.0.0-canary.8
+        version: 4.0.0-canary.8(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
@@ -403,20 +403,20 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: latest
-        version: 0.0.72(zod@3.23.8)
+        specifier: 1.0.0-canary.3
+        version: 1.0.0-canary.3(zod@3.23.8)
       '@ai-sdk/react':
-        specifier: latest
-        version: 0.0.70(react@18.3.1)(zod@3.23.8)
+        specifier: 1.0.0-canary.6
+        version: 1.0.0-canary.6(react@18.3.1)(zod@3.23.8)
       '@ai-sdk/ui-utils':
-        specifier: latest
-        version: 0.0.50(zod@3.23.8)
+        specifier: 1.0.0-canary.6
+        version: 1.0.0-canary.6(zod@3.23.8)
       '@vercel/blob':
         specifier: ^0.23.4
         version: 0.23.4
       ai:
-        specifier: latest
-        version: 3.4.33(openai@4.52.6)(react@18.3.1)(solid-js@1.8.17)(sswr@2.1.0(svelte@4.2.18))(svelte@4.2.18)(vue@3.5.10(typescript@5.6.3))(zod@3.23.8)
+        specifier: 4.0.0-canary.8
+        version: 4.0.0-canary.8(openai@4.52.6)(react@18.3.1)(zod@3.23.8)
       next:
         specifier: latest
         version: 15.0.3(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1666,8 +1666,8 @@ packages:
   '@adobe/css-tools@4.4.0':
     resolution: {integrity: sha512-Ff9+ksdQQB3rMncgqDK78uLznstjyfIf2Arnh22pW8kBpLs6rpKDwgnZT46hin5Hl1WzazzK64DOrhSwYpS7bQ==}
 
-  '@ai-sdk/amazon-bedrock@0.0.36':
-    resolution: {integrity: sha512-xHAx3d2bmq/OVrcBSW4gEsRHIyexEgGOWjQUwuEd+RC02cU+q0GivWd2Se+6nTlkg6G/q4mZ+R9s3a2qwH3bsg==}
+  '@ai-sdk/amazon-bedrock@1.0.0-canary.3':
+    resolution: {integrity: sha512-J5N3fVv0LUqiDFzoyGoBuqm7U0cv7FJQur8gdpF+JpE5K5izf1tMGeC4/T4EK7mtJ0UV6JjFPKg+2qVl0AVXqA==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
@@ -1678,14 +1678,20 @@ packages:
     peerDependencies:
       zod: ^3.0.0
 
-  '@ai-sdk/azure@0.0.52':
-    resolution: {integrity: sha512-l0XHiQymgQbzIe6dilTBD6wI4iom+Lo7yHGQVzEIq2o43/4zHDL+m7k5UCPoF0nrl5lFJk3u5+crOhSGprT7ZA==}
+  '@ai-sdk/anthropic@1.0.0-canary.4':
+    resolution: {integrity: sha512-AjHyJ3V0Ust1ljWx1vzBl4H5Bv4W9Ns/E7ruzpT+o/NPu6E7Wzz3FLX5w40vaxoFePJhhashuboFf4Kj+1kHjA==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
 
-  '@ai-sdk/cohere@0.0.28':
-    resolution: {integrity: sha512-aWavC7PuC5AcDcwTBcvx2ZemudtjPaZvLDmcVjiIhzvvW2+zoHoWmERD8CtSWIMlQp/vjdTcwNhSXTOqfxm27A==}
+  '@ai-sdk/azure@1.0.0-canary.3':
+    resolution: {integrity: sha512-tL3Yn+wroIbJ+oB7s97L+WO2npr5dxIxz5jZKM2IZ6a4nZ6Gz9Lxxs5YupcoOiAV0f2c+OZWUlqcizjej3hAAA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.0.0
+
+  '@ai-sdk/cohere@1.0.0-canary.4':
+    resolution: {integrity: sha512-zbZ5WJLmbEY6V3qjOjYBravGXIBu+3rG5GaKYr9e/HTsmlfkOKdzeU1m41X7ib4E69DOg/VMTt0CVK17Dx+8eA==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
@@ -1697,8 +1703,21 @@ packages:
       '@google-cloud/vertexai': ^1.6.0
       zod: ^3.0.0
 
+  '@ai-sdk/google-vertex@1.0.0-canary.3':
+    resolution: {integrity: sha512-cEePdfgej82B7cf6iBN7jAeAAnOx5nBIuQCBxfQ6rcnFMZSv4Xkq2KzedYs9vzTJAE+z71ktxaiSRF/qJ5QkSw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@google-cloud/vertexai': ^1.6.0
+      zod: ^3.0.0
+
   '@ai-sdk/google@0.0.55':
     resolution: {integrity: sha512-dvEMS8Ex2H0OeuFBiT4Q1Kfrxi1ckjooy/PazNLjRQ3w9o9VQq4O24eMQGCuW1Z47qgMdXjhDzsH6qD0HOX6Cw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.0.0
+
+  '@ai-sdk/google@1.0.0-canary.4':
+    resolution: {integrity: sha512-8Q8hobs+/x5taZ2lE/pwMDHgIPxZNGl7yfCZc4cekO0Ra9JEwApZFEPrePT5cAT+n3/e6Gq+CYTE2CvfbKINlg==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
@@ -1709,8 +1728,20 @@ packages:
     peerDependencies:
       zod: ^3.0.0
 
+  '@ai-sdk/groq@1.0.0-canary.3':
+    resolution: {integrity: sha512-Q38Fo+hrEfyVBuYPuNHUcYQKV6CusY17thnr5IIbGCLgd/Meoc8QYdekuNfRhrhcNn/Dp/SVRCgJ6gZheQVoAg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.0.0
+
   '@ai-sdk/mistral@0.0.46':
     resolution: {integrity: sha512-WP39TqxdUR3WgFnW+k1OgOTmH7FYzNWPkn+x9gJ9/JU/TEZGyEpylk11N4nakN9jLeuJSXhqbG2exooQUX2M/g==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.0.0
+
+  '@ai-sdk/mistral@1.0.0-canary.3':
+    resolution: {integrity: sha512-JZ96tdKQCg0MS5drdat+bB0hVrCLQ+zHulyQHeerZ0tjVwQ8GcOF8qgbLkdopwYgPnZv0znPCtZZUHCV2r0L3w==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
@@ -13693,10 +13724,10 @@ snapshots:
 
   '@adobe/css-tools@4.4.0': {}
 
-  '@ai-sdk/amazon-bedrock@0.0.36(zod@3.23.8)':
+  '@ai-sdk/amazon-bedrock@1.0.0-canary.3(zod@3.23.8)':
     dependencies:
-      '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      '@ai-sdk/provider': 1.0.0-canary.0
+      '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
       '@aws-sdk/client-bedrock-runtime': 3.663.0
       zod: 3.23.8
     transitivePeerDependencies:
@@ -13708,17 +13739,23 @@ snapshots:
       '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
       zod: 3.23.8
 
-  '@ai-sdk/azure@0.0.52(zod@3.23.8)':
+  '@ai-sdk/anthropic@1.0.0-canary.4(zod@3.23.8)':
     dependencies:
-      '@ai-sdk/openai': 0.0.72(zod@3.23.8)
-      '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      '@ai-sdk/provider': 1.0.0-canary.0
+      '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
       zod: 3.23.8
 
-  '@ai-sdk/cohere@0.0.28(zod@3.23.8)':
+  '@ai-sdk/azure@1.0.0-canary.3(zod@3.23.8)':
     dependencies:
-      '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      '@ai-sdk/openai': 1.0.0-canary.3(zod@3.23.8)
+      '@ai-sdk/provider': 1.0.0-canary.0
+      '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
+      zod: 3.23.8
+
+  '@ai-sdk/cohere@1.0.0-canary.4(zod@3.23.8)':
+    dependencies:
+      '@ai-sdk/provider': 1.0.0-canary.0
+      '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
       zod: 3.23.8
 
   '@ai-sdk/google-vertex@0.0.43(@google-cloud/vertexai@1.8.1)(zod@3.23.8)':
@@ -13728,10 +13765,23 @@ snapshots:
       '@google-cloud/vertexai': 1.8.1
       zod: 3.23.8
 
+  '@ai-sdk/google-vertex@1.0.0-canary.3(@google-cloud/vertexai@1.8.1)(zod@3.23.8)':
+    dependencies:
+      '@ai-sdk/provider': 1.0.0-canary.0
+      '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
+      '@google-cloud/vertexai': 1.8.1
+      zod: 3.23.8
+
   '@ai-sdk/google@0.0.55(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 0.0.26
       '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      zod: 3.23.8
+
+  '@ai-sdk/google@1.0.0-canary.4(zod@3.23.8)':
+    dependencies:
+      '@ai-sdk/provider': 1.0.0-canary.0
+      '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
       zod: 3.23.8
 
   '@ai-sdk/groq@0.0.3(zod@3.23.8)':
@@ -13740,10 +13790,22 @@ snapshots:
       '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
       zod: 3.23.8
 
+  '@ai-sdk/groq@1.0.0-canary.3(zod@3.23.8)':
+    dependencies:
+      '@ai-sdk/provider': 1.0.0-canary.0
+      '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
+      zod: 3.23.8
+
   '@ai-sdk/mistral@0.0.46(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 0.0.26
       '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      zod: 3.23.8
+
+  '@ai-sdk/mistral@1.0.0-canary.3(zod@3.23.8)':
+    dependencies:
+      '@ai-sdk/provider': 1.0.0-canary.0
+      '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
       zod: 3.23.8
 
   '@ai-sdk/openai@0.0.72(zod@3.23.8)':
@@ -20009,6 +20071,20 @@ snapshots:
     transitivePeerDependencies:
       - solid-js
       - vue
+
+  ai@4.0.0-canary.8(openai@4.52.6)(react@18.3.1)(zod@3.23.8):
+    dependencies:
+      '@ai-sdk/provider': 1.0.0-canary.0
+      '@ai-sdk/provider-utils': 2.0.0-canary.3(zod@3.23.8)
+      '@ai-sdk/react': 1.0.0-canary.6(react@18.3.1)(zod@3.23.8)
+      '@ai-sdk/ui-utils': 1.0.0-canary.6(zod@3.23.8)
+      '@opentelemetry/api': 1.9.0
+      jsondiffpatch: 0.6.0
+      zod-to-json-schema: 3.23.3(zod@3.23.8)
+    optionalDependencies:
+      openai: 4.52.6
+      react: 18.3.1
+      zod: 3.23.8
 
   ai@4.0.0-canary.8(openai@4.52.6)(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8):
     dependencies:
