@@ -147,6 +147,18 @@ The following telemetry data values have been removed:
 - `ai.result.toolCalls` (now in `ai.response.toolCalls`)
 - `ai.stream.msToFirstChunk` (now in `ai.response.msToFirstChunk`)
 
+### Provider Registry
+
+#### Removed experimental_Provider, experimental_ProviderRegistry, and experimental_ModelRegistry
+
+The `experimental_Provider` interface, `experimental_ProviderRegistry` interface, and `experimental_ModelRegistry` interface have been removed.
+Please use the `Provider` interface instead.
+
+#### Removed `experimental_createModelRegistry` function
+
+The `experimental_createModelRegistry` function has been removed.
+Please use the `experimental_createProviderRegistry` function instead.
+
 ### Removed `rawResponse` from results
 
 The `rawResponse` property has been removed from the `generateText`, `streamText`, `generateObject`, and `streamObject` results.
