@@ -112,12 +112,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       // model id:
       model: this.modelId,
 
-      // model specific settings:
-      top_k: topK ?? this.settings.topK,
-
       // standardized settings:
-      max_tokens: maxTokens ?? 4096, // 4096: max model output tokens
+      max_tokens: maxTokens ?? 4096, // 4096: max model output tokens TODO remove
       temperature,
+      top_k: topK,
       top_p: topP,
       stop_sequences: stopSequences,
 
