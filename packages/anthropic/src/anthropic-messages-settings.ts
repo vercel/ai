@@ -13,16 +13,6 @@ export type AnthropicMessagesModelId =
 
 export interface AnthropicMessagesSettings {
   /**
-Only sample from the top K options for each subsequent token.
-
-Used to remove "long tail" low probability responses.
-Recommended for advanced use cases only. You usually only need to use temperature.
-
-@deprecated use the topK setting on the request instead.
-   */
-  topK?: number;
-
-  /**
 Enable Anthropic cache control (beta feature). This will add the beta header and
 allow you to use provider-specific cacheControl metadata.
    */

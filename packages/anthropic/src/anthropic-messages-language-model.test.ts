@@ -255,18 +255,28 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass the model and the messages', async () => {
+  it('should send the model id and settings', async () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      temperature: 0.5,
+      maxTokens: 100,
+      topP: 0.9,
+      topK: 0.1,
+      stopSequences: ['abc', 'def'],
+      frequencyPenalty: 0.15,
     });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 4096, // default value
+      max_tokens: 100,
+      stop_sequences: ['abc', 'def'],
+      temperature: 0.5,
+      top_k: 0.1,
+      top_p: 0.9,
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     });
   });
