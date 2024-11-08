@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 1.0.0-canary.4
+
+### Major Changes
+
+- 2f6e8c0: chore (provider/anthropic): remove topK model setting
+
 ## 1.0.0-canary.3
 
 ### Patch Changes

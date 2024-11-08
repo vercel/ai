@@ -1,5 +1,19 @@
 # ai
 
+## 4.0.0-canary.7
+
+### Major Changes
+
+- 4e38b38: chore (ai): remove LanguageModelResponseMetadataWithHeaders type
+- 54cb888: chore (ai): remove experimental_StreamData export
+- 9a3d741: chore (ai): remove ExperimentalTool export
+- a4f8ce9: chore (ai): AssistantResponse cleanups
+- 7264b0a: chore (ai): remove responseMessages property from streamText/generateText result
+- 62d08fd: chore (ai): remove TokenUsage, CompletionTokenUsage, and EmbeddingTokenUsage types
+- e5d2ce8: chore (ai): remove deprecated provider registry exports
+- 70ce742: chore (ai): remove experimental_continuationSteps option
+- 0827bf9: chore (ai): remove LangChain adapter `toAIStream` method
+
 ## 4.0.0-canary.6
 
 ### Major Changes
