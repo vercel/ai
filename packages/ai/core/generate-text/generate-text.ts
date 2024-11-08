@@ -88,9 +88,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   abortSignal,
   headers,
   maxSteps = 1,
-  experimental_continuationSteps,
-  experimental_continueSteps: continueSteps = experimental_continuationSteps ??
-    false,
+  experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   experimental_activeTools: activeTools,
@@ -125,11 +123,6 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
      */
     maxSteps?: number;
-
-    /**
-@deprecated Use `experimental_continueSteps` instead.
-     */
-    experimental_continuationSteps?: boolean;
 
     /**
 When enabled, the model will perform additional steps if the finish reason is "length" (experimental).

@@ -28,6 +28,15 @@ The `baseUrl` option has been removed from all providers. Please use the `baseUR
 The `Anthropic` facade has been removed from the Anthropic provider.
 Please use the `anthropic` object or the `createAnthropic` function instead.
 
+### Google Generative AI Provider: Removed `Google` facade
+
+The `Google` facade has been removed from the Google Generative AI provider.
+Please use the `google` object or the `createGoogleGenerativeAI` function instead.
+
+### Google Vertex Provider: Removed `topK` setting
+
+You can use the standard `topK` setting instead.
+
 ### Google Vertex Provider: Removed `topK` setting
 
 The model specific `topK` setting has been removed from the Google Vertex provider.
@@ -141,6 +150,11 @@ You can set the values from `init` directly into the `options` object.
 
 The `responseMessages` property has been removed from the `generateText` and `streamText` results.
 Please use the `response.messages` property instead.
+
+### Removed `experimental_continuationSteps` option
+
+The `experimental_continuationSteps` option has been removed from the `generateText` function.
+Please use the `experimental_continueSteps` option instead.
 
 ## AI SDK RSC Changes
 

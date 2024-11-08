@@ -851,9 +851,6 @@ importers:
       tailwindcss:
         specifier: ^3.4.4
         version: 3.4.4
-      ufo:
-        specifier: ^1.5.4
-        version: 1.5.4
       unctx:
         specifier: ^2.3.1
         version: 2.3.1
