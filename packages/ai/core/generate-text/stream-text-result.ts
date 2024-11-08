@@ -23,8 +23,7 @@ export interface StreamTextResult<TOOLS extends Record<string, CoreTool>> {
   /**
 Warnings from the model provider (e.g. unsupported settings) for the first step.
      */
-  // TODO change to async in v4 and use value from last step
-  readonly warnings: CallWarning[] | undefined;
+  readonly warnings: Promise<CallWarning[] | undefined>;
 
   /**
 The total token usage of the generated response.
@@ -68,13 +67,6 @@ The tool results that have been generated in the last step.
 Resolved when the all tool executions are finished.
      */
   readonly toolResults: Promise<ToolResultUnion<TOOLS>[]>;
-
-  /**
-@deprecated use `response.messages` instead.
-     */
-  readonly responseMessages: Promise<
-    Array<CoreAssistantMessage | CoreToolMessage>
-  >;
 
   /**
 Details for all steps.

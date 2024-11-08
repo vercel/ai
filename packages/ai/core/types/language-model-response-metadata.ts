@@ -19,9 +19,3 @@ Response headers.
      */
   headers?: Record<string, string>;
 };
-
-/**
-@deprecated Use `LanguageModelResponseMetadata` instead.
- */
-export type LanguageModelResponseMetadataWithHeaders =
-  LanguageModelResponseMetadata;

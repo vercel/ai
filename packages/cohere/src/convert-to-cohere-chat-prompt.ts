@@ -72,6 +72,7 @@ export function convertToCohereChatPrompt(
           // even if there are tool calls
           content: text !== '' ? text : 'call tool',
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          tool_plan: undefined,
         });
 
         break;

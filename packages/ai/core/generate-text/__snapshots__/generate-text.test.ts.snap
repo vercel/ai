@@ -140,7 +140,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > result.responseMessages should contain response messages from all steps 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.messages should contain response messages from all steps 1`] = `
 [
   {
     "content": [

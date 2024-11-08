@@ -49,11 +49,6 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   readonly warnings: CallWarning[] | undefined;
 
   /**
-@deprecated use `response.messages` instead.
-     */
-  readonly responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
-
-  /**
 Details for all steps.
 You can use this to get information about intermediate steps,
 such as the tool calls or the response headers.

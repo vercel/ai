@@ -15,7 +15,7 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [18.x, 20.x, 22.x]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -23,7 +23,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 8.6.9
+          version: 9.12.3
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v2

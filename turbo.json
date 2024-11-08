@@ -1,10 +1,9 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "globalEnv": ["CI", "PORT"],
+  "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "env": [
         "ANTHROPIC_API_KEY",
         "AWS_REGION",
@@ -32,39 +31,22 @@
         "NEXT_RUNTIME",
         "XAI_API_KEY"
       ],
-      "outputs": [
-        "dist/**",
-        ".next/**",
-        "!.next/cache/**"
-      ]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {
-      "dependsOn": [
-        "^lint"
-      ]
+      "dependsOn": ["^lint"]
     },
     "type-check": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ]
+      "dependsOn": ["^build", "build"]
     },
     "test": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ]
+      "dependsOn": ["^build", "build"]
     },
     "publint": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ]
+      "dependsOn": ["^build", "build"]
     },
     "clean": {
-      "dependsOn": [
-        "^clean"
-      ]
+      "dependsOn": ["^clean"]
     },
     "dev": {
       "cache": false,
@@ -72,14 +54,7 @@
     },
     "prettier-check": {},
     "integration-test": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ]
+      "dependsOn": ["^build", "build"]
     }
-  },
-  "globalEnv": [
-    "CI",
-    "PORT"
-  ]
+  }
 }

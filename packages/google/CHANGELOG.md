@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 1.0.0-canary.4
+
+### Major Changes
+
+- 36b03b0: chore (provider/google): remove topK model setting
+- 277fc6b: chore (provider/google): remove facade
+
 ## 1.0.0-canary.3
 
 ### Patch Changes

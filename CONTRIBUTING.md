@@ -30,6 +30,10 @@ If you want to make larger changes, please check out the Code Contributions sect
 
 We welcome your contributions to our code and documentation. Here's how you can contribute:
 
+### Environment Setup
+
+AI SDK development requires PNPM v9.1 or higher and Node v20 or higher.
+
 ### Setting Up the Repository Locally
 
 To set up the repository on your local machine, follow these steps:

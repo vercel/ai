@@ -1,4 +1,4 @@
-import { anthropic } from '@ai-sdk/anthropic';
+import { mistral } from '@ai-sdk/mistral';
 import { CoreMessage, generateText } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
@@ -20,13 +20,12 @@ async function main() {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const { text, toolCalls, toolResults, responseMessages } =
-      await generateText({
-        model: anthropic('claude-3-5-sonnet-20240620'),
-        tools: { weatherTool },
-        system: `You are a helpful, respectful and honest assistant.`,
-        messages,
-      });
+    const { text, toolCalls, toolResults, response } = await generateText({
+      model: mistral('mistral-large-latest'),
+      tools: { weatherTool },
+      system: `You are a helpful, respectful and honest assistant.`,
+      messages,
+    });
 
     toolResponseAvailable = false;
 
@@ -48,7 +47,7 @@ async function main() {
 
     process.stdout.write('\n\n');
 
-    messages.push(...responseMessages);
+    messages.push(...response.messages);
 
     toolResponseAvailable = toolCalls.length > 0;
   }
