@@ -19,13 +19,6 @@ The total number of tokens used (promptTokens + completionTokens).
 };
 
 /**
-Represents the number of tokens used in a prompt and completion.
-
-@deprecated Use `LanguageModelUsage` instead.
- */
-export type CompletionTokenUsage = LanguageModelUsage;
-
-/**
 Represents the number of tokens used in an embedding.
  */
 export type EmbeddingModelUsage = {
@@ -35,20 +28,16 @@ The number of tokens used in the embedding.
   tokens: number;
 };
 
-/**
-Represents the number of tokens used in an embedding.
-
-@deprecated Use `EmbeddingModelUsage` instead.
- */
-export type EmbeddingTokenUsage = EmbeddingModelUsage;
-
-export function calculateLanguageModelUsage(usage: {
+export function calculateLanguageModelUsage({
+  promptTokens,
+  completionTokens,
+}: {
   promptTokens: number;
   completionTokens: number;
 }): LanguageModelUsage {
   return {
-    promptTokens: usage.promptTokens,
-    completionTokens: usage.completionTokens,
-    totalTokens: usage.promptTokens + usage.completionTokens,
+    promptTokens,
+    completionTokens,
+    totalTokens: promptTokens + completionTokens,
   };
 }

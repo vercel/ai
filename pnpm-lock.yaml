@@ -1536,7 +1536,7 @@ importers:
   packages/swarm:
     dependencies:
       ai:
-        specifier: 4.0.0-canary.6
+        specifier: 4.0.0-canary.7
         version: link:../ai
       zod:
         specifier: 3.23.8
