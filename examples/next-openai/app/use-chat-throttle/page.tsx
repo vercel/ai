@@ -12,7 +12,7 @@ export default function Chat() {
   const { messages, input, isLoading, error, handleInputChange, handleSubmit } =
     useChat({
       api: '/api/use-chat-throttle',
-      // experimental_throttle: 50,
+      experimental_throttle: 50,
     });
 
   return (
