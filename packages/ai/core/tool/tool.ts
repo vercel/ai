@@ -100,8 +100,3 @@ export function tool<PARAMETERS extends Parameters, RESULT = any>(
 ): CoreTool<PARAMETERS, RESULT> {
   return tool;
 }
-
-/**
- * @deprecated Use `CoreTool` instead.
- */
-export type ExperimentalTool = CoreTool;
