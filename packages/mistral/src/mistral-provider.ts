@@ -41,22 +41,6 @@ Creates a model for text generation.
     settings?: MistralChatSettings,
   ): LanguageModelV1;
 
-  /**
-@deprecated Use `textEmbeddingModel()` instead.
-   */
-  embedding(
-    modelId: MistralEmbeddingModelId,
-    settings?: MistralEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
-
-  /**
-@deprecated Use `textEmbeddingModel()` instead.
-   */
-  textEmbedding(
-    modelId: MistralEmbeddingModelId,
-    settings?: MistralEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
-
   textEmbeddingModel: (
     modelId: MistralEmbeddingModelId,
     settings?: MistralEmbeddingSettings,
@@ -117,17 +101,6 @@ export function createMistral(
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: MistralEmbeddingModelId,
-    settings: MistralEmbeddingSettings = {},
-  ) =>
-    new MistralEmbeddingModel(modelId, settings, {
-      provider: 'mistral.embedding',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-
   const provider = function (
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
@@ -143,9 +116,17 @@ export function createMistral(
 
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
-  provider.embedding = createEmbeddingModel;
-  provider.textEmbedding = createEmbeddingModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
+
+  provider.textEmbeddingModel = (
+    modelId: MistralEmbeddingModelId,
+    settings: MistralEmbeddingSettings = {},
+  ) =>
+    new MistralEmbeddingModel(modelId, settings, {
+      provider: 'mistral.embedding',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   return provider as MistralProvider;
 }

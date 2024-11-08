@@ -27,11 +27,6 @@ Creates a model for text generation.
     settings?: CohereChatSettings,
   ): LanguageModelV1;
 
-  embedding(
-    modelId: CohereEmbeddingModelId,
-    settings?: CohereEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
-
   textEmbeddingModel(
     modelId: CohereEmbeddingModelId,
     settings?: CohereEmbeddingSettings,
@@ -92,17 +87,6 @@ export function createCohere(
       fetch: options.fetch,
     });
 
-  const createTextEmbeddingModel = (
-    modelId: CohereEmbeddingModelId,
-    settings: CohereEmbeddingSettings = {},
-  ) =>
-    new CohereEmbeddingModel(modelId, settings, {
-      provider: 'cohere.textEmbedding',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-
   const provider = function (
     modelId: CohereChatModelId,
     settings?: CohereChatSettings,
@@ -117,8 +101,17 @@ export function createCohere(
   };
 
   provider.languageModel = createChatModel;
-  provider.embedding = createTextEmbeddingModel;
-  provider.textEmbeddingModel = createTextEmbeddingModel;
+
+  provider.textEmbeddingModel = (
+    modelId: CohereEmbeddingModelId,
+    settings: CohereEmbeddingSettings = {},
+  ) =>
+    new CohereEmbeddingModel(modelId, settings, {
+      provider: 'cohere.textEmbedding',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   return provider as CohereProvider;
 }

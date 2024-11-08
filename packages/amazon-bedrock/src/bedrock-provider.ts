@@ -51,7 +51,7 @@ export interface AmazonBedrockProvider extends ProviderV1 {
     settings?: BedrockChatSettings,
   ): LanguageModelV1;
 
-  embedding(
+  textEmbeddingModel(
     modelId: BedrockEmbeddingModelId,
     settings?: BedrockEmbeddingSettings,
   ): EmbeddingModelV1<string>;
@@ -115,18 +115,15 @@ export function createAmazonBedrock(
     return createChatModel(modelId, settings);
   };
 
-  const createEmbeddingModel = (
+  provider.languageModel = createChatModel;
+
+  provider.textEmbeddingModel = (
     modelId: BedrockEmbeddingModelId,
     settings: BedrockEmbeddingSettings = {},
   ) =>
     new BedrockEmbeddingModel(modelId, settings, {
       client: createBedrockRuntimeClient(),
     });
-
-  provider.languageModel = createChatModel;
-  provider.embedding = createEmbeddingModel;
-  provider.textEmbedding = createEmbeddingModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
 
   return provider as AmazonBedrockProvider;
 }

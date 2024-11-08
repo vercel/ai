@@ -521,17 +521,17 @@ The following optional settings are available for OpenAI completion models:
 ## Embedding Models
 
 You can create models that call the [OpenAI embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = openai.embedding('text-embedding-3-large');
+const model = openai.textEmbeddingModel('text-embedding-3-large');
 ```
 
 OpenAI embedding models support several aditional settings.
 You can pass them as an options argument:
 
 ```ts
-const model = openai.embedding('text-embedding-3-large', {
+const model = openai.textEmbeddingModel('text-embedding-3-large', {
   dimensions: 512 // optional, number of dimensions for the embedding
   user: 'test-user' // optional unique user identifier
 })

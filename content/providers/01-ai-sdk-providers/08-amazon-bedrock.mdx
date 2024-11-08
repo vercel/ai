@@ -267,17 +267,17 @@ See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/be
 ## Embedding Models
 
 You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html)
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = bedrock.embedding('amazon.titan-embed-text-v1');
+const model = bedrock.textEmbeddingModel('amazon.titan-embed-text-v1');
 ```
 
 Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several aditional settings.
 You can pass them as an options argument:
 
 ```ts
-const model = bedrock.embedding('amazon.titan-embed-text-v2:0', {
+const model = bedrock.textEmbeddingModel('amazon.titan-embed-text-v2:0', {
   dimensions: 512 // optional, number of dimensions for the embedding
   normalize: true // optional  normalize the output embeddings
 })

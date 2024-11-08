@@ -33,22 +33,6 @@ Creates a model for text generation.
   ): LanguageModelV1;
 
   /**
-@deprecated Use `.languageModel()` instead.
-*/
-  chat(
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ): LanguageModelV1;
-
-  /**
-@deprecated Use `.languageModel()` instead.
-   */
-  messages(
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ): LanguageModelV1;
-
-  /**
 Anthropic-specific computer use tool.
    */
   tools: typeof anthropicTools;
@@ -125,8 +109,7 @@ export function createAnthropic(
   };
 
   provider.languageModel = createChatModel;
-  provider.chat = createChatModel;
-  provider.messages = createChatModel;
+
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };

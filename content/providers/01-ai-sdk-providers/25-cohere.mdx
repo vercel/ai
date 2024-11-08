@@ -106,16 +106,16 @@ Cohere language models can also be used in the `streamText` function (see [AI SD
 ## Embedding Models
 
 You can create models that call the [Cohere embed API](https://docs.cohere.com/v2/reference/embed)
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = cohere.embedding('embed-english-v3.0');
+const model = cohere.textEmbeddingModel('embed-english-v3.0');
 ```
 
 Cohere embedding models support additional settings. You can pass them as an options argument:
 
 ```ts
-const model = cohere.embedding('embed-english-v3.0', {
+const model = cohere.textEmbeddingModel('embed-english-v3.0', {
   inputType: 'search_document',
 });
 ```

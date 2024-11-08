@@ -84,11 +84,4 @@ class DefaultProviderRegistry implements Provider {
 
     return model;
   }
-
-  /**
-   * @deprecated Use `textEmbeddingModel` instead.
-   */
-  textEmbedding(id: string): EmbeddingModel<string> {
-    return this.textEmbeddingModel(id);
-  }
 }

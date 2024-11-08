@@ -59,24 +59,6 @@ Creates an OpenAI completion model for text generation.
   /**
 Creates a model for text embeddings.
    */
-  embedding(
-    modelId: OpenAIEmbeddingModelId,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
-
-  /**
-Creates a model for text embeddings.
-
-@deprecated Use `textEmbeddingModel` instead.
-   */
-  textEmbedding(
-    modelId: OpenAIEmbeddingModelId,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
-
-  /**
-Creates a model for text embeddings.
-   */
   textEmbeddingModel(
     modelId: OpenAIEmbeddingModelId,
     settings?: OpenAIEmbeddingSettings,
@@ -177,17 +159,6 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: OpenAIEmbeddingModelId,
-    settings: OpenAIEmbeddingSettings = {},
-  ) =>
-    new OpenAIEmbeddingModel(modelId, settings, {
-      provider: `${providerName}.embedding`,
-      url: ({ path }) => `${baseURL}${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-
   const createLanguageModel = (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
@@ -218,9 +189,17 @@ export function createOpenAI(
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
-  provider.embedding = createEmbeddingModel;
-  provider.textEmbedding = createEmbeddingModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
+
+  provider.textEmbeddingModel = (
+    modelId: OpenAIEmbeddingModelId,
+    settings: OpenAIEmbeddingSettings = {},
+  ) =>
+    new OpenAIEmbeddingModel(modelId, settings, {
+      provider: `${providerName}.embedding`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   return provider as OpenAIProvider;
 }

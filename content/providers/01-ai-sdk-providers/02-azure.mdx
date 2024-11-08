@@ -237,17 +237,17 @@ The following optional settings are available for Azure OpenAI completion models
 ## Embedding Models
 
 You can create models that call the Azure OpenAI embeddings API
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = azure.embedding('your-embedding-deployment');
+const model = azure.textEmbeddingModel('your-embedding-deployment');
 ```
 
 Azure OpenAI embedding models support several aditional settings.
 You can pass them as an options argument:
 
 ```ts
-const model = azure.embedding('your-embedding-deployment', {
+const model = azure.textEmbeddingModel('your-embedding-deployment', {
   dimensions: 512 // optional, number of dimensions for the embedding
   user: 'test-user' // optional unique user identifier
 })

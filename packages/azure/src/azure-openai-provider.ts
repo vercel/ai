@@ -38,22 +38,6 @@ Creates an Azure OpenAI completion model for text generation.
   ): LanguageModelV1;
 
   /**
-@deprecated Use `textEmbeddingModel` instead.
-   */
-  embedding(
-    deploymentId: string,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
-
-  /**
-@deprecated Use `textEmbeddingModel` instead.
-   */
-  textEmbedding(
-    deploymentId: string,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
-
-  /**
 Creates an Azure OpenAI model for text embeddings.
    */
   textEmbeddingModel(
@@ -147,17 +131,6 @@ export function createAzure(
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: string,
-    settings: OpenAIEmbeddingSettings = {},
-  ) =>
-    new OpenAIEmbeddingModel(modelId, settings, {
-      provider: 'azure-openai.embeddings',
-      headers: getHeaders,
-      url,
-      fetch: options.fetch,
-    });
-
   const provider = function (
     deploymentId: string,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
@@ -174,9 +147,17 @@ export function createAzure(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
-  provider.embedding = createEmbeddingModel;
-  provider.textEmbedding = createEmbeddingModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
+
+  provider.textEmbeddingModel = (
+    modelId: string,
+    settings: OpenAIEmbeddingSettings = {},
+  ) =>
+    new OpenAIEmbeddingModel(modelId, settings, {
+      provider: 'azure-openai.embeddings',
+      headers: getHeaders,
+      url,
+      fetch: options.fetch,
+    });
 
   return provider as AzureOpenAIProvider;
 }

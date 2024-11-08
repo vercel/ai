@@ -36,30 +36,6 @@ export interface GoogleGenerativeAIProvider extends ProviderV1 {
     settings?: GoogleGenerativeAISettings,
   ): LanguageModelV1;
 
-  /**
-   * @deprecated Use `chat()` instead.
-   */
-  generativeAI(
-    modelId: GoogleGenerativeAIModelId,
-    settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
-
-  /**
-@deprecated Use `textEmbeddingModel()` instead.
-   */
-  embedding(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
-
-  /**
-@deprecated Use `textEmbeddingModel()` instead.
- */
-  textEmbedding(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
-
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
     settings?: GoogleGenerativeAIEmbeddingSettings,
@@ -124,17 +100,6 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings: GoogleGenerativeAIEmbeddingSettings = {},
-  ) =>
-    new GoogleGenerativeAIEmbeddingModel(modelId, settings, {
-      provider: 'google.generative-ai',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-
   const provider = function (
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
@@ -150,10 +115,17 @@ export function createGoogleGenerativeAI(
 
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
-  provider.generativeAI = createChatModel;
-  provider.embedding = createEmbeddingModel;
-  provider.textEmbedding = createEmbeddingModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
+
+  provider.textEmbeddingModel = (
+    modelId: GoogleGenerativeAIEmbeddingModelId,
+    settings: GoogleGenerativeAIEmbeddingSettings = {},
+  ) =>
+    new GoogleGenerativeAIEmbeddingModel(modelId, settings, {
+      provider: 'google.generative-ai',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   return provider as GoogleGenerativeAIProvider;
 }
