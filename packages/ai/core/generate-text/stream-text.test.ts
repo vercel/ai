@@ -1971,7 +1971,7 @@ describe('result.responseMessages', () => {
 
     await convertAsyncIterableToArray(result.textStream); // consume stream
 
-    expect(await result.responseMessages).toMatchSnapshot();
+    expect((await result.response).messages).toMatchSnapshot();
   });
 
   it('should contain assistant response message and tool message when there are tool calls with results', async () => {
@@ -2011,7 +2011,7 @@ describe('result.responseMessages', () => {
 
     await convertAsyncIterableToArray(result.textStream); // consume stream
 
-    expect(await result.responseMessages).toMatchSnapshot();
+    expect((await result.response).messages).toMatchSnapshot();
   });
 });
 
@@ -2244,8 +2244,8 @@ describe('options.maxSteps', () => {
         expect(await result.steps).toMatchSnapshot();
       });
 
-      it('result.responseMessages should contain response messages from all steps', async () => {
-        expect(await result.responseMessages).toMatchSnapshot();
+      it('result.response.messages should contain response messages from all steps', async () => {
+        expect((await result.response).messages).toMatchSnapshot();
       });
     });
 

@@ -662,7 +662,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should record teleme
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > result.responseMessages should contain response messages from all steps 1`] = `
+exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > result.response.messages should contain response messages from all steps 1`] = `
 [
   {
     "content": [

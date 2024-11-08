@@ -449,7 +449,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   readonly request: StreamTextResult<TOOLS>['request'];
   readonly response: StreamTextResult<TOOLS>['response'];
   readonly steps: StreamTextResult<TOOLS>['steps'];
-  readonly responseMessages: StreamTextResult<TOOLS>['responseMessages'];
 
   constructor({
     stream,
@@ -550,14 +549,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     const { resolve: resolveResponse, promise: responsePromise } =
       createResolvablePromise<Awaited<StreamTextResult<TOOLS>['response']>>();
     this.response = responsePromise;
-
-    // initialize responseMessages promise
-    const {
-      resolve: resolveResponseMessages,
-      promise: responseMessagesPromise,
-    } =
-      createResolvablePromise<Array<CoreAssistantMessage | CoreToolMessage>>();
-    this.responseMessages = responseMessagesPromise;
 
     // create a stitchable stream to send steps in a single response stream
     const {
@@ -1006,7 +997,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   messages: responseMessages,
                 });
                 resolveSteps(stepResults);
-                resolveResponseMessages(responseMessages);
 
                 // call onFinish callback:
                 await onFinish?.({

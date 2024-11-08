@@ -70,13 +70,6 @@ Resolved when the all tool executions are finished.
   readonly toolResults: Promise<ToolResultUnion<TOOLS>[]>;
 
   /**
-@deprecated use `response.messages` instead.
-     */
-  readonly responseMessages: Promise<
-    Array<CoreAssistantMessage | CoreToolMessage>
-  >;
-
-  /**
 Details for all steps.
 You can use this to get information about intermediate steps,
 such as the tool calls or the response headers.

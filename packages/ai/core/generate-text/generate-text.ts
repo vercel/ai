@@ -498,7 +498,6 @@ changing the tool call and result types in the result.
           messages: responseMessages,
         },
         logprobs: currentModelResponse.logprobs,
-        responseMessages,
         steps,
         providerMetadata: currentModelResponse.providerMetadata,
       });
@@ -592,7 +591,6 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
   readonly finishReason: GenerateTextResult<TOOLS>['finishReason'];
   readonly usage: GenerateTextResult<TOOLS>['usage'];
   readonly warnings: GenerateTextResult<TOOLS>['warnings'];
-  readonly responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
   readonly steps: GenerateTextResult<TOOLS>['steps'];
   readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
   readonly experimental_providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
@@ -607,7 +605,6 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     usage: GenerateTextResult<TOOLS>['usage'];
     warnings: GenerateTextResult<TOOLS>['warnings'];
     logprobs: GenerateTextResult<TOOLS>['logprobs'];
-    responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
     steps: GenerateTextResult<TOOLS>['steps'];
     providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
     response: GenerateTextResult<TOOLS>['response'];
@@ -621,7 +618,6 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.warnings = options.warnings;
     this.request = options.request;
     this.response = options.response;
-    this.responseMessages = options.responseMessages;
     this.steps = options.steps;
     this.experimental_providerMetadata = options.providerMetadata;
     this.logprobs = options.logprobs;

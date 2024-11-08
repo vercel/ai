@@ -109,7 +109,7 @@ The following exports have been removed:
 - `experimental_generateObject` (use `generateObject` instead)
 - `experimental_streamObject` (use `streamObject` instead)
 
-## Removed AI-stream related methods from `streamText`
+### Removed AI-stream related methods from `streamText`
 
 The following methods have been removed from the `streamText` result:
 
@@ -117,7 +117,7 @@ The following methods have been removed from the `streamText` result:
 - `pipeAIStreamToResponse`
 - `toAIStreamResponse`
 
-## Removed deprecated telemetry data
+### Removed deprecated telemetry data
 
 The following telemetry data values have been removed:
 
@@ -127,15 +127,20 @@ The following telemetry data values have been removed:
 - `ai.result.toolCalls` (now in `ai.response.toolCalls`)
 - `ai.stream.msToFirstChunk` (now in `ai.response.msToFirstChunk`)
 
-## Removed `rawResponse` from results
+### Removed `rawResponse` from results
 
 The `rawResponse` property has been removed from the `generateText`, `streamText`, `generateObject`, and `streamObject` results.
 You can use the `response` property instead.
 
-## Removed `init` option from `pipeDataStreamToResponse` and `toDataStreamResponse`
+### Removed `init` option from `pipeDataStreamToResponse` and `toDataStreamResponse`
 
 The `init` option has been removed from the `pipeDataStreamToResponse` and `toDataStreamResponse` functions.
 You can set the values from `init` directly into the `options` object.
+
+### Removed `responseMessages` from `generateText` and `streamText`
+
+The `responseMessages` property has been removed from the `generateText` and `streamText` results.
+Please use the `response.messages` property instead.
 
 ## AI SDK RSC Changes
 
