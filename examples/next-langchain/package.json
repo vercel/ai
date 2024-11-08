@@ -9,10 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "latest",
+    "@ai-sdk/react": "1.0.0-canary.6",
     "@langchain/openai": "0.0.28",
     "@langchain/core": "0.1.63",
-    "ai": "latest",
+    "ai": "4.0.0-canary.8",
     "langchain": "0.1.36",
     "next": "latest",
     "react": "^18",
