@@ -23,8 +23,7 @@ export interface StreamTextResult<TOOLS extends Record<string, CoreTool>> {
   /**
 Warnings from the model provider (e.g. unsupported settings) for the first step.
      */
-  // TODO change to async in v4 and use value from last step
-  readonly warnings: CallWarning[] | undefined;
+  readonly warnings: Promise<CallWarning[] | undefined>;
 
   /**
 The total token usage of the generated response.

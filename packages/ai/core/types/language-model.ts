@@ -52,7 +52,7 @@ Tool choice for the generation. It supports the following settings:
 - `none`: the model must not call tools
 - `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
  */
-// TODO rename to ToolChoice once shared/types.ts ToolChoice is gone
+// TODO 4.1 rename to ToolChoice
 export type CoreToolChoice<TOOLS extends Record<string, unknown>> =
   | 'auto'
   | 'none'

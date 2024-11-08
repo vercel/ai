@@ -433,13 +433,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   implements StreamTextResult<TOOLS>
 {
   private originalStream: ReadableStream<TextStreamPart<TOOLS>>;
-
-  // TODO needs to be changed to readonly async in v4 (and only return value from last step)
-  // (can't change before v4 because of backwards compatibility)
-  warnings: StreamTextResult<TOOLS>['warnings'];
-
   private rawResponse: { headers?: Record<string, string> } | undefined;
+  private rawWarnings: CallWarning[] | undefined;
 
+  readonly warnings: StreamTextResult<TOOLS>['warnings'];
   readonly usage: StreamTextResult<TOOLS>['usage'];
   readonly finishReason: StreamTextResult<TOOLS>['finishReason'];
   readonly experimental_providerMetadata: StreamTextResult<TOOLS>['experimental_providerMetadata'];
@@ -472,7 +469,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     tools,
   }: {
     stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
-    warnings: StreamTextResult<TOOLS>['warnings'];
+    warnings: DefaultStreamTextResult<TOOLS>['rawWarnings'];
     rawResponse: DefaultStreamTextResult<TOOLS>['rawResponse'];
     request: Awaited<StreamTextResult<TOOLS>['request']>;
     onChunk: Parameters<typeof streamText>[0]['onChunk'];
@@ -500,7 +497,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     generateId: () => string;
     tools: TOOLS | undefined;
   }) {
-    this.warnings = warnings;
+    this.rawWarnings = warnings;
     this.rawResponse = rawResponse;
 
     // initialize usage promise
@@ -549,6 +546,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     const { resolve: resolveResponse, promise: responsePromise } =
       createResolvablePromise<Awaited<StreamTextResult<TOOLS>['response']>>();
     this.response = responsePromise;
+
+    // initialize warnings promise
+    const { resolve: resolveWarnings, promise: warningsPromise } =
+      createResolvablePromise<CallWarning[]>();
+    this.warnings = warningsPromise;
 
     // create a stitchable stream to send steps in a single response stream
     const {
@@ -895,7 +897,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 toolResults: stepToolResults,
                 finishReason: stepFinishReason,
                 usage: stepUsage,
-                warnings: self.warnings,
+                warnings: self.rawWarnings,
                 logprobs: stepLogProbs,
                 request: stepRequest,
                 response: {
@@ -929,7 +931,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 } = await startStep({ responseMessages });
 
                 // update warnings and rawResponse:
-                self.warnings = result.warnings;
+                self.rawWarnings = result.warnings;
                 self.rawResponse = result.rawResponse;
 
                 // needs to add to stitchable stream
@@ -997,6 +999,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   messages: responseMessages,
                 });
                 resolveSteps(stepResults);
+                resolveWarnings(self.rawWarnings ?? []);
 
                 // call onFinish callback:
                 await onFinish?.({
