@@ -11,6 +11,7 @@ export default defineConfig([
     entry: ['src/test/index.ts'],
     outDir: 'test/dist',
     format: ['cjs', 'esm'],
+    external: ['vitest'],
     dts: true,
     sourcemap: true,
   },
