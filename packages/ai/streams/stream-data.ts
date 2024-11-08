@@ -99,8 +99,3 @@ export function createStreamDataTransformer() {
     },
   });
 }
-
-/**
-@deprecated Use `StreamData` instead.
- */
-export class experimental_StreamData extends StreamData {}
