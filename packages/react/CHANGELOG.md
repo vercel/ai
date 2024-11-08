@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 1.0.0-canary.6
+
+### Patch Changes
+
+- Updated dependencies [70f28f6]
+  - @ai-sdk/ui-utils@1.0.0-canary.6
+
 ## 1.0.0-canary.5
 
 ### Major Changes

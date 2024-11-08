@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "1.0.0-canary.5",
+  "version": "1.0.0-canary.6",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -28,7 +28,7 @@
   ],
   "dependencies": {
     "@ai-sdk/provider-utils": "2.0.0-canary.3",
-    "@ai-sdk/ui-utils": "1.0.0-canary.5",
+    "@ai-sdk/ui-utils": "1.0.0-canary.6",
     "sswr": "^2.1.0"
   },
   "devDependencies": {
