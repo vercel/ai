@@ -1,25 +1,12 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { EmbeddingModel, LanguageModel, Provider } from '../types';
 import { NoSuchProviderError } from './no-such-provider-error';
-import { experimental_Provider } from './provider';
-
-/**
-Registry for managing models. It enables getting a model with a string id.
-
-@deprecated Use `experimental_Provider` instead.
- */
-export type experimental_ProviderRegistry = Provider;
-
-/**
- * @deprecated Use `experimental_ProviderRegistry` instead.
- */
-export type experimental_ModelRegistry = experimental_ProviderRegistry;
 
 /**
  * Creates a registry for the given providers.
  */
 export function experimental_createProviderRegistry(
-  providers: Record<string, experimental_Provider | Provider>,
+  providers: Record<string, Provider>,
 ): Provider {
   const registry = new DefaultProviderRegistry();
 
@@ -30,26 +17,14 @@ export function experimental_createProviderRegistry(
   return registry;
 }
 
-/**
- * @deprecated Use `experimental_createProviderRegistry` instead.
- */
-export const experimental_createModelRegistry =
-  experimental_createProviderRegistry;
-
 class DefaultProviderRegistry implements Provider {
-  private providers: Record<string, experimental_Provider | Provider> = {};
+  private providers: Record<string, Provider> = {};
 
-  registerProvider({
-    id,
-    provider,
-  }: {
-    id: string;
-    provider: experimental_Provider | Provider;
-  }): void {
+  registerProvider({ id, provider }: { id: string; provider: Provider }): void {
     this.providers[id] = provider;
   }
 
-  private getProvider(id: string): experimental_Provider | Provider {
+  private getProvider(id: string): Provider {
     const provider = this.providers[id];
 
     if (provider == null) {
@@ -98,11 +73,7 @@ class DefaultProviderRegistry implements Provider {
     const [providerId, modelId] = this.splitId(id, 'textEmbeddingModel');
     const provider = this.getProvider(providerId);
 
-    const model =
-      provider.textEmbeddingModel?.(modelId) ??
-      ('textEmbedding' in provider
-        ? provider.textEmbedding?.(modelId)
-        : undefined);
+    const model = provider.textEmbeddingModel?.(modelId);
 
     if (model == null) {
       throw new NoSuchModelError({
