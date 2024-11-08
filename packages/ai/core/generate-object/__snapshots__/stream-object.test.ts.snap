@@ -11,7 +11,6 @@ exports[`output = "object" > options.onFinish > should be called when a valid ob
   "object": {
     "content": "Hello, world!",
   },
-  "rawResponse": undefined,
   "response": {
     "headers": undefined,
     "id": "id-0",
@@ -43,7 +42,6 @@ Error message: [
 ]],
   "experimental_providerMetadata": undefined,
   "object": undefined,
-  "rawResponse": undefined,
   "response": {
     "headers": undefined,
     "id": "id-0",
@@ -147,7 +145,6 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
   },
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamObject.doStream",
@@ -201,7 +198,6 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
   },
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamObject.doStream",
@@ -248,7 +244,6 @@ exports[`telemetry > should record telemetry data when enabled with mode "json" 
       "ai.request.headers.header1": "value1",
       "ai.request.headers.header2": "value2",
       "ai.response.object": "{"content":"Hello, world!"}",
-      "ai.result.object": "{"content":"Hello, world!"}",
       "ai.schema": "{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}",
       "ai.schema.description": "test description",
       "ai.schema.name": "test-name",
@@ -272,7 +267,6 @@ exports[`telemetry > should record telemetry data when enabled with mode "json" 
   },
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamObject.doStream",
@@ -285,7 +279,6 @@ exports[`telemetry > should record telemetry data when enabled with mode "json" 
       "ai.response.model": "mock-model-id",
       "ai.response.object": "{"content":"Hello, world!"}",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.result.object": "{"content":"Hello, world!"}",
       "ai.settings.frequencyPenalty": 0.3,
       "ai.settings.mode": "json",
       "ai.settings.presencePenalty": 0.4,
@@ -339,7 +332,6 @@ exports[`telemetry > should record telemetry data when enabled with mode "tool" 
       "ai.request.headers.header1": "value1",
       "ai.request.headers.header2": "value2",
       "ai.response.object": "{"content":"Hello, world!"}",
-      "ai.result.object": "{"content":"Hello, world!"}",
       "ai.schema": "{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}",
       "ai.schema.description": "test description",
       "ai.schema.name": "test-name",
@@ -363,7 +355,6 @@ exports[`telemetry > should record telemetry data when enabled with mode "tool" 
   },
   {
     "attributes": {
-      "ai.finishReason": "stop",
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamObject.doStream",
@@ -376,7 +367,6 @@ exports[`telemetry > should record telemetry data when enabled with mode "tool" 
       "ai.response.model": "mock-model-id",
       "ai.response.object": "{"content":"Hello, world!"}",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.result.object": "{"content":"Hello, world!"}",
       "ai.settings.frequencyPenalty": 0.3,
       "ai.settings.mode": "tool",
       "ai.settings.presencePenalty": 0.4,

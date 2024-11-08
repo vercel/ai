@@ -7,7 +7,7 @@ it('should generate an ID with the correct length', () => {
 });
 
 it('should generate an ID with the correct default length', () => {
-  expect(generateId()).toHaveLength(7);
+  expect(generateId()).toHaveLength(16);
 });
 
 it('should generate unique IDs', () => {

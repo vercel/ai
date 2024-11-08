@@ -72,18 +72,6 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
   error: unknown | undefined;
 
   /**
-Optional raw response data.
-
-@deprecated Use `response` instead.
-       */
-  rawResponse?: {
-    /**
-Response headers.
-   */
-    headers?: Record<string, string>;
-  };
-
-  /**
 Response metadata.
  */
   response: LanguageModelResponseMetadata;
@@ -629,11 +617,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     RESULT,
     ELEMENT_STREAM
   >['experimental_providerMetadata'];
-  readonly rawResponse: StreamObjectResult<
-    PARTIAL,
-    RESULT,
-    ELEMENT_STREAM
-  >['rawResponse'];
   readonly outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
   readonly response: StreamObjectResult<
     PARTIAL,
@@ -661,11 +644,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       string | Omit<LanguageModelV1StreamPart, 'text-delta'>
     >;
     warnings: StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>['warnings'];
-    rawResponse: StreamObjectResult<
-      PARTIAL,
-      RESULT,
-      ELEMENT_STREAM
-    >['rawResponse'];
+    rawResponse: { headers?: Record<string, string> } | undefined;
     request: Awaited<
       StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>['request']
     >;
@@ -681,7 +660,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     generateId: () => string;
   }) {
     this.warnings = warnings;
-    this.rawResponse = rawResponse;
     this.outputStrategy = outputStrategy;
     this.request = Promise.resolve(request);
 
@@ -879,10 +857,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   'ai.usage.promptTokens': finalUsage.promptTokens,
                   'ai.usage.completionTokens': finalUsage.completionTokens,
 
-                  // deprecated
-                  'ai.finishReason': finishReason,
-                  'ai.result.object': { output: () => JSON.stringify(object) },
-
                   // standardized gen-ai llm span attributes:
                   'gen_ai.response.finish_reasons': [finishReason],
                   'gen_ai.response.id': response.id,
@@ -906,9 +880,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   'ai.response.object': {
                     output: () => JSON.stringify(object),
                   },
-
-                  // deprecated
-                  'ai.result.object': { output: () => JSON.stringify(object) },
                 },
               }),
             );
@@ -918,7 +889,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               usage: finalUsage,
               object,
               error,
-              rawResponse,
               response: {
                 ...response,
                 headers: rawResponse?.headers,
@@ -1007,7 +977,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       response,
       status: init?.status,
       statusText: init?.statusText,
-      headers: prepareOutgoingHttpHeaders(init, {
+      headers: prepareOutgoingHttpHeaders(init?.headers, {
         contentType: 'text/plain; charset=utf-8',
       }),
       stream: this.textStream.pipeThrough(new TextEncoderStream()),
@@ -1017,17 +987,12 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   toTextStreamResponse(init?: ResponseInit): Response {
     return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
       status: init?.status ?? 200,
-      headers: prepareResponseHeaders(init, {
+      headers: prepareResponseHeaders(init?.headers, {
         contentType: 'text/plain; charset=utf-8',
       }),
     });
   }
 }
-
-/**
- * @deprecated Use `streamObject` instead.
- */
-export const experimental_streamObject = streamObject;
 
 export type ObjectStreamInputPart =
   | {

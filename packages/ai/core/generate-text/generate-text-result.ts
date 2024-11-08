@@ -49,36 +49,11 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   readonly warnings: CallWarning[] | undefined;
 
   /**
-@deprecated use `response.messages` instead.
-     */
-  readonly responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
-
-  /**
-Response information for every roundtrip.
-You can use this to get information about intermediate steps, such as the tool calls or the response headers.
-
-@deprecated use `steps` instead.
-   */
-  readonly roundtrips: Array<StepResult<TOOLS>>;
-
-  /**
 Details for all steps.
 You can use this to get information about intermediate steps,
 such as the tool calls or the response headers.
    */
   readonly steps: Array<StepResult<TOOLS>>;
-
-  /**
-Optional raw response data.
-
-@deprecated Use `response.headers` instead.
-   */
-  readonly rawResponse?: {
-    /**
-  Response headers.
-   */
-    readonly headers?: Record<string, string>;
-  };
 
   /**
 Additional request information.

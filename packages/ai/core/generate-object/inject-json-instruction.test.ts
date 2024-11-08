@@ -1,4 +1,4 @@
-import { JSONSchema7 } from 'json-schema';
+import { JSONSchema7 } from '@ai-sdk/provider';
 import { injectJsonInstruction } from './inject-json-instruction';
 
 const basicSchema: JSONSchema7 = {

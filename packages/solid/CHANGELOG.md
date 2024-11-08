@@ -1,5 +1,30 @@
 # @ai-sdk/solid
 
+## 1.0.0-canary.6
+
+### Patch Changes
+
+- Updated dependencies [70f28f6]
+  - @ai-sdk/ui-utils@1.0.0-canary.6
+
+## 1.0.0-canary.5
+
+### Patch Changes
+
+- Updated dependencies [9f81e66]
+- Updated dependencies [8426f55]
+  - @ai-sdk/ui-utils@1.0.0-canary.5
+  - @ai-sdk/provider-utils@2.0.0-canary.3
+
+## 1.0.0-canary.4
+
+### Patch Changes
+
+- Updated dependencies [dce4158]
+- Updated dependencies [dce4158]
+  - @ai-sdk/provider-utils@2.0.0-canary.2
+  - @ai-sdk/ui-utils@1.0.0-canary.4
+
 ## 1.0.0-canary.3
 
 ### Patch Changes

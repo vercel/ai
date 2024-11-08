@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "2.0.0-canary.1",
+  "version": "2.0.0-canary.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "1.0.0-canary.0",
-    "eventsource-parser": "^1.1.2",
+    "eventsource-parser": "^3.0.0",
     "nanoid": "^5.0.8",
     "secure-json-parse": "^2.7.0"
   },
@@ -47,7 +47,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "msw": "2.3.1",
     "tsup": "^8",
-    "typescript": "5.5.4",
+    "typescript": "5.6.3",
     "zod": "3.23.8"
   },
   "peerDependencies": {

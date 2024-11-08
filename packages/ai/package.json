@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "4.0.0-canary.3",
+  "version": "4.0.0-canary.8",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -15,7 +15,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
+    "build": "tsup",
     "clean": "rm -rf dist && rm -rf react/dist && rm -rf rsc/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
@@ -60,22 +60,15 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "1.0.0-canary.0",
-    "@ai-sdk/provider-utils": "2.0.0-canary.1",
-    "@ai-sdk/react": "1.0.0-canary.3",
-    "@ai-sdk/ui-utils": "1.0.0-canary.3",
+    "@ai-sdk/provider-utils": "2.0.0-canary.3",
+    "@ai-sdk/react": "1.0.0-canary.6",
+    "@ai-sdk/ui-utils": "1.0.0-canary.6",
     "@opentelemetry/api": "1.9.0",
-    "eventsource-parser": "1.1.2",
     "jsondiffpatch": "0.6.0",
-    "json-schema": "^0.4.0",
-    "secure-json-parse": "^2.7.0",
     "zod-to-json-schema": "^3.23.3"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^3.2.0",
-    "@testing-library/jest-dom": "^6.4.5",
-    "@testing-library/react": "^15.0.7",
-    "@testing-library/user-event": "^14.5.1",
-    "@types/json-schema": "7.0.15",
     "@types/node": "^18",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -83,13 +76,11 @@
     "@vitejs/plugin-react": "4.2.0",
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
-    "jsdom": "^24.0.0",
-    "msw": "2.3.1",
     "openai": "4.52.6",
     "react-dom": "^18",
     "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
     "tsup": "^7.2.0",
-    "typescript": "5.5.4",
+    "typescript": "5.6.3",
     "zod": "3.23.8"
   },
   "peerDependencies": {

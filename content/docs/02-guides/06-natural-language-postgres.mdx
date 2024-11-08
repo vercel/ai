@@ -35,8 +35,8 @@ Clone the starter repository and check out the `starter` branch:
 
 <Snippet
   text={[
-    'git clone https://github.com/vercel/ai-sql-starter',
-    'cd ai-sql-starter',
+    'git clone https://github.com/vercel-labs/natural-language-postgres',
+    'cd natural-language-postgres',
     'git checkout starter',
   ]}
 />
@@ -69,7 +69,7 @@ POSTGRES_DATABASE="..."
 
 <Note>
   This project uses Vercel Postgres. You can learn more about how to set up at
-  [Vercel Postgres](https://vercel.com/postgres).
+  the [Vercel Postgres documentation](https://vercel.com/postgres).
 </Note>
 
 4. This project uses CB Insights' Unicorn Companies dataset. You can download the dataset by following these instructions:
@@ -95,7 +95,7 @@ This dataset contains over 1000 rows of data over 7 columns, giving us plenty of
 
 <Snippet text={['pnpm run seed']} />
 
-You should see a message indicating that the database has been seeded successfully.
+Note: this step can take a little while. You should see a message indicating the Unicorns table has been created and then that the database has been seeded successfully.
 
 <Note>
   Remember, the dataset should be named `unicorns.csv` and located in root of
@@ -291,7 +291,7 @@ const handleSubmit = async (suggestion?: string) => {
   setActiveQuery('');
 
   try {
-    const query = generateQuery(question);
+    const query = await generateQuery(question);
 
     if (query === undefined) {
       toast.error('An error occurred. Please try again.');
@@ -356,9 +356,6 @@ Add a new Server Action to generate explanations for SQL queries.
 This action takes two parameters - the original natural language input and the generated SQL query.
 
 ```ts filename="app/actions.ts"
-// other imports
-import { explanationsSchema } from '@/lib/types';
-
 /* ...rest of the file... */
 
 export const explainQuery = async (input: string, sqlQuery: string) => {
@@ -366,7 +363,6 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
   try {
     const result = await generateObject({
       model: openai('gpt-4o'),
-      schema: explanationsSchema,
       system: `You are a SQL (postgres) expert. ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Explain the SQL query you generated to retrieve the data the user wanted. Assume the user is not an expert in SQL. Break down the query into steps. Be concise.
 
@@ -375,7 +371,6 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
 
       Generated SQL Query:
       ${sqlQuery}`,
-      output: 'array',
     });
     return result.object;
   } catch (e) {
@@ -384,10 +379,6 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
   }
 };
 ```
-
-<Note>
-  Don't forget to import the `explanationsSchema` from the `types.ts` file.
-</Note>
 
 This action uses the `generateObject` function again. However, you haven't defined the schema yet. Let's define it in another file so it can also be used as a type in your components.
 
@@ -497,7 +488,6 @@ Let's start by defining the schema for the chart configuration in `lib/types.ts`
 
 ```ts filename="lib/types.ts"
 /* ...rest of the file... */
-export type QueryExplanation = z.infer<typeof explanationSchema>;
 
 export const configSchema = z
   .object({
@@ -546,6 +536,10 @@ export const configSchema = z
 
 export type Config = z.infer<typeof configSchema>;
 ```
+
+<Note>
+  Replace the existing `export type Config = any;` type with the new one.
+</Note>
 
 This schema makes extensive use of Zod's `.describe()` function to give the model extra context about each of the key's you are expecting in the chart configuration. This will help the model understand the purpose of each key and generate more accurate results.
 
@@ -616,7 +610,7 @@ With the action in place, you'll want to trigger it automatically after receivin
 
 Update the `handleSubmit` function in your root page (`app/page.tsx`) to generate and set the chart configuration after running the query:
 
-```typescript filename="app/page.tsx"
+```typescript filename="app/page.tsx" highlight="38,39"
 /* ...other imports... */
 import { getCompanies, generateQuery, generateChartConfig } from './actions';
 

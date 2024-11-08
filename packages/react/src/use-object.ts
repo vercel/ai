@@ -75,11 +75,6 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   /**
-   * @deprecated Use `submit` instead.
-   */
-  setInput: (input: INPUT) => void;
-
-  /**
    * Calls the API with the provided input as JSON body.
    */
   submit: (input: INPUT) => void;
@@ -227,7 +222,6 @@ function useObject<RESULT, INPUT = any>({
   };
 
   return {
-    setInput: submit, // Deprecated
     submit,
     object: data,
     error,

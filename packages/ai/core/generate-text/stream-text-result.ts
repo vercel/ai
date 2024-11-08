@@ -1,10 +1,6 @@
 import { ServerResponse } from 'node:http';
-import {
-  AIStreamCallbacksAndOptions,
-  CoreAssistantMessage,
-  CoreToolMessage,
-  StreamData,
-} from '../../streams';
+import { StreamData } from '../../streams/stream-data';
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { CoreTool } from '../tool';
 import {
   CallWarning,
@@ -13,10 +9,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import {
-  LanguageModelResponseMetadata,
-  LanguageModelResponseMetadataWithHeaders,
-} from '../types/language-model-response-metadata';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { StepResult } from './step-result';
@@ -30,8 +23,7 @@ export interface StreamTextResult<TOOLS extends Record<string, CoreTool>> {
   /**
 Warnings from the model provider (e.g. unsupported settings) for the first step.
      */
-  // TODO change to async in v4 and use value from last step
-  readonly warnings: CallWarning[] | undefined;
+  readonly warnings: Promise<CallWarning[] | undefined>;
 
   /**
 The total token usage of the generated response.
@@ -75,26 +67,6 @@ The tool results that have been generated in the last step.
 Resolved when the all tool executions are finished.
      */
   readonly toolResults: Promise<ToolResultUnion<TOOLS>[]>;
-
-  /**
-Optional raw response data.
-
-@deprecated Use `response` instead.
-     */
-  // TODO removed in v4
-  readonly rawResponse?: {
-    /**
-  Response headers.
-       */
-    headers?: Record<string, string>;
-  };
-
-  /**
-@deprecated use `response.messages` instead.
-     */
-  readonly responseMessages: Promise<
-    Array<CoreAssistantMessage | CoreToolMessage>
-  >;
 
   /**
 Details for all steps.
@@ -141,21 +113,6 @@ need to be added separately.
   readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
 
   /**
-  Converts the result to an `AIStream` object that is compatible with `StreamingTextResponse`.
-  It can be used with the `useChat` and `useCompletion` hooks.
-
-  @param callbacks
-  Stream callbacks that will be called when the stream emits events.
-
-  @returns A data stream.
-
-  @deprecated Use `toDataStream` instead.
-     */
-  toAIStream(
-    callbacks?: AIStreamCallbacksAndOptions,
-  ): ReadableStream<Uint8Array>;
-
-  /**
   Converts the result to a data stream.
 
   @param data an optional StreamData object that will be merged into the stream.
@@ -171,37 +128,23 @@ need to be added separately.
   }): ReadableStream<Uint8Array>;
 
   /**
-  Writes stream data output to a Node.js response-like object.
-  It sets a `Content-Type` header to `text/plain; charset=utf-8` and
-  writes each stream data part as a separate chunk.
-
-  @param response A Node.js response-like object (ServerResponse).
-  @param init Optional headers and status code.
-
-  @deprecated Use `pipeDataStreamToResponse` instead.
-     */
-  pipeAIStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ): void;
-
-  /**
   Writes data stream output to a Node.js response-like object.
 
   @param response A Node.js response-like object (ServerResponse).
-  @param options An object with an init property (ResponseInit) and a data property.
-  You can also pass in a ResponseInit directly (deprecated).
+  @param options.status The status code.
+  @param options.statusText The status text.
+  @param options.headers The headers.
+  @param options.data The stream data.
+  @param options.getErrorMessage An optional function that converts an error to an error message.
+  @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
      */
   pipeDataStreamToResponse(
     response: ServerResponse,
-    options?:
-      | ResponseInit
-      | {
-          init?: ResponseInit;
-          data?: StreamData;
-          getErrorMessage?: (error: unknown) => string;
-          sendUsage?: boolean; // default to true (change to false in v4: secure by default)
-        },
+    options?: ResponseInit & {
+      data?: StreamData;
+      getErrorMessage?: (error: unknown) => string;
+      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+    },
   ): void;
 
   /**
@@ -218,35 +161,21 @@ need to be added separately.
   Converts the result to a streamed response object with a stream data part stream.
   It can be used with the `useChat` and `useCompletion` hooks.
 
-  @param options An object with an init property (ResponseInit) and a data property.
-  You can also pass in a ResponseInit directly (deprecated).
-
-  @return A response object.
-
-  @deprecated Use `toDataStreamResponse` instead.
-     */
-  toAIStreamResponse(
-    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
-  ): Response;
-
-  /**
-  Converts the result to a streamed response object with a stream data part stream.
-  It can be used with the `useChat` and `useCompletion` hooks.
-
-  @param options An object with an init property (ResponseInit) and a data property.
-  You can also pass in a ResponseInit directly (deprecated).
+  @param options.status The status code.
+  @param options.statusText The status text.
+  @param options.headers The headers.
+  @param options.data The stream data.
+  @param options.getErrorMessage An optional function that converts an error to an error message.
+  @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
 
   @return A response object.
      */
   toDataStreamResponse(
-    options?:
-      | ResponseInit
-      | {
-          init?: ResponseInit;
-          data?: StreamData;
-          getErrorMessage?: (error: unknown) => string;
-          sendUsage?: boolean; // default to true (change to false in v4: secure by default)
-        },
+    options?: ResponseInit & {
+      data?: StreamData;
+      getErrorMessage?: (error: unknown) => string;
+      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+    },
   ): Response;
 
   /**

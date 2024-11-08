@@ -26,16 +26,6 @@ The process parameter is a callback in which you can run the assistant on thread
  */
 type AssistantResponseCallback = (options: {
   /**
-@deprecated use variable from outer scope instead.
-   */
-  threadId: string;
-
-  /**
-@deprecated use variable from outer scope instead.
-   */
-  messageId: string;
-
-  /**
 Forwards an assistant message (non-streaming) to the client.
    */
   sendMessage: (message: AssistantMessage) => void;
@@ -137,8 +127,6 @@ export function AssistantResponse(
 
       try {
         await process({
-          threadId,
-          messageId,
           sendMessage,
           sendDataMessage,
           forwardStream,
@@ -160,8 +148,3 @@ export function AssistantResponse(
     },
   });
 }
-
-/**
-@deprecated Use `AssistantResponse` instead.
- */
-export const experimental_AssistantResponse = AssistantResponse;

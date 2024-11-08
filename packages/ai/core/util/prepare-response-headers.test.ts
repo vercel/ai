@@ -11,7 +11,7 @@ it('should set Content-Type header if not present', () => {
 
 it('should not overwrite existing Content-Type header', () => {
   const headers = prepareResponseHeaders(
-    { headers: { 'Content-Type': 'text/html' } },
+    { 'Content-Type': 'text/html' },
     { contentType: 'application/json' },
   );
 
@@ -27,10 +27,9 @@ it('should handle undefined init', () => {
 });
 
 it('should handle init headers as Headers object', () => {
-  const headers = prepareResponseHeaders(
-    { headers: new Headers({ init: 'foo' }) },
-    { contentType: 'application/json' },
-  );
+  const headers = prepareResponseHeaders(new Headers({ init: 'foo' }), {
+    contentType: 'application/json',
+  });
 
   expect(headers.get('init')).toBe('foo');
   expect(headers.get('Content-Type')).toBe('application/json');
@@ -42,7 +41,7 @@ it('should handle Response object headers', () => {
     headers: { ...initHeaders, extra: 'bar' },
   });
 
-  const headers = prepareResponseHeaders(response, {
+  const headers = prepareResponseHeaders(response.headers, {
     contentType: 'application/json',
   });
 
