@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.0.0-canary.6
+
+### Patch Changes
+
+- 70f28f6: chore (ui-utils): mark vitest as external to reduce bundle size of /test
+
 ## 1.0.0-canary.5
 
 ### Patch Changes

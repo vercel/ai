@@ -1,5 +1,17 @@
 # ai
 
+## 4.0.0-canary.8
+
+### Major Changes
+
+- 007cb81: chore (ai): change `streamText` warnings result to Promise
+
+### Patch Changes
+
+- Updated dependencies [70f28f6]
+  - @ai-sdk/ui-utils@1.0.0-canary.6
+  - @ai-sdk/react@1.0.0-canary.6
+
 ## 4.0.0-canary.7
 
 ### Major Changes

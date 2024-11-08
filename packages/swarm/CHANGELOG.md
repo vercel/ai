@@ -1,5 +1,12 @@
 # @ai-sdk/swarm
 
+## 0.0.9-canary.8
+
+### Patch Changes
+
+- Updated dependencies [007cb81]
+  - ai@4.0.0-canary.8
+
 ## 0.0.9-canary.7
 
 ### Patch Changes
