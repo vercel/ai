@@ -8,6 +8,7 @@
         "test/dist/**/*",
         "CHANGELOG.md"
     ],
+    "type": "module",
     "scripts": {
         "build": "tsup",
         "clean": "rm -rf dist && rm -rf test/dist",
