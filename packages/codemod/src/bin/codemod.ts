@@ -20,7 +20,7 @@ const runCodemod = (codemod: string, source: string, options: any) => {
     ? localJscodeshift
     : 'jscodeshift';
 
-  let command = `${jscodeshift} -t ${codemodPath} ${targetPath}`;
+  let command = `${jscodeshift} -t ${codemodPath} ${targetPath} --parser tsx`;
 
   if (options.dry) {
     command += ' --dry';

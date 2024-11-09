@@ -12,5 +12,5 @@ export default function transformer(fileInfo: FileInfo, api: API) {
         path.node.source.value = `@ai-sdk/${match[1]}`;
       }
     })
-    .toSource();
+    .toSource({ quote: 'single' });
 }
