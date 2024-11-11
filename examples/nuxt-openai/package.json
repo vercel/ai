@@ -15,20 +15,19 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@nuxt/devtools": "1.3.9",
-    "@nuxt/ui-templates": "^1.3.4",
-    "@nuxtjs/tailwindcss": "^6.12.0",
+    "@nuxt/devtools": "1.6.0",
+    "@nuxt/ui-templates": "1.3.4",
+    "@nuxtjs/tailwindcss": "6.12.2",
     "@types/node": "^18",
-    "@vue/reactivity": "^3.4.31",
-    "@vue/runtime-core": "^3.4.31",
-    "@vue/runtime-dom": "^3.4.31",
-    "@vue/shared": "^3.4.31",
-    "nuxt": "^3.12.3",
-    "openai": "4.52.6",
-    "tailwindcss": "^3.4.4",
-    "unctx": "^2.3.1",
-    "vue": "^3.4.31",
-    "vue-router": "4.4.0"
+    "@vue/reactivity": "3.5.12",
+    "@vue/runtime-core": "3.5.12",
+    "@vue/runtime-dom": "3.5.12",
+    "@vue/shared": "3.5.12",
+    "nuxt": "3.14.159",
+    "tailwindcss": "3.4.14",
+    "unctx": "2.3.1",
+    "vue": "3.5.12",
+    "vue-router": "4.4.5"
   },
   "version": "0.0.0"
 }
