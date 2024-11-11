@@ -1,6 +1,6 @@
 name: Feature Request
 description: Propose a new feature for the AI SDK.
-labels: []
+labels: ['enhancement']
 body:
   - type: markdown
     attributes:
@@ -9,15 +9,15 @@ body:
   - type: textarea
     attributes:
       label: Feature Description
-      description: A detailed description of the feature you are proposing for the SDK. This includes helpful information such as the API you are using, the framework, and AI provider.
+      description: A detailed description of the feature you are proposing for the SDK.
       placeholder: |
         Feature description...
     validations:
       required: true
   - type: textarea
     attributes:
-      label: Use Case
-      description: Provide a use case where this feature would be beneficial
+      label: Use Cases
+      description: Provide use cases where this feature would be beneficial.
       placeholder: |
         Use case...
   - type: textarea
