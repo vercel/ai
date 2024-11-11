@@ -23,22 +23,16 @@
     ]
   },
   "devDependencies": {
-    "@changesets/cli": "^2.22.0",
-    "@playwright/test": "^1.44.1",
-    "chalk": "^5.3.0",
+    "@changesets/cli": "2.27.9",
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
     "husky": "^8.0.0",
-    "lint-staged": "^15.2.4",
-    "next": "15.0.0-canary.23",
-    "playwright": "^1.44.1",
+    "lint-staged": "15.2.10",
     "prettier": "2.8.8",
-    "publint": "0.1.11",
-    "react": "19.0.0-rc-cc1ec60d0d-20240607",
-    "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
-    "turbo": "^2.2.3",
+    "publint": "0.2.12",
+    "turbo": "2.2.3",
     "typescript": "5.6.3",
-    "vitest": "1.6.0"
+    "vitest": "2.1.4"
   },
   "engines": {
     "node": "^18.0.0 || ^20.0.0"
