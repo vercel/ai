@@ -16,7 +16,7 @@
     "ai": "4.0.0-canary.8",
     "next": "latest",
     "openai": "4.52.6",
-    "react": "^18",
+    "react": "^19.0.0-rc-5c56b873-20241107",
     "react-dom": "^18",
     "react-markdown": "9.0.1",
     "zod": "3.23.8"

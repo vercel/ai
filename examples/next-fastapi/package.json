@@ -15,7 +15,7 @@
     "ai": "4.0.0-canary.8",
     "geist": "^1.3.1",
     "next": "latest",
-    "react": "^18",
+    "react": "^19.0.0-rc-5c56b873-20241107",
     "react-dom": "^18"
   },
   "devDependencies": {

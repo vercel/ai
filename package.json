@@ -34,7 +34,7 @@
     "playwright": "^1.44.1",
     "prettier": "2.8.8",
     "publint": "0.1.11",
-    "react": "19.0.0-rc-cc1ec60d0d-20240607",
+    "react": "19.0.0-rc-5c56b873-20241107",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
     "turbo": "^2.2.3",
     "typescript": "5.6.3",
