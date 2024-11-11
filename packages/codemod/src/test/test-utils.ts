@@ -13,8 +13,8 @@ export function applyTransform(
     source: input,
   };
   const api: API = {
-    j: jscodeshift,
-    jscodeshift,
+    j: jscodeshift.withParser('tsx'),
+    jscodeshift: jscodeshift.withParser('tsx'),
     stats: () => {},
     report: () => {},
   };
