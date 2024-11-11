@@ -82,7 +82,7 @@ const { text } = await generateText({
       }
     }
   }),
-  system: `The recently ate at these restaurants: {restaurants}`,
+  system: `The user recently ate at these restaurants: {restaurants}`,
   messages: [{role: "user", content: "Where should I stay in Paris?"}]
 });
 ```
