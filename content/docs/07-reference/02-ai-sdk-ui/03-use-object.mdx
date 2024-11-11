@@ -48,7 +48,7 @@ export default function Page() {
       name: 'api',
       type: 'string',
       description:
-        'The API endpoint. It should stream JSON that matches the schema as chunked text.',
+        'The API endpoint that is called to generate objects. It should stream JSON that matches the schema as chunked text. It can be a relative path (starting with `/`) or an absolute URL.',
     },
     {
       name: 'schema',

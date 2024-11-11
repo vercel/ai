@@ -42,7 +42,8 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'api',
       type: "string = '/api/chat'",
       isOptional: true,
-      description: 'The chat completion API endpoint offered by the provider.',
+      description:
+        'The API endpoint that is called to generate chat responses. It can be a relative path (starting with `/`) or an absolute URL.',
     },
     {
       name: 'keepLastMessageOnError',
