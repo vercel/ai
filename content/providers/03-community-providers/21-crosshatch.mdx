@@ -1,3 +1,8 @@
+---
+title: Crosshatch
+description: Crosshatch Provider for the AI SDK
+---
+
 # Crosshatch Provider
 
 The [Crosshatch](https://crosshatch.io) provider supports secure inference from popular language models with permissioned access to data users share, giving responses personalized with complete user context.
@@ -10,9 +15,15 @@ The Crosshatch provider is available via the `@crosshatch/ai-provider` module.
 You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
-  <Tab>```bash pnpm add @crosshatch/ai-provider ```</Tab>
-  <Tab>```bash npm install @crosshatch/ai-provider ```</Tab>
-  <Tab>```bash yarn add @crosshatch/ai-provider ```</Tab>
+  <Tab>
+    <Snippet text="pnpm add @crosshatch/ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @crosshatch/ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @crosshatch/ai-provider" dark />
+  </Tab>
 </Tabs>
 
 The [Crosshatch](https://crosshatch.io/) provider supports all of their available model such as GPT and Claude, as well as the querying interface for controlling Crosshatch's custom data integration behaviors. This provider wraps the existing underlying providers ([@ai-sdk/openai](https://www.npmjs.com/package/@ai-sdk/openai), [@ai-sdk/anthropic](https://www.npmjs.com/package/@ai-sdk/anthropic)), so you can use all existing behavior found in those providers as well.
@@ -25,17 +36,15 @@ You can obtain synthetic and test user tokens from the [your Crosshatch develope
 
 Production user tokens are available from our [Link SDK](https://www.npmjs.com/package/@crosshatch/link) using your Crosshatch developer client id.
 
-#### Using the provider
+## Provider Instance
 
-To use Crosshatch Link in your web application, follow these steps:
-
-You can import the provider instance
+To create a Crosshatch provider instance, use the `createCrosshatch` function:
 
 ```ts
 import createCrosshatch from '@crosshatch/ai-provider';
 ```
 
-## Language Models with Context
+## Language Models
 
 You can create [Crosshatch models](https://docs.crosshatch.io/endpoints/ai#supported-model-providers) using a provider instance.
 
@@ -43,8 +52,6 @@ You can create [Crosshatch models](https://docs.crosshatch.io/endpoints/ai#suppo
 import { createCrosshatch } from '@crosshatch/ai-provider';
 const crosshatch = createCrosshatch();
 ```
-
-## Language Models
 
 To create a model instance, call the provider instance and specify the model you would like to use in the first argument. In the second argument, specify the user auth token, desired context, and model arguments.
 You can use Crosshatch to get generated text based on permissioned user context and your favorite language model.
