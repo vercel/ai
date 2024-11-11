@@ -49,7 +49,7 @@ To set up the repository on your local machine, follow these steps:
 
 1. `cd examples/ai-core` (or another example folder)
 1. AI core examples: run e.g. `pnpm tsx src/stream-text/openai.ts`
-1. Other examples: run `pnpm dev` and go to the browser url
+1. Other framework examples: run `pnpm dev` and go to the browser url
 
 ### Local Development Workflow
 
