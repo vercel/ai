@@ -13,8 +13,8 @@
   ],
   "scripts": {
     "build": "tsup",
+    "build:watch": "tsup --watch",
     "clean": "rm -rf dist && rm -rf test/dist",
-    "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
