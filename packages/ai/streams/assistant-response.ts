@@ -3,8 +3,6 @@ import {
   DataMessage,
   formatStreamPart,
 } from '@ai-sdk/ui-utils';
-import type { AssistantStream } from 'openai/lib/AssistantStream';
-import type { Run } from 'openai/resources/beta/threads/runs/runs';
 
 /**
 You can pass the thread and the latest message into the `AssistantResponse`. This establishes the context for the response.
@@ -38,7 +36,7 @@ Send a data message to the client. You can use this to provide information for r
   /**
 Forwards the assistant response stream to the client. Returns the `Run` object after it completes, or when it requires an action.
    */
-  forwardStream: (stream: AssistantStream) => Promise<Run | undefined>;
+  forwardStream: (stream: any) => Promise<any | undefined>;
 }) => Promise<void>;
 
 /**
@@ -72,8 +70,8 @@ export function AssistantResponse(
         );
       };
 
-      const forwardStream = async (stream: AssistantStream) => {
-        let result: Run | undefined = undefined;
+      const forwardStream = async (stream: any) => {
+        let result: any | undefined = undefined;
 
         for await (const value of stream) {
           switch (value.event) {

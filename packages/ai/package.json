@@ -76,7 +76,6 @@
     "@vitejs/plugin-react": "4.3.3",
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
-    "openai": "4.52.6",
     "react-dom": "^18",
     "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
     "tsup": "^7.2.0",
@@ -84,7 +83,6 @@
     "zod": "3.23.8"
   },
   "peerDependencies": {
-    "openai": "^4.42.0",
     "react": "^18 || ^19 || ^19.0.0-rc",
     "zod": "^3.0.0"
   },
@@ -93,9 +91,6 @@
       "optional": true
     },
     "zod": {
-      "optional": true
-    },
-    "openai": {
       "optional": true
     }
   },
