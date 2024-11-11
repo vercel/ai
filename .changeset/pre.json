@@ -27,6 +27,7 @@
     "@ai-sdk/amazon-bedrock": "0.0.35",
     "@ai-sdk/anthropic": "0.0.55",
     "@ai-sdk/azure": "0.0.51",
+    "@ai-sdk/codemod": "0.0.28",
     "@ai-sdk/cohere": "0.0.28",
     "@ai-sdk/google": "0.0.55",
     "@ai-sdk/google-vertex": "0.0.43",
