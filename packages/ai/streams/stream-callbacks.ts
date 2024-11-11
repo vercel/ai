@@ -19,7 +19,7 @@ export interface StreamCallbacks {
  * The transform stream uses the provided callbacks to execute custom logic at different stages of the stream's lifecycle.
  * - `onStart`: Called once when the stream is initialized.
  * - `onToken`: Called for each tokenized message.
- * - `onCompletion`: Called every time an AIStream completion message is received. This can occur multiple times when using e.g. OpenAI functions
+ * - `onCompletion`: Called every time a completion message is received. This can occur multiple times when using e.g. OpenAI functions
  * - `onFinal`: Called once when the stream is closed with the final completion message.
  *
  * This function is useful when you want to process a stream of messages and perform specific actions during the stream's lifecycle.

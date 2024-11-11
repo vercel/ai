@@ -36,7 +36,7 @@ To use the provider, you need to set the `FRIENDLI_TOKEN` environment variable w
 export FRIENDLI_TOKEN="YOUR_FRIENDLI_TOKEN"
 ```
 
-Check the [FriendliAI documentation](https://docs.friendli.ai/guides/personal_access_tokens) for more information.
+Check the [FriendliAI documentation](https://friendli.ai/docs/guides/personal_access_tokens) for more information.
 
 ## Provider Instance
 
@@ -48,11 +48,11 @@ import { friendli } from '@friendliai/ai-provider';
 
 ## Language Models
 
-You can create [FriendliAI models](https://docs.friendli.ai/guides/serverless_endpoints/text_generation#model-supports) using a provider instance.
+You can create [FriendliAI models](https://friendli.ai/docs/guides/serverless_endpoints/text_generation#model-supports) using a provider instance.
 The first argument is the model id, e.g. `meta-llama-3.1-8b-instruct`.
 
 ```ts
-const model = friendli('meta-llama-3.1-8b-instruct');
+const model = friendli('meta-llama-3.1-70b-instruct');
 ```
 
 ### Example: Generating text
@@ -71,13 +71,13 @@ const { text } = await generateText({
 
 ### Example: Using built-in tools
 
-<Note type="warning">**Built-in tools** is in beta.</Note>
+<Note type="warning">Built-in tools are currently in beta.</Note>
 
-If you use `@friendliai/ai-provider`, you can use the [built-in tools](https://docs.friendli.ai/guides/serverless_endpoints/tools/built_in_tools) via the `tools` option.
+If you use `@friendliai/ai-provider`, you can use the [built-in tools](https://friendli.ai/docs/guides/serverless_endpoints/tools/built_in_tools) via the `tools` option.
 
 Built-in tools allow models to use tools to generate better answers. For example, a `web:search` tool can provide up-to-date answers to current questions.
 
-```ts highlight="1,8,9,10,11,12,13,14,15"
+```ts highlight="1,8,9,10,11,12,13,14"
 import { friendli } from '@friendliai/ai-provider';
 import { streamText } from 'ai';
 
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = await streamText({
-    model: friendli('meta-llama-3.1-8b-instruct', {
+    model: friendli('meta-llama-3.1-70b-instruct', {
       tools: [
         { type: 'web:search' },
         { type: 'math:calculator' },
@@ -126,8 +126,9 @@ FriendliAI language models can also be used in the `streamText`, `generateObject
 
 <Note>
   To access [more models](https://friendli.ai/models), visit the [Friendli
-  Dedicated Endpoints](https://docs.friendli.ai/sdk/integrations/vercel-ai-sdk)
-  documentation to deploy your custom models.
+  Dedicated Endpoints
+  documentation](https://friendli.ai/docs/guides/dedicated_endpoints/quickstart)
+  to deploy your custom models.
 </Note>
 
 ### OpenAI Compatibility

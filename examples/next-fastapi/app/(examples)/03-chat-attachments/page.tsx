@@ -17,10 +17,10 @@ export default function Page() {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-col p-4 gap-2">
+      <div className="flex flex-col gap-2 p-4">
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
-            <div className="w-24 text-zinc-500 flex-shrink-0">{`${message.role}: `}</div>
+            <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
 
             <div className="flex flex-col gap-2">
               {message.content}
@@ -35,7 +35,7 @@ export default function Page() {
                       alt={attachment.name}
                     />
                   ) : attachment.contentType?.includes('text/') ? (
-                    <div className="w-32 h-24 rounded-md text-xs ellipsis overflow-hidden p-2 text-zinc-500 border">
+                    <div className="w-32 h-24 p-2 overflow-hidden text-xs border rounded-md ellipsis text-zinc-500">
                       {getTextFromDataUrl(attachment.url)}
                     </div>
                   ) : null,
@@ -59,9 +59,9 @@ export default function Page() {
             fileInputRef.current.value = '';
           }
         }}
-        className="flex flex-col fixed gap-3 bottom-0 p-4 w-full border-t h-28"
+        className="fixed bottom-0 flex flex-col w-full gap-3 p-4 border-t h-28"
       >
-        <div className="flex flex-row gap-2 fixed right-8 bottom-32 items-end">
+        <div className="fixed flex flex-row items-end gap-2 right-8 bottom-32">
           {files
             ? Array.from(files).map(attachment => {
                 const { type } = attachment;
@@ -83,9 +83,9 @@ export default function Page() {
                   return (
                     <div
                       key={attachment.name}
-                      className="w-24 text-zinc-500 flex-shrink-0 text-sm flex flex-col gap-1"
+                      className="flex flex-col flex-shrink-0 w-24 gap-1 text-sm text-zinc-500"
                     >
-                      <div className="w-16 h-20 bg-zinc-100 rounded-md" />
+                      <div className="w-16 h-20 rounded-md bg-zinc-100" />
                       {attachment.name}
                     </div>
                   );
@@ -107,7 +107,7 @@ export default function Page() {
           value={input}
           placeholder="What's the weather in San Francisco?"
           onChange={handleInputChange}
-          className="w-full outline-none bg-transparent"
+          className="w-full bg-transparent outline-none"
           disabled={isLoading}
         />
       </form>

@@ -210,7 +210,7 @@ export async function POST(req: Request) {
 }
 ```
 
-When the flag is enabled, partial tool calls will be streamed as part of the AI stream.
+When the flag is enabled, partial tool calls will be streamed as part of the data stream.
 They are available through the `useChat` hook.
 The `toolInvocations` property of assistant messages will also contain partial tool calls.
 You can use the `state` property of the tool invocation to render the correct UI.
