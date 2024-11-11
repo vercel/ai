@@ -6,7 +6,7 @@ import 'dotenv/config';
 
 async function main() {
   const cohereProvider = createCohere({
-    generateId
+    generateId,
   });
 
   const { text } = await generateText({

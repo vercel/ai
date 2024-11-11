@@ -12,11 +12,12 @@ export function applyTransform(
     path: 'test.ts',
     source: input,
   };
+  const j = jscodeshift.withParser('tsx');
   const api: API = {
-    j: jscodeshift,
-    jscodeshift,
+    j,
+    jscodeshift: j,
     stats: () => {},
-    report: () => {},
+    report: console.log,
   };
   return transform(fileInfo, { ...api, ...options });
 }
