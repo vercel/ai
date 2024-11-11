@@ -8,8 +8,8 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsup",
+    "build:watch": "tsup --watch",
     "clean": "rm -rf dist",
-    "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
