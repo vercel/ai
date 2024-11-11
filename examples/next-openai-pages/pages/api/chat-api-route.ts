@@ -13,7 +13,7 @@ export default async function handler(
     messages,
   });
 
-  // write the AI stream to the response
+  // write the data stream to the response
   // Note: this is sent as a single response, not a stream
   result.pipeDataStreamToResponse(response);
 }
