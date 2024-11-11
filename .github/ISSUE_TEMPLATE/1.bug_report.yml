@@ -27,7 +27,8 @@ body:
     attributes:
       label: AI provider
       description: The AI provider (e.g. `@ai-sdk/openai`) that you are using, and its version (e.g. `1.0.0`).
-      placeholder: @ai-sdk/openai v1.0.0
+      placeholder: |
+        @ai-sdk/openai v1.0.0
   - type: textarea
     attributes:
       label: Additional context
