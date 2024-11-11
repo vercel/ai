@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.0.0-canary.5
+
+### Patch Changes
+
+- 0509c34: fix (provider/google): add name/content details to tool responses
+
 ## 1.0.0-canary.4
 
 ### Major Changes
