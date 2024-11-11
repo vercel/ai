@@ -34,7 +34,7 @@
   "devDependencies": {
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
-    "eslint": "^7.32.0",
+    "eslint": "8.57.1",
     "eslint-config-vercel-ai": "workspace:*",
     "tsup": "^7.2.0",
     "typescript": "5.6.3"
