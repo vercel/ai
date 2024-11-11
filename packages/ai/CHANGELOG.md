@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.0-canary.9
+
+### Patch Changes
+
+- f0ec721: chore (ai): remove openai peer dependency
+
 ## 4.0.0-canary.8
 
 ### Major Changes

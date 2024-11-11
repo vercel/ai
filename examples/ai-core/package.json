@@ -15,7 +15,7 @@
     "@opentelemetry/sdk-node": "0.52.0",
     "@opentelemetry/auto-instrumentations-node": "0.47.0",
     "@opentelemetry/sdk-trace-node": "1.25.0",
-    "ai": "4.0.0-canary.8",
+    "ai": "4.0.0-canary.9",
     "dotenv": "16.4.5",
     "mathjs": "12.4.2",
     "zod": "3.23.8",
