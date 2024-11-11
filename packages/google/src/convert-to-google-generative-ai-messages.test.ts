@@ -83,3 +83,41 @@ describe('user messages', () => {
     });
   });
 });
+
+describe('tool messages', () => {
+  it('should convert tool result messages to function responses', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'testFunction',
+            toolCallId: 'testCallId',
+            result: { someData: 'test result' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                name: 'testFunction',
+                response: {
+                  name: 'testFunction',
+                  content: { someData: 'test result' },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+});
