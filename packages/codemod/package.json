@@ -5,12 +5,11 @@
     "sideEffects": false,
     "files": [
         "dist/**/*",
-        "test/dist/**/*",
         "CHANGELOG.md"
     ],
     "scripts": {
         "build": "tsup",
-        "clean": "rm -rf dist && rm -rf test/dist",
+        "clean": "rm -rf dist",
         "dev": "tsup --watch",
         "lint": "eslint \"./**/*.ts*\"",
         "type-check": "tsc --noEmit",
