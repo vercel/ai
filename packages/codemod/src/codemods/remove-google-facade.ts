@@ -7,10 +7,7 @@ export default function transformer(fileInfo: FileInfo, api: API) {
   // Replace imports
   root.find(j.ImportDeclaration).forEach(path => {
     const sourceValue = path.node.source.value;
-    if (
-      sourceValue === '@ai-sdk/google' ||
-      sourceValue.includes('google-facade')
-    ) {
+    if (sourceValue === '@ai-sdk/google') {
       const hasGoogleSpecifier = path.node.specifiers?.some(
         spec =>
           spec.type === 'ImportSpecifier' && spec.imported.name === 'Google',
@@ -44,7 +41,8 @@ export default function transformer(fileInfo: FileInfo, api: API) {
   root.find(j.CallExpression).forEach(path => {
     if (
       path.node.callee.type === 'MemberExpression' &&
-      path.node.callee.object.type === 'Identifier'
+      path.node.callee.object.type === 'Identifier' &&
+      path.node.callee.property.type === 'Identifier'
     ) {
       const methodName = path.node.callee.property.name;
       if (

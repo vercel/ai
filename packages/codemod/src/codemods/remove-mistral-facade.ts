@@ -7,10 +7,7 @@ export default function transformer(fileInfo: FileInfo, api: API) {
   // Replace imports
   root.find(j.ImportDeclaration).forEach(path => {
     const sourceValue = path.node.source.value;
-    if (
-      sourceValue === '@ai-sdk/mistral' ||
-      sourceValue.includes('mistral-facade')
-    ) {
+    if (sourceValue === '@ai-sdk/mistral') {
       const hasMistralSpecifier = path.node.specifiers?.some(
         spec =>
           spec.type === 'ImportSpecifier' && spec.imported.name === 'Mistral',
@@ -42,6 +39,7 @@ export default function transformer(fileInfo: FileInfo, api: API) {
     if (
       path.node.callee.type === 'MemberExpression' &&
       path.node.callee.object.type === 'Identifier' &&
+      path.node.callee.property.type === 'Identifier' &&
       (path.node.callee.property.name === 'chat' ||
         path.node.callee.property.name === 'messages')
     ) {

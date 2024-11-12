@@ -7,8 +7,4 @@ const mistral = createMistral({
   headers: { 'custom': 'header' }
 });
 
-const model = mistral('mistral-large', {
-  maxTokens: 1000
-});
-
-const messages = mistral('mistral-medium');
+const model = mistral('mistral-large', { safePrompt: true });

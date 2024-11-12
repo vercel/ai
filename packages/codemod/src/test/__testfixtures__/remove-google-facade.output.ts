@@ -7,8 +7,5 @@ const google = createGoogleGenerativeAI({
   headers: { 'custom': 'header' }
 });
 
-const model = google('gemini-pro', {
-  maxTokens: 1000
-});
-
-const embeddings = google('embedding-001');
+const model = google('gemini-pro');
+const otherModel = google('other-gemini-pro');

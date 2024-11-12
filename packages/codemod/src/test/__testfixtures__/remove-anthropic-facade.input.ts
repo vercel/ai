@@ -8,7 +8,7 @@ const anthropic = new Anthropic({
 });
 
 const model = anthropic.chat('claude-3', {
-  maxTokens: 1000
+  cacheControl: true
 });
 
-const messages = anthropic.messages('claude-3');
+const messages = anthropic.messages('claude-3', { cacheControl: true });

@@ -8,7 +8,7 @@ const openai = createOpenAI({
 });
 
 const chatModel = openai('gpt-4', {
-  maxTokens: 1000
+  logprobs: true
 });
 
 const completionModel = openai('gpt-3.5-turbo-instruct');

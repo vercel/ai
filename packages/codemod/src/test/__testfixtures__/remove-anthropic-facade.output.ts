@@ -8,7 +8,7 @@ const anthropic = createAnthropic({
 });
 
 const model = anthropic('claude-3', {
-  maxTokens: 1000
+  cacheControl: true
 });
 
-const messages = anthropic('claude-3');
+const messages = anthropic('claude-3', { cacheControl: true });

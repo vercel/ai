@@ -7,10 +7,7 @@ export default function transformer(fileInfo: FileInfo, api: API) {
   // Replace imports
   root.find(j.ImportDeclaration).forEach(path => {
     const sourceValue = path.node.source.value;
-    if (
-      sourceValue === '@ai-sdk/anthropic' ||
-      sourceValue.includes('anthropic-facade')
-    ) {
+    if (sourceValue === '@ai-sdk/anthropic') {
       const hasAnthropicSpecifier = path.node.specifiers?.some(
         spec =>
           spec.type === 'ImportSpecifier' && spec.imported.name === 'Anthropic',
@@ -38,11 +35,11 @@ export default function transformer(fileInfo: FileInfo, api: API) {
   });
 
   // Replace method calls.
-  // TODO(shaper): Technically needs to be multifile.
   root.find(j.CallExpression).forEach(path => {
     if (
       path.node.callee.type === 'MemberExpression' &&
       path.node.callee.object.type === 'Identifier' &&
+      path.node.callee.property.type === 'Identifier' &&
       (path.node.callee.property.name === 'messages' ||
         path.node.callee.property.name === 'chat')
     ) {

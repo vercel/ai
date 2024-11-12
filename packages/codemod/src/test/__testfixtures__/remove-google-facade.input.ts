@@ -7,8 +7,5 @@ const google = new Google({
   headers: { 'custom': 'header' }
 });
 
-const model = google.chat('gemini-pro', {
-  maxTokens: 1000
-});
-
-const embeddings = google.textEmbedding('embedding-001');
+const model = google.generativeAI('gemini-pro');
+const otherModel = google.chat('other-gemini-pro');
