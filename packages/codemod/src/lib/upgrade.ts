@@ -12,6 +12,7 @@ const bundle = [
   'replace-token-usage-types',
   'rewrite-framework-imports',
   'remove-experimental-message-types',
+  'replace-roundtrips-with-maxsteps',
 ];
 
 function validatePreconditions(cwd: string) {
