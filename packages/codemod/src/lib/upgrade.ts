@@ -11,6 +11,7 @@ const bundle = [
   'replace-nanoid',
   'replace-token-usage-types',
   'rewrite-framework-imports',
+  'remove-experimental-message-types',
 ];
 
 function validatePreconditions(cwd: string) {
