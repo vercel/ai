@@ -6,6 +6,10 @@ import { TransformOptions } from './transform-options';
 
 const bundle = [
   'remove-ai-stream-methods-from-stream-text-result',
+  'remove-anthropic-facade',
+  'remove-google-facade',
+  'remove-mistral-facade',
+  'remove-openai-facade',
   'remove-experimental-ai-fn-exports',
   'replace-baseurl',
   'replace-langchain-toaistream',
