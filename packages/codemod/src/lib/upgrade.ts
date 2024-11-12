@@ -8,6 +8,7 @@ const bundle = [
   'remove-ai-stream-methods-from-stream-text-result',
   'remove-experimental-ai-fn-exports',
   'replace-baseurl',
+  'replace-langchain-toaistream',
   'replace-nanoid',
   'replace-token-usage-types',
   'rewrite-framework-imports',
