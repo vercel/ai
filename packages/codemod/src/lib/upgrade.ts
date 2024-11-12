@@ -9,6 +9,7 @@ const bundle = [
   'remove-experimental-ai-fn-exports',
   'replace-baseurl',
   'replace-nanoid',
+  'replace-token-usage-types',
   'rewrite-framework-imports',
 ];
 
