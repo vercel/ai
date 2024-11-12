@@ -5,13 +5,6 @@ description: Learn how to handle errors in the AI SDK UI
 
 # Error Handling
 
-### useChat: Keep Last Message on Error
-
-`useChat` has a `keepLastMessageOnError` option that defaults to `false`.
-This option can be enabled to keep the last message on error.
-We will make this the default behavior in the next major release,
-and recommend enabling it.
-
 ### Error Helper Object
 
 Each AI SDK UI hook also returns an [error](/docs/reference/ai-sdk-ui/use-chat#error) object that you can use to render the error in your UI.
@@ -30,7 +23,7 @@ import { useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, error, reload } =
-    useChat({ keepLastMessageOnError: true });
+    useChat({});
 
   return (
     <div>
@@ -78,7 +71,7 @@ export default function Chat() {
     input,
     messages,
     setMesages,
-  } = useChat({ keepLastMessageOnError: true });
+  } = useChat({});
 
   function customSubmit(event: React.FormEvent<HTMLFormElement>) {
     if (error != null) {
@@ -118,7 +111,6 @@ export default function Page() {
   const {
     /* ... */
   } = useChat({
-    keepLastMessageOnError: true,
     // handle error:
     onError: error => {
       console.error(error);
