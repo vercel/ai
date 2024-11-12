@@ -11,7 +11,9 @@ When using OpenAI hosted on Azure, streaming is slow and in big chunks.
 
 ## Solution
 
-This is a Microsoft issue. Some users have reported the following solutions:
+This is a Microsoft Azure issue. Some users have reported the following solutions:
 
 - **Update Content Filtering Settings**:
-  OpenAI Azure portal, within Content Filtering (Preview), there's an option to set Streaming mode from Default to Asynchronous Modified Filter.
+  Inside [Azure AI Studio](https://ai.azure.com/), within "Shared resources" > "Content filters", create a new
+  content filter and set the "Streaming mode (Preview)" under "Output filter" from "Default"
+  to "Asynchronous Filter".

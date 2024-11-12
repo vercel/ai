@@ -460,8 +460,8 @@ describe('onToolCall', () => {
   });
 });
 
-describe('maxToolRoundtrips', () => {
-  describe('single automatic tool roundtrip', () => {
+describe('maxSteps', () => {
+  describe('two steps with automatic tool call', () => {
     const TestComponent = () => {
       const { messages, append } = useChat(() => ({
         async onToolCall({ toolCall }) {
@@ -474,7 +474,7 @@ describe('maxToolRoundtrips', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxToolRoundtrips: 5,
+        maxSteps: 5,
       }));
 
       return (
@@ -523,7 +523,7 @@ describe('maxToolRoundtrips', () => {
     });
   });
 
-  describe('single roundtrip with error response', () => {
+  describe('two steps with error response', () => {
     const TestComponent = () => {
       const { messages, append, error } = useChat(() => ({
         async onToolCall({ toolCall }) {
@@ -537,7 +537,7 @@ describe('maxToolRoundtrips', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxToolRoundtrips: 5,
+        maxSteps: 5,
       }));
 
       return (

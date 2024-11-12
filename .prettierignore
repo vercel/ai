@@ -5,3 +5,4 @@ dist
 .svelte-kit
 .solid
 _nuxt
+__testfixtures__

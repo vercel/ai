@@ -1,5 +1,86 @@
 # @ai-sdk/svelte
 
+## 1.0.0-canary.7
+
+### Major Changes
+
+- fe4f109: chore (ui): set default value of useChat keepLastMessageOnError to true
+
+### Patch Changes
+
+- Updated dependencies [fe4f109]
+  - @ai-sdk/ui-utils@1.0.0-canary.7
+
+## 1.0.0-canary.6
+
+### Patch Changes
+
+- Updated dependencies [70f28f6]
+  - @ai-sdk/ui-utils@1.0.0-canary.6
+
+## 1.0.0-canary.5
+
+### Patch Changes
+
+- Updated dependencies [9f81e66]
+- Updated dependencies [8426f55]
+  - @ai-sdk/ui-utils@1.0.0-canary.5
+  - @ai-sdk/provider-utils@2.0.0-canary.3
+
+## 1.0.0-canary.4
+
+### Patch Changes
+
+- Updated dependencies [dce4158]
+- Updated dependencies [dce4158]
+  - @ai-sdk/provider-utils@2.0.0-canary.2
+  - @ai-sdk/ui-utils@1.0.0-canary.4
+
+## 1.0.0-canary.3
+
+### Patch Changes
+
+- Updated dependencies [b1da952]
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+  - @ai-sdk/ui-utils@1.0.0-canary.3
+
+## 1.0.0-canary.2
+
+### Major Changes
+
+- e117b54: chore (ui): remove deprecated useChat roundtrip options
+- 7814c4b: chore (ui): remove streamMode setting from useChat & useCompletion
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [7814c4b]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0-canary.0
+  - @ai-sdk/ui-utils@1.0.0-canary.2
+
+## 1.0.0-canary.1
+
+### Major Changes
+
+- 8bf5756: chore: remove legacy function/tool calling
+
+### Patch Changes
+
+- Updated dependencies [8bf5756]
+  - @ai-sdk/ui-utils@1.0.0-canary.1
+
+## 1.0.0-canary.0
+
+### Major Changes
+
+- 84edae5: chore (release): bump ui package versions for 4.0 release
+
+### Patch Changes
+
+- Updated dependencies [7e89ccb]
+  - @ai-sdk/ui-utils@1.0.0-canary.0
+
 ## 0.0.57
 
 ### Patch Changes

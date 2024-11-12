@@ -1,5 +1,155 @@
 # ai
 
+## 4.0.0-canary.10
+
+### Major Changes
+
+- effbce3: chore (ai): remove responseMessage from streamText onFinish callback
+
+### Patch Changes
+
+- Updated dependencies [fe4f109]
+  - @ai-sdk/ui-utils@1.0.0-canary.7
+  - @ai-sdk/react@1.0.0-canary.7
+
+## 4.0.0-canary.9
+
+### Patch Changes
+
+- f0ec721: chore (ai): remove openai peer dependency
+
+## 4.0.0-canary.8
+
+### Major Changes
+
+- 007cb81: chore (ai): change `streamText` warnings result to Promise
+
+### Patch Changes
+
+- Updated dependencies [70f28f6]
+  - @ai-sdk/ui-utils@1.0.0-canary.6
+  - @ai-sdk/react@1.0.0-canary.6
+
+## 4.0.0-canary.7
+
+### Major Changes
+
+- 4e38b38: chore (ai): remove LanguageModelResponseMetadataWithHeaders type
+- 54cb888: chore (ai): remove experimental_StreamData export
+- 9a3d741: chore (ai): remove ExperimentalTool export
+- a4f8ce9: chore (ai): AssistantResponse cleanups
+- 7264b0a: chore (ai): remove responseMessages property from streamText/generateText result
+- 62d08fd: chore (ai): remove TokenUsage, CompletionTokenUsage, and EmbeddingTokenUsage types
+- e5d2ce8: chore (ai): remove deprecated provider registry exports
+- 70ce742: chore (ai): remove experimental_continuationSteps option
+- 0827bf9: chore (ai): remove LangChain adapter `toAIStream` method
+
+## 4.0.0-canary.6
+
+### Major Changes
+
+- b801982: chore (ai/core): remove init option from streamText result methods
+
+### Patch Changes
+
+- f9bb30c: chore (ai): remove unnecessary dev dependencies
+
+## 4.0.0-canary.5
+
+### Major Changes
+
+- 4d61295: chore (ai): remove streamToResponse and streamingTextResponse
+- d3ae4f6: chore (ui/react): remove useObject setInput helper
+- 6090cea: chore (ai): remove rawResponse from generate/stream result objects
+- 2f09717: chore (ai): remove deprecated telemetry data
+
+### Patch Changes
+
+- Updated dependencies [9f81e66]
+- Updated dependencies [d3ae4f6]
+- Updated dependencies [8426f55]
+  - @ai-sdk/ui-utils@1.0.0-canary.5
+  - @ai-sdk/react@1.0.0-canary.5
+  - @ai-sdk/provider-utils@2.0.0-canary.3
+
+## 4.0.0-canary.4
+
+### Major Changes
+
+- f0cb69d: chore (ai/core): remove experimental function exports
+- da8c609: chore (ai): remove Tokens RSC helper
+- cbab571: chore (ai): remove ExperimentalXXXMessage types
+- 60e69ed: chore (ai/core): remove ai-stream related methods from streamText
+- 073f282: chore (ai): remove AIStream and related exports
+- 545d133: chore (ai): remove deprecated roundtrip settings from streamText / generateText
+
+### Patch Changes
+
+- dce4158: chore (dependencies): update eventsource-parser to 3.0.0
+- Updated dependencies [dce4158]
+- Updated dependencies [ca3e586]
+- Updated dependencies [dce4158]
+  - @ai-sdk/provider-utils@2.0.0-canary.2
+  - @ai-sdk/react@1.0.0-canary.4
+  - @ai-sdk/ui-utils@1.0.0-canary.4
+
+## 4.0.0-canary.3
+
+### Patch Changes
+
+- Updated dependencies [68d30e9]
+- Updated dependencies [b1da952]
+  - @ai-sdk/react@1.0.0-canary.3
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+  - @ai-sdk/ui-utils@1.0.0-canary.3
+
+## 4.0.0-canary.2
+
+### Major Changes
+
+- b469a7e: chore: remove isXXXError methods
+- c0ddc24: chore (ai): remove toJSON method from AI SDK errors
+
+### Patch Changes
+
+- Updated dependencies [e117b54]
+- Updated dependencies [b469a7e]
+- Updated dependencies [7814c4b]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/react@1.0.0-canary.2
+  - @ai-sdk/provider-utils@2.0.0-canary.0
+  - @ai-sdk/provider@1.0.0-canary.0
+  - @ai-sdk/ui-utils@1.0.0-canary.2
+
+## 4.0.0-canary.1
+
+### Major Changes
+
+- 8bf5756: chore: remove legacy function/tool calling
+
+### Patch Changes
+
+- 1c58337: chore (ai): remove 2.x prompt helpers
+- Updated dependencies [8bf5756]
+  - @ai-sdk/ui-utils@1.0.0-canary.1
+  - @ai-sdk/react@1.0.0-canary.1
+
+## 4.0.0-canary.0
+
+### Major Changes
+
+- a40a93d: chore (ai/ui): remove vue, svelte, solid re-export and dependency
+
+### Patch Changes
+
+- a7ad35a: chore: remove legacy providers & rsc render
+- 7e89ccb: chore: remove nanoid export
+- Updated dependencies [84edae5]
+- Updated dependencies [7e89ccb]
+  - @ai-sdk/react@1.0.0-canary.0
+  - @ai-sdk/ui-utils@1.0.0-canary.0
+
 ## 3.4.33
 
 ### Patch Changes

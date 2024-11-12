@@ -6,10 +6,3 @@ export * from './convert-response-stream-to-array';
 export * from './json-test-server';
 export * from './streaming-test-server';
 export * from './test-server';
-
-import { convertReadableStreamToArray } from './convert-readable-stream-to-array';
-
-/**
- * @deprecated Use `convertReadableStreamToArray` instead.
- */
-export const convertStreamToArray = convertReadableStreamToArray;

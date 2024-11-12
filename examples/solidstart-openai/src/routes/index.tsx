@@ -12,7 +12,6 @@ export default function Chat() {
     reload,
     stop,
   } = useChat({
-    keepLastMessageOnError: true,
     onFinish(message, { usage, finishReason }) {
       console.log('Usage', usage);
       console.log('FinishReason', finishReason);

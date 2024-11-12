@@ -204,9 +204,13 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     });
 
     const { messages, ...rawSettings } = args;
+    let text = response.message.content?.[0]?.text ?? '';
+    if (!text) {
+      text = response.message.tool_plan ?? '';
+    }
 
     return {
-      text: response.message.content?.[0]?.text ?? '',
+      text,
       toolCalls: response.message.tool_calls
         ? response.message.tool_calls.map(toolCall => ({
             toolCallId: toolCall.id,
@@ -298,10 +302,15 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                 return;
               }
 
-              case 'tool-call-start': {
-                // TODO(shaper): There is a `tool-call-streaming-start` event. Should we use
-                // that here rather than just posting an initial `tool-call-delta`?
+              case 'tool-plan-delta': {
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: value.delta.message.tool_plan,
+                });
+                return;
+              }
 
+              case 'tool-call-start': {
                 // The start message is the only one that specifies the tool id and name.
                 pendingToolCallDelta = {
                   toolCallId: value.delta.message.tool_calls.id,
@@ -426,6 +435,7 @@ const cohereChatResponseSchema = z.object({
         }),
       )
       .nullish(),
+    tool_plan: z.string().nullish(),
     tool_calls: z
       .array(
         z.object({

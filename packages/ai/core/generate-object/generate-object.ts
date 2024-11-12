@@ -504,10 +504,6 @@ export async function generateObject<SCHEMA, RESULT>({
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
 
-                      // deprecated:
-                      'ai.finishReason': result.finishReason,
-                      'ai.result.object': { output: () => result.text },
-
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
                       'gen_ai.response.id': responseData.id,
@@ -629,10 +625,6 @@ export async function generateObject<SCHEMA, RESULT>({
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
 
-                      // deprecated:
-                      'ai.finishReason': result.finishReason,
-                      'ai.result.object': { output: () => objectText },
-
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
                       'gen_ai.response.id': responseData.id,
@@ -700,12 +692,6 @@ export async function generateObject<SCHEMA, RESULT>({
 
             'ai.usage.promptTokens': usage.promptTokens,
             'ai.usage.completionTokens': usage.completionTokens,
-
-            // deprecated:
-            'ai.finishReason': finishReason,
-            'ai.result.object': {
-              output: () => JSON.stringify(validationResult.value),
-            },
           },
         }),
       );
@@ -732,7 +718,6 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly finishReason: GenerateObjectResult<T>['finishReason'];
   readonly usage: GenerateObjectResult<T>['usage'];
   readonly warnings: GenerateObjectResult<T>['warnings'];
-  readonly rawResponse: GenerateObjectResult<T>['rawResponse'];
   readonly logprobs: GenerateObjectResult<T>['logprobs'];
   readonly experimental_providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
   readonly response: GenerateObjectResult<T>['response'];
@@ -755,24 +740,15 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.experimental_providerMetadata = options.providerMetadata;
     this.response = options.response;
     this.request = options.request;
-    // deprecated:
-    this.rawResponse = {
-      headers: options.response.headers,
-    };
     this.logprobs = options.logprobs;
   }
 
   toJsonResponse(init?: ResponseInit): Response {
     return new Response(JSON.stringify(this.object), {
       status: init?.status ?? 200,
-      headers: prepareResponseHeaders(init, {
+      headers: prepareResponseHeaders(init?.headers, {
         contentType: 'application/json; charset=utf-8',
       }),
     });
   }
 }
-
-/**
- * @deprecated Use `generateObject` instead.
- */
-export const experimental_generateObject = generateObject;

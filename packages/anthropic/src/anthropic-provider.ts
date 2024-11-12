@@ -62,11 +62,6 @@ The default prefix is `https://api.anthropic.com/v1`.
   baseURL?: string;
 
   /**
-@deprecated Use `baseURL` instead.
-   */
-  baseUrl?: string;
-
-  /**
 API key that is being send using the `x-api-key` header.
 It defaults to the `ANTHROPIC_API_KEY` environment variable.
    */
@@ -93,8 +88,7 @@ export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
-    'https://api.anthropic.com/v1';
+    withoutTrailingSlash(options.baseURL) ?? 'https://api.anthropic.com/v1';
 
   const getHeaders = () => ({
     'anthropic-version': '2023-06-01',

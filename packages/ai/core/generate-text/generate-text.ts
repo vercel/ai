@@ -87,12 +87,8 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   maxRetries,
   abortSignal,
   headers,
-  maxAutomaticRoundtrips = 0,
-  maxToolRoundtrips = maxAutomaticRoundtrips,
-  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
-  experimental_continuationSteps,
-  experimental_continueSteps: continueSteps = experimental_continuationSteps ??
-    false,
+  maxSteps = 1,
+  experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   experimental_activeTools: activeTools,
@@ -120,27 +116,6 @@ The tool choice strategy. Default: 'auto'.
     toolChoice?: CoreToolChoice<TOOLS>;
 
     /**
-@deprecated Use `maxToolRoundtrips` instead.
-     */
-    maxAutomaticRoundtrips?: number;
-
-    /**
-Maximum number of automatic roundtrips for tool calls.
-
-An automatic tool call roundtrip is another LLM call with the
-tool call results when all tool calls of the last assistant
-message have results.
-
-A maximum number is required to prevent infinite loops in the
-case of misconfigured tools.
-
-By default, it's set to 0, which will disable the feature.
-
-@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
-     */
-    maxToolRoundtrips?: number;
-
-    /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
 
 A maximum number is required to prevent infinite loops in the case of misconfigured tools.
@@ -148,11 +123,6 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
      */
     maxSteps?: number;
-
-    /**
-@deprecated Use `experimental_continueSteps` instead.
-     */
-    experimental_continuationSteps?: boolean;
 
     /**
 When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
@@ -355,15 +325,6 @@ changing the tool call and result types in the result.
                     'ai.usage.promptTokens': result.usage.promptTokens,
                     'ai.usage.completionTokens': result.usage.completionTokens,
 
-                    // deprecated:
-                    'ai.finishReason': result.finishReason,
-                    'ai.result.text': {
-                      output: () => result.text,
-                    },
-                    'ai.result.toolCalls': {
-                      output: () => JSON.stringify(result.toolCalls),
-                    },
-
                     // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [result.finishReason],
                     'gen_ai.response.id': responseData.id,
@@ -512,15 +473,6 @@ changing the tool call and result types in the result.
             'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
             'ai.usage.completionTokens':
               currentModelResponse.usage.completionTokens,
-
-            // deprecated:
-            'ai.finishReason': currentModelResponse.finishReason,
-            'ai.result.text': {
-              output: () => currentModelResponse.text,
-            },
-            'ai.result.toolCalls': {
-              output: () => JSON.stringify(currentModelResponse.toolCalls),
-            },
           },
         }),
       );
@@ -539,7 +491,6 @@ changing the tool call and result types in the result.
           messages: responseMessages,
         },
         logprobs: currentModelResponse.logprobs,
-        responseMessages,
         steps,
         providerMetadata: currentModelResponse.providerMetadata,
       });
@@ -633,14 +584,12 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
   readonly finishReason: GenerateTextResult<TOOLS>['finishReason'];
   readonly usage: GenerateTextResult<TOOLS>['usage'];
   readonly warnings: GenerateTextResult<TOOLS>['warnings'];
-  readonly responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
-  readonly roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
   readonly steps: GenerateTextResult<TOOLS>['steps'];
-  readonly rawResponse: GenerateTextResult<TOOLS>['rawResponse'];
   readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
   readonly experimental_providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
   readonly response: GenerateTextResult<TOOLS>['response'];
   readonly request: GenerateTextResult<TOOLS>['request'];
+
   constructor(options: {
     text: GenerateTextResult<TOOLS>['text'];
     toolCalls: GenerateTextResult<TOOLS>['toolCalls'];
@@ -649,7 +598,6 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     usage: GenerateTextResult<TOOLS>['usage'];
     warnings: GenerateTextResult<TOOLS>['warnings'];
     logprobs: GenerateTextResult<TOOLS>['logprobs'];
-    responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
     steps: GenerateTextResult<TOOLS>['steps'];
     providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
     response: GenerateTextResult<TOOLS>['response'];
@@ -663,20 +611,8 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.warnings = options.warnings;
     this.request = options.request;
     this.response = options.response;
-    this.responseMessages = options.responseMessages;
-    this.roundtrips = options.steps;
     this.steps = options.steps;
     this.experimental_providerMetadata = options.providerMetadata;
-
-    // deprecated:
-    this.rawResponse = {
-      headers: options.response.headers,
-    };
     this.logprobs = options.logprobs;
   }
 }
-
-/**
- * @deprecated Use `generateText` instead.
- */
-export const experimental_generateText = generateText;

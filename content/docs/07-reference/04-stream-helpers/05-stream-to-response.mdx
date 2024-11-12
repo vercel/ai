@@ -6,13 +6,14 @@ description: Learn to use streamToResponse helper function in your application.
 # `streamToResponse`
 
 <Note type="warning">
-  `streamToResponse` is deprecated. Use `pipeDataStreamToResponse` from
+  `streamToResponse` has been removed in AI SDK 4.0. Use
+  `pipeDataStreamToResponse` from
   [streamText](/docs/reference/ai-sdk-core/stream-text) instead.
 </Note>
 
-`streamToResponse` pipes an AI stream to a Node.js `ServerResponse` object and sets the status code and headers.
+`streamToResponse` pipes a data stream to a Node.js `ServerResponse` object and sets the status code and headers.
 
-This is useful to create AI stream responses in environments that use `ServerResponse` objects, such as Node.js HTTP servers.
+This is useful to create data stream responses in environments that use `ServerResponse` objects, such as Node.js HTTP servers.
 
 The status code and headers can be configured using the `options` parameter.
 By default, the status code is set to 200 and the Content-Type header is set to `text/plain; charset=utf-8`.
@@ -23,7 +24,7 @@ By default, the status code is set to 200 and the Content-Type header is set to 
 
 ## Example
 
-You can e.g. use `streamToResponse` to pipe an AI stream to a Node.js HTTP server response:
+You can e.g. use `streamToResponse` to pipe a data stream to a Node.js HTTP server response:
 
 ```ts
 import { openai } from '@ai-sdk/openai';

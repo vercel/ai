@@ -1,5 +1,37 @@
 # @ai-sdk/provider-utils
 
+## 2.0.0-canary.3
+
+### Major Changes
+
+- 8426f55: chore (ai):increase id generator default size from 7 to 16.
+
+## 2.0.0-canary.2
+
+### Patch Changes
+
+- dce4158: chore (dependencies): update eventsource-parser to 3.0.0
+- dce4158: chore (dependencies): update nanoid to 5.0.8
+
+## 2.0.0-canary.1
+
+### Major Changes
+
+- b1da952: chore (provider-utils): remove convertStreamToArray
+
+## 2.0.0-canary.0
+
+### Major Changes
+
+- b469a7e: chore: remove isXXXError methods
+- db46ce5: chore (provider-utils): remove isParseableJson export
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [c0ddc24]
+  - @ai-sdk/provider@1.0.0-canary.0
+
 ## 1.0.22
 
 ### Patch Changes

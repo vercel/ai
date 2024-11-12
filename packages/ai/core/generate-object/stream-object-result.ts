@@ -32,19 +32,6 @@ results that can be fully encapsulated in the provider.
   readonly experimental_providerMetadata: Promise<ProviderMetadata | undefined>;
 
   /**
-Optional raw response data.
-
-@deprecated Use `response` instead.
-     */
-  // TODO removed in v4
-  readonly rawResponse?: {
-    /**
-  Response headers.
-   */
-    headers?: Record<string, string>;
-  };
-
-  /**
 Additional request information from the last step.
  */
   readonly request: Promise<LanguageModelRequestMetadata>;

@@ -36,33 +36,4 @@ export class DownloadError extends AISDKError {
   static isInstance(error: unknown): error is DownloadError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isDownloadError(error: unknown): error is DownloadError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      typeof (error as DownloadError).url === 'string' &&
-      ((error as DownloadError).statusCode == null ||
-        typeof (error as DownloadError).statusCode === 'number') &&
-      ((error as DownloadError).statusText == null ||
-        typeof (error as DownloadError).statusText === 'string')
-    );
-  }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      url: this.url,
-      statusCode: this.statusCode,
-      statusText: this.statusText,
-      cause: this.cause,
-    };
-  }
 }

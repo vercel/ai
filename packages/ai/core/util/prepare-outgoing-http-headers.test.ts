@@ -11,7 +11,7 @@ it('should set Content-Type header if not present', () => {
 
 it('should not overwrite existing Content-Type header', () => {
   const headers = prepareOutgoingHttpHeaders(
-    { headers: { 'Content-Type': 'text/html' } },
+    { 'Content-Type': 'text/html' },
     { contentType: 'application/json' },
   );
 
@@ -28,7 +28,7 @@ it('should handle undefined init', () => {
 
 it('should handle init headers as object', () => {
   const headers = prepareOutgoingHttpHeaders(
-    { headers: { init: 'foo' } },
+    { init: 'foo' },
     { contentType: 'application/json' },
   );
 

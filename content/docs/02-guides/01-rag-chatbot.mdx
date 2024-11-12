@@ -186,7 +186,7 @@ Currently, your application has one table (`resources`) which has a column (`con
 Create a new file (`lib/db/schema/embeddings.ts`) and add the following code:
 
 ```tsx filename="lib/db/schema/embeddings.ts"
-import { nanoid } from '@/lib/utils';
+import { generateId } from 'ai';
 import { index, pgTable, text, varchar, vector } from 'drizzle-orm/pg-core';
 import { resources } from './resources';
 
@@ -195,7 +195,7 @@ export const embeddings = pgTable(
   {
     id: varchar('id', { length: 191 })
       .primaryKey()
-      .$defaultFn(() => nanoid()),
+      .$defaultFn(() => generateId()),
     resourceId: varchar('resource_id', { length: 191 }).references(
       () => resources.id,
       { onDelete: 'cascade' },

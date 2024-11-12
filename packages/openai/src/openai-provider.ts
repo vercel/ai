@@ -90,11 +90,6 @@ Base URL for the OpenAI API calls.
   baseURL?: string;
 
   /**
-@deprecated Use `baseURL` instead.
-     */
-  baseUrl?: string;
-
-  /**
 API key for authenticating requests.
      */
   apiKey?: string;
@@ -140,8 +135,7 @@ export function createOpenAI(
   options: OpenAIProviderSettings = {},
 ): OpenAIProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
-    'https://api.openai.com/v1';
+    withoutTrailingSlash(options.baseURL) ?? 'https://api.openai.com/v1';
 
   // we default to compatible, because strict breaks providers like Groq:
   const compatibility = options.compatibility ?? 'compatible';

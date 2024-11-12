@@ -42,10 +42,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup pnpm 8
+      - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 8.6.9
+          version: 9.12.3
 
       - name: Setup Node.js 18.x
         uses: actions/setup-node@v2
@@ -57,20 +57,26 @@ jobs:
         env:
           NPM_TOKEN_ELEVATED: ${{secrets.NPM_TOKEN_ELEVATED}}
 
+      - name: Add SHORT_SHA env property with commit short sha
+        run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
+
       - name: Install Dependencies
         run: pnpm i
+
+      - name: Version Packages
+        run: pnpm changeset version --snapshot ${SHORT_SHA}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
+
+      - name: Clean Examples
+        run: pnpm clean-examples
 
       - name: Build
         run: pnpm clean && pnpm build
 
-      - name: Add SHORT_SHA env property with commit short sha
-        run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
-
-      - name: Create Snapshot Release
-        run: |
-          pnpm changeset version --snapshot ${SHORT_SHA}
-          pnpm clean-examples
-          pnpm changeset publish --no-git-tag --tag snapshot
+      - name: Publish Snapshot Release
+        run: pnpm changeset publish --no-git-tag --tag snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}

@@ -1461,35 +1461,22 @@ To see `streamText` in action, check out [these examples](#examples).
           type: 'PipeDataStreamToResponseOptions',
           parameters: [
             {
-              name: 'init',
-              type: 'ResponseInit',
+              name: 'status',
+              type: 'number',
               isOptional: true,
-              description: 'The response init options.',
-              properties: [
-                {
-                  type: 'ResponseInit',
-                  parameters: [
-                    {
-                      name: 'status',
-                      type: 'number',
-                      isOptional: true,
-                      description: 'The response status code.',
-                    },
-                    {
-                      name: 'statusText',
-                      type: 'string',
-                      isOptional: true,
-                      description: 'The response status text.',
-                    },
-                    {
-                      name: 'headers',
-                      type: 'Record<string, string>',
-                      isOptional: true,
-                      description: 'The response headers.',
-                    },
-                  ],
-                },
-              ],
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              isOptional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'HeadersInit',
+              isOptional: true,
+              description: 'The response headers.',
             },
             {
               name: 'data',
@@ -1588,35 +1575,22 @@ To see `streamText` in action, check out [these examples](#examples).
           type: 'ToDataStreamResponseOptions',
           parameters: [
             {
-              name: 'init',
-              type: 'ResponseInit',
+              name: 'status',
+              type: 'number',
               isOptional: true,
-              description: 'The response init options.',
-              properties: [
-                {
-                  type: 'ResponseInit',
-                  parameters: [
-                    {
-                      name: 'status',
-                      type: 'number',
-                      isOptional: true,
-                      description: 'The response status code.',
-                    },
-                    {
-                      name: 'statusText',
-                      type: 'string',
-                      isOptional: true,
-                      description: 'The response status text.',
-                    },
-                    {
-                      name: 'headers',
-                      type: 'Record<string, string>',
-                      isOptional: true,
-                      description: 'The response headers.',
-                    },
-                  ],
-                },
-              ],
+              description: 'The response status code.',
+            },
+            {
+              name: 'statusText',
+              type: 'string',
+              isOptional: true,
+              description: 'The response status text.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              isOptional: true,
+              description: 'The response headers.',
             },
             {
               name: 'data',

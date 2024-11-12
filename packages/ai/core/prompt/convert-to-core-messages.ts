@@ -99,9 +99,7 @@ export function convertToCoreMessages<
         break;
       }
 
-      case 'function':
-      case 'data':
-      case 'tool': {
+      case 'data': {
         // ignore
         break;
       }

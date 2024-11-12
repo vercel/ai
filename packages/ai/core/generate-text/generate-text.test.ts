@@ -281,7 +281,7 @@ describe('result.response.messages', () => {
       prompt: 'test-input',
     });
 
-    expect(result.responseMessages).toMatchSnapshot();
+    expect(result.response.messages).toMatchSnapshot();
   });
 });
 
@@ -502,8 +502,8 @@ describe('options.maxSteps', () => {
       assert.deepStrictEqual(result.toolResults, []);
     });
 
-    it('result.responseMessages should contain response messages from all steps', () => {
-      expect(result.responseMessages).toMatchSnapshot();
+    it('result.response.messages should contain response messages from all steps', () => {
+      expect(result.response.messages).toMatchSnapshot();
     });
 
     it('result.usage should sum token usage', () => {

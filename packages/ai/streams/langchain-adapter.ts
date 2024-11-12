@@ -1,9 +1,9 @@
 import { mergeStreams } from '../core/util/merge-streams';
 import { prepareResponseHeaders } from '../core/util/prepare-response-headers';
 import {
-  AIStreamCallbacksAndOptions,
   createCallbacksTransformer,
-} from './ai-stream';
+  StreamCallbacks,
+} from './stream-callbacks';
 import { createStreamDataTransformer, StreamData } from './stream-data';
 
 type LangChainImageDetail = 'auto' | 'low' | 'high';
@@ -46,26 +46,7 @@ type LangChainStreamEvent = {
 };
 
 /**
-Converts LangChain output streams to AIStream.
-
-The following streams are supported:
-- `LangChainAIMessageChunk` streams (LangChain `model.stream` output)
-- `string` streams (LangChain `StringOutputParser` output)
-
-@deprecated Use `toDataStream` instead.
- */
-export function toAIStream(
-  stream:
-    | ReadableStream<LangChainStreamEvent>
-    | ReadableStream<LangChainAIMessageChunk>
-    | ReadableStream<string>,
-  callbacks?: AIStreamCallbacksAndOptions,
-) {
-  return toDataStream(stream, callbacks);
-}
-
-/**
-Converts LangChain output streams to AIStream.
+Converts LangChain output streams to an AI SDK Data Stream.
 
 The following streams are supported:
 - `LangChainAIMessageChunk` streams (LangChain `model.stream` output)
@@ -76,7 +57,7 @@ export function toDataStream(
     | ReadableStream<LangChainStreamEvent>
     | ReadableStream<LangChainAIMessageChunk>
     | ReadableStream<string>,
-  callbacks?: AIStreamCallbacksAndOptions,
+  callbacks?: StreamCallbacks,
 ) {
   return stream
     .pipeThrough(
@@ -119,7 +100,7 @@ export function toDataStreamResponse(
   options?: {
     init?: ResponseInit;
     data?: StreamData;
-    callbacks?: AIStreamCallbacksAndOptions;
+    callbacks?: StreamCallbacks;
   },
 ) {
   const dataStream = toDataStream(stream, options?.callbacks);
@@ -133,7 +114,7 @@ export function toDataStreamResponse(
   return new Response(responseStream, {
     status: init?.status ?? 200,
     statusText: init?.statusText,
-    headers: prepareResponseHeaders(init, {
+    headers: prepareResponseHeaders(init?.headers, {
       contentType: 'text/plain; charset=utf-8',
       dataStreamVersion: 'v1',
     }),

@@ -1,0 +1,24 @@
+---
+title: AI_NoObjectGeneratedError
+description: Learn how to fix AI_NoObjectGeneratedError
+---
+
+# AI_NoObjectGeneratedError
+
+This error occurs when the AI provider fails to generate a parsable object.
+
+## Properties
+
+- `message`: The error message
+
+## Checking for this Error
+
+You can check if an error is an instance of `AI_NoObjectGeneratedError` using:
+
+```typescript
+import { NoObjectGeneratedError } from 'ai';
+
+if (NoObjectGeneratedError.isInstance(error)) {
+  // Handle the error
+}
+```

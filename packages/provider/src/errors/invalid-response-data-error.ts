@@ -28,30 +28,4 @@ export class InvalidResponseDataError extends AISDKError {
   static isInstance(error: unknown): error is InvalidResponseDataError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isInvalidResponseDataError(
-    error: unknown,
-  ): error is InvalidResponseDataError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      (error as InvalidResponseDataError).data != null
-    );
-  }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      stack: this.stack,
-
-      data: this.data,
-    };
-  }
 }

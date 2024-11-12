@@ -26,30 +26,4 @@ export class InvalidDataContentError extends AISDKError {
   static isInstance(error: unknown): error is InvalidDataContentError {
     return AISDKError.hasMarker(error, marker);
   }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
-  static isInvalidDataContentError(
-    error: unknown,
-  ): error is InvalidDataContentError {
-    return (
-      error instanceof Error &&
-      error.name === name &&
-      (error as InvalidDataContentError).content != null
-    );
-  }
-
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-      stack: this.stack,
-      cause: this.cause,
-      content: this.content,
-    };
-  }
 }

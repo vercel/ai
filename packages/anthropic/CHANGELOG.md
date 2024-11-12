@@ -1,5 +1,58 @@
 # @ai-sdk/anthropic
 
+## 1.0.0-canary.4
+
+### Major Changes
+
+- 2f6e8c0: chore (provider/anthropic): remove topK model setting
+
+## 1.0.0-canary.3
+
+### Patch Changes
+
+- Updated dependencies [8426f55]
+  - @ai-sdk/provider-utils@2.0.0-canary.3
+
+## 1.0.0-canary.2
+
+### Patch Changes
+
+- Updated dependencies [dce4158]
+- Updated dependencies [dce4158]
+  - @ai-sdk/provider-utils@2.0.0-canary.2
+
+## 1.0.0-canary.1
+
+### Major Changes
+
+- 0d3d3f5: chore (providers): remove baseUrl option
+- 8ad0504: chore (provider/anthropic): remove Anthropic facade
+
+### Patch Changes
+
+- Updated dependencies [b1da952]
+  - @ai-sdk/provider-utils@2.0.0-canary.1
+
+## 1.0.0-canary.0
+
+### Major Changes
+
+- 66060f7: chore (release): bump major version to 4.0
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0-canary.0
+  - @ai-sdk/provider@1.0.0-canary.0
+
+## 0.0.56
+
+### Patch Changes
+
+- e6042b1: feat (provider/anthropic): add haiku 3.5 model ids
+
 ## 0.0.55
 
 ### Patch Changes

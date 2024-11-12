@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "1.0.22",
+  "version": "2.0.0-canary.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -13,8 +13,8 @@
   ],
   "scripts": {
     "build": "tsup",
+    "build:watch": "tsup --watch",
     "clean": "rm -rf dist && rm -rf test/dist",
-    "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -37,17 +37,17 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.26",
-    "eventsource-parser": "^1.1.2",
-    "nanoid": "^3.3.7",
+    "@ai-sdk/provider": "1.0.0-canary.0",
+    "eventsource-parser": "^3.0.0",
+    "nanoid": "^5.0.8",
     "secure-json-parse": "^2.7.0"
   },
   "devDependencies": {
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
-    "msw": "2.3.1",
+    "msw": "2.6.4",
     "tsup": "^8",
-    "typescript": "5.5.4",
+    "typescript": "5.6.3",
     "zod": "3.23.8"
   },
   "peerDependencies": {

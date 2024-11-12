@@ -14,6 +14,9 @@ describe('languageModel', () => {
           expect(id).toEqual('model');
           return model;
         },
+        textEmbeddingModel: () => {
+          return null as any;
+        },
       },
     });
 
@@ -28,6 +31,9 @@ describe('languageModel', () => {
         languageModel: id => {
           expect(id).toEqual('model:part2');
           return model;
+        },
+        textEmbeddingModel: () => {
+          return null as any;
         },
       },
     });
@@ -47,6 +53,9 @@ describe('languageModel', () => {
     const registry = experimental_createProviderRegistry({
       provider: {
         languageModel: () => {
+          return null as any;
+        },
+        textEmbeddingModel: () => {
           return null as any;
         },
       },
@@ -76,20 +85,8 @@ describe('textEmbeddingModel', () => {
           expect(id).toEqual('model');
           return model;
         },
-      },
-    });
-
-    expect(modelRegistry.textEmbeddingModel('provider:model')).toEqual(model);
-  });
-
-  it('should return embedding model from provider using textEmbedding', () => {
-    const model = new MockEmbeddingModelV1<string>();
-
-    const modelRegistry = experimental_createProviderRegistry({
-      provider: {
-        textEmbedding: id => {
-          expect(id).toEqual('model');
-          return model;
+        languageModel: () => {
+          return null as any;
         },
       },
     });
@@ -108,7 +105,10 @@ describe('textEmbeddingModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = experimental_createProviderRegistry({
       provider: {
-        textEmbedding: () => {
+        textEmbeddingModel: () => {
+          return null as any;
+        },
+        languageModel: () => {
           return null as any;
         },
       },

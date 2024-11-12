@@ -71,11 +71,6 @@ The default prefix is `https://api.mistral.ai/v1`.
   baseURL?: string;
 
   /**
-@deprecated Use `baseURL` instead.
-   */
-  baseUrl?: string;
-
-  /**
 API key that is being send using the `Authorization` header.
 It defaults to the `MISTRAL_API_KEY` environment variable.
    */
@@ -100,8 +95,7 @@ export function createMistral(
   options: MistralProviderSettings = {},
 ): MistralProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
-    'https://api.mistral.ai/v1';
+    withoutTrailingSlash(options.baseURL) ?? 'https://api.mistral.ai/v1';
 
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({

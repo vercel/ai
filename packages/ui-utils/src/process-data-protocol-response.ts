@@ -1,27 +1,11 @@
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { parsePartialJson } from './parse-partial-json';
 import { readDataStream } from './read-data-stream';
-import type {
-  FunctionCall,
-  JSONValue,
-  Message,
-  ToolCall,
-  UseChatOptions,
-} from './types';
+import type { JSONValue, Message, UseChatOptions } from './types';
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 
-type PrefixMap = {
-  text?: Message;
-  // @deprecated
-  function_call?: Message & {
-    role: 'assistant';
-    function_call: FunctionCall;
-  };
-  // @deprecated
-  tool_calls?: Message & {
-    role: 'assistant';
-    tool_calls: ToolCall[];
-  };
+type MessageContainer = {
+  message?: Message;
 };
 
 function assignAnnotationsToMessage<T extends Message | null | undefined>(
@@ -61,9 +45,8 @@ export async function processDataProtocolResponse({
 }) {
   const createdAt = getCurrentDate();
 
-  let prefixMap: PrefixMap = {};
-  let nextPrefixMap: PrefixMap | undefined = undefined;
-
+  let currentMessage: MessageContainer = {};
+  let nextMessage: MessageContainer | undefined = undefined;
   const previousMessages: Message[] = [];
 
   const data: JSONValue[] = [];
@@ -98,7 +81,7 @@ export async function processDataProtocolResponse({
 
     if (type === 'finish_step') {
       if (!value.isContinued) {
-        nextPrefixMap = {};
+        nextMessage = {};
       }
       continue;
     }
@@ -124,35 +107,29 @@ export async function processDataProtocolResponse({
     // are associated with the previous message until then to
     // support sending them in onFinish and onStepFinish:
     if (
-      nextPrefixMap != null &&
+      nextMessage != null &&
       (type === 'text' ||
         type === 'tool_call' ||
         type === 'tool_call_streaming_start' ||
         type === 'tool_call_delta' ||
         type === 'tool_result')
     ) {
-      if (prefixMap.text) {
-        previousMessages.push(prefixMap.text);
-      }
-      if (prefixMap.function_call) {
-        previousMessages.push(prefixMap.function_call);
-      }
-      if (prefixMap.tool_calls) {
-        previousMessages.push(prefixMap.tool_calls);
+      if (currentMessage.message) {
+        previousMessages.push(currentMessage.message);
       }
 
-      prefixMap = nextPrefixMap;
-      nextPrefixMap = undefined;
+      currentMessage = nextMessage;
+      nextMessage = undefined;
     }
 
     if (type === 'text') {
-      if (prefixMap['text']) {
-        prefixMap['text'] = {
-          ...prefixMap['text'],
-          content: (prefixMap['text'].content || '') + value,
+      if (currentMessage['message']) {
+        currentMessage['message'] = {
+          ...currentMessage['message'],
+          content: (currentMessage['message'].content || '') + value,
         };
       } else {
-        prefixMap['text'] = {
+        currentMessage['message'] = {
           id: generateId(),
           role: 'assistant',
           content: value,
@@ -164,8 +141,8 @@ export async function processDataProtocolResponse({
     // Tool invocations are part of an assistant message
     if (type === 'tool_call_streaming_start') {
       // create message if it doesn't exist
-      if (prefixMap.text == null) {
-        prefixMap.text = {
+      if (currentMessage.message == null) {
+        currentMessage.message = {
           id: generateId(),
           role: 'assistant',
           content: '',
@@ -173,18 +150,18 @@ export async function processDataProtocolResponse({
         };
       }
 
-      if (prefixMap.text.toolInvocations == null) {
-        prefixMap.text.toolInvocations = [];
+      if (currentMessage.message.toolInvocations == null) {
+        currentMessage.message.toolInvocations = [];
       }
 
       // add the partial tool call to the map
       partialToolCalls[value.toolCallId] = {
         text: '',
         toolName: value.toolName,
-        prefixMapIndex: prefixMap.text.toolInvocations.length,
+        prefixMapIndex: currentMessage.message.toolInvocations.length,
       };
 
-      prefixMap.text.toolInvocations.push({
+      currentMessage.message.toolInvocations.push({
         state: 'partial-call',
         toolCallId: value.toolCallId,
         toolName: value.toolName,
@@ -197,26 +174,27 @@ export async function processDataProtocolResponse({
 
       const { value: partialArgs } = parsePartialJson(partialToolCall.text);
 
-      prefixMap.text!.toolInvocations![partialToolCall.prefixMapIndex] = {
-        state: 'partial-call',
-        toolCallId: value.toolCallId,
-        toolName: partialToolCall.toolName,
-        args: partialArgs,
-      };
+      currentMessage.message!.toolInvocations![partialToolCall.prefixMapIndex] =
+        {
+          state: 'partial-call',
+          toolCallId: value.toolCallId,
+          toolName: partialToolCall.toolName,
+          args: partialArgs,
+        };
 
       // trigger update for streaming by copying adding a update id that changes
       // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-      (prefixMap.text! as any).internalUpdateId = generateId();
+      (currentMessage.message! as any).internalUpdateId = generateId();
     } else if (type === 'tool_call') {
       if (partialToolCalls[value.toolCallId] != null) {
         // change the partial tool call to a full tool call
-        prefixMap.text!.toolInvocations![
+        currentMessage.message!.toolInvocations![
           partialToolCalls[value.toolCallId].prefixMapIndex
         ] = { state: 'call', ...value };
       } else {
         // create message if it doesn't exist
-        if (prefixMap.text == null) {
-          prefixMap.text = {
+        if (currentMessage.message == null) {
+          currentMessage.message = {
             id: generateId(),
             role: 'assistant',
             content: '',
@@ -224,11 +202,11 @@ export async function processDataProtocolResponse({
           };
         }
 
-        if (prefixMap.text.toolInvocations == null) {
-          prefixMap.text.toolInvocations = [];
+        if (currentMessage.message.toolInvocations == null) {
+          currentMessage.message.toolInvocations = [];
         }
 
-        prefixMap.text.toolInvocations.push({
+        currentMessage.message.toolInvocations.push({
           state: 'call',
           ...value,
         });
@@ -236,7 +214,7 @@ export async function processDataProtocolResponse({
 
       // trigger update for streaming by copying adding a update id that changes
       // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-      (prefixMap.text! as any).internalUpdateId = generateId();
+      (currentMessage.message! as any).internalUpdateId = generateId();
 
       // invoke the onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
@@ -245,13 +223,13 @@ export async function processDataProtocolResponse({
         const result = await onToolCall({ toolCall: value });
         if (result != null) {
           // store the result in the tool invocation
-          prefixMap.text!.toolInvocations![
-            prefixMap.text!.toolInvocations!.length - 1
+          currentMessage.message!.toolInvocations![
+            currentMessage.message!.toolInvocations!.length - 1
           ] = { state: 'result', ...value, result };
         }
       }
     } else if (type === 'tool_result') {
-      const toolInvocations = prefixMap.text?.toolInvocations;
+      const toolInvocations = currentMessage.message?.toolInvocations;
 
       if (toolInvocations == null) {
         throw new Error('tool_result must be preceded by a tool_call');
@@ -276,40 +254,9 @@ export async function processDataProtocolResponse({
       };
     }
 
-    let functionCallMessage: Message | null | undefined = null;
-
-    if (type === 'function_call') {
-      prefixMap['function_call'] = {
-        id: generateId(),
-        role: 'assistant',
-        content: '',
-        function_call: value.function_call,
-        name: value.function_call.name,
-        createdAt,
-      };
-
-      functionCallMessage = prefixMap['function_call'];
-    }
-
-    let toolCallMessage: Message | null | undefined = null;
-
-    if (type === 'tool_calls') {
-      prefixMap['tool_calls'] = {
-        id: generateId(),
-        role: 'assistant',
-        content: '',
-        tool_calls: value.tool_calls,
-        createdAt,
-      };
-
-      toolCallMessage = prefixMap['tool_calls'];
-    }
-
     if (type === 'data') {
       data.push(...value);
     }
-
-    let responseMessage = prefixMap['text'];
 
     if (type === 'message_annotations') {
       if (!messageAnnotations) {
@@ -319,57 +266,35 @@ export async function processDataProtocolResponse({
       }
 
       // Update any existing message with the latest annotations
-      functionCallMessage = assignAnnotationsToMessage(
-        prefixMap['function_call'],
-        messageAnnotations,
-      );
-      toolCallMessage = assignAnnotationsToMessage(
-        prefixMap['tool_calls'],
-        messageAnnotations,
-      );
-      responseMessage = assignAnnotationsToMessage(
-        prefixMap['text'],
+      currentMessage.message = assignAnnotationsToMessage(
+        currentMessage.message,
         messageAnnotations,
       );
 
       // trigger update for streaming by copying adding a update id that changes
       // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-      if (prefixMap.text != null) {
-        (prefixMap.text! as any).internalUpdateId = generateId();
+      if (currentMessage.message != null) {
+        (currentMessage.message! as any).internalUpdateId = generateId();
       }
     }
 
-    // keeps the prefixMap up to date with the latest annotations, even if annotations preceded the message
-    if (messageAnnotations?.length) {
-      if (prefixMap.text) {
-        prefixMap.text.annotations = [...messageAnnotations!];
-      }
-      if (prefixMap.function_call) {
-        prefixMap.function_call.annotations = [...messageAnnotations!];
-      }
-      if (prefixMap.tool_calls) {
-        prefixMap.tool_calls.annotations = [...messageAnnotations!];
-      }
+    // keeps the currentMessage up to date with the latest annotations, even if annotations preceded the message
+    if (messageAnnotations?.length && currentMessage.message) {
+      currentMessage.message.annotations = [...messageAnnotations!];
     }
 
-    // We add function & tool calls and response messages to the messages[], but data is its own thing
-    const merged = [functionCallMessage, toolCallMessage, responseMessage]
-      .filter(Boolean)
-      .map(message => ({
-        ...assignAnnotationsToMessage(message, messageAnnotations),
-      })) as Message[];
+    // We add response messages to the messages[], but data is its own thing
+    const merged = [currentMessage.message].filter(Boolean).map(message => ({
+      ...assignAnnotationsToMessage(message, messageAnnotations),
+    })) as Message[];
 
     update([...previousMessages, ...merged], [...data]); // make a copy of the data array
   }
 
-  onFinish?.({ message: prefixMap.text, finishReason, usage });
+  onFinish?.({ message: currentMessage.message, finishReason, usage });
 
   return {
-    messages: [
-      prefixMap.text,
-      prefixMap.function_call,
-      prefixMap.tool_calls,
-    ].filter(Boolean) as Message[],
+    messages: [currentMessage.message].filter(Boolean) as Message[],
     data,
   };
 }

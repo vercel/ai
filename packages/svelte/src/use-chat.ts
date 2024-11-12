@@ -8,32 +8,12 @@ import type {
   Message,
   UseChatOptions as SharedUseChatOptions,
 } from '@ai-sdk/ui-utils';
-import {
-  callChatApi,
-  generateId as generateIdFunc,
-  processChatStream,
-} from '@ai-sdk/ui-utils';
+import { callChatApi, generateId as generateIdFunc } from '@ai-sdk/ui-utils';
 import { useSWR } from 'sswr';
 import { Readable, Writable, derived, get, writable } from 'svelte/store';
 export type { CreateMessage, Message };
 
 export type UseChatOptions = SharedUseChatOptions & {
-  /**
-  Maximum number of automatic roundtrips for tool calls.
-
-  An automatic tool call roundtrip is a call to the server with the
-  tool call results when all tool calls in the last assistant
-  message have results.
-
-  A maximum number is required to prevent infinite loops in the
-  case of misconfigured tools.
-
-  By default, it's set to 0, which will disable the feature.
-
-@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
-     */
-  maxToolRoundtrips?: number;
-
   /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
 
@@ -131,27 +111,12 @@ const getStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({
+        ({ role, content, data, annotations, toolInvocations }) => ({
           role,
           content,
-          name,
-          data,
-          annotations,
-          function_call,
-          tool_calls,
-          tool_call_id,
-          toolInvocations,
-        }) => ({
-          role,
-          content,
-          ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
-          // outdated function/tool call handling (TODO deprecate):
-          tool_call_id,
-          ...(function_call !== undefined && { function_call }),
-          ...(tool_calls !== undefined && { tool_calls }),
         }),
       );
 
@@ -162,18 +127,6 @@ const getStreamedResponse = async (
       data: chatRequest.data,
       ...extraMetadata.body,
       ...chatRequest.body,
-      ...(chatRequest.functions !== undefined && {
-        functions: chatRequest.functions,
-      }),
-      ...(chatRequest.function_call !== undefined && {
-        function_call: chatRequest.function_call,
-      }),
-      ...(chatRequest.tools !== undefined && {
-        tools: chatRequest.tools,
-      }),
-      ...(chatRequest.tool_choice !== undefined && {
-        tool_choice: chatRequest.tool_choice,
-      }),
     },
     streamProtocol,
     credentials: extraMetadata.credentials,
@@ -239,10 +192,7 @@ export function useChat({
   initialMessages = [],
   initialInput = '',
   sendExtraMessageFields,
-  experimental_onFunctionCall,
-  experimental_onToolCall,
-  streamMode,
-  streamProtocol,
+  streamProtocol = 'data',
   onResponse,
   onFinish,
   onError,
@@ -252,9 +202,8 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
-  keepLastMessageOnError = false,
-  maxToolRoundtrips = 0,
-  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
+  keepLastMessageOnError = true,
+  maxSteps = 1,
 }: UseChatOptions = {}): UseChatHelpers & {
   addToolResult: ({
     toolCallId,
@@ -264,11 +213,6 @@ export function useChat({
     result: any;
   }) => void;
 } {
-  // streamMode is deprecated, use streamProtocol instead.
-  if (streamMode) {
-    streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
-  }
-
   // Generate a unique id for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
 
@@ -319,37 +263,26 @@ export function useChat({
       loading.set(true);
       abortController = new AbortController();
 
-      await processChatStream({
-        getStreamedResponse: () =>
-          getStreamedResponse(
-            api,
-            chatRequest,
-            mutate,
-            data => {
-              streamData.set(data);
-            },
-            get(streamData),
-            extraMetadata,
-            get(messages),
-            abortController,
-            generateId,
-            streamProtocol,
-            onFinish,
-            onResponse,
-            onToolCall,
-            sendExtraMessageFields,
-            fetch,
-            keepLastMessageOnError,
-          ),
-        experimental_onFunctionCall,
-        experimental_onToolCall,
-        updateChatRequest: chatRequestParam => {
-          chatRequest = chatRequestParam;
+      await getStreamedResponse(
+        api,
+        chatRequest,
+        mutate,
+        data => {
+          streamData.set(data);
         },
-        getCurrentMessages: () => get(messages),
-      });
-
-      abortController = null;
+        get(streamData),
+        extraMetadata,
+        get(messages),
+        abortController,
+        generateId,
+        streamProtocol,
+        onFinish,
+        onResponse,
+        onToolCall,
+        sendExtraMessageFields,
+        fetch,
+        keepLastMessageOnError,
+      );
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
@@ -363,6 +296,7 @@ export function useChat({
 
       error.set(err as Error);
     } finally {
+      abortController = null;
       loading.set(false);
     }
 
@@ -388,85 +322,41 @@ export function useChat({
 
   const append: UseChatHelpers['append'] = async (
     message: Message | CreateMessage,
-    {
-      options,
-      functions,
-      function_call,
-      tools,
-      tool_choice,
-      data,
-      headers,
-      body,
-    }: ChatRequestOptions = {},
+    { data, headers, body }: ChatRequestOptions = {},
   ) => {
     if (!message.id) {
       message.id = generateId();
     }
 
-    const requestOptions = {
-      headers: headers ?? options?.headers,
-      body: body ?? options?.body,
-    };
-
-    const chatRequest: ChatRequest = {
+    return triggerRequest({
       messages: get(messages).concat(message as Message),
-      options: requestOptions,
-      headers: requestOptions.headers,
-      body: requestOptions.body,
+      headers,
+      body,
       data,
-      ...(functions !== undefined && { functions }),
-      ...(function_call !== undefined && { function_call }),
-      ...(tools !== undefined && { tools }),
-      ...(tool_choice !== undefined && { tool_choice }),
-    };
-    return triggerRequest(chatRequest);
+    });
   };
 
   const reload: UseChatHelpers['reload'] = async ({
-    options,
-    functions,
-    function_call,
-    tools,
-    tool_choice,
     data,
     headers,
     body,
   }: ChatRequestOptions = {}) => {
     const messagesSnapshot = get(messages);
-    if (messagesSnapshot.length === 0) return null;
-
-    const requestOptions = {
-      headers: headers ?? options?.headers,
-      body: body ?? options?.body,
-    };
+    if (messagesSnapshot.length === 0) {
+      return null;
+    }
 
     // Remove last assistant message and retry last user message.
     const lastMessage = messagesSnapshot.at(-1);
-    if (lastMessage?.role === 'assistant') {
-      const chatRequest: ChatRequest = {
-        messages: messagesSnapshot.slice(0, -1),
-        options: requestOptions,
-        headers: requestOptions.headers,
-        body: requestOptions.body,
-        data,
-        ...(functions !== undefined && { functions }),
-        ...(function_call !== undefined && { function_call }),
-        ...(tools !== undefined && { tools }),
-        ...(tool_choice !== undefined && { tool_choice }),
-      };
-
-      return triggerRequest(chatRequest);
-    }
-
-    const chatRequest: ChatRequest = {
-      messages: messagesSnapshot,
-      options: requestOptions,
-      headers: requestOptions.headers,
-      body: requestOptions.body,
+    return triggerRequest({
+      messages:
+        lastMessage?.role === 'assistant'
+          ? messagesSnapshot.slice(0, -1)
+          : messagesSnapshot,
+      headers,
+      body,
       data,
-    };
-
-    return triggerRequest(chatRequest);
+    });
   };
 
   const stop = () => {
@@ -508,14 +398,11 @@ export function useChat({
     event?.preventDefault?.();
     const inputValue = get(input);
 
-    if (!inputValue && !options.allowEmptySubmit) return;
+    if (!inputValue && !options.allowEmptySubmit) {
+      return;
+    }
 
-    const requestOptions = {
-      headers: options.headers ?? options.options?.headers,
-      body: options.body ?? options.options?.body,
-    };
-
-    const chatRequest: ChatRequest = {
+    triggerRequest({
       messages:
         !inputValue && options.allowEmptySubmit
           ? get(messages)
@@ -525,13 +412,10 @@ export function useChat({
               role: 'user',
               createdAt: new Date(),
             } as Message),
-      options: requestOptions,
-      body: requestOptions.body,
-      headers: requestOptions.headers,
+      body: options.body,
+      headers: options.headers,
       data: options.data,
-    };
-
-    triggerRequest(chatRequest);
+    });
 
     input.set('');
   };

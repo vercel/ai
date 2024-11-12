@@ -3,8 +3,6 @@ import {
   DataMessage,
   formatStreamPart,
 } from '@ai-sdk/ui-utils';
-import type { AssistantStream } from 'openai/lib/AssistantStream';
-import type { Run } from 'openai/resources/beta/threads/runs/runs';
 
 /**
 You can pass the thread and the latest message into the `AssistantResponse`. This establishes the context for the response.
@@ -26,16 +24,6 @@ The process parameter is a callback in which you can run the assistant on thread
  */
 type AssistantResponseCallback = (options: {
   /**
-@deprecated use variable from outer scope instead.
-   */
-  threadId: string;
-
-  /**
-@deprecated use variable from outer scope instead.
-   */
-  messageId: string;
-
-  /**
 Forwards an assistant message (non-streaming) to the client.
    */
   sendMessage: (message: AssistantMessage) => void;
@@ -48,7 +36,7 @@ Send a data message to the client. You can use this to provide information for r
   /**
 Forwards the assistant response stream to the client. Returns the `Run` object after it completes, or when it requires an action.
    */
-  forwardStream: (stream: AssistantStream) => Promise<Run | undefined>;
+  forwardStream: (stream: any) => Promise<any | undefined>;
 }) => Promise<void>;
 
 /**
@@ -82,8 +70,8 @@ export function AssistantResponse(
         );
       };
 
-      const forwardStream = async (stream: AssistantStream) => {
-        let result: Run | undefined = undefined;
+      const forwardStream = async (stream: any) => {
+        let result: any | undefined = undefined;
 
         for await (const value of stream) {
           switch (value.event) {
@@ -137,8 +125,6 @@ export function AssistantResponse(
 
       try {
         await process({
-          threadId,
-          messageId,
           sendMessage,
           sendDataMessage,
           forwardStream,
@@ -160,8 +146,3 @@ export function AssistantResponse(
     },
   });
 }
-
-/**
-@deprecated Use `AssistantResponse` instead.
- */
-export const experimental_AssistantResponse = AssistantResponse;

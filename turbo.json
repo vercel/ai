@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "globalEnv": ["CI", "PORT"],
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "env": [
@@ -14,7 +15,6 @@
         "GOOGLE_API_KEY",
         "GOOGLE_GENERATIVE_AI_API_KEY",
         "GROQ_API_KEY",
-        "HUGGINGFACE_API_KEY",
         "MISTRAL_API_KEY",
         "OPENAI_API_KEY",
         "OPENAI_API_BASE",
@@ -56,6 +56,5 @@
     "integration-test": {
       "dependsOn": ["^build", "build"]
     }
-  },
-  "globalEnv": ["CI", "PORT"]
+  }
 }

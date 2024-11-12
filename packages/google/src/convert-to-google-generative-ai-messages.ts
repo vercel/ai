@@ -133,7 +133,10 @@ export function convertToGoogleGenerativeAIMessages(
           parts: content.map(part => ({
             functionResponse: {
               name: part.toolName,
-              response: part.result,
+              response: {
+                name: part.toolName,
+                content: part.result,
+              },
             },
           })),
         });

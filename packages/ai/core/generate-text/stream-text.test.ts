@@ -916,96 +916,6 @@ describe('result.pipeTextStreamToResponse', async () => {
   });
 });
 
-describe('result.toAIStream', () => {
-  it('should transform textStream through callbacks and data transformers', async () => {
-    const result = await streamText({
-      model: new MockLanguageModelV1({
-        doStream: async () => ({
-          stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello' },
-            { type: 'text-delta', textDelta: ', ' },
-            { type: 'text-delta', textDelta: 'world!' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              logprobs: undefined,
-              usage: { completionTokens: 10, promptTokens: 3 },
-            },
-          ]),
-          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-        }),
-      }),
-      prompt: 'test-input',
-    });
-
-    expect(
-      await convertReadableStreamToArray(
-        result.toAIStream().pipeThrough(new TextDecoderStream()),
-      ),
-    ).toMatchSnapshot();
-  });
-
-  it('should invoke callback', async () => {
-    const result = await streamText({
-      model: new MockLanguageModelV1({
-        doStream: async () => {
-          return {
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: 'world!' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          };
-        },
-      }),
-      prompt: 'test-input',
-    });
-
-    const events: string[] = [];
-
-    await convertReadableStreamToArray(
-      result
-        .toAIStream({
-          onStart() {
-            events.push('start');
-          },
-          onToken(token) {
-            events.push(`token:${token}`);
-          },
-          onText(text) {
-            events.push(`text:${text}`);
-          },
-          onCompletion(completion) {
-            events.push(`completion:${completion}`);
-          },
-          onFinal(completion) {
-            events.push(`final:${completion}`);
-          },
-        })
-        .pipeThrough(new TextDecoderStream()),
-    );
-
-    assert.deepStrictEqual(events, [
-      'start',
-      'token:Hello',
-      'text:Hello',
-      'token:, ',
-      'text:, ',
-      'token:world!',
-      'text:world!',
-      'completion:Hello, world!',
-      'final:Hello, world!',
-    ]);
-  });
-});
-
 describe('result.toDataStream', () => {
   it('should create a data stream', async () => {
     const result = await streamText({
@@ -2061,7 +1971,7 @@ describe('result.responseMessages', () => {
 
     await convertAsyncIterableToArray(result.textStream); // consume stream
 
-    expect(await result.responseMessages).toMatchSnapshot();
+    expect((await result.response).messages).toMatchSnapshot();
   });
 
   it('should contain assistant response message and tool message when there are tool calls with results', async () => {
@@ -2101,7 +2011,7 @@ describe('result.responseMessages', () => {
 
     await convertAsyncIterableToArray(result.textStream); // consume stream
 
-    expect(await result.responseMessages).toMatchSnapshot();
+    expect((await result.response).messages).toMatchSnapshot();
   });
 });
 
@@ -2334,12 +2244,8 @@ describe('options.maxSteps', () => {
         expect(await result.steps).toMatchSnapshot();
       });
 
-      it('result.rawResponse should contain rawResponse from last step', async () => {
-        assert.deepStrictEqual(result.rawResponse, { headers: { call: '2' } });
-      });
-
-      it('result.responseMessages should contain response messages from all steps', async () => {
-        expect(await result.responseMessages).toMatchSnapshot();
+      it('result.response.messages should contain response messages from all steps', async () => {
+        expect((await result.response).messages).toMatchSnapshot();
       });
     });
 
@@ -2630,10 +2536,6 @@ describe('options.maxSteps', () => {
 
       it('result.steps should contain all steps', async () => {
         expect(await result.steps).toMatchSnapshot();
-      });
-
-      it('result.rawResponse should contain rawResponse from last step', async () => {
-        assert.deepStrictEqual(result.rawResponse, { headers: { call: '3' } });
       });
 
       it('result.response.messages should contain an assistant message with the combined text', async () => {

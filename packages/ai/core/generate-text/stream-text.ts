@@ -1,19 +1,14 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { formatStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import {
-  AIStreamCallbacksAndOptions,
-  CoreAssistantMessage,
-  CoreToolMessage,
-  formatStreamPart,
-  InvalidArgumentError,
-  StreamData,
-  TextStreamPart,
-} from '../../streams';
+import { InvalidArgumentError } from '../../errors/invalid-argument-error';
+import { StreamData } from '../../streams/stream-data';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
@@ -51,7 +46,7 @@ import {
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
 import { StepResult } from './step-result';
-import { StreamTextResult } from './stream-text-result';
+import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
@@ -115,8 +110,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   maxRetries,
   abortSignal,
   headers,
-  maxToolRoundtrips = 0,
-  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
+  maxSteps = 1,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
@@ -147,22 +141,6 @@ The tools that the model can call. The model needs to support calling tools.
 The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: CoreToolChoice<TOOLS>;
-
-    /**
-Maximum number of automatic roundtrips for tool calls.
-
-An automatic tool call roundtrip is another LLM call with the
-tool call results when all tool calls of the last assistant
-message have results.
-
-A maximum number is required to prevent infinite loops in the
-case of misconfigured tools.
-
-By default, it's set to 0, which will disable the feature.
-
-@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
-     */
-    maxToolRoundtrips?: number;
 
     /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
@@ -232,18 +210,6 @@ The usage is the combined usage of all steps.
 Details for all steps.
        */
         readonly steps: StepResult<TOOLS>[];
-
-        /**
-The response messages that were generated during the call. It consists of an assistant message,
-potentially containing tool calls.
-
-When there are tool results, there is an additional tool message with the tool results that are available.
-If there are tools that do not have execute functions, they are not included in the tool results and
-need to be added separately.
-     */
-        readonly responseMessages: Array<
-          CoreAssistantMessage | CoreToolMessage
-        >;
       },
     ) => Promise<void> | void;
 
@@ -455,12 +421,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   implements StreamTextResult<TOOLS>
 {
   private originalStream: ReadableStream<TextStreamPart<TOOLS>>;
+  private rawResponse: { headers?: Record<string, string> } | undefined;
+  private rawWarnings: CallWarning[] | undefined;
 
-  // TODO needs to be changed to readonly async in v4 (and only return value from last step)
-  // (can't change before v4 because of backwards compatibility)
-  warnings: StreamTextResult<TOOLS>['warnings'];
-  rawResponse: StreamTextResult<TOOLS>['rawResponse'];
-
+  readonly warnings: StreamTextResult<TOOLS>['warnings'];
   readonly usage: StreamTextResult<TOOLS>['usage'];
   readonly finishReason: StreamTextResult<TOOLS>['finishReason'];
   readonly experimental_providerMetadata: StreamTextResult<TOOLS>['experimental_providerMetadata'];
@@ -470,7 +434,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   readonly request: StreamTextResult<TOOLS>['request'];
   readonly response: StreamTextResult<TOOLS>['response'];
   readonly steps: StreamTextResult<TOOLS>['steps'];
-  readonly responseMessages: StreamTextResult<TOOLS>['responseMessages'];
 
   constructor({
     stream,
@@ -494,15 +457,14 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     tools,
   }: {
     stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
-    warnings: StreamTextResult<TOOLS>['warnings'];
-    rawResponse: StreamTextResult<TOOLS>['rawResponse'];
+    warnings: DefaultStreamTextResult<TOOLS>['rawWarnings'];
+    rawResponse: DefaultStreamTextResult<TOOLS>['rawResponse'];
     request: Awaited<StreamTextResult<TOOLS>['request']>;
     onChunk: Parameters<typeof streamText>[0]['onChunk'];
     onFinish:
       | ((
           event: Omit<StepResult<TOOLS>, 'stepType' | 'isContinued'> & {
             steps: StepResult<TOOLS>[];
-            responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
           },
         ) => Promise<void> | void)
       | undefined;
@@ -522,7 +484,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     generateId: () => string;
     tools: TOOLS | undefined;
   }) {
-    this.warnings = warnings;
+    this.rawWarnings = warnings;
     this.rawResponse = rawResponse;
 
     // initialize usage promise
@@ -572,13 +534,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       createResolvablePromise<Awaited<StreamTextResult<TOOLS>['response']>>();
     this.response = responsePromise;
 
-    // initialize responseMessages promise
-    const {
-      resolve: resolveResponseMessages,
-      promise: responseMessagesPromise,
-    } =
-      createResolvablePromise<Array<CoreAssistantMessage | CoreToolMessage>>();
-    this.responseMessages = responseMessagesPromise;
+    // initialize warnings promise
+    const { resolve: resolveWarnings, promise: warningsPromise } =
+      createResolvablePromise<CallWarning[]>();
+    this.warnings = warningsPromise;
 
     // create a stitchable stream to send steps in a single response stream
     const {
@@ -679,16 +638,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                 doStreamSpan.addEvent('ai.stream.firstChunk', {
                   'ai.response.msToFirstChunk': msToFirstChunk,
-
-                  // deprecated:
-                  'ai.stream.msToFirstChunk': msToFirstChunk,
                 });
 
                 doStreamSpan.setAttributes({
                   'ai.response.msToFirstChunk': msToFirstChunk,
-
-                  // deprecated:
-                  'ai.stream.msToFirstChunk': msToFirstChunk,
                 });
               }
 
@@ -867,13 +820,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.usage.promptTokens': stepUsage.promptTokens,
                       'ai.usage.completionTokens': stepUsage.completionTokens,
 
-                      // deprecated
-                      'ai.finishReason': stepFinishReason,
-                      'ai.result.text': { output: () => stepText },
-                      'ai.result.toolCalls': {
-                        output: () => stepToolCallsJson,
-                      },
-
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [stepFinishReason],
                       'gen_ai.response.id': stepResponse.id,
@@ -938,10 +884,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 toolResults: stepToolResults,
                 finishReason: stepFinishReason,
                 usage: stepUsage,
-                warnings: self.warnings,
+                warnings: self.rawWarnings,
                 logprobs: stepLogProbs,
                 request: stepRequest,
-                rawResponse: self.rawResponse,
                 response: {
                   ...stepResponse,
                   headers: self.rawResponse?.headers,
@@ -973,7 +918,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 } = await startStep({ responseMessages });
 
                 // update warnings and rawResponse:
-                self.warnings = result.warnings;
+                self.rawWarnings = result.warnings;
                 self.rawResponse = result.rawResponse;
 
                 // needs to add to stitchable stream
@@ -1023,13 +968,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.usage.promptTokens': combinedUsage.promptTokens,
                       'ai.usage.completionTokens':
                         combinedUsage.completionTokens,
-
-                      // deprecated
-                      'ai.finishReason': stepFinishReason,
-                      'ai.result.text': { output: () => fullStepText },
-                      'ai.result.toolCalls': {
-                        output: () => stepToolCallsJson,
-                      },
                     },
                   }),
                 );
@@ -1048,7 +986,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   messages: responseMessages,
                 });
                 resolveSteps(stepResults);
-                resolveResponseMessages(responseMessages);
+                resolveWarnings(self.rawWarnings ?? []);
 
                 // call onFinish callback:
                 await onFinish?.({
@@ -1063,7 +1001,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   // The type exposed to the users will be correctly inferred.
                   toolResults: stepToolResults as any,
                   request: stepRequest,
-                  rawResponse,
                   response: {
                     ...stepResponse,
                     headers: rawResponse?.headers,
@@ -1072,7 +1009,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   warnings,
                   experimental_providerMetadata: stepProviderMetadata,
                   steps: stepResults,
-                  responseMessages,
                 });
               } catch (error) {
                 controller.error(error);
@@ -1133,16 +1069,10 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  toAIStream(callbacks: AIStreamCallbacksAndOptions = {}) {
-    return this.toDataStreamInternal({ callbacks });
-  }
-
   private toDataStreamInternal({
-    callbacks = {},
     getErrorMessage = () => '', // mask error messages for safety by default
     sendUsage = true,
   }: {
-    callbacks?: AIStreamCallbacksAndOptions;
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean;
   } = {}) {
@@ -1152,27 +1082,12 @@ However, the LLM results are expected to be small enough to not cause issues.
       TextStreamPart<TOOLS>,
       TextStreamPart<TOOLS>
     >({
-      async start(): Promise<void> {
-        if (callbacks.onStart) await callbacks.onStart();
-      },
-
       async transform(chunk, controller): Promise<void> {
         controller.enqueue(chunk);
 
         if (chunk.type === 'text-delta') {
-          const textDelta = chunk.textDelta;
-
-          aggregatedResponse += textDelta;
-
-          if (callbacks.onToken) await callbacks.onToken(textDelta);
-          if (callbacks.onText) await callbacks.onText(textDelta);
+          aggregatedResponse += chunk.textDelta;
         }
-      },
-
-      async flush(): Promise<void> {
-        if (callbacks.onCompletion)
-          await callbacks.onCompletion(aggregatedResponse);
-        if (callbacks.onFinal) await callbacks.onFinal(aggregatedResponse);
       },
     });
 
@@ -1281,62 +1196,26 @@ However, the LLM results are expected to be small enough to not cause issues.
       .pipeThrough(new TextEncoderStream());
   }
 
-  pipeAIStreamToResponse(
-    response: ServerResponse,
-    init?: { headers?: Record<string, string>; status?: number },
-  ): void {
-    return this.pipeDataStreamToResponse(response, init);
-  }
-
   pipeDataStreamToResponse(
     response: ServerResponse,
-    options?:
-      | ResponseInit
-      | {
-          init?: ResponseInit;
-          data?: StreamData;
-          getErrorMessage?: (error: unknown) => string;
-          sendUsage?: boolean;
-        },
+    {
+      status,
+      statusText,
+      headers,
+      data,
+      getErrorMessage,
+      sendUsage,
+    }: ResponseInit & {
+      data?: StreamData;
+      getErrorMessage?: (error: unknown) => string;
+      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+    } = {},
   ) {
-    const init: ResponseInit | undefined =
-      options == null
-        ? undefined
-        : 'init' in options
-        ? options.init
-        : {
-            headers: 'headers' in options ? options.headers : undefined,
-            status: 'status' in options ? options.status : undefined,
-            statusText:
-              'statusText' in options ? options.statusText : undefined,
-          };
-
-    const data: StreamData | undefined =
-      options == null
-        ? undefined
-        : 'data' in options
-        ? options.data
-        : undefined;
-
-    const getErrorMessage: ((error: unknown) => string) | undefined =
-      options == null
-        ? undefined
-        : 'getErrorMessage' in options
-        ? options.getErrorMessage
-        : undefined;
-
-    const sendUsage: boolean | undefined =
-      options == null
-        ? undefined
-        : 'sendUsage' in options
-        ? options.sendUsage
-        : undefined;
-
     writeToServerResponse({
       response,
-      status: init?.status,
-      statusText: init?.statusText,
-      headers: prepareOutgoingHttpHeaders(init, {
+      status,
+      statusText,
+      headers: prepareOutgoingHttpHeaders(headers, {
         contentType: 'text/plain; charset=utf-8',
         dataStreamVersion: 'v1',
       }),
@@ -1349,17 +1228,11 @@ However, the LLM results are expected to be small enough to not cause issues.
       response,
       status: init?.status,
       statusText: init?.statusText,
-      headers: prepareOutgoingHttpHeaders(init, {
+      headers: prepareOutgoingHttpHeaders(init?.headers, {
         contentType: 'text/plain; charset=utf-8',
       }),
       stream: this.textStream.pipeThrough(new TextEncoderStream()),
     });
-  }
-
-  toAIStreamResponse(
-    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
-  ): Response {
-    return this.toDataStreamResponse(options);
   }
 
   toDataStream(options?: {
@@ -1375,55 +1248,24 @@ However, the LLM results are expected to be small enough to not cause issues.
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
   }
 
-  toDataStreamResponse(
-    options?:
-      | ResponseInit
-      | {
-          init?: ResponseInit;
-          data?: StreamData;
-          getErrorMessage?: (error: unknown) => string;
-          sendUsage?: boolean;
-        },
-  ): Response {
-    const init: ResponseInit | undefined =
-      options == null
-        ? undefined
-        : 'init' in options
-        ? options.init
-        : {
-            headers: 'headers' in options ? options.headers : undefined,
-            status: 'status' in options ? options.status : undefined,
-            statusText:
-              'statusText' in options ? options.statusText : undefined,
-          };
-
-    const data: StreamData | undefined =
-      options == null
-        ? undefined
-        : 'data' in options
-        ? options.data
-        : undefined;
-
-    const getErrorMessage: ((error: unknown) => string) | undefined =
-      options == null
-        ? undefined
-        : 'getErrorMessage' in options
-        ? options.getErrorMessage
-        : undefined;
-
-    const sendUsage: boolean | undefined =
-      options == null
-        ? undefined
-        : 'sendUsage' in options
-        ? options.sendUsage
-        : undefined;
-
+  toDataStreamResponse({
+    headers,
+    status,
+    statusText,
+    data,
+    getErrorMessage,
+    sendUsage,
+  }: ResponseInit & {
+    data?: StreamData;
+    getErrorMessage?: (error: unknown) => string;
+    sendUsage?: boolean;
+  } = {}): Response {
     return new Response(
       this.toDataStream({ data, getErrorMessage, sendUsage }),
       {
-        status: init?.status ?? 200,
-        statusText: init?.statusText,
-        headers: prepareResponseHeaders(init, {
+        status,
+        statusText,
+        headers: prepareResponseHeaders(headers, {
           contentType: 'text/plain; charset=utf-8',
           dataStreamVersion: 'v1',
         }),
@@ -1434,14 +1276,9 @@ However, the LLM results are expected to be small enough to not cause issues.
   toTextStreamResponse(init?: ResponseInit): Response {
     return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
       status: init?.status ?? 200,
-      headers: prepareResponseHeaders(init, {
+      headers: prepareResponseHeaders(init?.headers, {
         contentType: 'text/plain; charset=utf-8',
       }),
     });
   }
 }
-
-/**
- * @deprecated Use `streamText` instead.
- */
-export const experimental_streamText = streamText;

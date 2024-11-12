@@ -9,11 +9,7 @@ import type {
   Message,
   UseChatOptions,
 } from '@ai-sdk/ui-utils';
-import {
-  callChatApi,
-  generateId as generateIdFunc,
-  processChatStream,
-} from '@ai-sdk/ui-utils';
+import { callChatApi, generateId as generateIdFunc } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
 import { throttle } from './throttle';
@@ -85,7 +81,7 @@ export type UseChatHelpers = {
   ) => void;
 };
 
-const getStreamedResponse = async (
+const processResponseStream = async (
   api: string,
   chatRequest: ChatRequest,
   mutate: KeyedMutator<Message[]>,
@@ -121,27 +117,18 @@ const getStreamedResponse = async (
           role,
           content,
           experimental_attachments,
-          name,
           data,
           annotations,
           toolInvocations,
-          function_call,
-          tool_calls,
-          tool_call_id,
         }) => ({
           role,
           content,
           ...(experimental_attachments !== undefined && {
             experimental_attachments,
           }),
-          ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
-          // outdated function/tool call handling (TODO deprecate):
-          tool_call_id,
-          ...(function_call !== undefined && { function_call }),
-          ...(tool_calls !== undefined && { tool_calls }),
         }),
       );
 
@@ -158,18 +145,6 @@ const getStreamedResponse = async (
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
       ...chatRequest.body,
-      ...(chatRequest.functions !== undefined && {
-        functions: chatRequest.functions,
-      }),
-      ...(chatRequest.function_call !== undefined && {
-        function_call: chatRequest.function_call,
-      }),
-      ...(chatRequest.tools !== undefined && {
-        tools: chatRequest.tools,
-      }),
-      ...(chatRequest.tool_choice !== undefined && {
-        tool_choice: chatRequest.tool_choice,
-      }),
     },
     streamProtocol,
     credentials: extraMetadataRef.current.credentials,
@@ -203,16 +178,10 @@ export function useChat({
   initialMessages,
   initialInput = '',
   sendExtraMessageFields,
-  experimental_onFunctionCall,
-  experimental_onToolCall,
   onToolCall,
   experimental_prepareRequestBody,
-  experimental_maxAutomaticRoundtrips = 0,
-  maxAutomaticRoundtrips = experimental_maxAutomaticRoundtrips,
-  maxToolRoundtrips = maxAutomaticRoundtrips,
-  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
-  streamMode,
-  streamProtocol,
+  maxSteps = 1,
+  streamProtocol = 'data',
   onResponse,
   onFinish,
   onError,
@@ -221,20 +190,10 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
-  keepLastMessageOnError = false,
+  keepLastMessageOnError = true,
   experimental_throttle: throttleWaitMs,
 }: UseChatOptions & {
   key?: string;
-
-  /**
-@deprecated Use `maxToolRoundtrips` instead.
-   */
-  experimental_maxAutomaticRoundtrips?: number;
-
-  /**
-@deprecated Use `maxToolRoundtrips` instead.
-   */
-  maxAutomaticRoundtrips?: number;
 
   /**
    * Experimental (React only). When a function is provided, it will be used
@@ -258,22 +217,6 @@ Default is undefined, which disables throttling.
   experimental_throttle?: number;
 
   /**
-Maximum number of automatic roundtrips for tool calls.
-
-An automatic tool call roundtrip is a call to the server with the
-tool call results when all tool calls in the last assistant
-message have results.
-
-A maximum number is required to prevent infinite loops in the
-case of misconfigured tools.
-
-By default, it's set to 0, which will disable the feature.
-
-@deprecated Use `maxSteps` instead (which is `maxToolRoundtrips` + 1).
-     */
-  maxToolRoundtrips?: number;
-
-  /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
 
 A maximum number is required to prevent infinite loops in the case of misconfigured tools.
@@ -282,16 +225,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
  */
   maxSteps?: number;
 } = {}): UseChatHelpers & {
-  /**
-   * @deprecated Use `addToolResult` instead.
-   */
-  experimental_addToolResult: ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: any;
-  }) => void;
   addToolResult: ({
     toolCallId,
     result,
@@ -300,11 +233,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
     result: any;
   }) => void;
 } {
-  // streamMode is deprecated, use streamProtocol instead.
-  if (streamMode) {
-    streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
-  }
-
   // Generate a unique id for the chat if not provided.
   const hookId = useId();
   const idKey = id ?? hookId;
@@ -377,35 +305,26 @@ By default, it's set to 1, which means that only a single LLM call is made.
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
-        await processChatStream({
-          getStreamedResponse: () =>
-            getStreamedResponse(
-              api,
-              chatRequest,
-              // throttle streamed ui updates:
-              throttle(mutate, throttleWaitMs),
-              throttle(mutateStreamData, throttleWaitMs),
-              streamDataRef,
-              extraMetadataRef,
-              messagesRef,
-              abortControllerRef,
-              generateId,
-              streamProtocol,
-              onFinish,
-              onResponse,
-              onToolCall,
-              sendExtraMessageFields,
-              experimental_prepareRequestBody,
-              fetch,
-              keepLastMessageOnError,
-            ),
-          experimental_onFunctionCall,
-          experimental_onToolCall,
-          updateChatRequest: chatRequestParam => {
-            chatRequest = chatRequestParam;
-          },
-          getCurrentMessages: () => messagesRef.current,
-        });
+        await processResponseStream(
+          api,
+          chatRequest,
+          // throttle streamed ui updates:
+          throttle(mutate, throttleWaitMs),
+          throttle(mutateStreamData, throttleWaitMs),
+          streamDataRef,
+          extraMetadataRef,
+          messagesRef,
+          abortControllerRef,
+          generateId,
+          streamProtocol,
+          onFinish,
+          onResponse,
+          onToolCall,
+          sendExtraMessageFields,
+          experimental_prepareRequestBody,
+          fetch,
+          keepLastMessageOnError,
+        );
 
         abortControllerRef.current = null;
       } catch (err) {
@@ -455,8 +374,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
       streamDataRef,
       streamProtocol,
       sendExtraMessageFields,
-      experimental_onFunctionCall,
-      experimental_onToolCall,
       experimental_prepareRequestBody,
       onToolCall,
       maxSteps,
@@ -473,11 +390,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
     async (
       message: Message | CreateMessage,
       {
-        options,
-        functions,
-        function_call,
-        tools,
-        tool_choice,
         data,
         headers,
         body,
@@ -492,11 +404,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
         experimental_attachments,
       );
 
-      const requestOptions = {
-        headers: headers ?? options?.headers,
-        body: body ?? options?.body,
-      };
-
       const messages = messagesRef.current.concat({
         ...message,
         id: message.id ?? generateId(),
@@ -505,72 +412,28 @@ By default, it's set to 1, which means that only a single LLM call is made.
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
       });
 
-      const chatRequest: ChatRequest = {
-        messages,
-        options: requestOptions,
-        headers: requestOptions.headers,
-        body: requestOptions.body,
-        data,
-        ...(functions !== undefined && { functions }),
-        ...(function_call !== undefined && { function_call }),
-        ...(tools !== undefined && { tools }),
-        ...(tool_choice !== undefined && { tool_choice }),
-      };
-
-      return triggerRequest(chatRequest);
+      return triggerRequest({ messages, headers, body, data });
     },
     [triggerRequest, generateId],
   );
 
   const reload = useCallback(
-    async ({
-      options,
-      functions,
-      function_call,
-      tools,
-      tool_choice,
-      data,
-      headers,
-      body,
-    }: ChatRequestOptions = {}) => {
-      if (messagesRef.current.length === 0) return null;
+    async ({ data, headers, body }: ChatRequestOptions = {}) => {
+      const messages = messagesRef.current;
 
-      const requestOptions = {
-        headers: headers ?? options?.headers,
-        body: body ?? options?.body,
-      };
-
-      // Remove last assistant message and retry last user message.
-      const lastMessage = messagesRef.current[messagesRef.current.length - 1];
-      if (lastMessage.role === 'assistant') {
-        const chatRequest: ChatRequest = {
-          messages: messagesRef.current.slice(0, -1),
-          options: requestOptions,
-          headers: requestOptions.headers,
-          body: requestOptions.body,
-          data,
-          ...(functions !== undefined && { functions }),
-          ...(function_call !== undefined && { function_call }),
-          ...(tools !== undefined && { tools }),
-          ...(tool_choice !== undefined && { tool_choice }),
-        };
-
-        return triggerRequest(chatRequest);
+      if (messages.length === 0) {
+        return null;
       }
 
-      const chatRequest: ChatRequest = {
-        messages: messagesRef.current,
-        options: requestOptions,
-        headers: requestOptions.headers,
-        body: requestOptions.body,
+      // Remove last assistant message and retry last user message.
+      const lastMessage = messages[messages.length - 1];
+      return triggerRequest({
+        messages:
+          lastMessage.role === 'assistant' ? messages.slice(0, -1) : messages,
+        headers,
+        body,
         data,
-        ...(functions !== undefined && { functions }),
-        ...(function_call !== undefined && { function_call }),
-        ...(tools !== undefined && { tools }),
-        ...(tool_choice !== undefined && { tool_choice }),
-      };
-
-      return triggerRequest(chatRequest);
+      });
     },
     [triggerRequest],
   );
@@ -635,11 +498,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
         options.experimental_attachments,
       );
 
-      const requestOptions = {
-        headers: options.headers ?? options.options?.headers,
-        body: options.body ?? options.options?.body,
-      };
-
       const messages =
         !input && !attachmentsForRequest.length && options.allowEmptySubmit
           ? messagesRef.current
@@ -656,9 +514,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
       const chatRequest: ChatRequest = {
         messages,
-        options: requestOptions,
-        headers: requestOptions.headers,
-        body: requestOptions.body,
+        headers: options.headers,
+        body: options.body,
         data: options.data,
       };
 
@@ -720,7 +577,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
     handleSubmit,
     isLoading,
     addToolResult,
-    experimental_addToolResult: addToolResult,
   };
 }
 
