@@ -69,7 +69,7 @@ importers:
         specifier: 1.0.0-canary.4
         version: link:../../packages/cohere
       '@ai-sdk/google':
-        specifier: 1.0.0-canary.5
+        specifier: 1.0.0-canary.6
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
         specifier: 1.0.0-canary.3
@@ -944,7 +944,7 @@ importers:
         specifier: 1.0.0-canary.4
         version: link:../../packages/anthropic
       '@ai-sdk/google':
-        specifier: 1.0.0-canary.5
+        specifier: 1.0.0-canary.6
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
         specifier: 1.0.0-canary.3
