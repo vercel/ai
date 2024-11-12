@@ -1,5 +1,17 @@
 # ai
 
+## 4.0.0-canary.10
+
+### Major Changes
+
+- effbce3: chore (ai): remove responseMessage from streamText onFinish callback
+
+### Patch Changes
+
+- Updated dependencies [fe4f109]
+  - @ai-sdk/ui-utils@1.0.0-canary.7
+  - @ai-sdk/react@1.0.0-canary.7
+
 ## 4.0.0-canary.9
 
 ### Patch Changes

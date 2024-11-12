@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "1.0.0-canary.3",
-    "@ai-sdk/svelte": "1.0.0-canary.6",
-    "ai": "4.0.0-canary.9",
+    "@ai-sdk/svelte": "1.0.0-canary.7",
+    "ai": "4.0.0-canary.10",
     "openai": "4.52.6",
     "zod": "^3.23.8"
   },
