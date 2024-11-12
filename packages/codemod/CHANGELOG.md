@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 0.0.1-canary.2
+
+### Patch Changes
+
+- 01b8e1c: feat (package/codemod): Add upgrade command to run codemod bundle.
+
 ## 0.0.1-canary.1
 
 ### Patch Changes
