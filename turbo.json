@@ -31,7 +31,14 @@
         "NEXT_RUNTIME",
         "XAI_API_KEY"
       ],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**",
+        ".nuxt/**",
+        ".svelte-kit/**",
+        ".vinxi/**"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
