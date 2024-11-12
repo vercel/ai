@@ -10,6 +10,7 @@ const bundle = [
   'replace-baseurl',
   'replace-nanoid',
   'rewrite-framework-imports',
+  'remove-experimental-message-types',
 ];
 
 function validatePreconditions(cwd: string) {
