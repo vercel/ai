@@ -438,12 +438,12 @@ const chunkSchema = z.object({
         finishReason: z.string().optional(),
       }),
     )
-    .optional(),
+    .nullish(),
   usageMetadata: z
     .object({
       promptTokenCount: z.number(),
       candidatesTokenCount: z.number().nullish(),
       totalTokenCount: z.number(),
     })
-    .optional(),
+    .nullish(),
 });
