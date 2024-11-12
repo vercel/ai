@@ -18,7 +18,7 @@
     "@ai-sdk/solid": "1.0.0-canary.7",
     "@solidjs/meta": "0.29.4",
     "@solidjs/router": "^0.13.6",
-    "@solidjs/start": "^1.0.4",
+    "@solidjs/start": "^1.0.10",
     "ai": "4.0.0-canary.10",
     "solid-js": "^1.8.17",
     "zod": "^3.23.8"
