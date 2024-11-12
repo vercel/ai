@@ -38,7 +38,7 @@
     "@solidjs/testing-library": "0.8.8",
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@vitejs/plugin-vue": "4.5.0",
+    "@vitejs/plugin-vue": "5.1.5",
     "eslint": "8.57.1",
     "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^24.0.0",
