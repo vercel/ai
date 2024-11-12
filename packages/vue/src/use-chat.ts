@@ -98,7 +98,7 @@ export function useChat(
     generateId = generateIdFunc,
     onToolCall,
     fetch,
-    keepLastMessageOnError = false,
+    keepLastMessageOnError = true,
     maxSteps,
   }: UseChatOptions & {
     /**

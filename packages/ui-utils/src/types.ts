@@ -149,10 +149,9 @@ Additional data to be sent to the API endpoint.
 
 export type UseChatOptions = {
   /**
-Keeps the last message when an error happens. This will be the default behavior
-starting with the next major release.
-The flag was introduced for backwards compatibility and currently defaults to `false`.
-Please enable it and update your error handling/resubmit behavior.
+Keeps the last message when an error happens. Defaults to `true`.
+
+@deprecated This option will be removed in the next major release.
    */
   keepLastMessageOnError?: boolean;
 

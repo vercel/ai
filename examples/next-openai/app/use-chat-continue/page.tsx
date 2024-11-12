@@ -14,7 +14,6 @@ export default function Chat() {
     stop,
   } = useChat({
     api: '/api/use-chat-continue',
-    keepLastMessageOnError: true,
   });
 
   return (

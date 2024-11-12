@@ -259,7 +259,7 @@ export function useChat(
         useChatOptions().onToolCall?.(),
         useChatOptions().sendExtraMessageFields?.(),
         useChatOptions().fetch?.(),
-        useChatOptions().keepLastMessageOnError?.() ?? false,
+        useChatOptions().keepLastMessageOnError?.() ?? true,
       );
 
       abortController = null;

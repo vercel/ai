@@ -202,7 +202,7 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
-  keepLastMessageOnError = false,
+  keepLastMessageOnError = true,
   maxSteps = 1,
 }: UseChatOptions = {}): UseChatHelpers & {
   addToolResult: ({

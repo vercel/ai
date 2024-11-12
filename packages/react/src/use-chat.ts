@@ -188,7 +188,7 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
-  keepLastMessageOnError = false,
+  keepLastMessageOnError = true,
   experimental_throttle: throttleWaitMs,
 }: UseChatOptions & {
   key?: string;
