@@ -6,12 +6,15 @@ import { TransformOptions } from './transform-options';
 
 const bundle = [
   'remove-ai-stream-methods-from-stream-text-result',
+  'remove-anthropic-topk',
   'remove-experimental-ai-fn-exports',
+  'remove-experimental-message-types',
+  'remove-google-topk',
+  'remove-google-vertex-topk',
   'replace-baseurl',
   'replace-nanoid',
   'replace-token-usage-types',
   'rewrite-framework-imports',
-  'remove-experimental-message-types',
 ];
 
 function validatePreconditions(cwd: string) {
