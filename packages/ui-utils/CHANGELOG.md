@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.0.0-canary.7
+
+### Major Changes
+
+- fe4f109: chore (ui): set default value of useChat keepLastMessageOnError to true
+
 ## 1.0.0-canary.6
 
 ### Patch Changes

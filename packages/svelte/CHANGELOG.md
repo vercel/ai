@@ -1,5 +1,16 @@
 # @ai-sdk/svelte
 
+## 1.0.0-canary.7
+
+### Major Changes
+
+- fe4f109: chore (ui): set default value of useChat keepLastMessageOnError to true
+
+### Patch Changes
+
+- Updated dependencies [fe4f109]
+  - @ai-sdk/ui-utils@1.0.0-canary.7
+
 ## 1.0.0-canary.6
 
 ### Patch Changes
