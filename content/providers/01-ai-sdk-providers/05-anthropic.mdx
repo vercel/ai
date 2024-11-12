@@ -94,8 +94,14 @@ const { text } = await generateText({
 });
 ```
 
-Anthropic language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+Anthropic language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
+<Note>
+  The Anthropic API returns streaming tool calls all at once after a delay. This
+  causes the `streamObject` function to generate the object fully after a delay
+  instead of streaming it incrementally.
+</Note>
 
 ### Cache Control
 
