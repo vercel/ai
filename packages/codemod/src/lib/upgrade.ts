@@ -10,6 +10,7 @@ const bundle = [
   'replace-baseurl',
   'replace-nanoid',
   'rewrite-framework-imports',
+  'update-telemetry-data',
 ];
 
 function validatePreconditions(cwd: string) {
