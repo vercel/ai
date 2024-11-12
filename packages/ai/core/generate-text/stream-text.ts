@@ -210,18 +210,6 @@ The usage is the combined usage of all steps.
 Details for all steps.
        */
         readonly steps: StepResult<TOOLS>[];
-
-        /**
-The response messages that were generated during the call. It consists of an assistant message,
-potentially containing tool calls.
-
-When there are tool results, there is an additional tool message with the tool results that are available.
-If there are tools that do not have execute functions, they are not included in the tool results and
-need to be added separately.
-     */
-        readonly responseMessages: Array<
-          CoreAssistantMessage | CoreToolMessage
-        >;
       },
     ) => Promise<void> | void;
 
@@ -477,7 +465,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       | ((
           event: Omit<StepResult<TOOLS>, 'stepType' | 'isContinued'> & {
             steps: StepResult<TOOLS>[];
-            responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
           },
         ) => Promise<void> | void)
       | undefined;
@@ -1022,7 +1009,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   warnings,
                   experimental_providerMetadata: stepProviderMetadata,
                   steps: stepResults,
-                  responseMessages,
                 });
               } catch (error) {
                 controller.error(error);
