@@ -41,7 +41,13 @@ export function removeTopK(fileInfo: FileInfo, api: API, providerName: string) {
     .find(j.CallExpression, {
       callee: {
         type: 'Identifier',
-        name: (p: string) => ['generateText', 'streamText'].includes(p),
+        name: (p: string) =>
+          [
+            'generateText',
+            'streamText',
+            'generateObject',
+            'streamObject',
+          ].includes(p),
       },
     })
     .forEach(path => {
