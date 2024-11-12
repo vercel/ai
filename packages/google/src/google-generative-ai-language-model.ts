@@ -280,15 +280,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
             const value = chunk.value;
 
-            const candidate = value.candidates[0];
-
-            if (candidate?.finishReason != null) {
-              finishReason = mapGoogleGenerativeAIFinishReason({
-                finishReason: candidate.finishReason,
-                hasToolCalls,
-              });
-            }
-
             const usageMetadata = value.usageMetadata;
 
             if (usageMetadata != null) {
@@ -296,6 +287,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 promptTokens: usageMetadata.promptTokenCount ?? NaN,
                 completionTokens: usageMetadata.candidatesTokenCount ?? NaN,
               };
+            }
+
+            const candidate = value.candidates?.[0];
+
+            // sometimes the API returns an empty candidates array
+            if (candidate == null) {
+              return;
+            }
+
+            if (candidate.finishReason != null) {
+              finishReason = mapGoogleGenerativeAIFinishReason({
+                finishReason: candidate.finishReason,
+                hasToolCalls,
+              });
             }
 
             const content = candidate.content;
@@ -426,12 +431,14 @@ const responseSchema = z.object({
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const chunkSchema = z.object({
-  candidates: z.array(
-    z.object({
-      content: contentSchema.optional(),
-      finishReason: z.string().optional(),
-    }),
-  ),
+  candidates: z
+    .array(
+      z.object({
+        content: contentSchema.optional(),
+        finishReason: z.string().optional(),
+      }),
+    )
+    .optional(),
   usageMetadata: z
     .object({
       promptTokenCount: z.number(),
