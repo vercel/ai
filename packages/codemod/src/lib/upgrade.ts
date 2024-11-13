@@ -16,6 +16,7 @@ const bundle = [
   'replace-nanoid',
   'replace-token-usage-types',
   'rewrite-framework-imports',
+  'remove-deprecated-provider-registry-exports',
   'remove-experimental-message-types',
   'replace-roundtrips-with-maxsteps',
 ];
