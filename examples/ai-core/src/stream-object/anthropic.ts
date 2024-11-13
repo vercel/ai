@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const result = await streamObject({
+  const result = streamObject({
     model: anthropic('claude-3-5-sonnet-20240620'),
     maxTokens: 2000,
     schema: z.object({

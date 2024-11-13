@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const result = await streamObject({
+  const result = streamObject({
     model: groq('llama-3.1-70b-versatile'),
     schema: z.object({
       characters: z.array(

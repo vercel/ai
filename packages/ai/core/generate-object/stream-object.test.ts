@@ -84,7 +84,7 @@ describe('streamObject', () => {
       });
 
       it('should send object deltas with json mode when structured outputs are enabled', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             supportsStructuredOutputs: true,
             doStream: async ({ prompt, mode }) => {
@@ -143,7 +143,7 @@ describe('streamObject', () => {
       });
 
       it('should use name and description with json mode when structured outputs are enabled', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             supportsStructuredOutputs: true,
             doStream: async ({ prompt, mode }) => {
@@ -205,7 +205,7 @@ describe('streamObject', () => {
       });
 
       it('should send object deltas with tool mode', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ prompt, mode }) => {
               assert.deepStrictEqual(mode, {
@@ -302,7 +302,7 @@ describe('streamObject', () => {
       });
 
       it('should  use name and description with tool mode', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ prompt, mode }) => {
               assert.deepStrictEqual(mode, {
@@ -403,7 +403,7 @@ describe('streamObject', () => {
 
     describe('result.fullStream', () => {
       it('should send full stream data', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -442,7 +442,7 @@ describe('streamObject', () => {
 
     describe('result.textStream', () => {
       it('should send text stream', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -475,7 +475,7 @@ describe('streamObject', () => {
 
     describe('result.toTextStreamResponse', () => {
       it('should create a Response with a text stream', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -520,7 +520,7 @@ describe('streamObject', () => {
       it('should write text deltas to a Node.js response-like object', async () => {
         const mockResponse = createMockServerResponse();
 
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -564,7 +564,7 @@ describe('streamObject', () => {
 
     describe('result.usage', () => {
       it('should resolve with token usage', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -599,7 +599,7 @@ describe('streamObject', () => {
 
     describe('result.providerMetadata', () => {
       it('should resolve with provider metadata', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -635,7 +635,7 @@ describe('streamObject', () => {
 
     describe('result.response', () => {
       it('should resolve with response information in json mode', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -677,7 +677,7 @@ describe('streamObject', () => {
       });
 
       it('should resolve with response information in tool mode', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -724,7 +724,7 @@ describe('streamObject', () => {
 
     describe('result.request', () => {
       it('should contain request information with json mode', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -763,7 +763,7 @@ describe('streamObject', () => {
       });
 
       it('should contain request information with tool mode', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -807,7 +807,7 @@ describe('streamObject', () => {
 
     describe('result.object', () => {
       it('should resolve with typed object', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -840,7 +840,7 @@ describe('streamObject', () => {
       });
 
       it('should reject object promise when the streamed object does not match the schema', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -877,7 +877,7 @@ describe('streamObject', () => {
       });
 
       it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -914,7 +914,7 @@ describe('streamObject', () => {
           Required<Parameters<typeof streamObject>[0]>['onFinish']
         >[0];
 
-        const { partialObjectStream } = await streamObject({
+        const { partialObjectStream } = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -959,7 +959,7 @@ describe('streamObject', () => {
           Required<Parameters<typeof streamObject>[0]>['onFinish']
         >[0];
 
-        const { partialObjectStream, object } = await streamObject({
+        const { partialObjectStream, object } = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -1004,7 +1004,7 @@ describe('streamObject', () => {
 
     describe('options.headers', () => {
       it('should pass headers to model in json mode', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ headers }) => {
               expect(headers).toStrictEqual({
@@ -1039,7 +1039,7 @@ describe('streamObject', () => {
       });
 
       it('should pass headers to model in tool mode', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ headers }) => {
               expect(headers).toStrictEqual({
@@ -1079,7 +1079,7 @@ describe('streamObject', () => {
 
     describe('options.providerMetadata', () => {
       it('should pass provider metadata to model in json mode', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ providerMetadata }) => {
               expect(providerMetadata).toStrictEqual({
@@ -1116,7 +1116,7 @@ describe('streamObject', () => {
       });
 
       it('should pass provider metadata to model in tool mode', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ providerMetadata }) => {
               expect(providerMetadata).toStrictEqual({
@@ -1158,7 +1158,7 @@ describe('streamObject', () => {
 
     describe('custom schema', () => {
       it('should send object deltas with json mode', async () => {
-        const result = await streamObject({
+        const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ prompt, mode }) => {
               assert.deepStrictEqual(mode, {
@@ -1242,7 +1242,7 @@ describe('streamObject', () => {
       >[0];
 
       beforeEach(async () => {
-        result = await streamObject({
+        result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ prompt, mode }) => {
               assert.deepStrictEqual(mode, {
@@ -1397,7 +1397,7 @@ describe('streamObject', () => {
       >[0];
 
       beforeEach(async () => {
-        result = await streamObject({
+        result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ prompt, mode }) => {
               assert.deepStrictEqual(mode, {
@@ -1509,7 +1509,7 @@ describe('streamObject', () => {
 
   describe('output = "no-schema"', () => {
     it('should send object deltas with json mode', async () => {
-      const result = await streamObject({
+      const result = streamObject({
         model: new MockLanguageModelV1({
           doStream: async ({ prompt, mode }) => {
             assert.deepStrictEqual(mode, {
@@ -1573,7 +1573,7 @@ describe('streamObject', () => {
     });
 
     it('should not record any telemetry data when not explicitly enabled', async () => {
-      const result = await streamObject({
+      const result = streamObject({
         model: new MockLanguageModelV1({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
@@ -1611,7 +1611,7 @@ describe('streamObject', () => {
     });
 
     it('should record telemetry data when enabled with mode "json"', async () => {
-      const result = await streamObject({
+      const result = streamObject({
         model: new MockLanguageModelV1({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
@@ -1669,7 +1669,7 @@ describe('streamObject', () => {
     });
 
     it('should record telemetry data when enabled with mode "tool"', async () => {
-      const result = await streamObject({
+      const result = streamObject({
         model: new MockLanguageModelV1({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
@@ -1763,7 +1763,7 @@ describe('streamObject', () => {
     });
 
     it('should not record telemetry inputs / outputs when disabled with mode "json"', async () => {
-      const result = await streamObject({
+      const result = streamObject({
         model: new MockLanguageModelV1({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
@@ -1807,7 +1807,7 @@ describe('streamObject', () => {
     });
 
     it('should not record telemetry inputs / outputs when disabled with mode "tool"', async () => {
-      const result = await streamObject({
+      const result = streamObject({
         model: new MockLanguageModelV1({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
@@ -1889,7 +1889,7 @@ describe('streamObject', () => {
 
   describe('options.messages', () => {
     it('should detect and convert ui messages', async () => {
-      const result = await streamObject({
+      const result = streamObject({
         model: new MockLanguageModelV1({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([

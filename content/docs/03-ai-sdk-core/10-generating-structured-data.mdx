@@ -49,7 +49,7 @@ With the [`streamObject`](/docs/reference/ai-sdk-core/stream-object) function, y
 ```ts
 import { streamObject } from 'ai';
 
-const { partialObjectStream } = await streamObject({
+const { partialObjectStream } = streamObject({
   // ...
 });
 
@@ -81,7 +81,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 
-const { elementStream } = await streamObject({
+const { elementStream } = streamObject({
   model: openai('gpt-4-turbo'),
   output: 'array',
   schema: z.object({

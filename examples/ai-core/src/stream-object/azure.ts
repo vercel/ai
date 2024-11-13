@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const result = await streamObject({
+  const result = streamObject({
     model: azure('v0-gpt-35-turbo'), // use your own deployment
     schema: z.object({
       characters: z.array(
