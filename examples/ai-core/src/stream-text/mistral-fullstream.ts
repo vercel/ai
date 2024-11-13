@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: mistral('mistral-large-latest'),
     tools: {
       weather: weatherTool,

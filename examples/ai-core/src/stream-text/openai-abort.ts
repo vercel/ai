@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   try {
-    const { textStream } = await streamText({
+    const { textStream } = streamText({
       model: openai('gpt-3.5-turbo'),
       prompt: 'Write a short story about a robot learning to love:\n\n',
       abortSignal: AbortSignal.timeout(3000),

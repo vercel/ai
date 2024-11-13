@@ -8,7 +8,7 @@ export default async function handler(
 ) {
   const { messages } = await request.body;
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4-turbo-preview'),
     messages,
   });

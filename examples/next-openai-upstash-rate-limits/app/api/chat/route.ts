@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   // Call the language model
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     messages,
   });

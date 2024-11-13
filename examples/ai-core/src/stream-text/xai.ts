@@ -9,7 +9,7 @@ const xai = createOpenAI({
 });
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: xai('grok-beta'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });

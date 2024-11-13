@@ -15,7 +15,7 @@ async function main() {
   while (true) {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
-    const result = await streamText({
+    const result = streamText({
       model: cohere('command-r-plus'),
       tools: {
         weather: tool({

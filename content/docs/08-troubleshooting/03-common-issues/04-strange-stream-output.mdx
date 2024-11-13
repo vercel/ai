@@ -23,7 +23,7 @@ You have several options:
    export async function POST(req: Request) {
      const { prompt } = await req.json();
 
-     const result = await streamText({
+     const result = streamText({
        model: openai.completion('gpt-3.5-turbo-instruct'),
        maxTokens: 2000,
        prompt,

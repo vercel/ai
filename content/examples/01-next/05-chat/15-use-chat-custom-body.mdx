@@ -78,7 +78,7 @@ export async function POST(req: Request) {
   const history = await loadHistory()
 
   // Call the language model
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4-turbo'),
     messages: [...history, { role: 'user', content: text }]
     onFinish({ text }) {

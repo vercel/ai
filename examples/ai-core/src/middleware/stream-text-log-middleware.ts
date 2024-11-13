@@ -7,7 +7,7 @@ import 'dotenv/config';
 import { yourLogMiddleware } from './your-log-middleware';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: wrapLanguageModel({
       model: openai('gpt-4o'),
       middleware: yourLogMiddleware,

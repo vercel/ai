@@ -144,7 +144,7 @@ console.log(response.text);
 For streaming responses, use `streamText` to receive updates in real-time:
 
 ```ts
-const result = await streamText({
+const result = streamText({
   model: anthropic('claude-3-5-sonnet-20241022'),
   prompt: 'Open the browser and navigate to vercel.com',
   tools: { computer: computerTool },
@@ -160,7 +160,7 @@ for await (const chunk of result.textStream) {
 To allow the model to perform multiple steps without user intervention, specify a `maxSteps` value. This will automatically send any tool results back to the model to trigger a subsequent generation:
 
 ```ts highlight="5"
-const stream = await streamText({
+const stream = streamText({
   model: anthropic('claude-3-5-sonnet-20241022'),
   prompt: 'Open the browser and navigate to vercel.com',
   tools: { computer: computerTool },

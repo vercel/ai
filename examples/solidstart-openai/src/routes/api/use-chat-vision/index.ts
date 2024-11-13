@@ -9,7 +9,7 @@ export const POST = async (event: APIEvent) => {
   const initialMessages = messages.slice(0, -1);
   const currentMessage = messages[messages.length - 1];
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     messages: [
       ...initialMessages,

@@ -402,6 +402,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     new DelayedPromise<LanguageModelRequestMetadata>();
   private readonly responsePromise =
     new DelayedPromise<LanguageModelResponseMetadata>();
+
   private readonly stitchableStream =
     createStitchableStream<ObjectStreamPart<PARTIAL>>();
 
@@ -911,27 +912,27 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     this.outputStrategy = outputStrategy;
   }
 
-  get object(): Promise<RESULT> {
+  get object() {
     return this.objectPromise.value;
   }
 
-  get usage(): Promise<LanguageModelUsage> {
+  get usage() {
     return this.usagePromise.value;
   }
 
-  get experimental_providerMetadata(): Promise<ProviderMetadata | undefined> {
+  get experimental_providerMetadata() {
     return this.providerMetadataPromise.value;
   }
 
-  get warnings(): Promise<CallWarning[] | undefined> {
+  get warnings() {
     return this.warningsPromise.value;
   }
 
-  get request(): Promise<LanguageModelRequestMetadata> {
+  get request() {
     return this.requestPromise.value;
   }
 
-  get response(): Promise<LanguageModelResponseMetadata> {
+  get response() {
     return this.responsePromise.value;
   }
 

@@ -6,7 +6,7 @@ import { z } from 'zod';
 export const POST = async (event: APIEvent) => {
   const { messages } = await event.request.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4-turbo'),
     messages,
     tools: {

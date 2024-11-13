@@ -32,7 +32,7 @@ import { StreamData, streamText, streamToResponse } from 'ai';
 import { createServer } from 'http';
 
 createServer(async (req, res) => {
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4-turbo'),
     prompt: 'What is the weather in San Francisco?',
   });

@@ -102,7 +102,7 @@ type Env = {
 export default {
   async fetch(_: Request, env: Env) {
     const workersai = createWorkersAI({ binding: env.AI });
-    const result = await streamText({
+    const result = streamText({
       model: workersai('@cf/meta/llama-2-7b-chat-int8'),
       prompt: 'Write a 50-word essay about hello world.',
     });

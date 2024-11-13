@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   const data = new StreamData();
   data.append('initialized call');
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     messages,
     onChunk() {

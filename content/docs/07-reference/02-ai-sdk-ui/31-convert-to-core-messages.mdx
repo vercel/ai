@@ -19,7 +19,7 @@ import { convertToCoreMessages, streamText } from 'ai';
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     messages: convertToCoreMessages(messages),
   });
@@ -81,7 +81,7 @@ const screenshotTool = tool({
   experimental_toToolResultContent: result => [{ type: 'image', data: result }],
 });
 
-const result = await streamText({
+const result = streamText({
   model: openai('gpt-4'),
   messages: convertToCoreMessages(messages, {
     tools: {

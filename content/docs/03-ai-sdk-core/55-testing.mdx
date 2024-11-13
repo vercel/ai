@@ -50,7 +50,7 @@ const result = await generateText({
 import { streamText } from 'ai';
 import { simulateReadableStream, MockLanguageModelV1 } from 'ai/test';
 
-const result = await streamText({
+const result = streamText({
   model: new MockLanguageModelV1({
     doStream: async () => ({
       stream: simulateReadableStream({

@@ -17,7 +17,7 @@ async function main() {
 
     messages.push({ role: 'user', content: userInput });
 
-    const result = await streamText({
+    const result = streamText({
       model: anthropic('claude-3-5-sonnet-latest'),
       tools: {
         weather: tool({
