@@ -1,5 +1,12 @@
 # ai
 
+## 4.0.0-canary.11
+
+### Major Changes
+
+- f68d7b1: chore (ai/core): streamObject returns result immediately (no Promise)
+- f967199: chore (ai/core): streamText returns result immediately (no Promise)
+
 ## 4.0.0-canary.10
 
 ### Major Changes
