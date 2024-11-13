@@ -17,7 +17,7 @@ async function main() {
     prompt: 'Hello',
   });
 
-  const objStream = streamObject({
+  const objStream = await streamObject({
     model: provider('model-name'),
     prompt: 'Hello',
   });
