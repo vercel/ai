@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`output = "object" > options.onFinish > should be called when a valid object is generated 1`] = `
+exports[`streamObject > output = "object" > options.onFinish > should be called when a valid object is generated 1`] = `
 {
   "error": undefined,
   "experimental_providerMetadata": {
@@ -26,7 +26,7 @@ exports[`output = "object" > options.onFinish > should be called when a valid ob
 }
 `;
 
-exports[`output = "object" > options.onFinish > should be called when object doesn't match the schema 1`] = `
+exports[`streamObject > output = "object" > options.onFinish > should be called when object doesn't match the schema 1`] = `
 {
   "error": [AI_TypeValidationError: Type validation failed: Value: {"invalid":"Hello, world!"}.
 Error message: [
@@ -57,7 +57,7 @@ Error message: [
 }
 `;
 
-exports[`output = "object" > result.fullStream > should send full stream data 1`] = `
+exports[`streamObject > output = "object" > result.fullStream > should send full stream data 1`] = `
 [
   {
     "object": {},
@@ -125,9 +125,9 @@ exports[`output = "object" > result.fullStream > should send full stream data 1`
 ]
 `;
 
-exports[`telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+exports[`streamObject > telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
 
-exports[`telemetry > should not record telemetry inputs / outputs when disabled with mode "json" 1`] = `
+exports[`streamObject > telemetry > should not record telemetry inputs / outputs when disabled with mode "json" 1`] = `
 [
   {
     "attributes": {
@@ -180,7 +180,7 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
 ]
 `;
 
-exports[`telemetry > should not record telemetry inputs / outputs when disabled with mode "tool" 1`] = `
+exports[`streamObject > telemetry > should not record telemetry inputs / outputs when disabled with mode "tool" 1`] = `
 [
   {
     "attributes": {
@@ -233,7 +233,7 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
 ]
 `;
 
-exports[`telemetry > should record telemetry data when enabled with mode "json" 1`] = `
+exports[`streamObject > telemetry > should record telemetry data when enabled with mode "json" 1`] = `
 [
   {
     "attributes": {
@@ -321,7 +321,7 @@ exports[`telemetry > should record telemetry data when enabled with mode "json" 
 ]
 `;
 
-exports[`telemetry > should record telemetry data when enabled with mode "tool" 1`] = `
+exports[`streamObject > telemetry > should record telemetry data when enabled with mode "tool" 1`] = `
 [
   {
     "attributes": {
