@@ -399,6 +399,23 @@ describe('streamObject', () => {
           ],
         );
       });
+
+      it('should handle error in doStream', async () => {
+        const result = streamObject({
+          model: new MockLanguageModelV1({
+            doStream: async () => {
+              throw new Error('test error');
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+        });
+
+        await expect(async () => {
+          await convertAsyncIterableToArray(result.partialObjectStream);
+        }).rejects.toThrow('test error');
+      });
     });
 
     describe('result.fullStream', () => {

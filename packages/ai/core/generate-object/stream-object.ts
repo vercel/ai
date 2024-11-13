@@ -461,8 +461,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     const retry = retryWithExponentialBackoff({ maxRetries });
     const self = this;
 
-    // TODO stream closing
-    // TODO catch error / error handling
     recordSpan({
       name: 'ai.streamObject',
       attributes: selectTelemetryAttributes({
@@ -894,12 +892,21 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           );
 
         self.stitchableStream.addStream(transformedStream);
-        self.stitchableStream.close();
       },
-    }).catch(error => {
-      console.log(error);
-      // TODO need to break streams
-    });
+    })
+      .catch(error => {
+        // add an empty stream with an error to break the stream:
+        self.stitchableStream.addStream(
+          new ReadableStream({
+            start(controller) {
+              controller.error(error);
+            },
+          }),
+        );
+      })
+      .finally(() => {
+        self.stitchableStream.close();
+      });
 
     this.outputStrategy = outputStrategy;
   }
