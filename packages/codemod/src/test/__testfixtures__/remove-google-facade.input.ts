@@ -6,6 +6,3 @@ const google = new Google({
   baseURL: 'url',
   headers: { 'custom': 'header' }
 });
-
-const model = google.generativeAI('gemini-pro');
-const otherModel = google.chat('other-gemini-pro');

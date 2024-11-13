@@ -6,5 +6,3 @@ const mistral = createMistral({
   baseURL: 'url',
   headers: { 'custom': 'header' }
 });
-
-const model = mistral('mistral-large', { safePrompt: true });

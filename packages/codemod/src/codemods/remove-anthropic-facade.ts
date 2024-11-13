@@ -6,6 +6,5 @@ export default function transformer(fileInfo: FileInfo, api: API) {
     packageName: 'anthropic',
     className: 'Anthropic',
     createFnName: 'createAnthropic',
-    methodNames: ['messages', 'chat'],
   });
 }

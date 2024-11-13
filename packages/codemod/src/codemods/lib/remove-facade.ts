@@ -4,7 +4,6 @@ interface FacadeConfig {
   packageName: string; // e.g. 'openai'
   className: string; // e.g. 'OpenAI'
   createFnName: string; // e.g. 'createOpenAI'
-  methodNames: string[]; // e.g. ['chat', 'completion']
 }
 
 export function removeFacade(
@@ -50,20 +49,5 @@ export function removeFacade(
     }
   });
 
-  // Replace method calls
-  root.find(j.CallExpression).forEach(path => {
-    if (
-      path.node.callee.type === 'MemberExpression' &&
-      path.node.callee.object.type === 'Identifier' &&
-      path.node.callee.property.type === 'Identifier' &&
-      config.methodNames.includes(path.node.callee.property.name)
-    ) {
-      const providerVar = path.node.callee.object.name;
-      j(path).replaceWith(
-        j.callExpression(j.identifier(providerVar), path.node.arguments),
-      );
-    }
-  });
-
-  return root.toSource({ quote: 'single' });
+  return root.toSource();
 }

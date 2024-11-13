@@ -6,9 +6,3 @@ const anthropic = createAnthropic({
   baseURL: 'url',
   headers: { 'custom': 'header' }
 });
-
-const model = anthropic('claude-3', {
-  cacheControl: true
-});
-
-const messages = anthropic('claude-3', { cacheControl: true });

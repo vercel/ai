@@ -6,12 +6,5 @@ export default function transformer(fileInfo: FileInfo, api: API) {
     packageName: 'google',
     className: 'Google',
     createFnName: 'createGoogleGenerativeAI',
-    methodNames: [
-      'chat',
-      'generativeAI',
-      'embedding',
-      'textEmbedding',
-      'textEmbeddingModel',
-    ],
   });
 }

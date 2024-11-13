@@ -6,9 +6,3 @@ const anthropic = new Anthropic({
   baseURL: 'url',
   headers: { 'custom': 'header' }
 });
-
-const model = anthropic.chat('claude-3', {
-  cacheControl: true
-});
-
-const messages = anthropic.messages('claude-3', { cacheControl: true });

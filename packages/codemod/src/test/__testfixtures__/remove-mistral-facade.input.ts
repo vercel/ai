@@ -6,5 +6,3 @@ const mistral = new Mistral({
   baseURL: 'url',
   headers: { 'custom': 'header' }
 });
-
-const model = mistral.chat('mistral-large', { safePrompt: true });

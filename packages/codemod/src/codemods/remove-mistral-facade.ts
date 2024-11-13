@@ -6,6 +6,5 @@ export default function transformer(fileInfo: FileInfo, api: API) {
     packageName: 'mistral',
     className: 'Mistral',
     createFnName: 'createMistral',
-    methodNames: ['chat', 'messages'],
   });
 }

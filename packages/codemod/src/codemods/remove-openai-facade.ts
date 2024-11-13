@@ -6,6 +6,5 @@ export default function transformer(fileInfo: FileInfo, api: API) {
     packageName: 'openai',
     className: 'OpenAI',
     createFnName: 'createOpenAI',
-    methodNames: ['chat', 'completion'],
   });
 }

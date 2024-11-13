@@ -6,6 +6,3 @@ const google = createGoogleGenerativeAI({
   baseURL: 'url',
   headers: { 'custom': 'header' }
 });
-
-const model = google('gemini-pro');
-const otherModel = google('other-gemini-pro');
