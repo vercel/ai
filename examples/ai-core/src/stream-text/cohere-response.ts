@@ -3,7 +3,7 @@ import { cohere } from '@ai-sdk/cohere';
 import { streamText } from 'ai';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: cohere('command-r-plus'),
     maxTokens: 512,
     prompt: 'Invent a new holiday and describe its traditions.',

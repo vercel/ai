@@ -10,7 +10,7 @@ export default defineLazyEventHandler(async () => {
   return defineEventHandler(async (event: any) => {
     const { messages } = await readBody(event);
 
-    const result = await streamText({
+    const result = streamText({
       model: openai('gpt-4-turbo'),
       messages,
       experimental_toolCallStreaming: true,

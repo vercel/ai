@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: azure('gpt-4o', { logprobs: true }),
     prompt: 'Invent a new holiday and describe its traditions.',
   });

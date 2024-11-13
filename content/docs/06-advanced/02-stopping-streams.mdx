@@ -23,7 +23,7 @@ import { streamText } from 'ai';
 export async function POST(req: Request) {
   const { prompt } = await req.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4-turbo'),
     prompt,
     // forward the abort signal:

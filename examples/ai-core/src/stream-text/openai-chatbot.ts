@@ -17,7 +17,7 @@ async function main() {
 
     messages.push({ role: 'user', content: userInput });
 
-    const result = await streamText({
+    const result = streamText({
       model: openai('gpt-4o'),
       tools: {
         weather: tool({

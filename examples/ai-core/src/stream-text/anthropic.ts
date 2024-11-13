@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: anthropic('claude-3-5-sonnet-20240620'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });

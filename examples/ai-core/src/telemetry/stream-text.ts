@@ -13,7 +13,7 @@ const sdk = new NodeSDK({
 sdk.start();
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: anthropic('claude-3-5-sonnet-20240620'),
     maxTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',

@@ -5,7 +5,7 @@ import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4-turbo'),
     maxSteps: 5,
     tools: {

@@ -8,7 +8,7 @@ const messages: CoreMessage[] = [];
 async function main() {
   let toolResponseAvailable = false;
 
-  const result = await streamText({
+  const result = streamText({
     model: cohere('command-r-plus'),
     maxTokens: 512,
     tools: {

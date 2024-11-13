@@ -15,7 +15,7 @@ async function main() {
   while (true) {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
-    const result = await streamText({
+    const result = streamText({
       model: google('gemini-1.5-pro-latest'),
       tools: {
         weather: tool({

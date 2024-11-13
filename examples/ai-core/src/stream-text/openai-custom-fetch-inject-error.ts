@@ -45,7 +45,7 @@ const openai = createOpenAI({
 });
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-3.5-turbo'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });

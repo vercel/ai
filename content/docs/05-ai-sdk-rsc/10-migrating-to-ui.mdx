@@ -108,7 +108,7 @@ import { openai } from '@ai-sdk/openai';
 export async function POST(request) {
   const { messages } = await request.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     system: 'you are a friendly assistant!',
     messages,
@@ -221,7 +221,7 @@ import { streamText } from 'ai';
 export async function POST(request) {
   const { messages } = await request.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     system: 'you are a friendly assistant!',
     messages,
@@ -490,7 +490,7 @@ export async function POST(request) {
 
   const coreMessages = convertToCoreMessages(messages);
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     system: 'you are a friendly assistant!',
     messages: coreMessages,

@@ -84,7 +84,7 @@ import { streamText } from 'ai';
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: friendli('meta-llama-3.1-70b-instruct', {
       tools: [
         { type: 'web:search' },

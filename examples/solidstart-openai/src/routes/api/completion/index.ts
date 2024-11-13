@@ -10,7 +10,7 @@ export const POST = async (event: APIEvent) => {
   const data = new StreamData();
   data.append({ test: 'value' });
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-3.5-turbo'),
     messages: [{ role: 'user', content: prompt }],
     onFinish() {

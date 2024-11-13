@@ -2,7 +2,7 @@ import { streamText } from 'ai';
 import { registry } from './setup-registry';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: registry.languageModel('anthropic:haiku'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });

@@ -104,7 +104,7 @@ console.log(text); //  I am a large language model, trained by Google.
 import { streamText } from 'ai';
 import { chromeai } from 'chrome-ai';
 
-const { textStream } = await streamText({
+const { textStream } = streamText({
   model: chromeai(),
   prompt: 'Who are you?',
 });

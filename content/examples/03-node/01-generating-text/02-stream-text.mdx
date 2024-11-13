@@ -28,7 +28,7 @@ Overall, Joyful Hearts Day is a day to celebrate love, kindness, and positivity,
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const result = await streamText({
+const result = streamText({
   model: openai('gpt-3.5-turbo'),
   maxTokens: 512,
   temperature: 0.3,
@@ -47,7 +47,7 @@ for await (const textPart of result.textStream) {
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const result = await streamText({
+const result = streamText({
   model: openai('gpt-3.5-turbo'),
   maxTokens: 512,
   temperature: 0.3,

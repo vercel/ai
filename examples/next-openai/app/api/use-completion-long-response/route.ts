@@ -7,7 +7,7 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   const { prompt } = await req.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o-mini'),
     maxSteps: 10,
     experimental_continueSteps: true,

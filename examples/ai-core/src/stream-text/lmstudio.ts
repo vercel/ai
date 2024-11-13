@@ -8,7 +8,7 @@ const lmstudio = createOpenAI({
 });
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: lmstudio('bartowski/gemma-2-9b-it-GGUF'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxRetries: 1,

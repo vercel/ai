@@ -5,7 +5,7 @@ import { z } from 'zod';
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4'),
     system: 'You are a helpful assistant.',
     messages,

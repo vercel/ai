@@ -2,7 +2,7 @@
 import { streamText } from 'ai';
 
 async function handler(req, res) {
-  const stream = await streamText({
+  const stream = streamText({
     model: 'gpt-4',
     prompt: 'Hello'
   });
