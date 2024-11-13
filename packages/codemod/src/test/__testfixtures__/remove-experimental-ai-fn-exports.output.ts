@@ -7,7 +7,7 @@ async function main() {
     prompt: 'Hello',
   });
 
-  const stream = streamText({
+  const stream = await streamText({
     model: provider('model-name'),
     prompt: 'Hello',
   });
