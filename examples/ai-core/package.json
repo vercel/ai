@@ -9,6 +9,7 @@
     "@ai-sdk/cohere": "1.0.0-canary.4",
     "@ai-sdk/google": "1.0.0-canary.6",
     "@ai-sdk/google-vertex": "1.0.0-canary.3",
+    "@ai-sdk/grok": "1.0.0-canary.0",
     "@ai-sdk/groq": "1.0.0-canary.3",
     "@ai-sdk/mistral": "1.0.0-canary.3",
     "@ai-sdk/openai": "1.0.0-canary.3",

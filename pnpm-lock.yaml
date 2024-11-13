@@ -74,6 +74,9 @@ importers:
       '@ai-sdk/google-vertex':
         specifier: 1.0.0-canary.3
         version: link:../../packages/google-vertex
+      '@ai-sdk/grok':
+        specifier: 1.0.0-canary.0
+        version: link:../../packages/grok
       '@ai-sdk/groq':
         specifier: 1.0.0-canary.3
         version: link:../../packages/groq
@@ -1273,6 +1276,31 @@ importers:
       tsup:
         specifier: ^8
         version: 8.0.2(postcss@8.4.47)(ts-node@10.9.2(@types/node@18.18.9)(typescript@5.6.3))(typescript@5.6.3)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+
+  packages/grok:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: 1.0.0-canary.0
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: 2.0.0-canary.3
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: ^18
+        version: 18.19.54
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.4.47)(tsx@4.7.1)(typescript@5.6.3)(yaml@2.5.0)
       typescript:
         specifier: 5.6.3
         version: 5.6.3
@@ -14606,7 +14634,7 @@ snapshots:
     dependencies:
       '@babel/helper-validator-identifier': 7.25.9
       js-tokens: 4.0.0
-      picocolors: 1.1.0
+      picocolors: 1.1.1
 
   '@babel/compat-data@7.24.7': {}
 
@@ -14996,7 +15024,7 @@ snapshots:
       '@babel/helper-validator-identifier': 7.25.7
       chalk: 2.4.2
       js-tokens: 4.0.0
-      picocolors: 1.1.0
+      picocolors: 1.1.1
 
   '@babel/parser@7.24.7':
     dependencies:
@@ -28251,7 +28279,7 @@ snapshots:
       css-tree: 2.3.1
       css-what: 6.1.0
       csso: 5.0.5
-      picocolors: 1.1.0
+      picocolors: 1.1.1
 
   swr@2.2.5(react@18.3.1):
     dependencies:
@@ -28938,13 +28966,13 @@ snapshots:
       esbuild: 0.23.1
       execa: 5.1.1
       joycon: 3.1.1
-      picocolors: 1.1.0
+      picocolors: 1.1.1
       postcss-load-config: 6.0.1(jiti@2.4.0)(postcss@8.4.47)(tsx@4.7.1)(yaml@2.5.0)
       resolve-from: 5.0.0
-      rollup: 4.24.0
+      rollup: 4.25.0
       source-map: 0.8.0-beta.0
       sucrase: 3.35.0
-      tinyglobby: 0.2.9
+      tinyglobby: 0.2.10
       tree-kill: 1.2.2
     optionalDependencies:
       postcss: 8.4.47
@@ -29333,7 +29361,7 @@ snapshots:
     dependencies:
       browserslist: 4.24.0
       escalade: 3.2.0
-      picocolors: 1.1.0
+      picocolors: 1.1.1
 
   uqr@0.1.2: {}
 
