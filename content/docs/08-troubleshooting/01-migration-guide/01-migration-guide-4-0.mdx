@@ -106,10 +106,15 @@ The legacy `Tokens` RSC streaming from 2.x has been removed.
 
 ## AI SDK Core Changes
 
-### `streamObject` return immediately
+### `streamText` returns immediately
+
+Instead of returning a Promise, the `streamText` function now returns immediately.
+It is not necessary to await the result of `streamText`.
+
+### `streamObject` returns immediately
 
 Instead of returning a Promise, the `streamObject` function now returns immediately.
-The `warnings` property on the result is now a Promise.
+It is not necessary to await the result of `streamObject`.
 
 ### Remove roundtrips
 
@@ -214,6 +219,10 @@ Please use the `LanguageModelResponseMetadata` type instead.
 #### Changed `streamText` warnings result to Promise
 
 The `warnings` property of the `StreamTextResult` type is now a Promise.
+
+#### Changed `streamObject` warnings result to Promise
+
+The `warnings` property of the `StreamObjectResult` type is now a Promise.
 
 ## AI SDK RSC Changes
 
