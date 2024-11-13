@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const result = await streamObject({
+  const result = streamObject({
     model: new MockLanguageModelV1({
       defaultObjectGenerationMode: 'json',
       doStream: async () => ({

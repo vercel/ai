@@ -100,7 +100,7 @@ export async function generate(input: string) {
   const stream = createStreamableValue();
 
   (async () => {
-    const { partialObjectStream } = await streamObject({
+    const { partialObjectStream } = streamObject({
       model: openai('gpt-4-turbo'),
       system: 'You generate three notifications for a messages app.',
       prompt: input,

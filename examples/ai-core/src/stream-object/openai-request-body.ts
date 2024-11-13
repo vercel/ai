@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const result = await streamObject({
+  const result = streamObject({
     model: openai('gpt-4o-mini', { structuredOutputs: true }),
     schema: z.object({
       characters: z.array(

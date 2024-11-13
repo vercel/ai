@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const result = await streamObject({
+  const result = streamObject({
     model: mistral('open-mistral-7b'),
     maxTokens: 2000,
     schema: z.object({

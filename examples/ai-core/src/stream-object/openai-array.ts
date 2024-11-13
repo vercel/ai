@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const { elementStream: destinations } = await streamObject({
+  const { elementStream: destinations } = streamObject({
     model: openai('gpt-4o'),
     output: 'array',
     schema: z.object({

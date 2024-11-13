@@ -614,7 +614,7 @@ export async function generateSampleNotifications() {
   const stream = createStreamableValue();
 
   (async () => {
-    const { partialObjectStream } = await streamObject({
+    const { partialObjectStream } = streamObject({
       model: openai('gpt-4o'),
       system: 'generate sample ios messages for testing',
       prompt: 'messages from a family group chat during diwali, max 4',
@@ -679,7 +679,7 @@ import { notificationSchema } from '@/utils/schemas';
 export async function POST(req: Request) {
   const context = await req.json();
 
-  const result = await streamObject({
+  const result = streamObject({
     model: openai('gpt-4-turbo'),
     schema: notificationSchema,
     prompt:
