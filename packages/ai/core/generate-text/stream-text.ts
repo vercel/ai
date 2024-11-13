@@ -1026,6 +1026,16 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           response: rawResponse,
         });
       },
+    }).catch(error => {
+      // add an empty stream with an error to break the stream:
+      self.stitchableStream.addStream(
+        new ReadableStream({
+          start(controller) {
+            controller.error(error);
+          },
+        }),
+      );
+      self.stitchableStream.close();
     });
   }
 
