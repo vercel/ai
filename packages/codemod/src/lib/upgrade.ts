@@ -1,3 +1,4 @@
+import debug from 'debug';
 import fs from 'fs';
 import path from 'path';
 import semver from 'semver';
@@ -21,6 +22,8 @@ const bundle = [
   'replace-roundtrips-with-maxsteps',
 ];
 
+const log = debug('codemod:upgrade');
+
 function validatePreconditions(cwd: string) {
   const pkgPath = path.join(cwd, 'package.json');
 
@@ -43,9 +46,12 @@ function validatePreconditions(cwd: string) {
 
 export function upgrade(options: TransformOptions) {
   const cwd = process.cwd();
+  log('Starting upgrade...');
   validatePreconditions(cwd);
-  console.log('Applying codemods...');
-  for (const codemod of bundle) {
+  log('Applying codemods...');
+  for (const [index, codemod] of bundle.entries()) {
+    log(`Applying codemod ${index + 1}/${bundle.length}: ${codemod}`);
     transform(codemod, cwd, options);
   }
+  log('Upgrade complete.');
 }
