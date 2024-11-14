@@ -52,8 +52,9 @@ export async function processChatResponse({
   let finishReason: LanguageModelV1FinishReason = 'unknown';
 
   function execUpdate() {
-    // only update if we have a current message
+    // if there is not current message, update still (data might have changed)
     if (currentMessage == null) {
+      update(previousMessages, [...data]);
       return;
     }
 
