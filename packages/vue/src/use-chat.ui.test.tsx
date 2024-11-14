@@ -178,7 +178,6 @@ describe('data protocol stream', () => {
           {
             message: {
               id: expect.any(String),
-              revisionId: expect.any(String),
               createdAt: expect.any(String),
               role: 'assistant',
               content: 'Hello, world.',
