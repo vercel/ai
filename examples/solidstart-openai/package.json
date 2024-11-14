@@ -20,7 +20,7 @@
     "@solidjs/router": "^0.13.6",
     "@solidjs/start": "^1.0.10",
     "ai": "4.0.0-canary.12",
-    "solid-js": "^1.8.17",
+    "solid-js": "^1.9.3",
     "zod": "^3.23.8"
   },
   "engines": {
