@@ -1,4 +1,4 @@
-import { parseStreamPart, StreamPartType } from './stream-parts';
+import { parseDataStreamPart, DataStreamPartType } from './data-stream-parts';
 
 const NEWLINE = '\n'.charCodeAt(0);
 
@@ -21,7 +21,7 @@ export async function processDataStream({
   onStreamPart,
 }: {
   stream: ReadableStream<Uint8Array>;
-  onStreamPart: (streamPart: StreamPartType) => Promise<void> | void;
+  onStreamPart: (streamPart: DataStreamPartType) => Promise<void> | void;
 }): Promise<void> {
   // implementation note: this slightly more complex algorithm is required
   // to pass the tests in the edge environment.
@@ -54,7 +54,7 @@ export async function processDataStream({
       .decode(concatenatedChunks, { stream: true })
       .split('\n')
       .filter(line => line !== '') // splitting leaves an empty string at the end
-      .map(parseStreamPart);
+      .map(parseDataStreamPart);
 
     for (const streamPart of streamParts) {
       await onStreamPart(streamPart);

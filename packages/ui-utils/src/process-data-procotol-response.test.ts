@@ -1,9 +1,9 @@
+import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
+import { formatDataStreamPart } from './data-stream-parts';
 import { processDataProtocolResponse } from './process-data-protocol-response';
-import { formatStreamPart } from './stream-parts';
 import { createDataProtocolStream } from './test/create-data-protocol-stream';
 import { JSONValue, Message } from './types';
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 
 let updateCalls: Array<{
   newMessages: Message[];
@@ -46,14 +46,14 @@ describe('scenario: simple text response', () => {
 
   beforeEach(async () => {
     const stream = createDataProtocolStream([
-      formatStreamPart('text', 'Hello, '),
-      formatStreamPart('text', 'world!'),
-      formatStreamPart('finish_step', {
+      formatDataStreamPart('text', 'Hello, '),
+      formatDataStreamPart('text', 'world!'),
+      formatDataStreamPart('finish_step', {
         finishReason: 'stop',
         usage: { completionTokens: 5, promptTokens: 10 },
         isContinued: false,
       }),
-      formatStreamPart('finish_message', {
+      formatDataStreamPart('finish_message', {
         finishReason: 'stop',
         usage: { completionTokens: 5, promptTokens: 10 },
       }),
@@ -131,27 +131,27 @@ describe('scenario: server-side tool roundtrip', () => {
 
   beforeEach(async () => {
     const stream = createDataProtocolStream([
-      formatStreamPart('tool_call', {
+      formatDataStreamPart('tool_call', {
         toolCallId: 'tool-call-id',
         toolName: 'tool-name',
         args: { city: 'London' },
       }),
-      formatStreamPart('tool_result', {
+      formatDataStreamPart('tool_result', {
         toolCallId: 'tool-call-id',
         result: { weather: 'sunny' },
       }),
-      formatStreamPart('finish_step', {
+      formatDataStreamPart('finish_step', {
         finishReason: 'tool-calls',
         usage: { completionTokens: 5, promptTokens: 10 },
         isContinued: false,
       }),
-      formatStreamPart('text', 'The weather in London is sunny.'),
-      formatStreamPart('finish_step', {
+      formatDataStreamPart('text', 'The weather in London is sunny.'),
+      formatDataStreamPart('finish_step', {
         finishReason: 'stop',
         usage: { completionTokens: 2, promptTokens: 4 },
         isContinued: false,
       }),
-      formatStreamPart('finish_message', {
+      formatDataStreamPart('finish_message', {
         finishReason: 'stop',
         usage: { completionTokens: 7, promptTokens: 14 },
       }),
@@ -285,19 +285,19 @@ describe('scenario: server-side continue roundtrip', () => {
 
   beforeEach(async () => {
     const stream = createDataProtocolStream([
-      formatStreamPart('text', 'The weather in London '),
-      formatStreamPart('finish_step', {
+      formatDataStreamPart('text', 'The weather in London '),
+      formatDataStreamPart('finish_step', {
         finishReason: 'length',
         usage: { completionTokens: 5, promptTokens: 10 },
         isContinued: true,
       }),
-      formatStreamPart('text', 'is sunny.'),
-      formatStreamPart('finish_step', {
+      formatDataStreamPart('text', 'is sunny.'),
+      formatDataStreamPart('finish_step', {
         finishReason: 'stop',
         usage: { completionTokens: 2, promptTokens: 4 },
         isContinued: false,
       }),
-      formatStreamPart('finish_message', {
+      formatDataStreamPart('finish_message', {
         finishReason: 'stop',
         usage: { completionTokens: 7, promptTokens: 14 },
       }),
@@ -375,18 +375,18 @@ describe('scenario: delayed message annotations in onFinish', () => {
 
   beforeEach(async () => {
     const stream = createDataProtocolStream([
-      formatStreamPart('text', 'text'),
-      formatStreamPart('finish_step', {
+      formatDataStreamPart('text', 'text'),
+      formatDataStreamPart('finish_step', {
         finishReason: 'stop',
         usage: { completionTokens: 5, promptTokens: 10 },
         isContinued: false,
       }),
-      formatStreamPart('finish_message', {
+      formatDataStreamPart('finish_message', {
         finishReason: 'stop',
         usage: { completionTokens: 5, promptTokens: 10 },
       }),
       // delayed message annotations:
-      formatStreamPart('message_annotations', [
+      formatDataStreamPart('message_annotations', [
         {
           example: 'annotation',
         },
@@ -471,16 +471,16 @@ describe('scenario: message annotations in onChunk', () => {
 
   beforeEach(async () => {
     const stream = createDataProtocolStream([
-      formatStreamPart('message_annotations', ['annotation1']),
-      formatStreamPart('text', 't1'),
-      formatStreamPart('message_annotations', ['annotation2']),
-      formatStreamPart('text', 't2'),
-      formatStreamPart('finish_step', {
+      formatDataStreamPart('message_annotations', ['annotation1']),
+      formatDataStreamPart('text', 't1'),
+      formatDataStreamPart('message_annotations', ['annotation2']),
+      formatDataStreamPart('text', 't2'),
+      formatDataStreamPart('finish_step', {
         finishReason: 'stop',
         usage: { completionTokens: 5, promptTokens: 10 },
         isContinued: false,
       }),
-      formatStreamPart('finish_message', {
+      formatDataStreamPart('finish_message', {
         finishReason: 'stop',
         usage: { completionTokens: 5, promptTokens: 10 },
       }),

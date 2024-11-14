@@ -16,5 +16,13 @@ export { processTextStream } from './process-text-stream';
 export { processDataStream } from './process-data-stream';
 export { asSchema, jsonSchema, zodSchema } from './schema';
 export type { Schema } from './schema';
-export { formatStreamPart, parseStreamPart } from './stream-parts';
-export type { StreamPart, StreamString } from './stream-parts';
+export { formatDataStreamPart, parseDataStreamPart } from './data-stream-parts';
+export type { DataStreamPart, DataStreamString } from './data-stream-parts';
+export {
+  formatAssistantStreamPart,
+  parseAssistantStreamPart,
+} from './assistant-stream-parts';
+export type {
+  AssistantStreamPart,
+  AssistantStreamString,
+} from './assistant-stream-parts';
