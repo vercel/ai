@@ -100,7 +100,6 @@ describe('scenario: simple text response', () => {
           content: 'Hello, world!',
           createdAt: '2023-01-01T00:00:00.000Z',
           id: 'id-0',
-          revisionId: 'id-2',
           role: 'assistant',
         },
         finishReason: 'stop',
@@ -207,7 +206,6 @@ describe('scenario: server-side tool roundtrip', () => {
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            revisionId: 'id-2',
             role: 'assistant',
             toolInvocations: [
               {
@@ -241,7 +239,6 @@ describe('scenario: server-side tool roundtrip', () => {
       {
         message: {
           id: 'id-3',
-          revisionId: 'id-4',
           role: 'assistant',
           content: 'The weather in London is sunny.',
           createdAt: '2023-01-01T00:00:00.000Z',
@@ -321,7 +318,6 @@ describe('scenario: server-side continue roundtrip', () => {
       {
         message: {
           id: 'id-0',
-          revisionId: 'id-2',
           role: 'assistant',
           content: 'The weather in London is sunny.',
           createdAt: '2023-01-01T00:00:00.000Z',
@@ -404,7 +400,6 @@ describe('scenario: delayed message annotations in onFinish', () => {
           content: 'text',
           createdAt: '2023-01-01T00:00:00.000Z',
           id: 'id-0',
-          revisionId: 'id-2',
           role: 'assistant',
           annotations: [{ example: 'annotation' }],
         },
@@ -501,7 +496,6 @@ describe('scenario: message annotations in onChunk', () => {
           content: 't1t2',
           createdAt: '2023-01-01T00:00:00.000Z',
           id: 'id-0',
-          revisionId: 'id-3',
           role: 'assistant',
           annotations: ['annotation1', 'annotation2'],
         },
@@ -680,7 +674,6 @@ describe('scenario: tool call streaming', () => {
           content: '',
           createdAt: '2023-01-01T00:00:00.000Z',
           id: 'id-0',
-          revisionId: 'id-5',
           role: 'assistant',
           toolInvocations: [
             {

@@ -52,9 +52,12 @@ export async function processChatResponse({
   let finishReason: LanguageModelV1FinishReason = 'unknown';
 
   function execUpdate() {
+    // make a copy of the data array to ensure UI is updated (SWR)
+    const copiedData = [...data];
+
     // if there is not current message, update still (data might have changed)
     if (currentMessage == null) {
-      update(previousMessages, [...data]);
+      update(previousMessages, copiedData);
       return;
     }
 
@@ -64,11 +67,15 @@ export async function processChatResponse({
       currentMessage.annotations = messageAnnotations;
     }
 
+    // create a copy of the current message with a revision id to
     // trigger update for streaming by copying adding a revision id that changes
     // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-    (currentMessage! as any).revisionId = generateId();
+    const copiedMessage = {
+      ...currentMessage,
+      revisionId: generateId(),
+    };
 
-    update([...previousMessages, currentMessage], [...data]); // make a copy of the data array
+    update([...previousMessages, copiedMessage], copiedData);
   }
 
   // switch to the next prefix map once we start receiving
