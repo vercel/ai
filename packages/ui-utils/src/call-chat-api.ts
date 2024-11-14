@@ -1,4 +1,4 @@
-import { processDataProtocolResponse } from './process-data-protocol-response';
+import { processChatResponse } from './process-chat-response';
 import { processTextStream } from './process-text-stream';
 import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
 
@@ -78,7 +78,7 @@ export async function callChatApi({
 
       await processTextStream({
         stream: response.body,
-        onChunk: chunk => {
+        onTextPart: chunk => {
           resultMessage.content += chunk;
 
           // note: creating a new message object is required for Solid.js streaming
@@ -91,15 +91,11 @@ export async function callChatApi({
         usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
         finishReason: 'unknown',
       });
-
-      return {
-        messages: [resultMessage],
-        data: [],
-      };
+      return;
     }
 
     case 'data': {
-      return await processDataProtocolResponse({
+      await processChatResponse({
         stream: response.body,
         update: onUpdate,
         onToolCall,
@@ -110,6 +106,7 @@ export async function callChatApi({
         },
         generateId,
       });
+      return;
     }
 
     default: {

@@ -1,9 +1,10 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { formatDataStreamPart } from './data-stream-parts';
-import { processDataProtocolResponse } from './process-data-protocol-response';
+import { processChatResponse } from './process-chat-response';
 import { createDataProtocolStream } from './test/create-data-protocol-stream';
 import { JSONValue, Message } from './types';
+import { LanguageModelUsage } from './duplicated/usage';
 
 let updateCalls: Array<{
   newMessages: Message[];
@@ -17,24 +18,21 @@ const update = (newMessages: Message[], data: JSONValue[] | undefined) => {
 let finishCalls: Array<{
   message: Message | undefined;
   finishReason: LanguageModelV1FinishReason;
-  usage: {
-    completionTokens: number;
-    promptTokens: number;
-    totalTokens: number;
-  };
+  usage: LanguageModelUsage;
 }> = [];
 const onFinish = (options: {
   message: Message | undefined;
   finishReason: LanguageModelV1FinishReason;
-  usage: {
-    completionTokens: number;
-    promptTokens: number;
-    totalTokens: number;
-  };
+  usage: LanguageModelUsage;
 }) => {
   // clone to preserve the original object
   finishCalls.push(JSON.parse(JSON.stringify(options)));
 };
+
+export function mockId(): () => string {
+  let counter = 0;
+  return () => `id-${counter++}`;
+}
 
 beforeEach(() => {
   updateCalls = [];
@@ -42,8 +40,6 @@ beforeEach(() => {
 });
 
 describe('scenario: simple text response', () => {
-  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
-
   beforeEach(async () => {
     const stream = createDataProtocolStream([
       formatDataStreamPart('text', 'Hello, '),
@@ -59,24 +55,13 @@ describe('scenario: simple text response', () => {
       }),
     ]);
 
-    result = await processDataProtocolResponse({
+    await processChatResponse({
       stream,
       update,
       onFinish,
-      generateId: vi.fn().mockReturnValue('mock-id'),
+      generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
-  });
-
-  it('should return the correct messages', async () => {
-    expect(result.messages).toStrictEqual([
-      {
-        id: 'mock-id',
-        role: 'assistant',
-        content: 'Hello, world!',
-        createdAt: new Date('2023-01-01'),
-      },
-    ]);
   });
 
   it('should call the update function with the correct arguments', async () => {
@@ -86,7 +71,8 @@ describe('scenario: simple text response', () => {
           {
             content: 'Hello, ',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            revisionId: 'id-1',
             role: 'assistant',
           },
         ],
@@ -97,7 +83,8 @@ describe('scenario: simple text response', () => {
           {
             content: 'Hello, world!',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            revisionId: 'id-2',
             role: 'assistant',
           },
         ],
@@ -112,7 +99,7 @@ describe('scenario: simple text response', () => {
         message: {
           content: 'Hello, world!',
           createdAt: '2023-01-01T00:00:00.000Z',
-          id: 'mock-id',
+          id: 'id-0',
           role: 'assistant',
         },
         finishReason: 'stop',
@@ -127,8 +114,6 @@ describe('scenario: simple text response', () => {
 });
 
 describe('scenario: server-side tool roundtrip', () => {
-  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
-
   beforeEach(async () => {
     const stream = createDataProtocolStream([
       formatDataStreamPart('tool_call', {
@@ -157,24 +142,13 @@ describe('scenario: server-side tool roundtrip', () => {
       }),
     ]);
 
-    result = await processDataProtocolResponse({
+    await processChatResponse({
       stream,
       update,
       onFinish,
-      generateId: vi.fn().mockReturnValue('mock-id'),
+      generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
-  });
-
-  it('should return the correct messages', async () => {
-    expect(result.messages).toStrictEqual([
-      {
-        id: 'mock-id',
-        role: 'assistant',
-        content: 'The weather in London is sunny.',
-        createdAt: new Date('2023-01-01'),
-      },
-    ]);
   });
 
   it('should call the update function with the correct arguments', async () => {
@@ -182,11 +156,11 @@ describe('scenario: server-side tool roundtrip', () => {
       {
         newMessages: [
           {
-            id: 'mock-id',
+            id: 'id-0',
+            revisionId: 'id-1',
             role: 'assistant',
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
-            internalUpdateId: 'mock-id',
             toolInvocations: [
               {
                 args: {
@@ -204,11 +178,11 @@ describe('scenario: server-side tool roundtrip', () => {
       {
         newMessages: [
           {
-            id: 'mock-id',
+            id: 'id-0',
+            revisionId: 'id-2',
             role: 'assistant',
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
-            internalUpdateId: 'mock-id',
             toolInvocations: [
               {
                 args: {
@@ -231,8 +205,7 @@ describe('scenario: server-side tool roundtrip', () => {
           {
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
-            internalUpdateId: 'mock-id',
+            id: 'id-0',
             role: 'assistant',
             toolInvocations: [
               {
@@ -249,7 +222,8 @@ describe('scenario: server-side tool roundtrip', () => {
             ],
           },
           {
-            id: 'mock-id',
+            id: 'id-3',
+            revisionId: 'id-4',
             role: 'assistant',
             content: 'The weather in London is sunny.',
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -264,7 +238,7 @@ describe('scenario: server-side tool roundtrip', () => {
     expect(finishCalls).toStrictEqual([
       {
         message: {
-          id: 'mock-id',
+          id: 'id-3',
           role: 'assistant',
           content: 'The weather in London is sunny.',
           createdAt: '2023-01-01T00:00:00.000Z',
@@ -281,8 +255,6 @@ describe('scenario: server-side tool roundtrip', () => {
 });
 
 describe('scenario: server-side continue roundtrip', () => {
-  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
-
   beforeEach(async () => {
     const stream = createDataProtocolStream([
       formatDataStreamPart('text', 'The weather in London '),
@@ -303,24 +275,13 @@ describe('scenario: server-side continue roundtrip', () => {
       }),
     ]);
 
-    result = await processDataProtocolResponse({
+    await processChatResponse({
       stream,
       update,
       onFinish,
-      generateId: vi.fn().mockReturnValue('mock-id'),
+      generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
-  });
-
-  it('should return the correct messages', async () => {
-    expect(result.messages).toStrictEqual([
-      {
-        id: 'mock-id',
-        role: 'assistant',
-        content: 'The weather in London is sunny.',
-        createdAt: new Date('2023-01-01'),
-      },
-    ]);
   });
 
   it('should call the update function with the correct arguments', async () => {
@@ -328,7 +289,8 @@ describe('scenario: server-side continue roundtrip', () => {
       {
         newMessages: [
           {
-            id: 'mock-id',
+            id: 'id-0',
+            revisionId: 'id-1',
             role: 'assistant',
             content: 'The weather in London ',
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -339,7 +301,8 @@ describe('scenario: server-side continue roundtrip', () => {
       {
         newMessages: [
           {
-            id: 'mock-id',
+            id: 'id-0',
+            revisionId: 'id-2',
             role: 'assistant',
             content: 'The weather in London is sunny.',
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -354,7 +317,7 @@ describe('scenario: server-side continue roundtrip', () => {
     expect(finishCalls).toStrictEqual([
       {
         message: {
-          id: 'mock-id',
+          id: 'id-0',
           role: 'assistant',
           content: 'The weather in London is sunny.',
           createdAt: '2023-01-01T00:00:00.000Z',
@@ -371,8 +334,6 @@ describe('scenario: server-side continue roundtrip', () => {
 });
 
 describe('scenario: delayed message annotations in onFinish', () => {
-  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
-
   beforeEach(async () => {
     const stream = createDataProtocolStream([
       formatDataStreamPart('text', 'text'),
@@ -393,26 +354,13 @@ describe('scenario: delayed message annotations in onFinish', () => {
       ]),
     ]);
 
-    result = await processDataProtocolResponse({
+    await processChatResponse({
       stream,
       update,
       onFinish,
-      generateId: vi.fn().mockReturnValue('mock-id'),
+      generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
-  });
-
-  it('should return the correct messages', async () => {
-    expect(result.messages).toStrictEqual([
-      {
-        id: 'mock-id',
-        role: 'assistant',
-        content: 'text',
-        createdAt: new Date('2023-01-01'),
-        annotations: [{ example: 'annotation' }],
-        internalUpdateId: 'mock-id',
-      },
-    ]);
   });
 
   it('should call the update function with the correct arguments', async () => {
@@ -422,7 +370,8 @@ describe('scenario: delayed message annotations in onFinish', () => {
           {
             content: 'text',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            revisionId: 'id-1',
             role: 'assistant',
           },
         ],
@@ -433,10 +382,10 @@ describe('scenario: delayed message annotations in onFinish', () => {
           {
             content: 'text',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            revisionId: 'id-2',
             role: 'assistant',
             annotations: [{ example: 'annotation' }],
-            internalUpdateId: 'mock-id',
           },
         ],
         data: [],
@@ -450,10 +399,9 @@ describe('scenario: delayed message annotations in onFinish', () => {
         message: {
           content: 'text',
           createdAt: '2023-01-01T00:00:00.000Z',
-          id: 'mock-id',
+          id: 'id-0',
           role: 'assistant',
           annotations: [{ example: 'annotation' }],
-          internalUpdateId: 'mock-id',
         },
         finishReason: 'stop',
         usage: {
@@ -467,8 +415,6 @@ describe('scenario: delayed message annotations in onFinish', () => {
 });
 
 describe('scenario: message annotations in onChunk', () => {
-  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
-
   beforeEach(async () => {
     const stream = createDataProtocolStream([
       formatDataStreamPart('message_annotations', ['annotation1']),
@@ -486,26 +432,13 @@ describe('scenario: message annotations in onChunk', () => {
       }),
     ]);
 
-    result = await processDataProtocolResponse({
+    await processChatResponse({
       stream,
       update,
       onFinish,
-      generateId: vi.fn().mockReturnValue('mock-id'),
+      generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
-  });
-
-  it('should return the correct messages', async () => {
-    expect(result.messages).toStrictEqual([
-      {
-        id: 'mock-id',
-        role: 'assistant',
-        content: 't1t2',
-        createdAt: new Date('2023-01-01'),
-        annotations: ['annotation1', 'annotation2'],
-        internalUpdateId: 'mock-id',
-      },
-    ]);
   });
 
   it('should call the update function with the correct arguments', async () => {
@@ -519,7 +452,8 @@ describe('scenario: message annotations in onChunk', () => {
           {
             content: 't1',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            revisionId: 'id-1',
             role: 'assistant',
             annotations: ['annotation1'],
           },
@@ -531,10 +465,10 @@ describe('scenario: message annotations in onChunk', () => {
           {
             content: 't1',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            revisionId: 'id-2',
             role: 'assistant',
             annotations: ['annotation1', 'annotation2'],
-            internalUpdateId: 'mock-id',
           },
         ],
         data: [],
@@ -544,10 +478,10 @@ describe('scenario: message annotations in onChunk', () => {
           {
             content: 't1t2',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            revisionId: 'id-3',
             role: 'assistant',
             annotations: ['annotation1', 'annotation2'],
-            internalUpdateId: 'mock-id',
           },
         ],
         data: [],
@@ -561,10 +495,197 @@ describe('scenario: message annotations in onChunk', () => {
         message: {
           content: 't1t2',
           createdAt: '2023-01-01T00:00:00.000Z',
-          id: 'mock-id',
+          id: 'id-0',
           role: 'assistant',
           annotations: ['annotation1', 'annotation2'],
-          internalUpdateId: 'mock-id',
+        },
+        finishReason: 'stop',
+        usage: {
+          completionTokens: 5,
+          promptTokens: 10,
+          totalTokens: 15,
+        },
+      },
+    ]);
+  });
+});
+
+describe('scenario: tool call streaming', () => {
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatDataStreamPart('tool_call_streaming_start', {
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      }),
+      formatDataStreamPart('tool_call_delta', {
+        toolCallId: 'tool-call-0',
+        argsTextDelta: '{"testArg":"t',
+      }),
+      formatDataStreamPart('tool_call_delta', {
+        toolCallId: 'tool-call-0',
+        argsTextDelta: 'est-value"}}',
+      }),
+      formatDataStreamPart('tool_call', {
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+      }),
+      formatDataStreamPart('tool_result', {
+        toolCallId: 'tool-call-0',
+        result: 'test-result',
+      }),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+      }),
+    ]);
+
+    await processChatResponse({
+      stream,
+      update,
+      onFinish,
+      generateId: mockId(),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+    });
+  });
+
+  it('should call the update function with the correct arguments', async () => {
+    expect(updateCalls).toStrictEqual([
+      {
+        newMessages: [
+          {
+            content: '',
+            createdAt: '2023-01-01T00:00:00.000Z',
+            id: 'id-0',
+            revisionId: 'id-1',
+            role: 'assistant',
+            toolInvocations: [
+              {
+                state: 'partial-call',
+                toolCallId: 'tool-call-0',
+                toolName: 'test-tool',
+              },
+            ],
+          },
+        ],
+        data: [],
+      },
+      {
+        newMessages: [
+          {
+            content: '',
+            createdAt: '2023-01-01T00:00:00.000Z',
+            id: 'id-0',
+            revisionId: 'id-2',
+            role: 'assistant',
+            toolInvocations: [
+              {
+                args: {
+                  testArg: 't',
+                },
+                state: 'partial-call',
+                toolCallId: 'tool-call-0',
+                toolName: 'test-tool',
+              },
+            ],
+          },
+        ],
+        data: [],
+      },
+      {
+        newMessages: [
+          {
+            content: '',
+            createdAt: '2023-01-01T00:00:00.000Z',
+            id: 'id-0',
+            revisionId: 'id-3',
+            role: 'assistant',
+            toolInvocations: [
+              {
+                args: {
+                  testArg: 'test-value',
+                },
+                state: 'partial-call',
+                toolCallId: 'tool-call-0',
+                toolName: 'test-tool',
+              },
+            ],
+          },
+        ],
+        data: [],
+      },
+      {
+        newMessages: [
+          {
+            content: '',
+            createdAt: '2023-01-01T00:00:00.000Z',
+            id: 'id-0',
+            revisionId: 'id-4',
+            role: 'assistant',
+            toolInvocations: [
+              {
+                args: {
+                  testArg: 'test-value',
+                },
+                state: 'call',
+                toolCallId: 'tool-call-0',
+                toolName: 'test-tool',
+              },
+            ],
+          },
+        ],
+        data: [],
+      },
+      {
+        newMessages: [
+          {
+            content: '',
+            createdAt: '2023-01-01T00:00:00.000Z',
+            id: 'id-0',
+            revisionId: 'id-5',
+            role: 'assistant',
+            toolInvocations: [
+              {
+                args: {
+                  testArg: 'test-value',
+                },
+                result: 'test-result',
+                state: 'result',
+                toolCallId: 'tool-call-0',
+                toolName: 'test-tool',
+              },
+            ],
+          },
+        ],
+        data: [],
+      },
+    ]);
+  });
+
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toStrictEqual([
+      {
+        message: {
+          content: '',
+          createdAt: '2023-01-01T00:00:00.000Z',
+          id: 'id-0',
+          role: 'assistant',
+          toolInvocations: [
+            {
+              args: {
+                testArg: 'test-value',
+              },
+              result: 'test-result',
+              state: 'result',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+            },
+          ],
         },
         finishReason: 'stop',
         usage: {

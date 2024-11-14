@@ -1,9 +1,9 @@
 export async function processTextStream({
   stream,
-  onChunk,
+  onTextPart,
 }: {
   stream: ReadableStream<Uint8Array>;
-  onChunk: (chunk: string) => Promise<void> | void;
+  onTextPart: (chunk: string) => Promise<void> | void;
 }): Promise<void> {
   const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
   while (true) {
@@ -11,6 +11,6 @@ export async function processTextStream({
     if (done) {
       break;
     }
-    await onChunk(value);
+    await onTextPart(value);
   }
 }

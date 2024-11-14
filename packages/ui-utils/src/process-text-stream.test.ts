@@ -19,7 +19,7 @@ describe('processTextStream', () => {
     });
 
     // Process the stream
-    await processTextStream({ stream, onChunk });
+    await processTextStream({ stream, onTextPart: onChunk });
 
     // Verify the results
     expect(onChunk).toHaveBeenCalledTimes(3);
@@ -30,7 +30,7 @@ describe('processTextStream', () => {
     const onChunk = vi.fn();
     const stream = convertArrayToReadableStream<Uint8Array>([]);
 
-    await processTextStream({ stream, onChunk });
+    await processTextStream({ stream, onTextPart: onChunk });
 
     expect(onChunk).not.toHaveBeenCalled();
   });

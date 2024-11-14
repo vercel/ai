@@ -4,7 +4,6 @@ export {
   formatDataStreamPart,
   parseAssistantStreamPart,
   parseDataStreamPart,
-  processDataProtocolResponse,
   processDataStream,
   processTextStream,
 } from '@ai-sdk/ui-utils';
