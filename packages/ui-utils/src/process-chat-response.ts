@@ -75,7 +75,7 @@ export async function processChatResponse({
   // content of the next message. Stream data annotations
   // are associated with the previous message until then to
   // support sending them in onFinish and onStepFinish:
-  function switchMessage(): Message {
+  function getMessage(): Message {
     if (createNewMessage || currentMessage == null) {
       if (currentMessage != null) {
         previousMessages.push(currentMessage);
@@ -97,7 +97,7 @@ export async function processChatResponse({
   await processDataStream({
     stream,
     onTextPart(value) {
-      const activeMessage = switchMessage();
+      const activeMessage = getMessage();
       currentMessage = {
         ...activeMessage,
         content: activeMessage.content + value,
@@ -105,7 +105,7 @@ export async function processChatResponse({
       execUpdate();
     },
     onToolCallStreamingStartPart(value) {
-      const activeMessage = switchMessage();
+      const activeMessage = getMessage();
 
       if (activeMessage.toolInvocations == null) {
         activeMessage.toolInvocations = [];
@@ -128,7 +128,7 @@ export async function processChatResponse({
       execUpdate();
     },
     onToolCallDeltaPart(value) {
-      const activeMessage = switchMessage();
+      const activeMessage = getMessage();
       const partialToolCall = partialToolCalls[value.toolCallId];
 
       partialToolCall.text += value.argsTextDelta;
@@ -145,7 +145,7 @@ export async function processChatResponse({
       execUpdate();
     },
     async onToolCallPart(value) {
-      const activeMessage = switchMessage();
+      const activeMessage = getMessage();
 
       if (partialToolCalls[value.toolCallId] != null) {
         // change the partial tool call to a full tool call
@@ -179,7 +179,7 @@ export async function processChatResponse({
       execUpdate();
     },
     onToolResultPart(value) {
-      const activeMessage = switchMessage();
+      const activeMessage = getMessage();
       const toolInvocations = activeMessage.toolInvocations;
 
       if (toolInvocations == null) {
@@ -220,9 +220,7 @@ export async function processChatResponse({
       execUpdate();
     },
     onFinishStepPart(value) {
-      if (!value.isContinued) {
-        createNewMessage = true;
-      }
+      createNewMessage = !value.isContinued;
     },
     onFinishMessagePart(value) {
       finishReason = value.finishReason;
