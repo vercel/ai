@@ -3,6 +3,7 @@ import { parsePartialJson } from './parse-partial-json';
 import { processDataStream } from './process-data-stream';
 import type { JSONValue, Message, UseChatOptions } from './types';
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import { LanguageModelUsage } from './duplicated/usage';
 
 type MessageContainer = {
   message?: Message;
@@ -30,11 +31,7 @@ export async function processDataProtocolResponse({
   onFinish?: (options: {
     message: Message | undefined;
     finishReason: LanguageModelV1FinishReason;
-    usage: {
-      completionTokens: number;
-      promptTokens: number;
-      totalTokens: number;
-    };
+    usage: LanguageModelUsage;
   }) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
