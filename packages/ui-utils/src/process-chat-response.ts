@@ -123,17 +123,18 @@ export async function processChatResponse({
         toolName: value.toolName,
         args: undefined,
       });
+
       execUpdate();
     },
     onToolCallDeltaPart(value) {
-      switchMessage();
+      const activeMessage = switchMessage();
       const partialToolCall = partialToolCalls[value.toolCallId];
 
       partialToolCall.text += value.argsTextDelta;
 
       const { value: partialArgs } = parsePartialJson(partialToolCall.text);
 
-      currentMessage!.toolInvocations![partialToolCall.prefixMapIndex] = {
+      activeMessage.toolInvocations![partialToolCall.prefixMapIndex] = {
         state: 'partial-call',
         toolCallId: value.toolCallId,
         toolName: partialToolCall.toolName,
@@ -143,28 +144,19 @@ export async function processChatResponse({
       execUpdate();
     },
     async onToolCallPart(value) {
-      switchMessage();
+      const activeMessage = switchMessage();
+
       if (partialToolCalls[value.toolCallId] != null) {
         // change the partial tool call to a full tool call
-        currentMessage!.toolInvocations![
+        activeMessage.toolInvocations![
           partialToolCalls[value.toolCallId].prefixMapIndex
         ] = { state: 'call', ...value };
       } else {
-        // create message if it doesn't exist
-        if (currentMessage == null) {
-          currentMessage = {
-            id: generateId(),
-            role: 'assistant',
-            content: '',
-            createdAt,
-          };
+        if (activeMessage.toolInvocations == null) {
+          activeMessage.toolInvocations = [];
         }
 
-        if (currentMessage.toolInvocations == null) {
-          currentMessage.toolInvocations = [];
-        }
-
-        currentMessage.toolInvocations.push({
+        activeMessage.toolInvocations.push({
           state: 'call',
           ...value,
         });
@@ -177,16 +169,17 @@ export async function processChatResponse({
         const result = await onToolCall({ toolCall: value });
         if (result != null) {
           // store the result in the tool invocation
-          currentMessage!.toolInvocations![
-            currentMessage!.toolInvocations!.length - 1
+          activeMessage.toolInvocations![
+            activeMessage.toolInvocations!.length - 1
           ] = { state: 'result', ...value, result };
         }
       }
+
       execUpdate();
     },
     onToolResultPart(value) {
-      switchMessage();
-      const toolInvocations = currentMessage?.toolInvocations;
+      const activeMessage = switchMessage();
+      const toolInvocations = activeMessage.toolInvocations;
 
       if (toolInvocations == null) {
         throw new Error('tool_result must be preceded by a tool_call');
@@ -209,6 +202,7 @@ export async function processChatResponse({
         state: 'result' as const,
         ...value,
       };
+
       execUpdate();
     },
     onDataPart(value) {
