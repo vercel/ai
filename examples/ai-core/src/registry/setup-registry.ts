@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { grok } from '@ai-sdk/grok';
+import { xai } from '@ai-sdk/xai';
 import { groq } from '@ai-sdk/groq';
 import { mistral } from '@ai-sdk/mistral';
 import { openai } from '@ai-sdk/openai';
@@ -34,6 +34,6 @@ export const registry = createProviderRegistry({
   mistral,
   anthropic: myAnthropic,
   openai: myOpenAI,
-  grok,
+  xai,
   groq,
 });

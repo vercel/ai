@@ -1,4 +1,4 @@
-import { grok } from '@ai-sdk/grok';
+import { xai } from '@ai-sdk/xai';
 import { streamText, CoreMessage, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
@@ -9,7 +9,7 @@ async function main() {
   let toolResponseAvailable = false;
 
   const result = streamText({
-    model: grok('grok-beta'),
+    model: xai('grok-beta'),
     maxTokens: 512,
     tools: {
       weather: weatherTool,

@@ -4,13 +4,13 @@ import {
   StreamingTestServer,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { createGrok } from './grok-provider';
+import { createXai } from './xai-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const provider = createGrok({
+const provider = createXai({
   apiKey: 'test-api-key',
 });
 
@@ -313,7 +313,7 @@ describe('doGenerate', () => {
   it('should pass headers', async () => {
     prepareJsonResponse({ content: '' });
 
-    const provider = createGrok({
+    const provider = createXai({
       apiKey: 'test-api-key',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
@@ -948,7 +948,7 @@ describe('doStream', () => {
   it('should pass headers', async () => {
     prepareStreamResponse({ content: [] });
 
-    const provider = createGrok({
+    const provider = createXai({
       apiKey: 'test-api-key',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',

@@ -17,35 +17,35 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { convertToGrokChatMessages } from './convert-to-grok-chat-messages';
+import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import { GrokChatModelId, GrokChatSettings } from './grok-chat-settings';
-import { grokErrorDataSchema, grokFailedResponseHandler } from './grok-error';
-import { prepareTools } from './grok-prepare-tools';
-import { mapGrokFinishReason } from './map-grok-finish-reason';
+import { XaiChatModelId, XaiChatSettings } from './xai-chat-settings';
+import { xaiErrorDataSchema, xaiFailedResponseHandler } from './xai-error';
+import { prepareTools } from './xai-prepare-tools';
+import { mapXaiFinishReason } from './map-xai-finish-reason';
 
-type GrokChatConfig = {
+type XaiChatConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
 
-export class GrokChatLanguageModel implements LanguageModelV1 {
+export class XaiChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
 
   readonly supportsStructuredOutputs = false;
   readonly defaultObjectGenerationMode = 'json';
 
-  readonly modelId: GrokChatModelId;
-  readonly settings: GrokChatSettings;
+  readonly modelId: XaiChatModelId;
+  readonly settings: XaiChatSettings;
 
-  private readonly config: GrokChatConfig;
+  private readonly config: XaiChatConfig;
 
   constructor(
-    modelId: GrokChatModelId,
-    settings: GrokChatSettings,
-    config: GrokChatConfig,
+    modelId: XaiChatModelId,
+    settings: XaiChatSettings,
+    config: XaiChatConfig,
   ) {
     this.modelId = modelId;
     this.settings = settings;
@@ -123,7 +123,7 @@ export class GrokChatLanguageModel implements LanguageModelV1 {
         undefined,
 
       // messages:
-      messages: convertToGrokChatMessages(prompt),
+      messages: convertToXaiChatMessages(prompt),
     };
 
     switch (type) {
@@ -195,9 +195,9 @@ export class GrokChatLanguageModel implements LanguageModelV1 {
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
-      failedResponseHandler: grokFailedResponseHandler,
+      failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        grokChatResponseSchema,
+        xaiChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -206,7 +206,7 @@ export class GrokChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
 
-    // The Grok API produces Markdown-style JSON responses for chat completions,
+    // The xAI API produces Markdown-style JSON responses for chat completions,
     // so we have to strip the formatting to pass parsing.
     if (
       options.mode.type === 'object-json' &&
@@ -224,7 +224,7 @@ export class GrokChatLanguageModel implements LanguageModelV1 {
         toolName: toolCall.function.name,
         args: toolCall.function.arguments!,
       })),
-      finishReason: mapGrokFinishReason(choice.finish_reason),
+      finishReason: mapXaiFinishReason(choice.finish_reason),
       usage: {
         promptTokens: response.usage?.prompt_tokens ?? NaN,
         completionTokens: response.usage?.completion_tokens ?? NaN,
@@ -254,9 +254,9 @@ export class GrokChatLanguageModel implements LanguageModelV1 {
         ...args,
         stream: true,
       },
-      failedResponseHandler: grokFailedResponseHandler,
+      failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler:
-        createEventSourceResponseHandler(grokChatChunkSchema),
+        createEventSourceResponseHandler(xaiChatChunkSchema),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
@@ -286,7 +286,7 @@ export class GrokChatLanguageModel implements LanguageModelV1 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof grokChatChunkSchema>>,
+          ParseResult<z.infer<typeof xaiChatChunkSchema>>,
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
@@ -325,7 +325,7 @@ export class GrokChatLanguageModel implements LanguageModelV1 {
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapGrokFinishReason(choice.finish_reason);
+              finishReason = mapXaiFinishReason(choice.finish_reason);
             }
 
             if (choice?.delta == null) {
@@ -467,7 +467,7 @@ export class GrokChatLanguageModel implements LanguageModelV1 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const grokChatResponseSchema = z.object({
+const xaiChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -503,7 +503,7 @@ const grokChatResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const grokChatChunkSchema = z.union([
+const xaiChatChunkSchema = z.union([
   z.object({
     id: z.string().nullish(),
     created: z.number().nullish(),
@@ -540,5 +540,5 @@ const grokChatChunkSchema = z.union([
       })
       .nullish(),
   }),
-  grokErrorDataSchema,
+  xaiErrorDataSchema,
 ]);

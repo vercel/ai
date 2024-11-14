@@ -1,16 +1,16 @@
 import { z } from 'zod';
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
 
-export const grokErrorDataSchema = z.object({
+export const xaiErrorDataSchema = z.object({
   error: z.object({
     message: z.string(),
     type: z.string(),
   }),
 });
 
-export type GrokErrorData = z.infer<typeof grokErrorDataSchema>;
+export type XaiErrorData = z.infer<typeof xaiErrorDataSchema>;
 
-export const grokFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: grokErrorDataSchema,
+export const xaiFailedResponseHandler = createJsonErrorResponseHandler({
+  errorSchema: xaiErrorDataSchema,
   errorToMessage: data => data.error.message,
 });

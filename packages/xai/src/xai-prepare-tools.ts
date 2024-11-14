@@ -39,7 +39,7 @@ export function prepareTools({
 
   const toolChoice = mode.toolChoice;
 
-  const grokTools: Array<{
+  const xaiTools: Array<{
     type: 'function';
     function: {
       name: string;
@@ -52,7 +52,7 @@ export function prepareTools({
     if (tool.type === 'provider-defined') {
       toolWarnings.push({ type: 'unsupported-tool', tool });
     } else {
-      grokTools.push({
+      xaiTools.push({
         type: 'function',
         function: {
           name: tool.name,
@@ -64,7 +64,7 @@ export function prepareTools({
   }
 
   if (toolChoice == null) {
-    return { tools: grokTools, tool_choice: undefined, toolWarnings };
+    return { tools: xaiTools, tool_choice: undefined, toolWarnings };
   }
 
   const type = toolChoice.type;
@@ -73,10 +73,10 @@ export function prepareTools({
     case 'auto':
     case 'none':
     case 'required':
-      return { tools: grokTools, tool_choice: type, toolWarnings };
+      return { tools: xaiTools, tool_choice: type, toolWarnings };
     case 'tool':
       return {
-        tools: grokTools,
+        tools: xaiTools,
         tool_choice: {
           type: 'function',
           function: {

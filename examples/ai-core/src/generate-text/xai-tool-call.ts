@@ -1,4 +1,4 @@
-import { grok } from '@ai-sdk/grok';
+import { xai } from '@ai-sdk/xai';
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
@@ -6,7 +6,7 @@ import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = await generateText({
-    model: grok('grok-beta'),
+    model: xai('grok-beta'),
     maxTokens: 512,
     tools: {
       weather: weatherTool,

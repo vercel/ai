@@ -74,9 +74,6 @@ importers:
       '@ai-sdk/google-vertex':
         specifier: 1.0.0-canary.3
         version: link:../../packages/google-vertex
-      '@ai-sdk/grok':
-        specifier: 1.0.0-canary.0
-        version: link:../../packages/grok
       '@ai-sdk/groq':
         specifier: 1.0.0-canary.3
         version: link:../../packages/groq
@@ -86,6 +83,9 @@ importers:
       '@ai-sdk/openai':
         specifier: 1.0.0-canary.3
         version: link:../../packages/openai
+      '@ai-sdk/xai':
+        specifier: 1.0.0-canary.0
+        version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
         version: 0.21.0
@@ -1283,31 +1283,6 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
 
-  packages/grok:
-    dependencies:
-      '@ai-sdk/provider':
-        specifier: 1.0.0-canary.0
-        version: link:../provider
-      '@ai-sdk/provider-utils':
-        specifier: 2.0.0-canary.3
-        version: link:../provider-utils
-    devDependencies:
-      '@types/node':
-        specifier: ^18
-        version: 18.19.54
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
-      tsup:
-        specifier: ^8
-        version: 8.3.0(jiti@2.4.0)(postcss@8.4.47)(tsx@4.7.1)(typescript@5.6.3)(yaml@2.5.0)
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
-      zod:
-        specifier: 3.23.8
-        version: 3.23.8
-
   packages/groq:
     dependencies:
       '@ai-sdk/provider':
@@ -1696,6 +1671,31 @@ importers:
       typescript:
         specifier: 5.6.3
         version: 5.6.3
+
+  packages/xai:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: 1.0.0-canary.0
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: 2.0.0-canary.3
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: ^18
+        version: 18.19.54
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.4.47)(tsx@4.7.1)(typescript@5.6.3)(yaml@2.5.0)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
 
   tools/eslint-config:
     dependencies:

@@ -8,27 +8,27 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { GrokChatLanguageModel } from './grok-chat-language-model';
-import { GrokChatModelId, GrokChatSettings } from './grok-chat-settings';
+import { XaiChatLanguageModel } from './xai-chat-language-model';
+import { XaiChatModelId, XaiChatSettings } from './xai-chat-settings';
 
-export interface GrokProvider extends ProviderV1 {
+export interface XaiProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
 */
-  (modelId: GrokChatModelId, settings?: GrokChatSettings): LanguageModelV1;
+  (modelId: XaiChatModelId, settings?: XaiChatSettings): LanguageModelV1;
 
   /**
-Creates an Grok chat model for text generation.
+Creates an Xai chat model for text generation.
    */
   languageModel(
-    modelId: GrokChatModelId,
-    settings?: GrokChatSettings,
+    modelId: XaiChatModelId,
+    settings?: XaiChatSettings,
   ): LanguageModelV1;
 }
 
-export interface GrokProviderSettings {
+export interface XaiProviderSettings {
   /**
-Base URL for the Grok API calls.
+Base URL for the xAI API calls.
      */
   baseURL?: string;
 
@@ -50,39 +50,39 @@ or to provide a custom fetch implementation for e.g. testing.
 }
 
 /**
-Create an Grok provider instance.
+Create an xAI provider instance.
  */
-export function createGrok(options: GrokProviderSettings = {}): GrokProvider {
+export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://api.x.ai/v1';
 
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
-      environmentVariableName: 'GROK_API_KEY',
-      description: 'Grok',
+      environmentVariableName: 'XAI_API_KEY',
+      description: 'xAI',
     })}`,
     ...options.headers,
   });
 
   const createChatModel = (
-    modelId: GrokChatModelId,
-    settings: GrokChatSettings = {},
+    modelId: XaiChatModelId,
+    settings: XaiChatSettings = {},
   ) =>
-    new GrokChatLanguageModel(modelId, settings, {
-      provider: 'grok.chat',
+    new XaiChatLanguageModel(modelId, settings, {
+      provider: 'xai.chat',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
   const createLanguageModel = (
-    modelId: GrokChatModelId,
-    settings?: GrokChatSettings,
+    modelId: XaiChatModelId,
+    settings?: XaiChatSettings,
   ) => {
     if (new.target) {
       throw new Error(
-        'The Grok model function cannot be called with the new keyword.',
+        'The xAI model function cannot be called with the new keyword.',
       );
     }
 
@@ -90,8 +90,8 @@ export function createGrok(options: GrokProviderSettings = {}): GrokProvider {
   };
 
   const provider = function (
-    modelId: GrokChatModelId,
-    settings?: GrokChatSettings,
+    modelId: XaiChatModelId,
+    settings?: XaiChatSettings,
   ) {
     return createLanguageModel(modelId, settings);
   };
@@ -102,10 +102,10 @@ export function createGrok(options: GrokProviderSettings = {}): GrokProvider {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
 
-  return provider as GrokProvider;
+  return provider as XaiProvider;
 }
 
 /**
-Default Grok provider instance.
+Default xAI provider instance.
  */
-export const grok = createGrok();
+export const xai = createXai();

@@ -1,7 +1,7 @@
 // https://console.x.ai and see "View models"
-export type GrokChatModelId = 'grok-beta' | (string & {});
+export type XaiChatModelId = 'grok-beta' | (string & {});
 
-export interface GrokChatSettings {
+export interface XaiChatSettings {
   /**
 Whether to enable parallel function calling during tool use. Default to true.
    */
@@ -15,7 +15,7 @@ monitor and detect abuse. Learn more.
 
   /**
 Automatically download images and pass the image as data to the model.
-Grok supports image URLs for public models, so this is only needed for
+xAI supports image URLs for public models, so this is only needed for
 private models or when the images are not publicly accessible.
 
 Defaults to `false`.

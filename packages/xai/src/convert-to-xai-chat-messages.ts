@@ -3,12 +3,12 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
-import { GrokChatPrompt } from './grok-api-types';
+import { XaiChatPrompt } from './xai-api-types';
 
-export function convertToGrokChatMessages(
+export function convertToXaiChatMessages(
   prompt: LanguageModelV1Prompt,
-): GrokChatPrompt {
-  const messages: GrokChatPrompt = [];
+): XaiChatPrompt {
+  const messages: XaiChatPrompt = [];
 
   for (const { role, content } of prompt) {
     switch (role) {

@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/grok': patch
+'@ai-sdk/xai': patch
 ---
 
-feat (providers/grok): Initial grok provider.
+feat (providers/xai): Initial xAI provider.

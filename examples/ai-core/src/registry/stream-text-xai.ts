@@ -3,7 +3,7 @@ import { registry } from './setup-registry';
 
 async function main() {
   const result = streamText({
-    model: registry.languageModel('grok:grok-beta'),
+    model: registry.languageModel('xai:grok-beta'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

@@ -31,7 +31,6 @@
     "@ai-sdk/cohere": "0.0.28",
     "@ai-sdk/google": "0.0.55",
     "@ai-sdk/google-vertex": "0.0.43",
-    "@ai-sdk/grok": "0.0.0",
     "@ai-sdk/groq": "0.0.3",
     "@ai-sdk/mistral": "0.0.46",
     "@ai-sdk/openai": "0.0.71",
@@ -43,6 +42,7 @@
     "@ai-sdk/swarm": "0.0.8",
     "@ai-sdk/ui-utils": "0.0.50",
     "@ai-sdk/vue": "0.0.59",
+    "@ai-sdk/xai": "0.0.0",
     "eslint-config-vercel-ai": "0.0.0",
     "@vercel/ai-tsconfig": "0.0.0"
   },
