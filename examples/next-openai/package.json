@@ -13,7 +13,7 @@
     "@ai-sdk/ui-utils": "1.0.0-canary.7",
     "@ai-sdk/react": "1.0.0-canary.7",
     "@vercel/blob": "^0.26.0",
-    "ai": "4.0.0-canary.10",
+    "ai": "4.0.0-canary.11",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",
