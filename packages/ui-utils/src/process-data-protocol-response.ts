@@ -60,6 +60,20 @@ export async function processDataProtocolResponse({
   };
   let finishReason: LanguageModelV1FinishReason = 'unknown';
 
+  function execUpdate() {
+    // keeps the currentMessage up to date with the latest annotations, even if annotations preceded the message
+    if (messageAnnotations?.length && currentMessage.message) {
+      currentMessage.message.annotations = [...messageAnnotations!];
+    }
+
+    // We add response messages to the messages[], but data is its own thing
+    const merged = [currentMessage.message].filter(Boolean).map(message => ({
+      ...assignAnnotationsToMessage(message, messageAnnotations),
+    })) as Message[];
+
+    update([...previousMessages, ...merged], [...data]); // make a copy of the data array
+  }
+
   // we create a map of each prefix, and for each prefixed message we push to the map
   await processDataStream({
     stream,
@@ -121,6 +135,7 @@ export async function processDataProtocolResponse({
             createdAt,
           };
         }
+        execUpdate();
       } else if (type === 'tool_call_streaming_start') {
         // create message if it doesn't exist
         if (currentMessage.message == null) {
@@ -149,6 +164,7 @@ export async function processDataProtocolResponse({
           toolName: value.toolName,
           args: undefined,
         });
+        execUpdate();
       } else if (type === 'tool_call_delta') {
         const partialToolCall = partialToolCalls[value.toolCallId];
 
@@ -168,6 +184,7 @@ export async function processDataProtocolResponse({
         // trigger update for streaming by copying adding a update id that changes
         // (without it, the changes get stuck in SWR and are not forwarded to rendering):
         (currentMessage.message! as any).internalUpdateId = generateId();
+        execUpdate();
       } else if (type === 'tool_call') {
         if (partialToolCalls[value.toolCallId] != null) {
           // change the partial tool call to a full tool call
@@ -211,6 +228,7 @@ export async function processDataProtocolResponse({
             ] = { state: 'result', ...value, result };
           }
         }
+        execUpdate();
       } else if (type === 'tool_result') {
         const toolInvocations = currentMessage.message?.toolInvocations;
 
@@ -235,8 +253,10 @@ export async function processDataProtocolResponse({
           state: 'result' as const,
           ...value,
         };
+        execUpdate();
       } else if (type === 'data') {
         data.push(...value);
+        execUpdate();
       } else if (type === 'message_annotations') {
         if (!messageAnnotations) {
           messageAnnotations = [...value];
@@ -255,19 +275,9 @@ export async function processDataProtocolResponse({
         if (currentMessage.message != null) {
           (currentMessage.message! as any).internalUpdateId = generateId();
         }
+
+        execUpdate();
       }
-
-      // keeps the currentMessage up to date with the latest annotations, even if annotations preceded the message
-      if (messageAnnotations?.length && currentMessage.message) {
-        currentMessage.message.annotations = [...messageAnnotations!];
-      }
-
-      // We add response messages to the messages[], but data is its own thing
-      const merged = [currentMessage.message].filter(Boolean).map(message => ({
-        ...assignAnnotationsToMessage(message, messageAnnotations),
-      })) as Message[];
-
-      update([...previousMessages, ...merged], [...data]); // make a copy of the data array
     },
   });
 
