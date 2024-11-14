@@ -38,7 +38,7 @@ export async function processChatResponse({
   const createdAt = getCurrentDate();
 
   let currentMessage: Message | undefined = undefined;
-  let nextMessage: boolean = false;
+  let createNewMessage: boolean = true;
   const previousMessages: Message[] = [];
 
   const data: JSONValue[] = [];
@@ -77,60 +77,50 @@ export async function processChatResponse({
   // content of the next message. Stream data annotations
   // are associated with the previous message until then to
   // support sending them in onFinish and onStepFinish:
-  function switchMessage() {
-    if (nextMessage) {
-      if (currentMessage) {
+  function switchMessage(): Message {
+    if (createNewMessage || currentMessage == null) {
+      if (currentMessage != null) {
         previousMessages.push(currentMessage);
       }
 
-      currentMessage = undefined;
-      nextMessage = false;
+      createNewMessage = false;
+
+      currentMessage = {
+        id: generateId(),
+        role: 'assistant',
+        content: '',
+        createdAt,
+      };
     }
+
+    return currentMessage;
   }
 
   await processDataStream({
     stream,
     onTextPart(value) {
-      switchMessage();
-      if (currentMessage) {
-        currentMessage = {
-          ...currentMessage,
-          content: (currentMessage.content || '') + value,
-        };
-      } else {
-        currentMessage = {
-          id: generateId(),
-          role: 'assistant',
-          content: value,
-          createdAt,
-        };
-      }
+      const activeMessage = switchMessage();
+      currentMessage = {
+        ...activeMessage,
+        content: activeMessage.content + value,
+      };
       execUpdate();
     },
     onToolCallStreamingStartPart(value) {
-      switchMessage();
-      // create message if it doesn't exist
-      if (currentMessage == null) {
-        currentMessage = {
-          id: generateId(),
-          role: 'assistant',
-          content: '',
-          createdAt,
-        };
-      }
+      const activeMessage = switchMessage();
 
-      if (currentMessage.toolInvocations == null) {
-        currentMessage.toolInvocations = [];
+      if (activeMessage.toolInvocations == null) {
+        activeMessage.toolInvocations = [];
       }
 
       // add the partial tool call to the map
       partialToolCalls[value.toolCallId] = {
         text: '',
         toolName: value.toolName,
-        prefixMapIndex: currentMessage.toolInvocations.length,
+        prefixMapIndex: activeMessage.toolInvocations.length,
       };
 
-      currentMessage.toolInvocations.push({
+      activeMessage.toolInvocations.push({
         state: 'partial-call',
         toolCallId: value.toolCallId,
         toolName: value.toolName,
@@ -258,7 +248,7 @@ export async function processChatResponse({
     },
     onFinishStepPart(value) {
       if (!value.isContinued) {
-        nextMessage = true;
+        createNewMessage = true;
       }
     },
     onFinishMessagePart(value) {
