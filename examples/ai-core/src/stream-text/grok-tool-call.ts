@@ -14,6 +14,7 @@ async function main() {
     tools: {
       weather: weatherTool,
     },
+    toolChoice: 'required',
     prompt:
       'What is the weather in San Francisco and what attractions should I visit?',
   });
@@ -23,8 +24,6 @@ async function main() {
   const toolResponses: ToolResultPart[] = [];
 
   for await (const delta of result.fullStream) {
-    console.log(delta);
-
     switch (delta.type) {
       case 'text-delta': {
         fullResponse += delta.textDelta;
@@ -65,6 +64,7 @@ async function main() {
   }
 
   toolResponseAvailable = toolCalls.length > 0;
+  console.log('Messages:', messages[0].content);
 }
 
 main().catch(console.error);

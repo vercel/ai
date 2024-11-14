@@ -388,6 +388,38 @@ describe('doGenerate', () => {
     ]);
   });
 
+  it('should strip markdown from object-json content', async () => {
+    prepareJsonResponse({
+      content: '```json\n{"value":"test"}\n```',
+    });
+
+    const { text } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    // Verify markdown is stripped and content parsed
+    expect(text).toBe('{"value":"test"}');
+
+    // Verify request was made correctly
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'grok-beta',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+  });
+
   it('should consider object-json mode undefined', async () => {
     prepareJsonResponse({ content: '{"value":"Spark"}' });
 

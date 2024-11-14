@@ -206,6 +206,16 @@ export class GrokChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
 
+    // The Grok API produces Markdown-style JSON responses for chat completions,
+    // so we have to strip the formatting to pass parsing.
+    if (
+      options.mode.type === 'object-json' &&
+      choice.message.content?.startsWith('```json') &&
+      choice.message.content?.endsWith('```')
+    ) {
+      choice.message.content = choice.message.content.slice(7, -3).trim();
+    }
+
     return {
       text: choice.message.content ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
