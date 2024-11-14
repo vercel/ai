@@ -1,5 +1,14 @@
 # ai
 
+## 4.0.0-canary.12
+
+### Patch Changes
+
+- b053413: chore (ui): refactorings & README update
+- Updated dependencies [b053413]
+  - @ai-sdk/ui-utils@1.0.0-canary.8
+  - @ai-sdk/react@1.0.0-canary.8
+
 ## 4.0.0-canary.11
 
 ### Major Changes
