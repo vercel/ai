@@ -1,5 +1,5 @@
 import { processTextStream } from './process-text-stream';
-import { readDataStream } from './read-data-stream';
+import { processDataStream } from './process-data-stream';
 import { JSONValue } from './types';
 
 // use function to allow for mocking in tests:
@@ -97,22 +97,22 @@ export async function callCompletionApi({
       }
 
       case 'data': {
-        const reader = response.body.getReader();
-        for await (const { type, value } of readDataStream(reader, {
-          isAborted: () => abortController.signal.aborted,
-        })) {
-          switch (type) {
-            case 'text': {
-              result += value;
-              setCompletion(result);
-              break;
+        await processDataStream({
+          stream: response.body,
+          onStreamPart: ({ type, value }) => {
+            switch (type) {
+              case 'text': {
+                result += value;
+                setCompletion(result);
+                break;
+              }
+              case 'data': {
+                onData?.(value);
+                break;
+              }
             }
-            case 'data': {
-              onData?.(value);
-              break;
-            }
-          }
-        }
+          },
+        });
         break;
       }
 

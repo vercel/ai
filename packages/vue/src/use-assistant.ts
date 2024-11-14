@@ -3,7 +3,7 @@
  */
 
 import { isAbortError } from '@ai-sdk/provider-utils';
-import { readDataStream, generateId } from '@ai-sdk/ui-utils';
+import { generateId, processDataStream } from '@ai-sdk/ui-utils';
 import type {
   AssistantStatus,
   CreateMessage,
@@ -180,70 +180,71 @@ export function useAssistant({
         throw new Error('The response body is empty');
       }
 
-      for await (const { type, value } of readDataStream(
-        response.body.getReader(),
-      )) {
-        switch (type) {
-          case 'assistant_message': {
-            messages.value = [
-              ...messages.value,
-              {
-                id: value.id,
-                content: value.content[0].text.value,
-                role: value.role,
-              },
-            ];
-            break;
-          }
-          case 'assistant_control_data': {
-            if (value.threadId) {
-              currentThreadId.value = value.threadId;
+      await processDataStream({
+        stream: response.body,
+        onStreamPart: async ({ type, value }) => {
+          switch (type) {
+            case 'assistant_message': {
+              messages.value = [
+                ...messages.value,
+                {
+                  id: value.id,
+                  content: value.content[0].text.value,
+                  role: value.role,
+                },
+              ];
+              break;
+            }
+            case 'assistant_control_data': {
+              if (value.threadId) {
+                currentThreadId.value = value.threadId;
+              }
+
+              setMessages(messages => {
+                const lastMessage = messages[messages.length - 1];
+                lastMessage.id = value.messageId;
+
+                return [...messages.slice(0, -1), lastMessage];
+              });
+
+              break;
             }
 
-            setMessages(messages => {
-              const lastMessage = messages[messages.length - 1];
-              lastMessage.id = value.messageId;
+            case 'text': {
+              setMessages(messages => {
+                const lastMessage = messages[messages.length - 1];
+                lastMessage.content += value;
 
-              return [...messages.slice(0, -1), lastMessage];
-            });
+                return [...messages.slice(0, -1), lastMessage];
+              });
 
-            break;
+              break;
+            }
+
+            case 'data_message': {
+              setMessages(messages => [
+                ...messages,
+                {
+                  id: value.id ?? generateId(),
+                  role: 'data',
+                  content: '',
+                  data: value.data,
+                },
+              ]);
+              break;
+            }
+
+            case 'error': {
+              error.value = new Error(value);
+            }
+
+            default: {
+              console.error('Unknown message type:', type);
+              break;
+            }
           }
-
-          case 'text': {
-            setMessages(messages => {
-              const lastMessage = messages[messages.length - 1];
-              lastMessage.content += value;
-
-              return [...messages.slice(0, -1), lastMessage];
-            });
-
-            break;
-          }
-
-          case 'data_message': {
-            setMessages(messages => [
-              ...messages,
-              {
-                id: value.id ?? generateId(),
-                role: 'data',
-                content: '',
-                data: value.data,
-              },
-            ]);
-            break;
-          }
-
-          case 'error': {
-            error.value = new Error(value);
-          }
-
-          default: {
-            console.error('Unknown message type:', type);
-            break;
-          }
-        }
-      }
+        },
+      });
     } catch (err) {
       // If the error is an AbortError and the signal is aborted, reset the abortController and do nothing.
       if (isAbortError(err) && abortController.value?.signal.aborted) {

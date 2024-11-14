@@ -60,7 +60,7 @@ describe('scenario: simple text response', () => {
     ]);
 
     result = await processDataProtocolResponse({
-      reader: stream.getReader(),
+      stream,
       update,
       onFinish,
       generateId: vi.fn().mockReturnValue('mock-id'),
@@ -158,7 +158,7 @@ describe('scenario: server-side tool roundtrip', () => {
     ]);
 
     result = await processDataProtocolResponse({
-      reader: stream.getReader(),
+      stream,
       update,
       onFinish,
       generateId: vi.fn().mockReturnValue('mock-id'),
@@ -304,7 +304,7 @@ describe('scenario: server-side continue roundtrip', () => {
     ]);
 
     result = await processDataProtocolResponse({
-      reader: stream.getReader(),
+      stream,
       update,
       onFinish,
       generateId: vi.fn().mockReturnValue('mock-id'),
@@ -394,7 +394,7 @@ describe('scenario: delayed message annotations in onFinish', () => {
     ]);
 
     result = await processDataProtocolResponse({
-      reader: stream.getReader(),
+      stream,
       update,
       onFinish,
       generateId: vi.fn().mockReturnValue('mock-id'),
@@ -487,7 +487,7 @@ describe('scenario: message annotations in onChunk', () => {
     ]);
 
     result = await processDataProtocolResponse({
-      reader: stream.getReader(),
+      stream,
       update,
       onFinish,
       generateId: vi.fn().mockReturnValue('mock-id'),

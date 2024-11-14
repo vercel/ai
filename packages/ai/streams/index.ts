@@ -2,7 +2,8 @@
 export {
   formatStreamPart,
   parseStreamPart,
-  readDataStream,
+  processDataStream,
+  processTextStream,
   processDataProtocolResponse,
 } from '@ai-sdk/ui-utils';
 export type {

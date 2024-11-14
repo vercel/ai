@@ -5,7 +5,7 @@ import type {
   Message,
   UseAssistantOptions,
 } from '@ai-sdk/ui-utils';
-import { generateId, readDataStream } from '@ai-sdk/ui-utils';
+import { generateId, processDataStream } from '@ai-sdk/ui-utils';
 import { Readable, Writable, get, writable } from 'svelte/store';
 
 // use function to allow for mocking in tests:
@@ -143,70 +143,70 @@ export function useAssistant({
         throw new Error('The response body is empty.');
       }
 
-      // Read the streamed response data
-      for await (const { type, value } of readDataStream(
-        response.body.getReader(),
-      )) {
-        switch (type) {
-          case 'assistant_message': {
-            mutateMessages([
-              ...get(messages),
-              {
-                id: value.id,
-                role: value.role,
-                content: value.content[0].text.value,
-              },
-            ]);
-            break;
+      await processDataStream({
+        stream: response.body,
+        onStreamPart: async ({ type, value }) => {
+          switch (type) {
+            case 'assistant_message': {
+              mutateMessages([
+                ...get(messages),
+                {
+                  id: value.id,
+                  role: value.role,
+                  content: value.content[0].text.value,
+                },
+              ]);
+              break;
+            }
+
+            case 'text': {
+              // text delta - add to last message:
+              mutateMessages(
+                get(messages).map((msg, index, array) => {
+                  if (index === array.length - 1) {
+                    return { ...msg, content: msg.content + value };
+                  }
+                  return msg;
+                }),
+              );
+              break;
+            }
+
+            case 'data_message': {
+              mutateMessages([
+                ...get(messages),
+                {
+                  id: value.id ?? generateId(),
+                  role: 'data',
+                  content: '',
+                  data: value.data,
+                },
+              ]);
+              break;
+            }
+
+            case 'assistant_control_data': {
+              threadIdStore.set(value.threadId);
+
+              mutateMessages(
+                get(messages).map((msg, index, array) => {
+                  if (index === array.length - 1) {
+                    return { ...msg, id: value.messageId };
+                  }
+                  return msg;
+                }),
+              );
+
+              break;
+            }
+
+            case 'error': {
+              error.set(new Error(value));
+              break;
+            }
           }
-
-          case 'text': {
-            // text delta - add to last message:
-            mutateMessages(
-              get(messages).map((msg, index, array) => {
-                if (index === array.length - 1) {
-                  return { ...msg, content: msg.content + value };
-                }
-                return msg;
-              }),
-            );
-            break;
-          }
-
-          case 'data_message': {
-            mutateMessages([
-              ...get(messages),
-              {
-                id: value.id ?? generateId(),
-                role: 'data',
-                content: '',
-                data: value.data,
-              },
-            ]);
-            break;
-          }
-
-          case 'assistant_control_data': {
-            threadIdStore.set(value.threadId);
-
-            mutateMessages(
-              get(messages).map((msg, index, array) => {
-                if (index === array.length - 1) {
-                  return { ...msg, id: value.messageId };
-                }
-                return msg;
-              }),
-            );
-
-            break;
-          }
-
-          case 'error': {
-            error.set(new Error(value));
-            break;
-          }
-        }
-      }
+        },
+      });
     } catch (err) {
       // Ignore abort errors as they are expected when the user cancels the request:
       if (isAbortError(error) && abortController?.signal?.aborted) {
