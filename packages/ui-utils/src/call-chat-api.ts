@@ -91,15 +91,11 @@ export async function callChatApi({
         usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
         finishReason: 'unknown',
       });
-
-      return {
-        messages: [resultMessage],
-        data: [],
-      };
+      return;
     }
 
     case 'data': {
-      return await processChatResponse({
+      await processChatResponse({
         stream: response.body,
         update: onUpdate,
         onToolCall,
@@ -110,6 +106,7 @@ export async function callChatApi({
         },
         generateId,
       });
+      return;
     }
 
     default: {
