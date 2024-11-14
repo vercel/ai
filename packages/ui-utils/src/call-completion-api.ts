@@ -1,3 +1,4 @@
+import { processTextStream } from './process-text-stream';
 import { readDataStream } from './read-data-stream';
 import { JSONValue } from './types';
 
@@ -86,31 +87,21 @@ export async function callCompletionApi({
 
     switch (streamProtocol) {
       case 'text': {
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-
-          // Update the completion state with the new message tokens.
-          result += decoder.decode(value, { stream: true });
-          setCompletion(result);
-
-          // The request has been aborted, stop reading the stream.
-          if (abortController === null) {
-            reader.cancel();
-            break;
-          }
-        }
+        await processTextStream({
+          reader,
+          isAborted: () => abortController.signal.aborted,
+          onChunk: chunk => {
+            result += chunk;
+            setCompletion(result);
+          },
+        });
 
         break;
       }
 
       case 'data': {
         for await (const { type, value } of readDataStream(reader, {
-          isAborted: () => abortController === null,
+          isAborted: () => abortController.signal.aborted,
         })) {
           switch (type) {
             case 'text': {
