@@ -452,10 +452,6 @@ describe('scenario: message annotations in onChunk', () => {
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
-        newMessages: [],
-        data: [],
-      },
-      {
         newMessages: [
           {
             content: 't1',

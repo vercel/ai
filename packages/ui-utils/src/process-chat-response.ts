@@ -60,17 +60,18 @@ export async function processChatResponse({
   let finishReason: LanguageModelV1FinishReason = 'unknown';
 
   function execUpdate() {
-    // keeps the currentMessage up to date with the latest annotations, even if annotations preceded the message
-    if (messageAnnotations?.length && currentMessage) {
-      currentMessage.annotations = [...messageAnnotations!];
+    // only update if we have a current message
+    if (currentMessage == null) {
+      return;
     }
 
-    // We add response messages to the messages[], but data is its own thing
-    const merged = [currentMessage].filter(Boolean).map(message => ({
-      ...assignAnnotationsToMessage(message, messageAnnotations),
-    })) as Message[];
+    // keeps the currentMessage up to date with the latest annotations,
+    // even if annotations preceded the message creation
+    if (messageAnnotations?.length) {
+      currentMessage.annotations = messageAnnotations;
+    }
 
-    update([...previousMessages, ...merged], [...data]); // make a copy of the data array
+    update([...previousMessages, currentMessage], [...data]); // make a copy of the data array
   }
 
   // switch to the next prefix map once we start receiving
