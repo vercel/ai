@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { withTestServer } from '@ai-sdk/provider-utils/test';
 import {
-  formatStreamPart,
+  formatDataStreamPart,
   generateId,
   getTextFromDataUrl,
   Message,
@@ -240,11 +240,11 @@ describe('data protocol stream', () => {
         url: '/api/chat',
         type: 'stream-values',
         content: [
-          formatStreamPart('text', 'Hello'),
-          formatStreamPart('text', ','),
-          formatStreamPart('text', ' world'),
-          formatStreamPart('text', '.'),
-          formatStreamPart('finish_message', {
+          formatDataStreamPart('text', 'Hello'),
+          formatDataStreamPart('text', ','),
+          formatDataStreamPart('text', ' world'),
+          formatDataStreamPart('text', '.'),
+          formatDataStreamPart('finish_message', {
             finishReason: 'stop',
             usage: { completionTokens: 1, promptTokens: 3 },
           }),
@@ -749,7 +749,7 @@ describe('onToolCall', () => {
         url: '/api/chat',
         type: 'stream-values',
         content: [
-          formatStreamPart('tool_call', {
+          formatDataStreamPart('tool_call', {
             toolCallId: 'tool-call-0',
             toolName: 'test-tool',
             args: { testArg: 'test-value' },
@@ -813,7 +813,7 @@ describe('tool invocations', () => {
         await userEvent.click(screen.getByTestId('do-append'));
 
         streamController.enqueue(
-          formatStreamPart('tool_call_streaming_start', {
+          formatDataStreamPart('tool_call_streaming_start', {
             toolCallId: 'tool-call-0',
             toolName: 'test-tool',
           }),
@@ -826,7 +826,7 @@ describe('tool invocations', () => {
         });
 
         streamController.enqueue(
-          formatStreamPart('tool_call_delta', {
+          formatDataStreamPart('tool_call_delta', {
             toolCallId: 'tool-call-0',
             argsTextDelta: '{"testArg":"t',
           }),
@@ -839,7 +839,7 @@ describe('tool invocations', () => {
         });
 
         streamController.enqueue(
-          formatStreamPart('tool_call_delta', {
+          formatDataStreamPart('tool_call_delta', {
             toolCallId: 'tool-call-0',
             argsTextDelta: 'est-value"}}',
           }),
@@ -852,7 +852,7 @@ describe('tool invocations', () => {
         });
 
         streamController.enqueue(
-          formatStreamPart('tool_call', {
+          formatDataStreamPart('tool_call', {
             toolCallId: 'tool-call-0',
             toolName: 'test-tool',
             args: { testArg: 'test-value' },
@@ -866,7 +866,7 @@ describe('tool invocations', () => {
         });
 
         streamController.enqueue(
-          formatStreamPart('tool_result', {
+          formatDataStreamPart('tool_result', {
             toolCallId: 'tool-call-0',
             result: 'test-result',
           }),
@@ -890,7 +890,7 @@ describe('tool invocations', () => {
         await userEvent.click(screen.getByTestId('do-append'));
 
         streamController.enqueue(
-          formatStreamPart('tool_call', {
+          formatDataStreamPart('tool_call', {
             toolCallId: 'tool-call-0',
             toolName: 'test-tool',
             args: { testArg: 'test-value' },
@@ -904,7 +904,7 @@ describe('tool invocations', () => {
         });
 
         streamController.enqueue(
-          formatStreamPart('tool_result', {
+          formatDataStreamPart('tool_result', {
             toolCallId: 'tool-call-0',
             result: 'test-result',
           }),
@@ -973,7 +973,7 @@ describe('maxSteps', () => {
             url: '/api/chat',
             type: 'stream-values',
             content: [
-              formatStreamPart('tool_call', {
+              formatDataStreamPart('tool_call', {
                 toolCallId: 'tool-call-0',
                 toolName: 'test-tool',
                 args: { testArg: 'test-value' },
@@ -983,7 +983,7 @@ describe('maxSteps', () => {
           {
             url: '/api/chat',
             type: 'stream-values',
-            content: [formatStreamPart('text', 'final result')],
+            content: [formatDataStreamPart('text', 'final result')],
           },
         ],
         async () => {
@@ -1058,7 +1058,7 @@ describe('maxSteps', () => {
             url: '/api/chat',
             type: 'stream-values',
             content: [
-              formatStreamPart('tool_call', {
+              formatDataStreamPart('tool_call', {
                 toolCallId: 'tool-call-0',
                 toolName: 'test-tool',
                 args: { testArg: 'test-value' },

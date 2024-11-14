@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { withTestServer } from '@ai-sdk/provider-utils/test';
-import { formatStreamPart, Message } from '@ai-sdk/ui-utils';
+import { formatDataStreamPart, Message } from '@ai-sdk/ui-utils';
 import { mockFetchDataStream } from '@ai-sdk/ui-utils/test';
 import { cleanup, findByText, render, screen } from '@solidjs/testing-library';
 import '@testing-library/jest-dom';
@@ -216,11 +216,11 @@ describe('data protocol stream', () => {
         url: '/api/chat',
         type: 'stream-values',
         content: [
-          formatStreamPart('text', 'Hello'),
-          formatStreamPart('text', ','),
-          formatStreamPart('text', ' world'),
-          formatStreamPart('text', '.'),
-          formatStreamPart('finish_message', {
+          formatDataStreamPart('text', 'Hello'),
+          formatDataStreamPart('text', ','),
+          formatDataStreamPart('text', ' world'),
+          formatDataStreamPart('text', '.'),
+          formatDataStreamPart('finish_message', {
             finishReason: 'stop',
             usage: { completionTokens: 1, promptTokens: 3 },
           }),
@@ -443,7 +443,7 @@ describe('onToolCall', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: [
-        formatStreamPart('tool_call', {
+        formatDataStreamPart('tool_call', {
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
           args: { testArg: 'test-value' },
@@ -467,7 +467,7 @@ describe('maxSteps', () => {
         async onToolCall({ toolCall }) {
           mockFetchDataStream({
             url: 'https://example.com/api/chat',
-            chunks: [formatStreamPart('text', 'final result')],
+            chunks: [formatDataStreamPart('text', 'final result')],
           });
 
           return `test-tool-response: ${toolCall.toolName} ${
@@ -508,7 +508,7 @@ describe('maxSteps', () => {
       mockFetchDataStream({
         url: 'https://example.com/api/chat',
         chunks: [
-          formatStreamPart('tool_call', {
+          formatDataStreamPart('tool_call', {
             toolCallId: 'tool-call-0',
             toolName: 'test-tool',
             args: { testArg: 'test-value' },
@@ -529,7 +529,7 @@ describe('maxSteps', () => {
         async onToolCall({ toolCall }) {
           mockFetchDataStream({
             url: 'https://example.com/api/chat',
-            chunks: [formatStreamPart('error', 'some failure')],
+            chunks: [formatDataStreamPart('error', 'some failure')],
             maxCalls: 1,
           });
 
@@ -583,7 +583,7 @@ describe('maxSteps', () => {
       mockFetchDataStream({
         url: 'https://example.com/api/chat',
         chunks: [
-          formatStreamPart('tool_call', {
+          formatDataStreamPart('tool_call', {
             toolCallId: 'tool-call-0',
             toolName: 'test-tool',
             args: { testArg: 'test-value' },
@@ -643,7 +643,7 @@ describe('form actions', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['Hello', ',', ' world', '.'].map(token =>
-        formatStreamPart('text', token),
+        formatDataStreamPart('text', token),
       ),
     });
 
@@ -665,7 +665,7 @@ describe('form actions', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
-        formatStreamPart('text', token),
+        formatDataStreamPart('text', token),
       ),
     });
 
@@ -724,7 +724,7 @@ describe('form actions (with options)', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['Hello', ',', ' world', '.'].map(token =>
-        formatStreamPart('text', token),
+        formatDataStreamPart('text', token),
       ),
     });
 
@@ -746,7 +746,7 @@ describe('form actions (with options)', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
-        formatStreamPart('text', token),
+        formatDataStreamPart('text', token),
       ),
     });
 
@@ -761,7 +761,7 @@ describe('form actions (with options)', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['The', ' sky', ' is', ' blue.'].map(token =>
-        formatStreamPart('text', token),
+        formatDataStreamPart('text', token),
       ),
     });
 

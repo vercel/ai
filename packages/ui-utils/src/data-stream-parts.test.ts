@@ -5,7 +5,7 @@ import {
 import { formatDataStreamPart, parseDataStreamPart } from './data-stream-parts';
 
 describe('data-stream-parts', () => {
-  describe('formatStreamPart', () => {
+  describe('formatDataStreamPart', () => {
     it('should escape newlines in text', () => {
       expect(formatDataStreamPart('text', 'value\nvalue')).toEqual(
         '0:"value\\nvalue"\n',
