@@ -36,6 +36,11 @@ const onFinish = (options: {
   finishCalls.push(JSON.parse(JSON.stringify(options)));
 };
 
+export function mockId(): () => string {
+  let counter = 0;
+  return () => `id-${counter++}`;
+}
+
 beforeEach(() => {
   updateCalls = [];
   finishCalls = [];
@@ -63,7 +68,7 @@ describe('scenario: simple text response', () => {
       stream,
       update,
       onFinish,
-      generateId: vi.fn().mockReturnValue('mock-id'),
+      generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
   });
@@ -75,7 +80,8 @@ describe('scenario: simple text response', () => {
           {
             content: 'Hello, ',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-1',
             role: 'assistant',
           },
         ],
@@ -86,7 +92,8 @@ describe('scenario: simple text response', () => {
           {
             content: 'Hello, world!',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-2',
             role: 'assistant',
           },
         ],
@@ -101,7 +108,8 @@ describe('scenario: simple text response', () => {
         message: {
           content: 'Hello, world!',
           createdAt: '2023-01-01T00:00:00.000Z',
-          id: 'mock-id',
+          id: 'id-0',
+          internalUpdateId: 'id-2',
           role: 'assistant',
         },
         finishReason: 'stop',
@@ -150,7 +158,7 @@ describe('scenario: server-side tool roundtrip', () => {
       stream,
       update,
       onFinish,
-      generateId: vi.fn().mockReturnValue('mock-id'),
+      generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
   });
@@ -160,11 +168,11 @@ describe('scenario: server-side tool roundtrip', () => {
       {
         newMessages: [
           {
-            id: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-1',
             role: 'assistant',
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
-            internalUpdateId: 'mock-id',
             toolInvocations: [
               {
                 args: {
@@ -182,11 +190,11 @@ describe('scenario: server-side tool roundtrip', () => {
       {
         newMessages: [
           {
-            id: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-2',
             role: 'assistant',
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
-            internalUpdateId: 'mock-id',
             toolInvocations: [
               {
                 args: {
@@ -209,8 +217,8 @@ describe('scenario: server-side tool roundtrip', () => {
           {
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
-            internalUpdateId: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-2',
             role: 'assistant',
             toolInvocations: [
               {
@@ -227,7 +235,8 @@ describe('scenario: server-side tool roundtrip', () => {
             ],
           },
           {
-            id: 'mock-id',
+            id: 'id-3',
+            internalUpdateId: 'id-4',
             role: 'assistant',
             content: 'The weather in London is sunny.',
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -242,7 +251,8 @@ describe('scenario: server-side tool roundtrip', () => {
     expect(finishCalls).toStrictEqual([
       {
         message: {
-          id: 'mock-id',
+          id: 'id-3',
+          internalUpdateId: 'id-4',
           role: 'assistant',
           content: 'The weather in London is sunny.',
           createdAt: '2023-01-01T00:00:00.000Z',
@@ -285,7 +295,7 @@ describe('scenario: server-side continue roundtrip', () => {
       stream,
       update,
       onFinish,
-      generateId: vi.fn().mockReturnValue('mock-id'),
+      generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
   });
@@ -295,7 +305,8 @@ describe('scenario: server-side continue roundtrip', () => {
       {
         newMessages: [
           {
-            id: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-1',
             role: 'assistant',
             content: 'The weather in London ',
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -306,7 +317,8 @@ describe('scenario: server-side continue roundtrip', () => {
       {
         newMessages: [
           {
-            id: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-2',
             role: 'assistant',
             content: 'The weather in London is sunny.',
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -321,7 +333,8 @@ describe('scenario: server-side continue roundtrip', () => {
     expect(finishCalls).toStrictEqual([
       {
         message: {
-          id: 'mock-id',
+          id: 'id-0',
+          internalUpdateId: 'id-2',
           role: 'assistant',
           content: 'The weather in London is sunny.',
           createdAt: '2023-01-01T00:00:00.000Z',
@@ -364,7 +377,7 @@ describe('scenario: delayed message annotations in onFinish', () => {
       stream,
       update,
       onFinish,
-      generateId: vi.fn().mockReturnValue('mock-id'),
+      generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
   });
@@ -376,7 +389,8 @@ describe('scenario: delayed message annotations in onFinish', () => {
           {
             content: 'text',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-1',
             role: 'assistant',
           },
         ],
@@ -387,10 +401,10 @@ describe('scenario: delayed message annotations in onFinish', () => {
           {
             content: 'text',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-2',
             role: 'assistant',
             annotations: [{ example: 'annotation' }],
-            internalUpdateId: 'mock-id',
           },
         ],
         data: [],
@@ -404,10 +418,10 @@ describe('scenario: delayed message annotations in onFinish', () => {
         message: {
           content: 'text',
           createdAt: '2023-01-01T00:00:00.000Z',
-          id: 'mock-id',
+          id: 'id-0',
+          internalUpdateId: 'id-2',
           role: 'assistant',
           annotations: [{ example: 'annotation' }],
-          internalUpdateId: 'mock-id',
         },
         finishReason: 'stop',
         usage: {
@@ -444,7 +458,7 @@ describe('scenario: message annotations in onChunk', () => {
       stream,
       update,
       onFinish,
-      generateId: vi.fn().mockReturnValue('mock-id'),
+      generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
   });
@@ -456,7 +470,8 @@ describe('scenario: message annotations in onChunk', () => {
           {
             content: 't1',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-1',
             role: 'assistant',
             annotations: ['annotation1'],
           },
@@ -468,10 +483,10 @@ describe('scenario: message annotations in onChunk', () => {
           {
             content: 't1',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-2',
             role: 'assistant',
             annotations: ['annotation1', 'annotation2'],
-            internalUpdateId: 'mock-id',
           },
         ],
         data: [],
@@ -481,10 +496,10 @@ describe('scenario: message annotations in onChunk', () => {
           {
             content: 't1t2',
             createdAt: '2023-01-01T00:00:00.000Z',
-            id: 'mock-id',
+            id: 'id-0',
+            internalUpdateId: 'id-3',
             role: 'assistant',
             annotations: ['annotation1', 'annotation2'],
-            internalUpdateId: 'mock-id',
           },
         ],
         data: [],
@@ -498,10 +513,10 @@ describe('scenario: message annotations in onChunk', () => {
         message: {
           content: 't1t2',
           createdAt: '2023-01-01T00:00:00.000Z',
-          id: 'mock-id',
+          id: 'id-0',
+          internalUpdateId: 'id-3',
           role: 'assistant',
           annotations: ['annotation1', 'annotation2'],
-          internalUpdateId: 'mock-id',
         },
         finishReason: 'stop',
         usage: {

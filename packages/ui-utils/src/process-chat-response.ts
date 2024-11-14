@@ -8,14 +8,6 @@ import {
   LanguageModelUsage,
 } from './duplicated/usage';
 
-function assignAnnotationsToMessage<T extends Message | null | undefined>(
-  message: T,
-  annotations: JSONValue[] | undefined,
-): T {
-  if (!message || !annotations || !annotations.length) return message;
-  return { ...message, annotations: [...annotations] } as T;
-}
-
 export async function processChatResponse({
   stream,
   update,
@@ -70,6 +62,10 @@ export async function processChatResponse({
     if (messageAnnotations?.length) {
       currentMessage.annotations = messageAnnotations;
     }
+
+    // trigger update for streaming by copying adding a update id that changes
+    // (without it, the changes get stuck in SWR and are not forwarded to rendering):
+    (currentMessage! as any).internalUpdateId = generateId();
 
     update([...previousMessages, currentMessage], [...data]); // make a copy of the data array
   }
@@ -144,9 +140,6 @@ export async function processChatResponse({
         args: partialArgs,
       };
 
-      // trigger update for streaming by copying adding a update id that changes
-      // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-      (currentMessage! as any).internalUpdateId = generateId();
       execUpdate();
     },
     async onToolCallPart(value) {
@@ -176,10 +169,6 @@ export async function processChatResponse({
           ...value,
         });
       }
-
-      // trigger update for streaming by copying adding a update id that changes
-      // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-      (currentMessage! as any).internalUpdateId = generateId();
 
       // invoke the onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
@@ -227,22 +216,10 @@ export async function processChatResponse({
       execUpdate();
     },
     onMessageAnnotationsPart(value) {
-      if (!messageAnnotations) {
+      if (messageAnnotations == null) {
         messageAnnotations = [...value];
       } else {
         messageAnnotations.push(...value);
-      }
-
-      // Update any existing message with the latest annotations
-      currentMessage = assignAnnotationsToMessage(
-        currentMessage,
-        messageAnnotations,
-      );
-
-      // trigger update for streaming by copying adding a update id that changes
-      // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-      if (currentMessage != null) {
-        (currentMessage! as any).internalUpdateId = generateId();
       }
 
       execUpdate();
