@@ -1,4 +1,7 @@
-import { parseDataStreamPart, DataStreamPartType } from './data-stream-parts';
+import {
+  AssistantStreamPartType,
+  parseAssistantStreamPart,
+} from './assistant-stream-parts';
 
 const NEWLINE = '\n'.charCodeAt(0);
 
@@ -16,12 +19,12 @@ function concatChunks(chunks: Uint8Array[], totalLength: number) {
   return concatenatedChunks;
 }
 
-export async function processDataStream({
+export async function processAssistantStream({
   stream,
   onStreamPart,
 }: {
   stream: ReadableStream<Uint8Array>;
-  onStreamPart: (streamPart: DataStreamPartType) => Promise<void> | void;
+  onStreamPart: (streamPart: AssistantStreamPartType) => Promise<void> | void;
 }): Promise<void> {
   // implementation note: this slightly more complex algorithm is required
   // to pass the tests in the edge environment.
@@ -54,7 +57,7 @@ export async function processDataStream({
       .decode(concatenatedChunks, { stream: true })
       .split('\n')
       .filter(line => line !== '') // splitting leaves an empty string at the end
-      .map(parseDataStreamPart);
+      .map(parseAssistantStreamPart);
 
     for (const streamPart of streamParts) {
       await onStreamPart(streamPart);

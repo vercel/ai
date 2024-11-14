@@ -5,7 +5,7 @@ import {
   Message,
   UseAssistantOptions,
   generateId,
-  processDataStream,
+  processAssistantStream,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useRef, useState } from 'react';
 
@@ -176,7 +176,7 @@ export function useAssistant({
         throw new Error('The response body is empty.');
       }
 
-      await processDataStream({
+      await processAssistantStream({
         stream: response.body,
         onStreamPart: async ({ type, value }) => {
           switch (type) {

@@ -3,15 +3,15 @@
  */
 
 import { isAbortError } from '@ai-sdk/provider-utils';
-import { generateId, processDataStream } from '@ai-sdk/ui-utils';
 import type {
   AssistantStatus,
   CreateMessage,
   Message,
   UseAssistantOptions,
 } from '@ai-sdk/ui-utils';
-import { computed, readonly, ref } from 'vue';
+import { generateId, processAssistantStream } from '@ai-sdk/ui-utils';
 import type { ComputedRef, Ref } from 'vue';
+import { computed, readonly, ref } from 'vue';
 
 export type UseAssistantHelpers = {
   /**
@@ -180,7 +180,7 @@ export function useAssistant({
         throw new Error('The response body is empty');
       }
 
-      await processDataStream({
+      await processAssistantStream({
         stream: response.body,
         onStreamPart: async ({ type, value }) => {
           switch (type) {

@@ -5,7 +5,7 @@ import type {
   Message,
   UseAssistantOptions,
 } from '@ai-sdk/ui-utils';
-import { generateId, processDataStream } from '@ai-sdk/ui-utils';
+import { generateId, processAssistantStream } from '@ai-sdk/ui-utils';
 import { Readable, Writable, get, writable } from 'svelte/store';
 
 // use function to allow for mocking in tests:
@@ -143,7 +143,7 @@ export function useAssistant({
         throw new Error('The response body is empty.');
       }
 
-      await processDataStream({
+      await processAssistantStream({
         stream: response.body,
         onStreamPart: async ({ type, value }) => {
           switch (type) {

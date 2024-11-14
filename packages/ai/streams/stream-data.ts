@@ -1,4 +1,4 @@
-import { JSONValue, formatStreamPart } from '@ai-sdk/ui-utils';
+import { JSONValue, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { HANGING_STREAM_WARNING_TIME_MS } from '../util/constants';
 
 /**
@@ -66,7 +66,7 @@ export class StreamData {
     }
 
     this.controller.enqueue(
-      this.encoder.encode(formatStreamPart('data', [value])),
+      this.encoder.encode(formatDataStreamPart('data', [value])),
     );
   }
 
@@ -80,7 +80,7 @@ export class StreamData {
     }
 
     this.controller.enqueue(
-      this.encoder.encode(formatStreamPart('message_annotations', [value])),
+      this.encoder.encode(formatDataStreamPart('message_annotations', [value])),
     );
   }
 }
@@ -95,7 +95,7 @@ export function createStreamDataTransformer() {
   return new TransformStream({
     transform: async (chunk, controller) => {
       const message = decoder.decode(chunk);
-      controller.enqueue(encoder.encode(formatStreamPart('text', message)));
+      controller.enqueue(encoder.encode(formatDataStreamPart('text', message)));
     },
   });
 }

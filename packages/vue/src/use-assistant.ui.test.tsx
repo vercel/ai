@@ -1,4 +1,4 @@
-import { formatStreamPart } from '@ai-sdk/ui-utils';
+import { formatAssistantStreamPart } from '@ai-sdk/ui-utils';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
@@ -27,11 +27,11 @@ describe('stream data stream', () => {
       url: 'https://example.com/api/assistant',
       chunks: [
         // Format the stream part
-        formatStreamPart('assistant_control_data', {
+        formatAssistantStreamPart('assistant_control_data', {
           threadId: 't0',
           messageId: 'm0',
         }),
-        formatStreamPart('assistant_message', {
+        formatAssistantStreamPart('assistant_message', {
           id: 'm0',
           role: 'assistant',
           content: [{ type: 'text', text: { value: '' } }],
@@ -81,14 +81,14 @@ describe('stream data stream', () => {
           const encoder = new TextEncoder();
 
           yield encoder.encode(
-            formatStreamPart('assistant_control_data', {
+            formatAssistantStreamPart('assistant_control_data', {
               threadId: 't0',
               messageId: 'm1',
             }),
           );
 
           yield encoder.encode(
-            formatStreamPart('assistant_message', {
+            formatAssistantStreamPart('assistant_message', {
               id: 'm1',
               role: 'assistant',
               content: [{ type: 'text', text: { value: '' } }],
@@ -139,11 +139,11 @@ describe('Thread management', () => {
     const { requestBody } = mockFetchDataStream({
       url: 'https://example.com/api/assistant',
       chunks: [
-        formatStreamPart('assistant_control_data', {
+        formatAssistantStreamPart('assistant_control_data', {
           threadId: 't0',
           messageId: 'm0',
         }),
-        formatStreamPart('assistant_message', {
+        formatAssistantStreamPart('assistant_message', {
           id: 'm0',
           role: 'assistant',
           content: [{ type: 'text', text: { value: '' } }],
@@ -185,11 +185,11 @@ describe('Thread management', () => {
     const { requestBody } = mockFetchDataStream({
       url: 'https://example.com/api/assistant',
       chunks: [
-        formatStreamPart('assistant_control_data', {
+        formatAssistantStreamPart('assistant_control_data', {
           threadId: 't1',
           messageId: 'm0',
         }),
-        formatStreamPart('assistant_message', {
+        formatAssistantStreamPart('assistant_message', {
           id: 'm0',
           role: 'assistant',
           content: [{ type: 'text', text: { value: '' } }],
@@ -232,11 +232,11 @@ describe('Thread management', () => {
     const { requestBody } = mockFetchDataStream({
       url: 'https://example.com/api/assistant',
       chunks: [
-        formatStreamPart('assistant_control_data', {
+        formatAssistantStreamPart('assistant_control_data', {
           threadId: 't3',
           messageId: 'm0',
         }),
-        formatStreamPart('assistant_message', {
+        formatAssistantStreamPart('assistant_message', {
           id: 'm0',
           role: 'assistant',
           content: [{ type: 'text', text: { value: '' } }],

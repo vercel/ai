@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { DataStreamPartType } from './data-stream-parts';
-import { processDataStream } from './process-data-stream';
+import { AssistantStreamPartType } from './assistant-stream-parts';
+import { processAssistantStream } from './process-assistant-stream';
 
 function createReadableStream(
   chunks: Uint8Array[],
@@ -22,9 +22,9 @@ describe('processDataStream', () => {
   it('should process a simple text stream part', async () => {
     const chunks = [encodeText('0:"Hello"\n')];
     const stream = createReadableStream(chunks);
-    const receivedParts: DataStreamPartType[] = [];
+    const receivedParts: AssistantStreamPartType[] = [];
 
-    await processDataStream({
+    await processAssistantStream({
       stream,
       onStreamPart: async part => {
         receivedParts.push(part);
@@ -39,11 +39,11 @@ describe('processDataStream', () => {
   });
 
   it('should handle multiple stream parts in sequence', async () => {
-    const chunks = [encodeText('0:"Hello"\n2:[1,2,3]\n3:"error"\n')];
+    const chunks = [encodeText('0:"Hello"\n0:"123"\n3:"error"\n')];
     const stream = createReadableStream(chunks);
-    const receivedParts: DataStreamPartType[] = [];
+    const receivedParts: AssistantStreamPartType[] = [];
 
-    await processDataStream({
+    await processAssistantStream({
       stream,
       onStreamPart: async part => {
         receivedParts.push(part);
@@ -52,7 +52,7 @@ describe('processDataStream', () => {
 
     expect(receivedParts).toHaveLength(3);
     expect(receivedParts[0]).toEqual({ type: 'text', value: 'Hello' });
-    expect(receivedParts[1]).toEqual({ type: 'data', value: [1, 2, 3] });
+    expect(receivedParts[1]).toEqual({ type: 'text', value: '123' });
     expect(receivedParts[2]).toEqual({ type: 'error', value: 'error' });
   });
 
@@ -60,9 +60,9 @@ describe('processDataStream', () => {
   it('should handle chunks that split JSON values', async () => {
     const chunks = [encodeText('0:"Hel'), encodeText('lo"\n')];
     const stream = createReadableStream(chunks);
-    const receivedParts: DataStreamPartType[] = [];
+    const receivedParts: AssistantStreamPartType[] = [];
 
-    await processDataStream({
+    await processAssistantStream({
       stream,
       onStreamPart: async part => {
         receivedParts.push(part);
@@ -76,9 +76,9 @@ describe('processDataStream', () => {
   it('should handle chunks that split at newlines', async () => {
     const chunks = [encodeText('0:"Hello"\n'), encodeText('0:"World"\n')];
     const stream = createReadableStream(chunks);
-    const receivedParts: DataStreamPartType[] = [];
+    const receivedParts: AssistantStreamPartType[] = [];
 
-    await processDataStream({
+    await processAssistantStream({
       stream,
       onStreamPart: async part => {
         receivedParts.push(part);
@@ -97,9 +97,9 @@ describe('processDataStream', () => {
 
     const chunks = [encoded.slice(0, splitPoint), encoded.slice(splitPoint)];
     const stream = createReadableStream(chunks);
-    const receivedParts: DataStreamPartType[] = [];
+    const receivedParts: AssistantStreamPartType[] = [];
 
-    await processDataStream({
+    await processAssistantStream({
       stream,
       onStreamPart: async part => {
         receivedParts.push(part);
@@ -116,7 +116,7 @@ describe('processDataStream', () => {
     const stream = createReadableStream(chunks);
 
     await expect(
-      processDataStream({
+      processAssistantStream({
         stream,
         onStreamPart: async () => {},
       }),
@@ -128,7 +128,7 @@ describe('processDataStream', () => {
     const stream = createReadableStream(chunks);
 
     await expect(
-      processDataStream({
+      processAssistantStream({
         stream,
         onStreamPart: async () => {},
       }),
@@ -144,9 +144,9 @@ describe('processDataStream', () => {
       encodeText('0:"World"\n'),
     ];
     const stream = createReadableStream(chunks);
-    const receivedParts: DataStreamPartType[] = [];
+    const receivedParts: AssistantStreamPartType[] = [];
 
-    await processDataStream({
+    await processAssistantStream({
       stream,
       onStreamPart: async part => {
         receivedParts.push(part);
@@ -162,9 +162,9 @@ describe('processDataStream', () => {
     const largeString = 'x'.repeat(1024 * 1024); // 1MB string
     const chunks = [encodeText(`0:"${largeString}"\n`)];
     const stream = createReadableStream(chunks);
-    const receivedParts: DataStreamPartType[] = [];
+    const receivedParts: AssistantStreamPartType[] = [];
 
-    await processDataStream({
+    await processAssistantStream({
       stream,
       onStreamPart: async part => {
         receivedParts.push(part);
@@ -178,9 +178,9 @@ describe('processDataStream', () => {
   it('should handle multiple newlines', async () => {
     const chunks = [encodeText('0:"Hello"\n\n0:"World"\n')];
     const stream = createReadableStream(chunks);
-    const receivedParts: DataStreamPartType[] = [];
+    const receivedParts: AssistantStreamPartType[] = [];
 
-    await processDataStream({
+    await processAssistantStream({
       stream,
       onStreamPart: async part => {
         receivedParts.push(part);
@@ -203,7 +203,7 @@ describe('processDataStream', () => {
       cancel: mockRelease,
     });
 
-    await processDataStream({
+    await processAssistantStream({
       stream,
       onStreamPart: async () => {},
     });
@@ -217,9 +217,9 @@ describe('processDataStream', () => {
     const parts = Array.from({ length: 100 }, (_, i) => `0:"Message ${i}"\n`);
     const chunks = parts.map(encodeText);
     const stream = createReadableStream(chunks);
-    const receivedParts: DataStreamPartType[] = [];
+    const receivedParts: AssistantStreamPartType[] = [];
 
-    await processDataStream({
+    await processAssistantStream({
       stream,
       onStreamPart: async part => {
         receivedParts.push(part);
