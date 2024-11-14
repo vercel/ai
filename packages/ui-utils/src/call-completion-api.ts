@@ -1,3 +1,4 @@
+import { processTextStream } from './process-text-stream';
 import { readDataStream } from './read-data-stream';
 import { JSONValue } from './types';
 
@@ -47,7 +48,7 @@ export async function callCompletionApi({
     // Empty the completion immediately.
     setCompletion('');
 
-    const res = await fetch(api, {
+    const response = await fetch(api, {
       method: 'POST',
       body: JSON.stringify({
         prompt,
@@ -65,52 +66,40 @@ export async function callCompletionApi({
 
     if (onResponse) {
       try {
-        await onResponse(res);
+        await onResponse(response);
       } catch (err) {
         throw err;
       }
     }
 
-    if (!res.ok) {
+    if (!response.ok) {
       throw new Error(
-        (await res.text()) || 'Failed to fetch the chat response.',
+        (await response.text()) ?? 'Failed to fetch the chat response.',
       );
     }
 
-    if (!res.body) {
+    if (!response.body) {
       throw new Error('The response body is empty.');
     }
 
     let result = '';
-    const reader = res.body.getReader();
 
     switch (streamProtocol) {
       case 'text': {
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-
-          // Update the completion state with the new message tokens.
-          result += decoder.decode(value, { stream: true });
-          setCompletion(result);
-
-          // The request has been aborted, stop reading the stream.
-          if (abortController === null) {
-            reader.cancel();
-            break;
-          }
-        }
-
+        await processTextStream({
+          stream: response.body,
+          onChunk: chunk => {
+            result += chunk;
+            setCompletion(result);
+          },
+        });
         break;
       }
 
       case 'data': {
+        const reader = response.body.getReader();
         for await (const { type, value } of readDataStream(reader, {
-          isAborted: () => abortController === null,
+          isAborted: () => abortController.signal.aborted,
         })) {
           switch (type) {
             case 'text': {

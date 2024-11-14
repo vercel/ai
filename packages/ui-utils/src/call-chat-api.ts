@@ -1,4 +1,5 @@
 import { processDataProtocolResponse } from './process-data-protocol-response';
+import { processTextStream } from './process-text-stream';
 import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
 
 // use function to allow for mocking in tests:
@@ -66,12 +67,8 @@ export async function callChatApi({
     throw new Error('The response body is empty.');
   }
 
-  const reader = response.body.getReader();
-
   switch (streamProtocol) {
     case 'text': {
-      const decoder = new TextDecoder();
-
       const resultMessage = {
         id: generateId(),
         createdAt: new Date(),
@@ -79,23 +76,15 @@ export async function callChatApi({
         content: '',
       };
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
+      await processTextStream({
+        stream: response.body,
+        onChunk: chunk => {
+          resultMessage.content += chunk;
 
-        resultMessage.content += decoder.decode(value, { stream: true });
-
-        // note: creating a new message object is required for Solid.js streaming
-        onUpdate([{ ...resultMessage }], []);
-
-        // The request has been aborted, stop reading the stream.
-        if (abortController?.() === null) {
-          reader.cancel();
-          break;
-        }
-      }
+          // note: creating a new message object is required for Solid.js streaming
+          onUpdate([{ ...resultMessage }], []);
+        },
+      });
 
       // in text mode, we don't have usage information or finish reason:
       onFinish?.(resultMessage, {
@@ -111,7 +100,7 @@ export async function callChatApi({
 
     case 'data': {
       return await processDataProtocolResponse({
-        reader,
+        reader: response.body.getReader(),
         abortControllerRef:
           abortController != null ? { current: abortController() } : undefined,
         update: onUpdate,
