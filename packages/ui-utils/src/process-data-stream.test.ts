@@ -26,8 +26,8 @@ describe('processDataStream', () => {
 
     await processDataStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: async value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -45,8 +45,14 @@ describe('processDataStream', () => {
 
     await processDataStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
+      },
+      onDataPart: value => {
+        receivedParts.push({ type: 'data', value });
+      },
+      onErrorPart: value => {
+        receivedParts.push({ type: 'error', value });
       },
     });
 
@@ -64,8 +70,8 @@ describe('processDataStream', () => {
 
     await processDataStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -80,8 +86,8 @@ describe('processDataStream', () => {
 
     await processDataStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -101,8 +107,8 @@ describe('processDataStream', () => {
 
     await processDataStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -118,7 +124,7 @@ describe('processDataStream', () => {
     await expect(
       processDataStream({
         stream,
-        onStreamPart: async () => {},
+        onTextPart: async () => {},
       }),
     ).rejects.toThrow();
   });
@@ -130,7 +136,7 @@ describe('processDataStream', () => {
     await expect(
       processDataStream({
         stream,
-        onStreamPart: async () => {},
+        onTextPart: async () => {},
       }),
     ).rejects.toThrow('Invalid code');
   });
@@ -148,8 +154,8 @@ describe('processDataStream', () => {
 
     await processDataStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -166,8 +172,8 @@ describe('processDataStream', () => {
 
     await processDataStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -182,8 +188,8 @@ describe('processDataStream', () => {
 
     await processDataStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -205,7 +211,7 @@ describe('processDataStream', () => {
 
     await processDataStream({
       stream,
-      onStreamPart: async () => {},
+      onTextPart: async () => {},
     });
 
     // The reader should be automatically released when the stream is done
@@ -221,8 +227,8 @@ describe('processDataStream', () => {
 
     await processDataStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
