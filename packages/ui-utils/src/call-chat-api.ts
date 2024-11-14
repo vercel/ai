@@ -1,4 +1,3 @@
-import { createChunkDecoder } from './index';
 import { processDataProtocolResponse } from './process-data-protocol-response';
 import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
 
@@ -71,7 +70,7 @@ export async function callChatApi({
 
   switch (streamProtocol) {
     case 'text': {
-      const decoder = createChunkDecoder();
+      const decoder = new TextDecoder();
 
       const resultMessage = {
         id: generateId(),
@@ -86,7 +85,7 @@ export async function callChatApi({
           break;
         }
 
-        resultMessage.content += decoder(value);
+        resultMessage.content += decoder.decode(value, { stream: true });
 
         // note: creating a new message object is required for Solid.js streaming
         onUpdate([{ ...resultMessage }], []);

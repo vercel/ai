@@ -1,6 +1,5 @@
 import { readDataStream } from './read-data-stream';
 import { JSONValue } from './types';
-import { createChunkDecoder } from './index';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -87,7 +86,7 @@ export async function callCompletionApi({
 
     switch (streamProtocol) {
       case 'text': {
-        const decoder = createChunkDecoder();
+        const decoder = new TextDecoder();
 
         while (true) {
           const { done, value } = await reader.read();
@@ -96,7 +95,7 @@ export async function callCompletionApi({
           }
 
           // Update the completion state with the new message tokens.
-          result += decoder(value);
+          result += decoder.decode(value, { stream: true });
           setCompletion(result);
 
           // The request has been aborted, stop reading the stream.
