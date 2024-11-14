@@ -259,6 +259,7 @@ describe('data protocol stream', () => {
           {
             message: {
               id: expect.any(String),
+              internalUpdateId: expect.any(String),
               createdAt: expect.any(Date),
               role: 'assistant',
               content: 'Hello, world.',

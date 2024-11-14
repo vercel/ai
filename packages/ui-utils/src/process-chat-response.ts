@@ -41,7 +41,7 @@ export async function processChatResponse({
   // keep track of partial tool calls
   const partialToolCalls: Record<
     string,
-    { text: string; prefixMapIndex: number; toolName: string }
+    { text: string; index: number; toolName: string }
   > = {};
 
   let usage: LanguageModelUsage = {
@@ -114,7 +114,7 @@ export async function processChatResponse({
       partialToolCalls[value.toolCallId] = {
         text: '',
         toolName: value.toolName,
-        prefixMapIndex: activeMessage.toolInvocations.length,
+        index: activeMessage.toolInvocations.length,
       };
 
       activeMessage.toolInvocations.push({
@@ -134,7 +134,7 @@ export async function processChatResponse({
 
       const { value: partialArgs } = parsePartialJson(partialToolCall.text);
 
-      activeMessage.toolInvocations![partialToolCall.prefixMapIndex] = {
+      activeMessage.toolInvocations![partialToolCall.index] = {
         state: 'partial-call',
         toolCallId: value.toolCallId,
         toolName: partialToolCall.toolName,
@@ -149,7 +149,7 @@ export async function processChatResponse({
       if (partialToolCalls[value.toolCallId] != null) {
         // change the partial tool call to a full tool call
         activeMessage.toolInvocations![
-          partialToolCalls[value.toolCallId].prefixMapIndex
+          partialToolCalls[value.toolCallId].index
         ] = { state: 'call', ...value };
       } else {
         if (activeMessage.toolInvocations == null) {
