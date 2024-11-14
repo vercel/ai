@@ -1,4 +1,4 @@
-import { StreamPartType, parseStreamPart } from './stream-parts';
+import { parseStreamPart, StreamPartType } from './stream-parts';
 
 const NEWLINE = '\n'.charCodeAt(0);
 
@@ -16,20 +16,13 @@ function concatChunks(chunks: Uint8Array[], totalLength: number) {
   return concatenatedChunks;
 }
 
-/**
-Converts a ReadableStreamDefaultReader into an async generator that yields
-StreamPart objects.
-
-@param reader
-       Reader for the stream to read from.
-@param isAborted
-       Optional function that returns true if the request has been aborted.
-       If the function returns true, the generator will stop reading the stream.
-       If the function is not provided, the generator will not stop reading the stream.
- */
-export async function* readDataStream(
-  stream: ReadableStream<Uint8Array>,
-): AsyncGenerator<StreamPartType> {
+export async function processDataStream({
+  stream,
+  onStreamPart,
+}: {
+  stream: ReadableStream<Uint8Array>;
+  onStreamPart: (streamPart: StreamPartType) => Promise<void> | void;
+}): Promise<void> {
   // implementation note: this slightly more complex algorithm is required
   // to pass the tests in the edge environment.
 
@@ -64,7 +57,7 @@ export async function* readDataStream(
       .map(parseStreamPart);
 
     for (const streamPart of streamParts) {
-      yield streamPart;
+      await onStreamPart(streamPart);
     }
   }
 }
