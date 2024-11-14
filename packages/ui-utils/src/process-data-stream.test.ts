@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { processDataStream } from '../process-data-stream';
-import { StreamPartType } from '../stream-parts';
+import { processDataStream } from './process-data-stream';
+import { StreamPartType } from './stream-parts';
 
 function createReadableStream(
   chunks: Uint8Array[],
