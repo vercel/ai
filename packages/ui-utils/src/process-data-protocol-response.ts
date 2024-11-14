@@ -53,11 +53,7 @@ export async function processDataProtocolResponse({
     { text: string; prefixMapIndex: number; toolName: string }
   > = {};
 
-  let usage: {
-    completionTokens: number;
-    promptTokens: number;
-    totalTokens: number;
-  } = {
+  let usage: LanguageModelUsage = {
     completionTokens: NaN,
     promptTokens: NaN,
     totalTokens: NaN,
