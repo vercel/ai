@@ -19,7 +19,7 @@
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.4.7",
-    "ai": "4.0.0-canary.10",
+    "ai": "4.0.0-canary.11",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1"
   },
