@@ -227,14 +227,6 @@ Details for all steps.
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS> {
-  if (maxSteps < 1) {
-    throw new InvalidArgumentError({
-      parameter: 'maxSteps',
-      value: maxSteps,
-      message: 'maxSteps must be at least 1',
-    });
-  }
-
   return new DefaultStreamTextResult({
     model,
     telemetry,
@@ -380,6 +372,14 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     currentDate: () => Date;
     generateId: () => string;
   }) {
+    if (maxSteps < 1) {
+      throw new InvalidArgumentError({
+        parameter: 'maxSteps',
+        value: maxSteps,
+        message: 'maxSteps must be at least 1',
+      });
+    }
+
     const tracer = getTracer(telemetry);
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
