@@ -5,7 +5,7 @@ import {
   Message,
   UseAssistantOptions,
   generateId,
-  readDataStream,
+  processDataStream,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useRef, useState } from 'react';
 
@@ -176,71 +176,72 @@ export function useAssistant({
         throw new Error('The response body is empty.');
       }
 
-      for await (const { type, value } of readDataStream(
-        response.body.getReader(),
-      )) {
-        switch (type) {
-          case 'assistant_message': {
-            setMessages(messages => [
-              ...messages,
-              {
-                id: value.id,
-                role: value.role,
-                content: value.content[0].text.value,
-              },
-            ]);
-            break;
-          }
-
-          case 'text': {
-            // text delta - add to last message:
-            setMessages(messages => {
-              const lastMessage = messages[messages.length - 1];
-              return [
-                ...messages.slice(0, messages.length - 1),
+      await processDataStream({
+        stream: response.body,
+        onStreamPart: async ({ type, value }) => {
+          switch (type) {
+            case 'assistant_message': {
+              setMessages(messages => [
+                ...messages,
                 {
-                  id: lastMessage.id,
-                  role: lastMessage.role,
-                  content: lastMessage.content + value,
+                  id: value.id,
+                  role: value.role,
+                  content: value.content[0].text.value,
                 },
-              ];
-            });
+              ]);
+              break;
+            }
 
-            break;
+            case 'text': {
+              // text delta - add to last message:
+              setMessages(messages => {
+                const lastMessage = messages[messages.length - 1];
+                return [
+                  ...messages.slice(0, messages.length - 1),
+                  {
+                    id: lastMessage.id,
+                    role: lastMessage.role,
+                    content: lastMessage.content + value,
+                  },
+                ];
+              });
+
+              break;
+            }
+
+            case 'data_message': {
+              setMessages(messages => [
+                ...messages,
+                {
+                  id: value.id ?? generateId(),
+                  role: 'data',
+                  content: '',
+                  data: value.data,
+                },
+              ]);
+              break;
+            }
+
+            case 'assistant_control_data': {
+              setCurrentThreadId(value.threadId);
+
+              // set id of last message:
+              setMessages(messages => {
+                const lastMessage = messages[messages.length - 1];
+                lastMessage.id = value.messageId;
+                return [...messages.slice(0, messages.length - 1), lastMessage];
+              });
+
+              break;
+            }
+
+            case 'error': {
+              setError(new Error(value));
+              break;
+            }
           }
-
-          case 'data_message': {
-            setMessages(messages => [
-              ...messages,
-              {
-                id: value.id ?? generateId(),
-                role: 'data',
-                content: '',
-                data: value.data,
-              },
-            ]);
-            break;
-          }
-
-          case 'assistant_control_data': {
-            setCurrentThreadId(value.threadId);
-
-            // set id of last message:
-            setMessages(messages => {
-              const lastMessage = messages[messages.length - 1];
-              lastMessage.id = value.messageId;
-              return [...messages.slice(0, messages.length - 1), lastMessage];
-            });
-
-            break;
-          }
-
-          case 'error': {
-            setError(new Error(value));
-            break;
-          }
-        }
-      }
+        },
+      });
     } catch (error) {
       // Ignore abort errors as they are expected when the user cancels the request:
       if (isAbortError(error) && abortController.signal.aborted) {
