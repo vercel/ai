@@ -77,7 +77,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   "request": {},
   "response": {
     "headers": {
-      "call": "1",
+      "call": "2",
     },
     "id": "id-1",
     "messages": [
@@ -815,7 +815,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   "logprobs": undefined,
   "request": {},
   "response": {
-    "headers": undefined,
+    "headers": {
+      "call": "3",
+    },
     "id": "id-3",
     "messages": [
       {

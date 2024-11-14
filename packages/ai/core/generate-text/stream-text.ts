@@ -4,7 +4,7 @@ import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { StreamData } from '../../streams/stream-data';
-import { createResolvablePromise } from '../../util/create-resolvable-promise';
+import { DelayedPromise } from '../../util/delayed-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -20,6 +20,15 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
+import {
+  CallWarning,
+  CoreToolChoice,
+  FinishReason,
+  LanguageModel,
+  LogProbs,
+} from '../types/language-model';
+import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import {
   AsyncIterableStream,
@@ -41,16 +50,6 @@ import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
-import { DelayedPromise } from '../../util/delayed-promise';
-import {
-  CallWarning,
-  CoreToolChoice,
-  FinishReason,
-  LanguageModel,
-  LogProbs,
-} from '../types/language-model';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -228,14 +227,6 @@ Details for all steps.
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS> {
-  if (maxSteps < 1) {
-    throw new InvalidArgumentError({
-      parameter: 'maxSteps',
-      value: maxSteps,
-      message: 'maxSteps must be at least 1',
-    });
-  }
-
   return new DefaultStreamTextResult({
     model,
     telemetry,
@@ -261,19 +252,6 @@ Details for all steps.
     generateId,
   });
 }
-
-type StartStepFunction<TOOLS extends Record<string, CoreTool>> = (options: {
-  responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
-}) => Promise<{
-  result: {
-    stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
-    warnings: CallWarning[] | undefined;
-    rawResponse: { headers?: Record<string, string> } | undefined;
-    request: LanguageModelRequestMetadata;
-  };
-  doStreamSpan: Span;
-  startTimestampMs: number;
-}>;
 
 class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   implements StreamTextResult<TOOLS>
@@ -381,6 +359,14 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     currentDate: () => Date;
     generateId: () => string;
   }) {
+    if (maxSteps < 1) {
+      throw new InvalidArgumentError({
+        parameter: 'maxSteps',
+        value: maxSteps,
+        message: 'maxSteps must be at least 1',
+      });
+    }
+
     const tracer = getTracer(telemetry);
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
@@ -396,9 +382,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     });
 
     const self = this;
-
-    // collect step results
-    const stepResults: StepResult<TOOLS>[] = [];
 
     recordSpan({
       name: 'ai.streamText',
@@ -419,11 +402,24 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       fn: async rootSpan => {
         const retry = retryWithExponentialBackoff({ maxRetries });
 
-        const startStep: StartStepFunction<TOOLS> = async ({
+        // collect step results
+        const stepResults: StepResult<TOOLS>[] = [];
+
+        async function streamStep({
+          currentStep,
           responseMessages,
+          usage,
+          stepType,
+          previousStepText,
+          hasLeadingWhitespace,
         }: {
+          currentStep: number;
           responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
-        }) => {
+          usage: LanguageModelUsage;
+          stepType: 'initial' | 'continue' | 'tool-result';
+          previousStepText: string;
+          hasLeadingWhitespace: boolean;
+        }) {
           // after the 1st step, we need to switch to messages format:
           const promptFormat =
             responseMessages.length === 0 ? initialPrompt.type : 'messages';
@@ -505,63 +501,16 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             }),
           );
 
-          return {
-            result: {
-              stream: runToolsTransformation({
-                tools,
-                generatorStream: stream,
-                toolCallStreaming,
-                tracer,
-                telemetry,
-                abortSignal,
-              }),
-              warnings,
-              request: request ?? {},
-              rawResponse,
-            },
-            doStreamSpan,
-            startTimestampMs,
-          };
-        };
+          const transformedStream = runToolsTransformation({
+            tools,
+            generatorStream: stream,
+            toolCallStreaming,
+            tracer,
+            telemetry,
+            abortSignal,
+          });
 
-        const {
-          result: { stream, warnings, rawResponse, request },
-          doStreamSpan,
-          startTimestampMs,
-        } = await startStep({ responseMessages: [] });
-
-        // add the steps stream
-        function addStepStream({
-          stream,
-          startTimestamp,
-          doStreamSpan,
-          currentStep,
-          responseMessages,
-          usage = {
-            promptTokens: 0,
-            completionTokens: 0,
-            totalTokens: 0,
-          },
-          stepType,
-          previousStepText = '',
-          stepRequest,
-          hasLeadingWhitespace,
-          warnings,
-          response,
-        }: {
-          stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
-          startTimestamp: number;
-          doStreamSpan: Span;
-          currentStep: number;
-          responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
-          usage: LanguageModelUsage | undefined;
-          stepType: 'initial' | 'continue' | 'tool-result';
-          previousStepText?: string;
-          stepRequest: LanguageModelRequestMetadata;
-          hasLeadingWhitespace: boolean;
-          warnings: CallWarning[] | undefined;
-          response: { headers?: Record<string, string> } | undefined;
-        }) {
+          const stepRequest = request ?? {};
           const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
           const stepToolResults: ToolResultUnion<TOOLS>[] = [];
           let stepFinishReason: FinishReason = 'unknown';
@@ -605,7 +554,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           }
 
           self.stitchableStream.addStream(
-            stream.pipeThrough(
+            transformedStream.pipeThrough(
               new TransformStream<
                 SingleRequestTextStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
@@ -613,7 +562,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 async transform(chunk, controller): Promise<void> {
                   // Telemetry for first chunk:
                   if (stepFirstChunk) {
-                    const msToFirstChunk = now() - startTimestamp;
+                    const msToFirstChunk = now() - startTimestampMs;
 
                     stepFirstChunk = false;
 
@@ -710,7 +659,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                       // Telemetry for finish event timing
                       // (since tool executions can take longer and distort calculations)
-                      const msToFinish = now() - startTimestamp;
+                      const msToFinish = now() - startTimestampMs;
                       doStreamSpan.addEvent('ai.stream.finish');
                       doStreamSpan.setAttributes({
                         'ai.response.msToFinish': msToFinish,
@@ -877,7 +826,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     request: stepRequest,
                     response: {
                       ...stepResponse,
-                      headers: response?.headers,
+                      headers: rawResponse?.headers,
 
                       // deep clone msgs to avoid mutating past messages in multi-step:
                       messages: JSON.parse(JSON.stringify(responseMessages)),
@@ -898,31 +847,14 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   };
 
                   if (nextStepType !== 'done') {
-                    // create call and doStream span:
-                    const {
-                      result,
-                      doStreamSpan,
-                      startTimestampMs: startTimestamp,
-                    } = await startStep({ responseMessages });
-
-                    // update warnings and rawResponse:
-                    warnings = result.warnings;
-                    response = result.rawResponse;
-
                     // needs to add to stitchable stream
-                    addStepStream({
-                      stream: result.stream,
-                      startTimestamp,
-                      doStreamSpan,
+                    await streamStep({
                       currentStep: currentStep + 1,
                       responseMessages,
                       usage: combinedUsage,
                       stepType: nextStepType,
                       previousStepText: fullStepText,
-                      stepRequest: result.request,
                       hasLeadingWhitespace: hasWhitespaceSuffix,
-                      warnings,
-                      response,
                     });
 
                     return;
@@ -1012,18 +944,17 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         }
 
         // add the initial stream to the stitchable stream
-        addStepStream({
-          stream,
-          startTimestamp: startTimestampMs,
-          doStreamSpan,
+        await streamStep({
           currentStep: 0,
           responseMessages: [],
-          usage: undefined,
+          usage: {
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
+          },
+          previousStepText: '',
           stepType: 'initial',
-          stepRequest: request,
           hasLeadingWhitespace: false,
-          warnings,
-          response: rawResponse,
         });
       },
     }).catch(error => {
