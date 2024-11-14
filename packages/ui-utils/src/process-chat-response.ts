@@ -263,11 +263,4 @@ export async function processChatResponse({
   });
 
   onFinish?.({ message: currentMessage, finishReason, usage });
-
-  return {
-    messages: [currentMessage as Message | undefined].filter(
-      Boolean,
-    ) as Message[],
-    data,
-  };
 }

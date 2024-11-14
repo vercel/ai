@@ -68,17 +68,6 @@ describe('scenario: simple text response', () => {
     });
   });
 
-  it('should return the correct messages', async () => {
-    expect(result.messages).toStrictEqual([
-      {
-        id: 'mock-id',
-        role: 'assistant',
-        content: 'Hello, world!',
-        createdAt: new Date('2023-01-01'),
-      },
-    ]);
-  });
-
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
@@ -164,17 +153,6 @@ describe('scenario: server-side tool roundtrip', () => {
       generateId: vi.fn().mockReturnValue('mock-id'),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
-  });
-
-  it('should return the correct messages', async () => {
-    expect(result.messages).toStrictEqual([
-      {
-        id: 'mock-id',
-        role: 'assistant',
-        content: 'The weather in London is sunny.',
-        createdAt: new Date('2023-01-01'),
-      },
-    ]);
   });
 
   it('should call the update function with the correct arguments', async () => {
@@ -312,17 +290,6 @@ describe('scenario: server-side continue roundtrip', () => {
     });
   });
 
-  it('should return the correct messages', async () => {
-    expect(result.messages).toStrictEqual([
-      {
-        id: 'mock-id',
-        role: 'assistant',
-        content: 'The weather in London is sunny.',
-        createdAt: new Date('2023-01-01'),
-      },
-    ]);
-  });
-
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
@@ -400,19 +367,6 @@ describe('scenario: delayed message annotations in onFinish', () => {
       generateId: vi.fn().mockReturnValue('mock-id'),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
-  });
-
-  it('should return the correct messages', async () => {
-    expect(result.messages).toStrictEqual([
-      {
-        id: 'mock-id',
-        role: 'assistant',
-        content: 'text',
-        createdAt: new Date('2023-01-01'),
-        annotations: [{ example: 'annotation' }],
-        internalUpdateId: 'mock-id',
-      },
-    ]);
   });
 
   it('should call the update function with the correct arguments', async () => {
@@ -493,19 +447,6 @@ describe('scenario: message annotations in onChunk', () => {
       generateId: vi.fn().mockReturnValue('mock-id'),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
-  });
-
-  it('should return the correct messages', async () => {
-    expect(result.messages).toStrictEqual([
-      {
-        id: 'mock-id',
-        role: 'assistant',
-        content: 't1t2',
-        createdAt: new Date('2023-01-01'),
-        annotations: ['annotation1', 'annotation2'],
-        internalUpdateId: 'mock-id',
-      },
-    ]);
   });
 
   it('should call the update function with the correct arguments', async () => {
