@@ -74,6 +74,21 @@ export async function processDataProtocolResponse({
     update([...previousMessages, ...merged], [...data]); // make a copy of the data array
   }
 
+  // switch to the next prefix map once we start receiving
+  // content of the next message. Stream data annotations
+  // are associated with the previous message until then to
+  // support sending them in onFinish and onStepFinish:
+  function switchMessage() {
+    if (nextMessage != null) {
+      if (currentMessage.message) {
+        previousMessages.push(currentMessage.message);
+      }
+
+      currentMessage = nextMessage;
+      nextMessage = undefined;
+    }
+  }
+
   // we create a map of each prefix, and for each prefixed message we push to the map
   await processDataStream({
     stream,
@@ -99,29 +114,8 @@ export async function processDataProtocolResponse({
         }
 
         return;
-      }
-
-      // switch to the next prefix map once we start receiving
-      // content of the next message. Stream data annotations
-      // are associated with the previous message until then to
-      // support sending them in onFinish and onStepFinish:
-      if (
-        nextMessage != null &&
-        (type === 'text' ||
-          type === 'tool_call' ||
-          type === 'tool_call_streaming_start' ||
-          type === 'tool_call_delta' ||
-          type === 'tool_result')
-      ) {
-        if (currentMessage.message) {
-          previousMessages.push(currentMessage.message);
-        }
-
-        currentMessage = nextMessage;
-        nextMessage = undefined;
-      }
-
-      if (type === 'text') {
+      } else if (type === 'text') {
+        switchMessage();
         if (currentMessage['message']) {
           currentMessage['message'] = {
             ...currentMessage['message'],
@@ -137,6 +131,7 @@ export async function processDataProtocolResponse({
         }
         execUpdate();
       } else if (type === 'tool_call_streaming_start') {
+        switchMessage();
         // create message if it doesn't exist
         if (currentMessage.message == null) {
           currentMessage.message = {
@@ -166,6 +161,7 @@ export async function processDataProtocolResponse({
         });
         execUpdate();
       } else if (type === 'tool_call_delta') {
+        switchMessage();
         const partialToolCall = partialToolCalls[value.toolCallId];
 
         partialToolCall.text += value.argsTextDelta;
@@ -186,6 +182,7 @@ export async function processDataProtocolResponse({
         (currentMessage.message! as any).internalUpdateId = generateId();
         execUpdate();
       } else if (type === 'tool_call') {
+        switchMessage();
         if (partialToolCalls[value.toolCallId] != null) {
           // change the partial tool call to a full tool call
           currentMessage.message!.toolInvocations![
@@ -230,6 +227,7 @@ export async function processDataProtocolResponse({
         }
         execUpdate();
       } else if (type === 'tool_result') {
+        switchMessage();
         const toolInvocations = currentMessage.message?.toolInvocations;
 
         if (toolInvocations == null) {
