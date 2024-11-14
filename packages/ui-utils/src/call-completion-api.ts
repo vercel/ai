@@ -88,34 +88,29 @@ export async function callCompletionApi({
       case 'text': {
         await processTextStream({
           stream: response.body,
-          onChunk: chunk => {
+          onTextPart: chunk => {
             result += chunk;
             setCompletion(result);
           },
         });
         break;
       }
-
       case 'data': {
         await processDataStream({
           stream: response.body,
-          onStreamPart: ({ type, value }) => {
-            switch (type) {
-              case 'text': {
-                result += value;
-                setCompletion(result);
-                break;
-              }
-              case 'data': {
-                onData?.(value);
-                break;
-              }
-            }
+          onTextPart(value) {
+            result += value;
+            setCompletion(result);
+          },
+          onDataPart(value) {
+            onData?.(value);
+          },
+          onErrorPart(value) {
+            throw new Error(value);
           },
         });
         break;
       }
-
       default: {
         const exhaustiveCheck: never = streamProtocol;
         throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);

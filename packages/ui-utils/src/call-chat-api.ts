@@ -78,7 +78,7 @@ export async function callChatApi({
 
       await processTextStream({
         stream: response.body,
-        onChunk: chunk => {
+        onTextPart: chunk => {
           resultMessage.content += chunk;
 
           // note: creating a new message object is required for Solid.js streaming
