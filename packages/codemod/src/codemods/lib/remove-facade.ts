@@ -15,10 +15,30 @@ export function removeFacade(
   const root = j(fileInfo.source);
   const importPath = `@ai-sdk/${config.packageName}`;
 
-  // Replace imports
-  root.find(j.ImportDeclaration).forEach(path => {
-    const sourceValue = path.node.source.value;
-    if (sourceValue === importPath) {
+  // Track which imports came from our target package
+  const targetImports = new Set<string>();
+
+  // First pass - collect imports from our target package
+  root
+    .find(j.ImportDeclaration)
+    .filter(path => path.node.source.value === importPath)
+    .forEach(path => {
+      path.node.specifiers?.forEach(spec => {
+        if (
+          spec.type === 'ImportSpecifier' &&
+          spec.imported.name === config.className &&
+          spec.local
+        ) {
+          targetImports.add(spec.local.name);
+        }
+      });
+    });
+
+  // Second pass - replace imports we found
+  root
+    .find(j.ImportDeclaration)
+    .filter(path => path.node.source.value === importPath)
+    .forEach(path => {
       const hasClassSpecifier = path.node.specifiers?.some(
         spec =>
           spec.type === 'ImportSpecifier' &&
@@ -26,28 +46,28 @@ export function removeFacade(
       );
 
       if (hasClassSpecifier) {
-        path.node.source.value = importPath;
         path.node.specifiers = [
           j.importSpecifier(j.identifier(config.createFnName)),
         ];
       }
-    }
-  });
+    });
 
-  // Replace new Class() with createFn()
-  root.find(j.NewExpression).forEach(path => {
-    if (
-      path.node.callee.type === 'Identifier' &&
-      path.node.callee.name === config.className
-    ) {
+  // Only replace new expressions for classes from our package
+  root
+    .find(j.NewExpression)
+    .filter(
+      path =>
+        path.node.callee.type === 'Identifier' &&
+        targetImports.has(path.node.callee.name),
+    )
+    .forEach(path => {
       j(path).replaceWith(
         j.callExpression(
           j.identifier(config.createFnName),
           path.node.arguments,
         ),
       );
-    }
-  });
+    });
 
   return root.toSource();
 }
