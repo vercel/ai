@@ -7,7 +7,6 @@ export { generateId } from '@ai-sdk/provider-utils';
 // NOTE: this is experimental / internal and may change without notice
 export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
-export { createChunkDecoder } from './create-chunk-decoder';
 export { getTextFromDataUrl } from './data-url';
 export type { DeepPartial } from './deep-partial';
 export { isDeepEqualData } from './is-deep-equal-data';
