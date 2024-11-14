@@ -64,9 +64,9 @@ export async function processChatResponse({
       currentMessage.annotations = messageAnnotations;
     }
 
-    // trigger update for streaming by copying adding a update id that changes
+    // trigger update for streaming by copying adding a revision id that changes
     // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-    (currentMessage! as any).internalUpdateId = generateId();
+    (currentMessage! as any).revisionId = generateId();
 
     update([...previousMessages, currentMessage], [...data]); // make a copy of the data array
   }

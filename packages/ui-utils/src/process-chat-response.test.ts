@@ -72,7 +72,7 @@ describe('scenario: simple text response', () => {
             content: 'Hello, ',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-1',
+            revisionId: 'id-1',
             role: 'assistant',
           },
         ],
@@ -84,7 +84,7 @@ describe('scenario: simple text response', () => {
             content: 'Hello, world!',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-2',
+            revisionId: 'id-2',
             role: 'assistant',
           },
         ],
@@ -100,7 +100,7 @@ describe('scenario: simple text response', () => {
           content: 'Hello, world!',
           createdAt: '2023-01-01T00:00:00.000Z',
           id: 'id-0',
-          internalUpdateId: 'id-2',
+          revisionId: 'id-2',
           role: 'assistant',
         },
         finishReason: 'stop',
@@ -158,7 +158,7 @@ describe('scenario: server-side tool roundtrip', () => {
         newMessages: [
           {
             id: 'id-0',
-            internalUpdateId: 'id-1',
+            revisionId: 'id-1',
             role: 'assistant',
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -180,7 +180,7 @@ describe('scenario: server-side tool roundtrip', () => {
         newMessages: [
           {
             id: 'id-0',
-            internalUpdateId: 'id-2',
+            revisionId: 'id-2',
             role: 'assistant',
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -207,7 +207,7 @@ describe('scenario: server-side tool roundtrip', () => {
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-2',
+            revisionId: 'id-2',
             role: 'assistant',
             toolInvocations: [
               {
@@ -225,7 +225,7 @@ describe('scenario: server-side tool roundtrip', () => {
           },
           {
             id: 'id-3',
-            internalUpdateId: 'id-4',
+            revisionId: 'id-4',
             role: 'assistant',
             content: 'The weather in London is sunny.',
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -241,7 +241,7 @@ describe('scenario: server-side tool roundtrip', () => {
       {
         message: {
           id: 'id-3',
-          internalUpdateId: 'id-4',
+          revisionId: 'id-4',
           role: 'assistant',
           content: 'The weather in London is sunny.',
           createdAt: '2023-01-01T00:00:00.000Z',
@@ -293,7 +293,7 @@ describe('scenario: server-side continue roundtrip', () => {
         newMessages: [
           {
             id: 'id-0',
-            internalUpdateId: 'id-1',
+            revisionId: 'id-1',
             role: 'assistant',
             content: 'The weather in London ',
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -305,7 +305,7 @@ describe('scenario: server-side continue roundtrip', () => {
         newMessages: [
           {
             id: 'id-0',
-            internalUpdateId: 'id-2',
+            revisionId: 'id-2',
             role: 'assistant',
             content: 'The weather in London is sunny.',
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -321,7 +321,7 @@ describe('scenario: server-side continue roundtrip', () => {
       {
         message: {
           id: 'id-0',
-          internalUpdateId: 'id-2',
+          revisionId: 'id-2',
           role: 'assistant',
           content: 'The weather in London is sunny.',
           createdAt: '2023-01-01T00:00:00.000Z',
@@ -375,7 +375,7 @@ describe('scenario: delayed message annotations in onFinish', () => {
             content: 'text',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-1',
+            revisionId: 'id-1',
             role: 'assistant',
           },
         ],
@@ -387,7 +387,7 @@ describe('scenario: delayed message annotations in onFinish', () => {
             content: 'text',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-2',
+            revisionId: 'id-2',
             role: 'assistant',
             annotations: [{ example: 'annotation' }],
           },
@@ -404,7 +404,7 @@ describe('scenario: delayed message annotations in onFinish', () => {
           content: 'text',
           createdAt: '2023-01-01T00:00:00.000Z',
           id: 'id-0',
-          internalUpdateId: 'id-2',
+          revisionId: 'id-2',
           role: 'assistant',
           annotations: [{ example: 'annotation' }],
         },
@@ -458,7 +458,7 @@ describe('scenario: message annotations in onChunk', () => {
             content: 't1',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-1',
+            revisionId: 'id-1',
             role: 'assistant',
             annotations: ['annotation1'],
           },
@@ -471,7 +471,7 @@ describe('scenario: message annotations in onChunk', () => {
             content: 't1',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-2',
+            revisionId: 'id-2',
             role: 'assistant',
             annotations: ['annotation1', 'annotation2'],
           },
@@ -484,7 +484,7 @@ describe('scenario: message annotations in onChunk', () => {
             content: 't1t2',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-3',
+            revisionId: 'id-3',
             role: 'assistant',
             annotations: ['annotation1', 'annotation2'],
           },
@@ -501,7 +501,7 @@ describe('scenario: message annotations in onChunk', () => {
           content: 't1t2',
           createdAt: '2023-01-01T00:00:00.000Z',
           id: 'id-0',
-          internalUpdateId: 'id-3',
+          revisionId: 'id-3',
           role: 'assistant',
           annotations: ['annotation1', 'annotation2'],
         },
@@ -568,7 +568,7 @@ describe('scenario: tool call streaming', () => {
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-1',
+            revisionId: 'id-1',
             role: 'assistant',
             toolInvocations: [
               {
@@ -587,7 +587,7 @@ describe('scenario: tool call streaming', () => {
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-2',
+            revisionId: 'id-2',
             role: 'assistant',
             toolInvocations: [
               {
@@ -609,7 +609,7 @@ describe('scenario: tool call streaming', () => {
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-3',
+            revisionId: 'id-3',
             role: 'assistant',
             toolInvocations: [
               {
@@ -631,7 +631,7 @@ describe('scenario: tool call streaming', () => {
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-4',
+            revisionId: 'id-4',
             role: 'assistant',
             toolInvocations: [
               {
@@ -653,7 +653,7 @@ describe('scenario: tool call streaming', () => {
             content: '',
             createdAt: '2023-01-01T00:00:00.000Z',
             id: 'id-0',
-            internalUpdateId: 'id-5',
+            revisionId: 'id-5',
             role: 'assistant',
             toolInvocations: [
               {
@@ -680,7 +680,7 @@ describe('scenario: tool call streaming', () => {
           content: '',
           createdAt: '2023-01-01T00:00:00.000Z',
           id: 'id-0',
-          internalUpdateId: 'id-5',
+          revisionId: 'id-5',
           role: 'assistant',
           toolInvocations: [
             {
