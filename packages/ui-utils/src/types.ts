@@ -4,7 +4,7 @@ import {
   ToolResult as CoreToolResult,
   FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { CompletionTokenUsage } from './duplicated/token-usage';
+import { LanguageModelUsage } from './duplicated/usage';
 
 export * from './use-assistant-types';
 
@@ -206,7 +206,7 @@ either synchronously or asynchronously.
   onFinish?: (
     message: Message,
     options: {
-      usage: CompletionTokenUsage;
+      usage: LanguageModelUsage;
       finishReason: LanguageModelV1FinishReason;
     },
   ) => void;
