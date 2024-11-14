@@ -4,7 +4,7 @@ import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { StreamData } from '../../streams/stream-data';
-import { createResolvablePromise } from '../../util/create-resolvable-promise';
+import { DelayedPromise } from '../../util/delayed-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -20,6 +20,15 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
+import {
+  CallWarning,
+  CoreToolChoice,
+  FinishReason,
+  LanguageModel,
+  LogProbs,
+} from '../types/language-model';
+import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import {
   AsyncIterableStream,
@@ -41,16 +50,6 @@ import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
-import { DelayedPromise } from '../../util/delayed-promise';
-import {
-  CallWarning,
-  CoreToolChoice,
-  FinishReason,
-  LanguageModel,
-  LogProbs,
-} from '../types/language-model';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
