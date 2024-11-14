@@ -66,16 +66,12 @@ export async function processDataProtocolResponse({
     onStreamPart: async ({ type, value }) => {
       if (type === 'error') {
         throw new Error(value);
-      }
-
-      if (type === 'finish_step') {
+      } else if (type === 'finish_step') {
         if (!value.isContinued) {
           nextMessage = {};
         }
         return;
-      }
-
-      if (type === 'finish_message') {
+      } else if (type === 'finish_message') {
         finishReason = value.finishReason;
 
         if (value.usage != null) {
@@ -125,10 +121,7 @@ export async function processDataProtocolResponse({
             createdAt,
           };
         }
-      }
-
-      // Tool invocations are part of an assistant message
-      if (type === 'tool_call_streaming_start') {
+      } else if (type === 'tool_call_streaming_start') {
         // create message if it doesn't exist
         if (currentMessage.message == null) {
           currentMessage.message = {
@@ -242,13 +235,9 @@ export async function processDataProtocolResponse({
           state: 'result' as const,
           ...value,
         };
-      }
-
-      if (type === 'data') {
+      } else if (type === 'data') {
         data.push(...value);
-      }
-
-      if (type === 'message_annotations') {
+      } else if (type === 'message_annotations') {
         if (!messageAnnotations) {
           messageAnnotations = [...value];
         } else {
