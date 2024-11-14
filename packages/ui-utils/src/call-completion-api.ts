@@ -48,7 +48,7 @@ export async function callCompletionApi({
     // Empty the completion immediately.
     setCompletion('');
 
-    const res = await fetch(api, {
+    const response = await fetch(api, {
       method: 'POST',
       body: JSON.stringify({
         prompt,
@@ -66,40 +66,38 @@ export async function callCompletionApi({
 
     if (onResponse) {
       try {
-        await onResponse(res);
+        await onResponse(response);
       } catch (err) {
         throw err;
       }
     }
 
-    if (!res.ok) {
+    if (!response.ok) {
       throw new Error(
-        (await res.text()) || 'Failed to fetch the chat response.',
+        (await response.text()) ?? 'Failed to fetch the chat response.',
       );
     }
 
-    if (!res.body) {
+    if (!response.body) {
       throw new Error('The response body is empty.');
     }
 
     let result = '';
-    const reader = res.body.getReader();
 
     switch (streamProtocol) {
       case 'text': {
         await processTextStream({
-          reader,
-          isAborted: () => abortController.signal.aborted,
+          stream: response.body,
           onChunk: chunk => {
             result += chunk;
             setCompletion(result);
           },
         });
-
         break;
       }
 
       case 'data': {
+        const reader = response.body.getReader();
         for await (const { type, value } of readDataStream(reader, {
           isAborted: () => abortController.signal.aborted,
         })) {

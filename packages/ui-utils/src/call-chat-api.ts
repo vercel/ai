@@ -67,8 +67,6 @@ export async function callChatApi({
     throw new Error('The response body is empty.');
   }
 
-  const reader = response.body.getReader();
-
   switch (streamProtocol) {
     case 'text': {
       const resultMessage = {
@@ -79,8 +77,7 @@ export async function callChatApi({
       };
 
       await processTextStream({
-        reader,
-        isAborted: () => abortController?.()?.signal.aborted ?? true,
+        stream: response.body,
         onChunk: chunk => {
           resultMessage.content += chunk;
 
@@ -103,7 +100,7 @@ export async function callChatApi({
 
     case 'data': {
       return await processDataProtocolResponse({
-        reader,
+        reader: response.body.getReader(),
         abortControllerRef:
           abortController != null ? { current: abortController() } : undefined,
         update: onUpdate,

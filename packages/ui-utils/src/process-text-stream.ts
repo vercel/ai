@@ -1,26 +1,16 @@
 export async function processTextStream({
-  reader,
-  isAborted,
+  stream,
   onChunk,
 }: {
-  reader: ReadableStreamDefaultReader<Uint8Array>;
-  isAborted: () => boolean;
+  stream: ReadableStream<Uint8Array>;
   onChunk: (chunk: string) => void;
 }) {
-  const decoder = new TextDecoder();
-
+  const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
   while (true) {
     const { done, value } = await reader.read();
     if (done) {
       break;
     }
-
-    onChunk(decoder.decode(value, { stream: true }));
-
-    // The request has been aborted, stop reading the stream.
-    if (isAborted()) {
-      reader.cancel();
-      break;
-    }
+    onChunk(value);
   }
 }
