@@ -28,16 +28,12 @@ StreamPart objects.
        If the function is not provided, the generator will not stop reading the stream.
  */
 export async function* readDataStream(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-  {
-    isAborted,
-  }: {
-    isAborted?: () => boolean;
-  } = {},
+  stream: ReadableStream<Uint8Array>,
 ): AsyncGenerator<StreamPartType> {
   // implementation note: this slightly more complex algorithm is required
   // to pass the tests in the edge environment.
 
+  const reader = stream.getReader();
   const decoder = new TextDecoder();
   const chunks: Uint8Array[] = [];
   let totalLength = 0;
@@ -69,12 +65,6 @@ export async function* readDataStream(
 
     for (const streamPart of streamParts) {
       yield streamPart;
-    }
-
-    // The request has been aborted, stop reading the stream.
-    if (isAborted?.()) {
-      reader.cancel();
-      break;
     }
   }
 }

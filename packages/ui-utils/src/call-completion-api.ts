@@ -97,10 +97,7 @@ export async function callCompletionApi({
       }
 
       case 'data': {
-        const reader = response.body.getReader();
-        for await (const { type, value } of readDataStream(reader, {
-          isAborted: () => abortController.signal.aborted,
-        })) {
+        for await (const { type, value } of readDataStream(response.body)) {
           switch (type) {
             case 'text': {
               result += value;

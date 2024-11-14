@@ -100,7 +100,7 @@ export async function callChatApi({
 
     case 'data': {
       return await processDataProtocolResponse({
-        reader: response.body.getReader(),
+        stream: response.body,
         abortControllerRef:
           abortController != null ? { current: abortController() } : undefined,
         update: onUpdate,

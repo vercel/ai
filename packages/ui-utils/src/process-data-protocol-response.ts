@@ -17,7 +17,7 @@ function assignAnnotationsToMessage<T extends Message | null | undefined>(
 }
 
 export async function processDataProtocolResponse({
-  reader,
+  stream,
   abortControllerRef,
   update,
   onToolCall,
@@ -25,7 +25,7 @@ export async function processDataProtocolResponse({
   generateId = generateIdFunction,
   getCurrentDate = () => new Date(),
 }: {
-  reader: ReadableStreamDefaultReader<Uint8Array>;
+  stream: ReadableStream<Uint8Array>;
   abortControllerRef?: {
     current: AbortController | null;
   };
@@ -72,9 +72,7 @@ export async function processDataProtocolResponse({
   let finishReason: LanguageModelV1FinishReason = 'unknown';
 
   // we create a map of each prefix, and for each prefixed message we push to the map
-  for await (const { type, value } of readDataStream(reader, {
-    isAborted: () => abortControllerRef?.current === null,
-  })) {
+  for await (const { type, value } of readDataStream(stream)) {
     if (type === 'error') {
       throw new Error(value);
     }
