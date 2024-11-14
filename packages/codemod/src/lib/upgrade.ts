@@ -15,6 +15,7 @@ const bundle = [
   'remove-mistral-facade',
   'remove-openai-facade',
   'rename-format-stream-part',
+  'rename-parse-stream-part',
   'replace-baseurl',
   'replace-langchain-toaistream',
   'replace-nanoid',
