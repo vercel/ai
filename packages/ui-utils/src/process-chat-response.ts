@@ -17,7 +17,7 @@ function assignAnnotationsToMessage<T extends Message | null | undefined>(
   return { ...message, annotations: [...annotations] } as T;
 }
 
-export async function processDataProtocolResponse({
+export async function processChatResponse({
   stream,
   update,
   onToolCall,

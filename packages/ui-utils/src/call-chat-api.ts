@@ -1,4 +1,4 @@
-import { processDataProtocolResponse } from './process-data-protocol-response';
+import { processChatResponse } from './process-chat-response';
 import { processTextStream } from './process-text-stream';
 import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
 
@@ -99,7 +99,7 @@ export async function callChatApi({
     }
 
     case 'data': {
-      return await processDataProtocolResponse({
+      return await processChatResponse({
         stream: response.body,
         update: onUpdate,
         onToolCall,

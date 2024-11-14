@@ -1,7 +1,7 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { formatDataStreamPart } from './data-stream-parts';
-import { processDataProtocolResponse } from './process-data-protocol-response';
+import { processChatResponse } from './process-chat-response';
 import { createDataProtocolStream } from './test/create-data-protocol-stream';
 import { JSONValue, Message } from './types';
 
@@ -42,7 +42,7 @@ beforeEach(() => {
 });
 
 describe('scenario: simple text response', () => {
-  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
+  let result: Awaited<ReturnType<typeof processChatResponse>>;
 
   beforeEach(async () => {
     const stream = createDataProtocolStream([
@@ -59,7 +59,7 @@ describe('scenario: simple text response', () => {
       }),
     ]);
 
-    result = await processDataProtocolResponse({
+    result = await processChatResponse({
       stream,
       update,
       onFinish,
@@ -127,7 +127,7 @@ describe('scenario: simple text response', () => {
 });
 
 describe('scenario: server-side tool roundtrip', () => {
-  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
+  let result: Awaited<ReturnType<typeof processChatResponse>>;
 
   beforeEach(async () => {
     const stream = createDataProtocolStream([
@@ -157,7 +157,7 @@ describe('scenario: server-side tool roundtrip', () => {
       }),
     ]);
 
-    result = await processDataProtocolResponse({
+    result = await processChatResponse({
       stream,
       update,
       onFinish,
@@ -281,7 +281,7 @@ describe('scenario: server-side tool roundtrip', () => {
 });
 
 describe('scenario: server-side continue roundtrip', () => {
-  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
+  let result: Awaited<ReturnType<typeof processChatResponse>>;
 
   beforeEach(async () => {
     const stream = createDataProtocolStream([
@@ -303,7 +303,7 @@ describe('scenario: server-side continue roundtrip', () => {
       }),
     ]);
 
-    result = await processDataProtocolResponse({
+    result = await processChatResponse({
       stream,
       update,
       onFinish,
@@ -371,7 +371,7 @@ describe('scenario: server-side continue roundtrip', () => {
 });
 
 describe('scenario: delayed message annotations in onFinish', () => {
-  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
+  let result: Awaited<ReturnType<typeof processChatResponse>>;
 
   beforeEach(async () => {
     const stream = createDataProtocolStream([
@@ -393,7 +393,7 @@ describe('scenario: delayed message annotations in onFinish', () => {
       ]),
     ]);
 
-    result = await processDataProtocolResponse({
+    result = await processChatResponse({
       stream,
       update,
       onFinish,
@@ -467,7 +467,7 @@ describe('scenario: delayed message annotations in onFinish', () => {
 });
 
 describe('scenario: message annotations in onChunk', () => {
-  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
+  let result: Awaited<ReturnType<typeof processChatResponse>>;
 
   beforeEach(async () => {
     const stream = createDataProtocolStream([
@@ -486,7 +486,7 @@ describe('scenario: message annotations in onChunk', () => {
       }),
     ]);
 
-    result = await processDataProtocolResponse({
+    result = await processChatResponse({
       stream,
       update,
       onFinish,
