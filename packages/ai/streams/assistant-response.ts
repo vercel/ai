@@ -1,7 +1,7 @@
 import {
   AssistantMessage,
   DataMessage,
-  formatStreamPart,
+  formatAssistantStreamPart,
 } from '@ai-sdk/ui-utils';
 
 /**
@@ -54,19 +54,23 @@ export function AssistantResponse(
 
       const sendMessage = (message: AssistantMessage) => {
         controller.enqueue(
-          textEncoder.encode(formatStreamPart('assistant_message', message)),
+          textEncoder.encode(
+            formatAssistantStreamPart('assistant_message', message),
+          ),
         );
       };
 
       const sendDataMessage = (message: DataMessage) => {
         controller.enqueue(
-          textEncoder.encode(formatStreamPart('data_message', message)),
+          textEncoder.encode(
+            formatAssistantStreamPart('data_message', message),
+          ),
         );
       };
 
       const sendError = (errorMessage: string) => {
         controller.enqueue(
-          textEncoder.encode(formatStreamPart('error', errorMessage)),
+          textEncoder.encode(formatAssistantStreamPart('error', errorMessage)),
         );
       };
 
@@ -78,7 +82,7 @@ export function AssistantResponse(
             case 'thread.message.created': {
               controller.enqueue(
                 textEncoder.encode(
-                  formatStreamPart('assistant_message', {
+                  formatAssistantStreamPart('assistant_message', {
                     id: value.data.id,
                     role: 'assistant',
                     content: [{ type: 'text', text: { value: '' } }],
@@ -94,7 +98,7 @@ export function AssistantResponse(
               if (content?.type === 'text' && content.text?.value != null) {
                 controller.enqueue(
                   textEncoder.encode(
-                    formatStreamPart('text', content.text.value),
+                    formatAssistantStreamPart('text', content.text.value),
                   ),
                 );
               }
@@ -116,7 +120,7 @@ export function AssistantResponse(
       // send the threadId and messageId as the first message:
       controller.enqueue(
         textEncoder.encode(
-          formatStreamPart('assistant_control_data', {
+          formatAssistantStreamPart('assistant_control_data', {
             threadId,
             messageId,
           }),

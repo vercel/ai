@@ -1,6 +1,5 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
-import { formatStreamPart } from '@ai-sdk/ui-utils';
-import { Span } from '@opentelemetry/api';
+import { formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { StreamData } from '../../streams/stream-data';
@@ -21,13 +20,11 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
 import {
-  CallWarning,
   CoreToolChoice,
   FinishReason,
   LanguageModel,
   LogProbs,
 } from '../types/language-model';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import {
@@ -1074,13 +1071,13 @@ However, the LLM results are expected to be small enough to not cause issues.
         const chunkType = chunk.type;
         switch (chunkType) {
           case 'text-delta': {
-            controller.enqueue(formatStreamPart('text', chunk.textDelta));
+            controller.enqueue(formatDataStreamPart('text', chunk.textDelta));
             break;
           }
 
           case 'tool-call-streaming-start': {
             controller.enqueue(
-              formatStreamPart('tool_call_streaming_start', {
+              formatDataStreamPart('tool_call_streaming_start', {
                 toolCallId: chunk.toolCallId,
                 toolName: chunk.toolName,
               }),
@@ -1090,7 +1087,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
           case 'tool-call-delta': {
             controller.enqueue(
-              formatStreamPart('tool_call_delta', {
+              formatDataStreamPart('tool_call_delta', {
                 toolCallId: chunk.toolCallId,
                 argsTextDelta: chunk.argsTextDelta,
               }),
@@ -1100,7 +1097,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
           case 'tool-call': {
             controller.enqueue(
-              formatStreamPart('tool_call', {
+              formatDataStreamPart('tool_call', {
                 toolCallId: chunk.toolCallId,
                 toolName: chunk.toolName,
                 args: chunk.args,
@@ -1111,7 +1108,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
           case 'tool-result': {
             controller.enqueue(
-              formatStreamPart('tool_result', {
+              formatDataStreamPart('tool_result', {
                 toolCallId: chunk.toolCallId,
                 result: chunk.result,
               }),
@@ -1121,14 +1118,14 @@ However, the LLM results are expected to be small enough to not cause issues.
 
           case 'error': {
             controller.enqueue(
-              formatStreamPart('error', getErrorMessage(chunk.error)),
+              formatDataStreamPart('error', getErrorMessage(chunk.error)),
             );
             break;
           }
 
           case 'step-finish': {
             controller.enqueue(
-              formatStreamPart('finish_step', {
+              formatDataStreamPart('finish_step', {
                 finishReason: chunk.finishReason,
                 usage: sendUsage
                   ? {
@@ -1144,7 +1141,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
           case 'finish': {
             controller.enqueue(
-              formatStreamPart('finish_message', {
+              formatDataStreamPart('finish_message', {
                 finishReason: chunk.finishReason,
                 usage: sendUsage
                   ? {

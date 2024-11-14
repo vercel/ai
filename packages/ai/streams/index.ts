@@ -1,26 +1,28 @@
 // forwarding exports from ui-utils:
 export {
-  formatStreamPart,
-  parseStreamPart,
+  formatAssistantStreamPart,
+  formatDataStreamPart,
+  parseAssistantStreamPart,
+  parseDataStreamPart,
+  processDataProtocolResponse,
   processDataStream,
   processTextStream,
-  processDataProtocolResponse,
 } from '@ai-sdk/ui-utils';
 export type {
-  AssistantStatus,
-  UseAssistantOptions,
-  Message,
-  CreateMessage,
-  DataMessage,
   AssistantMessage,
-  JSONValue,
+  AssistantStatus,
+  Attachment,
   ChatRequest,
   ChatRequestOptions,
-  ToolInvocation,
-  StreamPart,
+  CreateMessage,
+  DataMessage,
+  DataStreamPart,
   IdGenerator,
+  JSONValue,
+  Message,
   RequestOptions,
-  Attachment,
+  ToolInvocation,
+  UseAssistantOptions,
 } from '@ai-sdk/ui-utils';
 
 export { generateId } from '@ai-sdk/provider-utils';
