@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.0.0-canary.8
+
+### Patch Changes
+
+- b053413: chore (ui): refactorings & README update
+
 ## 1.0.0-canary.7
 
 ### Major Changes
