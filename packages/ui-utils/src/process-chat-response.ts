@@ -8,10 +8,6 @@ import {
   LanguageModelUsage,
 } from './duplicated/usage';
 
-type MessageContainer = {
-  message?: Message;
-};
-
 function assignAnnotationsToMessage<T extends Message | null | undefined>(
   message: T,
   annotations: JSONValue[] | undefined,
@@ -41,8 +37,8 @@ export async function processChatResponse({
 }) {
   const createdAt = getCurrentDate();
 
-  let currentMessage: MessageContainer = {};
-  let nextMessage: MessageContainer | undefined = undefined;
+  let currentMessage: Message | undefined = undefined;
+  let nextMessage: boolean = false;
   const previousMessages: Message[] = [];
 
   const data: JSONValue[] = [];
@@ -65,12 +61,12 @@ export async function processChatResponse({
 
   function execUpdate() {
     // keeps the currentMessage up to date with the latest annotations, even if annotations preceded the message
-    if (messageAnnotations?.length && currentMessage.message) {
-      currentMessage.message.annotations = [...messageAnnotations!];
+    if (messageAnnotations?.length && currentMessage) {
+      currentMessage.annotations = [...messageAnnotations!];
     }
 
     // We add response messages to the messages[], but data is its own thing
-    const merged = [currentMessage.message].filter(Boolean).map(message => ({
+    const merged = [currentMessage].filter(Boolean).map(message => ({
       ...assignAnnotationsToMessage(message, messageAnnotations),
     })) as Message[];
 
@@ -82,13 +78,13 @@ export async function processChatResponse({
   // are associated with the previous message until then to
   // support sending them in onFinish and onStepFinish:
   function switchMessage() {
-    if (nextMessage != null) {
-      if (currentMessage.message) {
-        previousMessages.push(currentMessage.message);
+    if (nextMessage) {
+      if (currentMessage) {
+        previousMessages.push(currentMessage);
       }
 
-      currentMessage = nextMessage;
-      nextMessage = undefined;
+      currentMessage = undefined;
+      nextMessage = false;
     }
   }
 
@@ -96,13 +92,13 @@ export async function processChatResponse({
     stream,
     onTextPart(value) {
       switchMessage();
-      if (currentMessage['message']) {
-        currentMessage['message'] = {
-          ...currentMessage['message'],
-          content: (currentMessage['message'].content || '') + value,
+      if (currentMessage) {
+        currentMessage = {
+          ...currentMessage,
+          content: (currentMessage.content || '') + value,
         };
       } else {
-        currentMessage['message'] = {
+        currentMessage = {
           id: generateId(),
           role: 'assistant',
           content: value,
@@ -114,8 +110,8 @@ export async function processChatResponse({
     onToolCallStreamingStartPart(value) {
       switchMessage();
       // create message if it doesn't exist
-      if (currentMessage.message == null) {
-        currentMessage.message = {
+      if (currentMessage == null) {
+        currentMessage = {
           id: generateId(),
           role: 'assistant',
           content: '',
@@ -123,18 +119,18 @@ export async function processChatResponse({
         };
       }
 
-      if (currentMessage.message.toolInvocations == null) {
-        currentMessage.message.toolInvocations = [];
+      if (currentMessage.toolInvocations == null) {
+        currentMessage.toolInvocations = [];
       }
 
       // add the partial tool call to the map
       partialToolCalls[value.toolCallId] = {
         text: '',
         toolName: value.toolName,
-        prefixMapIndex: currentMessage.message.toolInvocations.length,
+        prefixMapIndex: currentMessage.toolInvocations.length,
       };
 
-      currentMessage.message.toolInvocations.push({
+      currentMessage.toolInvocations.push({
         state: 'partial-call',
         toolCallId: value.toolCallId,
         toolName: value.toolName,
@@ -150,30 +146,29 @@ export async function processChatResponse({
 
       const { value: partialArgs } = parsePartialJson(partialToolCall.text);
 
-      currentMessage.message!.toolInvocations![partialToolCall.prefixMapIndex] =
-        {
-          state: 'partial-call',
-          toolCallId: value.toolCallId,
-          toolName: partialToolCall.toolName,
-          args: partialArgs,
-        };
+      currentMessage!.toolInvocations![partialToolCall.prefixMapIndex] = {
+        state: 'partial-call',
+        toolCallId: value.toolCallId,
+        toolName: partialToolCall.toolName,
+        args: partialArgs,
+      };
 
       // trigger update for streaming by copying adding a update id that changes
       // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-      (currentMessage.message! as any).internalUpdateId = generateId();
+      (currentMessage! as any).internalUpdateId = generateId();
       execUpdate();
     },
     async onToolCallPart(value) {
       switchMessage();
       if (partialToolCalls[value.toolCallId] != null) {
         // change the partial tool call to a full tool call
-        currentMessage.message!.toolInvocations![
+        currentMessage!.toolInvocations![
           partialToolCalls[value.toolCallId].prefixMapIndex
         ] = { state: 'call', ...value };
       } else {
         // create message if it doesn't exist
-        if (currentMessage.message == null) {
-          currentMessage.message = {
+        if (currentMessage == null) {
+          currentMessage = {
             id: generateId(),
             role: 'assistant',
             content: '',
@@ -181,11 +176,11 @@ export async function processChatResponse({
           };
         }
 
-        if (currentMessage.message.toolInvocations == null) {
-          currentMessage.message.toolInvocations = [];
+        if (currentMessage.toolInvocations == null) {
+          currentMessage.toolInvocations = [];
         }
 
-        currentMessage.message.toolInvocations.push({
+        currentMessage.toolInvocations.push({
           state: 'call',
           ...value,
         });
@@ -193,7 +188,7 @@ export async function processChatResponse({
 
       // trigger update for streaming by copying adding a update id that changes
       // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-      (currentMessage.message! as any).internalUpdateId = generateId();
+      (currentMessage! as any).internalUpdateId = generateId();
 
       // invoke the onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
@@ -202,8 +197,8 @@ export async function processChatResponse({
         const result = await onToolCall({ toolCall: value });
         if (result != null) {
           // store the result in the tool invocation
-          currentMessage.message!.toolInvocations![
-            currentMessage.message!.toolInvocations!.length - 1
+          currentMessage!.toolInvocations![
+            currentMessage!.toolInvocations!.length - 1
           ] = { state: 'result', ...value, result };
         }
       }
@@ -211,7 +206,7 @@ export async function processChatResponse({
     },
     onToolResultPart(value) {
       switchMessage();
-      const toolInvocations = currentMessage.message?.toolInvocations;
+      const toolInvocations = currentMessage?.toolInvocations;
 
       if (toolInvocations == null) {
         throw new Error('tool_result must be preceded by a tool_call');
@@ -248,22 +243,22 @@ export async function processChatResponse({
       }
 
       // Update any existing message with the latest annotations
-      currentMessage.message = assignAnnotationsToMessage(
-        currentMessage.message,
+      currentMessage = assignAnnotationsToMessage(
+        currentMessage,
         messageAnnotations,
       );
 
       // trigger update for streaming by copying adding a update id that changes
       // (without it, the changes get stuck in SWR and are not forwarded to rendering):
-      if (currentMessage.message != null) {
-        (currentMessage.message! as any).internalUpdateId = generateId();
+      if (currentMessage != null) {
+        (currentMessage! as any).internalUpdateId = generateId();
       }
 
       execUpdate();
     },
     onFinishStepPart(value) {
       if (!value.isContinued) {
-        nextMessage = {};
+        nextMessage = true;
       }
     },
     onFinishMessagePart(value) {
@@ -277,10 +272,12 @@ export async function processChatResponse({
     },
   });
 
-  onFinish?.({ message: currentMessage.message, finishReason, usage });
+  onFinish?.({ message: currentMessage, finishReason, usage });
 
   return {
-    messages: [currentMessage.message].filter(Boolean) as Message[],
+    messages: [currentMessage as Message | undefined].filter(
+      Boolean,
+    ) as Message[],
     data,
   };
 }
