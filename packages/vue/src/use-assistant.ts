@@ -182,67 +182,49 @@ export function useAssistant({
 
       await processAssistantStream({
         stream: response.body,
-        onStreamPart: async ({ type, value }) => {
-          switch (type) {
-            case 'assistant_message': {
-              messages.value = [
-                ...messages.value,
-                {
-                  id: value.id,
-                  content: value.content[0].text.value,
-                  role: value.role,
-                },
-              ];
-              break;
-            }
-            case 'assistant_control_data': {
-              if (value.threadId) {
-                currentThreadId.value = value.threadId;
-              }
+        onAssistantMessagePart(value) {
+          messages.value = [
+            ...messages.value,
+            {
+              id: value.id,
+              content: value.content[0].text.value,
+              role: value.role,
+            },
+          ];
+        },
+        onTextPart(value) {
+          setMessages(messages => {
+            const lastMessage = messages[messages.length - 1];
+            lastMessage.content += value;
 
-              setMessages(messages => {
-                const lastMessage = messages[messages.length - 1];
-                lastMessage.id = value.messageId;
-
-                return [...messages.slice(0, -1), lastMessage];
-              });
-
-              break;
-            }
-
-            case 'text': {
-              setMessages(messages => {
-                const lastMessage = messages[messages.length - 1];
-                lastMessage.content += value;
-
-                return [...messages.slice(0, -1), lastMessage];
-              });
-
-              break;
-            }
-
-            case 'data_message': {
-              setMessages(messages => [
-                ...messages,
-                {
-                  id: value.id ?? generateId(),
-                  role: 'data',
-                  content: '',
-                  data: value.data,
-                },
-              ]);
-              break;
-            }
-
-            case 'error': {
-              error.value = new Error(value);
-            }
-
-            default: {
-              console.error('Unknown message type:', type);
-              break;
-            }
+            return [...messages.slice(0, -1), lastMessage];
+          });
+        },
+        onAssistantControlDataPart(value) {
+          if (value.threadId) {
+            currentThreadId.value = value.threadId;
           }
+
+          setMessages(messages => {
+            const lastMessage = messages[messages.length - 1];
+            lastMessage.id = value.messageId;
+
+            return [...messages.slice(0, -1), lastMessage];
+          });
+        },
+        onDataMessagePart(value) {
+          setMessages(messages => [
+            ...messages,
+            {
+              id: value.id ?? generateId(),
+              role: 'data',
+              content: '',
+              data: value.data,
+            },
+          ]);
+        },
+        onErrorPart(value) {
+          error.value = new Error(value);
         },
       });
     } catch (err) {

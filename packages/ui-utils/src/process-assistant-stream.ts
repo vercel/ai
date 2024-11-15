@@ -21,10 +21,32 @@ function concatChunks(chunks: Uint8Array[], totalLength: number) {
 
 export async function processAssistantStream({
   stream,
-  onStreamPart,
+  onTextPart,
+  onErrorPart,
+  onAssistantMessagePart,
+  onAssistantControlDataPart,
+  onDataMessagePart,
 }: {
   stream: ReadableStream<Uint8Array>;
-  onStreamPart: (streamPart: AssistantStreamPartType) => Promise<void> | void;
+  onTextPart?: (
+    streamPart: (AssistantStreamPartType & { type: 'text' })['value'],
+  ) => Promise<void> | void;
+  onErrorPart?: (
+    streamPart: (AssistantStreamPartType & { type: 'error' })['value'],
+  ) => Promise<void> | void;
+  onAssistantMessagePart?: (
+    streamPart: (AssistantStreamPartType & {
+      type: 'assistant_message';
+    })['value'],
+  ) => Promise<void> | void;
+  onAssistantControlDataPart?: (
+    streamPart: (AssistantStreamPartType & {
+      type: 'assistant_control_data';
+    })['value'],
+  ) => Promise<void> | void;
+  onDataMessagePart?: (
+    streamPart: (AssistantStreamPartType & { type: 'data_message' })['value'],
+  ) => Promise<void> | void;
 }): Promise<void> {
   // implementation note: this slightly more complex algorithm is required
   // to pass the tests in the edge environment.
@@ -56,11 +78,31 @@ export async function processAssistantStream({
     const streamParts = decoder
       .decode(concatenatedChunks, { stream: true })
       .split('\n')
-      .filter(line => line !== '') // splitting leaves an empty string at the end
+      .filter(line => line !== '')
       .map(parseAssistantStreamPart);
 
-    for (const streamPart of streamParts) {
-      await onStreamPart(streamPart);
+    for (const { type, value } of streamParts) {
+      switch (type) {
+        case 'text':
+          await onTextPart?.(value);
+          break;
+        case 'error':
+          await onErrorPart?.(value);
+          break;
+        case 'assistant_message':
+          await onAssistantMessagePart?.(value);
+          break;
+        case 'assistant_control_data':
+          await onAssistantControlDataPart?.(value);
+          break;
+        case 'data_message':
+          await onDataMessagePart?.(value);
+          break;
+        default: {
+          const exhaustiveCheck: never = type;
+          throw new Error(`Unknown stream part type: ${exhaustiveCheck}`);
+        }
+      }
     }
   }
 }
