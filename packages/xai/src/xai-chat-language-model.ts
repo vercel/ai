@@ -5,6 +5,7 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -35,7 +36,7 @@ export class XaiChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
 
   readonly supportsStructuredOutputs = false;
-  readonly defaultObjectGenerationMode = 'json';
+  readonly defaultObjectGenerationMode = undefined;
 
   readonly modelId: XaiChatModelId;
   readonly settings: XaiChatSettings;
@@ -54,11 +55,6 @@ export class XaiChatLanguageModel implements LanguageModelV1 {
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  get supportsImageUrls(): boolean {
-    // image urls can be sent if downloadImages is disabled (default):
-    return !this.settings.downloadImages;
   }
 
   private getArgs({
@@ -106,7 +102,6 @@ export class XaiChatLanguageModel implements LanguageModelV1 {
 
       // model specific settings:
       user: this.settings.user,
-      parallel_tool_calls: this.settings.parallelToolCalls,
 
       // standardized settings:
       max_tokens: maxTokens,
@@ -140,15 +135,9 @@ export class XaiChatLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format:
-              // json object response format is not currently supported
-              undefined,
-          },
-          warnings,
-        };
+        throw new UnsupportedFunctionalityError({
+          functionality: 'object-json mode',
+        });
       }
 
       case 'object-tool': {
@@ -205,16 +194,6 @@ export class XaiChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
-
-    // The xAI API produces Markdown-style JSON responses for chat completions,
-    // so we have to strip the formatting to pass parsing.
-    if (
-      options.mode.type === 'object-json' &&
-      choice.message.content?.startsWith('```json') &&
-      choice.message.content?.endsWith('```')
-    ) {
-      choice.message.content = choice.message.content.slice(7, -3).trim();
-    }
 
     return {
       text: choice.message.content ?? undefined,

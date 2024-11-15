@@ -16,27 +16,6 @@ const provider = createXai({
 
 const model = provider('grok-beta');
 
-describe('settings', () => {
-  it('should set supportsImageUrls to true by default', () => {
-    const defaultModel = provider('grok-beta');
-    expect(defaultModel.supportsImageUrls).toBe(true);
-  });
-
-  it('should set supportsImageUrls to false when downloadImages is true', () => {
-    const modelWithDownloadImages = provider('grok-beta', {
-      downloadImages: true,
-    });
-    expect(modelWithDownloadImages.supportsImageUrls).toBe(false);
-  });
-
-  it('should set supportsImageUrls to true when downloadImages is false', () => {
-    const modelWithoutDownloadImages = provider('grok-beta', {
-      downloadImages: false,
-    });
-    expect(modelWithoutDownloadImages.supportsImageUrls).toBe(true);
-  });
-});
-
 describe('doGenerate', () => {
   const server = new JsonTestServer('https://api.x.ai/v1/chat/completions');
 
@@ -100,6 +79,21 @@ describe('doGenerate', () => {
       system_fingerprint: 'fp_3bc1b5746c',
     };
   }
+
+  it('should pass user setting to requests', async () => {
+    prepareJsonResponse({ content: 'Hello, World!' });
+    const modelWithUser = provider('grok-beta', {
+      user: 'test-user-id',
+    });
+    await modelWithUser.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+    expect(await server.getRequestBodyJson()).toMatchObject({
+      user: 'test-user-id',
+    });
+  });
 
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
@@ -241,7 +235,6 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await provider('grok-beta', {
-      parallelToolCalls: false,
       user: 'test-user-id',
     }).doGenerate({
       inputFormat: 'prompt',
@@ -252,7 +245,6 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
-      parallel_tool_calls: false,
       user: 'test-user-id',
     });
   });
@@ -386,66 +378,6 @@ describe('doGenerate', () => {
         toolName: 'test-tool',
       },
     ]);
-  });
-
-  it('should strip markdown from object-json content', async () => {
-    prepareJsonResponse({
-      content: '```json\n{"value":"test"}\n```',
-    });
-
-    const { text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-json',
-        name: 'test-name',
-        description: 'test description',
-        schema: {
-          type: 'object',
-          properties: { value: { type: 'string' } },
-          required: ['value'],
-          additionalProperties: false,
-          $schema: 'http://json-schema.org/draft-07/schema#',
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    // Verify markdown is stripped and content parsed
-    expect(text).toBe('{"value":"test"}');
-
-    // Verify request was made correctly
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
-  });
-
-  it('should consider object-json mode undefined', async () => {
-    prepareJsonResponse({ content: '{"value":"Spark"}' });
-
-    const model = provider('grok-beta');
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-json',
-        name: 'test-name',
-        description: 'test description',
-        schema: {
-          type: 'object',
-          properties: { value: { type: 'string' } },
-          required: ['value'],
-          additionalProperties: false,
-          $schema: 'http://json-schema.org/draft-07/schema#',
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
   });
 
   it('should send request body', async () => {
