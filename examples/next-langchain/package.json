@@ -15,7 +15,7 @@
     "ai": "4.0.0-canary.13",
     "langchain": "0.1.36",
     "next": "latest",
-    "react": "^18",
+    "react": "^19.0.0-rc.1",
     "react-dom": "^18"
   },
   "devDependencies": {

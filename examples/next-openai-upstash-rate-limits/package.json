@@ -14,7 +14,7 @@
     "@vercel/kv": "^0.2.2",
     "ai": "4.0.0-canary.13",
     "next": "latest",
-    "react": "^18",
+    "react": "^19.0.0-rc.1",
     "react-dom": "^18",
     "sonner": "^1.7.0"
   },
