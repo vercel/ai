@@ -491,8 +491,8 @@ import { Provider } from 'ai';
 ```
 
 <Note>
-  The model registry is not available any more. Please [register providers](/docs/reference/ai-sdk-core/provider-registry#setup)
-  instead.
+  The model registry is not available any more. Please [register
+  providers](/docs/reference/ai-sdk-core/provider-registry#setup) instead.
 </Note>
 
 #### Removed `experimental_createModelRegistry` function
@@ -509,8 +509,8 @@ import { experimental_createProviderRegistry } from 'ai';
 ```
 
 <Note>
-  The model registry is not available any more. Please [register providers](/docs/reference/ai-sdk-core/provider-registry#setup)
-  instead.
+  The model registry is not available any more. Please [register
+  providers](/docs/reference/ai-sdk-core/provider-registry#setup) instead.
 </Note>
 
 ### Removed `rawResponse` from results
@@ -829,10 +829,35 @@ Please use the [AI SDK Core tool calling](/docs/ai-sdk-core/tools-and-tool-calli
 The `experimental_addToolResult` method has been removed from the `useChat` hook.
 Please use the `addToolResult` method instead.
 
+```ts filename="AI SDK 3.4"
+const { messages, experimental_addToolResult } = useChat({
+  // ...
+});
+```
+
+```ts filename="AI SDK 4.0"
+const { messages, addToolResult } = useChat({
+  // ...
+});
+```
+
 #### Changed default value of `keepLastMessageOnError` to true and deprecated the option
 
 The `keepLastMessageOnError` option has been changed to default to `true`.
 The option will be removed in the next major release.
+
+```ts filename="AI SDK 3.4"
+const { messages } = useChat({
+  keepLastMessageOnError: true,
+  // ...
+});
+```
+
+```ts filename="AI SDK 4.0"
+const { messages } = useChat({
+  // ...
+});
+```
 
 ### `useCompletion` hook
 
@@ -846,6 +871,20 @@ The option will be removed in the next major release.
 The `streamMode` options has been removed from the `useCompletion` hook.
 Please use the `streamProtocol` parameter instead.
 
+```ts filename="AI SDK 3.4"
+const { text } = useCompletion({
+  streamMode: 'text',
+  // ...
+});
+```
+
+```ts filename="AI SDK 4.0"
+const { text } = useCompletion({
+  streamProtocol: 'text',
+  // ...
+});
+```
+
 ### `useAssistant` hook
 
 <Note type="warning">
@@ -857,6 +896,14 @@ Please use the `streamProtocol` parameter instead.
 
 The `experimental_useAssistant` export has been removed from the `useAssistant` hook.
 Please use the `useAssistant` hook directly instead.
+
+```ts filename="AI SDK 3.4"
+import { experimental_useAssistant } from 'ai/react';
+```
+
+```ts filename="AI SDK 4.0"
+import { useAssistant } from 'ai/react';
+```
 
 #### Removed `threadId` and `messageId` from `AssistantResponse`
 
@@ -878,6 +925,18 @@ Please use the `AssistantResponse` function directly instead.
 The `setInput` helper has been removed from the `experimental_useObject` hook.
 Please use the `submit` helper instead.
 
+```ts filename="AI SDK 3.4"
+const { object, setInput } = useObject({
+  // ...
+});
+```
+
+```ts filename="AI SDK 4.0"
+const { object, submit } = useObject({
+  // ...
+});
+```
+
 ## AI SDK Errors
 
 <Note type="warning">
@@ -889,6 +948,18 @@ Please use the `submit` helper instead.
 
 The `isXXXError` static methods have been removed from AI SDK errors.
 Please use the `isInstance` method of the corresponding error class instead.
+
+```ts filename="AI SDK 3.4"
+import { APICallError } from 'ai';
+
+APICallError.isAPICallError(error);
+```
+
+```ts filename="AI SDK 4.0"
+import { APICallError } from 'ai';
+
+APICallError.isInstance(error);
+```
 
 ### Removed `toJSON` method
 
