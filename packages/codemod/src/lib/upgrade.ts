@@ -8,18 +8,19 @@ import { TransformOptions } from './transform-options';
 const bundle = [
   'remove-ai-stream-methods-from-stream-text-result',
   'remove-anthropic-facade',
+  'remove-deprecated-provider-registry-exports',
+  'remove-experimental-ai-fn-exports',
+  'remove-experimental-message-types',
   'remove-google-facade',
   'remove-mistral-facade',
   'remove-openai-facade',
-  'remove-experimental-ai-fn-exports',
+  'rename-format-stream-part',
   'replace-baseurl',
   'replace-langchain-toaistream',
   'replace-nanoid',
+  'replace-roundtrips-with-maxsteps',
   'replace-token-usage-types',
   'rewrite-framework-imports',
-  'remove-deprecated-provider-registry-exports',
-  'remove-experimental-message-types',
-  'replace-roundtrips-with-maxsteps',
 ];
 
 const log = debug('codemod:upgrade');
