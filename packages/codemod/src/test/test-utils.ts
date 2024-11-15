@@ -1,7 +1,7 @@
 import { API, FileInfo } from 'jscodeshift';
 import jscodeshift from 'jscodeshift';
 import { join } from 'path';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 
 export function applyTransform(
   transform: (fileInfo: FileInfo, api: API) => string,
@@ -9,7 +9,7 @@ export function applyTransform(
   options = {},
 ): string {
   const fileInfo = {
-    path: 'test.ts',
+    path: 'test.tsx', // Use .tsx to support both .ts and .tsx
     source: input,
   };
   const j = jscodeshift.withParser('tsx');
@@ -23,8 +23,17 @@ export function applyTransform(
 }
 
 export function readFixture(name: string, type: 'input' | 'output'): string {
-  const path = join(__dirname, '__testfixtures__', `${name}.${type}.ts`);
-  return readFileSync(path, 'utf8');
+  const basePath = join(__dirname, '__testfixtures__', `${name}.${type}`);
+  const tsPath = `${basePath}.ts`;
+  const tsxPath = `${basePath}.tsx`;
+
+  if (existsSync(tsPath)) {
+    return readFileSync(tsPath, 'utf8');
+  }
+  if (existsSync(tsxPath)) {
+    return readFileSync(tsxPath, 'utf8');
+  }
+  throw new Error(`Fixture not found: ${name}.${type}`);
 }
 
 export function testTransform(
