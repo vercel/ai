@@ -1,5 +1,18 @@
 # ai
 
+## 4.0.0-canary.13
+
+### Major Changes
+
+- 064257d: chore (ai/core): rename simulateReadableStream values parameter to chunks
+
+### Patch Changes
+
+- Updated dependencies [79c6dd9]
+- Updated dependencies [04d3747]
+  - @ai-sdk/react@1.0.0-canary.9
+  - @ai-sdk/ui-utils@1.0.0-canary.9
+
 ## 4.0.0-canary.12
 
 ### Patch Changes
