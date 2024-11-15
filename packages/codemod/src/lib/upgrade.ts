@@ -11,6 +11,7 @@ const bundle = [
   'remove-deprecated-provider-registry-exports',
   'remove-experimental-ai-fn-exports',
   'remove-experimental-message-types',
+  'remove-experimental-streamdata',
   'remove-experimental-tool',
   'remove-google-facade',
   'remove-metadata-with-headers',
