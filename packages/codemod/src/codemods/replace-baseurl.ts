@@ -1,31 +1,51 @@
-import { API, FileInfo, JSCodeshift } from 'jscodeshift';
+import { API, FileInfo } from 'jscodeshift';
+
+const PROVIDER_CREATORS = [
+  'createAnthropic',
+  'createAzure',
+  'createCohere',
+  'createGoogle',
+  'createGoogleGenerativeAI',
+  'createGroq',
+  'createMistral',
+  'createOpenAI',
+];
+
+function isWithinProviderCall(j: any, path: any): boolean {
+  // Walk up the AST to find parent CallExpression
+  let current = path;
+  while (current) {
+    if (
+      current.parent?.node.type === 'CallExpression' &&
+      current.parent.node.callee.type === 'Identifier' &&
+      PROVIDER_CREATORS.includes(current.parent.node.callee.name)
+    ) {
+      return true;
+    }
+    current = current.parent;
+  }
+  return false;
+}
 
 export default function transformer(fileInfo: FileInfo, api: API) {
-  const j: JSCodeshift = api.jscodeshift;
+  const j = api.jscodeshift;
   const root = j(fileInfo.source);
 
-  root.find(j.Identifier, { name: 'baseUrl' }).forEach(path => {
-    path.node.name = 'baseURL';
-  });
-
-  root.find(j.ObjectExpression).forEach(path => {
-    path.node.properties.forEach((property, index) => {
-      if (
-        property.type === 'Property' &&
-        property.key.type === 'Identifier' &&
-        property.key.name === 'baseUrl'
-      ) {
-        property.key.name = 'baseURL';
-      }
-      if (
-        property.type === 'Property' &&
-        property.value.type === 'Identifier' &&
-        property.value.name === 'baseUrl'
-      ) {
-        property.value.name = 'baseURL';
+  // Find and rename baseUrl properties
+  root
+    .find(j.ObjectProperty, {
+      key: {
+        type: 'Identifier',
+        name: 'baseUrl',
+      },
+    })
+    .filter(path => isWithinProviderCall(j, path))
+    .forEach(path => {
+      // Rename baseUrl to baseURL
+      if (path.node.key.type === 'Identifier') {
+        path.node.key.name = 'baseURL';
       }
     });
-  });
 
   return root.toSource();
 }
