@@ -632,6 +632,14 @@ const result = await generateText({
 The `LanguageModelResponseMetadataWithHeaders` type has been removed.
 Please use the `LanguageModelResponseMetadata` type instead.
 
+```ts filename="AI SDK 3.4"
+import { LanguageModelResponseMetadataWithHeaders } from 'ai';
+```
+
+```ts filename="AI SDK 4.0"
+import { LanguageModelResponseMetadata } from 'ai';
+```
+
 #### Changed `streamText` warnings result to Promise
 
 <Note type="warning">
@@ -641,13 +649,63 @@ Please use the `LanguageModelResponseMetadata` type instead.
 
 The `warnings` property of the `StreamTextResult` type is now a Promise.
 
+```ts filename="AI SDK 3.4"
+const result = await streamText({
+  // ...
+});
+
+const warnings = result.warnings;
+```
+
+```ts filename="AI SDK 4.0"
+const result = streamText({
+  // ...
+});
+
+const warnings = await result.warnings;
+```
+
 #### Changed `streamObject` warnings result to Promise
 
 The `warnings` property of the `StreamObjectResult` type is now a Promise.
 
+```ts filename="AI SDK 3.4"
+const result = await streamObject({
+  // ...
+});
+
+const warnings = result.warnings;
+```
+
+```ts filename="AI SDK 4.0"
+const result = streamObject({
+  // ...
+});
+
+const warnings = await result.warnings;
+```
+
 #### Renamed `simulateReadableStream` `values` to `chunks`
 
 The `simulateReadableStream` function from `ai/test` has been renamed to `chunks`.
+
+```ts filename="AI SDK 3.4"
+import { simulateReadableStream } from 'ai/test';
+
+const stream = simulateReadableStream({
+  values: [1, 2, 3],
+  chunkDelayInMs: 100,
+});
+```
+
+```ts filename="AI SDK 4.0"
+import { simulateReadableStream } from 'ai/test';
+
+const stream = simulateReadableStream({
+  chunks: [1, 2, 3],
+  chunkDelayInMs: 100,
+});
+```
 
 ## AI SDK RSC Changes
 
@@ -660,6 +718,14 @@ The `simulateReadableStream` function from `ai/test` has been renamed to `chunks
 
 The AI SDK RSC 3.0 `render` function has been removed.
 Please use the `streamUI` function instead or switch to AI SDK UI.
+
+```ts filename="AI SDK 3.0"
+import { render } from 'ai/rsc';
+```
+
+```ts filename="AI SDK 4.0"
+import { streamUI } from 'ai/rsc';
+```
 
 ## AI SDK UI Changes
 
@@ -705,6 +771,20 @@ import { StreamData } from 'ai';
 
 The `streamMode` options has been removed from the `useChat` hook.
 Please use the `streamProtocol` parameter instead.
+
+```ts filename="AI SDK 3.4"
+const { messages } = useChat({
+  streamMode: 'text',
+  // ...
+});
+```
+
+```ts filename="AI SDK 4.0"
+const { messages } = useChat({
+  streamProtocol: 'text',
+  // ...
+});
+```
 
 #### Replaced roundtrip options with `maxSteps`
 
