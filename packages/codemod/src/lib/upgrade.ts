@@ -18,6 +18,7 @@ const bundle = [
   'rename-format-stream-part',
   'rename-parse-stream-part',
   'replace-baseurl',
+  'replace-continuation-steps',
   'replace-langchain-toaistream',
   'replace-nanoid',
   'replace-roundtrips-with-maxsteps',
