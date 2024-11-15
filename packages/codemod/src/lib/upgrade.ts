@@ -14,6 +14,7 @@ const bundle = [
   'remove-experimental-streamdata',
   'remove-experimental-tool',
   'remove-google-facade',
+  'remove-isxxxerror',
   'remove-metadata-with-headers',
   'remove-mistral-facade',
   'remove-openai-facade',
