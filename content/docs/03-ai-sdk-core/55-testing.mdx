@@ -54,7 +54,7 @@ const result = streamText({
   model: new MockLanguageModelV1({
     doStream: async () => ({
       stream: simulateReadableStream({
-        values: [
+        chunks: [
           { type: 'text-delta', textDelta: 'Hello' },
           { type: 'text-delta', textDelta: ', ' },
           { type: 'text-delta', textDelta: `world!` },
@@ -107,7 +107,7 @@ const result = streamObject({
     defaultObjectGenerationMode: 'json',
     doStream: async () => ({
       stream: simulateReadableStream({
-        values: [
+        chunks: [
           { type: 'text-delta', textDelta: '{ ' },
           { type: 'text-delta', textDelta: '"content": ' },
           { type: 'text-delta', textDelta: `"Hello, ` },
@@ -145,7 +145,7 @@ export async function POST(req: Request) {
     simulateReadableStream({
       initialDelayInMs: 1000, // Delay before the first chunk
       chunkDelayInMs: 300, // Delay between chunks
-      values: [
+      chunks: [
         `0:"This"\n`,
         `0:" is an"\n`,
         `0:"example."\n`,
