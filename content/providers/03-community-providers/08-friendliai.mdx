@@ -139,7 +139,18 @@ You can also use `@ai-sdk/openai` as the APIs are OpenAI-compatible.
 import { createOpenAI } from '@ai-sdk/openai';
 
 const friendli = createOpenAI({
-  baseURL: 'https://inference.friendli.ai/v1',
+  baseURL: 'https://api.friendli.ai/serverless/v1',
+  apiKey: process.env.FRIENDLI_TOKEN,
+});
+```
+
+If you are using dedicated endpoints
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const friendli = createOpenAI({
+  baseURL: 'https://api.friendli.ai/dedicated/v1',
   apiKey: process.env.FRIENDLI_TOKEN,
 });
 ```
