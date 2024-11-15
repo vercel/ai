@@ -934,6 +934,24 @@ import { useAssistant } from 'ai/react';
 The `threadId` and `messageId` parameters have been removed from the `AssistantResponse` function.
 Please use the `threadId` and `messageId` variables from the outer scope instead.
 
+```ts filename="AI SDK 3.4"
+return AssistantResponse(
+  { threadId: myThreadId, messageId: myMessageId },
+  async ({ forwardStream, sendDataMessage, threadId, messageId }) => {
+    // use threadId and messageId here
+  },
+);
+```
+
+```ts filename="AI SDK 4.0"
+return AssistantResponse(
+  { threadId: myThreadId, messageId: myMessageId },
+  async ({ forwardStream, sendDataMessage }) => {
+    // use myThreadId and myMessageId here
+  },
+);
+```
+
 #### Removed `experimental_AssistantResponse` export
 
 The `experimental_AssistantResponse` export has been removed.
