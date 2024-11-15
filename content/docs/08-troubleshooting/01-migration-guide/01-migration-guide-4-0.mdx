@@ -994,10 +994,6 @@ The `toJSON` method has been removed from AI SDK errors.
   and update your code manually.
 </Note>
 
-### Removed 2.x prompt helpers
-
-Prompt helpers for constructing message prompts are no longer needed with the AI SDK provider architecture and have been removed.
-
 ### Removed 2.x legacy providers
 
 Legacy providers from AI SDK 2.x have been removed. Please use the new [AI SDK provider architecture](/docs/foundations/providers-and-models) instead.
@@ -1008,19 +1004,24 @@ The legacy `function_call` and `tools` options have been removed from `useChat` 
 The `name` property from the `Message` type has been removed.
 Please use the [AI SDK Core tool calling](/docs/ai-sdk-core/tools-and-tool-calling) instead.
 
+### Removed 2.x prompt helpers
+
+Prompt helpers for constructing message prompts are no longer needed with the AI SDK provider architecture and have been removed.
+
 ### Removed 2.x `AIStream`
 
-The `AIStream` function and related exports have been removed. Please use the new `streamText` functions instead.
+The `AIStream` function and related exports have been removed.
+Please use the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function and its `toDataStream()` method instead.
 
 ### Removed 2.x `StreamingTextResponse`
 
-The `StreamingTextResponse` function has been removed. Use
-`streamText.toDataStreamResponse()` instead.
+The `StreamingTextResponse` function has been removed.
+Please use the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function and its `toDataStreamResponse()` method instead.
 
 ### Removed 2.x `streamToResponse`
 
-The `streamToResponse` function has been removed. Use
-`pipeDataStreamToResponse` from `streamText` instead.
+The `streamToResponse` function has been removed.
+Please use the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function and its `pipeDataStreamToResponse()` method instead.
 
 ### Removed 2.x RSC `Tokens` streaming
 
