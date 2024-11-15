@@ -856,19 +856,19 @@ importers:
         version: link:../../packages/solid
       '@solidjs/meta':
         specifier: 0.29.4
-        version: 0.29.4(solid-js@1.8.17)
+        version: 0.29.4(solid-js@1.9.3)
       '@solidjs/router':
         specifier: ^0.13.6
-        version: 0.13.6(solid-js@1.8.17)
+        version: 0.13.6(solid-js@1.9.3)
       '@solidjs/start':
         specifier: ^1.0.10
-        version: 1.0.10(@testing-library/jest-dom@6.4.8)(solid-js@1.8.17)(vinxi@0.3.12(@opentelemetry/api@1.9.0)(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.3.2)(magicast@0.3.5)(terser@5.31.3))(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))
+        version: 1.0.10(@testing-library/jest-dom@6.4.8)(solid-js@1.9.3)(vinxi@0.3.12(@opentelemetry/api@1.9.0)(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.3.2)(magicast@0.3.5)(terser@5.31.3))(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))
       ai:
         specifier: 4.0.0-canary.12
         version: link:../../packages/ai
       solid-js:
-        specifier: ^1.8.17
-        version: 1.8.17
+        specifier: ^1.9.3
+        version: 1.9.3
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -12365,12 +12365,22 @@ packages:
     peerDependencies:
       seroval: ^1.0
 
+  seroval-plugins@1.1.1:
+    resolution: {integrity: sha512-qNSy1+nUj7hsCOon7AO4wdAIo9P0jrzAMp18XhiOzA6/uO5TKtP7ScozVJ8T293oRIvi5wyCHSM4TrJo/c/GJA==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      seroval: ^1.0
+
   seroval@0.15.1:
     resolution: {integrity: sha512-OPVtf0qmeC7RW+ScVX+7aOS+xoIM7pWcZ0jOWg2aTZigCydgRB04adfteBRbecZnnrO1WuGQ+C3tLeBBzX2zSQ==}
     engines: {node: '>=10'}
 
   seroval@1.0.7:
     resolution: {integrity: sha512-n6ZMQX5q0Vn19Zq7CIKNIo7E75gPkGCFUEqDpa8jgwpYr/vScjqnQ6H09t1uIiZ0ZSK0ypEGvrYK2bhBGWsGdw==}
+    engines: {node: '>=10'}
+
+  seroval@1.1.1:
+    resolution: {integrity: sha512-rqEO6FZk8mv7Hyv4UCj3FD3b6Waqft605TLfsCe/BiaylRpyyMC0b+uA5TJKawX3KzMrdi3wsLbCaLplrQmBvQ==}
     engines: {node: '>=10'}
 
   serve-placeholder@2.0.1:
@@ -12509,11 +12519,11 @@ packages:
   smob@1.4.1:
     resolution: {integrity: sha512-9LK+E7Hv5R9u4g4C3p+jjLstaLe11MDsL21UpYaCNmapvMkYhqCV4A/f/3gyH8QjMyh6l68q9xC85vihY9ahMQ==}
 
-  solid-js@1.8.17:
-    resolution: {integrity: sha512-E0FkUgv9sG/gEBWkHr/2XkBluHb1fkrHywUgA6o6XolPDCJ4g1HaLmQufcBBhiF36ee40q+HpG/vCZu7fLpI3Q==}
-
   solid-js@1.8.7:
     resolution: {integrity: sha512-9dzrSVieh2zj3SnJ02II6xZkonR6c+j/91b7XZUNcC6xSaldlqjjGh98F1fk5cRJ8ZTkzqF5fPIWDxEOs6QZXA==}
+
+  solid-js@1.9.3:
+    resolution: {integrity: sha512-5ba3taPoZGt9GY3YlsCB24kCg0Lv/rie/HTD4kG6h4daZZz7+yK02xn8Vx8dLYBc9i6Ps5JwAbEiqjmKaLB3Ag==}
 
   solid-refresh@0.5.3:
     resolution: {integrity: sha512-Otg5it5sjOdZbQZJnvo99TEBAr6J7PQ5AubZLNU6szZzg3RQQ5MX04oteBIIGDs0y2Qv8aXKm9e44V8z+UnFdw==}
@@ -19240,20 +19250,20 @@ snapshots:
       '@smithy/util-buffer-from': 3.0.0
       tslib: 2.7.0
 
-  '@solidjs/meta@0.29.4(solid-js@1.8.17)':
+  '@solidjs/meta@0.29.4(solid-js@1.9.3)':
     dependencies:
-      solid-js: 1.8.17
-
-  '@solidjs/router@0.13.6(solid-js@1.8.17)':
-    dependencies:
-      solid-js: 1.8.17
+      solid-js: 1.9.3
 
   '@solidjs/router@0.13.6(solid-js@1.8.7)':
     dependencies:
       solid-js: 1.8.7
     optional: true
 
-  '@solidjs/start@1.0.10(@testing-library/jest-dom@6.4.8)(solid-js@1.8.17)(vinxi@0.3.12(@opentelemetry/api@1.9.0)(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.3.2)(magicast@0.3.5)(terser@5.31.3))(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))':
+  '@solidjs/router@0.13.6(solid-js@1.9.3)':
+    dependencies:
+      solid-js: 1.9.3
+
+  '@solidjs/start@1.0.10(@testing-library/jest-dom@6.4.8)(solid-js@1.9.3)(vinxi@0.3.12(@opentelemetry/api@1.9.0)(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.3.2)(magicast@0.3.5)(terser@5.31.3))(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))':
     dependencies:
       '@vinxi/plugin-directives': 0.4.3(vinxi@0.3.12(@opentelemetry/api@1.9.0)(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.3.2)(magicast@0.3.5)(terser@5.31.3))
       '@vinxi/server-components': 0.4.3(vinxi@0.3.12(@opentelemetry/api@1.9.0)(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.3.2)(magicast@0.3.5)(terser@5.31.3))
@@ -19266,9 +19276,9 @@ snapshots:
       seroval-plugins: 1.0.7(seroval@1.0.7)
       shikiji: 0.9.19
       source-map-js: 1.2.1
-      terracotta: 1.0.5(solid-js@1.8.17)
+      terracotta: 1.0.5(solid-js@1.9.3)
       tinyglobby: 0.2.10
-      vite-plugin-solid: 2.10.2(@testing-library/jest-dom@6.4.8)(solid-js@1.8.17)(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))
+      vite-plugin-solid: 2.10.2(@testing-library/jest-dom@6.4.8)(solid-js@1.9.3)(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))
     transitivePeerDependencies:
       - '@testing-library/jest-dom'
       - solid-js
@@ -27636,9 +27646,15 @@ snapshots:
     dependencies:
       seroval: 1.0.7
 
+  seroval-plugins@1.1.1(seroval@1.1.1):
+    dependencies:
+      seroval: 1.1.1
+
   seroval@0.15.1: {}
 
   seroval@1.0.7: {}
+
+  seroval@1.1.1: {}
 
   serve-placeholder@2.0.1:
     dependencies:
@@ -27825,16 +27841,16 @@ snapshots:
 
   smob@1.4.1: {}
 
-  solid-js@1.8.17:
-    dependencies:
-      csstype: 3.1.2
-      seroval: 1.0.7
-      seroval-plugins: 1.0.7(seroval@1.0.7)
-
   solid-js@1.8.7:
     dependencies:
       csstype: 3.1.2
       seroval: 0.15.1
+
+  solid-js@1.9.3:
+    dependencies:
+      csstype: 3.1.3
+      seroval: 1.1.1
+      seroval-plugins: 1.1.1(seroval@1.1.1)
 
   solid-refresh@0.5.3(solid-js@1.8.7):
     dependencies:
@@ -27845,18 +27861,18 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  solid-refresh@0.6.3(solid-js@1.8.17):
+  solid-refresh@0.6.3(solid-js@1.9.3):
     dependencies:
       '@babel/generator': 7.26.2
       '@babel/helper-module-imports': 7.25.9
       '@babel/types': 7.26.0
-      solid-js: 1.8.17
+      solid-js: 1.9.3
     transitivePeerDependencies:
       - supports-color
 
-  solid-use@0.8.0(solid-js@1.8.17):
+  solid-use@0.8.0(solid-js@1.9.3):
     dependencies:
-      solid-js: 1.8.17
+      solid-js: 1.9.3
 
   sonic-boom@4.1.0:
     dependencies:
@@ -28482,10 +28498,10 @@ snapshots:
 
   term-size@2.2.1: {}
 
-  terracotta@1.0.5(solid-js@1.8.17):
+  terracotta@1.0.5(solid-js@1.9.3):
     dependencies:
-      solid-js: 1.8.17
-      solid-use: 0.8.0(solid-js@1.8.17)
+      solid-js: 1.9.3
+      solid-use: 0.8.0(solid-js@1.9.3)
 
   terser-webpack-plugin@5.3.10(esbuild@0.18.20)(webpack@5.95.0(esbuild@0.18.20)):
     dependencies:
@@ -29529,14 +29545,14 @@ snapshots:
       - rollup
       - supports-color
 
-  vite-plugin-solid@2.10.2(@testing-library/jest-dom@6.4.8)(solid-js@1.8.17)(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3)):
+  vite-plugin-solid@2.10.2(@testing-library/jest-dom@6.4.8)(solid-js@1.9.3)(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3)):
     dependencies:
       '@babel/core': 7.26.0
       '@types/babel__core': 7.20.5
       babel-preset-solid: 1.8.4(@babel/core@7.26.0)
       merge-anything: 5.1.7
-      solid-js: 1.8.17
-      solid-refresh: 0.6.3(solid-js@1.8.17)
+      solid-js: 1.9.3
+      solid-refresh: 0.6.3(solid-js@1.9.3)
       vite: 5.4.11(@types/node@22.7.4)(terser@5.31.3)
       vitefu: 0.2.5(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))
     optionalDependencies:
