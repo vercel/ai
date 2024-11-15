@@ -143,3 +143,14 @@ const friendli = createOpenAI({
   apiKey: process.env.FRIENDLI_TOKEN,
 });
 ```
+
+If you are using dedicated endpoints
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const friendli = createOpenAI({
+  baseURL: 'https://api.friendli.ai/dedicated/v1',
+  apiKey: process.env.FRIENDLI_TOKEN,
+});
+```
