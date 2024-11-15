@@ -13,6 +13,7 @@ const bundle = [
   'remove-experimental-message-types',
   'remove-experimental-streamdata',
   'remove-experimental-tool',
+  'remove-experimental-useassistant',
   'remove-google-facade',
   'remove-isxxxerror',
   'remove-metadata-with-headers',
