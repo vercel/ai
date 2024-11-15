@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: vertex('gemini-1.5-pro', {
       useSearchGrounding: true,
     }),

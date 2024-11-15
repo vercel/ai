@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 
+import debug from 'debug';
 import { Command } from 'commander';
 import { transform } from '../lib/transform';
 import { upgrade } from '../lib/upgrade';
 import { TransformOptions } from '../lib/transform-options';
+
+const log = debug('codemod');
+const error = debug('codemod:error');
+debug.enable('codemod:*');
 
 const program = new Command();
 
@@ -35,8 +40,8 @@ addTransformOptions(
 ).action((options: TransformOptions) => {
   try {
     upgrade(options);
-  } catch (error) {
-    console.error('Error upgrading:', error);
+  } catch (err: any) {
+    error('Error upgrading:', err);
     process.exit(1);
   }
 });

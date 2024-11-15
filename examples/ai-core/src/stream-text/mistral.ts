@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: mistral('ministral-8b-latest'),
     maxTokens: 512,
     temperature: 0.3,

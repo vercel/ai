@@ -11,10 +11,8 @@ import {
   isDeepEqualData,
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
-import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'http';
 import { z } from 'zod';
-import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
@@ -32,10 +30,11 @@ import {
   CallWarning,
   FinishReason,
   LanguageModel,
-  LanguageModelResponseMetadata,
   LogProbs,
-  ProviderMetadata,
-} from '../types';
+} from '../types/language-model';
+import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import { ProviderMetadata } from '../types/provider-metadata';
 import {
   LanguageModelUsage,
   calculateLanguageModelUsage,
@@ -52,6 +51,7 @@ import { injectJsonInstruction } from './inject-json-instruction';
 import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { createStitchableStream } from '../util/create-stitchable-stream';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -97,7 +97,7 @@ This function streams the output. If you do not want to stream the output, use `
 @return
 A result object for accessing the partial object stream and additional information.
  */
-export async function streamObject<OBJECT>(
+export function streamObject<OBJECT>(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt & {
       output?: 'object' | undefined;
@@ -167,7 +167,7 @@ Callback that is called when the LLM response and the final object validation ar
         now?: () => number;
       };
     },
-): Promise<StreamObjectResult<DeepPartial<OBJECT>, OBJECT, never>>;
+): StreamObjectResult<DeepPartial<OBJECT>, OBJECT, never>;
 /**
 Generate an array with structured, typed elements for a given prompt and element schema using a language model.
 
@@ -176,7 +176,7 @@ This function streams the output. If you do not want to stream the output, use `
 @return
 A result object for accessing the partial object stream and additional information.
  */
-export async function streamObject<ELEMENT>(
+export function streamObject<ELEMENT>(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt & {
       output: 'array';
@@ -246,12 +246,10 @@ Callback that is called when the LLM response and the final object validation ar
         now?: () => number;
       };
     },
-): Promise<
-  StreamObjectResult<
-    Array<ELEMENT>,
-    Array<ELEMENT>,
-    AsyncIterableStream<ELEMENT>
-  >
+): StreamObjectResult<
+  Array<ELEMENT>,
+  Array<ELEMENT>,
+  AsyncIterableStream<ELEMENT>
 >;
 /**
 Generate JSON with any schema for a given prompt using a language model.
@@ -261,7 +259,7 @@ This function streams the output. If you do not want to stream the output, use `
 @return
 A result object for accessing the partial object stream and additional information.
  */
-export async function streamObject(
+export function streamObject(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt & {
       output: 'no-schema';
@@ -302,8 +300,8 @@ Callback that is called when the LLM response and the final object validation ar
         now?: () => number;
       };
     },
-): Promise<StreamObjectResult<JSONValue, JSONValue, never>>;
-export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
+): StreamObjectResult<JSONValue, JSONValue, never>;
+export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   model,
   schema: inputSchema,
   schemaName,
@@ -351,7 +349,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
       currentDate?: () => Date;
       now?: () => number;
     };
-  }): Promise<StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>> {
+  }): StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   validateObjectGenerationInput({
     output,
     mode,
@@ -367,551 +365,579 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     mode = 'json';
   }
 
-  const baseTelemetryAttributes = getBaseTelemetryAttributes({
+  return new DefaultStreamObjectResult({
     model,
     telemetry,
     headers,
-    settings: { ...settings, maxRetries },
-  });
-
-  const tracer = getTracer(telemetry);
-
-  const retry = retryWithExponentialBackoff({ maxRetries });
-
-  return recordSpan({
-    name: 'ai.streamObject',
-    attributes: selectTelemetryAttributes({
-      telemetry,
-      attributes: {
-        ...assembleOperationName({
-          operationId: 'ai.streamObject',
-          telemetry,
-        }),
-        ...baseTelemetryAttributes,
-        // specific settings that only make sense on the outer level:
-        'ai.prompt': {
-          input: () => JSON.stringify({ system, prompt, messages }),
-        },
-        'ai.schema':
-          outputStrategy.jsonSchema != null
-            ? { input: () => JSON.stringify(outputStrategy.jsonSchema) }
-            : undefined,
-        'ai.schema.name': schemaName,
-        'ai.schema.description': schemaDescription,
-        'ai.settings.output': outputStrategy.type,
-        'ai.settings.mode': mode,
-      },
-    }),
-    tracer,
-    endWhenDone: false,
-    fn: async rootSpan => {
-      // use the default provider mode when the mode is set to 'auto' or unspecified
-      if (mode === 'auto' || mode == null) {
-        mode = model.defaultObjectGenerationMode;
-      }
-
-      let callOptions: LanguageModelV1CallOptions;
-      let transformer: Transformer<
-        LanguageModelV1StreamPart,
-        string | Omit<LanguageModelV1StreamPart, 'text-delta'>
-      >;
-
-      switch (mode) {
-        case 'json': {
-          const standardizedPrompt = standardizePrompt({
-            prompt: {
-              system:
-                outputStrategy.jsonSchema == null
-                  ? injectJsonInstruction({ prompt: system })
-                  : model.supportsStructuredOutputs
-                  ? system
-                  : injectJsonInstruction({
-                      prompt: system,
-                      schema: outputStrategy.jsonSchema,
-                    }),
-              prompt,
-              messages,
-            },
-            tools: undefined,
-          });
-
-          callOptions = {
-            mode: {
-              type: 'object-json',
-              schema: outputStrategy.jsonSchema,
-              name: schemaName,
-              description: schemaDescription,
-            },
-            ...prepareCallSettings(settings),
-            inputFormat: standardizedPrompt.type,
-            prompt: await convertToLanguageModelPrompt({
-              prompt: standardizedPrompt,
-              modelSupportsImageUrls: model.supportsImageUrls,
-              modelSupportsUrl: model.supportsUrl,
-            }),
-            providerMetadata,
-            abortSignal,
-            headers,
-          };
-
-          transformer = {
-            transform: (chunk, controller) => {
-              switch (chunk.type) {
-                case 'text-delta':
-                  controller.enqueue(chunk.textDelta);
-                  break;
-                case 'response-metadata':
-                case 'finish':
-                case 'error':
-                  controller.enqueue(chunk);
-                  break;
-              }
-            },
-          };
-
-          break;
-        }
-
-        case 'tool': {
-          const standardizedPrompt = standardizePrompt({
-            prompt: { system, prompt, messages },
-            tools: undefined,
-          });
-
-          callOptions = {
-            mode: {
-              type: 'object-tool',
-              tool: {
-                type: 'function',
-                name: schemaName ?? 'json',
-                description: schemaDescription ?? 'Respond with a JSON object.',
-                parameters: outputStrategy.jsonSchema!,
-              },
-            },
-            ...prepareCallSettings(settings),
-            inputFormat: standardizedPrompt.type,
-            prompt: await convertToLanguageModelPrompt({
-              prompt: standardizedPrompt,
-              modelSupportsImageUrls: model.supportsImageUrls,
-              modelSupportsUrl: model.supportsUrl,
-            }),
-            providerMetadata,
-            abortSignal,
-            headers,
-          };
-
-          transformer = {
-            transform(chunk, controller) {
-              switch (chunk.type) {
-                case 'tool-call-delta':
-                  controller.enqueue(chunk.argsTextDelta);
-                  break;
-                case 'response-metadata':
-                case 'finish':
-                case 'error':
-                  controller.enqueue(chunk);
-                  break;
-              }
-            },
-          };
-
-          break;
-        }
-
-        case undefined: {
-          throw new Error(
-            'Model does not have a default object generation mode.',
-          );
-        }
-
-        default: {
-          const _exhaustiveCheck: never = mode;
-          throw new Error(`Unsupported mode: ${_exhaustiveCheck}`);
-        }
-      }
-
-      const {
-        result: { stream, warnings, rawResponse, request },
-        doStreamSpan,
-        startTimestampMs,
-      } = await retry(() =>
-        recordSpan({
-          name: 'ai.streamObject.doStream',
-          attributes: selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              ...assembleOperationName({
-                operationId: 'ai.streamObject.doStream',
-                telemetry,
-              }),
-              ...baseTelemetryAttributes,
-              'ai.prompt.format': {
-                input: () => callOptions.inputFormat,
-              },
-              'ai.prompt.messages': {
-                input: () => JSON.stringify(callOptions.prompt),
-              },
-              'ai.settings.mode': mode,
-
-              // standardized gen-ai llm span attributes:
-              'gen_ai.system': model.provider,
-              'gen_ai.request.model': model.modelId,
-              'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-              'gen_ai.request.max_tokens': settings.maxTokens,
-              'gen_ai.request.presence_penalty': settings.presencePenalty,
-              'gen_ai.request.temperature': settings.temperature,
-              'gen_ai.request.top_k': settings.topK,
-              'gen_ai.request.top_p': settings.topP,
-            },
-          }),
-          tracer,
-          endWhenDone: false,
-          fn: async doStreamSpan => ({
-            startTimestampMs: now(),
-            doStreamSpan,
-            result: await model.doStream(callOptions),
-          }),
-        }),
-      );
-
-      return new DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>({
-        outputStrategy,
-        stream: stream.pipeThrough(new TransformStream(transformer)),
-        warnings,
-        rawResponse,
-        request: request ?? {},
-        onFinish,
-        rootSpan,
-        doStreamSpan,
-        telemetry,
-        startTimestampMs,
-        modelId: model.modelId,
-        now,
-        currentDate,
-        generateId,
-      });
-    },
+    settings,
+    maxRetries,
+    abortSignal,
+    outputStrategy,
+    system,
+    prompt,
+    messages,
+    schemaName,
+    schemaDescription,
+    inputProviderMetadata: providerMetadata,
+    mode,
+    onFinish,
+    generateId,
+    currentDate,
+    now,
   });
 }
 
 class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 {
-  private readonly originalStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
-  private readonly objectPromise: DelayedPromise<RESULT>;
+  private readonly objectPromise = new DelayedPromise<RESULT>();
+  private readonly usagePromise = new DelayedPromise<LanguageModelUsage>();
+  private readonly providerMetadataPromise = new DelayedPromise<
+    ProviderMetadata | undefined
+  >();
+  private readonly warningsPromise = new DelayedPromise<
+    CallWarning[] | undefined
+  >();
+  private readonly requestPromise =
+    new DelayedPromise<LanguageModelRequestMetadata>();
+  private readonly responsePromise =
+    new DelayedPromise<LanguageModelResponseMetadata>();
 
-  readonly request: StreamObjectResult<
-    PARTIAL,
-    RESULT,
-    ELEMENT_STREAM
-  >['request'];
+  private readonly stitchableStream =
+    createStitchableStream<ObjectStreamPart<PARTIAL>>();
 
-  readonly warnings: StreamObjectResult<
+  private readonly outputStrategy: OutputStrategy<
     PARTIAL,
     RESULT,
     ELEMENT_STREAM
-  >['warnings'];
-  readonly usage: StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>['usage'];
-  readonly experimental_providerMetadata: StreamObjectResult<
-    PARTIAL,
-    RESULT,
-    ELEMENT_STREAM
-  >['experimental_providerMetadata'];
-  readonly outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
-  readonly response: StreamObjectResult<
-    PARTIAL,
-    RESULT,
-    ELEMENT_STREAM
-  >['response'];
+  >;
 
   constructor({
-    stream,
-    warnings,
-    rawResponse,
-    request,
-    outputStrategy,
-    onFinish,
-    rootSpan,
-    doStreamSpan,
+    model,
+    headers,
     telemetry,
-    startTimestampMs,
-    modelId,
-    now,
-    currentDate,
+    settings,
+    maxRetries,
+    abortSignal,
+    outputStrategy,
+    system,
+    prompt,
+    messages,
+    schemaName,
+    schemaDescription,
+    inputProviderMetadata,
+    mode,
+    onFinish,
     generateId,
+    currentDate,
+    now,
   }: {
-    stream: ReadableStream<
-      string | Omit<LanguageModelV1StreamPart, 'text-delta'>
-    >;
-    warnings: StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>['warnings'];
-    rawResponse: { headers?: Record<string, string> } | undefined;
-    request: Awaited<
-      StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>['request']
-    >;
-    outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
-    onFinish: OnFinishCallback<RESULT> | undefined;
-    rootSpan: Span;
-    doStreamSpan: Span;
+    model: LanguageModel;
     telemetry: TelemetrySettings | undefined;
-    startTimestampMs: number;
-    modelId: string;
-    now: () => number;
-    currentDate: () => Date;
+    headers: Record<string, string | undefined> | undefined;
+    settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
+    maxRetries: number | undefined;
+    abortSignal: AbortSignal | undefined;
+    outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
+    system: Prompt['system'];
+    prompt: Prompt['prompt'];
+    messages: Prompt['messages'];
+    schemaName: string | undefined;
+    schemaDescription: string | undefined;
+    inputProviderMetadata: ProviderMetadata | undefined;
+    mode: 'auto' | 'json' | 'tool' | undefined;
+    onFinish: OnFinishCallback<RESULT> | undefined;
     generateId: () => string;
+    currentDate: () => Date;
+    now: () => number;
   }) {
-    this.warnings = warnings;
-    this.outputStrategy = outputStrategy;
-    this.request = Promise.resolve(request);
+    const baseTelemetryAttributes = getBaseTelemetryAttributes({
+      model,
+      telemetry,
+      headers,
+      settings: { ...settings, maxRetries },
+    });
 
-    // initialize object promise
-    this.objectPromise = new DelayedPromise<RESULT>();
-
-    // initialize usage promise
-    const { resolve: resolveUsage, promise: usagePromise } =
-      createResolvablePromise<LanguageModelUsage>();
-    this.usage = usagePromise;
-
-    // initialize response promise
-    const { resolve: resolveResponse, promise: responsePromise } =
-      createResolvablePromise<LanguageModelResponseMetadata>();
-    this.response = responsePromise;
-
-    // initialize experimental_providerMetadata promise
-    const {
-      resolve: resolveProviderMetadata,
-      promise: providerMetadataPromise,
-    } = createResolvablePromise<ProviderMetadata | undefined>();
-    this.experimental_providerMetadata = providerMetadataPromise;
-
-    // store information for onFinish callback:
-    let usage: LanguageModelUsage | undefined;
-    let finishReason: LanguageModelV1FinishReason | undefined;
-    let providerMetadata: ProviderMetadata | undefined;
-    let object: RESULT | undefined;
-    let error: unknown | undefined;
-
-    // pipe chunks through a transformation stream that extracts metadata:
-    let accumulatedText = '';
-    let textDelta = '';
-    let response: {
-      id: string;
-      timestamp: Date;
-      modelId: string;
-    } = {
-      id: generateId(),
-      timestamp: currentDate(),
-      modelId,
-    };
-
-    // Keep track of raw parse result before type validation, since e.g. Zod might
-    // change the object by mapping properties.
-    let latestObjectJson: JSONValue | undefined = undefined;
-    let latestObject: PARTIAL | undefined = undefined;
-    let isFirstChunk = true;
-    let isFirstDelta = true;
-
+    const tracer = getTracer(telemetry);
+    const retry = retryWithExponentialBackoff({ maxRetries });
     const self = this;
-    this.originalStream = stream.pipeThrough(
-      new TransformStream<
-        string | ObjectStreamInputPart,
-        ObjectStreamPart<PARTIAL>
-      >({
-        async transform(chunk, controller): Promise<void> {
-          // Telemetry event for first chunk:
-          if (isFirstChunk) {
-            const msToFirstChunk = now() - startTimestampMs;
 
-            isFirstChunk = false;
-
-            doStreamSpan.addEvent('ai.stream.firstChunk', {
-              'ai.stream.msToFirstChunk': msToFirstChunk,
-            });
-
-            doStreamSpan.setAttributes({
-              'ai.stream.msToFirstChunk': msToFirstChunk,
-            });
-          }
-
-          // process partial text chunks
-          if (typeof chunk === 'string') {
-            accumulatedText += chunk;
-            textDelta += chunk;
-
-            const { value: currentObjectJson, state: parseState } =
-              parsePartialJson(accumulatedText);
-
-            if (
-              currentObjectJson !== undefined &&
-              !isDeepEqualData(latestObjectJson, currentObjectJson)
-            ) {
-              const validationResult = outputStrategy.validatePartialResult({
-                value: currentObjectJson,
-                textDelta,
-                latestObject,
-                isFirstDelta,
-                isFinalDelta: parseState === 'successful-parse',
-              });
-
-              if (
-                validationResult.success &&
-                !isDeepEqualData(latestObject, validationResult.value.partial)
-              ) {
-                // inside inner check to correctly parse the final element in array mode:
-                latestObjectJson = currentObjectJson;
-                latestObject = validationResult.value.partial;
-
-                controller.enqueue({
-                  type: 'object',
-                  object: latestObject,
-                });
-
-                controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: validationResult.value.textDelta,
-                });
-
-                textDelta = '';
-                isFirstDelta = false;
-              }
-            }
-
-            return;
-          }
-
-          switch (chunk.type) {
-            case 'response-metadata': {
-              response = {
-                id: chunk.id ?? response.id,
-                timestamp: chunk.timestamp ?? response.timestamp,
-                modelId: chunk.modelId ?? response.modelId,
-              };
-              break;
-            }
-
-            case 'finish': {
-              // send final text delta:
-              if (textDelta !== '') {
-                controller.enqueue({ type: 'text-delta', textDelta });
-              }
-
-              // store finish reason for telemetry:
-              finishReason = chunk.finishReason;
-
-              // store usage and metadata for promises and onFinish callback:
-              usage = calculateLanguageModelUsage(chunk.usage);
-              providerMetadata = chunk.providerMetadata;
-
-              controller.enqueue({ ...chunk, usage, response });
-
-              // resolve promises that can be resolved now:
-              resolveUsage(usage);
-              resolveProviderMetadata(providerMetadata);
-              resolveResponse({
-                ...response,
-                headers: rawResponse?.headers,
-              });
-
-              // resolve the object promise with the latest object:
-              const validationResult =
-                outputStrategy.validateFinalResult(latestObjectJson);
-
-              if (validationResult.success) {
-                object = validationResult.value;
-                self.objectPromise.resolve(object);
-              } else {
-                error = validationResult.error;
-                self.objectPromise.reject(error);
-              }
-
-              break;
-            }
-
-            default: {
-              controller.enqueue(chunk);
-              break;
-            }
-          }
-        },
-
-        // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
-        async flush(controller) {
-          try {
-            const finalUsage = usage ?? {
-              promptTokens: NaN,
-              completionTokens: NaN,
-              totalTokens: NaN,
-            };
-
-            doStreamSpan.setAttributes(
-              selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.response.finishReason': finishReason,
-                  'ai.response.object': {
-                    output: () => JSON.stringify(object),
-                  },
-                  'ai.response.id': response.id,
-                  'ai.response.model': response.modelId,
-                  'ai.response.timestamp': response.timestamp.toISOString(),
-
-                  'ai.usage.promptTokens': finalUsage.promptTokens,
-                  'ai.usage.completionTokens': finalUsage.completionTokens,
-
-                  // standardized gen-ai llm span attributes:
-                  'gen_ai.response.finish_reasons': [finishReason],
-                  'gen_ai.response.id': response.id,
-                  'gen_ai.response.model': response.modelId,
-                  'gen_ai.usage.input_tokens': finalUsage.promptTokens,
-                  'gen_ai.usage.output_tokens': finalUsage.completionTokens,
-                },
-              }),
-            );
-
-            // finish doStreamSpan before other operations for correct timing:
-            doStreamSpan.end();
-
-            // Add response information to the root span:
-            rootSpan.setAttributes(
-              selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.usage.promptTokens': finalUsage.promptTokens,
-                  'ai.usage.completionTokens': finalUsage.completionTokens,
-                  'ai.response.object': {
-                    output: () => JSON.stringify(object),
-                  },
-                },
-              }),
-            );
-
-            // call onFinish callback:
-            await onFinish?.({
-              usage: finalUsage,
-              object,
-              error,
-              response: {
-                ...response,
-                headers: rawResponse?.headers,
-              },
-              warnings,
-              experimental_providerMetadata: providerMetadata,
-            });
-          } catch (error) {
-            controller.error(error);
-          } finally {
-            rootSpan.end();
-          }
+    recordSpan({
+      name: 'ai.streamObject',
+      attributes: selectTelemetryAttributes({
+        telemetry,
+        attributes: {
+          ...assembleOperationName({
+            operationId: 'ai.streamObject',
+            telemetry,
+          }),
+          ...baseTelemetryAttributes,
+          // specific settings that only make sense on the outer level:
+          'ai.prompt': {
+            input: () => JSON.stringify({ system, prompt, messages }),
+          },
+          'ai.schema':
+            outputStrategy.jsonSchema != null
+              ? { input: () => JSON.stringify(outputStrategy.jsonSchema) }
+              : undefined,
+          'ai.schema.name': schemaName,
+          'ai.schema.description': schemaDescription,
+          'ai.settings.output': outputStrategy.type,
+          'ai.settings.mode': mode,
         },
       }),
-    );
+      tracer,
+      endWhenDone: false,
+      fn: async rootSpan => {
+        // use the default provider mode when the mode is set to 'auto' or unspecified
+        if (mode === 'auto' || mode == null) {
+          mode = model.defaultObjectGenerationMode;
+        }
+
+        let callOptions: LanguageModelV1CallOptions;
+        let transformer: Transformer<
+          LanguageModelV1StreamPart,
+          string | Omit<LanguageModelV1StreamPart, 'text-delta'>
+        >;
+
+        switch (mode) {
+          case 'json': {
+            const standardizedPrompt = standardizePrompt({
+              prompt: {
+                system:
+                  outputStrategy.jsonSchema == null
+                    ? injectJsonInstruction({ prompt: system })
+                    : model.supportsStructuredOutputs
+                    ? system
+                    : injectJsonInstruction({
+                        prompt: system,
+                        schema: outputStrategy.jsonSchema,
+                      }),
+                prompt,
+                messages,
+              },
+              tools: undefined,
+            });
+
+            callOptions = {
+              mode: {
+                type: 'object-json',
+                schema: outputStrategy.jsonSchema,
+                name: schemaName,
+                description: schemaDescription,
+              },
+              ...prepareCallSettings(settings),
+              inputFormat: standardizedPrompt.type,
+              prompt: await convertToLanguageModelPrompt({
+                prompt: standardizedPrompt,
+                modelSupportsImageUrls: model.supportsImageUrls,
+                modelSupportsUrl: model.supportsUrl,
+              }),
+              providerMetadata: inputProviderMetadata,
+              abortSignal,
+              headers,
+            };
+
+            transformer = {
+              transform: (chunk, controller) => {
+                switch (chunk.type) {
+                  case 'text-delta':
+                    controller.enqueue(chunk.textDelta);
+                    break;
+                  case 'response-metadata':
+                  case 'finish':
+                  case 'error':
+                    controller.enqueue(chunk);
+                    break;
+                }
+              },
+            };
+
+            break;
+          }
+
+          case 'tool': {
+            const standardizedPrompt = standardizePrompt({
+              prompt: { system, prompt, messages },
+              tools: undefined,
+            });
+
+            callOptions = {
+              mode: {
+                type: 'object-tool',
+                tool: {
+                  type: 'function',
+                  name: schemaName ?? 'json',
+                  description:
+                    schemaDescription ?? 'Respond with a JSON object.',
+                  parameters: outputStrategy.jsonSchema!,
+                },
+              },
+              ...prepareCallSettings(settings),
+              inputFormat: standardizedPrompt.type,
+              prompt: await convertToLanguageModelPrompt({
+                prompt: standardizedPrompt,
+                modelSupportsImageUrls: model.supportsImageUrls,
+                modelSupportsUrl: model.supportsUrl,
+              }),
+              providerMetadata: inputProviderMetadata,
+              abortSignal,
+              headers,
+            };
+
+            transformer = {
+              transform(chunk, controller) {
+                switch (chunk.type) {
+                  case 'tool-call-delta':
+                    controller.enqueue(chunk.argsTextDelta);
+                    break;
+                  case 'response-metadata':
+                  case 'finish':
+                  case 'error':
+                    controller.enqueue(chunk);
+                    break;
+                }
+              },
+            };
+
+            break;
+          }
+
+          case undefined: {
+            throw new Error(
+              'Model does not have a default object generation mode.',
+            );
+          }
+
+          default: {
+            const _exhaustiveCheck: never = mode;
+            throw new Error(`Unsupported mode: ${_exhaustiveCheck}`);
+          }
+        }
+
+        const {
+          result: { stream, warnings, rawResponse, request },
+          doStreamSpan,
+          startTimestampMs,
+        } = await retry(() =>
+          recordSpan({
+            name: 'ai.streamObject.doStream',
+            attributes: selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                ...assembleOperationName({
+                  operationId: 'ai.streamObject.doStream',
+                  telemetry,
+                }),
+                ...baseTelemetryAttributes,
+                'ai.prompt.format': {
+                  input: () => callOptions.inputFormat,
+                },
+                'ai.prompt.messages': {
+                  input: () => JSON.stringify(callOptions.prompt),
+                },
+                'ai.settings.mode': mode,
+
+                // standardized gen-ai llm span attributes:
+                'gen_ai.system': model.provider,
+                'gen_ai.request.model': model.modelId,
+                'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
+                'gen_ai.request.max_tokens': settings.maxTokens,
+                'gen_ai.request.presence_penalty': settings.presencePenalty,
+                'gen_ai.request.temperature': settings.temperature,
+                'gen_ai.request.top_k': settings.topK,
+                'gen_ai.request.top_p': settings.topP,
+              },
+            }),
+            tracer,
+            endWhenDone: false,
+            fn: async doStreamSpan => ({
+              startTimestampMs: now(),
+              doStreamSpan,
+              result: await model.doStream(callOptions),
+            }),
+          }),
+        );
+
+        self.requestPromise.resolve(request ?? {});
+
+        // store information for onFinish callback:
+        let usage: LanguageModelUsage | undefined;
+        let finishReason: LanguageModelV1FinishReason | undefined;
+        let providerMetadata: ProviderMetadata | undefined;
+        let object: RESULT | undefined;
+        let error: unknown | undefined;
+
+        // pipe chunks through a transformation stream that extracts metadata:
+        let accumulatedText = '';
+        let textDelta = '';
+        let response: {
+          id: string;
+          timestamp: Date;
+          modelId: string;
+        } = {
+          id: generateId(),
+          timestamp: currentDate(),
+          modelId: model.modelId,
+        };
+
+        // Keep track of raw parse result before type validation, since e.g. Zod might
+        // change the object by mapping properties.
+        let latestObjectJson: JSONValue | undefined = undefined;
+        let latestObject: PARTIAL | undefined = undefined;
+        let isFirstChunk = true;
+        let isFirstDelta = true;
+
+        const transformedStream = stream
+          .pipeThrough(new TransformStream(transformer))
+          .pipeThrough(
+            new TransformStream<
+              string | ObjectStreamInputPart,
+              ObjectStreamPart<PARTIAL>
+            >({
+              async transform(chunk, controller): Promise<void> {
+                // Telemetry event for first chunk:
+                if (isFirstChunk) {
+                  const msToFirstChunk = now() - startTimestampMs;
+
+                  isFirstChunk = false;
+
+                  doStreamSpan.addEvent('ai.stream.firstChunk', {
+                    'ai.stream.msToFirstChunk': msToFirstChunk,
+                  });
+
+                  doStreamSpan.setAttributes({
+                    'ai.stream.msToFirstChunk': msToFirstChunk,
+                  });
+                }
+
+                // process partial text chunks
+                if (typeof chunk === 'string') {
+                  accumulatedText += chunk;
+                  textDelta += chunk;
+
+                  const { value: currentObjectJson, state: parseState } =
+                    parsePartialJson(accumulatedText);
+
+                  if (
+                    currentObjectJson !== undefined &&
+                    !isDeepEqualData(latestObjectJson, currentObjectJson)
+                  ) {
+                    const validationResult =
+                      outputStrategy.validatePartialResult({
+                        value: currentObjectJson,
+                        textDelta,
+                        latestObject,
+                        isFirstDelta,
+                        isFinalDelta: parseState === 'successful-parse',
+                      });
+
+                    if (
+                      validationResult.success &&
+                      !isDeepEqualData(
+                        latestObject,
+                        validationResult.value.partial,
+                      )
+                    ) {
+                      // inside inner check to correctly parse the final element in array mode:
+                      latestObjectJson = currentObjectJson;
+                      latestObject = validationResult.value.partial;
+
+                      controller.enqueue({
+                        type: 'object',
+                        object: latestObject,
+                      });
+
+                      controller.enqueue({
+                        type: 'text-delta',
+                        textDelta: validationResult.value.textDelta,
+                      });
+
+                      textDelta = '';
+                      isFirstDelta = false;
+                    }
+                  }
+
+                  return;
+                }
+
+                switch (chunk.type) {
+                  case 'response-metadata': {
+                    response = {
+                      id: chunk.id ?? response.id,
+                      timestamp: chunk.timestamp ?? response.timestamp,
+                      modelId: chunk.modelId ?? response.modelId,
+                    };
+                    break;
+                  }
+
+                  case 'finish': {
+                    // send final text delta:
+                    if (textDelta !== '') {
+                      controller.enqueue({ type: 'text-delta', textDelta });
+                    }
+
+                    // store finish reason for telemetry:
+                    finishReason = chunk.finishReason;
+
+                    // store usage and metadata for promises and onFinish callback:
+                    usage = calculateLanguageModelUsage(chunk.usage);
+                    providerMetadata = chunk.providerMetadata;
+
+                    controller.enqueue({ ...chunk, usage, response });
+
+                    // resolve promises that can be resolved now:
+                    self.usagePromise.resolve(usage);
+                    self.providerMetadataPromise.resolve(providerMetadata);
+                    self.responsePromise.resolve({
+                      ...response,
+                      headers: rawResponse?.headers,
+                    });
+
+                    // resolve the object promise with the latest object:
+                    const validationResult =
+                      outputStrategy.validateFinalResult(latestObjectJson);
+
+                    if (validationResult.success) {
+                      object = validationResult.value;
+                      self.objectPromise.resolve(object);
+                    } else {
+                      error = validationResult.error;
+                      self.objectPromise.reject(error);
+                    }
+
+                    break;
+                  }
+
+                  default: {
+                    controller.enqueue(chunk);
+                    break;
+                  }
+                }
+              },
+
+              // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
+              async flush(controller) {
+                try {
+                  const finalUsage = usage ?? {
+                    promptTokens: NaN,
+                    completionTokens: NaN,
+                    totalTokens: NaN,
+                  };
+
+                  doStreamSpan.setAttributes(
+                    selectTelemetryAttributes({
+                      telemetry,
+                      attributes: {
+                        'ai.response.finishReason': finishReason,
+                        'ai.response.object': {
+                          output: () => JSON.stringify(object),
+                        },
+                        'ai.response.id': response.id,
+                        'ai.response.model': response.modelId,
+                        'ai.response.timestamp':
+                          response.timestamp.toISOString(),
+
+                        'ai.usage.promptTokens': finalUsage.promptTokens,
+                        'ai.usage.completionTokens':
+                          finalUsage.completionTokens,
+
+                        // standardized gen-ai llm span attributes:
+                        'gen_ai.response.finish_reasons': [finishReason],
+                        'gen_ai.response.id': response.id,
+                        'gen_ai.response.model': response.modelId,
+                        'gen_ai.usage.input_tokens': finalUsage.promptTokens,
+                        'gen_ai.usage.output_tokens':
+                          finalUsage.completionTokens,
+                      },
+                    }),
+                  );
+
+                  // finish doStreamSpan before other operations for correct timing:
+                  doStreamSpan.end();
+
+                  // Add response information to the root span:
+                  rootSpan.setAttributes(
+                    selectTelemetryAttributes({
+                      telemetry,
+                      attributes: {
+                        'ai.usage.promptTokens': finalUsage.promptTokens,
+                        'ai.usage.completionTokens':
+                          finalUsage.completionTokens,
+                        'ai.response.object': {
+                          output: () => JSON.stringify(object),
+                        },
+                      },
+                    }),
+                  );
+
+                  // call onFinish callback:
+                  await onFinish?.({
+                    usage: finalUsage,
+                    object,
+                    error,
+                    response: {
+                      ...response,
+                      headers: rawResponse?.headers,
+                    },
+                    warnings,
+                    experimental_providerMetadata: providerMetadata,
+                  });
+                } catch (error) {
+                  controller.error(error);
+                } finally {
+                  rootSpan.end();
+                }
+              },
+            }),
+          );
+
+        self.stitchableStream.addStream(transformedStream);
+      },
+    })
+      .catch(error => {
+        // add an empty stream with an error to break the stream:
+        self.stitchableStream.addStream(
+          new ReadableStream({
+            start(controller) {
+              controller.error(error);
+            },
+          }),
+        );
+      })
+      .finally(() => {
+        self.stitchableStream.close();
+      });
+
+    this.outputStrategy = outputStrategy;
   }
 
-  get object(): Promise<RESULT> {
+  get object() {
     return this.objectPromise.value;
   }
 
+  get usage() {
+    return this.usagePromise.value;
+  }
+
+  get experimental_providerMetadata() {
+    return this.providerMetadataPromise.value;
+  }
+
+  get warnings() {
+    return this.warningsPromise.value;
+  }
+
+  get request() {
+    return this.requestPromise.value;
+  }
+
+  get response() {
+    return this.responsePromise.value;
+  }
+
   get partialObjectStream(): AsyncIterableStream<PARTIAL> {
-    return createAsyncIterableStream(this.originalStream, {
+    return createAsyncIterableStream(this.stitchableStream.stream, {
       transform(chunk, controller) {
         switch (chunk.type) {
           case 'object':
@@ -936,11 +962,13 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get elementStream(): ELEMENT_STREAM {
-    return this.outputStrategy.createElementStream(this.originalStream);
+    return this.outputStrategy.createElementStream(
+      this.stitchableStream.stream,
+    );
   }
 
   get textStream(): AsyncIterableStream<string> {
-    return createAsyncIterableStream(this.originalStream, {
+    return createAsyncIterableStream(this.stitchableStream.stream, {
       transform(chunk, controller) {
         switch (chunk.type) {
           case 'text-delta':
@@ -965,7 +993,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get fullStream(): AsyncIterableStream<ObjectStreamPart<PARTIAL>> {
-    return createAsyncIterableStream(this.originalStream, {
+    return createAsyncIterableStream(this.stitchableStream.stream, {
       transform(chunk, controller) {
         controller.enqueue(chunk);
       },

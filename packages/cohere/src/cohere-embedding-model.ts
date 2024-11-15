@@ -67,8 +67,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV1<string> {
       headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
-        // TODO(shaper): There are other embedding types. Do we need to support them?
-        // For now we only support 'float' embeddings which are also the only ones
+        // The AI SDK only supports 'float' embeddings which are also the only ones
         // the Cohere API docs state are supported for all models.
         // https://docs.cohere.com/v2/reference/embed#request.body.embedding_types
         embedding_types: ['float'],

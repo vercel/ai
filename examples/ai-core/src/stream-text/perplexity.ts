@@ -9,7 +9,7 @@ const perplexity = createOpenAI({
 });
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: perplexity('llama-3-sonar-large-32k-online'),
     prompt:
       'List the top 5 San Francisco news from the past week.' +

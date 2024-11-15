@@ -5,7 +5,7 @@ export async function POST(req: Request) {
     simulateReadableStream({
       initialDelayInMs: 0, // Delay before the first chunk
       chunkDelayInMs: 0, // Delay between chunks
-      values: [
+      chunks: [
         ...Array(5000).fill(`0:"T "\n`),
         `e:{"finishReason":"stop","usage":{"promptTokens":20,"completionTokens":50},"isContinued":false}\n`,
         `d:{"finishReason":"stop","usage":{"promptTokens":20,"completionTokens":50}}\n`,

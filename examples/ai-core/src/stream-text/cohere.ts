@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: cohere('command-r-plus'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });

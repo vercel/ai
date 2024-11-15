@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: anthropic('claude-3-5-sonnet-20241022'),
     maxTokens: 512, // artificial limit for demo purposes
     maxSteps: 5,

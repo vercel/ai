@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { formatStreamPart, streamText } from 'ai';
+import { formatDataStreamPart, streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -16,14 +16,14 @@ export async function POST(req: Request) {
   // Check if we have a cached response
   const cached = cache.get(key);
   if (cached != null) {
-    return new Response(formatStreamPart('text', cached), {
+    return new Response(formatDataStreamPart('text', cached), {
       status: 200,
       headers: { 'Content-Type': 'text/plain' },
     });
   }
 
   // Call the language model:
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     messages,
     async onFinish({ text }) {

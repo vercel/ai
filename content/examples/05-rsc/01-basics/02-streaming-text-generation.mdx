@@ -71,7 +71,7 @@ export async function generate(input: string) {
   const stream = createStreamableValue('');
 
   (async () => {
-    const { textStream } = await streamText({
+    const { textStream } = streamText({
       model: openai('gpt-3.5-turbo'),
       prompt: input,
     });

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/ui-utils",
-  "version": "1.0.0-canary.7",
+  "version": "1.0.0-canary.8",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",

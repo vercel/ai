@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: azure('v0-gpt-35-turbo'), // use your own deployment
     tools: {
       weather: weatherTool,

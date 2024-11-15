@@ -7,7 +7,7 @@ export const POST = async (event: APIEvent) => {
   const { messages } = await event.request.json();
 
   // Call the language model
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4-turbo'),
     messages,
     async onFinish({ text, toolCalls, toolResults, usage, finishReason }) {

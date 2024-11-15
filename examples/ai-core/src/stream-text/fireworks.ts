@@ -9,7 +9,7 @@ const fireworks = createOpenAI({
 });
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: fireworks('accounts/fireworks/models/firefunction-v1'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });

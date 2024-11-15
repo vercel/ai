@@ -6,6 +6,7 @@
       "dependsOn": ["^build"],
       "env": [
         "ANTHROPIC_API_KEY",
+        "ASSISTANT_ID",
         "AWS_REGION",
         "AWS_ACCESS_KEY_ID",
         "AWS_SECRET_ACCESS_KEY",
@@ -16,22 +17,26 @@
         "GOOGLE_GENERATIVE_AI_API_KEY",
         "GROQ_API_KEY",
         "MISTRAL_API_KEY",
+        "NEXT_RUNTIME",
+        "NODE_ENV",
         "OPENAI_API_KEY",
         "OPENAI_API_BASE",
         "PERPLEXITY_API_KEY",
-        "REPLICATE_API_KEY",
-        "NODE_ENV",
-        "ASSISTANT_ID",
-        "INKEEP_API_KEY",
-        "INKEEP_INTEGRATION_ID",
-        "VERCEL_URL",
         "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG",
         "SENTRY_PROJECT",
-        "NEXT_RUNTIME",
+        "TOGETHER_AI_API_KEY",
+        "VERCEL_URL",
         "XAI_API_KEY"
       ],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**",
+        ".nuxt/**",
+        ".svelte-kit/**",
+        ".vinxi/**"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]

@@ -10,7 +10,7 @@ app.post('/', async (req: Request, res: Response) => {
   const data = new StreamData();
   data.append('initialized call');
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     prompt: 'Invent a new holiday and describe its traditions.',
     onFinish() {

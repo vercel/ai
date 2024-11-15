@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-3.5-turbo'),
     maxTokens: 512,
     temperature: 0.3,

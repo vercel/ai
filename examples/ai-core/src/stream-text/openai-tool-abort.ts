@@ -6,7 +6,7 @@ import { z } from 'zod';
 async function main() {
   const abortController = new AbortController();
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     maxSteps: 5,
     tools: {

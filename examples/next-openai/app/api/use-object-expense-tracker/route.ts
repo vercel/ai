@@ -8,7 +8,7 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { expense }: { expense: string } = await req.json();
 
-  const result = await streamObject({
+  const result = streamObject({
     model: openai('gpt-4-turbo'),
     system:
       'You categorize expenses into one of the following categories: ' +

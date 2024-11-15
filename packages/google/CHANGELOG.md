@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.0.0-canary.6
+
+### Patch Changes
+
+- c38a0db: fix (provider/google): allow empty candidates array when streaming
+
 ## 1.0.0-canary.5
 
 ### Patch Changes

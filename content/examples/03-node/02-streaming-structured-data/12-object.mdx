@@ -20,7 +20,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 
-const result = await streamObject({
+const result = streamObject({
   model: openai('gpt-4-turbo'),
   schema: z.object({
     recipe: z.object({
@@ -52,7 +52,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 
-const result = await streamObject({
+const result = streamObject({
   model: openai('gpt-4-turbo'),
   schema: z.object({
     recipe: z.object({

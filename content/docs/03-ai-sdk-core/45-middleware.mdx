@@ -34,7 +34,7 @@ const wrappedLanguageModel = wrapLanguageModel({
 The wrapped language model can be used just like any other language model, e.g. in `streamText`:
 
 ```ts highlight="2"
-const result = await streamText({
+const result = streamText({
   model: wrappedLanguageModel,
   prompt: 'What cities are in the United States?',
 });

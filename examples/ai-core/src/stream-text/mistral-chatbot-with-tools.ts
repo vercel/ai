@@ -20,7 +20,7 @@ async function main() {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const result = await streamText({
+    const result = streamText({
       model: mistral('mistral-large-latest'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,

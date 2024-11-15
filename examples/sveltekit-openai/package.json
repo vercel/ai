@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "1.0.0-canary.3",
-    "@ai-sdk/svelte": "1.0.0-canary.7",
-    "ai": "4.0.0-canary.10",
+    "@ai-sdk/svelte": "1.0.0-canary.8",
+    "ai": "4.0.0-canary.12",
     "openai": "4.52.6",
     "zod": "^3.23.8"
   },
@@ -22,7 +22,7 @@
     "@sveltejs/adapter-auto": "^3",
     "@sveltejs/kit": "^2",
     "@sveltejs/vite-plugin-svelte": "^3",
-    "@types/cookie": "^0.6.0",
+    "@types/cookie": "^1.0.0",
     "svelte": "^4",
     "svelte-check": "^3.7",
     "tslib": "^2.6.0",

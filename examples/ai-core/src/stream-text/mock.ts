@@ -3,7 +3,7 @@ import { convertArrayToReadableStream, MockLanguageModelV1 } from 'ai/test';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: new MockLanguageModelV1({
       doStream: async () => ({
         stream: convertArrayToReadableStream([

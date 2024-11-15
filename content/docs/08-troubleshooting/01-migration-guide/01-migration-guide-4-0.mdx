@@ -15,7 +15,38 @@ description: Learn how to upgrade AI SDK 3.4 to 4.0.
 
 1. [Migrate to AI SDK 3.4](/docs/troubleshooting/migration-guide/migration-guide-3-4).
 2. Resolve all deprecation warnings.
-3. Upgrade to AI SDK 4.0 and follow the breaking changes guide below.
+3. Upgrade to AI SDK 4.0.
+4. _Optional_: Run the [codemod](#codemods) automated migrations.
+5. Follow the breaking changes guide below.
+
+## Codemods
+
+The AI SDK provides Codemod transformations to help upgrade your codebase when a
+feature is deprecated, removed, or otherwise changed.
+
+Codemods are transformations that run on your codebase programmatically. They
+allow you to easily apply many changes without having to manually go through
+every file.
+
+Codemods are intended as a tool to help you with the upgrade process. They may
+not cover all of the changes you need to make. You may need to make additional
+changes manually.
+
+You can run all codemods provided as part of the 4.0 upgrade process by running
+the following command from the root of your project:
+
+```sh
+npx @ai-sdk/codemod upgrade
+```
+
+Individual codemods can be run by specifying the name of the codemod:
+
+```sh
+npx @ai-sdk/codemod <codemod-name> <path>
+```
+
+The latest set of codemods can be found in the
+[`@ai-sdk/codemod`](https://github.com/vercel/ai/tree/main/packages/codemod/src/codemods) repository.
 
 ## Provider Changes
 
@@ -32,6 +63,11 @@ Please use the `anthropic` object or the `createAnthropic` function instead.
 
 #### Removed `topK` setting
 
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
+
 The model specific `topK` setting has been removed from the Anthropic provider.
 You can use the standard `topK` setting instead.
 
@@ -44,12 +80,22 @@ Please use the `google` object or the `createGoogleGenerativeAI` function instea
 
 #### Removed `topK` setting
 
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
+
 The model-specific `topK` setting has been removed from the Google Generative AI provider.
 You can use the standard `topK` setting instead.
 
 ### Google Vertex Provider
 
 #### Removed `topK` setting
+
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
 
 The model-specific `topK` setting has been removed from the Google Vertex provider.
 You can use the standard `topK` setting instead.
@@ -76,6 +122,11 @@ The `toAIStream` function has been removed from the LangChain adapter.
 Please use the `toDataStream` function instead.
 
 ## AI SDK 2.x Legacy Changes
+
+<Note type="warning">
+  There are no codemods available for the changes in this section. Please review
+  and update your code manually.
+</Note>
 
 ### Removed 2.x prompt helpers
 
@@ -106,6 +157,16 @@ The legacy `Tokens` RSC streaming from 2.x has been removed.
 
 ## AI SDK Core Changes
 
+### `streamText` returns immediately
+
+Instead of returning a Promise, the `streamText` function now returns immediately.
+It is not necessary to await the result of `streamText`.
+
+### `streamObject` returns immediately
+
+Instead of returning a Promise, the `streamObject` function now returns immediately.
+It is not necessary to await the result of `streamObject`.
+
 ### Remove roundtrips
 
 The `maxToolRoundtrips` and `maxAutomaticRoundtrips` options have been removed from the `generateText` and `streamText` functions.
@@ -119,6 +180,11 @@ Please use the `steps` property instead.
 The `nanoid` export has been removed. Please use [`generateId`](/docs/reference/stream-helpers/generate-id) instead.
 
 ### Increased default size of generated IDs
+
+<Note type="warning">
+  There are no codemods available for this change. Please review and update your
+  code manually.
+</Note>
 
 The [`generateId`](/docs/reference/stream-helpers/generate-id) function now
 generates 16-character IDs. The previous default was 7 characters.
@@ -149,12 +215,25 @@ The following methods have been removed from the `streamText` result:
 - `pipeAIStreamToResponse`
 - `toAIStreamResponse`
 
+### Renamed "formatStreamPart" to "formatDataStreamPart"
+
+The `formatStreamPart` function has been renamed to `formatDataStreamPart`.
+
+### Renamed "parseStreamPart" to "parseDataStreamPart"
+
+The `parseStreamPart` function has been renamed to `parseDataStreamPart`.
+
 ### Removed `TokenUsage`, `CompletionTokenUsage` and `EmbeddingTokenUsage` types
 
 The `TokenUsage`, `CompletionTokenUsage` and `EmbeddingTokenUsage` types have been removed.
 Please use the `LanguageModelUsage` and `EmbeddingModelUsage` types instead.
 
 ### Removed deprecated telemetry data
+
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
 
 The following telemetry data values have been removed:
 
@@ -178,19 +257,39 @@ Please use the `experimental_createProviderRegistry` function instead.
 
 ### Removed `rawResponse` from results
 
+<Note type="warning">
+  There are no codemods available for this change. Please review and update your
+  code manually.
+</Note>
+
 The `rawResponse` property has been removed from the `generateText`, `streamText`, `generateObject`, and `streamObject` results.
 You can use the `response` property instead.
 
 ### Removed `ExperimentalTool` type
 
+<Note type="warning">
+  There are no codemods available for this change. Please review and update your
+  code manually.
+</Note>
+
 The `ExperimentalTool` type has been removed. Please use the `CoreTool` type instead.
 
 ### Removed `init` option from `pipeDataStreamToResponse` and `toDataStreamResponse`
+
+<Note type="warning">
+  There are no codemods available for this change. Please review and update your
+  code manually.
+</Note>
 
 The `init` option has been removed from the `pipeDataStreamToResponse` and `toDataStreamResponse` functions.
 You can set the values from `init` directly into the `options` object.
 
 ### Removed `responseMessages` from `generateText` and `streamText`
+
+<Note type="warning">
+  There are no codemods available for this change. Please review and update your
+  code manually.
+</Note>
 
 The `responseMessages` property has been removed from the `generateText` and `streamText` results.
 This includes the `onFinish` callback.
@@ -198,19 +297,47 @@ Please use the `response.messages` property instead.
 
 ### Removed `experimental_continuationSteps` option
 
+<Note type="warning">
+  There are no codemods available for this change. Please review and update your
+  code manually.
+</Note>
+
 The `experimental_continuationSteps` option has been removed from the `generateText` function.
 Please use the `experimental_continueSteps` option instead.
 
 ### Removed `LanguageModelResponseMetadataWithHeaders` type
+
+<Note type="warning">
+  There are no codemods available for this change. Please review and update your
+  code manually.
+</Note>
 
 The `LanguageModelResponseMetadataWithHeaders` type has been removed.
 Please use the `LanguageModelResponseMetadata` type instead.
 
 #### Changed `streamText` warnings result to Promise
 
+<Note type="warning">
+  There are no codemods available for this change. Please review and update your
+  code manually.
+</Note>
+
 The `warnings` property of the `StreamTextResult` type is now a Promise.
 
+#### Changed `streamObject` warnings result to Promise
+
+The `warnings` property of the `StreamObjectResult` type is now a Promise.
+
+#### Renamed `simulateReadableStream` `values` to `chunks`
+
+The `simulateReadableStream` function from `ai/test` has been renamed to `chunks`.
+
 ## AI SDK RSC Changes
+
+<Note type="warning">
+  There are no codemods available for the changes in this section. Please review
+  and update your code manually.
+</Note>
 
 ### Removed `render` function
 
@@ -234,10 +361,20 @@ import { useChat } from '@ai-sdk/svelte';
 
 ### Removed `experimental_StreamData`
 
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
+
 The `experimental_StreamData` export has been removed.
 Please use the `StreamData` export instead.
 
 ### `useChat` hook
+
+<Note type="warning">
+  There are no codemods available for the changes in this section. Please review
+  and update your code manually.
+</Note>
 
 #### Removed `streamMode` option
 
@@ -281,12 +418,22 @@ The option will be removed in the next major release.
 
 ### `useCompletion` hook
 
+<Note type="warning">
+  There are no codemods available for the changes in this section. Please review
+  and update your code manually.
+</Note>
+
 #### Removed `streamMode` option
 
 The `streamMode` options has been removed from the `useCompletion` hook.
 Please use the `streamProtocol` parameter instead.
 
 ### `useAssistant` hook
+
+<Note type="warning">
+  There are no codemods available for the changes in this section. Please review
+  and update your code manually.
+</Note>
 
 #### Removed `experimental_useAssistant` export
 
@@ -305,10 +452,20 @@ Please use the `AssistantResponse` function directly instead.
 
 ### `experimental_useObject` hook
 
+<Note type="warning">
+  There are no codemods available for the changes in this section. Please review
+  and update your code manually.
+</Note>
+
 The `setInput` helper has been removed from the `experimental_useObject` hook.
 Please use the `submit` helper instead.
 
 ## AI SDK Errors
+
+<Note type="warning">
+  There are no codemods available for the changes in this section. Please review
+  and update your code manually.
+</Note>
 
 ### Removed `isXXXError` static methods
 

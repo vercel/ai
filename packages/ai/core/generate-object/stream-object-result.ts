@@ -17,7 +17,7 @@ export interface StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   /**
   Warnings from the model provider (e.g. unsupported settings)
      */
-  readonly warnings: CallWarning[] | undefined;
+  readonly warnings: Promise<CallWarning[] | undefined>;
 
   /**
   The token usage of the generated response. Resolved when the response is finished.

@@ -28,7 +28,7 @@ const baseten = createOpenAI({
 });
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: baseten('<model-name>'), // The name of the model you are serving in the baseten deployment
     prompt: 'Give me a poem about life',
   });

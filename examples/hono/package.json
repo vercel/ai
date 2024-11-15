@@ -5,9 +5,9 @@
   "dependencies": {
     "@ai-sdk/openai": "1.0.0-canary.3",
     "@hono/node-server": "1.12.2",
-    "ai": "4.0.0-canary.10",
+    "ai": "4.0.0-canary.12",
     "dotenv": "16.4.5",
-    "hono": "4.5.11"
+    "hono": "4.6.9"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: openai('o1-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_providerMetadata: {

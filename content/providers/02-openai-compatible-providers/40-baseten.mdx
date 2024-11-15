@@ -132,7 +132,7 @@ const baseten = createOpenAI({
   },
 });
 
-const result = await streamText({
+const result = streamText({
   model: baseten('ultravox'),
   prompt: 'Tell me about yourself in one sentence',
 });

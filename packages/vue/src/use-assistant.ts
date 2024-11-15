@@ -3,15 +3,15 @@
  */
 
 import { isAbortError } from '@ai-sdk/provider-utils';
-import { readDataStream, generateId } from '@ai-sdk/ui-utils';
 import type {
   AssistantStatus,
   CreateMessage,
   Message,
   UseAssistantOptions,
 } from '@ai-sdk/ui-utils';
-import { computed, readonly, ref } from 'vue';
+import { generateId, processAssistantStream } from '@ai-sdk/ui-utils';
 import type { ComputedRef, Ref } from 'vue';
+import { computed, readonly, ref } from 'vue';
 
 export type UseAssistantHelpers = {
   /**
@@ -180,70 +180,53 @@ export function useAssistant({
         throw new Error('The response body is empty');
       }
 
-      for await (const { type, value } of readDataStream(
-        response.body.getReader(),
-      )) {
-        switch (type) {
-          case 'assistant_message': {
-            messages.value = [
-              ...messages.value,
-              {
-                id: value.id,
-                content: value.content[0].text.value,
-                role: value.role,
-              },
-            ];
-            break;
-          }
-          case 'assistant_control_data': {
-            if (value.threadId) {
-              currentThreadId.value = value.threadId;
-            }
+      await processAssistantStream({
+        stream: response.body,
+        onAssistantMessagePart(value) {
+          messages.value = [
+            ...messages.value,
+            {
+              id: value.id,
+              content: value.content[0].text.value,
+              role: value.role,
+            },
+          ];
+        },
+        onTextPart(value) {
+          setMessages(messages => {
+            const lastMessage = messages[messages.length - 1];
+            lastMessage.content += value;
 
-            setMessages(messages => {
-              const lastMessage = messages[messages.length - 1];
-              lastMessage.id = value.messageId;
-
-              return [...messages.slice(0, -1), lastMessage];
-            });
-
-            break;
+            return [...messages.slice(0, -1), lastMessage];
+          });
+        },
+        onAssistantControlDataPart(value) {
+          if (value.threadId) {
+            currentThreadId.value = value.threadId;
           }
 
-          case 'text': {
-            setMessages(messages => {
-              const lastMessage = messages[messages.length - 1];
-              lastMessage.content += value;
+          setMessages(messages => {
+            const lastMessage = messages[messages.length - 1];
+            lastMessage.id = value.messageId;
 
-              return [...messages.slice(0, -1), lastMessage];
-            });
-
-            break;
-          }
-
-          case 'data_message': {
-            setMessages(messages => [
-              ...messages,
-              {
-                id: value.id ?? generateId(),
-                role: 'data',
-                content: '',
-                data: value.data,
-              },
-            ]);
-            break;
-          }
-
-          case 'error': {
-            error.value = new Error(value);
-          }
-
-          default: {
-            console.error('Unknown message type:', type);
-            break;
-          }
-        }
-      }
+            return [...messages.slice(0, -1), lastMessage];
+          });
+        },
+        onDataMessagePart(value) {
+          setMessages(messages => [
+            ...messages,
+            {
+              id: value.id ?? generateId(),
+              role: 'data',
+              content: '',
+              data: value.data,
+            },
+          ]);
+        },
+        onErrorPart(value) {
+          error.value = new Error(value);
+        },
+      });
     } catch (err) {
       // If the error is an AbortError and the signal is aborted, reset the abortController and do nothing.
       if (isAbortError(err) && abortController.value?.signal.aborted) {

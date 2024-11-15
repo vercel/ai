@@ -11,11 +11,11 @@
   "dependencies": {
     "@ai-sdk/openai": "1.0.0-canary.3",
     "@vercel/functions": "latest",
-    "ai": "4.0.0-canary.10",
+    "ai": "4.0.0-canary.12",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18",
-    "sonner": "^0.6.2"
+    "sonner": "^1.7.0"
   },
   "devDependencies": {
     "@types/node": "^17.0.12",

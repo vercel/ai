@@ -32,17 +32,13 @@ npm install @ai-sdk/openai
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai'; // Ensure OPENAI_API_KEY environment variable is set
 
-async function main() {
-  const { text } = await generateText({
-    model: openai('gpt-4-turbo'),
-    system: 'You are a friendly assistant!',
-    prompt: 'Why is the sky blue?',
-  });
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  system: 'You are a friendly assistant!',
+  prompt: 'Why is the sky blue?',
+});
 
-  console.log(text);
-}
-
-main();
+console.log(text);
 ```
 
 ### AI SDK UI
@@ -85,14 +81,14 @@ export default function Page() {
 ###### @/app/api/chat/route.ts (Next.js App Router)
 
 ```ts
-import { CoreMessage, streamText } from 'ai';
+import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
-  const { messages }: { messages: CoreMessage[] } = await req.json();
+  const { messages } = await req.json();
 
-  const result = await streamText({
-    model: openai('gpt-4'),
+  const result = streamText({
+    model: openai('gpt-4o'),
     system: 'You are a helpful assistant.',
     messages,
   });

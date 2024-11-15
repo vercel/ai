@@ -100,7 +100,7 @@ const portkey = createPortkey({
   config: portkeyConfig,
 });
 
-const result = await streamText({
+const result = streamText({
   model: portkey.completionModel(''),
   prompt: 'Invent a new holiday and describe its traditions.',
 });

@@ -18,7 +18,7 @@ export default defineLazyEventHandler(async () => {
     data.append({ test: 'value' });
 
     // Ask OpenAI for a streaming chat completion given the prompt
-    const result = await streamText({
+    const result = streamText({
       model: openai('gpt-3.5-turbo'),
       messages: [{ role: 'user', content: prompt }],
       onFinish() {

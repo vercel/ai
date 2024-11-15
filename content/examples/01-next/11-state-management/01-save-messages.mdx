@@ -17,7 +17,7 @@ export function POST(request) {
 
   const coreMessages = convertToCoreMessages(messages);
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     system: 'you are a friendly assistant!',
     messages: coreMessages,

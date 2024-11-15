@@ -10,7 +10,7 @@ const fireworks = createOpenAI({
 });
 
 async function main() {
-  const result = await streamObject({
+  const result = streamObject({
     model: fireworks('accounts/fireworks/models/firefunction-v1'),
     maxTokens: 2000,
     schema: z.object({

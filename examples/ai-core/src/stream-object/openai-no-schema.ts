@@ -3,7 +3,7 @@ import { streamObject } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamObject({
+  const result = streamObject({
     model: openai('gpt-4o-2024-08-06'),
     output: 'no-schema',
     prompt:

@@ -99,7 +99,7 @@ const crosshatch = createCrosshatch();
 const itemSummaries = [...]; // list of items
 const ids = (itemSummaries?.map(({ itemId }) => itemId) ?? []) as string[];
 
-const { elementStream } = await streamObject({
+const { elementStream } = streamObject({
   output: "array",
   mode: "json",
   model: crosshatch.languageModel("gpt-4o-mini", {

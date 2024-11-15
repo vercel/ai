@@ -1,4 +1,5 @@
 import { execSync } from 'child_process';
+import debug from 'debug';
 import fs from 'fs';
 import path from 'path';
 import { TransformOptions } from './transform-options';
@@ -11,12 +12,15 @@ function getJscodeshift(): string {
   return fs.existsSync(localJscodeshift) ? localJscodeshift : 'jscodeshift';
 }
 
+const log = debug('codemod:transform');
+const error = debug('codemod:transform:error');
+
 export function transform(
   codemod: string,
   source: string,
   options: TransformOptions,
 ) {
-  console.log(`Applying codemod '${codemod}': ${source}`);
+  log(`Applying codemod '${codemod}': ${source}`);
 
   const codemodPath = path.resolve(__dirname, `../codemods/${codemod}.js`);
   const targetPath = path.resolve(source);
@@ -41,8 +45,8 @@ export function transform(
 
   try {
     execSync(command, { stdio: 'inherit' });
-    console.log('Codemod applied successfully.');
-  } catch (error) {
-    console.error('Error applying codemod:', error);
+    log('Codemod applied successfully.');
+  } catch (err) {
+    error('Error applying codemod:', err);
   }
 }

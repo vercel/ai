@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: anthropic('claude-3-5-sonnet-20240620'),
     tools: {
       weather: weatherTool,

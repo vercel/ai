@@ -1,3 +1,5 @@
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
+
 /**
  * Creates a stitchable stream that can pipe one stream at a time.
  *
@@ -8,6 +10,7 @@ export function createStitchableStream<T>() {
   let innerStreamReaders: ReadableStreamDefaultReader<T>[] = [];
   let controller: ReadableStreamDefaultController<T> | null = null;
   let isClosed = false;
+  let waitForNewStream = createResolvablePromise<void>();
 
   const processPull = async () => {
     // Case 1: Outer stream is closed and no more inner streams
@@ -17,8 +20,11 @@ export function createStitchableStream<T>() {
     }
 
     // Case 2: No inner streams available, but outer stream is open
+    // wait for a new inner stream to be added or the outer stream to close
     if (innerStreamReaders.length === 0) {
-      return;
+      waitForNewStream = createResolvablePromise<void>();
+      await waitForNewStream.promise;
+      return processPull();
     }
 
     try {
@@ -69,9 +75,11 @@ export function createStitchableStream<T>() {
       }
 
       innerStreamReaders.push(innerStream.getReader());
+      waitForNewStream.resolve();
     },
     close: () => {
       isClosed = true;
+      waitForNewStream.resolve();
 
       if (innerStreamReaders.length === 0) {
         controller?.close();

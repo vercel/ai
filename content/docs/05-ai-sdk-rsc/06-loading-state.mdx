@@ -90,7 +90,7 @@ export async function generateResponse(prompt: string) {
   const stream = createStreamableValue();
 
   (async () => {
-    const { textStream } = await streamText({
+    const { textStream } = streamText({
       model: openai('gpt-4o'),
       prompt,
     });
@@ -124,7 +124,7 @@ export async function generateResponse(prompt: string) {
   const loadingState = createStreamableValue({ loading: true });
 
   (async () => {
-    const { textStream } = await streamText({
+    const { textStream } = streamText({
       model: openai('gpt-4o'),
       prompt,
     });
