@@ -17,7 +17,7 @@ function encodeText(text: string): Uint8Array {
   return new TextEncoder().encode(text);
 }
 
-describe('processDataStream', () => {
+describe('processAssistantStream', () => {
   // Basic Functionality Tests
   it('should process a simple text stream part', async () => {
     const chunks = [encodeText('0:"Hello"\n')];
@@ -26,8 +26,8 @@ describe('processDataStream', () => {
 
     await processAssistantStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -39,21 +39,47 @@ describe('processDataStream', () => {
   });
 
   it('should handle multiple stream parts in sequence', async () => {
-    const chunks = [encodeText('0:"Hello"\n0:"123"\n3:"error"\n')];
+    const chunks = [encodeText('0:"Hello"\n3:"error"\n')];
     const stream = createReadableStream(chunks);
     const receivedParts: AssistantStreamPartType[] = [];
 
     await processAssistantStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
+      },
+      onErrorPart: value => {
+        receivedParts.push({ type: 'error', value });
       },
     });
 
-    expect(receivedParts).toHaveLength(3);
+    expect(receivedParts).toHaveLength(2);
     expect(receivedParts[0]).toEqual({ type: 'text', value: 'Hello' });
-    expect(receivedParts[1]).toEqual({ type: 'text', value: '123' });
-    expect(receivedParts[2]).toEqual({ type: 'error', value: 'error' });
+    expect(receivedParts[1]).toEqual({ type: 'error', value: 'error' });
+  });
+
+  it('should handle assistant message parts', async () => {
+    const assistantMessage = {
+      id: 'msg_123',
+      role: 'assistant',
+      content: [{ type: 'text', text: { value: 'Hello' } }],
+    };
+    const chunks = [encodeText(`4:${JSON.stringify(assistantMessage)}\n`)];
+    const stream = createReadableStream(chunks);
+    const receivedParts: AssistantStreamPartType[] = [];
+
+    await processAssistantStream({
+      stream,
+      onAssistantMessagePart: value => {
+        receivedParts.push({ type: 'assistant_message', value });
+      },
+    });
+
+    expect(receivedParts).toHaveLength(1);
+    expect(receivedParts[0]).toEqual({
+      type: 'assistant_message',
+      value: assistantMessage,
+    });
   });
 
   // Edge Environment Specific Tests
@@ -64,8 +90,8 @@ describe('processDataStream', () => {
 
     await processAssistantStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -80,8 +106,8 @@ describe('processDataStream', () => {
 
     await processAssistantStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -101,8 +127,8 @@ describe('processDataStream', () => {
 
     await processAssistantStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -118,7 +144,7 @@ describe('processDataStream', () => {
     await expect(
       processAssistantStream({
         stream,
-        onStreamPart: async () => {},
+        onTextPart: async () => {},
       }),
     ).rejects.toThrow();
   });
@@ -130,12 +156,58 @@ describe('processDataStream', () => {
     await expect(
       processAssistantStream({
         stream,
-        onStreamPart: async () => {},
+        onTextPart: async () => {},
       }),
     ).rejects.toThrow('Invalid code');
   });
 
   // Edge Cases
+  it('should handle control data parts', async () => {
+    const controlData = {
+      threadId: 'thread_123',
+      messageId: 'msg_123',
+    };
+    const chunks = [encodeText(`5:${JSON.stringify(controlData)}\n`)];
+    const stream = createReadableStream(chunks);
+    const receivedParts: AssistantStreamPartType[] = [];
+
+    await processAssistantStream({
+      stream,
+      onAssistantControlDataPart: value => {
+        receivedParts.push({ type: 'assistant_control_data', value });
+      },
+    });
+
+    expect(receivedParts).toHaveLength(1);
+    expect(receivedParts[0]).toEqual({
+      type: 'assistant_control_data',
+      value: controlData,
+    });
+  });
+
+  it('should handle data message parts', async () => {
+    const dataMessage = {
+      role: 'data',
+      data: { some: 'data' },
+    };
+    const chunks = [encodeText(`6:${JSON.stringify(dataMessage)}\n`)];
+    const stream = createReadableStream(chunks);
+    const receivedParts: AssistantStreamPartType[] = [];
+
+    await processAssistantStream({
+      stream,
+      onDataMessagePart: value => {
+        receivedParts.push({ type: 'data_message', value });
+      },
+    });
+
+    expect(receivedParts).toHaveLength(1);
+    expect(receivedParts[0]).toEqual({
+      type: 'data_message',
+      value: dataMessage,
+    });
+  });
+
   it('should handle empty chunks', async () => {
     const chunks = [
       new Uint8Array(0),
@@ -148,8 +220,8 @@ describe('processDataStream', () => {
 
     await processAssistantStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -166,8 +238,8 @@ describe('processDataStream', () => {
 
     await processAssistantStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -182,8 +254,8 @@ describe('processDataStream', () => {
 
     await processAssistantStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 
@@ -205,10 +277,9 @@ describe('processDataStream', () => {
 
     await processAssistantStream({
       stream,
-      onStreamPart: async () => {},
+      onTextPart: async () => {},
     });
 
-    // The reader should be automatically released when the stream is done
     expect(mockRelease).not.toHaveBeenCalled();
   });
 
@@ -221,8 +292,8 @@ describe('processDataStream', () => {
 
     await processAssistantStream({
       stream,
-      onStreamPart: async part => {
-        receivedParts.push(part);
+      onTextPart: value => {
+        receivedParts.push({ type: 'text', value });
       },
     });
 

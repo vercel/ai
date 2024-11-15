@@ -178,68 +178,53 @@ export function useAssistant({
 
       await processAssistantStream({
         stream: response.body,
-        onStreamPart: async ({ type, value }) => {
-          switch (type) {
-            case 'assistant_message': {
-              setMessages(messages => [
-                ...messages,
-                {
-                  id: value.id,
-                  role: value.role,
-                  content: value.content[0].text.value,
-                },
-              ]);
-              break;
-            }
+        onAssistantMessagePart(value) {
+          setMessages(messages => [
+            ...messages,
+            {
+              id: value.id,
+              role: value.role,
+              content: value.content[0].text.value,
+            },
+          ]);
+        },
+        onTextPart(value) {
+          // text delta - add to last message:
+          setMessages(messages => {
+            const lastMessage = messages[messages.length - 1];
+            return [
+              ...messages.slice(0, messages.length - 1),
+              {
+                id: lastMessage.id,
+                role: lastMessage.role,
+                content: lastMessage.content + value,
+              },
+            ];
+          });
+        },
+        onAssistantControlDataPart(value) {
+          setCurrentThreadId(value.threadId);
 
-            case 'text': {
-              // text delta - add to last message:
-              setMessages(messages => {
-                const lastMessage = messages[messages.length - 1];
-                return [
-                  ...messages.slice(0, messages.length - 1),
-                  {
-                    id: lastMessage.id,
-                    role: lastMessage.role,
-                    content: lastMessage.content + value,
-                  },
-                ];
-              });
-
-              break;
-            }
-
-            case 'data_message': {
-              setMessages(messages => [
-                ...messages,
-                {
-                  id: value.id ?? generateId(),
-                  role: 'data',
-                  content: '',
-                  data: value.data,
-                },
-              ]);
-              break;
-            }
-
-            case 'assistant_control_data': {
-              setCurrentThreadId(value.threadId);
-
-              // set id of last message:
-              setMessages(messages => {
-                const lastMessage = messages[messages.length - 1];
-                lastMessage.id = value.messageId;
-                return [...messages.slice(0, messages.length - 1), lastMessage];
-              });
-
-              break;
-            }
-
-            case 'error': {
-              setError(new Error(value));
-              break;
-            }
-          }
+          // set id of last message:
+          setMessages(messages => {
+            const lastMessage = messages[messages.length - 1];
+            lastMessage.id = value.messageId;
+            return [...messages.slice(0, messages.length - 1), lastMessage];
+          });
+        },
+        onDataMessagePart(value) {
+          setMessages(messages => [
+            ...messages,
+            {
+              id: value.id ?? generateId(),
+              role: 'data',
+              content: '',
+              data: value.data,
+            },
+          ]);
+        },
+        onErrorPart(value) {
+          setError(new Error(value));
         },
       });
     } catch (error) {
