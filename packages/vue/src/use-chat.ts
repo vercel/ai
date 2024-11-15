@@ -200,7 +200,9 @@ export function useChat(
         onResponse,
         onUpdate(merged, data) {
           mutate([...chatRequest.messages, ...merged]);
-          streamData.value = [...existingData, ...(data ?? [])];
+          if (data?.length) {
+            streamData.value = [...existingData, ...(data ?? [])];
+          }
         },
         onFinish,
         restoreMessagesOnFailure() {
