@@ -145,66 +145,52 @@ export function useAssistant({
 
       await processAssistantStream({
         stream: response.body,
-        onStreamPart: async ({ type, value }) => {
-          switch (type) {
-            case 'assistant_message': {
-              mutateMessages([
-                ...get(messages),
-                {
-                  id: value.id,
-                  role: value.role,
-                  content: value.content[0].text.value,
-                },
-              ]);
-              break;
-            }
+        onAssistantMessagePart(value) {
+          mutateMessages([
+            ...get(messages),
+            {
+              id: value.id,
+              role: value.role,
+              content: value.content[0].text.value,
+            },
+          ]);
+        },
+        onTextPart(value) {
+          // text delta - add to last message:
+          mutateMessages(
+            get(messages).map((msg, index, array) => {
+              if (index === array.length - 1) {
+                return { ...msg, content: msg.content + value };
+              }
+              return msg;
+            }),
+          );
+        },
+        onAssistantControlDataPart(value) {
+          threadIdStore.set(value.threadId);
 
-            case 'text': {
-              // text delta - add to last message:
-              mutateMessages(
-                get(messages).map((msg, index, array) => {
-                  if (index === array.length - 1) {
-                    return { ...msg, content: msg.content + value };
-                  }
-                  return msg;
-                }),
-              );
-              break;
-            }
-
-            case 'data_message': {
-              mutateMessages([
-                ...get(messages),
-                {
-                  id: value.id ?? generateId(),
-                  role: 'data',
-                  content: '',
-                  data: value.data,
-                },
-              ]);
-              break;
-            }
-
-            case 'assistant_control_data': {
-              threadIdStore.set(value.threadId);
-
-              mutateMessages(
-                get(messages).map((msg, index, array) => {
-                  if (index === array.length - 1) {
-                    return { ...msg, id: value.messageId };
-                  }
-                  return msg;
-                }),
-              );
-
-              break;
-            }
-
-            case 'error': {
-              error.set(new Error(value));
-              break;
-            }
-          }
+          mutateMessages(
+            get(messages).map((msg, index, array) => {
+              if (index === array.length - 1) {
+                return { ...msg, id: value.messageId };
+              }
+              return msg;
+            }),
+          );
+        },
+        onDataMessagePart(value) {
+          mutateMessages([
+            ...get(messages),
+            {
+              id: value.id ?? generateId(),
+              role: 'data',
+              content: '',
+              data: value.data,
+            },
+          ]);
+        },
+        onErrorPart(value) {
+          error.set(new Error(value));
         },
       });
     } catch (err) {
