@@ -797,6 +797,22 @@ The following options have been removed from the `useChat` hook:
 Please use the [`maxSteps`](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) option instead.
 The value of `maxSteps` is equal to roundtrips + 1.
 
+```ts filename="AI SDK 3.4"
+const { messages } = useChat({
+  experimental_maxAutomaticRoundtrips: 2,
+  // or maxAutomaticRoundtrips
+  // or maxToolRoundtrips
+  // ...
+});
+```
+
+```ts filename="AI SDK 4.0"
+const { messages } = useChat({
+  maxSteps: 3, // 2 roundtrips + 1
+  // ...
+});
+```
+
 #### Removed `options` parameter
 
 The `options` parameter in the `useChat` hook has been removed.
