@@ -13,6 +13,7 @@ const bundle = [
   'remove-experimental-message-types',
   'remove-experimental-tool',
   'remove-google-facade',
+  'remove-metadata-with-headers',
   'remove-mistral-facade',
   'remove-openai-facade',
   'rename-format-stream-part',
