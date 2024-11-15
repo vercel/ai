@@ -143,7 +143,9 @@ const getStreamedResponse = async (
     onResponse,
     onUpdate(merged, data) {
       mutate([...chatRequest.messages, ...merged]);
-      mutateStreamData([...(existingData || []), ...(data || [])]);
+      if (data?.length) {
+        mutateStreamData([...(existingData ?? []), ...data]);
+      }
     },
     onFinish,
     generateId,

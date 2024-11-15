@@ -161,7 +161,9 @@ const processResponseStream = async (
     onResponse,
     onUpdate(merged, data) {
       mutate([...chatRequest.messages, ...merged], false);
-      mutateStreamData([...(existingData ?? []), ...(data ?? [])], false);
+      if (data?.length) {
+        mutateStreamData([...(existingData ?? []), ...data], false);
+      }
     },
     onToolCall,
     onFinish,

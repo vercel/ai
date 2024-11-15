@@ -152,7 +152,9 @@ const processStreamedResponse = async (
     onResponse,
     onUpdate(merged, data) {
       mutate([...chatRequest.messages, ...merged]);
-      setStreamData([...existingStreamData, ...(data ?? [])]);
+      if (data?.length) {
+        setStreamData([...existingStreamData, ...data]);
+      }
     },
     onToolCall,
     onFinish,
