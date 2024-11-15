@@ -1,5 +1,13 @@
 # @ai-sdk/solid
 
+## 1.0.0-canary.9
+
+### Patch Changes
+
+- 79c6dd9: fix (ui): remove unnecessary calls to mutateStreamData in useChat
+- Updated dependencies [04d3747]
+  - @ai-sdk/ui-utils@1.0.0-canary.9
+
 ## 1.0.0-canary.8
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.0.0-canary.9
+
+### Patch Changes
+
+- 04d3747: chore (ui-utils): restructure processAssistantMessage
+
 ## 1.0.0-canary.8
 
 ### Patch Changes

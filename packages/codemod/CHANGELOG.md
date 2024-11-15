@@ -1,5 +1,12 @@
 # @ai-sdk/codemod
 
+## 0.0.1-canary.4
+
+### Patch Changes
+
+- bffedb0: feat (packages/codemod): Improve codemod CLI logging.
+- 94c51ae: fix (packages/codemod): Only replace ai-sdk provider ctors.
+
 ## 0.0.1-canary.3
 
 ### Patch Changes
