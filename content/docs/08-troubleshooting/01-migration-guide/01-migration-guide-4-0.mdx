@@ -767,7 +767,7 @@ import { StreamData } from 'ai';
   and update your code manually.
 </Note>
 
-#### Removed `streamMode` option
+#### Removed `streamMode` setting
 
 The `streamMode` options has been removed from the `useChat` hook.
 Please use the `streamProtocol` parameter instead.
@@ -786,7 +786,7 @@ const { messages } = useChat({
 });
 ```
 
-#### Replaced roundtrip options with `maxSteps`
+#### Replaced roundtrip setting with `maxSteps`
 
 The following options have been removed from the `useChat` hook:
 
@@ -813,16 +813,30 @@ const { messages } = useChat({
 });
 ```
 
-#### Removed `options` parameter
+#### Removed `options` setting
 
 The `options` parameter in the `useChat` hook has been removed.
 Please use the `headers` and `body` parameters instead.
 
-#### Removed 2.x legacy function and tool calling
+```ts filename="AI SDK 3.4"
+const { messages } = useChat({
+  options: {
+    headers: {
+      'X-Custom-Header': 'value',
+    },
+  },
+  // ...
+});
+```
 
-The legacy `function_call` and `tools` options have been removed.
-The `name` property from the `Message` type has been removed.
-Please use the [AI SDK Core tool calling](/docs/ai-sdk-core/tools-and-tool-calling) instead.
+```ts filename="AI SDK 4.0"
+const { messages } = useChat({
+  headers: {
+    'X-Custom-Header': 'value',
+  },
+  // ...
+});
+```
 
 #### Removed `experimental_addToolResult` method
 
@@ -866,7 +880,7 @@ const { messages } = useChat({
   and update your code manually.
 </Note>
 
-#### Removed `streamMode` option
+#### Removed `streamMode` setting
 
 The `streamMode` options has been removed from the `useCompletion` hook.
 Please use the `streamProtocol` parameter instead.
@@ -914,6 +928,14 @@ Please use the `threadId` and `messageId` variables from the outer scope instead
 
 The `experimental_AssistantResponse` export has been removed.
 Please use the `AssistantResponse` function directly instead.
+
+```ts filename="AI SDK 3.4"
+import { experimental_AssistantResponse } from 'ai';
+```
+
+```ts filename="AI SDK 4.0"
+import { AssistantResponse } from 'ai';
+```
 
 ### `experimental_useObject` hook
 
@@ -979,6 +1001,12 @@ Prompt helpers for constructing message prompts are no longer needed with the AI
 ### Removed 2.x legacy providers
 
 Legacy providers from AI SDK 2.x have been removed. Please use the new [AI SDK provider architecture](/docs/foundations/providers-and-models) instead.
+
+#### Removed 2.x legacy function and tool calling
+
+The legacy `function_call` and `tools` options have been removed from `useChat` and `Message`.
+The `name` property from the `Message` type has been removed.
+Please use the [AI SDK Core tool calling](/docs/ai-sdk-core/tools-and-tool-calling) instead.
 
 ### Removed 2.x `AIStream`
 
