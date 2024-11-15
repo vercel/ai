@@ -201,7 +201,7 @@ export function useChat(
         onUpdate(merged, data) {
           mutate([...chatRequest.messages, ...merged]);
           if (data?.length) {
-            streamData.value = [...existingData, ...(data ?? [])];
+            streamData.value = [...existingData, ...data];
           }
         },
         onFinish,
