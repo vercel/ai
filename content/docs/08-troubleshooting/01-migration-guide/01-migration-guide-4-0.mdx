@@ -14,10 +14,18 @@ description: Learn how to upgrade AI SDK 3.4 to 4.0.
 ## Recommended Process
 
 1. [Migrate to AI SDK 3.4](/docs/troubleshooting/migration-guide/migration-guide-3-4).
-2. Resolve all deprecation warnings.
-3. Upgrade to AI SDK 4.0.
-4. _Optional_: Run the [codemod](#codemods) automated migrations.
-5. Follow the breaking changes guide below.
+2. Upgrade to AI SDK 4.0.
+3. Automatically migrate your code using [codemods](#codemods).
+   > If you don't want to use codemods, we recommend resolving all deprecation warnings before upgrading to AI SDK 4.0.
+4. Follow the breaking changes guide below.
+
+## AI SDK 4.0 package versions
+
+You need to update the following packages to the following versions in your `package.json` file(s):
+
+- `ai` package: `4.0.*`
+- `ai-sdk@provider-utils` package: `2.0.*`
+- `ai-sdk/*` packages: `1.0.*` (other `@ai-sdk` packages)
 
 ## Codemods
 
@@ -28,9 +36,11 @@ Codemods are transformations that run on your codebase programmatically. They
 allow you to easily apply many changes without having to manually go through
 every file.
 
-Codemods are intended as a tool to help you with the upgrade process. They may
-not cover all of the changes you need to make. You may need to make additional
-changes manually.
+<Note>
+  Codemods are intended as a tool to help you with the upgrade process. They may
+  not cover all of the changes you need to make. You may need to make additional
+  changes manually.
+</Note>
 
 You can run all codemods provided as part of the 4.0 upgrade process by running
 the following command from the root of your project:
