@@ -31,17 +31,9 @@ export function convertToXaiChatMessages(
                 return { type: 'text', text: part.text };
               }
               case 'image': {
-                return {
-                  type: 'image_url',
-                  image_url: {
-                    url:
-                      part.image instanceof URL
-                        ? part.image.toString()
-                        : `data:${
-                            part.mimeType ?? 'image/jpeg'
-                          };base64,${convertUint8ArrayToBase64(part.image)}`,
-                  },
-                };
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'Image content parts in user messages',
+                });
               }
               case 'file': {
                 throw new UnsupportedFunctionalityError({
