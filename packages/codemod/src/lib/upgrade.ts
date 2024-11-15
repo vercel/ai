@@ -11,6 +11,7 @@ const bundle = [
   'remove-deprecated-provider-registry-exports',
   'remove-experimental-ai-fn-exports',
   'remove-experimental-message-types',
+  'remove-experimental-tool',
   'remove-google-facade',
   'remove-mistral-facade',
   'remove-openai-facade',
