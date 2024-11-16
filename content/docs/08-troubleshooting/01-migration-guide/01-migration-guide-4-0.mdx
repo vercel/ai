@@ -250,6 +250,11 @@ LangChainAdapter.toDataStream(stream);
 
 ### `streamText` returns immediately
 
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
+
 Instead of returning a Promise, the `streamText` function now returns immediately.
 It is not necessary to await the result of `streamText`.
 
@@ -266,6 +271,11 @@ const result = streamText({
 ```
 
 ### `streamObject` returns immediately
+
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
 
 Instead of returning a Promise, the `streamObject` function now returns immediately.
 It is not necessary to await the result of `streamObject`.
@@ -363,11 +373,6 @@ import {
 ```
 
 ### Removed `ExperimentalTool` type
-
-<Note type="warning">
-  There are no codemods available for this change. Please review and update your
-  code manually.
-</Note>
 
 The `ExperimentalTool` type has been removed. Please use the `CoreTool` type instead.
 
@@ -610,11 +615,6 @@ const responseMessages = response.messages;
 
 ### Removed `experimental_continuationSteps` option
 
-<Note type="warning">
-  There are no codemods available for this change. Please review and update your
-  code manually.
-</Note>
-
 The `experimental_continuationSteps` option has been removed from the `generateText` function.
 Please use the `experimental_continueSteps` option instead.
 
@@ -633,11 +633,6 @@ const result = await generateText({
 ```
 
 ### Removed `LanguageModelResponseMetadataWithHeaders` type
-
-<Note type="warning">
-  There are no codemods available for this change. Please review and update your
-  code manually.
-</Note>
 
 The `LanguageModelResponseMetadataWithHeaders` type has been removed.
 Please use the `LanguageModelResponseMetadata` type instead.
@@ -677,6 +672,11 @@ const warnings = await result.warnings;
 
 #### Changed `streamObject` warnings result to Promise
 
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
+
 The `warnings` property of the `StreamObjectResult` type is now a Promise.
 
 ```ts filename="AI SDK 3.4"
@@ -696,6 +696,11 @@ const warnings = await result.warnings;
 ```
 
 #### Renamed `simulateReadableStream` `values` to `chunks`
+
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
 
 The `simulateReadableStream` function from `ai/test` has been renamed to `chunks`.
 
@@ -741,6 +746,11 @@ import { streamUI } from 'ai/rsc';
 
 ### Removed Svelte, Vue, and SolidJS exports
 
+<Note type="warning">
+  This codemod only operates on `.ts` and `.tsx` files. If you have code in
+  files with other suffixes, please review and update your code manually.
+</Note>
+
 The `ai` package no longer exports Svelte, Vue, and SolidJS UI integrations.
 You need to install the `@ai-sdk/svelte`, `@ai-sdk/vue`, and `@ai-sdk/solid` packages directly.
 
@@ -753,11 +763,6 @@ import { useChat } from '@ai-sdk/svelte';
 ```
 
 ### Removed `experimental_StreamData`
-
-<Note type="warning">
-  There is no codemod available for this change. Please review and update your
-  code manually.
-</Note>
 
 The `experimental_StreamData` export has been removed.
 Please use the `StreamData` export instead.
@@ -911,11 +916,6 @@ const { text } = useCompletion({
 
 ### `useAssistant` hook
 
-<Note type="warning">
-  There are no codemods available for the changes in this section. Please review
-  and update your code manually.
-</Note>
-
 #### Removed `experimental_useAssistant` export
 
 The `experimental_useAssistant` export has been removed from the `useAssistant` hook.
@@ -930,6 +930,11 @@ import { useAssistant } from 'ai/react';
 ```
 
 #### Removed `threadId` and `messageId` from `AssistantResponse`
+
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
 
 The `threadId` and `messageId` parameters have been removed from the `AssistantResponse` function.
 Please use the `threadId` and `messageId` variables from the outer scope instead.
@@ -953,6 +958,11 @@ return AssistantResponse(
 ```
 
 #### Removed `experimental_AssistantResponse` export
+
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
 
 The `experimental_AssistantResponse` export has been removed.
 Please use the `AssistantResponse` function directly instead.
@@ -989,11 +999,6 @@ const { object, submit } = useObject({
 
 ## AI SDK Errors
 
-<Note type="warning">
-  There are no codemods available for the changes in this section. Please review
-  and update your code manually.
-</Note>
-
 ### Removed `isXXXError` static methods
 
 The `isXXXError` static methods have been removed from AI SDK errors.
@@ -1012,6 +1017,11 @@ APICallError.isInstance(error);
 ```
 
 ### Removed `toJSON` method
+
+<Note type="warning">
+  There is no codemod available for this change. Please review and update your
+  code manually.
+</Note>
 
 The `toJSON` method has been removed from AI SDK errors.
 
