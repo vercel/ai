@@ -1,7 +1,7 @@
 # AI SDK - xAI Grok Provider
 
 The **[xAI Grok provider](https://sdk.vercel.ai/providers/ai-sdk-providers/xai)** for the [AI SDK](https://sdk.vercel.ai/docs)
-contains language model support for the xAI chat and completion APIs and embedding model support for the xAI embeddings API.
+contains language model support for the xAI chat and completion APIs.
 
 ## Setup
 
@@ -33,4 +33,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[xAI Grok provider documentation](https://sdk.vercel.ai/providers/ai-sdk-providers/grok)** for more information.
+Please check out the **[xAI Grok provider documentation](https://sdk.vercel.ai/providers/ai-sdk-providers/xai)** for more information.
