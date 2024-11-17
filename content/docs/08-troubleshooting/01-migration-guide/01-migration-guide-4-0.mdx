@@ -250,11 +250,6 @@ LangChainAdapter.toDataStream(stream);
 
 ### `streamText` returns immediately
 
-<Note type="warning">
-  There is no codemod available for this change. Please review and update your
-  code manually.
-</Note>
-
 Instead of returning a Promise, the `streamText` function now returns immediately.
 It is not necessary to await the result of `streamText`.
 
@@ -271,11 +266,6 @@ const result = streamText({
 ```
 
 ### `streamObject` returns immediately
-
-<Note type="warning">
-  There is no codemod available for this change. Please review and update your
-  code manually.
-</Note>
 
 Instead of returning a Promise, the `streamObject` function now returns immediately.
 It is not necessary to await the result of `streamObject`.
