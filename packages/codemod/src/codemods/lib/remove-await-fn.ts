@@ -3,6 +3,7 @@ import { API, FileInfo } from 'jscodeshift';
 export function removeAwaitFn(file: FileInfo, api: API, functionName: string) {
   const j = api.jscodeshift;
   const root = j(file.source);
+  let hasChanges = false;
 
   // Find import of the specified function from 'ai'
   const functionImportNames = new Set<string>();
@@ -38,10 +39,11 @@ export function removeAwaitFn(file: FileInfo, api: API, functionName: string) {
         }
         return false;
       })
-      .replaceWith(path => {
-        return path.node.argument;
+      .forEach(path => {
+        hasChanges = true;
+        j(path).replaceWith(path.node.argument);
       });
   }
 
-  return root.toSource();
+  return hasChanges ? root.toSource() : null;
 }

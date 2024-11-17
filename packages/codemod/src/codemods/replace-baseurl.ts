@@ -30,7 +30,7 @@ function isWithinProviderCall(j: any, path: any): boolean {
 export default function transformer(fileInfo: FileInfo, api: API) {
   const j = api.jscodeshift;
   const root = j(fileInfo.source);
-
+  let hasChanges = false;
   // Find and rename baseUrl properties
   root
     .find(j.ObjectProperty, {
@@ -43,9 +43,10 @@ export default function transformer(fileInfo: FileInfo, api: API) {
     .forEach(path => {
       // Rename baseUrl to baseURL
       if (path.node.key.type === 'Identifier') {
+        hasChanges = true;
         path.node.key.name = 'baseURL';
       }
     });
 
-  return root.toSource();
+  return hasChanges ? root.toSource() : null;
 }

@@ -13,6 +13,7 @@ export function removeFacade(
 ) {
   const j: JSCodeshift = api.jscodeshift;
   const root = j(fileInfo.source);
+  let hasChanges = false;
   const importPath = `@ai-sdk/${config.packageName}`;
 
   // Track which imports came from our target package
@@ -29,6 +30,7 @@ export function removeFacade(
           spec.imported.name === config.className &&
           spec.local
         ) {
+          hasChanges = true;
           targetImports.add(spec.local.name);
         }
       });
@@ -46,6 +48,7 @@ export function removeFacade(
       );
 
       if (hasClassSpecifier) {
+        hasChanges = true;
         path.node.specifiers = [
           j.importSpecifier(j.identifier(config.createFnName)),
         ];
@@ -61,6 +64,7 @@ export function removeFacade(
         targetImports.has(path.node.callee.name),
     )
     .forEach(path => {
+      hasChanges = true;
       j(path).replaceWith(
         j.callExpression(
           j.identifier(config.createFnName),
@@ -69,5 +73,5 @@ export function removeFacade(
       );
     });
 
-  return root.toSource();
+  return hasChanges ? root.toSource() : null;
 }
