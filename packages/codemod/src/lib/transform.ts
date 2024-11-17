@@ -47,6 +47,24 @@ function buildCommand(
   return command;
 }
 
+function parseErrors(output: string): { filename: string; summary: string }[] {
+  const errors: { filename: string; summary: string }[] = [];
+  const errorRegex = /ERR (.+) Transformation error/g;
+  const syntaxErrorRegex = /SyntaxError: .+/g;
+
+  let match;
+  while ((match = errorRegex.exec(output)) !== null) {
+    const filename = match[1];
+    const syntaxErrorMatch = syntaxErrorRegex.exec(output);
+    if (syntaxErrorMatch) {
+      const summary = syntaxErrorMatch[0];
+      errors.push({ filename, summary });
+    }
+  }
+
+  return errors;
+}
+
 export function transform(
   codemod: string,
   source: string,
@@ -57,10 +75,11 @@ export function transform(
   const targetPath = path.resolve(source);
   const jscodeshift = getJscodeshift();
   const command = buildCommand(codemodPath, targetPath, jscodeshift, options);
-  try {
-    execSync(command, { stdio: 'inherit' });
-    log('Codemod applied successfully.');
-  } catch (err) {
-    error('Error applying codemod:', err);
+  const stdout = execSync(command, { encoding: 'utf8', stdio: 'pipe' });
+  const errors = parseErrors(stdout);
+  if (errors.length > 0) {
+    errors.forEach(({ filename, summary }) => {
+      error(`Error applying codemod [path=${filename}, summary=${summary}]`);
+    });
   }
 }
