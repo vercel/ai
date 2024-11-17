@@ -1,5 +1,15 @@
 # @ai-sdk/codemod
 
+## 1.0.0-canary.6
+
+### Patch Changes
+
+- 7326f22: fix (packages/codemod): Remove package version check pre-upgrade.
+- a2e0f02: fix (packages/codemod): Ignore code under dot-prefixed dirs.
+- b1d9efb: fix (packages/codemod): Only rename nanoid on import from 'ai'.
+- b183ed0: feat (packages/codemod): Improve error handling and logging.
+- 45feb29: feat (packages/codemod): codemod to rm await from streamText/Object.
+
 ## 1.0.0-canary.5
 
 ### Major Changes
