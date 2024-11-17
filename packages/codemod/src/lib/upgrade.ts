@@ -8,6 +8,8 @@ import { TransformOptions } from './transform-options';
 const bundle = [
   'remove-ai-stream-methods-from-stream-text-result',
   'remove-anthropic-facade',
+  'remove-await-streamobject',
+  'remove-await-streamtext',
   'remove-deprecated-provider-registry-exports',
   'remove-experimental-ai-fn-exports',
   'remove-experimental-message-types',
