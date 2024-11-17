@@ -47,8 +47,14 @@ function buildCommand(
   return command;
 }
 
-function parseErrors(output: string): { filename: string; summary: string }[] {
-  const errors: { filename: string; summary: string }[] = [];
+export type TransformErrors = {
+  transform: string;
+  filename: string;
+  summary: string;
+}[];
+
+function parseErrors(transform: string, output: string): TransformErrors {
+  const errors: TransformErrors = [];
   const errorRegex = /ERR (.+) Transformation error/g;
   const syntaxErrorRegex = /SyntaxError: .+/g;
 
@@ -58,7 +64,7 @@ function parseErrors(output: string): { filename: string; summary: string }[] {
     const syntaxErrorMatch = syntaxErrorRegex.exec(output);
     if (syntaxErrorMatch) {
       const summary = syntaxErrorMatch[0];
-      errors.push({ filename, summary });
+      errors.push({ transform, filename, summary });
     }
   }
 
@@ -68,18 +74,29 @@ function parseErrors(output: string): { filename: string; summary: string }[] {
 export function transform(
   codemod: string,
   source: string,
-  options: TransformOptions,
-) {
-  log(`Applying codemod '${codemod}': ${source}`);
+  transformOptions: TransformOptions,
+  options: { logStatus: boolean } = { logStatus: true },
+): TransformErrors {
+  if (options.logStatus) {
+    log(`Applying codemod '${codemod}': ${source}`);
+  }
   const codemodPath = path.resolve(__dirname, `../codemods/${codemod}.js`);
   const targetPath = path.resolve(source);
   const jscodeshift = getJscodeshift();
-  const command = buildCommand(codemodPath, targetPath, jscodeshift, options);
+  const command = buildCommand(
+    codemodPath,
+    targetPath,
+    jscodeshift,
+    transformOptions,
+  );
   const stdout = execSync(command, { encoding: 'utf8', stdio: 'pipe' });
-  const errors = parseErrors(stdout);
-  if (errors.length > 0) {
-    errors.forEach(({ filename, summary }) => {
-      error(`Error applying codemod [path=${filename}, summary=${summary}]`);
+  const errors = parseErrors(codemod, stdout);
+  if (options.logStatus && errors.length > 0) {
+    errors.forEach(({ transform, filename, summary }) => {
+      error(
+        `Error applying codemod [codemod=${transform}, path=${filename}, summary=${summary}]`,
+      );
     });
   }
+  return errors;
 }
