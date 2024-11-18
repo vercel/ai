@@ -19,6 +19,7 @@
         "scaffold": "tsx scripts/scaffold-codemod.ts"
     },
     "devDependencies": {
+        "@types/cli-progress": "^3.11.6",
         "@types/debug": "^4.1.12",
         "@types/jscodeshift": "^0.12.0",
         "@types/node": "^18.19.54",
@@ -51,6 +52,7 @@
         "ai"
     ],
     "dependencies": {
+        "cli-progress": "^3.12.0",
         "commander": "^12.1.0",
         "debug": "^4.3.7",
         "jscodeshift": "^17.1.1",
