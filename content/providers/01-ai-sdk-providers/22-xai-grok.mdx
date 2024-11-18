@@ -89,8 +89,8 @@ const { text } = await generateText({
 });
 ```
 
-xAI language models can also be used in the `streamText` functions (see [AI SDK
-Core](/docs/ai-sdk-core)).
+xAI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
 ### Chat Models
 
@@ -118,7 +118,7 @@ under "View models", including:
 
 | Model       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ----------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `grok-beta` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-beta` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   You can also pass any available provider model ID as a string if needed.
