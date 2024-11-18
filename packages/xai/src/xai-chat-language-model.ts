@@ -36,7 +36,7 @@ export class XaiChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
 
   readonly supportsStructuredOutputs = false;
-  readonly defaultObjectGenerationMode = undefined;
+  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: XaiChatModelId;
   readonly settings: XaiChatSettings;
