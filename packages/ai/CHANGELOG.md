@@ -1,5 +1,74 @@
 # ai
 
+## 4.0.0
+
+### Major Changes
+
+- 4e38b38: chore (ai): remove LanguageModelResponseMetadataWithHeaders type
+- 8bf5756: chore: remove legacy function/tool calling
+- f0cb69d: chore (ai/core): remove experimental function exports
+- da8c609: chore (ai): remove Tokens RSC helper
+- cbab571: chore (ai): remove ExperimentalXXXMessage types
+- b469a7e: chore: remove isXXXError methods
+- 54cb888: chore (ai): remove experimental_StreamData export
+- 4d61295: chore (ai): remove streamToResponse and streamingTextResponse
+- 9a3d741: chore (ai): remove ExperimentalTool export
+- 064257d: chore (ai/core): rename simulateReadableStream values parameter to chunks
+- 60e69ed: chore (ai/core): remove ai-stream related methods from streamText
+- a4f8ce9: chore (ai): AssistantResponse cleanups
+- d3ae4f6: chore (ui/react): remove useObject setInput helper
+- 7264b0a: chore (ai): remove responseMessages property from streamText/generateText result
+- b801982: chore (ai/core): remove init option from streamText result methods
+- f68d7b1: chore (ai/core): streamObject returns result immediately (no Promise)
+- 6090cea: chore (ai): remove rawResponse from generate/stream result objects
+- 073f282: chore (ai): remove AIStream and related exports
+- 1c58337: chore (ai): remove 2.x prompt helpers
+- a40a93d: chore (ai/ui): remove vue, svelte, solid re-export and dependency
+- a7ad35a: chore: remove legacy providers & rsc render
+- c0ddc24: chore (ai): remove toJSON method from AI SDK errors
+- 007cb81: chore (ai): change `streamText` warnings result to Promise
+- effbce3: chore (ai): remove responseMessage from streamText onFinish callback
+- 545d133: chore (ai): remove deprecated roundtrip settings from streamText / generateText
+- 7e89ccb: chore: remove nanoid export
+- f967199: chore (ai/core): streamText returns result immediately (no Promise)
+- 62d08fd: chore (ai): remove TokenUsage, CompletionTokenUsage, and EmbeddingTokenUsage types
+- e5d2ce8: chore (ai): remove deprecated provider registry exports
+- 70ce742: chore (ai): remove experimental_continuationSteps option
+- 2f09717: chore (ai): remove deprecated telemetry data
+- 0827bf9: chore (ai): remove LangChain adapter `toAIStream` method
+
+### Patch Changes
+
+- dce4158: chore (dependencies): update eventsource-parser to 3.0.0
+- f0ec721: chore (ai): remove openai peer dependency
+- f9bb30c: chore (ai): remove unnecessary dev dependencies
+- b053413: chore (ui): refactorings & README update
+- Updated dependencies [e117b54]
+- Updated dependencies [8bf5756]
+- Updated dependencies [b469a7e]
+- Updated dependencies [79c6dd9]
+- Updated dependencies [9f81e66]
+- Updated dependencies [70f28f6]
+- Updated dependencies [dce4158]
+- Updated dependencies [d3ae4f6]
+- Updated dependencies [68d30e9]
+- Updated dependencies [7814c4b]
+- Updated dependencies [ca3e586]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [fe4f109]
+- Updated dependencies [84edae5]
+- Updated dependencies [b1da952]
+- Updated dependencies [04d3747]
+- Updated dependencies [dce4158]
+- Updated dependencies [7e89ccb]
+- Updated dependencies [8426f55]
+- Updated dependencies [db46ce5]
+- Updated dependencies [b053413]
+  - @ai-sdk/react@1.0.0
+  - @ai-sdk/ui-utils@1.0.0
+  - @ai-sdk/provider-utils@2.0.0
+  - @ai-sdk/provider@1.0.0
+
 ## 4.0.0-canary.13
 
 ### Major Changes
