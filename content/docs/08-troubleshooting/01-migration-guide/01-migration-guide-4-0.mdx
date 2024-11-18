@@ -55,8 +55,10 @@ Individual codemods can be run by specifying the name of the codemod:
 npx @ai-sdk/codemod <codemod-name> <path>
 ```
 
-The latest set of codemods can be found in the
-[`@ai-sdk/codemod`](https://github.com/vercel/ai/tree/main/packages/codemod/src/codemods) repository.
+See also the [table of codemods](#codemod-table). In addition, the latest set of
+codemods can be found in the
+[`@ai-sdk/codemod`](https://github.com/vercel/ai/tree/main/packages/codemod/src/codemods)
+repository.
 
 ## Provider Changes
 
@@ -319,7 +321,7 @@ import { generateId } from 'ai';
 ### Increased default size of generated IDs
 
 <Note type="warning">
-  There are no codemods available for this change. Please review and update your
+  There is no codemod available for this change. Please review and update your
   code manually.
 </Note>
 
@@ -521,7 +523,7 @@ import { experimental_createProviderRegistry } from 'ai';
 ### Removed `rawResponse` from results
 
 <Note type="warning">
-  There are no codemods available for this change. Please review and update your
+  There is no codemod available for this change. Please review and update your
   code manually.
 </Note>
 
@@ -543,7 +545,7 @@ const { text, response } = await generateText({
 ### Removed `init` option from `pipeDataStreamToResponse` and `toDataStreamResponse`
 
 <Note type="warning">
-  There are no codemods available for this change. Please review and update your
+  There is no codemod available for this change. Please review and update your
   code manually.
 </Note>
 
@@ -581,7 +583,7 @@ result.toDataStreamResponse(response, {
 ### Removed `responseMessages` from `generateText` and `streamText`
 
 <Note type="warning">
-  There are no codemods available for this change. Please review and update your
+  There is no codemod available for this change. Please review and update your
   code manually.
 </Note>
 
@@ -638,7 +640,7 @@ import { LanguageModelResponseMetadata } from 'ai';
 #### Changed `streamText` warnings result to Promise
 
 <Note type="warning">
-  There are no codemods available for this change. Please review and update your
+  There is no codemod available for this change. Please review and update your
   code manually.
 </Note>
 
@@ -1055,3 +1057,85 @@ Please use the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function 
 
 The legacy `Tokens` RSC streaming from 2.x has been removed.
 `Tokens` were implemented prior to AI SDK RSC and are no longer needed.
+
+## Codemod Table
+
+The following table lists codemod availability for the AI SDK 4.0 upgrade
+process. Note the codemod `upgrade` command will run all of them for you. This
+list is provided to give visibility into which migrations have some automation.
+It can also be helpful to find the codemod names if you'd like to run a subset
+of codemods. For more, see the [Codemods](#codemods) section.
+
+| Change                                                                                              | Codemod                                            |
+| --------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| **Provider Changes**                                                                                |                                                    |
+| Removed baseUrl option                                                                              | `replace-baseurl`                                  |
+| **Anthropic Provider**                                                                              |                                                    |
+| Removed Anthropic facade                                                                            | `remove-anthropic-facade`                          |
+| Removed topK setting                                                                                | _N/A_                                              |
+| **Google Generative AI Provider**                                                                   |                                                    |
+| Removed Google facade                                                                               | `remove-google-facade`                             |
+| Removed topK setting                                                                                | _N/A_                                              |
+| **Google Vertex Provider**                                                                          |                                                    |
+| Removed topK setting                                                                                | _N/A_                                              |
+| **Mistral Provider**                                                                                |                                                    |
+| Removed Mistral facade                                                                              | `remove-mistral-facade`                            |
+| **OpenAI Provider**                                                                                 |                                                    |
+| Removed OpenAI facade                                                                               | `remove-openai-facade`                             |
+| **LangChain Adapter**                                                                               |                                                    |
+| Removed toAIStream                                                                                  | `replace-langchain-toaistream`                     |
+| **AI SDK Core Changes**                                                                             |                                                    |
+| streamText returns immediately                                                                      | `remove-await-streamtext`                          |
+| streamObject returns immediately                                                                    | `remove-await-streamobject`                        |
+| Remove roundtrips                                                                                   | `replace-roundtrips-with-maxsteps`                 |
+| Removed nanoid export                                                                               | `replace-nanoid`                                   |
+| Increased default size of generated IDs                                                             | _N/A_                                              |
+| Removed ExperimentalMessage types                                                                   | `remove-experimental-message-types`                |
+| Removed ExperimentalTool type                                                                       | `remove-experimental-tool`                         |
+| Removed experimental AI function exports                                                            | `remove-experimental-ai-fn-exports`                |
+| Removed AI-stream related methods from streamText                                                   | `remove-ai-stream-methods-from-stream-text-result` |
+| Renamed "formatStreamPart" to "formatDataStreamPart"                                                | `rename-format-stream-part`                        |
+| Renamed "parseStreamPart" to "parseDataStreamPart"                                                  | `rename-parse-stream-part`                         |
+| Renamed TokenUsage, CompletionTokenUsage and EmbeddingTokenUsage types                              | `replace-token-usage-types`                        |
+| Removed deprecated telemetry data                                                                   | _N/A_                                              |
+| **Provider Registry**                                                                               |                                                    |
+| &rarr; Removed experimental_Provider, experimental_ProviderRegistry, and experimental_ModelRegistry | `remove-deprecated-provider-registry-exports`      |
+| &rarr; Removed experimental_createModelRegistry function                                            | _N/A_                                              |
+| Removed rawResponse from results                                                                    | _N/A_                                              |
+| Removed init option from pipeDataStreamToResponse and toDataStreamResponse                          | _N/A_                                              |
+| Removed responseMessages from generateText and streamText                                           | _N/A_                                              |
+| Removed experimental_continuationSteps option                                                       | `replace-continuation-steps`                       |
+| Removed LanguageModelResponseMetadataWithHeaders type                                               | `remove-metadata-with-headers`                     |
+| Changed streamText warnings result to Promise                                                       | _N/A_                                              |
+| Changed streamObject warnings result to Promise                                                     | _N/A_                                              |
+| Renamed simulateReadableStream values to chunks                                                     | _N/A_                                              |
+| **AI SDK RSC Changes**                                                                              |                                                    |
+| Removed render function                                                                             | _N/A_                                              |
+| **AI SDK UI Changes**                                                                               |                                                    |
+| Removed Svelte, Vue, and SolidJS exports                                                            | `rewrite-framework-imports`                        |
+| Removed experimental_StreamData                                                                     | `remove-experimental-streamdata`                   |
+| **useChat hook**                                                                                    |                                                    |
+| Removed streamMode setting                                                                          | _N/A_                                              |
+| Replaced roundtrip setting with maxSteps                                                            | `replace-roundtrips-with-maxsteps`                 |
+| Removed options setting                                                                             | _N/A_                                              |
+| Removed experimental_addToolResult method                                                           | _N/A_                                              |
+| Changed default value of keepLastMessageOnError to true and deprecated the option                   | _N/A_                                              |
+| **useCompletion hook**                                                                              |                                                    |
+| Removed streamMode setting                                                                          | _N/A_                                              |
+| **useAssistant hook**                                                                               |                                                    |
+| Removed experimental_useAssistant export                                                            | `remove-experimental-useassistant`                 |
+| Removed threadId and messageId from AssistantResponse                                               | _N/A_                                              |
+| Removed experimental_AssistantResponse export                                                       | _N/A_                                              |
+| **experimental_useObject hook**                                                                     |                                                    |
+| Removed setInput helper                                                                             | _N/A_                                              |
+| **AI SDK Errors**                                                                                   |                                                    |
+| Removed isXXXError static methods                                                                   | `remove-isxxxerror`                                |
+| Removed toJSON method                                                                               | _N/A_                                              |
+| **AI SDK 2.x Legacy Changes**                                                                       |                                                    |
+| Removed 2.x legacy providers                                                                        | _N/A_                                              |
+| Removed 2.x legacy function and tool calling                                                        | _N/A_                                              |
+| Removed 2.x prompt helpers                                                                          | _N/A_                                              |
+| Removed 2.x AIStream                                                                                | _N/A_                                              |
+| Removed 2.x StreamingTextResponse                                                                   | _N/A_                                              |
+| Removed 2.x streamToResponse                                                                        | _N/A_                                              |
+| Removed 2.x RSC Tokens streaming                                                                    | _N/A_                                              |
