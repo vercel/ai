@@ -1,9 +1,7 @@
-import { API, FileInfo, JSCodeshift } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
-export default function transformer(file: FileInfo, api: API) {
-  const j: JSCodeshift = api.jscodeshift;
-  const root = j(file.source);
-  let hasChanges = false;
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
   // Find and replace import specifiers from 'ai'
   root
@@ -14,13 +12,13 @@ export default function transformer(file: FileInfo, api: API) {
         .find(j.ImportSpecifier)
         .filter(specifierPath => specifierPath.node.imported.name === 'nanoid')
         .forEach(specifierPath => {
-          hasChanges = true;
+          context.hasChanges = true;
           specifierPath.replace(j.importSpecifier(j.identifier('generateId')));
         });
     });
 
   // If we found changes, also replace object properties in the code
-  if (hasChanges) {
+  if (context.hasChanges) {
     root
       .find(j.ObjectProperty, {
         key: { name: 'generateId' },
@@ -35,6 +33,4 @@ export default function transformer(file: FileInfo, api: API) {
         path.replace(newProperty);
       });
   }
-
-  return hasChanges ? root.toSource() : null;
-}
+});
