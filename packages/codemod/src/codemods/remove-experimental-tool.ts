@@ -3,6 +3,7 @@ import { API, FileInfo } from 'jscodeshift';
 export default function transformer(file: FileInfo, api: API) {
   const j = api.jscodeshift;
   const root = j(file.source);
+  let hasChanges = false;
 
   // Track ExperimentalTool imports from 'ai' package
   const targetImports = new Set<string>();
@@ -18,10 +19,8 @@ export default function transformer(file: FileInfo, api: API) {
           spec.imported.type === 'Identifier' &&
           spec.imported.name === 'ExperimentalTool'
         ) {
-          // Track local name
+          hasChanges = true;
           targetImports.add(spec.local?.name || spec.imported.name);
-
-          // Replace with CoreTool
           spec.imported.name = 'CoreTool';
           if (spec.local) {
             spec.local.name = 'CoreTool';
@@ -40,9 +39,10 @@ export default function transformer(file: FileInfo, api: API) {
     )
     .forEach(path => {
       if (path.node.typeName.type === 'Identifier') {
+        hasChanges = true;
         path.node.typeName.name = 'CoreTool';
       }
     });
 
-  return root.toSource();
+  return hasChanges ? root.toSource() : null;
 }

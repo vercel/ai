@@ -3,6 +3,7 @@ import { API, FileInfo } from 'jscodeshift';
 export default function transformer(file: FileInfo, api: API) {
   const j = api.jscodeshift;
   const root = j(file.source);
+  let hasChanges = false;
 
   // Track imports from 'ai' package
   const targetImports = new Set<string>();
@@ -49,9 +50,10 @@ export default function transformer(file: FileInfo, api: API) {
     )
     .forEach(path => {
       if (path.node.key.type === 'Identifier') {
+        hasChanges = true;
         path.node.key.name = 'experimental_continueSteps';
       }
     });
 
-  return root.toSource();
+  return hasChanges ? root.toSource() : null;
 }
