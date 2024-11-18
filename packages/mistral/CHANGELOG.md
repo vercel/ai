@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 1.0.1
+
+### Patch Changes
+
+- b609c8d: feat (provider/mistral): add pixtral-large-latest
+
 ## 1.0.0
 
 ### Major Changes

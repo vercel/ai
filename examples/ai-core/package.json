@@ -10,7 +10,7 @@
     "@ai-sdk/google": "1.0.0",
     "@ai-sdk/google-vertex": "1.0.0",
     "@ai-sdk/groq": "1.0.0",
-    "@ai-sdk/mistral": "1.0.0",
+    "@ai-sdk/mistral": "1.0.1",
     "@ai-sdk/openai": "1.0.0",
     "@ai-sdk/xai": "1.0.0",
     "@opentelemetry/sdk-node": "0.54.2",
