@@ -784,7 +784,7 @@ describe('doStream', () => {
 
   it('should handle error stream parts', async () => {
     server.responseChunks = [
-      `data: {"error":{"message": "The server had an error processing your request. Sorry about that!","type":"invalid_request_error"}}\n\n`,
+      `data: {"code":"Client specified an invalid argument","error":"Incorrect API key provided: as***T7. You can obtain an API key from https://console.x.ai."}\n\n`,
       'data: [DONE]\n\n',
     ];
 
@@ -797,11 +797,8 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'error',
-        error: {
-          message:
-            'The server had an error processing your request. Sorry about that!',
-          type: 'invalid_request_error',
-        },
+        error:
+          'Incorrect API key provided: as***T7. You can obtain an API key from https://console.x.ai.',
       },
       {
         finishReason: 'error',
