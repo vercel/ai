@@ -84,7 +84,7 @@ importers:
         specifier: 1.0.0-canary.3
         version: link:../../packages/openai
       '@ai-sdk/xai':
-        specifier: 1.0.0-canary.0
+        specifier: 1.0.0-canary.1
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0

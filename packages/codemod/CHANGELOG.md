@@ -1,5 +1,12 @@
 # @ai-sdk/codemod
 
+## 1.0.0-canary.7
+
+### Patch Changes
+
+- ba0dfc0: feat (packages/codemod): Show progress bar during upgrade.
+- 66373dd: fix (packages/codemod): Only mutate files when changes are needed.
+
 ## 1.0.0-canary.6
 
 ### Patch Changes
