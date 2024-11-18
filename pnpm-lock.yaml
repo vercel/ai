@@ -83,6 +83,9 @@ importers:
       '@ai-sdk/openai':
         specifier: 1.0.2
         version: link:../../packages/openai
+      '@ai-sdk/togetherai':
+        specifier: 0.0.0
+        version: link:../../packages/togetherai
       '@ai-sdk/xai':
         specifier: 1.0.2
         version: link:../../packages/xai
@@ -1361,6 +1364,31 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
 
+  packages/openai-compat:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: 1.0.0
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: 2.0.0
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: ^18
+        version: 18.19.54
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.4.49)(tsx@4.7.1)(typescript@5.6.3)(yaml@2.5.0)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+
   packages/provider:
     dependencies:
       json-schema:
@@ -1588,6 +1616,34 @@ importers:
       typescript:
         specifier: 5.6.3
         version: 5.6.3
+
+  packages/togetherai:
+    dependencies:
+      '@ai-sdk/openai-compat':
+        specifier: 0.0.0
+        version: link:../openai-compat
+      '@ai-sdk/provider':
+        specifier: 1.0.0
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: 2.0.0
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: ^18
+        version: 18.19.54
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.4.49)(tsx@4.7.1)(typescript@5.6.3)(yaml@2.5.0)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
 
   packages/ui-utils:
     dependencies:
