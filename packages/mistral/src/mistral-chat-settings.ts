@@ -5,6 +5,7 @@ export type MistralChatModelId =
   | 'ministral-8b-latest'
   | 'mistral-large-latest'
   | 'mistral-small-latest'
+  | 'pixtral-large-latest'
   // free
   | 'pixtral-12b-2409'
   // legacy
