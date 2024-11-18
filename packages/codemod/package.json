@@ -1,6 +1,6 @@
 {
     "name": "@ai-sdk/codemod",
-    "version": "0.0.1-canary.4",
+    "version": "1.0.0-canary.6",
     "license": "Apache-2.0",
     "sideEffects": false,
     "files": [

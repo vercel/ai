@@ -1,5 +1,33 @@
 # @ai-sdk/codemod
 
+## 1.0.0-canary.6
+
+### Patch Changes
+
+- 7326f22: fix (packages/codemod): Remove package version check pre-upgrade.
+- a2e0f02: fix (packages/codemod): Ignore code under dot-prefixed dirs.
+- b1d9efb: fix (packages/codemod): Only rename nanoid on import from 'ai'.
+- b183ed0: feat (packages/codemod): Improve error handling and logging.
+- 45feb29: feat (packages/codemod): codemod to rm await from streamText/Object.
+
+## 1.0.0-canary.5
+
+### Major Changes
+
+- 86b4045: chore (release): bump major version to 1.0 in prep for 4.0 release
+
+### Patch Changes
+
+- 977eb23: feat (packages/codemod): Add codemod to replace continuation steps.
+- 7c205ba: feat (packages/codemod): Added codemod to rm metadata w/ headers.
+- 6b7fd20: feat (packages/codemod): Add codemod to rename formatStreamPart.
+- 7e19003: feat (packages/codemod): Add codemod to rm isXXXError methods.
+- 4dc9622: feat (packages/codemod): Add codemod to rename parseStreamPart.
+- 0df618b: fix (packages/codemod): Only rename baseUrl in create-provider calls.
+- c33e632: feat (packages/codemod): Add codemod to rm experimental_StreamData.
+- 575e7da: feat (packages/codemod): Add codemod to remove ExperimentalTool.
+- 194a3eb: feat (packages/codemod): Add codemod to rm experimental useAssistant.
+
 ## 0.0.1-canary.4
 
 ### Patch Changes
