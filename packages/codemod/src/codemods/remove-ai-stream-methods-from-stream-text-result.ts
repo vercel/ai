@@ -9,7 +9,7 @@ const REMOVED_METHODS = [
 export default function transformer(fileInfo: FileInfo, api: API) {
   const j: JSCodeshift = api.jscodeshift;
   const root = j(fileInfo.source);
-  let hasRemovedMethods = false;
+  let hasChanges = false;
 
   // Find calls to removed methods
   root.find(j.MemberExpression).forEach(path => {
@@ -17,7 +17,7 @@ export default function transformer(fileInfo: FileInfo, api: API) {
       path.node.property.type === 'Identifier' &&
       REMOVED_METHODS.includes(path.node.property.name)
     ) {
-      hasRemovedMethods = true;
+      hasChanges = true;
 
       // Find the parent statement to add the comment
       const statement = path.parent.parent;
@@ -36,7 +36,7 @@ export default function transformer(fileInfo: FileInfo, api: API) {
     }
   });
 
-  if (hasRemovedMethods) {
+  if (hasChanges) {
     api.report(
       `Found usage of removed streamText methods: ${REMOVED_METHODS.join(
         ', ',
@@ -44,5 +44,5 @@ export default function transformer(fileInfo: FileInfo, api: API) {
     );
   }
 
-  return root.toSource({ quote: 'single' });
+  return hasChanges ? root.toSource({ quote: 'single' }) : null;
 }

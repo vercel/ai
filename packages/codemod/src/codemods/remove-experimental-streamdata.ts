@@ -3,6 +3,7 @@ import { API, FileInfo } from 'jscodeshift';
 export default function transformer(file: FileInfo, api: API) {
   const j = api.jscodeshift;
   const root = j(file.source);
+  let hasChanges = false;
 
   // Track imports from 'ai' package only
   const targetImports = new Set<string>();
@@ -18,6 +19,7 @@ export default function transformer(file: FileInfo, api: API) {
           spec.imported.type === 'Identifier' &&
           spec.imported.name === 'experimental_StreamData'
         ) {
+          hasChanges = true;
           // Track local name
           targetImports.add(spec.local?.name || 'experimental_StreamData');
         }
@@ -35,6 +37,7 @@ export default function transformer(file: FileInfo, api: API) {
           spec.imported.type === 'Identifier' &&
           spec.imported.name === 'experimental_StreamData'
         ) {
+          hasChanges = true;
           return j.importSpecifier(
             j.identifier('StreamData'),
             spec.local?.name === 'experimental_StreamData' ? null : spec.local,
@@ -58,8 +61,9 @@ export default function transformer(file: FileInfo, api: API) {
       );
     })
     .forEach(path => {
+      hasChanges = true;
       path.node.name = 'StreamData';
     });
 
-  return root.toSource();
+  return hasChanges ? root.toSource() : null;
 }

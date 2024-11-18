@@ -3,6 +3,7 @@ import { API, FileInfo } from 'jscodeshift';
 export default function transformer(file: FileInfo, api: API) {
   const j = api.jscodeshift;
   const root = j(file.source);
+  let hasChanges = false;
 
   // Replace imports
   root
@@ -15,6 +16,7 @@ export default function transformer(file: FileInfo, api: API) {
 
           const oldName = spec.imported.name;
           if (oldName === 'experimental_createModelRegistry') {
+            hasChanges = true;
             return j.importSpecifier(
               j.identifier('experimental_createProviderRegistry'),
             );
@@ -27,6 +29,7 @@ export default function transformer(file: FileInfo, api: API) {
               'experimental_ModelRegistry',
             ].includes(oldName)
           ) {
+            hasChanges = true;
             return j.importSpecifier(j.identifier('Provider'));
           }
 
@@ -61,6 +64,7 @@ export default function transformer(file: FileInfo, api: API) {
         ].includes(path.node.typeName.name),
     )
     .forEach(path => {
+      hasChanges = true;
       path.node.typeName = j.identifier('Provider');
     });
 
@@ -73,8 +77,9 @@ export default function transformer(file: FileInfo, api: API) {
       },
     })
     .forEach(path => {
+      hasChanges = true;
       path.node.callee = j.identifier('experimental_createProviderRegistry');
     });
 
-  return root.toSource();
+  return hasChanges ? root.toSource() : null;
 }

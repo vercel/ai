@@ -3,6 +3,7 @@ import { API, FileInfo, Identifier } from 'jscodeshift';
 export default function transformer(file: FileInfo, api: API) {
   const j = api.jscodeshift;
   const root = j(file.source);
+  let hasChanges = false;
 
   // Type mapping
   const typeMap = {
@@ -17,6 +18,7 @@ export default function transformer(file: FileInfo, api: API) {
     .find(j.ImportSpecifier)
     .filter(path => Object.keys(typeMap).includes(path.node.imported.name))
     .forEach(path => {
+      hasChanges = true;
       const oldName = path.node.imported.name;
       const newName = typeMap[oldName as keyof typeof typeMap];
 
@@ -34,9 +36,10 @@ export default function transformer(file: FileInfo, api: API) {
       );
     })
     .forEach(path => {
+      hasChanges = true;
       const typeName = path.node.typeName as Identifier;
       typeName.name = typeMap[typeName.name as keyof typeof typeMap];
     });
 
-  return root.toSource();
+  return hasChanges ? root.toSource() : null;
 }

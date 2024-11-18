@@ -3,9 +3,7 @@ import { API, FileInfo, JSCodeshift } from 'jscodeshift';
 export default function transformer(file: FileInfo, api: API) {
   const j: JSCodeshift = api.jscodeshift;
   const root = j(file.source);
-
-  // Track if we need to replace usage in the code
-  let shouldReplaceUsage = false;
+  let hasChanges = false;
 
   // Find and replace import specifiers from 'ai'
   root
@@ -16,13 +14,13 @@ export default function transformer(file: FileInfo, api: API) {
         .find(j.ImportSpecifier)
         .filter(specifierPath => specifierPath.node.imported.name === 'nanoid')
         .forEach(specifierPath => {
-          shouldReplaceUsage = true;
+          hasChanges = true;
           specifierPath.replace(j.importSpecifier(j.identifier('generateId')));
         });
     });
 
-  // If we replaced the import, replace object properties in the code
-  if (shouldReplaceUsage) {
+  // If we found changes, also replace object properties in the code
+  if (hasChanges) {
     root
       .find(j.ObjectProperty, {
         key: { name: 'generateId' },
@@ -34,9 +32,9 @@ export default function transformer(file: FileInfo, api: API) {
           j.identifier('generateId'),
         );
         newProperty.shorthand = true;
-        j(path).replaceWith(newProperty);
+        path.replace(newProperty);
       });
   }
 
-  return root.toSource();
+  return hasChanges ? root.toSource() : null;
 }

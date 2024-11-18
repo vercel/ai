@@ -3,6 +3,7 @@ import { API, FileInfo } from 'jscodeshift';
 export default function transformer(file: FileInfo, api: API) {
   const j = api.jscodeshift;
   const root = j(file.source);
+  let hasChanges = false;
 
   // Replace imports at ImportDeclaration level
   root
@@ -23,6 +24,7 @@ export default function transformer(file: FileInfo, api: API) {
           return spec;
         }
 
+        hasChanges = true;
         const newName =
           oldName === 'EmbeddingTokenUsage'
             ? 'EmbeddingModelUsage'
@@ -31,7 +33,10 @@ export default function transformer(file: FileInfo, api: API) {
         return j.importSpecifier(j.identifier(newName));
       });
 
-      path.node.specifiers = newSpecifiers;
+      if (newSpecifiers !== path.node.specifiers) {
+        hasChanges = true;
+        path.node.specifiers = newSpecifiers;
+      }
     });
 
   // Replace type references
@@ -46,6 +51,7 @@ export default function transformer(file: FileInfo, api: API) {
     )
     .forEach(path => {
       if (path.node.typeName.type === 'Identifier') {
+        hasChanges = true;
         const oldName = path.node.typeName.name;
         const newName =
           oldName === 'EmbeddingTokenUsage'
@@ -56,5 +62,5 @@ export default function transformer(file: FileInfo, api: API) {
       }
     });
 
-  return root.toSource();
+  return hasChanges ? root.toSource() : null;
 }
