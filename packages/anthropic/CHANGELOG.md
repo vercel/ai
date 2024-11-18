@@ -1,5 +1,26 @@
 # @ai-sdk/anthropic
 
+## 1.0.0
+
+### Major Changes
+
+- 66060f7: chore (release): bump major version to 4.0
+- 0d3d3f5: chore (providers): remove baseUrl option
+- 8ad0504: chore (provider/anthropic): remove Anthropic facade
+- 2f6e8c0: chore (provider/anthropic): remove topK model setting
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [dce4158]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [b1da952]
+- Updated dependencies [dce4158]
+- Updated dependencies [8426f55]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0
+  - @ai-sdk/provider@1.0.0
+
 ## 1.0.0-canary.4
 
 ### Major Changes

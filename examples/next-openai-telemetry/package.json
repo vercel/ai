@@ -9,13 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.0-canary.3",
-    "@ai-sdk/react": "1.0.0-canary.9",
+    "@ai-sdk/openai": "1.0.0",
+    "@ai-sdk/react": "1.0.0",
     "@opentelemetry/api-logs": "0.54.2",
     "@opentelemetry/sdk-logs": "0.54.2",
     "@opentelemetry/instrumentation": "0.52.1",
     "@vercel/otel": "1.9.1",
-    "ai": "4.0.0-canary.13",
+    "ai": "4.0.0",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",
