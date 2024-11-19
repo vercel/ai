@@ -2,6 +2,7 @@ import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
+import { CoreMessage } from '../prompt/message';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -66,6 +67,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   toolCallStreaming,
   tracer,
   telemetry,
+  messages,
   abortSignal,
 }: {
   tools: TOOLS | undefined;
@@ -73,6 +75,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   toolCallStreaming: boolean;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  messages: CoreMessage[];
   abortSignal: AbortSignal | undefined;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
@@ -216,7 +219,10 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                 }),
                 tracer,
                 fn: async span =>
-                  tool.execute!(toolCall.args, { abortSignal }).then(
+                  tool.execute!(toolCall.args, {
+                    messages,
+                    abortSignal,
+                  }).then(
                     (result: any) => {
                       toolResultsStreamController!.enqueue({
                         ...toolCall,

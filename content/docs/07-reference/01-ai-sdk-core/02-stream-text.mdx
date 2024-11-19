@@ -285,9 +285,28 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'execute',
               isOptional: true,
-              type: 'async (parameters: T, options: { abortSignal: AbortSignal }) => JSONValue',
+              type: 'async (parameters: T, options: ExecutionOptions) => RESULT',
               description:
                 'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.',
+              properties: [
+                {
+                  type: 'ExecutionOptions',
+                  parameters: [
+                    {
+                      name: 'messages',
+                      type: 'CoreMessage[]',
+                      description:
+                        'Messages that were sent to the language model to initiate the response that contained the tool call. The messages do not include the system prompt nor the assistant response that contained the tool call.',
+                    },
+                    {
+                      name: 'abortSignal',
+                      type: 'AbortSignal',
+                      description:
+                        'An optional abort signal that indicates that the overall operation should be aborted.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
