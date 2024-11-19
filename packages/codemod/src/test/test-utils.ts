@@ -4,7 +4,7 @@ import { join } from 'path';
 import { existsSync, readFileSync } from 'fs';
 
 export function applyTransform(
-  transform: (fileInfo: FileInfo, api: API) => string | null,
+  transform: (fileInfo: FileInfo, api: API, options: any) => string | null,
   input: string,
   options = {},
 ): string {
@@ -20,7 +20,7 @@ export function applyTransform(
     report: console.log,
   };
   // A null result indicates no changes were made.
-  const result = transform(fileInfo, { ...api, ...options });
+  const result = transform(fileInfo, api, options);
   return result === null ? input : result;
 }
 
@@ -39,7 +39,7 @@ export function readFixture(name: string, type: 'input' | 'output'): string {
 }
 
 export function testTransform(
-  transformer: (fileInfo: FileInfo, api: API) => string | null,
+  transformer: (fileInfo: FileInfo, api: API, options: any) => string | null,
   fixtureName: string,
 ) {
   const input = readFixture(fixtureName, 'input');

@@ -1,9 +1,7 @@
-import { API, FileInfo, JSCodeshift } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
-export default function transformer(fileInfo: FileInfo, api: API) {
-  const j: JSCodeshift = api.jscodeshift;
-  const root = j(fileInfo.source);
-  let hasChanges = false;
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
   // Replace LangChainAdapter.toAIStream with LangChainAdapter.toDataStream
   root
@@ -19,10 +17,8 @@ export default function transformer(fileInfo: FileInfo, api: API) {
     })
     .forEach(path => {
       if (path.node.property.type === 'Identifier') {
-        hasChanges = true;
+        context.hasChanges = true;
         path.node.property.name = 'toDataStream';
       }
     });
-
-  return hasChanges ? root.toSource({ quote: 'single' }) : null;
-}
+});

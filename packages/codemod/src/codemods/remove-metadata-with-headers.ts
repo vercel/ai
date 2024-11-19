@@ -1,9 +1,7 @@
-import { API, FileInfo } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
-export default function transformer(file: FileInfo, api: API) {
-  const j = api.jscodeshift;
-  const root = j(file.source);
-  let hasChanges = false;
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
   // Track imports from 'ai' package
   const targetImports = new Set<string>();
@@ -19,7 +17,7 @@ export default function transformer(file: FileInfo, api: API) {
           spec.imported.type === 'Identifier' &&
           spec.imported.name === 'LanguageModelResponseMetadataWithHeaders'
         ) {
-          hasChanges = true;
+          context.hasChanges = true;
           // Track local name
           targetImports.add(spec.local?.name || spec.imported.name);
 
@@ -44,10 +42,8 @@ export default function transformer(file: FileInfo, api: API) {
     )
     .forEach(path => {
       if (path.node.typeName.type === 'Identifier') {
-        hasChanges = true;
+        context.hasChanges = true;
         path.node.typeName.name = 'LanguageModelResponseMetadata';
       }
     });
-
-  return hasChanges ? root.toSource() : null;
-}
+});
