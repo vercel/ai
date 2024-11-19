@@ -421,11 +421,16 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           const promptFormat =
             responseMessages.length === 0 ? initialPrompt.type : 'messages';
 
+          const stepInputMessages = [
+            ...initialPrompt.messages,
+            ...responseMessages,
+          ];
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               type: promptFormat,
               system: initialPrompt.system,
-              messages: [...initialPrompt.messages, ...responseMessages],
+              messages: stepInputMessages,
             },
             modelSupportsImageUrls: model.supportsImageUrls,
             modelSupportsUrl: model.supportsUrl,
@@ -504,6 +509,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             toolCallStreaming,
             tracer,
             telemetry,
+            messages: stepInputMessages,
             abortSignal,
           });
 

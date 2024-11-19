@@ -1,9 +1,7 @@
-import { API, FileInfo } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
-export default function transformer(file: FileInfo, api: API) {
-  const j = api.jscodeshift;
-  const root = j(file.source);
-  let hasChanges = false;
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
   // Track if formatStreamPart is imported from 'ai'
   const targetImports = new Set<string>();
@@ -19,7 +17,7 @@ export default function transformer(file: FileInfo, api: API) {
           specifier.imported.type === 'Identifier' &&
           specifier.imported.name === 'formatStreamPart'
         ) {
-          hasChanges = true;
+          context.hasChanges = true;
           targetImports.add(specifier.local?.name || specifier.imported.name);
 
           // Update import name
@@ -40,10 +38,8 @@ export default function transformer(file: FileInfo, api: API) {
     )
     .forEach(path => {
       if (path.node.callee.type === 'Identifier') {
-        hasChanges = true;
+        context.hasChanges = true;
         path.node.callee.name = 'formatDataStreamPart';
       }
     });
-
-  return hasChanges ? root.toSource() : null;
-}
+});

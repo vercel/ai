@@ -37,6 +37,7 @@ describe('test-utils', () => {
           stats: expect.any(Function),
           report: console.log,
         }),
+        expect.any(Object), // Expecting the 'options' argument
       );
     });
 
@@ -47,6 +48,19 @@ describe('test-utils', () => {
       const result = testUtils.applyTransform(mockTransform, input);
 
       expect(result).toBe(input);
+      expect(mockTransform).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: 'test.tsx',
+          source: input,
+        }),
+        expect.objectContaining({
+          j: expect.any(Function),
+          jscodeshift: expect.any(Function),
+          stats: expect.any(Function),
+          report: console.log,
+        }),
+        expect.any(Object), // Expecting the 'options' argument
+      );
     });
 
     it('should pass additional options to transform', () => {
@@ -56,8 +70,17 @@ describe('test-utils', () => {
       testUtils.applyTransform(mockTransform, 'input', options);
 
       expect(mockTransform).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.objectContaining(options),
+        expect.objectContaining({
+          path: 'test.tsx',
+          source: 'input',
+        }),
+        expect.objectContaining({
+          j: expect.any(Function),
+          jscodeshift: expect.any(Function),
+          stats: expect.any(Function),
+          report: console.log,
+        }),
+        expect.objectContaining(options), // Verifying the 'options' argument
       );
     });
   });

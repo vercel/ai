@@ -2,7 +2,7 @@ import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { InvalidArgumentError } from '../../errors';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
-import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
+import { CoreAssistantMessage, CoreMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -231,18 +231,19 @@ changing the tool call and result types in the result.
       let stepType: 'initial' | 'tool-result' | 'continue' | 'done' = 'initial';
 
       do {
-        if (stepCount === 1) {
-          initialPrompt.type = 'messages';
-        }
-
         // after the 1st step, we need to switch to messages format:
         const promptFormat = stepCount === 0 ? initialPrompt.type : 'messages';
+
+        const stepInputMessages = [
+          ...initialPrompt.messages,
+          ...responseMessages,
+        ];
 
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
             type: promptFormat,
             system: initialPrompt.system,
-            messages: [...initialPrompt.messages, ...responseMessages],
+            messages: stepInputMessages,
           },
           modelSupportsImageUrls: model.supportsImageUrls,
           modelSupportsUrl: model.supportsUrl,
@@ -354,6 +355,7 @@ changing the tool call and result types in the result.
                 tools,
                 tracer,
                 telemetry,
+                messages: stepInputMessages,
                 abortSignal,
               });
 
@@ -503,12 +505,14 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   tools,
   tracer,
   telemetry,
+  messages,
   abortSignal,
 }: {
   toolCalls: ToolCallArray<TOOLS>;
   tools: TOOLS;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  messages: CoreMessage[];
   abortSignal: AbortSignal | undefined;
 }): Promise<ToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(
@@ -537,7 +541,10 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         }),
         tracer,
         fn: async span => {
-          const result = await tool.execute!(toolCall.args, { abortSignal });
+          const result = await tool.execute!(toolCall.args, {
+            messages,
+            abortSignal,
+          });
 
           try {
             span.setAttributes(

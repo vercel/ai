@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.0.1
+
+### Patch Changes
+
+- 5e6419a: feat (provider/openai): support streaming for reasoning models
+
 ## 1.0.0
 
 ### Major Changes

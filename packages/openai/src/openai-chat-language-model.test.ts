@@ -1054,143 +1054,6 @@ describe('doGenerate', () => {
       },
     });
   });
-
-  describe('should simulate streaming for reasoning models', () => {
-    it('should stream text delta', async () => {
-      prepareJsonResponse({ content: 'Hello, World!', model: 'o1-preview' });
-
-      const model = provider.chat('o1-preview');
-
-      const { stream } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-      });
-
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-          modelId: 'o1-preview',
-          timestamp: expect.any(Date),
-        },
-        { type: 'text-delta', textDelta: 'Hello, World!' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { promptTokens: 4, completionTokens: 30 },
-          logprobs: undefined,
-          providerMetadata: undefined,
-        },
-      ]);
-    });
-
-    it('should stream tool calls', async () => {
-      prepareJsonResponse({
-        model: 'o1-preview',
-        tool_calls: [
-          {
-            id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-            type: 'function',
-            function: {
-              name: 'test-tool',
-              arguments: '{"value":"Sparkle Day"}',
-            },
-          },
-        ],
-      });
-
-      const model = provider.chat('o1-preview');
-
-      const { stream } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: {
-          type: 'regular',
-          tools: [
-            {
-              type: 'function',
-              name: 'test-tool',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-          ],
-        },
-        prompt: TEST_PROMPT,
-      });
-
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-          modelId: 'o1-preview',
-          timestamp: expect.any(Date),
-        },
-        {
-          type: 'tool-call',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          args: '{"value":"Sparkle Day"}',
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { promptTokens: 4, completionTokens: 30 },
-          logprobs: undefined,
-          providerMetadata: undefined,
-        },
-      ]);
-    });
-
-    it('should send reasoning tokens', async () => {
-      prepareJsonResponse({
-        content: 'Hello, World!',
-        model: 'o1-preview',
-        usage: {
-          prompt_tokens: 15,
-          completion_tokens: 20,
-          total_tokens: 35,
-          completion_tokens_details: {
-            reasoning_tokens: 10,
-          },
-        },
-      });
-
-      const model = provider.chat('o1-preview');
-
-      const { stream } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-      });
-
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-          modelId: 'o1-preview',
-          timestamp: expect.any(Date),
-        },
-        { type: 'text-delta', textDelta: 'Hello, World!' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { promptTokens: 15, completionTokens: 20 },
-          logprobs: undefined,
-          providerMetadata: {
-            openai: {
-              reasoningTokens: 10,
-            },
-          },
-        },
-      ]);
-    });
-  });
 });
 
 describe('doStream', () => {
@@ -1209,6 +1072,7 @@ describe('doStream', () => {
     },
     logprobs = null,
     finish_reason = 'stop',
+    model = 'gpt-3.5-turbo-0613',
   }: {
     content: string[];
     usage?: {
@@ -1217,6 +1081,9 @@ describe('doStream', () => {
       completion_tokens: number;
       prompt_tokens_details?: {
         cached_tokens?: number;
+      };
+      completion_tokens_details?: {
+        reasoning_tokens: number;
       };
     };
     logprobs?: {
@@ -1229,21 +1096,22 @@ describe('doStream', () => {
         | null;
     } | null;
     finish_reason?: string;
+    model?: string;
   }) {
     server.responseChunks = [
-      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
         `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
       ...content.map(text => {
         return (
-          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
           `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
         );
       }),
-      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
         `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}","logprobs":${JSON.stringify(
           logprobs,
         )}}]}\n\n`,
-      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":${JSON.stringify(
           usage,
         )}}\n\n`,
@@ -1931,6 +1799,85 @@ describe('doStream', () => {
       metadata: {
         custom: 'value',
       },
+    });
+  });
+
+  describe('should stream for reasoning models', () => {
+    it('should stream text delta', async () => {
+      prepareStreamResponse({
+        content: ['Hello, World!'],
+        model: 'o1-preview',
+      });
+
+      const model = provider.chat('o1-preview');
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        {
+          type: 'response-metadata',
+          id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
+          modelId: 'o1-preview',
+          timestamp: expect.any(Date),
+        },
+        { type: 'text-delta', textDelta: '' },
+        { type: 'text-delta', textDelta: 'Hello, World!' },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 17, completionTokens: 227 },
+          logprobs: undefined,
+        },
+      ]);
+    });
+
+    it('should send reasoning tokens', async () => {
+      prepareStreamResponse({
+        content: ['Hello, World!'],
+        model: 'o1-preview',
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          completion_tokens_details: {
+            reasoning_tokens: 10,
+          },
+        },
+      });
+
+      const model = provider.chat('o1-preview');
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        {
+          type: 'response-metadata',
+          id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
+          modelId: 'o1-preview',
+          timestamp: expect.any(Date),
+        },
+        { type: 'text-delta', textDelta: '' },
+        { type: 'text-delta', textDelta: 'Hello, World!' },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 15, completionTokens: 20 },
+          logprobs: undefined,
+          providerMetadata: {
+            openai: {
+              reasoningTokens: 10,
+            },
+          },
+        },
+      ]);
     });
   });
 });

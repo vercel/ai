@@ -1,5 +1,5 @@
 // https://console.x.ai and see "View models"
-export type XaiChatModelId = 'grok-beta' | (string & {});
+export type XaiChatModelId = 'grok-beta' | 'grok-vision-beta' | (string & {});
 
 export interface XaiChatSettings {
   /**

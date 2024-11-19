@@ -11,6 +11,7 @@ import {
   StreamTextResult,
   TextStreamPart,
   jsonSchema,
+  tool,
 } from '../../streams';
 import { delay } from '../../util/delay';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
@@ -563,10 +564,16 @@ describe('streamText', () => {
           },
         }),
         tools: {
-          tool1: {
+          tool1: tool({
             parameters: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
+            execute: async (args, options) => {
+              expect(args).toStrictEqual({ value: 'value' });
+              expect(options.messages).toStrictEqual([
+                { role: 'user', content: 'test-input' },
+              ]);
+              return `${args.value}-result`;
+            },
+          }),
         },
         prompt: 'test-input',
       });
@@ -2004,10 +2011,7 @@ describe('streamText', () => {
         tools: {
           tool1: {
             parameters: z.object({ value: z.string() }),
-            execute: async args => {
-              assert.deepStrictEqual(args, { value: 'value' });
-              return 'result1';
-            },
+            execute: async () => 'result1',
           },
         },
         prompt: 'test-input',
@@ -2183,10 +2187,7 @@ describe('streamText', () => {
           tools: {
             tool1: {
               parameters: z.object({ value: z.string() }),
-              execute: async (args: any) => {
-                assert.deepStrictEqual(args, { value: 'value' });
-                return 'result1';
-              },
+              execute: async () => 'result1',
             },
           },
           prompt: 'test-input',
@@ -2703,7 +2704,10 @@ describe('streamText', () => {
 
       expect(toolExecuteMock).toHaveBeenCalledWith(
         { value: 'value' },
-        { abortSignal: abortController.signal },
+        {
+          abortSignal: abortController.signal,
+          messages: expect.any(Array),
+        },
       );
     });
   });
