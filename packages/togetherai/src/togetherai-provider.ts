@@ -20,9 +20,9 @@ export interface TogetherAIProviderSettings
 
 export interface TogetherAIProvider
   extends OpenAICompatibleProvider<
-    | TogetherAIChatModelId
-    | TogetherAICompletionModelId
-    | TogetherAIEmbeddingModelId
+    TogetherAIChatModelId,
+    TogetherAICompletionModelId,
+    TogetherAIEmbeddingModelId
   > {
   chatModel(
     modelId: TogetherAIChatModelId,
@@ -45,15 +45,15 @@ export function createTogetherAI(
 ): TogetherAIProvider {
   const providerOptions: OpenAICompatibleProviderSettings = {
     baseURL: 'https://api.together.xyz/v1/',
+    name: 'togetherai',
     apiKeyEnvVarName: 'TOGETHER_AI_API_KEY',
     apiKeyEnvVarDescription: "TogetherAI's API key",
     ...options,
   };
-  // TODO(shaper): Consider separating generics in the ctor.
   const openAICompatibleProvider = createOpenAICompatible<
-    | TogetherAIChatModelId
-    | TogetherAICompletionModelId
-    | TogetherAIEmbeddingModelId
+    TogetherAIChatModelId,
+    TogetherAICompletionModelId,
+    TogetherAIEmbeddingModelId
   >(providerOptions);
 
   const togetheraiProvider: TogetherAIProvider = Object.assign(

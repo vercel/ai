@@ -10,33 +10,42 @@ import {
 } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 import { OpenAICompatibleChatSettings } from './openai-compatible-chat-settings';
+import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
 import { OpenAICompatibleCompletionSettings } from './openai-compatible-completion-settings';
 import { OpenAICompatibleEmbeddingSettings } from './openai-compatible-embedding-settings';
 import { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
 
-export interface OpenAICompatibleProvider<M extends string = string>
-  extends ProviderV1 {
-  (modelId: M, settings?: OpenAICompatibleChatSettings): LanguageModelV1;
+export interface OpenAICompatibleProvider<
+  L extends string = string,
+  C extends string = string,
+  E extends string = string,
+> extends ProviderV1 {
+  (modelId: L, settings?: OpenAICompatibleChatSettings): LanguageModelV1;
 
   languageModel(
-    modelId: M,
-    settings?: OpenAICompatibleCompletionSettings,
-  ): LanguageModelV1;
-
-  chatModel(
-    modelId: M,
+    modelId: L,
     settings?: OpenAICompatibleChatSettings,
   ): LanguageModelV1;
 
+  chatModel(
+    modelId: L,
+    settings?: OpenAICompatibleChatSettings,
+  ): LanguageModelV1;
+
+  completionModel(
+    modelId: C,
+    settings?: OpenAICompatibleCompletionSettings,
+  ): LanguageModelV1;
+
   textEmbeddingModel(
-    modelId: M,
+    modelId: E,
     settings?: OpenAICompatibleEmbeddingSettings,
   ): EmbeddingModelV1<string>;
 }
 
 export interface OpenAICompatibleProviderSettings {
   /**
-Base URL for the OpenAICompatible API calls.
+Base URL for the API calls.
      */
   baseURL?: string;
 
@@ -57,24 +66,36 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 
   /**
-The name of the environment variable from which to load the API key if not explicitly provided.
+The name of the environment variable from which to load the API key (if a key isn't explicitly provided).
    */
   apiKeyEnvVarName?: string;
 
   /**
-Description of the API key environment variable for error messages.
+Description of the API key environment variable (for use in error messages).
    */
   apiKeyEnvVarDescription?: string;
+
+  /**
+Provider name. Overrides the `openai` default name for 3rd party providers.
+   */
+  name?: string;
 }
 
 /**
 Create an OpenAICompatible provider instance.
  */
-export function createOpenAICompatible<M extends string>(
+export function createOpenAICompatible<
+  L extends string,
+  C extends string,
+  E extends string,
+>(
   options: OpenAICompatibleProviderSettings,
-): OpenAICompatibleProvider<M> {
-  // TODO(shaper): Throw if baseURL isn't set.
+): OpenAICompatibleProvider<L, C, E> {
+  // TODO(shaper):
+  // - consider throwing if baseUrl, name, sufficient api key info not available
+  // - force only 'compatible' -- look into whether we can remove some 'strict' logic/configs entirely
   const baseURL = withoutTrailingSlash(options.baseURL);
+  const providerName = options.name ?? 'openaiCompatible';
 
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
@@ -86,43 +107,48 @@ export function createOpenAICompatible<M extends string>(
   });
 
   const createLanguageModel = (
-    modelId: M,
-    settings?: OpenAICompatibleCompletionSettings,
-  ) => {
-    if (new.target) {
-      throw new Error(
-        'The OpenAICompatible model function cannot be called with the new keyword.',
-      );
-    }
+    modelId: L,
+    settings?: OpenAICompatibleChatSettings,
+  ) => createChatModel(modelId, settings);
 
-    // TODO(shaper): Do we need to pull in and strip down the OpenAI Completion Model?
-    return createChatModel(modelId, settings);
-  };
-
+  // TODO(shaper): Change provider strings below to allow concrete impls to specify.
+  // See openai-provider.ts:141 and subsequent configs.
   const createChatModel = (
-    modelId: M,
+    modelId: L,
     settings: OpenAICompatibleChatSettings = {},
   ) =>
     new OpenAICompatibleChatLanguageModel(modelId, settings, {
-      provider: 'openAICompatible.chat',
+      provider: `${providerName}.chat`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createCompletionModel = (
+    modelId: C,
+    settings: OpenAICompatibleCompletionSettings = {},
+  ) =>
+    new OpenAICompatibleCompletionLanguageModel(modelId, settings, {
+      provider: `${providerName}.completion`,
+      compatibility: 'compatible',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
   const createEmbeddingModel = (
-    modelId: M,
+    modelId: E,
     settings: OpenAICompatibleEmbeddingSettings = {},
   ) =>
     new OpenAICompatibleEmbeddingModel(modelId, settings, {
-      provider: 'openaiCompatible.embedding',
+      provider: `${providerName}.embedding`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
   const provider = function (
-    modelId: M,
+    modelId: L,
     settings?: OpenAICompatibleChatSettings,
   ) {
     return createLanguageModel(modelId, settings);
@@ -130,13 +156,8 @@ export function createOpenAICompatible<M extends string>(
 
   provider.languageModel = createLanguageModel;
   provider.chatModel = createChatModel;
+  provider.completionModel = createCompletionModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
-  // TODO(shaper): Need a way for concrete impls to note if they don't support
-  // one of the model types.
-  // provider.textEmbeddingModel = (modelId: string) => {
-  //   throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
-  // };
-
-  return provider as OpenAICompatibleProvider<M>;
+  return provider as OpenAICompatibleProvider<L, C, E>;
 }
