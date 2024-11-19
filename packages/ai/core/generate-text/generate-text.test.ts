@@ -845,7 +845,7 @@ describe('options.abortSignal', () => {
 
     expect(toolExecuteMock).toHaveBeenCalledWith(
       { value: 'value' },
-      { abortSignal: abortController.signal },
+      { abortSignal: abortController.signal, messages: expect.any(Array) },
     );
   });
 });

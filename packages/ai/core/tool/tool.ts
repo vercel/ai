@@ -1,6 +1,7 @@
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { ToolResultContent } from '../prompt/tool-result-content';
+import { CoreMessage } from '../prompt/message';
 
 type Parameters = z.ZodTypeAny | Schema<any>;
 
@@ -39,7 +40,18 @@ If not provided, the tool will not be executed automatically.
    */
   execute?: (
     args: inferParameters<PARAMETERS>,
-    options: { abortSignal?: AbortSignal },
+    options: {
+      /**
+       * Messages that were sent to the language model to initiate the response that contained the tool call.
+       * The messages **do not** include the assistant response that contained the tool call.
+       */
+      messages: CoreMessage[];
+
+      /**
+       * An optional abort signal that indicates that the overall operation should be aborted.
+       */
+      abortSignal?: AbortSignal;
+    },
   ) => PromiseLike<RESULT>;
 } & (
   | {
