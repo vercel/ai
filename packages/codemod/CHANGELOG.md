@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 1.0.1
+
+### Patch Changes
+
+- ff0676c: chore (packages/codemod): Remove semver dependency.
+
 ## 1.0.0
 
 ### Major Changes

@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.1
+
+### Patch Changes
+
+- b117255: feat (ai/core): add messages to tool call options
+
 ## 4.0.0
 
 ### Major Changes
