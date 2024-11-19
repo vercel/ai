@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 1.0.1
+
+### Patch Changes
+
+- 870c09e: feat (provider/xai): add groq-vision-beta support
+
 ## 1.0.0
 
 ### Patch Changes
