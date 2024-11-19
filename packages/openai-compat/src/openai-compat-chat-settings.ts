@@ -1,5 +1,3 @@
-// TODO(shaper): Need to generalize/fix the below to use an interface somehow.
-// https://console.x.ai and see "View models"
 export type OpenAICompatChatModelId = string;
 
 export interface OpenAICompatChatSettings {

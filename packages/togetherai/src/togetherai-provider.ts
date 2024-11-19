@@ -4,55 +4,59 @@ import {
   OpenAICompatChatSettings,
   OpenAICompatProviderSettings,
 } from '@ai-sdk/openai-compat';
-import { LanguageModelV1 } from '@ai-sdk/provider';
-
-// https://api.together.ai/models
-// https://docs.together.ai/docs/serverless-models
-// https://docs.together.ai/docs/dedicated-models
-export type TogetherAIChatModelId =
-  | 'google/gemma-2-9b-it'
-  | 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
-
-// TODO(shaper): Add Language and Embedding model ids.
+import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
+import { TogetherAIChatModelId } from './togetherai-chat-settings';
+import {
+  TogetherAIEmbeddingModelId,
+  TogetherAIEmbeddingSettings,
+} from './togetherai-embedding-settings';
+import {
+  TogetherAICompletionModelId,
+  TogetherAICompletionSettings,
+} from './togetherai-completion-settings';
 
 export interface TogetherAIProviderSettings
-  extends OpenAICompatProviderSettings {
-  /**
-   * Additional Together-specific settings can be added here.
-   */
-  togetherOption?: string;
-}
+  extends OpenAICompatProviderSettings {}
 
 export interface TogetherAIProvider
-  extends OpenAICompatProvider<TogetherAIChatModelId> {
-  /**
-   * Example of a Together-specific method.
-   */
-  togetherSpecificMethod(): void;
+  extends OpenAICompatProvider<
+    | TogetherAIChatModelId
+    | TogetherAICompletionModelId
+    | TogetherAIEmbeddingModelId
+  > {
+  chatModel(
+    modelId: TogetherAIChatModelId,
+    settings?: OpenAICompatChatSettings,
+  ): LanguageModelV1;
+
+  completionModel(
+    modelId: TogetherAICompletionModelId,
+    settings?: OpenAICompatChatSettings,
+  ): LanguageModelV1;
+
+  textEmbeddingModel(
+    modelId: TogetherAIEmbeddingModelId,
+    settings?: TogetherAIEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
 }
 
 export function createTogetherAI(
   options: TogetherAIProviderSettings = {},
 ): TogetherAIProvider {
-  // Create an instance of OpenAICompatProvider with the provided options
-  const openAICompatProvider =
-    createOpenAICompat<TogetherAIChatModelId>(options);
-
-  /**
-   * Implement Together-specific methods here.
-   * For example, a method that performs additional logging.
-   */
-  const togetherSpecificMethod = () => {
-    console.log('Together-specific method invoked.');
-    // Add any Together-specific logic here
+  const providerOptions: OpenAICompatProviderSettings = {
+    baseURL: 'https://api.together.xyz/v1/',
+    apiKeyEnvVarName: 'TOGETHER_AI_API_KEY',
+    apiKeyEnvVarDescription: "TogetherAI's API key",
+    ...options,
   };
+  // TODO(shaper): Consider separating generics in the ctor.
+  const openAICompatProvider = createOpenAICompat<
+    | TogetherAIChatModelId
+    | TogetherAICompletionModelId
+    | TogetherAIEmbeddingModelId
+  >(providerOptions);
 
-  /**
-   * Combine OpenAICompatProvider with Together-specific methods.
-   * Object.assign is used to merge the functions and methods.
-   */
   const togetheraiProvider: TogetherAIProvider = Object.assign(
-    // The provider function
     (
       modelId: TogetherAIChatModelId,
       settings?: OpenAICompatChatSettings,
@@ -60,19 +64,26 @@ export function createTogetherAI(
       return openAICompatProvider(modelId, settings);
     },
     {
-      // Delegate the languageModel method to OpenAICompatProvider
-      languageModel: openAICompatProvider.languageModel,
+      chatModel: (
+        modelId: TogetherAIChatModelId,
+        settings?: OpenAICompatChatSettings,
+      ) => {
+        return openAICompatProvider.chatModel(modelId, settings);
+      },
 
-      // Delegate the chat method to OpenAICompatProvider
-      // chat: openAICompatProvider.chat,
+      completionModel: (
+        modelId: TogetherAICompletionModelId,
+        settings?: TogetherAICompletionSettings,
+      ) => {
+        return openAICompatProvider.languageModel(modelId, settings);
+      },
 
-      // // Delegate the textEmbeddingModel method to OpenAICompatProvider
-      // textEmbeddingModel: openAICompatProvider.textEmbeddingModel,
-
-      // // Add Together-specific methods
-      // togetherSpecificMethod,
-
-      // You can add more Together-specific methods or override existing ones if needed
+      textEmbeddingModel: (
+        modelId: TogetherAIEmbeddingModelId,
+        settings?: TogetherAIEmbeddingSettings,
+      ) => {
+        return openAICompatProvider.textEmbeddingModel(modelId, settings);
+      },
     },
   ) as TogetherAIProvider;
 
