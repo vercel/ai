@@ -43,7 +43,7 @@ If not provided, the tool will not be executed automatically.
     options: {
       /**
        * Messages that were sent to the language model to initiate the response that contained the tool call.
-       * The messages **do not** include the assistant response that contained the tool call.
+       * The messages **do not** include the system prompt nor the assistant response that contained the tool call.
        */
       messages: CoreMessage[];
 
@@ -91,13 +91,19 @@ export function tool<PARAMETERS extends Parameters, RESULT>(
   tool: CoreTool<PARAMETERS, RESULT> & {
     execute: (
       args: inferParameters<PARAMETERS>,
-      options: { abortSignal?: AbortSignal },
+      options: {
+        messages: CoreMessage[];
+        abortSignal?: AbortSignal;
+      },
     ) => PromiseLike<RESULT>;
   },
 ): CoreTool<PARAMETERS, RESULT> & {
   execute: (
     args: inferParameters<PARAMETERS>,
-    options: { abortSignal?: AbortSignal },
+    options: {
+      messages: CoreMessage[];
+      abortSignal?: AbortSignal;
+    },
   ) => PromiseLike<RESULT>;
 };
 export function tool<PARAMETERS extends Parameters, RESULT>(

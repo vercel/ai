@@ -6,6 +6,7 @@ import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
+import { tool } from '../tool/tool';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -272,8 +273,11 @@ describe('result.response.messages', () => {
       tools: {
         tool1: {
           parameters: z.object({ value: z.string() }),
-          execute: async args => {
-            assert.deepStrictEqual(args, { value: 'value' });
+          execute: async (args, options) => {
+            expect(args).toStrictEqual({ value: 'value' });
+            expect(options.messages).toStrictEqual([
+              { role: 'user', content: 'test-input' },
+            ]);
             return 'result1';
           },
         },
@@ -474,13 +478,16 @@ describe('options.maxSteps', () => {
           },
         }),
         tools: {
-          tool1: {
+          tool1: tool({
             parameters: z.object({ value: z.string() }),
-            execute: async (args: any) => {
-              assert.deepStrictEqual(args, { value: 'value' });
+            execute: async (args, options) => {
+              expect(args).toStrictEqual({ value: 'value' });
+              expect(options.messages).toStrictEqual([
+                { role: 'user', content: 'test-input' },
+              ]);
               return 'result1';
             },
-          },
+          }),
         },
         prompt: 'test-input',
         maxSteps: 3,
