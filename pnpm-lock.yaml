@@ -84,7 +84,7 @@ importers:
         specifier: 1.0.1
         version: link:../../packages/openai
       '@ai-sdk/xai':
-        specifier: 1.0.0
+        specifier: 1.0.1
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
