@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 1.0.2
+
+### Patch Changes
+
+- 700b2be: chore (provider/azure): update Azure OpenAI API version to 2024-10-01-preview
+
 ## 1.0.1
 
 ### Patch Changes
