@@ -4,7 +4,7 @@ import {
   StreamingTestServer,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { createOpenAICompat } from './openai-compat-provider';
+import { createOpenAICompat } from './openai-compatible-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },

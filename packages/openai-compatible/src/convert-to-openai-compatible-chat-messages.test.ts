@@ -1,8 +1,8 @@
-import { convertToOpenAICompatChatMessages } from './convert-to-openai-compat-chat-messages';
+import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 
 describe('user messages', () => {
   it('should convert messages with only a text part to a string content', async () => {
-    const result = convertToOpenAICompatChatMessages([
+    const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Hello' }],
@@ -15,7 +15,7 @@ describe('user messages', () => {
 
 describe('tool calls', () => {
   it('should stringify arguments to tool calls', () => {
-    const result = convertToOpenAICompatChatMessages([
+    const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'assistant',
         content: [

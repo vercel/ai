@@ -8,32 +8,35 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { OpenAICompatChatLanguageModel } from './openai-compat-chat-language-model';
-import { OpenAICompatChatSettings } from './openai-compat-chat-settings';
-import { OpenAICompatCompletionSettings } from './openai-compat-completion-settings';
-import { OpenAICompatEmbeddingSettings } from './openai-compat-embedding-settings';
-import { OpenAICompatEmbeddingModel } from './openai-compat-embedding-model';
+import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
+import { OpenAICompatibleChatSettings } from './openai-compatible-chat-settings';
+import { OpenAICompatibleCompletionSettings } from './openai-compatible-completion-settings';
+import { OpenAICompatibleEmbeddingSettings } from './openai-compatible-embedding-settings';
+import { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
 
-export interface OpenAICompatProvider<M extends string = string>
+export interface OpenAICompatibleProvider<M extends string = string>
   extends ProviderV1 {
-  (modelId: M, settings?: OpenAICompatChatSettings): LanguageModelV1;
+  (modelId: M, settings?: OpenAICompatibleChatSettings): LanguageModelV1;
 
   languageModel(
     modelId: M,
-    settings?: OpenAICompatCompletionSettings,
+    settings?: OpenAICompatibleCompletionSettings,
   ): LanguageModelV1;
 
-  chatModel(modelId: M, settings?: OpenAICompatChatSettings): LanguageModelV1;
+  chatModel(
+    modelId: M,
+    settings?: OpenAICompatibleChatSettings,
+  ): LanguageModelV1;
 
   textEmbeddingModel(
     modelId: M,
-    settings?: OpenAICompatEmbeddingSettings,
+    settings?: OpenAICompatibleEmbeddingSettings,
   ): EmbeddingModelV1<string>;
 }
 
-export interface OpenAICompatProviderSettings {
+export interface OpenAICompatibleProviderSettings {
   /**
-Base URL for the OpenAICompat API calls.
+Base URL for the OpenAICompatible API calls.
      */
   baseURL?: string;
 
@@ -65,11 +68,11 @@ Description of the API key environment variable for error messages.
 }
 
 /**
-Create an OpenAICompat provider instance.
+Create an OpenAICompatible provider instance.
  */
-export function createOpenAICompat<M extends string>(
-  options: OpenAICompatProviderSettings,
-): OpenAICompatProvider<M> {
+export function createOpenAICompatible<M extends string>(
+  options: OpenAICompatibleProviderSettings,
+): OpenAICompatibleProvider<M> {
   // TODO(shaper): Throw if baseURL isn't set.
   const baseURL = withoutTrailingSlash(options.baseURL);
 
@@ -84,11 +87,11 @@ export function createOpenAICompat<M extends string>(
 
   const createLanguageModel = (
     modelId: M,
-    settings?: OpenAICompatCompletionSettings,
+    settings?: OpenAICompatibleCompletionSettings,
   ) => {
     if (new.target) {
       throw new Error(
-        'The OpenAICompat model function cannot be called with the new keyword.',
+        'The OpenAICompatible model function cannot be called with the new keyword.',
       );
     }
 
@@ -98,10 +101,10 @@ export function createOpenAICompat<M extends string>(
 
   const createChatModel = (
     modelId: M,
-    settings: OpenAICompatChatSettings = {},
+    settings: OpenAICompatibleChatSettings = {},
   ) =>
-    new OpenAICompatChatLanguageModel(modelId, settings, {
-      provider: 'openaiCompat.chat',
+    new OpenAICompatibleChatLanguageModel(modelId, settings, {
+      provider: 'openAICompatible.chat',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
@@ -109,16 +112,19 @@ export function createOpenAICompat<M extends string>(
 
   const createEmbeddingModel = (
     modelId: M,
-    settings: OpenAICompatEmbeddingSettings = {},
+    settings: OpenAICompatibleEmbeddingSettings = {},
   ) =>
-    new OpenAICompatEmbeddingModel(modelId, settings, {
-      provider: 'openaiCompat.embedding',
+    new OpenAICompatibleEmbeddingModel(modelId, settings, {
+      provider: 'openaiCompatible.embedding',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const provider = function (modelId: M, settings?: OpenAICompatChatSettings) {
+  const provider = function (
+    modelId: M,
+    settings?: OpenAICompatibleChatSettings,
+  ) {
     return createLanguageModel(modelId, settings);
   };
 
@@ -132,5 +138,5 @@ export function createOpenAICompat<M extends string>(
   //   throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   // };
 
-  return provider as OpenAICompatProvider<M>;
+  return provider as OpenAICompatibleProvider<M>;
 }

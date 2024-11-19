@@ -1,4 +1,4 @@
-import { OpenAICompatChatSettings } from '@ai-sdk/openai-compat';
+import { OpenAICompatibleChatSettings } from '@ai-sdk/openai-compatible';
 
 // https://docs.together.ai/docs/serverless-models#chat-models
 export type TogetherAIChatModelId =
@@ -131,4 +131,4 @@ export type TogetherAIChatModelId =
 //   | 'WizardLM/WizardLM-13B-V1.2'
 //   | (string & {});
 
-export interface TogetherAIChatSettings extends OpenAICompatChatSettings {}
+export interface TogetherAIChatSettings extends OpenAICompatibleChatSettings {}

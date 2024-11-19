@@ -1,4 +1,4 @@
-import { OpenAICompatEmbeddingSettings } from '@ai-sdk/openai-compat';
+import { OpenAICompatibleEmbeddingSettings } from '@ai-sdk/openai-compatible';
 
 // https://docs.together.ai/docs/serverless-models#embedding-models
 export type TogetherAIEmbeddingModelId =
@@ -26,4 +26,4 @@ export type TogetherAIEmbeddingModelId =
 //   | (string & {});
 
 export interface TogetherAIEmbeddingSettings
-  extends OpenAICompatEmbeddingSettings {}
+  extends OpenAICompatibleEmbeddingSettings {}

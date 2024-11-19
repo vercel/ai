@@ -1,6 +1,6 @@
-export type OpenAICompatEmbeddingModelId = string;
+export type OpenAICompatibleEmbeddingModelId = string;
 
-export interface OpenAICompatEmbeddingSettings {
+export interface OpenAICompatibleEmbeddingSettings {
   /**
 Override the maximum number of embeddings per call.
    */

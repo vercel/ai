@@ -1364,7 +1364,7 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
 
-  packages/openai-compat:
+  packages/openai-compatible:
     dependencies:
       '@ai-sdk/provider':
         specifier: 1.0.0
@@ -1619,9 +1619,9 @@ importers:
 
   packages/togetherai:
     dependencies:
-      '@ai-sdk/openai-compat':
+      '@ai-sdk/openai-compatible':
         specifier: 0.0.0
-        version: link:../openai-compat
+        version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.0
         version: link:../provider

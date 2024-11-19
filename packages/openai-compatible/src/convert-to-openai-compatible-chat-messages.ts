@@ -2,13 +2,12 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
-import { OpenAICompatChatPrompt } from './openai-compat-api-types';
+import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 
-export function convertToOpenAICompatChatMessages(
+export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV1Prompt,
-): OpenAICompatChatPrompt {
-  const messages: OpenAICompatChatPrompt = [];
+): OpenAICompatibleChatPrompt {
+  const messages: OpenAICompatibleChatPrompt = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -31,6 +30,7 @@ export function convertToOpenAICompatChatMessages(
                 return { type: 'text', text: part.text };
               }
               case 'image': {
+                // TODO(shaper): Add back the below.
                 throw new UnsupportedFunctionalityError({
                   functionality: 'Image content parts in user messages',
                 });

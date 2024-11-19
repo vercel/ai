@@ -37,7 +37,7 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compat": "0.0.0",
+    "@ai-sdk/openai-compatible": "0.0.0",
     "@ai-sdk/provider": "1.0.0",
     "@ai-sdk/provider-utils": "2.0.0"
   },

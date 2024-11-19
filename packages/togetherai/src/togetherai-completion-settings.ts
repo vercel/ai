@@ -1,4 +1,4 @@
-import { OpenAICompatCompletionSettings } from '@ai-sdk/openai-compat';
+import { OpenAICompatibleCompletionSettings } from '@ai-sdk/openai-compatible';
 
 // https://docs.together.ai/docs/serverless-models#language-models
 export type TogetherAICompletionModelId =
@@ -56,4 +56,4 @@ export type TogetherAICompletionModelId =
 //   | (string & {});
 
 export interface TogetherAICompletionSettings
-  extends OpenAICompatCompletionSettings {}
+  extends OpenAICompatibleCompletionSettings {}

@@ -18,41 +18,41 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { convertToOpenAICompatChatMessages } from './convert-to-openai-compat-chat-messages';
+import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import {
-  OpenAICompatChatModelId,
-  OpenAICompatChatSettings,
-} from './openai-compat-chat-settings';
+  OpenAICompatibleChatModelId,
+  OpenAICompatibleChatSettings,
+} from './openai-compatible-chat-settings';
 import {
-  openaiCompatErrorDataSchema,
-  openaiCompatFailedResponseHandler,
-} from './openai-compat-error';
-import { prepareTools } from './openai-compat-prepare-tools';
-import { mapOpenAICompatFinishReason } from './map-openai-compat-finish-reason';
+  OpenAICompatibleErrorDataSchema,
+  OpenAICompatibleFailedResponseHandler,
+} from './openai-compatible-error';
+import { prepareTools } from './openai-compatible-prepare-tools';
+import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 
-type OpenAICompatChatConfig = {
+type OpenAICompatibleChatConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
 
-export class OpenAICompatChatLanguageModel implements LanguageModelV1 {
+export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
 
   readonly supportsStructuredOutputs = false;
   readonly defaultObjectGenerationMode = 'tool';
 
-  readonly modelId: OpenAICompatChatModelId;
-  readonly settings: OpenAICompatChatSettings;
+  readonly modelId: OpenAICompatibleChatModelId;
+  readonly settings: OpenAICompatibleChatSettings;
 
-  private readonly config: OpenAICompatChatConfig;
+  private readonly config: OpenAICompatibleChatConfig;
 
   constructor(
-    modelId: OpenAICompatChatModelId,
-    settings: OpenAICompatChatSettings,
-    config: OpenAICompatChatConfig,
+    modelId: OpenAICompatibleChatModelId,
+    settings: OpenAICompatibleChatSettings,
+    config: OpenAICompatibleChatConfig,
   ) {
     this.modelId = modelId;
     this.settings = settings;
@@ -124,7 +124,7 @@ export class OpenAICompatChatLanguageModel implements LanguageModelV1 {
         undefined,
 
       // messages:
-      messages: convertToOpenAICompatChatMessages(prompt),
+      messages: convertToOpenAICompatibleChatMessages(prompt),
     };
 
     switch (type) {
@@ -190,9 +190,9 @@ export class OpenAICompatChatLanguageModel implements LanguageModelV1 {
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
-      failedResponseHandler: openaiCompatFailedResponseHandler,
+      failedResponseHandler: OpenAICompatibleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        openaiCompatChatResponseSchema,
+        OpenAICompatibleChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -209,7 +209,7 @@ export class OpenAICompatChatLanguageModel implements LanguageModelV1 {
         toolName: toolCall.function.name,
         args: toolCall.function.arguments!,
       })),
-      finishReason: mapOpenAICompatFinishReason(choice.finish_reason),
+      finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       usage: {
         promptTokens: response.usage?.prompt_tokens ?? NaN,
         completionTokens: response.usage?.completion_tokens ?? NaN,
@@ -239,9 +239,9 @@ export class OpenAICompatChatLanguageModel implements LanguageModelV1 {
         ...args,
         stream: true,
       },
-      failedResponseHandler: openaiCompatFailedResponseHandler,
+      failedResponseHandler: OpenAICompatibleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
-        openaiCompatChatChunkSchema,
+        OpenAICompatibleChatChunkSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -272,7 +272,7 @@ export class OpenAICompatChatLanguageModel implements LanguageModelV1 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof openaiCompatChatChunkSchema>>,
+          ParseResult<z.infer<typeof OpenAICompatibleChatChunkSchema>>,
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
@@ -311,7 +311,9 @@ export class OpenAICompatChatLanguageModel implements LanguageModelV1 {
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapOpenAICompatFinishReason(choice.finish_reason);
+              finishReason = mapOpenAICompatibleFinishReason(
+                choice.finish_reason,
+              );
             }
 
             if (choice?.delta == null) {
@@ -453,7 +455,7 @@ export class OpenAICompatChatLanguageModel implements LanguageModelV1 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiCompatChatResponseSchema = z.object({
+const OpenAICompatibleChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -489,7 +491,7 @@ const openaiCompatChatResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiCompatChatChunkSchema = z.union([
+const OpenAICompatibleChatChunkSchema = z.union([
   z.object({
     id: z.string().nullish(),
     created: z.number().nullish(),
@@ -526,5 +528,5 @@ const openaiCompatChatChunkSchema = z.union([
       })
       .nullish(),
   }),
-  openaiCompatErrorDataSchema,
+  OpenAICompatibleErrorDataSchema,
 ]);

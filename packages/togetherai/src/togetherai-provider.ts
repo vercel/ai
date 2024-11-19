@@ -1,9 +1,9 @@
 import {
-  OpenAICompatProvider,
-  createOpenAICompat,
-  OpenAICompatChatSettings,
-  OpenAICompatProviderSettings,
-} from '@ai-sdk/openai-compat';
+  OpenAICompatibleProvider,
+  createOpenAICompatible,
+  OpenAICompatibleChatSettings,
+  OpenAICompatibleProviderSettings,
+} from '@ai-sdk/openai-compatible';
 import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
 import { TogetherAIChatModelId } from './togetherai-chat-settings';
 import {
@@ -16,22 +16,22 @@ import {
 } from './togetherai-completion-settings';
 
 export interface TogetherAIProviderSettings
-  extends OpenAICompatProviderSettings {}
+  extends OpenAICompatibleProviderSettings {}
 
 export interface TogetherAIProvider
-  extends OpenAICompatProvider<
+  extends OpenAICompatibleProvider<
     | TogetherAIChatModelId
     | TogetherAICompletionModelId
     | TogetherAIEmbeddingModelId
   > {
   chatModel(
     modelId: TogetherAIChatModelId,
-    settings?: OpenAICompatChatSettings,
+    settings?: OpenAICompatibleChatSettings,
   ): LanguageModelV1;
 
   completionModel(
     modelId: TogetherAICompletionModelId,
-    settings?: OpenAICompatChatSettings,
+    settings?: OpenAICompatibleChatSettings,
   ): LanguageModelV1;
 
   textEmbeddingModel(
@@ -43,14 +43,14 @@ export interface TogetherAIProvider
 export function createTogetherAI(
   options: TogetherAIProviderSettings = {},
 ): TogetherAIProvider {
-  const providerOptions: OpenAICompatProviderSettings = {
+  const providerOptions: OpenAICompatibleProviderSettings = {
     baseURL: 'https://api.together.xyz/v1/',
     apiKeyEnvVarName: 'TOGETHER_AI_API_KEY',
     apiKeyEnvVarDescription: "TogetherAI's API key",
     ...options,
   };
   // TODO(shaper): Consider separating generics in the ctor.
-  const openAICompatProvider = createOpenAICompat<
+  const openAICompatibleProvider = createOpenAICompatible<
     | TogetherAIChatModelId
     | TogetherAICompletionModelId
     | TogetherAIEmbeddingModelId
@@ -59,30 +59,30 @@ export function createTogetherAI(
   const togetheraiProvider: TogetherAIProvider = Object.assign(
     (
       modelId: TogetherAIChatModelId,
-      settings?: OpenAICompatChatSettings,
+      settings?: OpenAICompatibleChatSettings,
     ): LanguageModelV1 => {
-      return openAICompatProvider(modelId, settings);
+      return openAICompatibleProvider(modelId, settings);
     },
     {
       chatModel: (
         modelId: TogetherAIChatModelId,
-        settings?: OpenAICompatChatSettings,
+        settings?: OpenAICompatibleChatSettings,
       ) => {
-        return openAICompatProvider.chatModel(modelId, settings);
+        return openAICompatibleProvider.chatModel(modelId, settings);
       },
 
       completionModel: (
         modelId: TogetherAICompletionModelId,
         settings?: TogetherAICompletionSettings,
       ) => {
-        return openAICompatProvider.languageModel(modelId, settings);
+        return openAICompatibleProvider.languageModel(modelId, settings);
       },
 
       textEmbeddingModel: (
         modelId: TogetherAIEmbeddingModelId,
         settings?: TogetherAIEmbeddingSettings,
       ) => {
-        return openAICompatProvider.textEmbeddingModel(modelId, settings);
+        return openAICompatibleProvider.textEmbeddingModel(modelId, settings);
       },
     },
   ) as TogetherAIProvider;

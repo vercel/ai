@@ -10,10 +10,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import {
-  OpenAICompatEmbeddingModelId,
-  OpenAICompatEmbeddingSettings,
-} from './openai-compat-embedding-settings';
-import { openaiCompatFailedResponseHandler } from './openai-compat-error';
+  OpenAICompatibleEmbeddingModelId,
+  OpenAICompatibleEmbeddingSettings,
+} from './openai-compatible-embedding-settings';
+import { OpenAICompatibleFailedResponseHandler } from './openai-compatible-error';
 
 type OpenAIEmbeddingConfig = {
   provider: string;
@@ -22,12 +22,14 @@ type OpenAIEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class OpenAICompatEmbeddingModel implements EmbeddingModelV1<string> {
+export class OpenAICompatibleEmbeddingModel
+  implements EmbeddingModelV1<string>
+{
   readonly specificationVersion = 'v1';
-  readonly modelId: OpenAICompatEmbeddingModelId;
+  readonly modelId: OpenAICompatibleEmbeddingModelId;
 
   private readonly config: OpenAIEmbeddingConfig;
-  private readonly settings: OpenAICompatEmbeddingSettings;
+  private readonly settings: OpenAICompatibleEmbeddingSettings;
 
   get provider(): string {
     return this.config.provider;
@@ -42,8 +44,8 @@ export class OpenAICompatEmbeddingModel implements EmbeddingModelV1<string> {
   }
 
   constructor(
-    modelId: OpenAICompatEmbeddingModelId,
-    settings: OpenAICompatEmbeddingSettings,
+    modelId: OpenAICompatibleEmbeddingModelId,
+    settings: OpenAICompatibleEmbeddingSettings,
     config: OpenAIEmbeddingConfig,
   ) {
     this.modelId = modelId;
@@ -80,7 +82,7 @@ export class OpenAICompatEmbeddingModel implements EmbeddingModelV1<string> {
         dimensions: this.settings.dimensions,
         user: this.settings.user,
       },
-      failedResponseHandler: openaiCompatFailedResponseHandler,
+      failedResponseHandler: OpenAICompatibleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiTextEmbeddingResponseSchema,
       ),
