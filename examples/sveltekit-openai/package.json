@@ -21,7 +21,7 @@
     "@neoconfetti/svelte": "^2",
     "@sveltejs/adapter-auto": "^3",
     "@sveltejs/kit": "^2",
-    "@sveltejs/vite-plugin-svelte": "^3",
+    "@sveltejs/vite-plugin-svelte": "^4",
     "@types/cookie": "^1.0.0",
     "svelte": "^4",
     "svelte-check": "^3.7",
