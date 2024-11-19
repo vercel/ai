@@ -42,7 +42,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
 
   readonly supportsStructuredOutputs = false;
-  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: OpenAICompatibleChatModelId;
   readonly settings: OpenAICompatibleChatSettings;
@@ -57,6 +56,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     this.modelId = modelId;
     this.settings = settings;
     this.config = config;
+  }
+
+  get defaultObjectGenerationMode(): 'json' | 'tool' | undefined {
+    return this.settings.defaultObjectGenerationMode;
   }
 
   get provider(): string {
@@ -120,6 +123,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
       // response format:
       response_format:
+        // TODO(shaper): Review vs. OpenAI impl here.
         // json object response format is not currently supported
         undefined,
 
@@ -141,6 +145,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
+        // TODO(shaper): Review vs. OpenAI impl here.
         throw new UnsupportedFunctionalityError({
           functionality: 'object-json mode',
         });

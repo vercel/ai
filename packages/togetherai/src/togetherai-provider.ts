@@ -5,7 +5,10 @@ import {
   OpenAICompatibleProviderSettings,
 } from '@ai-sdk/openai-compatible';
 import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
-import { TogetherAIChatModelId } from './togetherai-chat-settings';
+import {
+  TogetherAIChatModelId,
+  TogetherAIChatSettings,
+} from './togetherai-chat-settings';
 import {
   TogetherAIEmbeddingModelId,
   TogetherAIEmbeddingSettings,
@@ -26,12 +29,12 @@ export interface TogetherAIProvider
   > {
   chatModel(
     modelId: TogetherAIChatModelId,
-    settings?: OpenAICompatibleChatSettings,
+    settings?: TogetherAIChatSettings,
   ): LanguageModelV1;
 
   completionModel(
     modelId: TogetherAICompletionModelId,
-    settings?: OpenAICompatibleChatSettings,
+    settings?: TogetherAICompletionSettings,
   ): LanguageModelV1;
 
   textEmbeddingModel(
@@ -59,16 +62,21 @@ export function createTogetherAI(
   const togetheraiProvider: TogetherAIProvider = Object.assign(
     (
       modelId: TogetherAIChatModelId,
-      settings?: OpenAICompatibleChatSettings,
+      settings?: TogetherAIChatSettings,
     ): LanguageModelV1 => {
       return openAICompatibleProvider(modelId, settings);
     },
     {
       chatModel: (
         modelId: TogetherAIChatModelId,
-        settings?: OpenAICompatibleChatSettings,
+        settings?: TogetherAIChatSettings,
       ) => {
-        return openAICompatibleProvider.chatModel(modelId, settings);
+        // TODO(shaper): Perhaps the object generation mode will vary by model.
+        const defaultSettings: Partial<TogetherAIChatSettings> = {
+          defaultObjectGenerationMode: 'json',
+        };
+        const mergedSettings = { ...defaultSettings, ...settings };
+        return openAICompatibleProvider.chatModel(modelId, mergedSettings);
       },
 
       completionModel: (
