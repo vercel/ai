@@ -40,7 +40,7 @@
     "@ai-sdk/provider": "1.0.0",
     "eventsource-parser": "^3.0.0",
     "nanoid": "^5.0.8",
-    "secure-json-parse": "^2.7.0"
+    "secure-json-parse": "^3.0.1"
   },
   "devDependencies": {
     "@types/node": "^18",
