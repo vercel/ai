@@ -13,7 +13,7 @@ import {
   OpenAICompatibleEmbeddingModelId,
   OpenAICompatibleEmbeddingSettings,
 } from './openai-compatible-embedding-settings';
-import { OpenAICompatibleFailedResponseHandler } from './openai-compatible-error';
+import { openAICompatibleFailedResponseHandler } from './openai-compatible-error';
 
 type OpenAIEmbeddingConfig = {
   provider: string;
@@ -82,7 +82,7 @@ export class OpenAICompatibleEmbeddingModel
         dimensions: this.settings.dimensions,
         user: this.settings.user,
       },
-      failedResponseHandler: OpenAICompatibleFailedResponseHandler,
+      failedResponseHandler: openAICompatibleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiTextEmbeddingResponseSchema,
       ),

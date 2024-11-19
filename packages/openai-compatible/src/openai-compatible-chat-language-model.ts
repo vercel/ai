@@ -25,8 +25,8 @@ import {
   OpenAICompatibleChatSettings,
 } from './openai-compatible-chat-settings';
 import {
-  OpenAICompatibleErrorDataSchema,
-  OpenAICompatibleFailedResponseHandler,
+  openAICompatibleErrorDataSchema,
+  openAICompatibleFailedResponseHandler,
 } from './openai-compatible-error';
 import { prepareTools } from './openai-compatible-prepare-tools';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
@@ -190,7 +190,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
-      failedResponseHandler: OpenAICompatibleFailedResponseHandler,
+      failedResponseHandler: openAICompatibleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         OpenAICompatibleChatResponseSchema,
       ),
@@ -239,7 +239,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         ...args,
         stream: true,
       },
-      failedResponseHandler: OpenAICompatibleFailedResponseHandler,
+      failedResponseHandler: openAICompatibleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         OpenAICompatibleChatChunkSchema,
       ),
@@ -528,5 +528,5 @@ const OpenAICompatibleChatChunkSchema = z.union([
       })
       .nullish(),
   }),
-  OpenAICompatibleErrorDataSchema,
+  openAICompatibleErrorDataSchema,
 ]);
