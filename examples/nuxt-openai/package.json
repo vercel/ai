@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/vue": "1.0.0",
-    "@ai-sdk/openai": "1.0.0",
+    "@ai-sdk/openai": "1.0.1",
     "ai": "4.0.0",
     "zod": "3.23.8"
   },
@@ -21,7 +21,7 @@
     "@types/node": "^18",
     "@vue/reactivity": "3.5.12",
     "@vue/runtime-core": "3.5.12",
-    "@vue/runtime-dom": "3.5.12",
+    "@vue/runtime-dom": "3.5.13",
     "@vue/shared": "3.5.12",
     "nuxt": "3.14.159",
     "tailwindcss": "3.4.14",
