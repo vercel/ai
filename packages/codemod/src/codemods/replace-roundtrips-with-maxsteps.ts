@@ -1,9 +1,7 @@
-import { API, FileInfo } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
-export default function transformer(file: FileInfo, api: API) {
-  const j = api.jscodeshift;
-  const root = j(file.source);
-  let hasChanges = false;
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
   root
     .find(j.CallExpression)
@@ -37,7 +35,7 @@ export default function transformer(file: FileInfo, api: API) {
       });
 
       if (foundRoundtrips) {
-        hasChanges = true;
+        context.hasChanges = true;
         optionsArg.properties.push(
           j.objectProperty(
             j.identifier('maxSteps'),
@@ -57,10 +55,8 @@ export default function transformer(file: FileInfo, api: API) {
     )
     .forEach(path => {
       if (path.node.property.type === 'Identifier') {
-        hasChanges = true;
+        context.hasChanges = true;
         path.node.property.name = 'steps';
       }
     });
-
-  return hasChanges ? root.toSource() : null;
-}
+});

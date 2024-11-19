@@ -1,4 +1,4 @@
-import { API, FileInfo } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
 const ERROR_METHOD_MAPPINGS: Record<string, string> = {
   isAPICallError: 'APICallError.isInstance',
@@ -24,10 +24,8 @@ const ERROR_METHOD_MAPPINGS: Record<string, string> = {
   isRetryError: 'RetryError.isInstance',
 };
 
-export default function transformer(file: FileInfo, api: API) {
-  const j = api.jscodeshift;
-  const root = j(file.source);
-  let hasChanges = false;
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
   // Track imports from ai packages
   const targetImports = new Set<string>();
@@ -46,7 +44,7 @@ export default function transformer(file: FileInfo, api: API) {
         if (spec.type === 'ImportSpecifier') {
           const name = spec.imported.name;
           if (Object.keys(ERROR_METHOD_MAPPINGS).includes(name)) {
-            hasChanges = true;
+            context.hasChanges = true;
             targetImports.add(spec.local?.name || name);
           }
         }
@@ -66,7 +64,7 @@ export default function transformer(file: FileInfo, api: API) {
       );
     })
     .forEach(path => {
-      hasChanges = true;
+      context.hasChanges = true;
       const property = (
         path.node.callee as import('jscodeshift').MemberExpression
       ).property;
@@ -83,6 +81,4 @@ export default function transformer(file: FileInfo, api: API) {
         ),
       );
     });
-
-  return hasChanges ? root.toSource() : null;
-}
+});
