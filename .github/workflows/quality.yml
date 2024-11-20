@@ -1,10 +1,10 @@
-name: Quality
+name: IQ
 
 on:
   push:
-    branches: [main]
+    branches: mainframe
   pull_request:
-    branches: [main]
+    branches: mainframe
 
 jobs:
   prettier:
