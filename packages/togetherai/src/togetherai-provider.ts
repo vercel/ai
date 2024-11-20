@@ -1,7 +1,6 @@
 import {
   OpenAICompatibleProvider,
   createOpenAICompatible,
-  OpenAICompatibleChatSettings,
   OpenAICompatibleProviderSettings,
 } from '@ai-sdk/openai-compatible';
 import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
@@ -59,43 +58,40 @@ export function createTogetherAI(
     TogetherAIEmbeddingModelId
   >(providerOptions);
 
-  const togetheraiProvider: TogetherAIProvider = Object.assign(
-    (
-      modelId: TogetherAIChatModelId,
-      settings?: TogetherAIChatSettings,
-    ): LanguageModelV1 => {
-      return openAICompatibleProvider(modelId, settings);
-    },
-    {
-      chatModel: (
-        modelId: TogetherAIChatModelId,
-        settings?: TogetherAIChatSettings,
-      ) => {
-        // TODO(shaper): Perhaps the object generation mode will vary by model.
-        const defaultSettings: Partial<TogetherAIChatSettings> = {
-          defaultObjectGenerationMode: 'json',
-        };
-        const mergedSettings = { ...defaultSettings, ...settings };
-        return openAICompatibleProvider.chatModel(modelId, mergedSettings);
-      },
+  const createChatModel = (
+    modelId: TogetherAIChatModelId,
+    settings?: TogetherAIChatSettings,
+  ) => {
+    // TODO(shaper): Perhaps the object generation mode will vary by model.
+    const defaultSettings: Partial<TogetherAIChatSettings> = {
+      defaultObjectGenerationMode: 'json',
+    };
+    const mergedSettings = { ...defaultSettings, ...settings };
+    return openAICompatibleProvider.chatModel(modelId, mergedSettings);
+  };
 
-      completionModel: (
-        modelId: TogetherAICompletionModelId,
-        settings?: TogetherAICompletionSettings,
-      ) => {
-        return openAICompatibleProvider.languageModel(modelId, settings);
-      },
+  const createCompletionModel = (
+    modelId: TogetherAICompletionModelId,
+    settings?: TogetherAICompletionSettings,
+  ) => openAICompatibleProvider.languageModel(modelId, settings);
 
-      textEmbeddingModel: (
-        modelId: TogetherAIEmbeddingModelId,
-        settings?: TogetherAIEmbeddingSettings,
-      ) => {
-        return openAICompatibleProvider.textEmbeddingModel(modelId, settings);
-      },
-    },
-  ) as TogetherAIProvider;
+  const createTextEmbeddingModel = (
+    modelId: TogetherAIEmbeddingModelId,
+    settings?: TogetherAIEmbeddingSettings,
+  ) => openAICompatibleProvider.textEmbeddingModel(modelId, settings);
 
-  return togetheraiProvider;
+  const provider = function (
+    modelId: TogetherAIChatModelId,
+    settings?: TogetherAIChatSettings,
+  ) {
+    return createCompletionModel(modelId, settings);
+  };
+
+  provider.completionModel = createCompletionModel;
+  provider.chatModel = createChatModel;
+  provider.textEmbeddingModel = createTextEmbeddingModel;
+
+  return provider as TogetherAIProvider;
 }
 
 export const togetherai = createTogetherAI();

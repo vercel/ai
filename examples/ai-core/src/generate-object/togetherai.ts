@@ -5,7 +5,9 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: togetherai('google/gemma-2b-it'),
+    model: togetherai.chatModel(
+      'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+    ),
     schema: z.object({
       recipe: z.object({
         name: z.string(),

@@ -4,7 +4,7 @@ import {
   StreamingTestServer,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { createOpenAICompat as createOpenAICompatible } from './openai-compatible-provider';
+import { createOpenAICompatible } from './openai-compatible-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -12,12 +12,13 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
 
 const provider = createOpenAICompatible({
   apiKey: 'test-api-key',
+  baseURL: 'https://my.api.com/v1/',
 });
 
 const model = provider('grok-beta');
 
 describe('doGenerate', () => {
-  const server = new JsonTestServer('https://api.x.ai/v1/chat/completions');
+  const server = new JsonTestServer('https://my.api.com/v1/chat/completions');
 
   server.setupTestEnvironment();
 
@@ -307,6 +308,7 @@ describe('doGenerate', () => {
 
     const provider = createOpenAICompatible({
       apiKey: 'test-api-key',
+      baseURL: 'https://my.api.com/v1/',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
       },
@@ -397,7 +399,7 @@ describe('doGenerate', () => {
 
 describe('doStream', () => {
   const server = new StreamingTestServer(
-    'https://api.x.ai/v1/chat/completions',
+    'https://my.api.com/v1/chat/completions',
   );
 
   server.setupTestEnvironment();
@@ -879,6 +881,7 @@ describe('doStream', () => {
 
     const provider = createOpenAICompatible({
       apiKey: 'test-api-key',
+      baseURL: 'https://my.api.com/v1',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
       },
