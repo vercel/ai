@@ -36,6 +36,13 @@ type OpenAICompatibleChatConfig = {
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+
+  /**
+Default object generation mode that should be used with this model when
+no mode is specified. Should be the mode with the best results for this
+model. `undefined` can be specified if object generation is not supported.
+  */
+  defaultObjectGenerationMode?: 'json' | 'tool' | undefined;
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
@@ -59,7 +66,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   }
 
   get defaultObjectGenerationMode(): 'json' | 'tool' | undefined {
-    return this.settings.defaultObjectGenerationMode;
+    return this.config.defaultObjectGenerationMode;
   }
 
   get provider(): string {

@@ -29,6 +29,7 @@ export interface TogetherAIProvider
   chatModel(
     modelId: TogetherAIChatModelId,
     settings?: TogetherAIChatSettings,
+    options?: { defaultObjectGenerationMode: 'json' | 'tool' | undefined },
   ): LanguageModelV1;
 
   completionModel(
@@ -62,12 +63,10 @@ export function createTogetherAI(
     modelId: TogetherAIChatModelId,
     settings?: TogetherAIChatSettings,
   ) => {
-    // TODO(shaper): Perhaps the object generation mode will vary by model.
-    const defaultSettings: Partial<TogetherAIChatSettings> = {
-      defaultObjectGenerationMode: 'tool',
-    };
-    const mergedSettings = { ...defaultSettings, ...settings };
-    return openAICompatibleProvider.chatModel(modelId, mergedSettings);
+    // TODO(shaper): Likely need a registry of model to object generation mode.
+    return openAICompatibleProvider.chatModel(modelId, settings, {
+      defaultObjectGenerationMode: 'json',
+    });
   };
 
   const createCompletionModel = (

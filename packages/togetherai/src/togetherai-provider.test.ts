@@ -75,7 +75,8 @@ describe('TogetherAIProvider', () => {
       expect(model).toBe(mockLanguageModel);
       expect(mockOpenAICompatibleProvider.chatModel).toHaveBeenCalledWith(
         modelId,
-        { defaultObjectGenerationMode: 'json', ...settings },
+        settings,
+        { defaultObjectGenerationMode: 'json' },
       );
     });
   });

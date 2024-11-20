@@ -33,6 +33,7 @@ export interface OpenAICompatibleProvider<
   chatModel(
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
+    options?: { defaultObjectGenerationMode: 'json' | 'tool' | undefined },
   ): LanguageModelV1;
 
   completionModel(
@@ -113,14 +114,26 @@ export function createOpenAICompatible<
     environmentVariableName: options.apiKeyEnvVarName ?? '',
     description: options.apiKeyEnvVarDescription ?? '',
   });
-  if (!apiKey) {
-    throw new Error('API key is required');
-  }
-
   const getHeaders = () => ({
     Authorization: `Bearer ${apiKey}`,
     ...options.headers,
   });
+
+  interface CommonModelConfig {
+    provider: string;
+    url: ({ path }: { path: string }) => string;
+    headers: () => Record<string, string>;
+    fetch?: FetchFunction;
+  }
+
+  const getCommonModelConfig = (modelType: string): CommonModelConfig => {
+    return {
+      provider: `${providerName}.${modelType}`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    };
+  };
 
   const createLanguageModel = (
     modelId: CHAT_MODEL_IDS,
@@ -130,42 +143,37 @@ export function createOpenAICompatible<
   const createChatModel = (
     modelId: CHAT_MODEL_IDS,
     settings: OpenAICompatibleChatSettings = {},
+    options: { defaultObjectGenerationMode?: 'tool' | 'json' | undefined } = {},
   ) =>
     new OpenAICompatibleChatLanguageModel(modelId, settings, {
-      provider: `${providerName}.chat`,
-      url: ({ path }) => `${baseURL}${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
+      ...getCommonModelConfig('chat'),
+      defaultObjectGenerationMode: options.defaultObjectGenerationMode,
     });
 
   const createCompletionModel = (
     modelId: COMPLETION_MODEL_IDS,
     settings: OpenAICompatibleCompletionSettings = {},
   ) =>
-    new OpenAICompatibleCompletionLanguageModel(modelId, settings, {
-      provider: `${providerName}.completion`,
-      url: ({ path }) => `${baseURL}${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
+    new OpenAICompatibleCompletionLanguageModel(
+      modelId,
+      settings,
+      getCommonModelConfig('completion'),
+    );
 
   const createEmbeddingModel = (
     modelId: EMBEDDING_MODEL_IDS,
     settings: OpenAICompatibleEmbeddingSettings = {},
   ) =>
-    new OpenAICompatibleEmbeddingModel(modelId, settings, {
-      provider: `${providerName}.embedding`,
-      url: ({ path }) => `${baseURL}${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
+    new OpenAICompatibleEmbeddingModel(
+      modelId,
+      settings,
+      getCommonModelConfig('embedding'),
+    );
 
-  const provider = function (
+  const provider = (
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
-  ) {
-    return createLanguageModel(modelId, settings);
-  };
+  ) => createLanguageModel(modelId, settings);
 
   provider.languageModel = createLanguageModel;
   provider.chatModel = createChatModel;
