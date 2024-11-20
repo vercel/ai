@@ -64,7 +64,7 @@ export function createTogetherAI(
   ) => {
     // TODO(shaper): Perhaps the object generation mode will vary by model.
     const defaultSettings: Partial<TogetherAIChatSettings> = {
-      defaultObjectGenerationMode: 'json',
+      defaultObjectGenerationMode: 'tool',
     };
     const mergedSettings = { ...defaultSettings, ...settings };
     return openAICompatibleProvider.chatModel(modelId, mergedSettings);

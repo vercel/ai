@@ -145,10 +145,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
-        // TODO(shaper): Review vs. OpenAI impl here.
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-json mode',
-        });
+        return {
+          args: {
+            ...baseArgs,
+            // TODO(shaper): We removed structuredOutputs here.
+            response_format: { type: 'json_object' },
+          },
+          warnings,
+        };
       }
 
       case 'object-tool': {
