@@ -102,6 +102,16 @@ const bedrock = createAmazonBedrock({
 });
 ```
 
+<Note>
+  The top level credentials settings below fall back to environment variable
+  defaults. These may be set by your serverless environment without your
+  awareness, which can lead to merged/conflicting credential values and provider
+  errors around failed authentication. If you're experiencing issues try (1)
+  using the `bedrockOptions` object as it will take precedence over the other
+  settings and does not inherit environment variable values, or (2) explicitly
+  specifying all settings (even if `undefined`) to avoid any defaults.
+</Note>
+
 You can use the following optional settings to customize the Amazon Bedrock provider instance:
 
 - **region** _string_

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/xai",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,7 +8,6 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "internal/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
@@ -28,17 +27,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    },
-    "./internal": {
-      "types": "./internal/dist/index.d.ts",
-      "import": "./internal/dist/index.mjs",
-      "module": "./internal/dist/index.mjs",
-      "require": "./internal/dist/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/provider": "1.0.0",
-    "@ai-sdk/provider-utils": "2.0.0"
+    "@ai-sdk/provider-utils": "2.0.1"
   },
   "devDependencies": {
     "@types/node": "^18",
