@@ -98,8 +98,6 @@ export function createOpenAICompatible<
   COMPLETION_MODEL_IDS,
   EMBEDDING_MODEL_IDS
 > {
-  // TODO(shaper): force only 'compatible' -- look into whether we can remove some 'strict' logic/configs entirely
-
   if (!options.baseURL) {
     throw new Error('Base URL is required');
   }
@@ -146,7 +144,6 @@ export function createOpenAICompatible<
   ) =>
     new OpenAICompatibleCompletionLanguageModel(modelId, settings, {
       provider: `${providerName}.completion`,
-      compatibility: 'compatible',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,

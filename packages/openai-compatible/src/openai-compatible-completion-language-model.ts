@@ -28,7 +28,6 @@ import { getResponseMetadata } from './get-response-metadata';
 
 type OpenAICompatibleCompletionConfig = {
   provider: string;
-  compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
@@ -204,12 +203,6 @@ export class OpenAICompatibleCompletionLanguageModel
     const body = {
       ...args,
       stream: true,
-
-      // only include stream_options when in strict compatibility mode:
-      stream_options:
-        this.config.compatibility === 'strict'
-          ? { include_usage: true }
-          : undefined,
     };
 
     const { responseHeaders, value: response } = await postJsonToApi({
