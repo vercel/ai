@@ -17,7 +17,7 @@ async function main() {
 
     messages.push({ role: 'user', content: userInput });
 
-    const result = await streamText({
+    const result = streamText({
       model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
       tools: {
         weather: tool({

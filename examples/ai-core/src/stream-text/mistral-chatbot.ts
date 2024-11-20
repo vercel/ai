@@ -16,7 +16,7 @@ async function main() {
 
     messages.push({ role: 'user', content: userInput });
 
-    const result = await streamText({
+    const result = streamText({
       model: mistral('open-mistral-7b'),
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

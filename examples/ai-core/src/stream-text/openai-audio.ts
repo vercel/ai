@@ -4,7 +4,7 @@ import 'dotenv/config';
 import fs from 'node:fs';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o-audio-preview'),
     messages: [
       {

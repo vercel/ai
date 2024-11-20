@@ -50,7 +50,7 @@ You can use the following optional settings to customize the Anthropic provider 
 
 - **apiKey** _string_
 
-  API key that is being send using the `x-api-key` header.
+  API key that is being sent using the `x-api-key` header.
   It defaults to the `ANTHROPIC_API_KEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
@@ -94,8 +94,14 @@ const { text } = await generateText({
 });
 ```
 
-Anthropic language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+Anthropic language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
+<Note>
+  The Anthropic API returns streaming tool calls all at once after a delay. This
+  causes the `streamObject` function to generate the object fully after a delay
+  instead of streaming it incrementally.
+</Note>
 
 ### Cache Control
 

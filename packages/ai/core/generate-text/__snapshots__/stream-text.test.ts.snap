@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`multiple stream consumption > should support text stream, ai stream, full stream on single result object 1`] = `
+exports[`streamText > multiple stream consumption > should support text stream, ai stream, full stream on single result object 1`] = `
 {
   "dataStream": [
     "0:"Hello"
@@ -69,7 +69,7 @@ exports[`multiple stream consumption > should support text stream, ai stream, fu
 }
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
@@ -77,7 +77,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
   "request": {},
   "response": {
     "headers": {
-      "call": "1",
+      "call": "2",
     },
     "id": "id-1",
     "messages": [
@@ -122,45 +122,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
-  "responseMessages": [
-    {
-      "content": [
-        {
-          "text": "",
-          "type": "text",
-        },
-        {
-          "args": {
-            "value": "value",
-          },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-call",
-        },
-      ],
-      "role": "assistant",
-    },
-    {
-      "content": [
-        {
-          "result": "result1",
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-result",
-        },
-      ],
-      "role": "tool",
-    },
-    {
-      "content": [
-        {
-          "text": "Hello, world!",
-          "type": "text",
-        },
-      ],
-      "role": "assistant",
-    },
-  ],
   "steps": [
     {
       "experimental_providerMetadata": undefined,
@@ -313,7 +274,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish
 }
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFinish should send correct information 1`] = `
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFinish should send correct information 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
@@ -456,7 +417,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFi
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > should contain assistant response message and tool message from all steps 1`] = `
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should contain assistant response message and tool message from all steps 1`] = `
 [
   {
     "args": {
@@ -536,7 +497,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should contain assis
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > should record telemetry data for each step 1`] = `
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should record telemetry data for each step 1`] = `
 [
   {
     "attributes": {
@@ -662,7 +623,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > should record teleme
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > result.response.messages should contain response messages from all steps 1`] = `
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value promises > result.response.messages should contain response messages from all steps 1`] = `
 [
   {
     "content": [
@@ -704,7 +665,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > result.steps should contain all steps 1`] = `
+exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value promises > result.steps should contain all steps 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
@@ -847,14 +808,16 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > value promises > res
 ]
 `;
 
-exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onFinish should send correct information 1`] = `
+exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
   "request": {},
   "response": {
-    "headers": undefined,
+    "headers": {
+      "call": "3",
+    },
     "id": "id-3",
     "messages": [
       {
@@ -884,31 +847,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
-  "responseMessages": [
-    {
-      "content": [
-        {
-          "text": "part 1 
- ",
-          "type": "text",
-        },
-        {
-          "text": "no-whitespace",
-          "type": "text",
-        },
-        {
-          "text": "immediatefollow  ",
-          "type": "text",
-        },
-        {
-          "text": "final value keep all whitespace
- end",
-          "type": "text",
-        },
-      ],
-      "role": "assistant",
-    },
-  ],
   "steps": [
     {
       "experimental_providerMetadata": undefined,
@@ -1096,7 +1034,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
 }
 `;
 
-exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onStepFinish should send correct information 1`] = `
+exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onStepFinish should send correct information 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
@@ -1272,7 +1210,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > cal
 ]
 `;
 
-exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > should contain text deltas from all steps 1`] = `
+exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > should contain text deltas from all steps 1`] = `
 [
   {
     "textDelta": "part ",
@@ -1399,7 +1337,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
 ]
 `;
 
-exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > should generate correct data stream 1`] = `
+exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > should generate correct data stream 1`] = `
 [
   "0:"part "
 ",
@@ -1432,7 +1370,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
 ]
 `;
 
-exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > should record telemetry data for each step 1`] = `
+exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > should record telemetry data for each step 1`] = `
 [
   {
     "attributes": {
@@ -1625,7 +1563,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > sho
 ]
 `;
 
-exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > value promises > result.steps should contain all steps 1`] = `
+exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > value promises > result.steps should contain all steps 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
@@ -1801,7 +1739,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > val
 ]
 `;
 
-exports[`options.onFinish > options.onFinish should send correct information 1`] = `
+exports[`streamText > options.onFinish > options.onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": {
     "testProvider": {
@@ -1849,36 +1787,6 @@ exports[`options.onFinish > options.onFinish should send correct information 1`]
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
-  "responseMessages": [
-    {
-      "content": [
-        {
-          "text": "Hello, world!",
-          "type": "text",
-        },
-        {
-          "args": {
-            "value": "value",
-          },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-call",
-        },
-      ],
-      "role": "assistant",
-    },
-    {
-      "content": [
-        {
-          "result": "value-result",
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-result",
-        },
-      ],
-      "role": "tool",
-    },
-  ],
   "steps": [
     {
       "experimental_providerMetadata": {
@@ -1990,7 +1898,7 @@ exports[`options.onFinish > options.onFinish should send correct information 1`]
 }
 `;
 
-exports[`result.fullStream > should filter out empty text deltas 1`] = `
+exports[`streamText > result.fullStream > should filter out empty text deltas 1`] = `
 [
   {
     "textDelta": "Hello",
@@ -2040,7 +1948,7 @@ exports[`result.fullStream > should filter out empty text deltas 1`] = `
 ]
 `;
 
-exports[`result.fullStream > should not send tool call deltas when toolCallStreaming is disabled 1`] = `
+exports[`streamText > result.fullStream > should not send tool call deltas when toolCallStreaming is disabled 1`] = `
 [
   {
     "args": {
@@ -2086,7 +1994,7 @@ exports[`result.fullStream > should not send tool call deltas when toolCallStrea
 ]
 `;
 
-exports[`result.fullStream > should send delayed asynchronous tool results 1`] = `
+exports[`streamText > result.fullStream > should send delayed asynchronous tool results 1`] = `
 [
   {
     "args": {
@@ -2141,7 +2049,7 @@ exports[`result.fullStream > should send delayed asynchronous tool results 1`] =
 ]
 `;
 
-exports[`result.fullStream > should send text deltas 1`] = `
+exports[`streamText > result.fullStream > should send text deltas 1`] = `
 [
   {
     "textDelta": "Hello",
@@ -2191,7 +2099,7 @@ exports[`result.fullStream > should send text deltas 1`] = `
 ]
 `;
 
-exports[`result.fullStream > should send tool call deltas when toolCallStreaming is enabled 1`] = `
+exports[`streamText > result.fullStream > should send tool call deltas when toolCallStreaming is enabled 1`] = `
 [
   {
     "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
@@ -2284,7 +2192,7 @@ exports[`result.fullStream > should send tool call deltas when toolCallStreaming
 ]
 `;
 
-exports[`result.fullStream > should send tool calls 1`] = `
+exports[`streamText > result.fullStream > should send tool calls 1`] = `
 [
   {
     "args": {
@@ -2330,7 +2238,7 @@ exports[`result.fullStream > should send tool calls 1`] = `
 ]
 `;
 
-exports[`result.fullStream > should send tool results 1`] = `
+exports[`streamText > result.fullStream > should send tool results 1`] = `
 [
   {
     "args": {
@@ -2385,7 +2293,7 @@ exports[`result.fullStream > should send tool results 1`] = `
 ]
 `;
 
-exports[`result.fullStream > should use fallback response metadata when response metadata is not provided 1`] = `
+exports[`streamText > result.fullStream > should use fallback response metadata when response metadata is not provided 1`] = `
 [
   {
     "textDelta": "Hello",
@@ -2435,7 +2343,7 @@ exports[`result.fullStream > should use fallback response metadata when response
 ]
 `;
 
-exports[`result.pipeDataStreamToResponse > should create a Response with a data stream and custom headers 1`] = `
+exports[`streamText > result.pipeDataStreamToResponse > should create a Response with a data stream and custom headers 1`] = `
 [
   "0:"Hello"
 ",
@@ -2450,7 +2358,7 @@ exports[`result.pipeDataStreamToResponse > should create a Response with a data 
 ]
 `;
 
-exports[`result.pipeDataStreamToResponse > should mask error messages by default 1`] = `
+exports[`streamText > result.pipeDataStreamToResponse > should mask error messages by default 1`] = `
 [
   "3:""
 ",
@@ -2461,7 +2369,7 @@ exports[`result.pipeDataStreamToResponse > should mask error messages by default
 ]
 `;
 
-exports[`result.pipeDataStreamToResponse > should support custom error messages 1`] = `
+exports[`streamText > result.pipeDataStreamToResponse > should support custom error messages 1`] = `
 [
   "3:"custom error message: error"
 ",
@@ -2472,7 +2380,7 @@ exports[`result.pipeDataStreamToResponse > should support custom error messages 
 ]
 `;
 
-exports[`result.pipeDataStreamToResponse > should support merging with existing stream data 1`] = `
+exports[`streamText > result.pipeDataStreamToResponse > should support merging with existing stream data 1`] = `
 [
   "2:["stream-data-value"]
 ",
@@ -2489,7 +2397,7 @@ exports[`result.pipeDataStreamToResponse > should support merging with existing 
 ]
 `;
 
-exports[`result.pipeDataStreamToResponse > should suppress usage information when sendUsage is false 1`] = `
+exports[`streamText > result.pipeDataStreamToResponse > should suppress usage information when sendUsage is false 1`] = `
 [
   "0:"Hello, World!"
 ",
@@ -2500,7 +2408,7 @@ exports[`result.pipeDataStreamToResponse > should suppress usage information whe
 ]
 `;
 
-exports[`result.pipeDataStreamToResponse > should write data stream parts to a Node.js response-like object 1`] = `
+exports[`streamText > result.pipeDataStreamToResponse > should write data stream parts to a Node.js response-like object 1`] = `
 [
   "0:"Hello"
 ",
@@ -2515,7 +2423,7 @@ exports[`result.pipeDataStreamToResponse > should write data stream parts to a N
 ]
 `;
 
-exports[`result.response > should resolve with response information 1`] = `
+exports[`streamText > result.response > should resolve with response information 1`] = `
 {
   "headers": {
     "call": "2",
@@ -2537,7 +2445,7 @@ exports[`result.response > should resolve with response information 1`] = `
 }
 `;
 
-exports[`result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
+exports[`streamText > result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
 [
   {
     "content": [
@@ -2570,7 +2478,7 @@ exports[`result.responseMessages > should contain assistant response message and
 ]
 `;
 
-exports[`result.responseMessages > should contain assistant response message when there are no tool calls 1`] = `
+exports[`streamText > result.responseMessages > should contain assistant response message when there are no tool calls 1`] = `
 [
   {
     "content": [
@@ -2584,7 +2492,7 @@ exports[`result.responseMessages > should contain assistant response message whe
 ]
 `;
 
-exports[`result.toDataStream > should create a data stream 1`] = `
+exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 [
   "0:"Hello"
 ",
@@ -2599,7 +2507,7 @@ exports[`result.toDataStream > should create a data stream 1`] = `
 ]
 `;
 
-exports[`result.toDataStream > should mask error messages by default 1`] = `
+exports[`streamText > result.toDataStream > should mask error messages by default 1`] = `
 [
   "3:""
 ",
@@ -2610,7 +2518,7 @@ exports[`result.toDataStream > should mask error messages by default 1`] = `
 ]
 `;
 
-exports[`result.toDataStream > should send tool call and tool result stream parts 1`] = `
+exports[`streamText > result.toDataStream > should send tool call and tool result stream parts 1`] = `
 [
   "9:{"toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}
 ",
@@ -2623,7 +2531,7 @@ exports[`result.toDataStream > should send tool call and tool result stream part
 ]
 `;
 
-exports[`result.toDataStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
+exports[`streamText > result.toDataStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
 [
   "b:{"toolCallId":"call-1","toolName":"tool1"}
 ",
@@ -2642,7 +2550,7 @@ exports[`result.toDataStream > should send tool call, tool call stream start, to
 ]
 `;
 
-exports[`result.toDataStream > should support custom error messages 1`] = `
+exports[`streamText > result.toDataStream > should support custom error messages 1`] = `
 [
   "3:"custom error message: error"
 ",
@@ -2653,7 +2561,7 @@ exports[`result.toDataStream > should support custom error messages 1`] = `
 ]
 `;
 
-exports[`result.toDataStream > should support merging with existing stream data 1`] = `
+exports[`streamText > result.toDataStream > should support merging with existing stream data 1`] = `
 [
   "2:["stream-data-value"]
 ",
@@ -2670,7 +2578,7 @@ exports[`result.toDataStream > should support merging with existing stream data 
 ]
 `;
 
-exports[`result.toDataStream > should suppress usage information when sendUsage is false 1`] = `
+exports[`streamText > result.toDataStream > should suppress usage information when sendUsage is false 1`] = `
 [
   "0:"Hello, World!"
 ",
@@ -2681,7 +2589,7 @@ exports[`result.toDataStream > should suppress usage information when sendUsage 
 ]
 `;
 
-exports[`result.toDataStreamResponse > should create a Response with a data stream 1`] = `
+exports[`streamText > result.toDataStreamResponse > should create a Response with a data stream 1`] = `
 [
   "0:"Hello"
 ",
@@ -2696,7 +2604,7 @@ exports[`result.toDataStreamResponse > should create a Response with a data stre
 ]
 `;
 
-exports[`result.toDataStreamResponse > should create a Response with a data stream and custom headers 1`] = `
+exports[`streamText > result.toDataStreamResponse > should create a Response with a data stream and custom headers 1`] = `
 [
   "0:"Hello"
 ",
@@ -2711,7 +2619,7 @@ exports[`result.toDataStreamResponse > should create a Response with a data stre
 ]
 `;
 
-exports[`result.toDataStreamResponse > should mask error messages by default 1`] = `
+exports[`streamText > result.toDataStreamResponse > should mask error messages by default 1`] = `
 [
   "3:""
 ",
@@ -2722,7 +2630,7 @@ exports[`result.toDataStreamResponse > should mask error messages by default 1`]
 ]
 `;
 
-exports[`result.toDataStreamResponse > should support custom error messages 1`] = `
+exports[`streamText > result.toDataStreamResponse > should support custom error messages 1`] = `
 [
   "3:"custom error message: error"
 ",
@@ -2733,7 +2641,7 @@ exports[`result.toDataStreamResponse > should support custom error messages 1`] 
 ]
 `;
 
-exports[`result.toDataStreamResponse > should support merging with existing stream data 1`] = `
+exports[`streamText > result.toDataStreamResponse > should support merging with existing stream data 1`] = `
 [
   "2:["stream-data-value"]
 ",
@@ -2750,7 +2658,7 @@ exports[`result.toDataStreamResponse > should support merging with existing stre
 ]
 `;
 
-exports[`result.toDataStreamResponse > should suppress usage information when sendUsage is false 1`] = `
+exports[`streamText > result.toDataStreamResponse > should suppress usage information when sendUsage is false 1`] = `
 [
   "0:"Hello, World!"
 ",
@@ -2761,9 +2669,9 @@ exports[`result.toDataStreamResponse > should suppress usage information when se
 ]
 `;
 
-exports[`telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+exports[`streamText > telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
 
-exports[`telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
+exports[`streamText > telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {
     "attributes": {
@@ -2831,7 +2739,7 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
 ]
 `;
 
-exports[`telemetry > should record successful tool call 1`] = `
+exports[`streamText > telemetry > should record successful tool call 1`] = `
 [
   {
     "attributes": {
@@ -2912,7 +2820,7 @@ exports[`telemetry > should record successful tool call 1`] = `
 ]
 `;
 
-exports[`telemetry > should record telemetry data when enabled 1`] = `
+exports[`streamText > telemetry > should record telemetry data when enabled 1`] = `
 [
   {
     "attributes": {
@@ -3011,7 +2919,7 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
 ]
 `;
 
-exports[`tools with custom schema > should send tool calls 1`] = `
+exports[`streamText > tools with custom schema > should send tool calls 1`] = `
 [
   {
     "args": {

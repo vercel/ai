@@ -152,7 +152,9 @@ const processStreamedResponse = async (
     onResponse,
     onUpdate(merged, data) {
       mutate([...chatRequest.messages, ...merged]);
-      setStreamData([...existingStreamData, ...(data ?? [])]);
+      if (data?.length) {
+        setStreamData([...existingStreamData, ...data]);
+      }
     },
     onToolCall,
     onFinish,
@@ -259,7 +261,7 @@ export function useChat(
         useChatOptions().onToolCall?.(),
         useChatOptions().sendExtraMessageFields?.(),
         useChatOptions().fetch?.(),
-        useChatOptions().keepLastMessageOnError?.() ?? false,
+        useChatOptions().keepLastMessageOnError?.() ?? true,
       );
 
       abortController = null;

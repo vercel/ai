@@ -107,7 +107,7 @@ export async function continueConversation(history: Message[]) {
   const stream = createStreamableValue();
 
   (async () => {
-    const { textStream } = await streamText({
+    const { textStream } = streamText({
       model: openai('gpt-3.5-turbo'),
       system:
         "You are a dude that doesn't drop character until the DVD commentary.",

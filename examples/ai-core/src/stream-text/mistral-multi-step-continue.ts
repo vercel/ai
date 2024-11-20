@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: mistral('open-mistral-7b'),
     maxTokens: 512, // artificial limit for demo purposes
     maxSteps: 5,

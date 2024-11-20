@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider",
-  "version": "1.0.0-canary.0",
+  "version": "1.0.0",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -12,8 +12,8 @@
   ],
   "scripts": {
     "build": "tsup",
+    "build:watch": "tsup --watch",
     "clean": "rm -rf dist",
-    "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\""

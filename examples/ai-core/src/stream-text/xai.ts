@@ -1,19 +1,14 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 import 'dotenv/config';
 
-const xai = createOpenAI({
-  name: 'xai',
-  baseURL: 'https://api.x.ai/v1',
-  apiKey: process.env.XAI_API_KEY ?? '',
-});
-
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: xai('grok-beta'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
+  console.log(result);
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }

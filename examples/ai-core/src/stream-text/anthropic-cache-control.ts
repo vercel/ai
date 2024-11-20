@@ -6,7 +6,7 @@ import fs from 'node:fs';
 const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: anthropic('claude-3-5-sonnet-20240620', {
       cacheControl: true,
     }),

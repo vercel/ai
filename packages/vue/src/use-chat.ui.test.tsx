@@ -1,5 +1,5 @@
 import { withTestServer } from '@ai-sdk/provider-utils/test';
-import { formatStreamPart } from '@ai-sdk/ui-utils';
+import { formatDataStreamPart } from '@ai-sdk/ui-utils';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
@@ -152,11 +152,11 @@ describe('data protocol stream', () => {
         url: '/api/chat',
         type: 'stream-values',
         content: [
-          formatStreamPart('text', 'Hello'),
-          formatStreamPart('text', ','),
-          formatStreamPart('text', ' world'),
-          formatStreamPart('text', '.'),
-          formatStreamPart('finish_message', {
+          formatDataStreamPart('text', 'Hello'),
+          formatDataStreamPart('text', ','),
+          formatDataStreamPart('text', ' world'),
+          formatDataStreamPart('text', '.'),
+          formatDataStreamPart('finish_message', {
             finishReason: 'stop',
             usage: { completionTokens: 1, promptTokens: 3 },
           }),
@@ -337,7 +337,7 @@ describe('form actions', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['Hello', ',', ' world', '.'].map(token =>
-        formatStreamPart('text', token),
+        formatDataStreamPart('text', token),
       ),
     });
 
@@ -356,7 +356,7 @@ describe('form actions', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
-        formatStreamPart('text', token),
+        formatDataStreamPart('text', token),
       ),
     });
 
@@ -381,7 +381,7 @@ describe('form actions (with options)', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['Hello', ',', ' world', '.'].map(token =>
-        formatStreamPart('text', token),
+        formatDataStreamPart('text', token),
       ),
     });
 
@@ -400,7 +400,7 @@ describe('form actions (with options)', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
-        formatStreamPart('text', token),
+        formatDataStreamPart('text', token),
       ),
     });
 
@@ -415,7 +415,7 @@ describe('form actions (with options)', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['The', ' sky', ' is', ' blue.'].map(token =>
-        formatStreamPart('text', token),
+        formatDataStreamPart('text', token),
       ),
     });
 
@@ -505,7 +505,7 @@ describe('onToolCall', () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: [
-        formatStreamPart('tool_call', {
+        formatDataStreamPart('tool_call', {
           toolCallId: 'tool-call-0',
           toolName: 'client-tool',
           args: { testArg: 'test-value' },
@@ -543,7 +543,7 @@ describe('tool invocations', () => {
         await userEvent.keyboard('{Enter}');
 
         streamController.enqueue(
-          formatStreamPart('tool_call_streaming_start', {
+          formatDataStreamPart('tool_call_streaming_start', {
             toolCallId: 'tool-call-0',
             toolName: 'test-tool',
           }),
@@ -558,7 +558,7 @@ describe('tool invocations', () => {
         });
 
         streamController.enqueue(
-          formatStreamPart('tool_call_delta', {
+          formatDataStreamPart('tool_call_delta', {
             toolCallId: 'tool-call-0',
             argsTextDelta: '{"testArg":"t',
           }),
@@ -571,7 +571,7 @@ describe('tool invocations', () => {
         });
 
         streamController.enqueue(
-          formatStreamPart('tool_call_delta', {
+          formatDataStreamPart('tool_call_delta', {
             toolCallId: 'tool-call-0',
             argsTextDelta: 'est-value"}}',
           }),
@@ -584,7 +584,7 @@ describe('tool invocations', () => {
         });
 
         streamController.enqueue(
-          formatStreamPart('tool_call', {
+          formatDataStreamPart('tool_call', {
             toolCallId: 'tool-call-0',
             toolName: 'test-tool',
             args: { testArg: 'test-value' },
@@ -598,7 +598,7 @@ describe('tool invocations', () => {
         });
 
         streamController.enqueue(
-          formatStreamPart('tool_result', {
+          formatDataStreamPart('tool_result', {
             toolCallId: 'tool-call-0',
             result: 'test-result',
           }),
@@ -624,7 +624,7 @@ describe('tool invocations', () => {
         await userEvent.keyboard('{Enter}');
 
         streamController.enqueue(
-          formatStreamPart('tool_call', {
+          formatDataStreamPart('tool_call', {
             toolCallId: 'tool-call-0',
             toolName: 'test-tool',
             args: { testArg: 'test-value' },
@@ -638,7 +638,7 @@ describe('tool invocations', () => {
         });
 
         streamController.enqueue(
-          formatStreamPart('tool_result', {
+          formatDataStreamPart('tool_result', {
             toolCallId: 'tool-call-0',
             result: 'test-result',
           }),

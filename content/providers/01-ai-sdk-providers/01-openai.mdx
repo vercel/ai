@@ -52,7 +52,7 @@ You can use the following optional settings to customize the OpenAI provider ins
 
 - **apiKey** _string_
 
-  API key that is being send using the `Authorization` header.
+  API key that is being sent using the `Authorization` header.
   It defaults to the `OPENAI_API_KEY` environment variable.
 
 - **name** _string_
@@ -257,7 +257,7 @@ Predicted outputs help you reduce latency by allowing you to specify a base text
 You can enable predicted outputs by adding the `prediction` option to the `experimental_providerMetadata.openai` object:
 
 ```ts highlight="15-18"
-const result = await streamText({
+const result = streamText({
   model: openai('gpt-4o'),
   messages: [
     {
@@ -345,10 +345,6 @@ OpenAI has introduced the `o1` series of [reasoning models](https://platform.ope
 Currently, `o1-mini` and `o1-preview` are available.
 
 Reasoning models currently only generate text, have several limitations, and are only supported using `generateText` and `streamText`.
-
-<Note>
-  Streaming is simulated and all stream chunks will returned at the same time.
-</Note>
 
 Reasoning models support two additional options:
 

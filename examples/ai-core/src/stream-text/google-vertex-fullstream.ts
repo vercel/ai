@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: vertex('gemini-1.5-pro'),
     tools: {
       weather: weatherTool,

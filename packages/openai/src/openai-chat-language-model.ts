@@ -351,50 +351,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    // reasoning models don't support streaming, we simulate it:
-    if (isReasoningModel(this.modelId)) {
-      const result = await this.doGenerate(options);
-
-      const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
-        start(controller) {
-          controller.enqueue({ type: 'response-metadata', ...result.response });
-
-          if (result.text) {
-            controller.enqueue({
-              type: 'text-delta',
-              textDelta: result.text,
-            });
-          }
-
-          if (result.toolCalls) {
-            for (const toolCall of result.toolCalls) {
-              controller.enqueue({
-                type: 'tool-call',
-                ...toolCall,
-              });
-            }
-          }
-
-          controller.enqueue({
-            type: 'finish',
-            finishReason: result.finishReason,
-            usage: result.usage,
-            logprobs: result.logprobs,
-            providerMetadata: result.providerMetadata,
-          });
-
-          controller.close();
-        },
-      });
-
-      return {
-        stream: simulatedStream,
-        rawCall: result.rawCall,
-        rawResponse: result.rawResponse,
-        warnings: result.warnings,
-      };
-    }
-
     const { args, warnings } = this.getArgs(options);
 
     const body = {
@@ -485,13 +441,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 promptTokens: value.usage.prompt_tokens ?? undefined,
                 completionTokens: value.usage.completion_tokens ?? undefined,
               };
-              if (value.usage.prompt_tokens_details?.cached_tokens != null) {
-                providerMetadata = {
-                  openai: {
-                    cachedPromptTokens:
-                      value.usage.prompt_tokens_details?.cached_tokens,
-                  },
-                };
+
+              const {
+                completion_tokens_details: completionTokenDetails,
+                prompt_tokens_details: promptTokenDetails,
+              } = value.usage;
+
+              if (
+                completionTokenDetails?.reasoning_tokens != null ||
+                promptTokenDetails?.cached_tokens != null
+              ) {
+                providerMetadata = { openai: {} };
+                if (completionTokenDetails?.reasoning_tokens != null) {
+                  providerMetadata.openai.reasoningTokens =
+                    completionTokenDetails?.reasoning_tokens;
+                }
+                if (promptTokenDetails?.cached_tokens != null) {
+                  providerMetadata.openai.cachedPromptTokens =
+                    promptTokenDetails?.cached_tokens;
+                }
               }
             }
 

@@ -14,7 +14,7 @@ rather than have users wait for it to finish.
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const result = await streamText({
+const result = streamText({
   model: openai('gpt-3.5-turbo'),
   maxTokens: 1024,
   system: 'You are a helpful chatbot.',

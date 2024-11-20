@@ -3,7 +3,7 @@ import { jsonSchema, streamText, tool } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-3.5-turbo'),
     tools: {
       weather: tool({

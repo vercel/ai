@@ -13,7 +13,9 @@ To summarize, the `useChat` hook provides the following features:
 - **Managed States**: The hook manages the states for input, messages, loading, error and more for you.
 - **Seamless Integration**: Easily integrate your chat AI into any design or layout with minimal effort.
 
-In this guide, you will learn how to use the `useChat` hook to create a chatbot application with real-time message streaming. Let's start with the following example first.
+In this guide, you will learn how to use the `useChat` hook to create a chatbot application with real-time message streaming.
+Check out our [chatbot with tools guide](/docs/ai-sdk-ui/chatbot-with-tool-calling) to learn how to use tools in your chatbot.
+Let's start with the following example first.
 
 ## Example
 
@@ -23,9 +25,7 @@ In this guide, you will learn how to use the `useChat` hook to create a chatbot 
 import { useChat } from 'ai/react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    keepLastMessageOnError: true,
-  });
+  const { messages, input, handleInputChange, handleSubmit } = useChat({});
 
   return (
     <>
@@ -55,7 +55,7 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4-turbo'),
     system: 'You are a helpful assistant.',
     messages,
@@ -70,13 +70,6 @@ The messages are then streamed back in real-time and displayed in the chat UI.
 
 This enables a seamless chat experience where the user can see the AI response as soon as it is available,
 without having to wait for the entire response to be received.
-
-<Note>
-  `useChat` has a `keepLastMessageOnError` option that defaults to `false`. This
-  option can be enabled to keep the last message on error. We will make this the
-  default behavior in the next major release. Please enable it and update your
-  error handling/resubmit behavior.
-</Note>
 
 ## Customized UI
 
@@ -98,9 +91,7 @@ import { useChat } from 'ai/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit, isLoading, stop } =
-    useChat({
-      keepLastMessageOnError: true,
-    });
+    useChat({});
 
   return (
     <>
@@ -152,9 +143,7 @@ import { useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, error, reload } =
-    useChat({
-      keepLastMessageOnError: true,
-    });
+    useChat({});
 
   return (
     <div>
@@ -389,7 +378,7 @@ import { streamText } from 'ai';
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     messages,
   });
@@ -425,7 +414,7 @@ import { streamText } from 'ai';
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     messages,
   });

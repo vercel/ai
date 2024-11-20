@@ -83,7 +83,7 @@ const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-const { textStream } = await streamText({
+const { textStream } = streamText({
   model: groq('llama-3.1-70b-versatile'),
   prompt: 'What is love?',
 });
@@ -227,7 +227,7 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const result = await streamText({
+  const result = streamText({
     model: groq('llama-3.1-70b-versatile'),
     system: 'You are a helpful assistant.',
     messages,

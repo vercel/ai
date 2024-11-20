@@ -1,0 +1,43 @@
+---
+title: Streaming Not Working When Deploying on Vercel (Next.js Pages Router)
+description: Troubleshooting streaming issues when deploying to Vercel with the Next.js Pages Router.
+---
+
+# Streaming Not Working When Deploying on Vercel (Next.js Pages Router)
+
+## Issue
+
+I'm using the Next.js Pages Router. Streaming with the AI SDK works in my local development environment.
+However, when deploying to Vercel, streaming does not work in the deployed app.
+Instead of streaming, only the full response is returned after a while.
+
+## Cause
+
+The Next.js Pages Router currently does not support streaming with its own routes.
+
+## Solution
+
+With Next.js 13+, you can mix and match App Router and Pages Router routes in the same project.
+You need to use App Router routes for streaming with the AI SDK.
+
+Example App Router route:
+
+```tsx filename="app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { StreamingTextResponse, streamText } from 'ai';
+
+// Force the route to be dynamic and allow streaming responses up to 30 seconds
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4-turbo'),
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```

@@ -3,7 +3,7 @@ import { jsonSchema, streamObject } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await streamObject({
+  const result = streamObject({
     model: openai('gpt-4-turbo'),
     schema: jsonSchema<{
       recipe: {

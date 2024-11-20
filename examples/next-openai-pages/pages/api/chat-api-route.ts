@@ -8,12 +8,12 @@ export default async function handler(
 ) {
   const { messages } = await request.body;
 
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4-turbo-preview'),
     messages,
   });
 
-  // write the AI stream to the response
+  // write the data stream to the response
   // Note: this is sent as a single response, not a stream
   result.pipeDataStreamToResponse(response);
 }

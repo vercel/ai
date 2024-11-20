@@ -22,7 +22,7 @@ export const POST = (async ({ request }) => {
   data.append({ test: 'value' });
 
   // Ask OpenAI for a streaming chat completion given the prompt
-  const result = await streamText({
+  const result = streamText({
     model: openai('gpt-4-turbo-preview'),
     prompt,
     onFinish() {

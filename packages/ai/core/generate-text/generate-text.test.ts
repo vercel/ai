@@ -3,6 +3,7 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
+import { tool } from '../tool/tool';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
@@ -272,8 +273,11 @@ describe('result.response.messages', () => {
       tools: {
         tool1: {
           parameters: z.object({ value: z.string() }),
-          execute: async args => {
-            assert.deepStrictEqual(args, { value: 'value' });
+          execute: async (args, options) => {
+            expect(args).toStrictEqual({ value: 'value' });
+            expect(options.messages).toStrictEqual([
+              { role: 'user', content: 'test-input' },
+            ]);
             return 'result1';
           },
         },
@@ -474,13 +478,16 @@ describe('options.maxSteps', () => {
           },
         }),
         tools: {
-          tool1: {
+          tool1: tool({
             parameters: z.object({ value: z.string() }),
-            execute: async (args: any) => {
-              assert.deepStrictEqual(args, { value: 'value' });
+            execute: async (args, options) => {
+              expect(args).toStrictEqual({ value: 'value' });
+              expect(options.messages).toStrictEqual([
+                { role: 'user', content: 'test-input' },
+              ]);
               return 'result1';
             },
-          },
+          }),
         },
         prompt: 'test-input',
         maxSteps: 3,
@@ -845,7 +852,7 @@ describe('options.abortSignal', () => {
 
     expect(toolExecuteMock).toHaveBeenCalledWith(
       { value: 'value' },
-      { abortSignal: abortController.signal },
+      { abortSignal: abortController.signal, messages: expect.any(Array) },
     );
   });
 });

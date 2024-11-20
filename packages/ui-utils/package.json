@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/ui-utils",
-  "version": "1.0.0-canary.6",
+  "version": "1.0.0",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -13,8 +13,8 @@
   ],
   "scripts": {
     "build": "tsup",
+    "build:watch": "tsup --watch",
     "clean": "rm -rf dist && rm -rf test/dist",
-    "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -37,9 +37,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.0.0-canary.0",
-    "@ai-sdk/provider-utils": "2.0.0-canary.3",
-    "zod-to-json-schema": "^3.23.3"
+    "@ai-sdk/provider": "1.0.0",
+    "@ai-sdk/provider-utils": "2.0.0",
+    "zod-to-json-schema": "^3.23.5"
   },
   "devDependencies": {
     "@types/json-schema": "7.0.15",

@@ -1,8 +1,8 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { StreamString } from '../stream-parts';
+import { DataStreamString } from '../data-stream-parts';
 
 export function createDataProtocolStream(
-  dataPartTexts: StreamString[],
+  dataPartTexts: DataStreamString[],
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
   return convertArrayToReadableStream(

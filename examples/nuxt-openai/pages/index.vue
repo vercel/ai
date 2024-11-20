@@ -4,7 +4,6 @@ import { computed } from 'vue';
 
 const { error, input, isLoading, handleSubmit, messages, reload, stop } =
   useChat({
-    keepLastMessageOnError: true,
     onFinish(message, { usage, finishReason }) {
       console.log('Usage', usage);
       console.log('FinishReason', finishReason);

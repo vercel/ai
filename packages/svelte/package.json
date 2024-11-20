@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "1.0.0-canary.6",
+  "version": "1.0.0",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,8 +8,8 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsup",
+    "build:watch": "tsup --watch",
     "clean": "rm -rf dist",
-    "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\""
@@ -27,14 +27,14 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@ai-sdk/provider-utils": "2.0.0-canary.3",
-    "@ai-sdk/ui-utils": "1.0.0-canary.6",
+    "@ai-sdk/provider-utils": "2.0.0",
+    "@ai-sdk/ui-utils": "1.0.0",
     "sswr": "^2.1.0"
   },
   "devDependencies": {
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
-    "eslint": "^7.32.0",
+    "eslint": "8.57.1",
     "eslint-config-vercel-ai": "workspace:*",
     "tsup": "^7.2.0",
     "typescript": "5.6.3"

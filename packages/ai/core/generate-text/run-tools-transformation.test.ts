@@ -26,6 +26,7 @@ it('should forward text deltas correctly', async () => {
     toolCallStreaming: false,
     tracer: new MockTracer(),
     telemetry: undefined,
+    messages: [],
     abortSignal: undefined,
   });
 
@@ -72,6 +73,7 @@ it('should handle immediate tool execution', async () => {
     toolCallStreaming: false,
     tracer: new MockTracer(),
     telemetry: undefined,
+    messages: [],
     abortSignal: undefined,
   });
 
@@ -133,6 +135,7 @@ it('should hold off on sending finish until the delayed tool result is received'
     toolCallStreaming: false,
     tracer: new MockTracer(),
     telemetry: undefined,
+    messages: [],
     abortSignal: undefined,
   });
 

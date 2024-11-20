@@ -1,6 +1,6 @@
-import { readDataStream } from './read-data-stream';
+import { processTextStream } from './process-text-stream';
+import { processDataStream } from './process-data-stream';
 import { JSONValue } from './types';
-import { createChunkDecoder } from './index';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -48,7 +48,7 @@ export async function callCompletionApi({
     // Empty the completion immediately.
     setCompletion('');
 
-    const res = await fetch(api, {
+    const response = await fetch(api, {
       method: 'POST',
       body: JSON.stringify({
         prompt,
@@ -66,68 +66,51 @@ export async function callCompletionApi({
 
     if (onResponse) {
       try {
-        await onResponse(res);
+        await onResponse(response);
       } catch (err) {
         throw err;
       }
     }
 
-    if (!res.ok) {
+    if (!response.ok) {
       throw new Error(
-        (await res.text()) || 'Failed to fetch the chat response.',
+        (await response.text()) ?? 'Failed to fetch the chat response.',
       );
     }
 
-    if (!res.body) {
+    if (!response.body) {
       throw new Error('The response body is empty.');
     }
 
     let result = '';
-    const reader = res.body.getReader();
 
     switch (streamProtocol) {
       case 'text': {
-        const decoder = createChunkDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-
-          // Update the completion state with the new message tokens.
-          result += decoder(value);
-          setCompletion(result);
-
-          // The request has been aborted, stop reading the stream.
-          if (abortController === null) {
-            reader.cancel();
-            break;
-          }
-        }
-
+        await processTextStream({
+          stream: response.body,
+          onTextPart: chunk => {
+            result += chunk;
+            setCompletion(result);
+          },
+        });
         break;
       }
-
       case 'data': {
-        for await (const { type, value } of readDataStream(reader, {
-          isAborted: () => abortController === null,
-        })) {
-          switch (type) {
-            case 'text': {
-              result += value;
-              setCompletion(result);
-              break;
-            }
-            case 'data': {
-              onData?.(value);
-              break;
-            }
-          }
-        }
+        await processDataStream({
+          stream: response.body,
+          onTextPart(value) {
+            result += value;
+            setCompletion(result);
+          },
+          onDataPart(value) {
+            onData?.(value);
+          },
+          onErrorPart(value) {
+            throw new Error(value);
+          },
+        });
         break;
       }
-
       default: {
         const exhaustiveCheck: never = streamProtocol;
         throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);

@@ -143,7 +143,9 @@ const getStreamedResponse = async (
     onResponse,
     onUpdate(merged, data) {
       mutate([...chatRequest.messages, ...merged]);
-      mutateStreamData([...(existingData || []), ...(data || [])]);
+      if (data?.length) {
+        mutateStreamData([...(existingData ?? []), ...data]);
+      }
     },
     onFinish,
     generateId,
@@ -202,7 +204,7 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
-  keepLastMessageOnError = false,
+  keepLastMessageOnError = true,
   maxSteps = 1,
 }: UseChatOptions = {}): UseChatHelpers & {
   addToolResult: ({

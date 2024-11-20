@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/swarm",
-  "version": "0.0.9-canary.8",
+  "version": "0.0.10",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -12,8 +12,8 @@
   ],
   "scripts": {
     "build": "tsup",
+    "build:watch": "tsup --watch",
     "clean": "rm -rf dist",
-    "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\""
@@ -27,7 +27,7 @@
     }
   },
   "dependencies": {
-    "ai": "4.0.0-canary.8",
+    "ai": "4.0.1",
     "zod": "3.23.8"
   },
   "devDependencies": {

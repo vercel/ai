@@ -46,7 +46,7 @@ type LangChainStreamEvent = {
 };
 
 /**
-Converts LangChain output streams to AIStream.
+Converts LangChain output streams to an AI SDK Data Stream.
 
 The following streams are supported:
 - `LangChainAIMessageChunk` streams (LangChain `model.stream` output)

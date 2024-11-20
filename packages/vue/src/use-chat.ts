@@ -98,7 +98,7 @@ export function useChat(
     generateId = generateIdFunc,
     onToolCall,
     fetch,
-    keepLastMessageOnError = false,
+    keepLastMessageOnError = true,
     maxSteps,
   }: UseChatOptions & {
     /**
@@ -200,7 +200,9 @@ export function useChat(
         onResponse,
         onUpdate(merged, data) {
           mutate([...chatRequest.messages, ...merged]);
-          streamData.value = [...existingData, ...(data ?? [])];
+          if (data?.length) {
+            streamData.value = [...existingData, ...data];
+          }
         },
         onFinish,
         restoreMessagesOnFailure() {

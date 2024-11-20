@@ -16,7 +16,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 
-const { partialObjectStream } = await streamObject({
+const { partialObjectStream } = streamObject({
   model: openai('gpt-4-turbo'),
   schema: z.object({
     recipe: z.object({
@@ -44,7 +44,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 
-const { elementStream } = await streamObject({
+const { elementStream } = streamObject({
   model: openai('gpt-4-turbo'),
   output: 'array',
   schema: z.object({
@@ -68,7 +68,7 @@ for await (const hero of elementStream) {
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 
-const { partialObjectStream } = await streamObject({
+const { partialObjectStream } = streamObject({
   model: openai('gpt-4-turbo'),
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
