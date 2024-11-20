@@ -42,10 +42,10 @@ const perplexity = createOpenAI({
 ## Language Models
 
 You can create [Perplexity models](https://docs.perplexity.ai/docs/model-cards) using a provider instance.
-The first argument is the model id, e.g. `llama-3-sonar-large-32k-online`.
+The first argument is the model id, e.g. `llama-3.1-sonar-large-32k-online`.
 
 ```ts
-const model = perplexity('llama-3-sonar-large-32k-online');
+const model = perplexity('llama-3.1-sonar-large-32k-online');
 ```
 
 ### Example
@@ -63,7 +63,7 @@ const perplexity = createOpenAI({
 });
 
 const { text } = await generateText({
-  model: perplexity('llama-3-sonar-large-32k-online'),
+  model: perplexity('llama-3.1-sonar-large-32k-online'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
