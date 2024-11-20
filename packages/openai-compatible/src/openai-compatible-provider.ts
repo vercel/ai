@@ -16,29 +16,32 @@ import { OpenAICompatibleEmbeddingSettings } from './openai-compatible-embedding
 import { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
 
 export interface OpenAICompatibleProvider<
-  L extends string = string,
-  C extends string = string,
-  E extends string = string,
+  CHAT_MODEL_IDS extends string = string,
+  COMPLETION_MODEL_IDS extends string = string,
+  EMBEDDING_MODEL_IDS extends string = string,
 > extends ProviderV1 {
-  (modelId: L, settings?: OpenAICompatibleChatSettings): LanguageModelV1;
+  (
+    modelId: CHAT_MODEL_IDS,
+    settings?: OpenAICompatibleChatSettings,
+  ): LanguageModelV1;
 
   languageModel(
-    modelId: L,
+    modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
   ): LanguageModelV1;
 
   chatModel(
-    modelId: L,
+    modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
   ): LanguageModelV1;
 
   completionModel(
-    modelId: C,
+    modelId: COMPLETION_MODEL_IDS,
     settings?: OpenAICompatibleCompletionSettings,
   ): LanguageModelV1;
 
   textEmbeddingModel(
-    modelId: E,
+    modelId: EMBEDDING_MODEL_IDS,
     settings?: OpenAICompatibleEmbeddingSettings,
   ): EmbeddingModelV1<string>;
 }
@@ -85,36 +88,49 @@ Provider name. Overrides the `openai` default name for 3rd party providers.
 Create an OpenAICompatible provider instance.
  */
 export function createOpenAICompatible<
-  L extends string,
-  C extends string,
-  E extends string,
+  CHAT_MODEL_IDS extends string,
+  COMPLETION_MODEL_IDS extends string,
+  EMBEDDING_MODEL_IDS extends string,
 >(
   options: OpenAICompatibleProviderSettings,
-): OpenAICompatibleProvider<L, C, E> {
-  // TODO(shaper):
-  // - consider throwing if baseUrl, name, sufficient api key info not available
-  // - force only 'compatible' -- look into whether we can remove some 'strict' logic/configs entirely
+): OpenAICompatibleProvider<
+  CHAT_MODEL_IDS,
+  COMPLETION_MODEL_IDS,
+  EMBEDDING_MODEL_IDS
+> {
+  // TODO(shaper): force only 'compatible' -- look into whether we can remove some 'strict' logic/configs entirely
+
+  if (!options.baseURL) {
+    throw new Error('Base URL is required');
+  }
   const baseURL = withoutTrailingSlash(options.baseURL);
-  const providerName = options.name ?? 'openaiCompatible';
+
+  if (!options.name) {
+    throw new Error('Provider name is required');
+  }
+  const providerName = options.name;
+
+  const apiKey = loadApiKey({
+    apiKey: options.apiKey,
+    environmentVariableName: options.apiKeyEnvVarName ?? '',
+    description: options.apiKeyEnvVarDescription ?? '',
+  });
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
 
   const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: options.apiKeyEnvVarName ?? '',
-      description: options.apiKeyEnvVarDescription ?? '',
-    })}`,
+    Authorization: `Bearer ${apiKey}`,
     ...options.headers,
   });
 
   const createLanguageModel = (
-    modelId: L,
+    modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
   ) => createChatModel(modelId, settings);
 
-  // TODO(shaper): Change provider strings below to allow concrete impls to specify.
-  // See openai-provider.ts:141 and subsequent configs.
   const createChatModel = (
-    modelId: L,
+    modelId: CHAT_MODEL_IDS,
     settings: OpenAICompatibleChatSettings = {},
   ) =>
     new OpenAICompatibleChatLanguageModel(modelId, settings, {
@@ -125,7 +141,7 @@ export function createOpenAICompatible<
     });
 
   const createCompletionModel = (
-    modelId: C,
+    modelId: COMPLETION_MODEL_IDS,
     settings: OpenAICompatibleCompletionSettings = {},
   ) =>
     new OpenAICompatibleCompletionLanguageModel(modelId, settings, {
@@ -137,7 +153,7 @@ export function createOpenAICompatible<
     });
 
   const createEmbeddingModel = (
-    modelId: E,
+    modelId: EMBEDDING_MODEL_IDS,
     settings: OpenAICompatibleEmbeddingSettings = {},
   ) =>
     new OpenAICompatibleEmbeddingModel(modelId, settings, {
@@ -148,7 +164,7 @@ export function createOpenAICompatible<
     });
 
   const provider = function (
-    modelId: L,
+    modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
   ) {
     return createLanguageModel(modelId, settings);
@@ -159,5 +175,9 @@ export function createOpenAICompatible<
   provider.completionModel = createCompletionModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
-  return provider as OpenAICompatibleProvider<L, C, E>;
+  return provider as OpenAICompatibleProvider<
+    CHAT_MODEL_IDS,
+    COMPLETION_MODEL_IDS,
+    EMBEDDING_MODEL_IDS
+  >;
 }

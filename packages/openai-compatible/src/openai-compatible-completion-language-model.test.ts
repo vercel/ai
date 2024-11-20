@@ -5,42 +5,15 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from './openai-compatible-provider';
-import { mapOpenAICompatibleCompletionLogProbs } from './map-openai-compatible-completion-logprobs';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const TEST_LOGPROBS = {
-  tokens: [' ever', ' after', '.\n\n', 'The', ' end', '.'],
-  token_logprobs: [
-    -0.0664508, -0.014520033, -1.3820221, -0.7890417, -0.5323165, -0.10247037,
-  ],
-  top_logprobs: [
-    {
-      ' ever': -0.0664508,
-    },
-    {
-      ' after': -0.014520033,
-    },
-    {
-      '.\n\n': -1.3820221,
-    },
-    {
-      The: -0.7890417,
-    },
-    {
-      ' end': -0.5323165,
-    },
-    {
-      '.': -0.10247037,
-    },
-  ] as Record<string, number>[],
-};
-
 const provider = createOpenAICompatible({
   apiKey: 'test-api-key',
   baseURL: 'https://my.api.com/v1/',
+  name: 'test-provider',
 });
 
 const model = provider.completionModel('gpt-3.5-turbo-instruct');
@@ -57,7 +30,6 @@ describe('doGenerate', () => {
       total_tokens: 34,
       completion_tokens: 30,
     },
-    logprobs = null,
     finish_reason = 'stop',
     id = 'cmpl-96cAM1v77r4jXa4qb2NSmRREV5oWB',
     created = 1711363706,
@@ -69,11 +41,6 @@ describe('doGenerate', () => {
       total_tokens: number;
       completion_tokens: number;
     };
-    logprobs?: {
-      tokens: string[];
-      token_logprobs: number[];
-      top_logprobs: Record<string, number>[];
-    } | null;
     finish_reason?: string;
     id?: string;
     created?: number;
@@ -88,7 +55,6 @@ describe('doGenerate', () => {
         {
           text: content,
           index: 0,
-          logprobs,
           finish_reason,
         },
       ],
@@ -160,26 +126,6 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should extract logprobs', async () => {
-    prepareJsonResponse({ logprobs: TEST_LOGPROBS });
-
-    const provider = createOpenAICompatible({
-      apiKey: 'test-api-key',
-      baseURL: 'https://my.api.com/v1/',
-    });
-
-    const response = await provider
-      .completionModel('gpt-3.5-turbo', { logprobs: 1 })
-      .doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-      });
-    expect(response.logprobs).toStrictEqual(
-      mapOpenAICompatibleCompletionLogProbs(TEST_LOGPROBS),
-    );
-  });
-
   it('should extract finish reason', async () => {
     prepareJsonResponse({
       content: '',
@@ -229,7 +175,7 @@ describe('doGenerate', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
-      'content-length': '266',
+      'content-length': '250',
       'content-type': 'application/json',
 
       // custom header
@@ -258,6 +204,7 @@ describe('doGenerate', () => {
     const provider = createOpenAICompatible({
       apiKey: 'test-api-key',
       baseURL: 'https://my.api.com/v1/',
+      name: 'test-provider',
       // TODO(shaper): Do we need these?
       // organization: 'test-organization',
       // project: 'test-project',
@@ -301,7 +248,6 @@ describe('doStream', () => {
       total_tokens: 372,
       completion_tokens: 362,
     },
-    logprobs = null,
   }: {
     content: string[];
     usage?: {
@@ -309,24 +255,17 @@ describe('doStream', () => {
       total_tokens: number;
       completion_tokens: number;
     };
-    logprobs?: {
-      tokens: string[];
-      token_logprobs: number[];
-      top_logprobs: Record<string, number>[];
-    } | null;
     finish_reason?: string;
   }) {
     server.responseChunks = [
       ...content.map(text => {
         return (
           `data: {"id":"cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT","object":"text_completion","created":1711363440,` +
-          `"choices":[{"text":"${text}","index":0,"logprobs":null,"finish_reason":null}],"model":"gpt-3.5-turbo-instruct"}\n\n`
+          `"choices":[{"text":"${text}","index":0,"finish_reason":null}],"model":"gpt-3.5-turbo-instruct"}\n\n`
         );
       }),
       `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,` +
-        `"choices":[{"text":"","index":0,"logprobs":${JSON.stringify(
-          logprobs,
-        )},"finish_reason":"${finish_reason}"}],"model":"gpt-3.5-turbo-instruct"}\n\n`,
+        `"choices":[{"text":"","index":0,"finish_reason":"${finish_reason}"}],"model":"gpt-3.5-turbo-instruct"}\n\n`,
       `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,` +
         `"model":"gpt-3.5-turbo-instruct","usage":${JSON.stringify(
           usage,
@@ -344,7 +283,6 @@ describe('doStream', () => {
         total_tokens: 372,
         completion_tokens: 362,
       },
-      logprobs: TEST_LOGPROBS,
     });
 
     const { stream } = await model.doStream({
@@ -368,7 +306,6 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        logprobs: mapOpenAICompatibleCompletionLogProbs(TEST_LOGPROBS),
         usage: { promptTokens: 10, completionTokens: 362 },
       },
     ]);
@@ -403,7 +340,6 @@ describe('doStream', () => {
       },
       {
         finishReason: 'error',
-        logprobs: undefined,
         type: 'finish',
         usage: {
           completionTokens: NaN,
@@ -428,7 +364,6 @@ describe('doStream', () => {
     expect(elements[0].type).toBe('error');
     expect(elements[1]).toStrictEqual({
       finishReason: 'error',
-      logprobs: undefined,
       type: 'finish',
       usage: {
         completionTokens: NaN,
@@ -499,8 +434,7 @@ describe('doStream', () => {
     const provider = createOpenAICompatible({
       apiKey: 'test-api-key',
       baseURL: 'https://my.api.com/v1/',
-      // organization: 'test-organization',
-      // project: 'test-project',
+      name: 'test-provider',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
       },
@@ -522,8 +456,6 @@ describe('doStream', () => {
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
-      // 'openai-organization': 'test-organization',
-      // 'openai-project': 'test-project',
     });
   });
 });

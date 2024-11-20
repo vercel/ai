@@ -11,6 +11,7 @@ const testValues = ['sunny day at the beach', 'rainy day in the city'];
 const provider = createOpenAICompatible({
   apiKey: 'test-api-key',
   baseURL: 'https://my.api.com/v1/',
+  name: 'test-provider',
 });
 const model = provider.textEmbeddingModel('text-embedding-3-large');
 
@@ -108,8 +109,7 @@ describe('doEmbed', () => {
     const provider = createOpenAICompatible({
       apiKey: 'test-api-key',
       baseURL: 'https://my.api.com/v1/',
-      // organization: 'test-organization',
-      // project: 'test-project',
+      name: 'test-provider',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
       },
@@ -129,8 +129,6 @@ describe('doEmbed', () => {
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
-      // 'openai-organization': 'test-organization',
-      // 'openai-project': 'test-project',
     });
   });
 });

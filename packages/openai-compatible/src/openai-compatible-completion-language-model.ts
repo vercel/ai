@@ -2,7 +2,6 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
-  LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -16,7 +15,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAICompatibleCompletionPrompt } from './convert-to-openai-compatible-completion-prompt';
-import { mapOpenAICompatibleCompletionLogProbs } from './map-openai-compatible-completion-logprobs';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
   OpenAICompatibleCompletionModelId,
@@ -106,14 +104,6 @@ export class OpenAICompatibleCompletionLanguageModel
       // model specific settings:
       echo: this.settings.echo,
       logit_bias: this.settings.logitBias,
-      logprobs:
-        typeof this.settings.logprobs === 'number'
-          ? this.settings.logprobs
-          : typeof this.settings.logprobs === 'boolean'
-          ? this.settings.logprobs
-            ? 0
-            : undefined
-          : undefined,
       suffix: this.settings.suffix,
       user: this.settings.user,
 
@@ -198,7 +188,6 @@ export class OpenAICompatibleCompletionLanguageModel
         completionTokens: response.usage.completion_tokens,
       },
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
-      logprobs: mapOpenAICompatibleCompletionLogProbs(choice.logprobs),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       response: getResponseMetadata(response),
@@ -245,7 +234,6 @@ export class OpenAICompatibleCompletionLanguageModel
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
-    let logprobs: LanguageModelV1LogProbs;
     let isFirstChunk = true;
 
     return {
@@ -301,21 +289,12 @@ export class OpenAICompatibleCompletionLanguageModel
                 textDelta: choice.text,
               });
             }
-
-            const mappedLogprobs = mapOpenAICompatibleCompletionLogProbs(
-              choice?.logprobs,
-            );
-            if (mappedLogprobs?.length) {
-              if (logprobs === undefined) logprobs = [];
-              logprobs.push(...mappedLogprobs);
-            }
           },
 
           flush(controller) {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              logprobs,
               usage,
             });
           },
@@ -340,13 +319,6 @@ const openAICompatibleCompletionResponseSchema = z.object({
     z.object({
       text: z.string(),
       finish_reason: z.string(),
-      logprobs: z
-        .object({
-          tokens: z.array(z.string()),
-          token_logprobs: z.array(z.number()),
-          top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
-        })
-        .nullish(),
     }),
   ),
   usage: z.object({
@@ -367,13 +339,6 @@ const openaiCompatibleCompletionChunkSchema = z.union([
         text: z.string(),
         finish_reason: z.string().nullish(),
         index: z.number(),
-        logprobs: z
-          .object({
-            tokens: z.array(z.string()),
-            token_logprobs: z.array(z.number()),
-            top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
-          })
-          .nullish(),
       }),
     ),
     usage: z
