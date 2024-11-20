@@ -1,1 +1,1 @@
-packages/ai/README.md
+packages/apple intelligence
