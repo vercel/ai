@@ -42,11 +42,6 @@ True if the model can return the input values in the response.
   readonly returnInput: boolean;
 
   /**
-True if the model can return the reranked documents in the response.
-    */
-  readonly returnDocuments: boolean;
-
-  /**
 Reranking a list of documents using the query
 Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
@@ -55,13 +50,22 @@ by the user.
     /**
 List of documents to rerank.
      */
-    documents: Array<VALUE>;
+    values: Array<VALUE>;
 
     /**
 The query is a string that represents the query to rerank the documents against.
      */
-
     query: string;
+
+    /**
+The top-k documents after reranking.
+    */
+    topK: number;
+
+    /**
+Return the reranked documents in the response (In same order as indices).
+   */
+    returnDocuments?: boolean;
 
     /**
 Abort signal for cancelling the operation.
@@ -75,9 +79,15 @@ Abort signal for cancelling the operation.
     headers?: Record<string, string | undefined>;
   }): PromiseLike<{
     /**
-Re ranked document index as a result of the reranking operation.
-     */
-    index: Array<RerankingModelV1DocumentIndex>;
+Reranked document indices.
+    */
+    rerankedIndices: Array<RerankingModelV1DocumentIndex>;
+
+    /**
+     * This is optional and only send if the returnDocuments flag is set to true.
+Reranked documents will be in same order as indices.
+    */
+    rerankedDocuments?: Array<VALUE>;
 
     /**
 Token usage. We only have input tokens for reranking.
