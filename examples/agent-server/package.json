@@ -11,6 +11,8 @@
     "@types/node": "22.9.1"
   },
   "dependencies": {
-    "@ai-sdk/agent-server": "0.0.0"
+    "@ai-sdk/agent-server": "0.0.0",
+    "@ai-sdk/openai": "1.0.2",
+    "ai": "4.0.2"
   }
 }

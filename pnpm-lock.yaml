@@ -59,6 +59,12 @@ importers:
       '@ai-sdk/agent-server':
         specifier: 0.0.0
         version: link:../../packages/agent-server
+      '@ai-sdk/openai':
+        specifier: 1.0.2
+        version: link:../../packages/openai
+      ai:
+        specifier: 4.0.2
+        version: link:../../packages/ai
     devDependencies:
       '@types/node':
         specifier: 22.9.1
