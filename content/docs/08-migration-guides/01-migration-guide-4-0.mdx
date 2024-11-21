@@ -457,8 +457,9 @@ const part = parseDataStreamPart(line);
 
 ### Renamed `TokenUsage`, `CompletionTokenUsage` and `EmbeddingTokenUsage` types
 
-The `TokenUsage`, `CompletionTokenUsage` and `EmbeddingTokenUsage` types have been
-to `LanguageModelUsage` and `EmbeddingModelUsage`.
+The `TokenUsage`, `CompletionTokenUsage` and `EmbeddingTokenUsage` types have
+been renamed to `LanguageModelUsage` (for the first two) and
+`EmbeddingModelUsage` (for the last).
 
 ```ts filename="AI SDK 3.4"
 import { TokenUsage, CompletionTokenUsage, EmbeddingTokenUsage } from 'ai';
