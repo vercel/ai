@@ -1,5 +1,5 @@
-import { JsonTestServer } from '@ai-sdk/provider-utils/test/dist';
 import { createCohere } from './cohere-provider';
+import { JsonTestServer } from '@ai-sdk/provider-utils/test';
 import { RerankingModelV1DocumentIndex } from '@ai-sdk/provider';
 
 const dummyDocumentsIndices = [1, 0];
@@ -9,7 +9,7 @@ const provider = createCohere({ apiKey: 'test-api-key' });
 const model = provider.reranking('rerank-english-v3.0');
 
 describe('doRerank', () => {
-  const server = new JsonTestServer('https://api.cohere.com/v2/embed');
+  const server = new JsonTestServer('https://api.cohere.com/v2/rerank');
 
   server.setupTestEnvironment();
 
@@ -33,9 +33,9 @@ describe('doRerank', () => {
   it('should rerank documents', async () => {
     prepareJsonResponse();
 
-    const { rerankedIndices, documents } = await model.doRerank({
+    const { rerankedIndices } = await model.doRerank({
       values: dummyDocuments,
-      query: 'sunny day',
+      query: 'rainy day',
       topK: 2,
     });
 
@@ -45,14 +45,14 @@ describe('doRerank', () => {
   it('should rerank documents and return documents', async () => {
     prepareJsonResponse();
 
-    const { rerankedIndices, documents } = await model.doRerank({
+    const { rerankedIndices, rerankedDocuments } = await model.doRerank({
       values: dummyDocuments,
-      query: 'sunny day',
+      query: 'rainy day',
       topK: 2,
       returnDocuments: true,
     });
 
-    expect(documents).toStrictEqual(
+    expect(rerankedDocuments).toStrictEqual(
       dummyDocumentsIndices.map(index => dummyDocuments[index]),
     );
 
@@ -68,7 +68,7 @@ describe('doRerank', () => {
 
     const { rawResponse } = await model.doRerank({
       values: dummyDocuments,
-      query: 'sunny day',
+      query: 'rainy day',
       topK: 2,
     });
 
@@ -89,7 +89,7 @@ describe('doRerank', () => {
 
     const { usage } = await model.doRerank({
       values: dummyDocuments,
-      query: 'sunny day',
+      query: 'rainy day',
       topK: 2,
     });
 
@@ -101,14 +101,14 @@ describe('doRerank', () => {
 
     await model.doRerank({
       values: dummyDocuments,
-      query: 'sunny day',
+      query: 'rainy day',
       topK: 2,
     });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'rerank-english-v3.0',
       documents: dummyDocuments,
-      query: 'sunny day',
+      query: 'rainy day',
       top_n: 2,
     });
   });
@@ -120,19 +120,19 @@ describe('doRerank', () => {
       .reranking('rerank-english-v3.0', {
         max_chunks_per_document: 2,
       })
-      .doRerank({ values: dummyDocuments, query: 'sunny day', topK: 2 });
+      .doRerank({ values: dummyDocuments, query: 'rainy day', topK: 2 });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'rerank-english-v3.0',
       documents: dummyDocuments,
-      query: 'sunny day',
+      query: 'rainy day',
       top_n: 2,
       max_chunks_per_doc: 2,
     });
 
     await provider.reranking('rerank-english-v3.0').doRerank({
       values: dummyDocuments,
-      query: 'sunny day',
+      query: 'rainy day',
       topK: 2,
       returnDocuments: true,
     });
@@ -140,7 +140,7 @@ describe('doRerank', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'rerank-english-v3.0',
       documents: dummyDocuments,
-      query: 'sunny day',
+      query: 'rainy day',
       top_n: 2,
       return_documents: true,
     });
@@ -158,7 +158,7 @@ describe('doRerank', () => {
 
     await provider.reranking('rerank-english-v3.0').doRerank({
       values: dummyDocuments,
-      query: 'sunny day',
+      query: 'rainy day',
       topK: 2,
       headers: {
         'Custom-Request-Header': 'request-header-value',

@@ -7,12 +7,12 @@ It contains the documents, the reranked indices, and additional information.
  */
 export interface RerankResult<VALUE> {
   /**
-  The value that was embedded.
+  The documents that were reranked.
      */
   readonly documents: Array<VALUE>;
 
   /**
-  The embedding of the value.
+  The reranked indices.
     */
   readonly rerankedIndices: Array<RerankedDocumentIndex>;
 
@@ -24,7 +24,7 @@ export interface RerankResult<VALUE> {
   readonly rerankedDocuments?: Array<VALUE>;
 
   /**
-  The embedding token usage.
+  The reranking token usage.
     */
   readonly usage: RerankingModelUsage;
 

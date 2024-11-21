@@ -17,7 +17,7 @@ import {
   CohereRerankingSettings,
 } from './cohere-reranking-settings';
 
-type CohereEmbeddingConfig = {
+type CohereRerankingConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
@@ -32,13 +32,13 @@ export class CohereRerankingModel implements RerankingModelV1<string> {
   readonly supportsParallelCalls = true;
   readonly returnInput = false;
 
-  private readonly config: CohereEmbeddingConfig;
+  private readonly config: CohereRerankingConfig;
   private readonly settings: CohereRerankingSettings;
 
   constructor(
     modelId: CohereRerankingModelId,
     settings: CohereRerankingSettings,
-    config: CohereEmbeddingConfig,
+    config: CohereRerankingConfig,
   ) {
     this.modelId = modelId;
     this.settings = settings;
@@ -69,10 +69,9 @@ export class CohereRerankingModel implements RerankingModelV1<string> {
         documents: values,
       });
     }
-    console.log('returnDocuments', returnDocuments);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/embed`,
+      url: `${this.config.baseURL}/rerank`,
       headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
@@ -90,11 +89,9 @@ export class CohereRerankingModel implements RerankingModelV1<string> {
       fetch: this.config.fetch,
     });
 
-    console.log('response', response);
-
     return {
       rerankedIndices: response.results.map(result => result.index),
-      documents: returnDocuments
+      rerankedDocuments: returnDocuments
         ? response.results.map(result => result.document?.text ?? '')
         : undefined,
       usage: { tokens: response.meta.billed_units.input_tokens },

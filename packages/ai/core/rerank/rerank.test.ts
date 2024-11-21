@@ -12,7 +12,7 @@ const dummyRerankedDocuments = [
   'rainy day in the city',
   'sunny day at the beach',
 ];
-const query = 'sunny day';
+const query = 'rainy day';
 const topK = 2;
 
 describe('result.reranking', () => {
@@ -79,8 +79,6 @@ describe('result.value', () => {
       topK,
       returnDocuments: true,
     });
-
-    console.log('result', result);
 
     assert.deepStrictEqual(result.rerankedDocuments, dummyRerankedDocuments);
   });
