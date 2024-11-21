@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { API, FileInfo } from 'jscodeshift';
 import * as testUtils from './test-utils';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -102,7 +101,10 @@ describe('test-utils', () => {
 
       const result = testUtils.readFixture('test', 'input');
 
-      expect(result).toBe('ts content');
+      expect(result).toEqual({
+        content: 'ts content',
+        extension: '.ts',
+      });
       expect(mockReadFileSync).toHaveBeenCalledWith(
         expect.stringContaining('test.input.ts'),
         'utf8',
@@ -117,7 +119,10 @@ describe('test-utils', () => {
 
       const result = testUtils.readFixture('test', 'input');
 
-      expect(result).toBe('tsx content');
+      expect(result).toEqual({
+        content: 'tsx content',
+        extension: '.tsx',
+      });
       expect(mockReadFileSync).toHaveBeenCalledWith(
         expect.stringContaining('test.input.tsx'),
         'utf8',
@@ -133,17 +138,92 @@ describe('test-utils', () => {
     });
   });
 
-  describe('testTransform', () => {
-    it('should compare transform output with fixture', () => {
-      const mockTransform = vi.fn().mockReturnValue('transformed');
+  describe('validateSyntax', () => {
+    it('should validate typescript syntax', () => {
+      const tsCode = `
+        interface User {
+          name: string;
+          age: number;
+        }
+        const user: User = {
+          name: 'John',
+          age: 30
+        };
+      `;
 
-      // Mock filesystem for this test
+      expect(() => testUtils.validateSyntax(tsCode, '.ts')).not.toThrow();
+    });
+
+    it('should validate tsx syntax', () => {
+      const tsxCode = `
+        interface Props {
+          name: string;
+        }
+        const Component = ({ name }: Props) => <div>{name}</div>;
+      `;
+
+      expect(() => testUtils.validateSyntax(tsxCode, '.tsx')).not.toThrow();
+    });
+
+    it('should validate javascript syntax', () => {
+      const jsCode = `
+        const user = {
+          name: 'John',
+          age: 30
+        };
+        console.log(user);
+      `;
+
+      expect(() => testUtils.validateSyntax(jsCode, '.js')).not.toThrow();
+    });
+
+    it('should validate jsx syntax', () => {
+      const jsxCode = `
+        const Component = ({ name }) => <div>{name}</div>;
+        export default Component;
+      `;
+
+      expect(() => testUtils.validateSyntax(jsxCode, '.jsx')).not.toThrow();
+    });
+
+    it('should catch syntax errors', () => {
+      const invalidCode = `
+        const x = {
+          foo: 'bar'
+          bar: 'baz'  // missing comma
+        };
+      `;
+
+      expect(() => testUtils.validateSyntax(invalidCode, '.js')).toThrow(
+        /Syntax error/,
+      );
+    });
+
+    it('should catch typescript type errors', () => {
+      const invalidTsCode = `
+        const x: number = "string";  // Type mismatch
+      `;
+
+      expect(() => testUtils.validateSyntax(invalidTsCode, '.ts')).toThrow(
+        /Type.*string.*not assignable to type.*number/,
+      );
+    });
+  });
+
+  describe('testTransform', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('should compare transform output with fixture and validate syntax', () => {
+      const mockTransform = vi.fn().mockReturnValue('const x: number = 42;');
+
       (existsSync as any).mockImplementation((path: string) =>
         path.endsWith('.ts'),
       );
       (readFileSync as any)
-        .mockReturnValueOnce('input content') // First call for input
-        .mockReturnValueOnce('transformed'); // Second call for output
+        .mockReturnValueOnce('const x: number = 1;') // Valid TS input
+        .mockReturnValueOnce('const x: number = 42;'); // Valid TS output
 
       testUtils.testTransform(mockTransform, 'test');
 
@@ -154,13 +234,12 @@ describe('test-utils', () => {
     it('should throw when transform output does not match fixture', () => {
       const mockTransform = vi.fn().mockReturnValue('wrong output');
 
-      // Mock filesystem for this test
       (existsSync as any).mockImplementation((path: string) =>
         path.endsWith('.ts'),
       );
       (readFileSync as any)
-        .mockReturnValueOnce('input') // First call for input
-        .mockReturnValueOnce('expected output'); // Second call for output
+        .mockReturnValueOnce('input')
+        .mockReturnValueOnce('expected output');
 
       expect(() => testUtils.testTransform(mockTransform, 'test')).toThrow();
     });
