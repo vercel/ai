@@ -53,7 +53,11 @@ startService({
         });
 
         const context = startResult.context;
-        const state = 'START';
+
+        const state = await agent.nextState({
+          currentState: 'START',
+          context,
+        });
 
         return c.json({
           success: true,
