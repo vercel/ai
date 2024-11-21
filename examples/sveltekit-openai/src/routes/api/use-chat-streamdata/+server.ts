@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { StreamData, streamText } from 'ai';
+import { generateId, StreamData, streamText } from 'ai';
 
 import { env } from '$env/dynamic/private';
 // You may want to replace the above with a static private env variable
@@ -23,8 +23,19 @@ export const POST = (async ({ request }) => {
   const result = streamText({
     model: openai('gpt-4o'),
     messages,
+    onChunk() {
+      data.appendMessageAnnotation({ chunk: '123' });
+    },
     onFinish() {
+      // message annotation:
+      data.appendMessageAnnotation({
+        id: generateId(), // e.g. id from saved DB record
+        other: 'information',
+      });
+
+      // call annotation:
       data.append('call completed');
+
       data.close();
     },
   });

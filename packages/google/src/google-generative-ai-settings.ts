@@ -1,13 +1,20 @@
 // https://ai.google.dev/models/gemini
 export type GoogleGenerativeAIModelId =
-  | 'gemini-1.5-flash-latest'
   | 'gemini-1.5-flash'
+  | 'gemini-1.5-flash-latest'
+  | 'gemini-1.5-flash-001'
   | 'gemini-1.5-flash-002'
+  | 'gemini-1.5-flash-exp-0827'
+  | 'gemini-1.5-flash-8b'
+  | 'gemini-1.5-flash-8b-latest'
+  | 'gemini-1.5-flash-8b-exp-0924'
+  | 'gemini-1.5-flash-8b-exp-0827'
   | 'gemini-1.5-pro-latest'
   | 'gemini-1.5-pro'
+  | 'gemini-1.5-pro-001'
   | 'gemini-1.5-pro-002'
+  | 'gemini-1.5-pro-exp-0827'
   | 'gemini-1.0-pro'
-  | 'gemini-pro'
   | (string & {});
 
 export interface GoogleGenerativeAISettings {

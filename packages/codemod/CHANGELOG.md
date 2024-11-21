@@ -1,5 +1,12 @@
 # @ai-sdk/codemod
 
+## 1.0.2
+
+### Patch Changes
+
+- 5d902a7: feat (packages/codemod): Don't generate duplicate token usage imports.
+- c4e1192: fix (codemod): Filter more dirs/files unlikely to need transform.
+
 ## 1.0.1
 
 ### Patch Changes
