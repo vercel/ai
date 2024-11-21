@@ -1,0 +1,3 @@
+agents/**/*.js
+agents/**/*.js.map
+agents/**/*.d.ts
