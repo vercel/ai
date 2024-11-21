@@ -44,14 +44,18 @@ startService({
       const agentModulePath = path.join(agentPath, 'agent.js');
 
       try {
-        const agentModule: Agent = (await import(agentModulePath)).default;
+        const agentModule: Agent<any> = (await import(agentModulePath)).default;
         logger.info(`Successfully loaded agent module: ${agent}`);
 
-        await agentModule.init();
+        const result = await agentModule.init({
+          request: context.req.raw,
+          metadata: { agentName: agent },
+        });
 
         return context.json({
           success: true,
-          agent: agent,
+          agentName: agent,
+          context: result.context,
           module: agentModule,
         });
       } catch (error) {

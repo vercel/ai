@@ -34,6 +34,7 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/provider": "1.0.0",
     "@hono/node-server": "1.13.7",
     "commander": "12.1.0",
     "hono": "4.6.11",

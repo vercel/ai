@@ -1008,6 +1008,9 @@ importers:
 
   packages/agent-server:
     dependencies:
+      '@ai-sdk/provider':
+        specifier: 1.0.0
+        version: link:../provider
       '@hono/node-server':
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.11)
