@@ -64,7 +64,7 @@ export async function processChatResponse({
     // keeps the currentMessage up to date with the latest annotations,
     // even if annotations preceded the message creation
     if (messageAnnotations?.length) {
-      currentMessage.annotations = [...messageAnnotations];
+      currentMessage.annotations = messageAnnotations;
     }
 
     // create a copy of the current message with a revision id to

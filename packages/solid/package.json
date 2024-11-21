@@ -30,7 +30,8 @@
   ],
   "dependencies": {
     "@ai-sdk/provider-utils": "2.0.1",
-    "@ai-sdk/ui-utils": "1.0.1"
+    "@ai-sdk/ui-utils": "1.0.1",
+    "@solid-primitives/trigger": "^1.1.0"
   },
   "devDependencies": {
     "@solidjs/testing-library": "0.8.10",

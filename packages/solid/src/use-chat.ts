@@ -19,6 +19,7 @@ import {
   createUniqueId,
 } from 'solid-js';
 import { createStore, reconcile } from 'solid-js/store';
+import { ReactiveLRU } from './utils/reactive-lru';
 
 export type { CreateMessage, Message };
 
@@ -174,7 +175,7 @@ const processStreamedResponse = async (
   });
 };
 
-const [chatStore, setChatStore] = createStore<Record<string, Message[]>>({});
+const chatCache = new ReactiveLRU<string, Message[]>(10);
 
 export type UseChatOptions = SharedUseChatOptions & {
   /**
@@ -204,7 +205,8 @@ export function useChat(
   const chatKey = createMemo(() => `${api()}|${idKey()}|messages`);
 
   const _messages = createMemo(
-    () => chatStore[chatKey()] ?? useChatOptions().initialMessages?.() ?? [],
+    () =>
+      chatCache.get(chatKey()) ?? useChatOptions().initialMessages?.() ?? [],
   );
 
   const [messagesStore, setMessagesStore] = createStore<Message[]>(_messages());
@@ -213,7 +215,7 @@ export function useChat(
   });
 
   const mutate = (messages: Message[]) => {
-    setChatStore(chatKey(), messages);
+    chatCache.set(chatKey(), messages);
   };
 
   const [error, setError] = createSignal<undefined | Error>(undefined);
