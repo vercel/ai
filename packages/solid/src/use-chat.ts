@@ -20,6 +20,7 @@ import {
 } from 'solid-js';
 import { createStore, reconcile } from 'solid-js/store';
 import { ReactiveLRU } from './utils/reactive-lru';
+import { convertToAccessorOptions } from './utils/convert-to-accessor-options';
 
 export type { CreateMessage, Message };
 
@@ -509,25 +510,4 @@ function countTrailingAssistantMessages(messages: Message[]) {
     }
   }
   return count;
-}
-
-/**
- * Handle reactive and non-reactive useChatOptions
- */
-function convertToAccessorOptions(
-  options: UseChatOptions | Accessor<UseChatOptions>,
-) {
-  const resolvedOptions = typeof options === 'function' ? options() : options;
-
-  return Object.entries(resolvedOptions).reduce(
-    (reactiveOptions, [key, value]) => {
-      reactiveOptions[key as keyof UseChatOptions] = createMemo(
-        () => value,
-      ) as any;
-      return reactiveOptions;
-    },
-    {} as {
-      [K in keyof UseChatOptions]: Accessor<UseChatOptions[K]>;
-    },
-  );
 }

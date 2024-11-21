@@ -16,6 +16,7 @@ import {
   createUniqueId,
 } from 'solid-js';
 import { ReactiveLRU } from './utils/reactive-lru';
+import { convertToAccessorOptions } from './utils/convert-to-accessor-options';
 
 export type { UseCompletionOptions };
 
@@ -192,25 +193,4 @@ export function useCompletion(
     isLoading,
     data: streamData,
   };
-}
-
-/**
- * Handle reactive and non-reactive useChatOptions
- */
-function convertToAccessorOptions(
-  options: UseCompletionOptions | Accessor<UseCompletionOptions>,
-) {
-  const resolvedOptions = typeof options === 'function' ? options() : options;
-
-  return Object.entries(resolvedOptions).reduce(
-    (reactiveOptions, [key, value]) => {
-      reactiveOptions[key as keyof UseCompletionOptions] = createMemo(
-        () => value,
-      ) as any;
-      return reactiveOptions;
-    },
-    {} as {
-      [K in keyof UseCompletionOptions]: Accessor<UseCompletionOptions[K]>;
-    },
-  );
 }
