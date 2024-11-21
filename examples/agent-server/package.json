@@ -6,7 +6,9 @@
   "scripts": {
     "start": "pnpm agent-server --port 3000 --host 127.0.0.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/node": "22.9.1"
+  },
   "dependencies": {
     "@ai-sdk/agent-server": "0.0.0"
   }
