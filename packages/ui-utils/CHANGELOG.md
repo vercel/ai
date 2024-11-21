@@ -1,5 +1,14 @@
 # @ai-sdk/ui-utils
 
+## 1.0.2
+
+### Patch Changes
+
+- 88b364b: fix (ui-utils): deep clone messages
+- Updated dependencies [b446ae5]
+  - @ai-sdk/provider@1.0.1
+  - @ai-sdk/provider-utils@2.0.2
+
 ## 1.0.1
 
 ### Patch Changes
