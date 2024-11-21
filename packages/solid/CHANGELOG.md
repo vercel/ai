@@ -1,5 +1,16 @@
 # @ai-sdk/solid
 
+## 1.0.2
+
+### Patch Changes
+
+- 88b364b: feat (ui/solid): add useObject
+- 88b364b: feat (ui/solid): add useAssistant
+- 88b364b: fix (ui/solid): fix useChat deep object updates
+- Updated dependencies [88b364b]
+  - @ai-sdk/ui-utils@1.0.2
+  - @ai-sdk/provider-utils@2.0.2
+
 ## 1.0.1
 
 ### Patch Changes
