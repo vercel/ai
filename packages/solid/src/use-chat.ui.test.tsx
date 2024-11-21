@@ -23,7 +23,7 @@ describe('data protocol stream', () => {
 
   const TestComponent = () => {
     const [id, setId] = createSignal('first-id');
-    const { messagesStore, append, error, data, isLoading, setData } = useChat(
+    const { messages, append, error, data, isLoading, setData } = useChat(
       () => ({
         id: id(),
         onFinish: (message, options) => {
@@ -39,7 +39,7 @@ describe('data protocol stream', () => {
         <div data-testid="data">
           {data() != null ? JSON.stringify(data()) : ''}
         </div>
-        <For each={messagesStore}>
+        <For each={messages()}>
           {(m, idx) => (
             <div data-testid={`message-${idx()}`}>
               {m.role === 'user' ? 'User: ' : 'AI: '}

@@ -26,15 +26,9 @@ export type { CreateMessage, Message };
 
 export type UseChatHelpers = {
   /**
-   * Current messages in the chat as a signal
-   * @deprecated Use `messagesStore` instead
+   * Current messages in the chat. Function that resolves to the current messages.
    */
   messages: Accessor<Message[]>;
-
-  /**
-   * Current messages in the chat as a store
-   */
-  messagesStore: Message[];
 
   /** The error object of the API request */
   error: Accessor<undefined | Error>;
@@ -466,7 +460,6 @@ export function useChat(
 
   return {
     messages: () => messagesStore,
-    messagesStore,
     append,
     error,
     reload,
