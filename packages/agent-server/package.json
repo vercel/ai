@@ -12,15 +12,16 @@
     "CHANGELOG.md"
   ],
   "bin": {
-    "agent-server": "./dist/server.js"
+    "agent-server": "./dist/agent-server.cjs"
   },
   "scripts": {
-    "build": "pnpm clean && tsc --project ./tsconfig.json",
+    "build": "tsup",
+    "build:watch": "tsup --watch",
     "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
-    "start": "pnpm tsx src/server.ts --port 3000 --host 127.0.0.1",
+    "start": "pnpm tsx src/agent-server.ts --port 3000 --host 127.0.0.1",
     "test": "pnpm test:node && pnpm test:edge",
     "test:edge": "vitest --config vitest.edge.config.js --run --passWithNoTests",
     "test:node": "vitest --config vitest.node.config.js --run --passWithNoTests"

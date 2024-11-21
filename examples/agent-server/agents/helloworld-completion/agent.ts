@@ -1,4 +1,4 @@
-import type { Agent } from '@ai-sdk/agent-server/types/agent';
+import type { Agent } from '@ai-sdk/agent-server';
 
 export default class HelloWorldAgent implements Agent {
   async init() {
