@@ -18,13 +18,16 @@ import {
   createSignal,
   createUniqueId,
 } from 'solid-js';
-import { createStore } from 'solid-js/store';
+import { createStore, reconcile } from 'solid-js/store';
 
 export type { CreateMessage, Message };
 
 export type UseChatHelpers = {
-  /** Current messages in the chat */
+  /**
+   * Current messages in the chat
+   */
   messages: Accessor<Message[]>;
+
   /** The error object of the API request */
   error: Accessor<undefined | Error>;
   /**
@@ -89,6 +92,14 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
+
+  addToolResult: ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => void;
 };
 
 const processStreamedResponse = async (
@@ -163,8 +174,7 @@ const processStreamedResponse = async (
   });
 };
 
-// This store saves the messages for each chat ID
-const [store, setStore] = createStore<Record<string, Message[]>>({});
+const [chatStore, setChatStore] = createStore<Record<string, Message[]>>({});
 
 export type UseChatOptions = SharedUseChatOptions & {
   /**
@@ -179,15 +189,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
 export function useChat(
   rawUseChatOptions: UseChatOptions | Accessor<UseChatOptions> = {},
-): UseChatHelpers & {
-  addToolResult: ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: any;
-  }) => void;
-} {
+): UseChatHelpers {
   const useChatOptions = createMemo(() =>
     convertToAccessorOptions(rawUseChatOptions),
   );
@@ -196,18 +198,22 @@ export function useChat(
   const generateId = createMemo(
     () => useChatOptions().generateId?.() ?? generateIdFunc,
   );
-
   const idKey = createMemo(
     () => useChatOptions().id?.() ?? `chat-${createUniqueId()}`,
   );
   const chatKey = createMemo(() => `${api()}|${idKey()}|messages`);
 
-  const messages = createMemo(() => {
-    return store[chatKey()] ?? useChatOptions().initialMessages?.() ?? [];
+  const _messages = createMemo(
+    () => chatStore[chatKey()] ?? useChatOptions().initialMessages?.() ?? [],
+  );
+
+  const [messagesStore, setMessagesStore] = createStore<Message[]>(_messages());
+  createEffect(() => {
+    setMessagesStore(reconcile(_messages()));
   });
 
-  const mutate = (data: Message[]) => {
-    setStore(chatKey(), data);
+  const mutate = (messages: Message[]) => {
+    setChatStore(chatKey(), messages);
   };
 
   const [error, setError] = createSignal<undefined | Error>(undefined);
@@ -216,9 +222,9 @@ export function useChat(
   );
   const [isLoading, setIsLoading] = createSignal(false);
 
-  let messagesRef: Message[] = messages() || [];
+  let messagesRef: Message[] = _messages() || [];
   createEffect(() => {
-    messagesRef = messages() || [];
+    messagesRef = _messages() || [];
   });
 
   let abortController: AbortController | null = null;
@@ -422,7 +428,7 @@ export function useChat(
     toolCallId: string;
     result: any;
   }) => {
-    const messagesSnapshot = messages() ?? [];
+    const messagesSnapshot = _messages() ?? [];
 
     const updatedMessages = messagesSnapshot.map((message, index, arr) =>
       // update the tool calls in the last assistant message:
@@ -450,7 +456,7 @@ export function useChat(
   };
 
   return {
-    messages,
+    messages: () => messagesStore,
     append,
     error,
     reload,

@@ -64,14 +64,15 @@ export async function processChatResponse({
     // keeps the currentMessage up to date with the latest annotations,
     // even if annotations preceded the message creation
     if (messageAnnotations?.length) {
-      currentMessage.annotations = messageAnnotations;
+      currentMessage.annotations = [...messageAnnotations];
     }
 
     // create a copy of the current message with a revision id to
     // trigger update for streaming by copying adding a revision id that changes
     // (without it, the changes get stuck in SWR and are not forwarded to rendering):
     const copiedMessage = {
-      ...currentMessage,
+      // Deep copy
+      ...structuredClone(currentMessage),
       revisionId: generateId(),
     };
 

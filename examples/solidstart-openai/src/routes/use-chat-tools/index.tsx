@@ -25,83 +25,100 @@ export default function Chat() {
   return (
     <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       <For each={messages()} fallback={<div>No messages</div>}>
-        {message => (
-          <div class="whitespace-pre-wrap">
-            <strong>{`${message.role}: `}</strong>
-            {message.content}
-            <For each={message.toolInvocations || []}>
-              {toolInvocation => (
-                <Show
-                  fallback={
+        {message => {
+          console.log('Message', JSON.stringify(message, null, 2));
+          return (
+            <div class="whitespace-pre-wrap">
+              <strong>{`${message.role}: `}</strong>
+              {message.content}
+              <For each={message.toolInvocations || []}>
+                {toolInvocation => {
+                  console.log(
+                    'Tool invocation',
+                    JSON.stringify(toolInvocation, null, 2),
+                  );
+                  return (
                     <Show
-                      when={'result' in toolInvocation && toolInvocation}
-                      keyed
                       fallback={
-                        <div class="text-gray-500">
-                          Calling {toolInvocation.toolName}...
-                        </div>
+                        <Show
+                          when={'result' in toolInvocation && toolInvocation}
+                          keyed
+                          fallback={
+                            <div class="text-gray-500">
+                              Calling {toolInvocation.toolName}...
+                            </div>
+                          }
+                        >
+                          {toolInvocation => {
+                            console.log(
+                              'Tool invocation result',
+                              JSON.stringify(toolInvocation, null, 2),
+                            );
+                            return (
+                              <div class="text-gray-500">
+                                Tool call {`${toolInvocation.toolName}: `}
+                                {toolInvocation.result}
+                              </div>
+                            );
+                          }}
+                        </Show>
                       }
+                      when={
+                        toolInvocation.toolName === 'askForConfirmation' &&
+                        toolInvocation
+                      }
+                      keyed
                     >
                       {toolInvocation => (
                         <div class="text-gray-500">
-                          Tool call {`${toolInvocation.toolName}: `}
-                          {toolInvocation.result}
+                          {toolInvocation.args.message}
+                          <div class="flex gap-2">
+                            <Show
+                              fallback={
+                                <>
+                                  <button
+                                    class="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
+                                    onClick={() =>
+                                      addToolResult({
+                                        toolCallId: toolInvocation.toolCallId,
+                                        result: 'Yes, confirmed.',
+                                      })
+                                    }
+                                  >
+                                    Yes
+                                  </button>
+                                  <button
+                                    class="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
+                                    onClick={() =>
+                                      addToolResult({
+                                        toolCallId: toolInvocation.toolCallId,
+                                        result: 'No, denied',
+                                      })
+                                    }
+                                  >
+                                    No
+                                  </button>
+                                </>
+                              }
+                              when={
+                                'result' in toolInvocation && toolInvocation
+                              }
+                              keyed
+                            >
+                              {toolInvocation => <b>{toolInvocation.result}</b>}
+                            </Show>
+                          </div>
                         </div>
                       )}
                     </Show>
-                  }
-                  when={
-                    toolInvocation.toolName === 'askForConfirmation' &&
-                    toolInvocation
-                  }
-                  keyed
-                >
-                  {toolInvocation => (
-                    <div class="text-gray-500">
-                      {toolInvocation.args.message}
-                      <div class="flex gap-2">
-                        <Show
-                          fallback={
-                            <>
-                              <button
-                                class="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
-                                onClick={() =>
-                                  addToolResult({
-                                    toolCallId: toolInvocation.toolCallId,
-                                    result: 'Yes, confirmed.',
-                                  })
-                                }
-                              >
-                                Yes
-                              </button>
-                              <button
-                                class="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
-                                onClick={() =>
-                                  addToolResult({
-                                    toolCallId: toolInvocation.toolCallId,
-                                    result: 'No, denied',
-                                  })
-                                }
-                              >
-                                No
-                              </button>
-                            </>
-                          }
-                          when={'result' in toolInvocation && toolInvocation}
-                          keyed
-                        >
-                          {toolInvocation => <b>{toolInvocation.result}</b>}
-                        </Show>
-                      </div>
-                    </div>
-                  )}
-                </Show>
-              )}
-            </For>
-            <br />
-            <br />
-          </div>
-        )}
+                  );
+                }}
+              </For>
+              <br />
+              <br />
+            </div>
+          );
+        }}
       </For>
 
       <form onSubmit={handleSubmit}>
