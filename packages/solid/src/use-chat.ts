@@ -18,7 +18,7 @@ import {
   createSignal,
   createUniqueId,
 } from 'solid-js';
-import { createStore, reconcile } from 'solid-js/store';
+import { createStore, reconcile, Store } from 'solid-js/store';
 import { ReactiveLRU } from './utils/reactive-lru';
 import { convertToAccessorOptions } from './utils/convert-to-accessor-options';
 
@@ -32,9 +32,9 @@ export type UseChatHelpers = {
   messages: Accessor<Message[]>;
 
   /**
-   * Current messages in the chat as a store
+   * Current messages in the chat as a SolidJS Store
    */
-  messagesStore: Message[];
+  messagesStore: Store<Message[]>;
 
   /** The error object of the API request */
   error: Accessor<undefined | Error>;

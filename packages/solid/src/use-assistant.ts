@@ -9,20 +9,26 @@ import {
 } from '@ai-sdk/ui-utils';
 import { Accessor, createMemo, createSignal, JSX, Setter } from 'solid-js';
 import { convertToAccessorOptions } from './utils/convert-to-accessor-options';
+import {
+  createStore,
+  SetStoreFunction,
+  Store,
+  StoreSetter,
+} from 'solid-js/store';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
 export type UseAssistantHelpers = {
   /**
-   * The current array of chat messages.
+   * The current array of chat messages in a SolidJS Store.
    */
-  messages: Accessor<Message[]>;
+  messages: Store<Message[]>;
 
   /**
    * Update the message store with a new array of messages.
    */
-  setMessages: Setter<Message[]>;
+  setMessages: SetStoreFunction<Message[]>;
 
   /**
    * The current thread ID.
@@ -98,7 +104,7 @@ export function useAssistant(
     convertToAccessorOptions(rawUseAssistantOptions),
   );
 
-  const [messages, setMessages] = createSignal<Message[]>([]);
+  const [messages, setMessages] = createStore<Message[]>([]);
   const [input, setInput] = createSignal('');
   const [currentThreadId, setCurrentThreadId] = createSignal<string>();
   const [status, setStatus] = createSignal<AssistantStatus>('awaiting_message');
