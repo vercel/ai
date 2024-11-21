@@ -1,11 +1,5 @@
 import type { Agent } from '@ai-sdk/agent-server';
-import { z } from 'zod';
-
-const schema = z.object({
-  prompt: z.string(),
-});
-
-type Schema = z.infer<typeof schema>;
+import { Context, contextSchema } from './context.js';
 
 export default {
   // Explicit start method that receives the request, so that the user
@@ -16,7 +10,7 @@ export default {
     const body = await request.json();
 
     return {
-      context: schema.parse(body),
+      context: contextSchema.parse(body),
     };
   },
 
@@ -24,4 +18,4 @@ export default {
   async nextState({ currentState, context }) {
     return 'main';
   },
-} satisfies Agent<Schema>;
+} satisfies Agent<Context>;
