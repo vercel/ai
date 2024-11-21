@@ -10,7 +10,7 @@ export const POST = async (event: APIEvent) => {
   const currentMessage = messages[messages.length - 1];
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4o-mini'),
     messages: [
       ...initialMessages,
       {

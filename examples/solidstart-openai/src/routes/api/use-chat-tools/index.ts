@@ -7,14 +7,17 @@ export const POST = async (event: APIEvent) => {
   const { messages } = await event.request.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o-mini'),
     messages,
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {
         description: 'show the weather in a given city to the user',
         parameters: z.object({ city: z.string() }),
-        execute: async ({}: { city: string }) => {
+        execute: async ({ city }: { city: string }) => {
+          // Add artificial delay of 2 seconds
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
           const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
           return weatherOptions[
             Math.floor(Math.random() * weatherOptions.length)

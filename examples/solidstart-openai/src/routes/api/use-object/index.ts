@@ -1,12 +1,13 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import { notificationSchema } from './schema';
+import { APIHandler } from '@solidjs/start/server';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-export async function POST(req: Request) {
-  const context = await req.json();
+export const POST: APIHandler = async ({ request }) => {
+  const context = await request.json();
 
   const result = streamObject({
     model: openai('gpt-4o'),
@@ -15,4 +16,4 @@ export async function POST(req: Request) {
   });
 
   return result.toTextStreamResponse();
-}
+};
