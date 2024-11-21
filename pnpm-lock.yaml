@@ -1483,9 +1483,15 @@ importers:
 
   packages/server:
     dependencies:
+      '@hono/node-server':
+        specifier: 1.13.7
+        version: 1.13.7(hono@4.6.11)
       commander:
         specifier: 12.1.0
         version: 12.1.0
+      hono:
+        specifier: 4.6.11
+        version: 4.6.11
       pino:
         specifier: 9.5.0
         version: 9.5.0
@@ -3560,6 +3566,12 @@ packages:
 
   '@hono/node-server@1.12.2':
     resolution: {integrity: sha512-xjzhqhSWUE/OhN0g3KCNVzNsQMlFUAL+/8GgPUr3TKcU7cvgZVBGswFofJ8WwGEHTqobzze1lDpGJl9ZNckDhA==}
+    engines: {node: '>=18.14.1'}
+    peerDependencies:
+      hono: ^4
+
+  '@hono/node-server@1.13.7':
+    resolution: {integrity: sha512-kTfUMsoloVKtRA2fLiGSd9qBddmru9KadNyhJCwgKBxTiNkaAJEwkVN9KV/rS4HtmmNRtUh6P+YpmjRMl0d9vQ==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -9067,6 +9079,10 @@ packages:
 
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
+
+  hono@4.6.11:
+    resolution: {integrity: sha512-f0LwJQFKdUUrCUAVowxSvNCjyzI7ZLt8XWYU/EApyeq5FfOvHFarBaE5rjU9HTNFk4RI0FkdB2edb3p/7xZjzQ==}
+    engines: {node: '>=16.9.0'}
 
   hono@4.6.9:
     resolution: {integrity: sha512-p/pN5yZLuZaHzyAOT2nw2/Ud6HhJHYmDNGH6Ck1OWBhPMVeM1r74jbCRwNi0gyFRjjbsGgoHbOyj7mT1PDNbTw==}
@@ -15590,6 +15606,10 @@ snapshots:
   '@hono/node-server@1.12.2(hono@4.6.9)':
     dependencies:
       hono: 4.6.9
+
+  '@hono/node-server@1.13.7(hono@4.6.11)':
+    dependencies:
+      hono: 4.6.11
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
@@ -22626,6 +22646,8 @@ snapshots:
   hoist-non-react-statics@3.3.2:
     dependencies:
       react-is: 16.13.1
+
+  hono@4.6.11: {}
 
   hono@4.6.9: {}
 

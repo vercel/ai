@@ -31,7 +31,9 @@
     }
   },
   "dependencies": {
+    "@hono/node-server": "1.13.7",
     "commander": "12.1.0",
+    "hono": "4.6.11",
     "pino": "9.5.0",
     "zod": "3.23.8"
   },
