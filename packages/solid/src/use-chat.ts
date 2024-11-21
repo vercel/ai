@@ -25,9 +25,15 @@ export type { CreateMessage, Message };
 
 export type UseChatHelpers = {
   /**
-   * Current messages in the chat
+   * Current messages in the chat as a signal
+   * @deprecated Use `messagesStore` instead
    */
   messages: Accessor<Message[]>;
+
+  /**
+   * Current messages in the chat as a store
+   */
+  messagesStore: Message[];
 
   /** The error object of the API request */
   error: Accessor<undefined | Error>;
@@ -211,7 +217,7 @@ export function useChat(
 
   const [messagesStore, setMessagesStore] = createStore<Message[]>(_messages());
   createEffect(() => {
-    setMessagesStore(reconcile(_messages()));
+    setMessagesStore(reconcile(_messages(), { merge: true }));
   });
 
   const mutate = (messages: Message[]) => {
@@ -459,6 +465,7 @@ export function useChat(
 
   return {
     messages: () => messagesStore,
+    messagesStore,
     append,
     error,
     reload,
