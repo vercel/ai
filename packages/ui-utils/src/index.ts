@@ -24,5 +24,6 @@ export { parsePartialJson } from './parse-partial-json';
 export { processAssistantStream } from './process-assistant-stream';
 export { processDataStream } from './process-data-stream';
 export { processTextStream } from './process-text-stream';
+export { processChatResponse } from './process-chat-response.ts';
 export { asSchema, jsonSchema, zodSchema } from './schema';
 export type { Schema } from './schema';
