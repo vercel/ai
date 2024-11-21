@@ -1,8 +1,9 @@
 {
-  "name": "@ai-sdk/server",
+  "name": "@ai-sdk/agent-server",
   "version": "0.0.0",
   "license": "Apache-2.0",
   "sideEffects": false,
+  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -10,6 +11,9 @@
     "dist/**/*",
     "CHANGELOG.md"
   ],
+  "bin": {
+    "agent-server": "./dist/server.js"
+  },
   "scripts": {
     "build": "pnpm clean && tsc --project ./tsconfig.json",
     "clean": "rm -rf dist",

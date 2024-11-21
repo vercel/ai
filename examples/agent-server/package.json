@@ -1,0 +1,13 @@
+{
+  "name": "agent-server-examples",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "pnpm agent-server --port 3000 --host 127.0.0.1"
+  },
+  "devDependencies": {},
+  "dependencies": {
+    "@ai-sdk/agent-server": "0.0.0"
+  }
+}

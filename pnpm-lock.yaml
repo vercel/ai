@@ -54,6 +54,12 @@ importers:
         specifier: 2.1.4
         version: 2.1.4(@edge-runtime/vm@4.0.4)(@types/node@22.7.4)(jsdom@24.0.0)(msw@2.6.4(@types/node@22.7.4)(typescript@5.6.3))(terser@5.31.3)
 
+  examples/agent-server:
+    dependencies:
+      '@ai-sdk/agent-server':
+        specifier: 0.0.0
+        version: link:../../packages/agent-server
+
   examples/ai-core:
     dependencies:
       '@ai-sdk/amazon-bedrock':
@@ -849,12 +855,6 @@ importers:
         specifier: 4.4.5
         version: 4.4.5(vue@3.5.13(typescript@5.6.3))
 
-  examples/server:
-    dependencies:
-      '@ai-sdk/server':
-        specifier: 0.0.0
-        version: link:../../packages/server
-
   examples/solidstart-openai:
     dependencies:
       '@ai-sdk/openai':
@@ -992,6 +992,40 @@ importers:
       tsx:
         specifier: 4.7.1
         version: 4.7.1
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+
+  packages/agent-server:
+    dependencies:
+      '@hono/node-server':
+        specifier: 1.13.7
+        version: 1.13.7(hono@4.6.11)
+      commander:
+        specifier: 12.1.0
+        version: 12.1.0
+      hono:
+        specifier: 4.6.11
+        version: 4.6.11
+      pino:
+        specifier: 9.5.0
+        version: 9.5.0
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+    devDependencies:
+      '@types/node':
+        specifier: ^18
+        version: 18.19.54
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.4.49)(tsx@4.19.2)(typescript@5.6.3)(yaml@2.5.0)
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
       typescript:
         specifier: 5.6.3
         version: 5.6.3
@@ -1486,40 +1520,6 @@ importers:
       zod:
         specifier: 3.23.8
         version: 3.23.8
-
-  packages/server:
-    dependencies:
-      '@hono/node-server':
-        specifier: 1.13.7
-        version: 1.13.7(hono@4.6.11)
-      commander:
-        specifier: 12.1.0
-        version: 12.1.0
-      hono:
-        specifier: 4.6.11
-        version: 4.6.11
-      pino:
-        specifier: 9.5.0
-        version: 9.5.0
-      zod:
-        specifier: 3.23.8
-        version: 3.23.8
-    devDependencies:
-      '@types/node':
-        specifier: ^18
-        version: 18.19.54
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
-      tsup:
-        specifier: ^8
-        version: 8.3.0(jiti@2.4.0)(postcss@8.4.49)(tsx@4.19.2)(typescript@5.6.3)(yaml@2.5.0)
-      tsx:
-        specifier: 4.19.2
-        version: 4.19.2
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
 
   packages/solid:
     dependencies:

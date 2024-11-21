@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import { logger as honoLogger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 import zod from 'zod';
-import { startService } from './util/start-service';
+import { startService } from './util/start-service.js';
 
 startService({
   name: '@ai-sdk/server',

@@ -1,7 +1,7 @@
 import { Command, Option } from 'commander';
 import pino from 'pino';
 import { Schema } from 'zod';
-import { shutdownOnSigTermAndSigInt } from './shutdown-on-sigterm-and-sigint';
+import { shutdownOnSigTermAndSigInt } from './shutdown-on-sigterm-and-sigint.js';
 
 /**
  * Start a long-running service.
