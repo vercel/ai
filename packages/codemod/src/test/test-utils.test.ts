@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as testUtils from './test-utils';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { parse } from '@babel/parser';
 
 vi.mock('fs', () => ({
   existsSync: vi.fn(),
@@ -11,10 +10,6 @@ vi.mock('fs', () => ({
 
 vi.mock('path', () => ({
   join: vi.fn((...args) => args.join('/')),
-}));
-
-vi.mock('@babel/parser', () => ({
-  parse: vi.fn(),
 }));
 
 describe('test-utils', () => {
@@ -144,69 +139,96 @@ describe('test-utils', () => {
   });
 
   describe('validateSyntax', () => {
-    const mockParse = parse as unknown as ReturnType<typeof vi.fn>;
-
     it('should validate typescript syntax', () => {
-      mockParse.mockImplementation(() => ({}));
+      const tsCode = `
+        interface User {
+          name: string;
+          age: number;
+        }
+        const user: User = {
+          name: 'John',
+          age: 30
+        };
+      `;
 
-      expect(() =>
-        testUtils.validateSyntax('const x: number = 1;', '.ts'),
-      ).not.toThrow();
-      expect(mockParse).toHaveBeenCalledWith(
-        'const x: number = 1;',
-        expect.objectContaining({
-          plugins: ['typescript'],
-        }),
-      );
+      expect(() => testUtils.validateSyntax(tsCode, '.ts')).not.toThrow();
     });
 
     it('should validate tsx syntax', () => {
-      mockParse.mockImplementation(() => ({}));
+      const tsxCode = `
+        interface Props {
+          name: string;
+        }
+        const Component = ({ name }: Props) => <div>{name}</div>;
+      `;
 
-      expect(() =>
-        testUtils.validateSyntax('const x = <div />;', '.tsx'),
-      ).not.toThrow();
-      expect(mockParse).toHaveBeenCalledWith(
-        'const x = <div />;',
-        expect.objectContaining({
-          plugins: ['typescript', 'jsx'],
-        }),
+      expect(() => testUtils.validateSyntax(tsxCode, '.tsx')).not.toThrow();
+    });
+
+    it('should validate javascript syntax', () => {
+      const jsCode = `
+        const user = {
+          name: 'John',
+          age: 30
+        };
+        console.log(user);
+      `;
+
+      expect(() => testUtils.validateSyntax(jsCode, '.js')).not.toThrow();
+    });
+
+    it('should validate jsx syntax', () => {
+      const jsxCode = `
+        const Component = ({ name }) => <div>{name}</div>;
+        export default Component;
+      `;
+
+      expect(() => testUtils.validateSyntax(jsxCode, '.jsx')).not.toThrow();
+    });
+
+    it('should catch syntax errors', () => {
+      const invalidCode = `
+        const x = {
+          foo: 'bar'
+          bar: 'baz'  // missing comma
+        };
+      `;
+
+      expect(() => testUtils.validateSyntax(invalidCode, '.js')).toThrow(
+        /Syntax error/,
       );
     });
 
-    it('should throw on invalid syntax', () => {
-      mockParse.mockImplementation(() => {
-        throw new Error('Invalid syntax');
-      });
+    it('should catch typescript type errors', () => {
+      const invalidTsCode = `
+        const x: number = "string";  // Type mismatch
+      `;
 
-      expect(() => testUtils.validateSyntax('const x =;', '.ts')).toThrow(
-        'Syntax error',
+      expect(() => testUtils.validateSyntax(invalidTsCode, '.ts')).toThrow(
+        /Type.*string.*not assignable to type.*number/,
       );
     });
   });
 
   describe('testTransform', () => {
-    const mockParse = parse as unknown as ReturnType<typeof vi.fn>;
-
     beforeEach(() => {
-      mockParse.mockImplementation(() => ({}));
+      vi.clearAllMocks();
     });
 
     it('should compare transform output with fixture and validate syntax', () => {
-      const mockTransform = vi.fn().mockReturnValue('transformed');
+      const mockTransform = vi.fn().mockReturnValue('const x: number = 42;');
 
       (existsSync as any).mockImplementation((path: string) =>
         path.endsWith('.ts'),
       );
       (readFileSync as any)
-        .mockReturnValueOnce('input content')
-        .mockReturnValueOnce('transformed');
+        .mockReturnValueOnce('const x: number = 1;') // Valid TS input
+        .mockReturnValueOnce('const x: number = 42;'); // Valid TS output
 
       testUtils.testTransform(mockTransform, 'test');
 
       expect(mockTransform).toHaveBeenCalled();
       expect(readFileSync).toHaveBeenCalledTimes(2);
-      expect(mockParse).toHaveBeenCalledTimes(2); // Validates both input and output
     });
 
     it('should throw when transform output does not match fixture', () => {
