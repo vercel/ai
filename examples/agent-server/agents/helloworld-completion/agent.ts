@@ -1,11 +1,26 @@
 import type { Agent } from '@ai-sdk/agent-server';
+import { z } from 'zod';
+
+const schema = z.object({
+  prompt: z.string(),
+});
+
+type Schema = z.infer<typeof schema>;
 
 export default {
-  async init({ request, metadata }) {
+  // Explicit start method that receives the request, so that the user
+  // can perform any data validation, transformation, and loading
+  // that is required for their agent.
+  // The goal is to provide the initial context for the agent run.
+  async start({ request, metadata }) {
+    const body = await request.json();
+
     return {
-      context: {
-        bla: 'bla',
-      },
+      context: schema.parse(body),
     };
   },
-} satisfies Agent<{ bla: string }>;
+
+  async routeStep({ context }) {
+    return 'main';
+  },
+} satisfies Agent<Schema>;

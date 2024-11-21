@@ -65,6 +65,9 @@ importers:
       ai:
         specifier: 4.0.2
         version: link:../../packages/ai
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
     devDependencies:
       '@types/node':
         specifier: 22.9.1

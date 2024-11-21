@@ -1,7 +1,7 @@
 import { JSONValue } from '@ai-sdk/provider';
 
 export interface Agent<CONTEXT extends JSONValue> {
-  init(options: {
+  start(options: {
     request: Request;
     metadata: {
       agentName: string;
@@ -9,4 +9,6 @@ export interface Agent<CONTEXT extends JSONValue> {
   }): PromiseLike<{
     context: CONTEXT;
   }>;
+
+  routeStep(options: { context: CONTEXT }): PromiseLike<string>;
 }

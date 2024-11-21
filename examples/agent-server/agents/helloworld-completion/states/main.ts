@@ -7,5 +7,6 @@ export async function state() {
     prompt: 'Hello, how are you?',
   });
 
+  // TODO support non-streaming steps
   return result.toDataStream(); // TODO special stream format toAgentStream
 }

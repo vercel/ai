@@ -38,25 +38,25 @@ startService({
 
     // routes setup
     app.post('/agent/:agent/start', async context => {
-      const agent = context.req.param('agent');
+      const agentName = context.req.param('agent');
 
-      const agentPath = path.join(process.cwd(), 'agents', agent);
+      const agentPath = path.join(process.cwd(), 'agents', agentName);
       const agentModulePath = path.join(agentPath, 'agent.js');
 
       try {
-        const agentModule: Agent<any> = (await import(agentModulePath)).default;
-        logger.info(`Successfully loaded agent module: ${agent}`);
+        const agent: Agent<any> = (await import(agentModulePath)).default;
+        logger.info(`Successfully loaded agent module: ${agentName}`);
 
-        const result = await agentModule.init({
+        const result = await agent.start({
           request: context.req.raw,
-          metadata: { agentName: agent },
+          metadata: { agentName },
         });
 
         return context.json({
           success: true,
-          agentName: agent,
+          agentName,
           context: result.context,
-          module: agentModule,
+          module: agent,
         });
       } catch (error) {
         logger.error(`Failed to load agent module: ${error}`);
