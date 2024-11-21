@@ -13,9 +13,9 @@ export default function Chat() {
     error,
     stop,
     reload,
-  } = useChat(() => ({
+  } = useChat({
     api: '/api/use-chat-streamdata',
-  }));
+  });
 
   return (
     <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">

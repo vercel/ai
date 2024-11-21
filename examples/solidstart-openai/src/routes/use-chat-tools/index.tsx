@@ -4,7 +4,7 @@ import { For, Show } from 'solid-js';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
-    useChat(() => ({
+    useChat({
       api: '/api/use-chat-tools',
       maxSteps: 5,
 
@@ -20,7 +20,7 @@ export default function Chat() {
           return cities[Math.floor(Math.random() * cities.length)];
         }
       },
-    }));
+    });
 
   return (
     <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
