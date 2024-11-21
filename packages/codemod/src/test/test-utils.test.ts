@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { API, FileInfo } from 'jscodeshift';
 import * as testUtils from './test-utils';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { parse } from '@babel/parser';
 
 vi.mock('fs', () => ({
   existsSync: vi.fn(),
@@ -11,6 +11,10 @@ vi.mock('fs', () => ({
 
 vi.mock('path', () => ({
   join: vi.fn((...args) => args.join('/')),
+}));
+
+vi.mock('@babel/parser', () => ({
+  parse: vi.fn(),
 }));
 
 describe('test-utils', () => {
@@ -102,7 +106,10 @@ describe('test-utils', () => {
 
       const result = testUtils.readFixture('test', 'input');
 
-      expect(result).toBe('ts content');
+      expect(result).toEqual({
+        content: 'ts content',
+        extension: '.ts',
+      });
       expect(mockReadFileSync).toHaveBeenCalledWith(
         expect.stringContaining('test.input.ts'),
         'utf8',
@@ -117,7 +124,10 @@ describe('test-utils', () => {
 
       const result = testUtils.readFixture('test', 'input');
 
-      expect(result).toBe('tsx content');
+      expect(result).toEqual({
+        content: 'tsx content',
+        extension: '.tsx',
+      });
       expect(mockReadFileSync).toHaveBeenCalledWith(
         expect.stringContaining('test.input.tsx'),
         'utf8',
@@ -133,34 +143,81 @@ describe('test-utils', () => {
     });
   });
 
+  describe('validateSyntax', () => {
+    const mockParse = parse as unknown as ReturnType<typeof vi.fn>;
+
+    it('should validate typescript syntax', () => {
+      mockParse.mockImplementation(() => ({}));
+
+      expect(() =>
+        testUtils.validateSyntax('const x: number = 1;', '.ts'),
+      ).not.toThrow();
+      expect(mockParse).toHaveBeenCalledWith(
+        'const x: number = 1;',
+        expect.objectContaining({
+          plugins: ['typescript'],
+        }),
+      );
+    });
+
+    it('should validate tsx syntax', () => {
+      mockParse.mockImplementation(() => ({}));
+
+      expect(() =>
+        testUtils.validateSyntax('const x = <div />;', '.tsx'),
+      ).not.toThrow();
+      expect(mockParse).toHaveBeenCalledWith(
+        'const x = <div />;',
+        expect.objectContaining({
+          plugins: ['typescript', 'jsx'],
+        }),
+      );
+    });
+
+    it('should throw on invalid syntax', () => {
+      mockParse.mockImplementation(() => {
+        throw new Error('Invalid syntax');
+      });
+
+      expect(() => testUtils.validateSyntax('const x =;', '.ts')).toThrow(
+        'Syntax error',
+      );
+    });
+  });
+
   describe('testTransform', () => {
-    it('should compare transform output with fixture', () => {
+    const mockParse = parse as unknown as ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      mockParse.mockImplementation(() => ({}));
+    });
+
+    it('should compare transform output with fixture and validate syntax', () => {
       const mockTransform = vi.fn().mockReturnValue('transformed');
 
-      // Mock filesystem for this test
       (existsSync as any).mockImplementation((path: string) =>
         path.endsWith('.ts'),
       );
       (readFileSync as any)
-        .mockReturnValueOnce('input content') // First call for input
-        .mockReturnValueOnce('transformed'); // Second call for output
+        .mockReturnValueOnce('input content')
+        .mockReturnValueOnce('transformed');
 
       testUtils.testTransform(mockTransform, 'test');
 
       expect(mockTransform).toHaveBeenCalled();
       expect(readFileSync).toHaveBeenCalledTimes(2);
+      expect(mockParse).toHaveBeenCalledTimes(2); // Validates both input and output
     });
 
     it('should throw when transform output does not match fixture', () => {
       const mockTransform = vi.fn().mockReturnValue('wrong output');
 
-      // Mock filesystem for this test
       (existsSync as any).mockImplementation((path: string) =>
         path.endsWith('.ts'),
       );
       (readFileSync as any)
-        .mockReturnValueOnce('input') // First call for input
-        .mockReturnValueOnce('expected output'); // Second call for output
+        .mockReturnValueOnce('input')
+        .mockReturnValueOnce('expected output');
 
       expect(() => testUtils.testTransform(mockTransform, 'test')).toThrow();
     });
