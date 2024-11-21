@@ -788,7 +788,7 @@ describe('doStream', () => {
 
   it('should handle error stream parts', async () => {
     server.responseChunks = [
-      `data: {"code":"Client specified an invalid argument","error":"Incorrect API key provided: as***T7. You can obtain an API key from https://console.x.ai."}\n\n`,
+      `data: {"error": {"message": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.", "code": "Client specified an invalid argument"}}\n\n`,
       'data: [DONE]\n\n',
     ];
 
@@ -802,14 +802,14 @@ describe('doStream', () => {
       {
         type: 'error',
         error:
-          'Incorrect API key provided: as***T7. You can obtain an API key from https://console.x.ai.',
+          'Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.',
       },
       {
-        finishReason: 'error',
         type: 'finish',
+        finishReason: 'error',
         usage: {
-          completionTokens: NaN,
           promptTokens: NaN,
+          completionTokens: NaN,
         },
       },
     ]);

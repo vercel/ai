@@ -1,11 +1,17 @@
 import { z } from 'zod';
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
 
-// TODO(shaper): Reconcile this with openai-error.ts. We derived from `xai`.
-
 export const openaiCompatibleErrorDataSchema = z.object({
-  code: z.string(),
-  error: z.string(),
+  error: z.object({
+    message: z.string(),
+
+    // The additional information below is handled loosely to support
+    // OpenAI-compatible providers that have slightly different error
+    // responses:
+    type: z.string().nullish(),
+    param: z.any().nullish(),
+    code: z.union([z.string(), z.number()]).nullish(),
+  }),
 });
 
 export type OpenAICompatibleErrorData = z.infer<
@@ -15,5 +21,5 @@ export type OpenAICompatibleErrorData = z.infer<
 export const openaiCompatibleFailedResponseHandler =
   createJsonErrorResponseHandler({
     errorSchema: openaiCompatibleErrorDataSchema,
-    errorToMessage: data => data.error,
+    errorToMessage: data => data.error.message,
   });

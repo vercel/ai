@@ -300,7 +300,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
             // handle error chunks:
             if ('error' in value) {
               finishReason = 'error';
-              controller.enqueue({ type: 'error', error: value.error });
+              controller.enqueue({ type: 'error', error: value.error.message });
               return;
             }
 
