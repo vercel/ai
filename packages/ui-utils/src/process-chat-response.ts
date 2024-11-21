@@ -71,8 +71,7 @@ export async function processChatResponse({
     // trigger update for streaming by copying adding a revision id that changes
     // (without it, the changes get stuck in SWR and are not forwarded to rendering):
     const copiedMessage = {
-      // Deep copy
-      ...structuredClone(currentMessage),
+      ...structuredClone(currentMessage), // deep copy
       revisionId: generateId(),
     };
 
