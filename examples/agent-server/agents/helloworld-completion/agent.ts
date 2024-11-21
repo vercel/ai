@@ -20,6 +20,7 @@ export default {
     };
   },
 
+  // Special states: START, END
   async nextState({ currentState, context }) {
     return 'main';
   },
