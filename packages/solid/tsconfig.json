@@ -1,8 +1,13 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/react-library.json",
   "compilerOptions": {
-    "target": "ES2018",
-    "stripInternal": true
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "target": "ESNext",
+    "module": "ESNext",
+    "stripInternal": true,
+    "moduleResolution": "Bundler"
   },
   "include": ["."],
   "exclude": ["*/dist", "dist", "build", "node_modules"]

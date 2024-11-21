@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.0.1
+
+### Patch Changes
+
+- b446ae5: feat (provider): Define type for ObjectGenerationMode.
+
 ## 1.0.0
 
 ### Major Changes

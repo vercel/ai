@@ -1,17 +1,15 @@
 // https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models
 export type GoogleVertexModelId =
-  // Stable version
+  | 'gemini-1.5-flash'
   | 'gemini-1.5-flash-001'
   | 'gemini-1.5-flash-002'
+  | 'gemini-1.5-pro'
   | 'gemini-1.5-pro-001'
   | 'gemini-1.5-pro-002'
-  | 'gemini-1.0-pro-001'
-  | 'gemini-1.0-pro-vision-001'
-  // Auto-updated alias
-  | 'gemini-1.5-flash'
-  | 'gemini-1.5-pro'
   | 'gemini-1.0-pro'
+  | 'gemini-1.0-pro-001'
   | 'gemini-1.0-pro-vision'
+  | 'gemini-1.0-pro-vision-001'
   | (string & {});
 
 export interface GoogleVertexSettings {
