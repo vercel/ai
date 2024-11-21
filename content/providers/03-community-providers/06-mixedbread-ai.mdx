@@ -9,7 +9,7 @@ description: Learn how to use the Mixedbread AI provider.
 
 ## Setup
 
-The Ollama provider is available in the `mixedbread-ai-provider` module. You can install it with
+The Mixedbread provider is available in the `mixedbread-ai-provider` module. You can install it with
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
@@ -42,7 +42,7 @@ const mixedbread = createMixedbread({
 });
 ```
 
-You can use the following optional settings to customize the Ollama provider instance:
+You can use the following optional settings to customize the Mixedbread provider instance:
 
 - **baseURL** _string_
 
@@ -89,7 +89,7 @@ const embeddingModel = mixedbread.textEmbeddingModel(
   'mixedbread-ai/mxbai-embed-large-v1',
   {
     prompt: 'Generate embeddings for text', // Max 256 characters
-    dimensions: 512, // Max 1024
+    dimensions: 512, // Max 1024 for embed-large-v1
   },
 );
 ```
