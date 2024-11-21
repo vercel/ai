@@ -2,13 +2,15 @@ import { useChat } from '@ai-sdk/solid';
 import { For } from 'solid-js';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat(() => ({
-    api: '/api/use-chat-vision',
-  }));
+  const { messagesStore, input, handleInputChange, handleSubmit } = useChat(
+    () => ({
+      api: '/api/use-chat-vision',
+    }),
+  );
 
   return (
     <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      <For each={messages()}>
+      <For each={messagesStore}>
         {m => (
           <div class="whitespace-pre-wrap">
             {m.role === 'user' ? 'User: ' : 'AI: '}

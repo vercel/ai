@@ -9,8 +9,12 @@ export const POST = async (event: APIEvent) => {
   const data = new StreamData();
   data.append('initialized call');
 
+  data.appendMessageAnnotation({
+    type: 'text',
+    text: 'This is a test annotation',
+  });
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4o-mini'),
     messages,
     onFinish() {
       data.append('call completed');

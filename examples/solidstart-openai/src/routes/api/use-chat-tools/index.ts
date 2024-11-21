@@ -7,7 +7,7 @@ export const POST = async (event: APIEvent) => {
   const { messages } = await event.request.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o-mini'),
     messages,
     tools: {
       // server-side tool with execute function:
