@@ -242,7 +242,7 @@ importers:
         specifier: ^4.17.17
         version: 4.17.21
       '@types/jest':
-        specifier: ^29.5.2
+        specifier: ^29.5.14
         version: 29.5.14
       '@types/node':
         specifier: ^20.3.1
@@ -336,7 +336,7 @@ importers:
         specifier: 14.2.3
         version: 14.2.3(eslint@8.57.1)(typescript@5.6.3)
       postcss:
-        specifier: ^8.4.23
+        specifier: ^8.4.49
         version: 8.4.49
       tailwindcss:
         specifier: ^3.3.2
@@ -391,7 +391,7 @@ importers:
         specifier: 14.2.3
         version: 14.2.3(eslint@8.57.1)(typescript@5.6.3)
       postcss:
-        specifier: ^8.4.23
+        specifier: ^8.4.49
         version: 8.4.49
       tailwindcss:
         specifier: ^3.3.2
@@ -455,7 +455,7 @@ importers:
         specifier: 14.2.3
         version: 14.2.3(eslint@8.57.1)(typescript@5.6.3)
       postcss:
-        specifier: ^8.4.23
+        specifier: ^8.4.49
         version: 8.4.49
       tailwindcss:
         specifier: ^3.3.2
@@ -507,7 +507,7 @@ importers:
         specifier: 14.2.3
         version: 14.2.3(eslint@8.57.1)(typescript@5.6.3)
       postcss:
-        specifier: ^8.4.23
+        specifier: ^8.4.49
         version: 8.4.49
       tailwindcss:
         specifier: ^3.3.2
@@ -562,7 +562,7 @@ importers:
         specifier: 14.2.3
         version: 14.2.3(eslint@8.57.1)(typescript@5.4.5)
       postcss:
-        specifier: ^8.4.23
+        specifier: ^8.4.49
         version: 8.4.49
       tailwindcss:
         specifier: ^3.3.2
@@ -629,7 +629,7 @@ importers:
         specifier: 14.2.3
         version: 14.2.3(eslint@8.57.1)(typescript@5.6.3)
       postcss:
-        specifier: ^8.4.23
+        specifier: ^8.4.49
         version: 8.4.49
       tailwindcss:
         specifier: ^3.3.2
@@ -702,7 +702,7 @@ importers:
         specifier: 14.2.3
         version: 14.2.3(eslint@8.57.1)(typescript@5.6.3)
       postcss:
-        specifier: ^8.4.23
+        specifier: ^8.4.49
         version: 8.4.49
       tailwindcss:
         specifier: ^3.3.2
@@ -757,7 +757,7 @@ importers:
         specifier: 14.2.3
         version: 14.2.3(eslint@8.57.1)(typescript@5.6.3)
       postcss:
-        specifier: ^8.4.23
+        specifier: ^8.4.49
         version: 8.4.49
       tailwindcss:
         specifier: ^3.3.2
@@ -880,7 +880,7 @@ importers:
         specifier: ^10.4.19
         version: 10.4.20(postcss@8.4.49)
       postcss:
-        specifier: ^8.4.38
+        specifier: ^8.4.49
         version: 8.4.49
       tailwindcss:
         specifier: ^3.4.3
@@ -929,8 +929,8 @@ importers:
         specifier: ^4
         version: 4.2.19
       svelte-check:
-        specifier: ^3.7
-        version: 3.8.6(@babel/core@7.26.0)(postcss-load-config@4.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@20.17.6)(typescript@5.6.3)))(postcss@8.4.49)(svelte@4.2.19)
+        specifier: ^4.0
+        version: 4.0.9(picomatch@4.0.2)(svelte@4.2.19)(typescript@5.6.3)
       tslib:
         specifier: ^2.6.0
         version: 2.8.1
@@ -1642,7 +1642,7 @@ importers:
         specifier: ^6.4.5
         version: 6.6.3
       '@testing-library/user-event':
-        specifier: ^14.5.1
+        specifier: ^14.5.2
         version: 14.5.2(@testing-library/dom@10.4.0)
       '@testing-library/vue':
         specifier: ^8.1.0
@@ -5517,9 +5517,6 @@ packages:
   '@types/prop-types@15.7.13':
     resolution: {integrity: sha512-hCZTSvwbzWGvhqxp/RqVqwU999pBf2vp7hzIjiYOsl8wqOmUxkQ6ddw1cV3l8811+kdUFus/q4d1Y3E3SyEifA==}
 
-  '@types/pug@2.0.10':
-    resolution: {integrity: sha512-Sk/uYFOBAB7mb74XcpizmH0KOR2Pv3D2Hmrh1Dmy5BmK3MpdSa5kqZcg6EKBdklU0bFXX9gCfzvpnyUehrPIuA==}
-
   '@types/qs@6.9.17':
     resolution: {integrity: sha512-rX4/bPcfmvxHDv0XjfJELTTr+iB+tn032nPILqHm5wbthUUUuVtNGGqzhya9XUxjTP8Fpr0qYgSZZKxGY++svQ==}
 
@@ -7275,9 +7272,6 @@ packages:
   es-to-primitive@1.2.1:
     resolution: {integrity: sha512-QCOllgZJtaUo9miYBcLChTUaHNjJF3PYs1VidD7AwiEj1kYxKeQTctLAezAOH5ZKRH0g2IgPn6KwB4IT8iRpvA==}
     engines: {node: '>= 0.4'}
-
-  es6-promise@3.3.1:
-    resolution: {integrity: sha512-SOp9Phqvqn7jtEUxPWdWfWoLmyt2VaJ6MpvP9Comy1MceMXqE6bxvaTu4iaxpYYPzhny28Lc+M87/c2cPK6lDg==}
 
   esbuild@0.19.12:
     resolution: {integrity: sha512-aARqgq8roFBj054KvQr5f1sFu0D65G+miZRCuJyJ0G13Zwx7vRar5Zhn2tkQNzIXcBrNVsv/8stehpj+GAjgbg==}
@@ -10653,11 +10647,6 @@ packages:
   rfdc@1.4.1:
     resolution: {integrity: sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==}
 
-  rimraf@2.7.1:
-    resolution: {integrity: sha512-uWjbaKIK3T1OSVptzX7Nl6PvQ3qAGtKEtVRjRuazjfL3Bx5eI409VZSqgND+4UNnmzLVdPj9FqFJNPqBZFve4w==}
-    deprecated: Rimraf versions prior to v4 are no longer supported
-    hasBin: true
-
   rimraf@3.0.2:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
     deprecated: Rimraf versions prior to v4 are no longer supported
@@ -10735,9 +10724,6 @@ packages:
 
   safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
-
-  sander@0.5.1:
-    resolution: {integrity: sha512-3lVqBir7WuKDHGrKRDn/1Ye3kwpXaDOMsiRP1wd6wpZW56gJhsbp5RqQpA6JG/P+pkXizygnr1dKR8vzWaVsfA==}
 
   saxes@6.0.0:
     resolution: {integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==}
@@ -10948,10 +10934,6 @@ packages:
     peerDependencies:
       react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-
-  sorcery@0.11.1:
-    resolution: {integrity: sha512-o7npfeJE6wi6J9l0/5LKshFzZ2rMatRiCDwYeDQaOzqdzRJwALhX7mk/A/ecg6wjMu7wdZbmXfD2S/vpOg0bdQ==}
-    hasBin: true
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -11183,54 +11165,19 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  svelte-check@3.8.6:
-    resolution: {integrity: sha512-ij0u4Lw/sOTREP13BdWZjiXD/BlHE6/e2e34XzmVmsp5IN4kVa3PWP65NM32JAgwjZlwBg/+JtiNV1MM8khu0Q==}
+  svelte-check@4.0.9:
+    resolution: {integrity: sha512-SVNCz2L+9ZELGli7G0n3B3QE5kdf0u27RtKr2ZivWQhcWIXatZxwM4VrQ6AiA2k9zKp2mk5AxkEhdjbpjv7rEw==}
+    engines: {node: '>= 18.0.0'}
     hasBin: true
     peerDependencies:
-      svelte: ^3.55.0 || ^4.0.0-next.0 || ^4.0.0 || ^5.0.0-next.0
+      svelte: ^4.0.0 || ^5.0.0-next.0
+      typescript: '>=5.0.0'
 
   svelte-hmr@0.16.0:
     resolution: {integrity: sha512-Gyc7cOS3VJzLlfj7wKS0ZnzDVdv3Pn2IuVeJPk9m2skfhcu5bq3wtIZyQGggr7/Iim5rH5cncyQft/kRLupcnA==}
     engines: {node: ^12.20 || ^14.13.1 || >= 16}
     peerDependencies:
       svelte: ^3.19.0 || ^4.0.0
-
-  svelte-preprocess@5.1.4:
-    resolution: {integrity: sha512-IvnbQ6D6Ao3Gg6ftiM5tdbR6aAETwjhHV+UKGf5bHGYR69RQvF1ho0JKPcbUON4vy4R7zom13jPjgdOWCQ5hDA==}
-    engines: {node: '>= 16.0.0'}
-    peerDependencies:
-      '@babel/core': ^7.10.2
-      coffeescript: ^2.5.1
-      less: ^3.11.3 || ^4.0.0
-      postcss: ^7 || ^8
-      postcss-load-config: ^2.1.0 || ^3.0.0 || ^4.0.0 || ^5.0.0
-      pug: ^3.0.0
-      sass: ^1.26.8
-      stylus: ^0.55.0
-      sugarss: ^2.0.0 || ^3.0.0 || ^4.0.0
-      svelte: ^3.23.0 || ^4.0.0-next.0 || ^4.0.0 || ^5.0.0-next.0
-      typescript: '>=3.9.5 || ^4.0.0 || ^5.0.0'
-    peerDependenciesMeta:
-      '@babel/core':
-        optional: true
-      coffeescript:
-        optional: true
-      less:
-        optional: true
-      postcss:
-        optional: true
-      postcss-load-config:
-        optional: true
-      pug:
-        optional: true
-      sass:
-        optional: true
-      stylus:
-        optional: true
-      sugarss:
-        optional: true
-      typescript:
-        optional: true
 
   svelte@4.2.19:
     resolution: {integrity: sha512-IY1rnGr6izd10B0A8LqsBfmlT5OILVuZ7XsI0vdGPEvuonFV7NYEUK4dAkm9Zg2q0Um92kYjTpS1CAP3Nh/KWw==}
@@ -16925,8 +16872,6 @@ snapshots:
 
   '@types/prop-types@15.7.13': {}
 
-  '@types/pug@2.0.10': {}
-
   '@types/qs@6.9.17': {}
 
   '@types/range-parser@1.2.7': {}
@@ -19002,8 +18947,6 @@ snapshots:
       is-callable: 1.2.7
       is-date-object: 1.0.5
       is-symbol: 1.0.4
-
-  es6-promise@3.3.1: {}
 
   esbuild@0.19.12:
     optionalDependencies:
@@ -23383,10 +23326,6 @@ snapshots:
 
   rfdc@1.4.1: {}
 
-  rimraf@2.7.1:
-    dependencies:
-      glob: 7.2.3
-
   rimraf@3.0.2:
     dependencies:
       glob: 7.2.3
@@ -23482,13 +23421,6 @@ snapshots:
   safe-stable-stringify@2.5.0: {}
 
   safer-buffer@2.1.2: {}
-
-  sander@0.5.1:
-    dependencies:
-      es6-promise: 3.3.1
-      graceful-fs: 4.2.11
-      mkdirp: 0.5.6
-      rimraf: 2.7.1
 
   saxes@6.0.0:
     dependencies:
@@ -23766,13 +23698,6 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  sorcery@0.11.1:
-    dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.0
-      buffer-crc32: 1.0.0
-      minimist: 1.2.8
-      sander: 0.5.1
-
   source-map-js@1.2.1: {}
 
   source-map-support@0.5.13:
@@ -24030,43 +23955,21 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  svelte-check@3.8.6(@babel/core@7.26.0)(postcss-load-config@4.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@20.17.6)(typescript@5.6.3)))(postcss@8.4.49)(svelte@4.2.19):
+  svelte-check@4.0.9(picomatch@4.0.2)(svelte@4.2.19)(typescript@5.6.3):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
-      chokidar: 3.6.0
+      chokidar: 4.0.1
+      fdir: 6.4.2(picomatch@4.0.2)
       picocolors: 1.1.1
       sade: 1.8.1
       svelte: 4.2.19
-      svelte-preprocess: 5.1.4(@babel/core@7.26.0)(postcss-load-config@4.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@20.17.6)(typescript@5.6.3)))(postcss@8.4.49)(svelte@4.2.19)(typescript@5.6.3)
       typescript: 5.6.3
     transitivePeerDependencies:
-      - '@babel/core'
-      - coffeescript
-      - less
-      - postcss
-      - postcss-load-config
-      - pug
-      - sass
-      - stylus
-      - sugarss
+      - picomatch
 
   svelte-hmr@0.16.0(svelte@4.2.19):
     dependencies:
       svelte: 4.2.19
-
-  svelte-preprocess@5.1.4(@babel/core@7.26.0)(postcss-load-config@4.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@20.17.6)(typescript@5.6.3)))(postcss@8.4.49)(svelte@4.2.19)(typescript@5.6.3):
-    dependencies:
-      '@types/pug': 2.0.10
-      detect-indent: 6.1.0
-      magic-string: 0.30.13
-      sorcery: 0.11.1
-      strip-indent: 3.0.0
-      svelte: 4.2.19
-    optionalDependencies:
-      '@babel/core': 7.26.0
-      postcss: 8.4.49
-      postcss-load-config: 4.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@20.17.6)(typescript@5.6.3))
-      typescript: 5.6.3
 
   svelte@4.2.19:
     dependencies:
