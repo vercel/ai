@@ -1,6 +1,7 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
   JSONValue,
+  Message,
   RequestOptions,
   UseCompletionOptions,
 } from '@ai-sdk/ui-utils';
@@ -14,7 +15,7 @@ import {
   createSignal,
   createUniqueId,
 } from 'solid-js';
-import { createStore } from 'solid-js/store';
+import { ReactiveLRU } from './utils/reactive-lru';
 
 export type { UseCompletionOptions };
 
@@ -70,7 +71,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 };
 
-const [store, setStore] = createStore<Record<string, string>>({});
+const completionCache = new ReactiveLRU<string, string>();
 
 export function useCompletion(
   rawUseCompletionOptions:
@@ -92,11 +93,13 @@ export function useCompletion(
 
   const completion = createMemo(
     () =>
-      store[completionKey()] ?? useCompletionOptions().initialCompletion?.(),
+      completionCache.get(completionKey()) ??
+      useCompletionOptions().initialCompletion?.() ??
+      '',
   );
 
   const mutate = (data: string) => {
-    setStore(completionKey(), data);
+    completionCache.set(completionKey(), data);
   };
 
   const [error, setError] = createSignal<undefined | Error>(undefined);

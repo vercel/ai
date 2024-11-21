@@ -181,7 +181,7 @@ const processStreamedResponse = async (
   });
 };
 
-const chatCache = new ReactiveLRU<string, Message[]>(10);
+const chatCache = new ReactiveLRU<string, Message[]>();
 
 export type UseChatOptions = SharedUseChatOptions & {
   /**

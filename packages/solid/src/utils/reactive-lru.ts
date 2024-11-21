@@ -15,7 +15,7 @@ export class ReactiveLRU<K, V> extends Map<K, V> {
   #maxSize: number;
   #accessList: K[] = [];
 
-  constructor(maxSize: number, initial?: Iterable<readonly [K, V]> | null) {
+  constructor(maxSize = 10, initial?: Iterable<readonly [K, V]> | null) {
     super();
     this.#maxSize = maxSize;
     if (initial) {
