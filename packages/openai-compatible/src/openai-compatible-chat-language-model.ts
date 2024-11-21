@@ -5,7 +5,6 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -25,8 +24,8 @@ import {
   OpenAICompatibleChatSettings,
 } from './openai-compatible-chat-settings';
 import {
-  openAICompatibleErrorDataSchema,
-  openAICompatibleFailedResponseHandler,
+  openaiCompatibleErrorDataSchema,
+  openaiCompatibleFailedResponseHandler,
 } from './openai-compatible-error';
 import { prepareTools } from './openai-compatible-prepare-tools';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
@@ -130,9 +129,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
       // response format:
       response_format:
-        // TODO(shaper): Review vs. OpenAI impl here.
-        // json object response format is not currently supported
-        undefined,
+        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
       messages: convertToOpenAICompatibleChatMessages(prompt),
@@ -155,7 +152,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         return {
           args: {
             ...baseArgs,
-            // TODO(shaper): We removed structuredOutputs here.
             response_format: { type: 'json_object' },
           },
           warnings,
@@ -206,7 +202,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
-      failedResponseHandler: openAICompatibleFailedResponseHandler,
+      failedResponseHandler: openaiCompatibleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         OpenAICompatibleChatResponseSchema,
       ),
@@ -255,7 +251,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         ...args,
         stream: true,
       },
-      failedResponseHandler: openAICompatibleFailedResponseHandler,
+      failedResponseHandler: openaiCompatibleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         OpenAICompatibleChatChunkSchema,
       ),
@@ -544,5 +540,5 @@ const OpenAICompatibleChatChunkSchema = z.union([
       })
       .nullish(),
   }),
-  openAICompatibleErrorDataSchema,
+  openaiCompatibleErrorDataSchema,
 ]);

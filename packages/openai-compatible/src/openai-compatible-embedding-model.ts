@@ -13,9 +13,19 @@ import {
   OpenAICompatibleEmbeddingModelId,
   OpenAICompatibleEmbeddingSettings,
 } from './openai-compatible-embedding-settings';
-import { openAICompatibleFailedResponseHandler } from './openai-compatible-error';
+import { openaiCompatibleFailedResponseHandler } from './openai-compatible-error';
 
 type OpenAIEmbeddingConfig = {
+  /**
+Override the maximum number of embeddings per call.
+   */
+  maxEmbeddingsPerCall?: number;
+
+  /**
+Override the parallelism of embedding calls.
+  */
+  supportsParallelCalls?: boolean;
+
   provider: string;
   url: (options: { modelId: string; path: string }) => string;
   headers: () => Record<string, string | undefined>;
@@ -36,11 +46,11 @@ export class OpenAICompatibleEmbeddingModel
   }
 
   get maxEmbeddingsPerCall(): number {
-    return this.settings.maxEmbeddingsPerCall ?? 2048;
+    return this.config.maxEmbeddingsPerCall ?? 2048;
   }
 
   get supportsParallelCalls(): boolean {
-    return this.settings.supportsParallelCalls ?? true;
+    return this.config.supportsParallelCalls ?? true;
   }
 
   constructor(
@@ -82,7 +92,7 @@ export class OpenAICompatibleEmbeddingModel
         dimensions: this.settings.dimensions,
         user: this.settings.user,
       },
-      failedResponseHandler: openAICompatibleFailedResponseHandler,
+      failedResponseHandler: openaiCompatibleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiTextEmbeddingResponseSchema,
       ),

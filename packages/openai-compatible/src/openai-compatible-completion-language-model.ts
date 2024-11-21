@@ -21,8 +21,8 @@ import {
   OpenAICompatibleCompletionSettings,
 } from './openai-compatible-completion-settings';
 import {
-  openAICompatibleErrorDataSchema,
-  openAICompatibleFailedResponseHandler,
+  openaiCompatibleErrorDataSchema,
+  openaiCompatibleFailedResponseHandler,
 } from './openai-compatible-error';
 import { getResponseMetadata } from './get-response-metadata';
 
@@ -169,9 +169,9 @@ export class OpenAICompatibleCompletionLanguageModel
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
-      failedResponseHandler: openAICompatibleFailedResponseHandler,
+      failedResponseHandler: openaiCompatibleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        openAICompatibleCompletionResponseSchema,
+        openaiCompatibleCompletionResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -212,7 +212,7 @@ export class OpenAICompatibleCompletionLanguageModel
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
-      failedResponseHandler: openAICompatibleFailedResponseHandler,
+      failedResponseHandler: openaiCompatibleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         openaiCompatibleCompletionChunkSchema,
       ),
@@ -303,8 +303,7 @@ export class OpenAICompatibleCompletionLanguageModel
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-// TODO(shaper): Fix naming to match others e.g. 'openai'
-const openAICompatibleCompletionResponseSchema = z.object({
+const openaiCompatibleCompletionResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -341,5 +340,5 @@ const openaiCompatibleCompletionChunkSchema = z.union([
       })
       .nullish(),
   }),
-  openAICompatibleErrorDataSchema,
+  openaiCompatibleErrorDataSchema,
 ]);

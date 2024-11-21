@@ -2,16 +2,6 @@ export type OpenAICompatibleEmbeddingModelId = string;
 
 export interface OpenAICompatibleEmbeddingSettings {
   /**
-Override the maximum number of embeddings per call.
-   */
-  maxEmbeddingsPerCall?: number;
-
-  /**
-Override the parallelism of embedding calls.
-    */
-  supportsParallelCalls?: boolean;
-
-  /**
 The number of dimensions the resulting output embeddings should have.
 Only supported in text-embedding-3 and later models.
    */
