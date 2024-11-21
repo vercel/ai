@@ -26,7 +26,11 @@ function buildCommand(
   let command = `${jscodeshift} -t ${codemodPath} ${targetPath} \
     --parser tsx \
     --ignore-pattern="**/node_modules/**" \
-    --ignore-pattern="**/.*/**"`;
+    --ignore-pattern="**/.*/**" \
+    --ignore-pattern="**/dist/**" \
+    --ignore-pattern="**/build/**" \
+    --ignore-pattern="**/*.min.js" \
+    --ignore-pattern="**/*.bundle.js"`;
 
   if (options.dry) {
     command += ' --dry';
