@@ -1,4 +1,4 @@
-import { Accessor, batch } from 'solid-js';
+import { batch } from 'solid-js';
 import { TriggerCache } from '@solid-primitives/trigger';
 
 const $KEYS = Symbol('track-keys');
