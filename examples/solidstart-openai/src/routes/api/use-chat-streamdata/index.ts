@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { APIEvent } from '@solidjs/start/server';
-import { StreamData, streamText } from 'ai';
+import { generateId, StreamData, streamText } from 'ai';
 
 export const POST = async (event: APIEvent) => {
   const { messages } = await event.request.json();
@@ -9,15 +9,22 @@ export const POST = async (event: APIEvent) => {
   const data = new StreamData();
   data.append('initialized call');
 
-  data.appendMessageAnnotation({
-    type: 'text',
-    text: 'This is a test annotation',
-  });
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-4o'),
     messages,
+    onChunk() {
+      data.appendMessageAnnotation({ chunk: '123' });
+    },
     onFinish() {
+      // message annotation:
+      data.appendMessageAnnotation({
+        id: generateId(), // e.g. id from saved DB record
+        other: 'information',
+      });
+
+      // call annotation:
       data.append('call completed');
+
       data.close();
     },
   });
