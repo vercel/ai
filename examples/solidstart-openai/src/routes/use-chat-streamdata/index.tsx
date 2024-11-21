@@ -3,7 +3,7 @@ import { useChat } from '@ai-sdk/solid';
 
 export default function Chat() {
   const {
-    messagesStore,
+    messages,
     input,
     handleInputChange,
     handleSubmit,
@@ -31,7 +31,7 @@ export default function Chat() {
         </button>
       </Show>
 
-      <For each={messagesStore}>
+      <For each={messages()}>
         {m => (
           <div class="whitespace-pre-wrap">
             <strong>{`${m.role}: `}</strong>

@@ -3,28 +3,28 @@ import { useChat } from '@ai-sdk/solid';
 import { For, Show } from 'solid-js';
 
 export default function Chat() {
-  const {
-    messagesStore,
-    input,
-    handleInputChange,
-    handleSubmit,
-    addToolResult,
-  } = useChat(() => ({
-    api: '/api/use-chat-tools',
-    maxSteps: 5,
+  const { messages, input, handleInputChange, handleSubmit, addToolResult } =
+    useChat(() => ({
+      api: '/api/use-chat-tools',
+      maxSteps: 5,
 
-    // run client-side tools that are automatically executed:
-    async onToolCall({ toolCall }) {
-      if (toolCall.toolName === 'getLocation') {
-        const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
-        return cities[Math.floor(Math.random() * cities.length)];
-      }
-    },
-  }));
+      // run client-side tools that are automatically executed:
+      async onToolCall({ toolCall }) {
+        if (toolCall.toolName === 'getLocation') {
+          const cities = [
+            'New York',
+            'Los Angeles',
+            'Chicago',
+            'San Francisco',
+          ];
+          return cities[Math.floor(Math.random() * cities.length)];
+        }
+      },
+    }));
 
   return (
     <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      <For each={messagesStore} fallback={<div>No messages</div>}>
+      <For each={messages()} fallback={<div>No messages</div>}>
         {message => (
           <div class="whitespace-pre-wrap">
             <strong>{`${message.role}: `}</strong>
