@@ -22,7 +22,7 @@ describe('stream data stream', () => {
         <Show when={error()}>
           {error => <div data-testid="error">{error().toString()}</div>}
         </Show>
-        <For each={messages()}>
+        <For each={messages}>
           {(m, idx) => (
             <div data-testid={`message-${idx()}`}>
               {m.role === 'user' ? 'User: ' : 'AI: '}
@@ -157,7 +157,7 @@ describe('thread management', () => {
         <Show when={error()}>
           {error => <div data-testid="error">{error().toString()}</div>}
         </Show>
-        <For each={messages()}>
+        <For each={messages}>
           {(m, idx) => (
             <div data-testid={`message-${idx()}`}>
               {m.role === 'user' ? 'User: ' : 'AI: '}

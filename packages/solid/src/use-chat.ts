@@ -11,24 +11,24 @@ import type {
 import { callChatApi, generateId as generateIdFunc } from '@ai-sdk/ui-utils';
 import {
   Accessor,
-  JSX,
-  Setter,
   createEffect,
   createMemo,
   createSignal,
   createUniqueId,
+  JSX,
+  Setter,
 } from 'solid-js';
-import { createStore, reconcile } from 'solid-js/store';
-import { ReactiveLRU } from './utils/reactive-lru';
+import { createStore, reconcile, Store } from 'solid-js/store';
 import { convertToAccessorOptions } from './utils/convert-to-accessor-options';
+import { ReactiveLRU } from './utils/reactive-lru';
 
 export type { CreateMessage, Message };
 
 export type UseChatHelpers = {
   /**
-   * Current messages in the chat. Function that resolves to the current messages.
+   * Current messages in the chat as a SolidJS store.
    */
-  messages: Accessor<Message[]>;
+  messages: () => Store<Message[]>;
 
   /** The error object of the API request */
   error: Accessor<undefined | Error>;
