@@ -17,6 +17,7 @@
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
+    "start": "pnpm tsx src/server.ts --port 3000 --host 127.0.0.1",
     "test": "pnpm test:node && pnpm test:edge",
     "test:edge": "vitest --config vitest.edge.config.js --run",
     "test:node": "vitest --config vitest.node.config.js --run"
@@ -29,11 +30,16 @@
       "require": "./dist/index.js"
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "commander": "12.1.0",
+    "pino": "9.5.0",
+    "zod": "3.23.8"
+  },
   "devDependencies": {
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
+    "tsx": "4.19.2",
     "typescript": "5.6.3"
   },
   "engines": {
