@@ -1,0 +1,12 @@
+{
+  "name": "server-examples",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "pnpm chatbot --port 3000 --host 127.0.0.1 --template-folder template"
+  },
+  "devDependencies": {},
+  "dependencies": {
+    "@ai-sdk/server": "0.0.0"
+  }
+}

@@ -849,6 +849,12 @@ importers:
         specifier: 4.4.5
         version: 4.4.5(vue@3.5.13(typescript@5.6.3))
 
+  examples/server:
+    dependencies:
+      '@ai-sdk/server':
+        specifier: 0.0.0
+        version: link:../../packages/server
+
   examples/solidstart-openai:
     dependencies:
       '@ai-sdk/openai':
