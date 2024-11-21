@@ -24,7 +24,7 @@ import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import {
-  openAIErrorDataSchema,
+  openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
 import { getResponseMetadata } from './get-response-metadata';
@@ -290,7 +290,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        openAIChatResponseSchema,
+        openaiChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -628,7 +628,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 }
 
-const openAITokenUsageSchema = z
+const openaiTokenUsageSchema = z
   .object({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
@@ -647,7 +647,7 @@ const openAITokenUsageSchema = z
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openAIChatResponseSchema = z.object({
+const openaiChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -697,7 +697,7 @@ const openAIChatResponseSchema = z.object({
       finish_reason: z.string().nullish(),
     }),
   ),
-  usage: openAITokenUsageSchema,
+  usage: openaiTokenUsageSchema,
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -756,9 +756,9 @@ const openaiChatChunkSchema = z.union([
         index: z.number(),
       }),
     ),
-    usage: openAITokenUsageSchema,
+    usage: openaiTokenUsageSchema,
   }),
-  openAIErrorDataSchema,
+  openaiErrorDataSchema,
 ]);
 
 function isReasoningModel(modelId: string) {

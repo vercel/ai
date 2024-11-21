@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.0.1
+
+### Patch Changes
+
+- c3ab5de: fix (provider-utils): downgrade nanoid and secure-json-parse (ESM compatibility)
+
 ## 2.0.0
 
 ### Major Changes

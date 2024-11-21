@@ -5,6 +5,12 @@ description: Learn how to upgrade AI SDK 3.4 to 4.0.
 
 # Migrate AI SDK 3.4 to 4.0
 
+<Note>
+  Check out the [AI SDK 4.0 release blog
+  post](https://vercel.com/blog/ai-sdk-4-0) for more information about the
+  release.
+</Note>
+
 ## Recommended Migration Process
 
 1. Backup your project. If you use a versioning control system, make sure all previous versions are committed.
@@ -451,8 +457,9 @@ const part = parseDataStreamPart(line);
 
 ### Renamed `TokenUsage`, `CompletionTokenUsage` and `EmbeddingTokenUsage` types
 
-The `TokenUsage`, `CompletionTokenUsage` and `EmbeddingTokenUsage` types have been
-to `LanguageModelUsage` and `EmbeddingModelUsage`.
+The `TokenUsage`, `CompletionTokenUsage` and `EmbeddingTokenUsage` types have
+been renamed to `LanguageModelUsage` (for the first two) and
+`EmbeddingModelUsage` (for the last).
 
 ```ts filename="AI SDK 3.4"
 import { TokenUsage, CompletionTokenUsage, EmbeddingTokenUsage } from 'ai';
