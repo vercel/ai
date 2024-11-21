@@ -1,10 +1,77 @@
 # AI SDK - OpenAI Compatible Provider
 
-This package aims to provide a base to speed and support the implementation of a
-range of concrete OpenAI-compatible providers. Given this purpose, it is not
-itself a concrete provider intended for direct instantiation and use.
+This package provides a foundation for implementing providers that expose an OpenAI-compatible API.
 
-The primary [OpenAI provider](../openai/README.md) is heavier-weight than what
-this package offers. That provider also includes OpenAI-specific experimental
-and legacy features which may not be relevant for more general purpose
-OpenAI-compatible providers.
+The primary [OpenAI provider](../openai/README.md) is more feature-rich, including OpenAI-specific experimental and legacy features. This package offers a lighter-weight alternative focused on core OpenAI-compatible functionality.
+
+## Setup
+
+The provider is available in the `@ai-sdk/openai-compatible` module. You can install it with
+
+```bash
+npm i @ai-sdk/openai-compatible
+```
+
+## Provider Instance
+
+You can import the provider creation method `createOpenAICompatible` from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+```
+
+## Example
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: createOpenAICompatible({
+    apiKeyEnvVarName: 'EXAMPLE_API_KEY',
+    baseURL: 'https://api.example.com/v1',
+    name: 'example',
+  }).chatModel('meta-llama/Llama-3-70b-chat-hf'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+### Including model ids for auto-completion
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+type ExampleChatModelIds =
+  | 'meta-llama/Llama-3-70b-chat-hf'
+  | 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'
+  | (string & {});
+
+type ExampleCompletionModelIds =
+  | 'codellama/CodeLlama-34b-Instruct-hf'
+  | 'Qwen/Qwen2.5-Coder-32B-Instruct'
+  | (string & {});
+
+type ExampleEmbeddingModelIds =
+  | 'BAAI/bge-large-en-v1.5'
+  | 'bert-base-uncased'
+  | (string & {});
+
+const model = createOpenAICompatible<
+    ExampleChatModelIds,
+    ExampleCompletionModelIds,
+    ExampleEmbeddingModelIds>({
+    apiKeyEnvVarName: 'EXAMPLE_API_KEY',
+    baseURL: 'https://api.example.com/v1',
+    name: 'example',
+  });
+
+// Subsequent calls to e.g. `model.chatModel` will auto-complete the model id
+// from the list of `ExampleChatModelIds` (while still allowing free-form
+// strings as well).
+
+const { text } = await generateText({
+  model: model.chatModel('meta-llama/Llama-3-70b-chat-hf'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```

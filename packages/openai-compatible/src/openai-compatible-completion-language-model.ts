@@ -183,8 +183,8 @@ export class OpenAICompatibleCompletionLanguageModel
     return {
       text: choice.text,
       usage: {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
+        promptTokens: response.usage?.prompt_tokens ?? NaN,
+        completionTokens: response.usage?.completion_tokens ?? NaN,
       },
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       rawCall: { rawPrompt, rawSettings },
@@ -313,10 +313,12 @@ const openaiCompatibleCompletionResponseSchema = z.object({
       finish_reason: z.string(),
     }),
   ),
-  usage: z.object({
-    prompt_tokens: z.number(),
-    completion_tokens: z.number(),
-  }),
+  usage: z
+    .object({
+      prompt_tokens: z.number(),
+      completion_tokens: z.number(),
+    })
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation

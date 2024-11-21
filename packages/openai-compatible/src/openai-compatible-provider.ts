@@ -8,10 +8,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  OpenAICompatibleChatConfig,
-  OpenAICompatibleChatLanguageModel,
-} from './openai-compatible-chat-language-model';
+import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 import { OpenAICompatibleChatSettings } from './openai-compatible-chat-settings';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
 import { OpenAICompatibleCompletionSettings } from './openai-compatible-completion-settings';
@@ -31,13 +28,11 @@ export interface OpenAICompatibleProvider<
   languageModel(
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
-    config?: OpenAICompatibleChatConfig,
   ): LanguageModelV1;
 
   chatModel(
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
-    config?: OpenAICompatibleChatConfig,
   ): LanguageModelV1;
 
   completionModel(
@@ -84,7 +79,7 @@ Description of the API key environment variable (for use in error messages).
   apiKeyEnvVarDescription?: string;
 
   /**
-Provider name. Overrides the `openai` default name for 3rd party providers.
+Provider name.
    */
   name?: string;
 }
@@ -130,29 +125,25 @@ export function createOpenAICompatible<
     fetch?: FetchFunction;
   }
 
-  const getCommonModelConfig = (modelType: string): CommonModelConfig => {
-    return {
-      provider: `${providerName}.${modelType}`,
-      url: ({ path }) => `${baseURL}${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
-    };
-  };
+  const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
+    provider: `${providerName}.${modelType}`,
+    url: ({ path }) => `${baseURL}${path}`,
+    headers: getHeaders,
+    fetch: options.fetch,
+  });
 
   const createLanguageModel = (
     modelId: CHAT_MODEL_IDS,
-    settings?: OpenAICompatibleChatSettings,
-    config?: OpenAICompatibleChatConfig,
-  ) => createChatModel(modelId, settings, config);
+    settings: OpenAICompatibleChatSettings = {},
+  ) => createChatModel(modelId, settings);
 
   const createChatModel = (
     modelId: CHAT_MODEL_IDS,
-    settings?: OpenAICompatibleChatSettings,
-    config?: OpenAICompatibleChatConfig,
+    settings: OpenAICompatibleChatSettings = {},
   ) =>
-    new OpenAICompatibleChatLanguageModel(modelId, settings || {}, {
+    new OpenAICompatibleChatLanguageModel(modelId, settings, {
       ...getCommonModelConfig('chat'),
-      ...config,
+      defaultObjectGenerationMode: 'tool',
     });
 
   const createCompletionModel = (

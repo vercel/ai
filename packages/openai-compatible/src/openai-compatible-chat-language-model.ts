@@ -2,6 +2,7 @@ import {
   InvalidResponseDataError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
+  LanguageModelV1ObjectGenerationMode,
   LanguageModelV1FinishReason,
   LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
@@ -41,7 +42,7 @@ Default object generation mode that should be used with this model when
 no mode is specified. Should be the mode with the best results for this
 model. `undefined` can be specified if object generation is not supported.
   */
-  defaultObjectGenerationMode?: 'json' | 'tool' | undefined;
+  defaultObjectGenerationMode?: LanguageModelV1ObjectGenerationMode;
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {

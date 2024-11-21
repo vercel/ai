@@ -30,8 +30,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.0.0",
-    "@ai-sdk/provider-utils": "2.0.0"
+    "@ai-sdk/provider": "1.0.1",
+    "@ai-sdk/provider-utils": "2.0.2"
   },
   "devDependencies": {
     "@types/node": "^18",
