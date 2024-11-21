@@ -9,5 +9,6 @@ export default defineConfig([
   },
   {
     entry: ['src/agent-server.ts'],
+    format: ['cjs', 'esm'],
   },
 ]);

@@ -34,7 +34,11 @@ startService({
       }),
     );
 
-    app.get('/', c => c.text('Hello Node.js!'));
+    app.post('/agent/:agent/start', context => {
+      const agent = context.req.param('agent');
+
+      return context.text(`Hello ${agent}!`);
+    });
 
     const server = serve({ fetch: app.fetch, hostname: host, port });
 

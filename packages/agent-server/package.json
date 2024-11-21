@@ -11,7 +11,7 @@
     "CHANGELOG.md"
   ],
   "bin": {
-    "agent-server": "./dist/agent-server.cjs"
+    "agent-server": "./dist/agent-server.js"
   },
   "scripts": {
     "build": "tsup",
