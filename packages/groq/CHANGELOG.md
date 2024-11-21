@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 1.0.2
+
+### Patch Changes
+
+- b748dfb: feat (providers): update model lists
+
 ## 1.0.1
 
 ### Patch Changes
