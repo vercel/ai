@@ -20,7 +20,7 @@ export default {
     };
   },
 
-  async routeStep({ context }) {
+  async nextState({ currentState, context }) {
     return 'main';
   },
 } satisfies Agent<Schema>;

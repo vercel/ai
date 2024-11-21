@@ -18,5 +18,8 @@ export interface Agent<CONTEXT extends JSONValue> {
     context: CONTEXT;
   }>;
 
-  routeStep(options: { context: CONTEXT }): PromiseLike<string>;
+  nextState(options: {
+    currentState: string;
+    context: CONTEXT;
+  }): PromiseLike<string>;
 }

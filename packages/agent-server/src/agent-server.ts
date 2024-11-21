@@ -7,8 +7,8 @@ import { logger as honoLogger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 import * as path from 'node:path';
 import zod from 'zod';
-import { startService } from './util/start-service';
 import { Agent } from './types/agent';
+import { startService } from './util/start-service';
 
 startService({
   name: '@ai-sdk/server',
@@ -37,8 +37,8 @@ startService({
     );
 
     // routes setup
-    app.post('/agent/:agent/start', async context => {
-      const agentName = context.req.param('agent');
+    app.post('/agent/:agent/start', async c => {
+      const agentName = c.req.param('agent');
 
       const agentPath = path.join(process.cwd(), 'agents', agentName);
       const agentModulePath = path.join(agentPath, 'agent.js');
@@ -47,20 +47,23 @@ startService({
         const agent: Agent<any> = (await import(agentModulePath)).default;
         logger.info(`Successfully loaded agent module: ${agentName}`);
 
-        const result = await agent.start({
-          request: context.req.raw,
+        const startResult = await agent.start({
+          request: c.req.raw,
           metadata: { agentName },
         });
 
-        return context.json({
+        const context = startResult.context;
+        const state = 'START';
+
+        return c.json({
           success: true,
           agentName,
-          context: result.context,
-          module: agent,
+          context,
+          state,
         });
       } catch (error) {
         logger.error(`Failed to load agent module: ${error}`);
-        return context.json(
+        return c.json(
           {
             success: false,
             error: `Failed to load agent: ${
