@@ -459,6 +459,7 @@ export function useChat(
   };
 
   return {
+    // TODO next major release: replace with direct message store access (breaking change)
     messages: () => messagesStore,
     append,
     error,
