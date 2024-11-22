@@ -1,15 +1,24 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
-import { loadModule } from './util/load-module';
-import { Agent } from './types/agent';
 import * as path from 'node:path';
+import { DataStore } from './data-store';
+import { Agent } from './types/agent';
+import { loadModule } from './util/load-module';
 
 export class RunManager {
   private readonly generateRunId: () => string;
   private readonly agentsPath: string;
+  private readonly dataStore: DataStore;
 
-  constructor({ agentsPath }: { agentsPath: string }) {
+  constructor({
+    agentsPath,
+    dataStore,
+  }: {
+    agentsPath: string;
+    dataStore: DataStore;
+  }) {
     this.generateRunId = createIdGenerator({ prefix: 'run' });
     this.agentsPath = agentsPath;
+    this.dataStore = dataStore;
   }
 
   async startAgent({ name, request }: { name: string; request: Request }) {
@@ -24,8 +33,13 @@ export class RunManager {
     const runId = this.generateRunId();
     const state = await agent.nextState({ currentState: 'START', context });
 
-    // durability: store run metadata (id, agent, created at), context, state,etc
-    // add job to queue
+    await this.dataStore.updateRun({
+      runId,
+      agent: name,
+      state,
+      context,
+      createdAt: Date.now(),
+    });
 
     return { runId };
   }

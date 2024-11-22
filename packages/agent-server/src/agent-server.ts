@@ -9,6 +9,7 @@ import * as path from 'node:path';
 import zod from 'zod';
 import { RunManager } from './run-manager';
 import { startService } from './util/start-service';
+import { DataStore } from './data-store';
 
 startService({
   name: '@ai-sdk/server',
@@ -26,8 +27,12 @@ startService({
     port: zod.number(),
   }),
   async initialize({ host, port }, logger) {
+    const dataStore = new DataStore({
+      dataPath: path.join(process.cwd(), '.data'),
+    });
     const runManager = new RunManager({
       agentsPath: path.join(process.cwd(), '.agents'),
+      dataStore,
     });
 
     // Hono setup
