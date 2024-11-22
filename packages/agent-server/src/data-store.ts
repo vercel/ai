@@ -2,6 +2,14 @@ import { JSONValue } from '@ai-sdk/provider';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+export type RunState = {
+  runId: string;
+  state: string;
+  agent: string;
+  context: JSONValue;
+  createdAt: number;
+};
+
 export class DataStore {
   private readonly dataPath: string;
 
@@ -9,27 +17,25 @@ export class DataStore {
     this.dataPath = dataPath;
   }
 
-  async updateRun({
-    runId,
-    agent,
-    state,
-    context,
-    createdAt,
-  }: {
-    runId: string;
-    state: string;
-    agent: string;
-    context: JSONValue;
-    createdAt: number;
-  }) {
-    const filePath = path.join(this.dataPath, 'runs', runId, 'state.json');
+  private getRunPath({ runId, file }: { runId: string; file: string }) {
+    return path.join(this.dataPath, 'runs', runId, file);
+  }
+
+  async updateRun({ runId, agent, state, context, createdAt }: RunState) {
+    const runPath = this.getRunPath({ runId, file: 'state.json' });
 
     // ensure directory exists
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.mkdir(path.dirname(runPath), { recursive: true });
 
     await fs.writeFile(
-      filePath,
+      runPath,
       JSON.stringify({ runId, agent, createdAt, state, context }),
     );
+  }
+
+  async getRunState({ runId }: { runId: string }): Promise<RunState> {
+    const filePath = this.getRunPath({ runId, file: 'state.json' });
+    const state = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(state);
   }
 }

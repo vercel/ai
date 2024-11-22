@@ -1,6 +1,8 @@
-export function createWorker() {
+import { DataStore } from './data-store';
+
+export function createWorker({ dataStore }: { dataStore: DataStore }) {
   return async ({ runId }: { runId: string }) => {
-    // load information from data store
+    const runState = await dataStore.getRunState({ runId });
 
     // load module for state
 
