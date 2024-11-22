@@ -11,6 +11,7 @@ export default {
       prompt: context.prompt,
     });
 
+    // forward the stream as soon as possible while allowing for blocking operations:
     forwardStream(result.toAgentStream());
 
     return { nextState: 'END' };
