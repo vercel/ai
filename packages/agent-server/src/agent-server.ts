@@ -7,10 +7,11 @@ import { logger as honoLogger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 import * as path from 'node:path';
 import zod from 'zod';
-import { RunManager } from './run-manager';
-import { startService } from './util/start-service';
 import { DataStore } from './data-store';
+import { ModuleLoader } from './module-loader';
+import { RunManager } from './run-manager';
 import { JobQueue } from './util/job-queue';
+import { startService } from './util/start-service';
 import { createWorker } from './worker';
 
 startService({
@@ -29,13 +30,16 @@ startService({
     port: zod.number(),
   }),
   async initialize({ host, port }, logger) {
+    const moduleLoader = new ModuleLoader({
+      modulePath: path.join(process.cwd(), '.agents'),
+    });
     const jobs = new JobQueue<{ runId: string }>();
     const dataStore = new DataStore({
       dataPath: path.join(process.cwd(), '.data'),
     });
     const runManager = new RunManager({
-      agentsPath: path.join(process.cwd(), '.agents'),
       dataStore,
+      moduleLoader,
       submitJob: jobs.push.bind(jobs),
     });
 
