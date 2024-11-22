@@ -13,6 +13,9 @@ import { RunManager } from './run-manager';
 import { JobQueue } from './util/job-queue';
 import { startService } from './util/start-service';
 import { createWorker } from './worker';
+import { StreamManager } from './stream-manager';
+import { stream } from 'hono/streaming';
+import 'dotenv/config';
 
 startService({
   name: '@ai-sdk/server',
@@ -37,17 +40,19 @@ startService({
     const dataStore = new DataStore({
       dataPath: path.join(process.cwd(), '.data'),
     });
+    const streamManager = new StreamManager();
     const runManager = new RunManager({
       dataStore,
       moduleLoader,
       submitJob: jobs.push.bind(jobs),
+      streamManager,
     });
 
     // setup workers
     // the workers run in the same process in this prototype,
     // so if they perform CPU-bound tasks, they will block
     // TODO multiple workers
-    jobs.startWorker(createWorker({ dataStore, moduleLoader }));
+    jobs.startWorker(createWorker({ dataStore, moduleLoader, streamManager }));
 
     // Hono setup
     const app = new Hono();
@@ -59,14 +64,18 @@ startService({
     );
 
     // routes setup
-    app.post('/agent/:agent/start', async c => {
-      const { runId } = await runManager.startAgent({
-        agent: c.req.param('agent'),
-        request: c.req.raw,
-      });
+    app.post('/agent/:agent/start', async c =>
+      stream(c, async stream => {
+        const { runId } = await runManager.startAgent({
+          agent: c.req.param('agent'),
+          request: c.req.raw,
+        });
 
-      return c.json({ runId });
-    });
+        const runStream = streamManager.getStream(runId);
+
+        await stream.pipe(runStream.pipeThrough(new TextEncoderStream()));
+      }),
+    );
 
     const server = serve({ fetch: app.fetch, hostname: host, port });
 

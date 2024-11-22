@@ -1,12 +1,15 @@
 import { DataStore } from './data-store';
 import { ModuleLoader } from './module-loader';
+import { StreamManager } from './stream-manager';
 
 export function createWorker({
   dataStore,
   moduleLoader,
+  streamManager,
 }: {
   dataStore: DataStore;
   moduleLoader: ModuleLoader;
+  streamManager: StreamManager;
 }) {
   return async ({ runId }: { runId: string }) => {
     const runState = await dataStore.getRunState({ runId });
@@ -17,6 +20,8 @@ export function createWorker({
     const { context, stream } = await stateModule.execute({
       context: runState.context,
     });
+
+    streamManager.addToStream(runId, stream);
 
     // wait for stream to finish
 
