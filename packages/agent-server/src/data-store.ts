@@ -13,16 +13,16 @@ export class DataStore {
     return path.join(this.dataPath, 'runs', runId, file);
   }
 
-  async updateRun({ runId, agent, state, context, createdAt }: RunState) {
-    const runPath = this.getRunPath({ runId, file: 'state.json' });
+  async updateRun(runState: RunState) {
+    const runPath = this.getRunPath({
+      runId: runState.runId,
+      file: 'state.json',
+    });
 
     // ensure directory exists
     await fs.mkdir(path.dirname(runPath), { recursive: true });
 
-    await fs.writeFile(
-      runPath,
-      JSON.stringify({ runId, agent, createdAt, state, context }),
-    );
+    await fs.writeFile(runPath, JSON.stringify(runState));
   }
 
   async getRunState({ runId }: { runId: string }): Promise<RunState> {

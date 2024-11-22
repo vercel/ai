@@ -52,6 +52,7 @@ export class RunManager {
       state: initialState,
       context,
       createdAt: Date.now(),
+      step: 1,
     });
 
     this.streamManager.createStream(runId);

@@ -65,6 +65,7 @@ export function createWorker({
       createdAt: runState.createdAt,
       state: nextState,
       context: updatedContext,
+      step: runState.step + 1,
     });
 
     // submit next job or end

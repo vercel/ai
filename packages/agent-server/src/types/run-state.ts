@@ -6,4 +6,5 @@ export type RunState = {
   agent: string;
   context: JSONValue;
   createdAt: number;
+  step: number;
 };
