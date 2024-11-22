@@ -1,14 +1,6 @@
-import { JSONValue } from '@ai-sdk/provider';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-
-export type RunState = {
-  runId: string;
-  state: string;
-  agent: string;
-  context: JSONValue;
-  createdAt: number;
-};
+import { RunState } from './types/run-state';
 
 export class DataStore {
   private readonly dataPath: string;
