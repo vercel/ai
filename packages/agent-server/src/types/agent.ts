@@ -18,6 +18,9 @@ export interface Agent<CONTEXT extends JSONValue> {
     context: CONTEXT;
   }>;
 
+  // Synchronous on purpose. The next state logic happens
+  // after the current state has been executed and should
+  // be simple and deterministic (no async calls etc).
   nextState(options: {
     currentState: string;
     context: CONTEXT;

@@ -11,6 +11,7 @@ import { RunManager } from './run-manager';
 import { startService } from './util/start-service';
 import { DataStore } from './data-store';
 import { JobQueue } from './util/job-queue';
+import { createWorker } from './worker';
 
 startService({
   name: '@ai-sdk/server',
@@ -42,22 +43,7 @@ startService({
     // the workers run in the same process in this prototype,
     // so if they perform CPU-bound tasks, they will block
     // TODO multiple workers
-    // TODO extract worker logic
-    jobs.startWorker(async ({ runId }) => {
-      // load information from data store
-
-      // load module for state
-
-      // execute module with context
-
-      // wait for updated context
-
-      // store updated context
-
-      // submit next job
-
-      console.log('TODO process job', runId);
-    });
+    jobs.startWorker(createWorker());
 
     // Hono setup
     const app = new Hono();
