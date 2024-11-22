@@ -8,8 +8,11 @@ export default {
   async execute({ context }) {
     const result = streamText({
       model: openai('gpt-4o'),
-      system: 'You are a friendly chatbot. Respond briefly and concisely.',
-      prompt: context.prompt,
+      system:
+        'You are an outstanding writer. ' +
+        'Write a blog post. ' +
+        'The blog post MUST BE at least 4 paragraphs long. ',
+      messages: context.messages,
     });
 
     return {
