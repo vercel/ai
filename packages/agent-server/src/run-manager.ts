@@ -31,20 +31,16 @@ export class RunManager {
   async startAgent({ agent, request }: { agent: string; request: Request }) {
     const agentModule = await this.moduleLoader.loadAgent({ agent });
 
-    const { context } = await agentModule.start({
+    const { context, initialState } = await agentModule.start({
       request,
       metadata: { agentName: agent },
     });
     const runId = this.generateRunId();
-    const state = await agentModule.nextState({
-      currentState: 'START',
-      context,
-    });
 
     await this.dataStore.updateRun({
       runId,
       agent,
-      state,
+      state: initialState,
       context,
       createdAt: Date.now(),
     });

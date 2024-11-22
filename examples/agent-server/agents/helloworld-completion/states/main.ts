@@ -17,6 +17,7 @@ export default {
       // stream: result.toAgentStream()
       // for now we need to decode:
       stream: result.toDataStream().pipeThrough(new TextDecoderStream()),
+      nextState: 'END',
     };
   },
 } satisfies StreamState<Context, string>;

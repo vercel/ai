@@ -9,15 +9,8 @@ export default {
   async start({ request, metadata }) {
     return {
       context: contextSchema.parse(await request.json()),
+      initialState: 'main',
     };
-  },
-
-  // The current state switching is not ideal.
-  // need to explore both different approaches and
-  // helpers for workflow definitions.
-  // Special states: START, END
-  async nextState({ currentState, context }) {
-    return currentState === 'START' ? 'main' : 'END';
   },
 
   // Optional headers. Streams can be anything JSON-serializable,

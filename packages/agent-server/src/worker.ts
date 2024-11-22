@@ -20,10 +20,15 @@ export function createWorker({
       agent: runState.agent,
       state: runState.state,
     });
-    const { context, stream } = await stateModule.execute({
+    const {
+      context,
+      stream,
+      nextState: nextStatePromise,
+    } = await stateModule.execute({
       context: runState.context,
     });
 
+    const nextState = await nextStatePromise;
     const [newStream, original] = stream.tee();
 
     streamManager.addToStream(runId, original);
@@ -48,10 +53,6 @@ export function createWorker({
     // calculate next state
     const agentModule = await moduleLoader.loadAgent({
       agent: runState.agent,
-    });
-    const nextState = await agentModule.nextState({
-      currentState: runState.state,
-      context: updatedContext,
     });
 
     // store updated context

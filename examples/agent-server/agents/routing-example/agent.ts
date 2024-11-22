@@ -9,19 +9,8 @@ export default {
         prompt: body.prompt,
         selectedRoute: null,
       },
+      initialState: 'router',
     };
-  },
-
-  async nextState({ currentState, context }) {
-    if (currentState === 'START') {
-      return 'router';
-    }
-
-    if (context.selectedRoute != null) {
-      return context.selectedRoute;
-    }
-
-    return 'END';
   },
 
   headers: { 'X-Vercel-AI-Data-Stream': 'v1' },

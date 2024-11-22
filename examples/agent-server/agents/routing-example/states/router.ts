@@ -12,10 +12,9 @@ export default {
     return {
       // will be simplified to streamData.toAgentStream() in the future
       stream: streamData.stream.pipeThrough(new TextDecoderStream()),
-      context: {
-        ...context,
-        selectedRoute: context.prompt.includes('write') ? 'writer' : 'chatbot',
-      },
+      nextState: context.prompt.includes('write')
+        ? 'write-blog'
+        : 'write-email',
     };
   },
 } satisfies StreamState<Context, string>;

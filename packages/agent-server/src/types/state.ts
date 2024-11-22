@@ -6,7 +6,8 @@ export interface StreamState<
 > {
   type: 'stream';
   execute(options: { context: CONTEXT }): PromiseLike<{
-    context?: Promise<CONTEXT> | CONTEXT;
+    context?: PromiseLike<CONTEXT> | CONTEXT;
     stream: ReadableStream<CHUNK>;
+    nextState: PromiseLike<string> | string;
   }>;
 }
