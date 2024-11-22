@@ -1,3 +1,4 @@
+import { JSONValue } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import * as path from 'node:path';
 import { DataStore } from './data-store';
@@ -8,38 +9,47 @@ export class RunManager {
   private readonly generateRunId: () => string;
   private readonly agentsPath: string;
   private readonly dataStore: DataStore;
+  private readonly submitJob: (job: any) => Promise<void>;
 
   constructor({
     agentsPath,
     dataStore,
+    submitJob,
   }: {
     agentsPath: string;
     dataStore: DataStore;
+    submitJob: (job: any) => Promise<void>;
   }) {
     this.generateRunId = createIdGenerator({ prefix: 'run' });
     this.agentsPath = agentsPath;
     this.dataStore = dataStore;
+    this.submitJob = submitJob;
   }
 
-  async startAgent({ name, request }: { name: string; request: Request }) {
-    const agent = await loadModule<Agent<any>>({
-      path: path.join(this.agentsPath, name, 'agent.js'),
+  async startAgent({ agent, request }: { agent: string; request: Request }) {
+    const agentModule = await loadModule<Agent<JSONValue>>({
+      path: path.join(this.agentsPath, agent, 'agent.js'),
     });
 
-    const { context } = await agent.start({
+    const { context } = await agentModule.start({
       request,
-      metadata: { agentName: name },
+      metadata: { agentName: agent },
     });
     const runId = this.generateRunId();
-    const state = await agent.nextState({ currentState: 'START', context });
+    const state = await agentModule.nextState({
+      currentState: 'START',
+      context,
+    });
 
     await this.dataStore.updateRun({
       runId,
-      agent: name,
+      agent,
       state,
       context,
       createdAt: Date.now(),
     });
+
+    await this.submitJob({ runId });
 
     return { runId };
   }

@@ -33,6 +33,9 @@ startService({
     const runManager = new RunManager({
       agentsPath: path.join(process.cwd(), '.agents'),
       dataStore,
+      submitJob: async ({ runId }) => {
+        console.log('TODO submit job', runId);
+      },
     });
 
     // Hono setup
@@ -46,10 +49,8 @@ startService({
 
     // routes setup
     app.post('/agent/:agent/start', async c => {
-      const agentName = c.req.param('agent');
-
       const { runId } = await runManager.startAgent({
-        name: agentName,
+        agent: c.req.param('agent'),
         request: c.req.raw,
       });
 
