@@ -25,31 +25,28 @@ export function createWorker({
       agent: runState.agent,
       state: runState.state,
     });
-    const {
-      context,
-      stream,
-      nextState: nextStatePromise,
-    } = await stateModule.execute({
+    const { context, nextState: nextStatePromise } = await stateModule.execute({
       context: runState.context,
+      forwardStream: streamManager.addToStream.bind(streamManager, runId),
     });
 
     const nextState = await nextStatePromise;
-    const [newStream, original] = stream.tee();
+    // const [newStream, original] = stream.tee();
 
-    streamManager.addToStream(runId, original);
+    // streamManager.addToStream(runId, original);
 
     // consume stream without backpressure and store it
     // to enable multiple consumers and re-consumption
-    const reader = newStream.getReader();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
+    // const reader = newStream.getReader();
+    // while (true) {
+    //   const { done, value } = await reader.read();
+    //   if (done) {
+    //     break;
+    //   }
 
-      // store append to stream file on disk
-      //   process.stdout.write(JSON.stringify(value));
-    }
+    //   // store append to stream file on disk
+    //   //   process.stdout.write(JSON.stringify(value));
+    // }
 
     // wait for updated context. if undefined, we use the old context
     const updatedContext =

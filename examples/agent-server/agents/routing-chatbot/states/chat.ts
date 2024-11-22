@@ -5,16 +5,15 @@ import { Context } from '../agent';
 
 export default {
   type: 'stream',
-  async execute({ context }) {
+  async execute({ context, forwardStream }) {
     const result = streamText({
       model: openai('gpt-4o'),
       system: 'You are a friendly chatbot. Respond briefly and concisely.',
       messages: context.messages,
     });
 
-    return {
-      stream: result.toAgentStream(),
-      nextState: 'END',
-    };
+    forwardStream(result.toAgentStream());
+
+    return { nextState: 'END' };
   },
 } satisfies StreamState<Context, string>;

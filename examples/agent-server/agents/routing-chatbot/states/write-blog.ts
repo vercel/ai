@@ -5,7 +5,7 @@ import { Context } from '../agent';
 
 export default {
   type: 'stream',
-  async execute({ context }) {
+  async execute({ context, forwardStream }) {
     const result = streamText({
       model: openai('gpt-4o'),
       system:
@@ -15,9 +15,9 @@ export default {
       messages: context.messages,
     });
 
-    return {
-      stream: result.toAgentStream(),
-      nextState: 'END',
-    };
+    // forward the stream as soon as possible while allowing for blocking operations:
+    forwardStream(result.toAgentStream());
+
+    return { nextState: 'END' };
   },
 } satisfies StreamState<Context, string>;
