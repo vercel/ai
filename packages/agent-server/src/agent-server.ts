@@ -10,6 +10,7 @@ import zod from 'zod';
 import { Agent } from './types/agent';
 import { loadModule } from './util/load-module';
 import { startService } from './util/start-service';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
 
 startService({
   name: '@ai-sdk/server',
@@ -27,12 +28,14 @@ startService({
     port: zod.number(),
   }),
   async initialize({ host, port }, logger) {
-    const app = new Hono();
-
     // base paths
     const agentsPath = path.join(process.cwd(), '.agents');
 
-    // middleware setup
+    // id generators
+    const generateRunId = createIdGenerator({ prefix: 'run' });
+
+    // Hono setup
+    const app = new Hono();
     app.use(requestId());
     app.use(
       honoLogger((message, ...rest) => {
@@ -54,19 +57,20 @@ startService({
       });
 
       const context = startResult.context;
-
       const state = await agent.nextState({
         currentState: 'START',
         context,
       });
+      const runId = generateRunId();
 
       // durability: store run metadata (id, agent, created at), context, state,etc
 
-      // TODO what should be returned? run id?
+      // TODO what should be returned?
       return c.json({
         agentName,
         context,
-        state,
+        state, // TODO do not expose state
+        runId,
       });
     });
 
