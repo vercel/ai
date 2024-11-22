@@ -108,13 +108,12 @@ export function createOpenAICompatible<
   }
   const providerName = options.name;
 
-  const apiKey = loadApiKey({
-    apiKey: options.apiKey,
-    environmentVariableName: options.apiKeyEnvVarName ?? '',
-    description: options.apiKeyEnvVarDescription ?? '',
-  });
   const getHeaders = () => ({
-    Authorization: `Bearer ${apiKey}`,
+    Authorization: `Bearer ${loadApiKey({
+      apiKey: options.apiKey,
+      environmentVariableName: options.apiKeyEnvVarName ?? '',
+      description: options.apiKeyEnvVarDescription ?? '',
+    })}`,
     ...options.headers,
   });
 
