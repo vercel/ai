@@ -29,6 +29,9 @@ startService({
   async initialize({ host, port }, logger) {
     const app = new Hono();
 
+    // base paths
+    const agentsPath = path.join(process.cwd(), '.agents');
+
     // middleware setup
     app.use(requestId());
     app.use(
@@ -41,10 +44,9 @@ startService({
     app.post('/agent/:agent/start', async c => {
       const agentName = c.req.param('agent');
 
-      const agentPath = path.join(process.cwd(), '.agents', agentName);
-      const agentModulePath = path.join(agentPath, 'agent.js');
-
-      const agent = await loadModule<Agent<any>>({ path: agentModulePath });
+      const agent = await loadModule<Agent<any>>({
+        path: path.join(agentsPath, agentName, 'agent.js'),
+      });
 
       const startResult = await agent.start({
         request: c.req.raw,
