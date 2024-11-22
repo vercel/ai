@@ -1,5 +1,10 @@
 import type { Agent } from '@ai-sdk/agent-server';
-import { Context, contextSchema } from './context.js';
+import { z } from 'zod';
+
+// agent context is available to all states.
+// it can be used to pass data between states.
+export const contextSchema = z.object({ prompt: z.string() });
+export type Context = z.infer<typeof contextSchema>;
 
 export default {
   // Explicit start method that receives the request, so that the user

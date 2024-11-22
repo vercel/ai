@@ -1,6 +1,6 @@
 import { StreamState } from '@ai-sdk/agent-server';
-import { Context } from '../context';
 import { StreamData } from 'ai';
+import { Context } from '../agent';
 
 export default {
   type: 'stream',
