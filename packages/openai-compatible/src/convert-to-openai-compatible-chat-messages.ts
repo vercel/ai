@@ -2,6 +2,7 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 
 export function convertToOpenAICompatibleChatMessages(
@@ -30,10 +31,17 @@ export function convertToOpenAICompatibleChatMessages(
                 return { type: 'text', text: part.text };
               }
               case 'image': {
-                // TODO(shaper): Add back the below.
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'Image content parts in user messages',
-                });
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      part.image instanceof URL
+                        ? part.image.toString()
+                        : `data:${
+                            part.mimeType ?? 'image/jpeg'
+                          };base64,${convertUint8ArrayToBase64(part.image)}`,
+                  },
+                };
               }
               case 'file': {
                 throw new UnsupportedFunctionalityError({

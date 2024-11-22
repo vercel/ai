@@ -11,6 +11,62 @@ describe('user messages', () => {
 
     expect(result).toEqual([{ role: 'user', content: 'Hello' }]);
   });
+
+  it('should convert messages with image parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'image',
+            image: new Uint8Array([0, 1, 2, 3]),
+            mimeType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/png;base64,AAECAw==' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should handle URL-based images', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            image: new URL('https://example.com/image.jpg'),
+            mimeType: 'image/jpeg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: 'https://example.com/image.jpg' },
+          },
+        ],
+      },
+    ]);
+  });
 });
 
 describe('tool calls', () => {

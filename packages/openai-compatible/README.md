@@ -58,13 +58,14 @@ type ExampleEmbeddingModelIds =
   | (string & {});
 
 const model = createOpenAICompatible<
-    ExampleChatModelIds,
-    ExampleCompletionModelIds,
-    ExampleEmbeddingModelIds>({
-    apiKeyEnvVarName: 'EXAMPLE_API_KEY',
-    baseURL: 'https://api.example.com/v1',
-    name: 'example',
-  });
+  ExampleChatModelIds,
+  ExampleCompletionModelIds,
+  ExampleEmbeddingModelIds
+>({
+  apiKeyEnvVarName: 'EXAMPLE_API_KEY',
+  baseURL: 'https://api.example.com/v1',
+  name: 'example',
+});
 
 // Subsequent calls to e.g. `model.chatModel` will auto-complete the model id
 // from the list of `ExampleChatModelIds` (while still allowing free-form
