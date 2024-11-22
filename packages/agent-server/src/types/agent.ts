@@ -25,4 +25,6 @@ export interface Agent<CONTEXT extends JSONValue> {
     currentState: string;
     context: CONTEXT;
   }): PromiseLike<string>;
+
+  headers?: Record<string, string>;
 }

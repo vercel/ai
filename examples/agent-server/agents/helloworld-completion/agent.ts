@@ -18,4 +18,10 @@ export default {
   async nextState({ currentState, context }) {
     return currentState === 'START' ? 'main' : 'END';
   },
+
+  // Optional headers. Streams can be anything JSON-serializable,
+  // so we enable agents to set the headers that are needed.
+  headers: {
+    'X-Vercel-AI-Data-Stream': 'v1',
+  },
 } satisfies Agent<Context>;

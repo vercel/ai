@@ -53,6 +53,6 @@ export class RunManager {
 
     await this.submitJob({ runId });
 
-    return { runId };
+    return { runId, headers: agentModule.headers };
   }
 }

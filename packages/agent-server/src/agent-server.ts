@@ -68,7 +68,7 @@ startService({
 
     // routes setup
     app.post('/agent/:agent/start', async c => {
-      const { runId } = await runManager.startAgent({
+      const { runId, headers } = await runManager.startAgent({
         agent: c.req.param('agent'),
         request: c.req.raw,
       });
@@ -76,8 +76,10 @@ startService({
       const runStream = streamManager.getStream(runId);
 
       // headers
-      c.header('x-run-id', runId);
-      // TODO headers from agent
+      c.header('X-Agent-Run-Id', runId);
+      Object.entries(headers ?? {}).forEach(([key, value]) => {
+        c.header(key, value);
+      });
 
       return stream(c, stream =>
         stream.pipe(runStream.pipeThrough(new TextEncoderStream())),
