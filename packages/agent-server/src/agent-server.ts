@@ -37,6 +37,7 @@ startService({
       modulePath: path.join(process.cwd(), '.agents'),
     });
     const jobs = new JobQueue<{ runId: string }>();
+    const submitJob = jobs.push.bind(jobs);
     const dataStore = new DataStore({
       dataPath: path.join(process.cwd(), '.data'),
     });
@@ -44,7 +45,7 @@ startService({
     const runManager = new RunManager({
       dataStore,
       moduleLoader,
-      submitJob: jobs.push.bind(jobs),
+      submitJob,
       streamManager,
     });
 
@@ -52,7 +53,9 @@ startService({
     // the workers run in the same process in this prototype,
     // so if they perform CPU-bound tasks, they will block
     // TODO multiple workers
-    jobs.startWorker(createWorker({ dataStore, moduleLoader, streamManager }));
+    jobs.startWorker(
+      createWorker({ dataStore, moduleLoader, streamManager, submitJob }),
+    );
 
     // Hono setup
     const app = new Hono();
@@ -72,6 +75,9 @@ startService({
         });
 
         const runStream = streamManager.getStream(runId);
+
+        // TODO headers from agent
+        // TODO run id header
 
         await stream.pipe(runStream.pipeThrough(new TextEncoderStream()));
       }),

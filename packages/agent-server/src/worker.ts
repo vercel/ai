@@ -6,13 +6,16 @@ export function createWorker({
   dataStore,
   moduleLoader,
   streamManager,
+  submitJob,
 }: {
   dataStore: DataStore;
   moduleLoader: ModuleLoader;
   streamManager: StreamManager;
+  submitJob: (job: { runId: string }) => Promise<void>;
 }) {
   return async ({ runId }: { runId: string }) => {
     const runState = await dataStore.getRunState({ runId });
+
     const stateModule = await moduleLoader.loadState({
       agent: runState.agent,
       state: runState.state,
@@ -21,16 +24,49 @@ export function createWorker({
       context: runState.context,
     });
 
-    streamManager.addToStream(runId, stream);
+    const [newStream, original] = stream.tee();
 
-    // wait for stream to finish
+    streamManager.addToStream(runId, original);
+
+    // consume stream without backpressure and store it
+    // to enable multiple consumers and re-consumption
+    const reader = newStream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      // store append to stream file on disk
+      process.stdout.write(JSON.stringify(value));
+    }
 
     // wait for updated context
+    const updatedContext = await context;
 
     // calculate next state
+    const agentModule = await moduleLoader.loadAgent({
+      agent: runState.agent,
+    });
+    const nextState = await agentModule.nextState({
+      currentState: runState.state,
+      context: updatedContext,
+    });
 
     // store updated context
+    await dataStore.updateRun({
+      runId,
+      agent: runState.agent,
+      createdAt: runState.createdAt,
+      state: nextState,
+      context: updatedContext,
+    });
 
-    // submit next job
+    // submit next job or end
+    if (nextState === 'END') {
+      streamManager.closeStream(runId);
+    } else {
+      submitJob({ runId });
+    }
   };
 }

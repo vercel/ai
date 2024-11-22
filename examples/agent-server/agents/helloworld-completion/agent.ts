@@ -16,6 +16,6 @@ export default {
 
   // Special states: START, END
   async nextState({ currentState, context }) {
-    return 'main';
+    return currentState === 'START' ? 'main' : 'END';
   },
 } satisfies Agent<Context>;
