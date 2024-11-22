@@ -1,9 +1,4 @@
-import { JSONValue } from '@ai-sdk/provider';
-
-export interface StreamState<
-  CONTEXT extends JSONValue,
-  CHUNK extends JSONValue,
-> {
+export interface StreamState<CONTEXT, CHUNK> {
   type: 'stream';
   execute(options: { context: CONTEXT }): PromiseLike<{
     context?: PromiseLike<CONTEXT> | CONTEXT;

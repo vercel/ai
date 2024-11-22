@@ -83,6 +83,10 @@ export class StreamData {
       this.encoder.encode(formatDataStreamPart('message_annotations', [value])),
     );
   }
+
+  toAgentStream(): ReadableStream<string> {
+    return this.stream.pipeThrough(new TextDecoderStream());
+  }
 }
 
 /**

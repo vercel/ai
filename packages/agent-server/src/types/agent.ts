@@ -1,6 +1,6 @@
 import { JSONValue } from '@ai-sdk/provider';
 
-export interface Agent<CONTEXT extends JSONValue> {
+export interface Agent<CONTEXT> {
   /**
    * Called when the agent run is started.
    *
