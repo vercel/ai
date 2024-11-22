@@ -12,11 +12,7 @@ export default {
     });
 
     return {
-      // streamText will expose streams specifically for the agent server
-      // in the future:
-      // stream: result.toAgentStream()
-      // for now we need to decode:
-      stream: result.toDataStream().pipeThrough(new TextDecoderStream()),
+      stream: result.toAgentStream(),
       nextState: 'END',
     };
   },

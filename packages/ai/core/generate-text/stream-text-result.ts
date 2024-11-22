@@ -127,6 +127,8 @@ need to be added separately.
     sendUsage?: boolean; // default to true (change to false in v4: secure by default)
   }): ReadableStream<Uint8Array>;
 
+  toAgentStream(): ReadableStream<string>;
+
   /**
   Writes data stream output to a Node.js response-like object.
 
