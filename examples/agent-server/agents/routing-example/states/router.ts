@@ -14,8 +14,7 @@ export default {
       stream: streamData.stream.pipeThrough(new TextDecoderStream()),
       context: {
         ...context,
-        selectedRoute:
-          context.prompt.length > 10 ? 'long-prompt' : 'short-prompt',
+        selectedRoute: context.prompt.includes('write') ? 'writer' : 'chatbot',
       },
     };
   },
