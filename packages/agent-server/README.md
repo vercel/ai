@@ -8,7 +8,9 @@ These are the hard problems we want to solve:
 - long running streaming (hours, days, weeks)
 - resilient to disconnect / reconnect / stream breakages
 - durability and error recovery
+
 - code modularization (through state machine approach)
 - each step is a complete state execution (states can loop)
-- user defined input processing, state logic, stream format
+- user code for input processing, state logic, stream format
+
 - upgradability during agent runs when possible
