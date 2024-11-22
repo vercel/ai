@@ -11,7 +11,7 @@ export default {
   // can perform any data validation, transformation, and loading
   // that is required for their agent.
   // The goal is to provide the initial context for the agent run.
-  async start({ request, metadata }) {
+  async start({ request }) {
     return {
       context: contextSchema.parse(await request.json()),
       initialState: 'main',
