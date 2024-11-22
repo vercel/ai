@@ -1,4 +1,7 @@
 export { createOpenAICompatible } from './openai-compatible-provider';
+export { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
+export { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
+export { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
 export type {
   OpenAICompatibleProvider,
   OpenAICompatibleProviderSettings,
