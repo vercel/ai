@@ -8,6 +8,7 @@ import { requestId } from 'hono/request-id';
 import * as path from 'node:path';
 import zod from 'zod';
 import { Agent } from './types/agent';
+import { loadModule } from './util/load-module';
 import { startService } from './util/start-service';
 
 startService({
@@ -43,40 +44,26 @@ startService({
       const agentPath = path.join(process.cwd(), '.agents', agentName);
       const agentModulePath = path.join(agentPath, 'agent.js');
 
-      try {
-        const agent: Agent<any> = (await import(agentModulePath)).default;
-        logger.info(`Successfully loaded agent module: ${agentName}`);
+      const agent = await loadModule<Agent<any>>({ path: agentModulePath });
 
-        const startResult = await agent.start({
-          request: c.req.raw,
-          metadata: { agentName },
-        });
+      const startResult = await agent.start({
+        request: c.req.raw,
+        metadata: { agentName },
+      });
 
-        const context = startResult.context;
+      const context = startResult.context;
 
-        const state = await agent.nextState({
-          currentState: 'START',
-          context,
-        });
+      const state = await agent.nextState({
+        currentState: 'START',
+        context,
+      });
 
-        return c.json({
-          success: true,
-          agentName,
-          context,
-          state,
-        });
-      } catch (error) {
-        logger.error(`Failed to load agent module: ${error}`);
-        return c.json(
-          {
-            success: false,
-            error: `Failed to load agent: ${
-              error instanceof Error ? error.message : 'Unknown error'
-            }`,
-          },
-          400,
-        );
-      }
+      return c.json({
+        success: true,
+        agentName,
+        context,
+        state,
+      });
     });
 
     const server = serve({ fetch: app.fetch, hostname: host, port });
