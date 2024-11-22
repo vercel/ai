@@ -58,8 +58,8 @@ startService({
         context,
       });
 
+      // TODO what should be returned? run id?
       return c.json({
-        success: true,
         agentName,
         context,
         state,
