@@ -101,7 +101,7 @@ export function createTogetherAI(
     // TODO(shaper): Likely need a registry of model to object generation mode.
     return new OpenAICompatibleChatLanguageModel(modelId, settings, {
       ...getCommonModelConfig('chat'),
-      defaultObjectGenerationMode: 'json',
+      defaultObjectGenerationMode: 'tool',
     });
   };
 
