@@ -38,8 +38,20 @@ startService({
       submitJob: jobs.push.bind(jobs),
     });
 
-    // worker
+    // setup workers
+    // the workers run in the same process in this prototype,
+    // so if they perform CPU-bound tasks, they will block
     jobs.startWorker(async ({ runId }) => {
+      // load information from data store
+
+      // load module for state
+
+      // execute module with context
+
+      // wait for updated context
+
+      // submit next job
+
       console.log('TODO process job', runId);
     });
 
