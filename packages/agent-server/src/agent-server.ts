@@ -11,6 +11,7 @@ import { Agent } from './types/agent';
 import { loadModule } from './util/load-module';
 import { startService } from './util/start-service';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { RunManager } from './run-manager';
 
 startService({
   name: '@ai-sdk/server',
@@ -28,11 +29,9 @@ startService({
     port: zod.number(),
   }),
   async initialize({ host, port }, logger) {
-    // base paths
-    const agentsPath = path.join(process.cwd(), '.agents');
-
-    // id generators
-    const generateRunId = createIdGenerator({ prefix: 'run' });
+    const runManager = new RunManager({
+      agentsPath: path.join(process.cwd(), '.agents'),
+    });
 
     // Hono setup
     const app = new Hono();
@@ -47,21 +46,10 @@ startService({
     app.post('/agent/:agent/start', async c => {
       const agentName = c.req.param('agent');
 
-      const agent = await loadModule<Agent<any>>({
-        path: path.join(agentsPath, agentName, 'agent.js'),
-      });
-
-      const startResult = await agent.start({
+      const { runId, context, state } = await runManager.startAgent({
+        name: agentName,
         request: c.req.raw,
-        metadata: { agentName },
       });
-
-      const context = startResult.context;
-      const state = await agent.nextState({
-        currentState: 'START',
-        context,
-      });
-      const runId = generateRunId();
 
       // durability: store run metadata (id, agent, created at), context, state,etc
 
