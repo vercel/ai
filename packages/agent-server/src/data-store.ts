@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { RunState } from './types/run-state';
+import { JSONValue } from '@ai-sdk/provider';
 
 export class DataStore {
   private readonly dataPath: string;
@@ -19,9 +20,7 @@ export class DataStore {
       file: 'state.json',
     });
 
-    // ensure directory exists
     await fs.mkdir(path.dirname(runPath), { recursive: true });
-
     await fs.writeFile(runPath, JSON.stringify(runState));
   }
 
@@ -29,5 +28,23 @@ export class DataStore {
     const filePath = this.getRunPath({ runId, file: 'state.json' });
     const state = await fs.readFile(filePath, 'utf8');
     return JSON.parse(state);
+  }
+
+  async appendToStateStream({
+    runId,
+    step,
+    chunk,
+  }: {
+    runId: string;
+    step: number;
+    chunk: JSONValue;
+  }) {
+    const filePath = this.getRunPath({
+      runId,
+      file: `step-${step}.stream.json`,
+    });
+
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.appendFile(filePath, JSON.stringify(chunk) + '\n');
   }
 }

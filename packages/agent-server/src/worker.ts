@@ -49,8 +49,12 @@ export function createWorker({
           break;
         }
 
-        // store append to stream file on disk
-        //   process.stdout.write(JSON.stringify(value));
+        // store chunk
+        await dataStore.appendToStateStream({
+          runId,
+          step: runState.step,
+          chunk: value,
+        });
       }
     }
 
