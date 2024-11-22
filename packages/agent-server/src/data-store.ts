@@ -21,7 +21,7 @@ export class DataStore {
     });
 
     await fs.mkdir(path.dirname(runPath), { recursive: true });
-    await fs.writeFile(runPath, JSON.stringify(runState));
+    await fs.writeFile(runPath, JSON.stringify(runState, null, 2));
   }
 
   async getRunState({ runId }: { runId: string }): Promise<RunState> {
@@ -30,7 +30,24 @@ export class DataStore {
     return JSON.parse(state);
   }
 
-  async appendToStateStream({
+  async storeStepState(stepState: {
+    runId: string;
+    step: number;
+    status: 'RUNNING' | 'FINISHED';
+    inputContext: JSONValue;
+    outputContext?: JSONValue;
+    nextState?: string;
+  }) {
+    const filePath = this.getRunPath({
+      runId: stepState.runId,
+      file: `step-${stepState.step}.json`,
+    });
+
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, JSON.stringify(stepState, null, 2));
+  }
+
+  async appendToStepStream({
     runId,
     step,
     chunk,

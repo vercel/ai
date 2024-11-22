@@ -28,6 +28,14 @@ export function createWorker({
       agent: runState.agent,
       state: runState.state,
     });
+
+    await dataStore.storeStepState({
+      runId,
+      step: runState.step,
+      status: 'RUNNING',
+      inputContext: runState.context,
+    });
+
     const { context, nextState: nextStatePromise } = await stateModule.execute({
       context: runState.context,
       forwardStream: stream => {
@@ -50,7 +58,7 @@ export function createWorker({
         }
 
         // store chunk
-        await dataStore.appendToStateStream({
+        await dataStore.appendToStepStream({
           runId,
           step: runState.step,
           chunk: value,
@@ -63,6 +71,15 @@ export function createWorker({
       context === undefined ? runState.context : await context;
 
     // store updated context
+    await dataStore.storeStepState({
+      runId,
+      step: runState.step,
+      status: 'FINISHED',
+      inputContext: runState.context,
+      outputContext: updatedContext,
+      nextState,
+    });
+
     await dataStore.updateRun({
       runId,
       agent: runState.agent,
