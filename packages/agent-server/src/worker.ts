@@ -41,8 +41,9 @@ export function createWorker({
       process.stdout.write(JSON.stringify(value));
     }
 
-    // wait for updated context
-    const updatedContext = await context;
+    // wait for updated context. if undefined, we use the old context
+    const updatedContext =
+      context === undefined ? runState.context : await context;
 
     // calculate next state
     const agentModule = await moduleLoader.loadAgent({

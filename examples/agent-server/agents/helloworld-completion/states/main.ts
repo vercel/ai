@@ -6,14 +6,16 @@ import { Context } from '../context';
 export default {
   type: 'stream',
   async execute({ context }) {
-    // TODO onFinal should resolve context
     const result = streamText({
       model: openai('gpt-4o'),
       prompt: context.prompt,
     });
 
     return {
-      context: Promise.resolve(context),
+      // streamText will expose streams specifically for the agent server
+      // in the future:
+      // stream: result.toAgentStream()
+      // for now we need to decode:
       stream: result.toDataStream().pipeThrough(new TextDecoderStream()),
     };
   },
