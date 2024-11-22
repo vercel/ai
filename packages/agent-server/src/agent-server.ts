@@ -47,7 +47,7 @@ startService({
     // the workers run in the same process in this prototype,
     // so if they perform CPU-bound tasks, they will block
     // TODO multiple workers
-    jobs.startWorker(createWorker({ dataStore }));
+    jobs.startWorker(createWorker({ dataStore, moduleLoader }));
 
     // Hono setup
     const app = new Hono();

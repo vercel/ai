@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import { Agent } from './types/agent';
+import { StreamState } from './types/state';
 import { JSONValue } from '@ai-sdk/provider';
 
 export class ModuleLoader {
@@ -20,13 +21,21 @@ export class ModuleLoader {
     }
   }
 
-  async loadAgent<CONTEXT extends JSONValue>({
+  async loadAgent({ agent }: { agent: string }): Promise<Agent<JSONValue>> {
+    return this.loadModule<Agent<JSONValue>>({
+      path: [agent, 'agent.js'],
+    });
+  }
+
+  async loadState({
     agent,
+    state,
   }: {
     agent: string;
-  }): Promise<Agent<CONTEXT>> {
-    return this.loadModule<Agent<CONTEXT>>({
-      path: [agent, 'agent.js'],
+    state: string;
+  }): Promise<StreamState<JSONValue, JSONValue>> {
+    return this.loadModule<StreamState<JSONValue, JSONValue>>({
+      path: [agent, 'states', `${state}.js`],
     });
   }
 }

@@ -25,7 +25,7 @@ export class RunManager {
   }
 
   async startAgent({ agent, request }: { agent: string; request: Request }) {
-    const agentModule = await this.moduleLoader.loadAgent<JSONValue>({ agent });
+    const agentModule = await this.moduleLoader.loadAgent({ agent });
 
     const { context } = await agentModule.start({
       request,
