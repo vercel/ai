@@ -35,6 +35,13 @@ export default function Chat() {
             <strong>{`${m.role}: `}</strong>
             {m.content}
             <br />
+            <Show when={m.annotations}>
+              <strong>Annotations:</strong>
+              <pre class="p-4 text-sm bg-gray-100">
+                {JSON.stringify(m.annotations, null, 2)}
+              </pre>
+            </Show>
+            <br />
             <br />
           </div>
         )}

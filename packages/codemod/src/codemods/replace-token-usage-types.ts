@@ -1,38 +1,61 @@
 import { createTransformer } from './lib/create-transformer';
+import {
+  ImportSpecifier,
+  ImportDefaultSpecifier,
+  ImportNamespaceSpecifier,
+} from 'jscodeshift';
 
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
+
+  // Define the mapping from old names to new names
+  const renameMap: Record<string, string> = {
+    TokenUsage: 'LanguageModelUsage',
+    CompletionTokenUsage: 'LanguageModelUsage',
+    EmbeddingTokenUsage: 'EmbeddingModelUsage',
+  };
+
+  // Set to keep track of already imported new names to avoid duplicates
+  const importedNewNames = new Set<string>();
 
   // Replace imports at ImportDeclaration level
   root
     .find(j.ImportDeclaration)
     .filter(path => path.node.source.value === 'ai')
     .forEach(path => {
-      const newSpecifiers = path.node.specifiers?.map(spec => {
-        if (spec.type !== 'ImportSpecifier') return spec;
+      const importSpecifiers = path.node.specifiers || [];
+      const newSpecifiers: (
+        | ImportSpecifier
+        | ImportDefaultSpecifier
+        | ImportNamespaceSpecifier
+      )[] = [];
+      const addedNewSpecifiers = new Set<string>();
 
-        const oldName = spec.imported.name;
-        if (
-          ![
-            'TokenUsage',
-            'CompletionTokenUsage',
-            'EmbeddingTokenUsage',
-          ].includes(oldName)
-        ) {
-          return spec;
+      importSpecifiers.forEach(spec => {
+        if (spec.type !== 'ImportSpecifier') {
+          // Retain non-ImportSpecifier specifiers (e.g., default imports, namespace imports)
+          newSpecifiers.push(spec);
+          return;
         }
 
-        context.hasChanges = true;
-        const newName =
-          oldName === 'EmbeddingTokenUsage'
-            ? 'EmbeddingModelUsage'
-            : 'LanguageModelUsage';
+        const oldName = spec.imported.name;
+        if (!renameMap.hasOwnProperty(oldName)) {
+          // Retain specifiers that are not part of the renaming
+          newSpecifiers.push(spec);
+          return;
+        }
 
-        return j.importSpecifier(j.identifier(newName));
+        const newName = renameMap[oldName];
+        if (!addedNewSpecifiers.has(newName)) {
+          // Add the new specifier only if it hasn't been added yet
+          newSpecifiers.push(j.importSpecifier(j.identifier(newName)));
+          addedNewSpecifiers.add(newName);
+          context.hasChanges = true;
+        }
       });
 
-      if (newSpecifiers !== path.node.specifiers) {
-        context.hasChanges = true;
+      // Replace the specifiers with the new specifiers if changes were made
+      if (addedNewSpecifiers.size > 0) {
         path.node.specifiers = newSpecifiers;
       }
     });
@@ -43,20 +66,16 @@ export default createTransformer((fileInfo, api, options, context) => {
     .filter(
       path =>
         path.node.typeName.type === 'Identifier' &&
-        ['TokenUsage', 'CompletionTokenUsage', 'EmbeddingTokenUsage'].includes(
-          path.node.typeName.name,
-        ),
+        Object.keys(renameMap).includes(path.node.typeName.name),
     )
     .forEach(path => {
       if (path.node.typeName.type === 'Identifier') {
-        context.hasChanges = true;
         const oldName = path.node.typeName.name;
-        const newName =
-          oldName === 'EmbeddingTokenUsage'
-            ? 'EmbeddingModelUsage'
-            : 'LanguageModelUsage';
-
-        path.node.typeName = j.identifier(newName);
+        const newName = renameMap[oldName];
+        if (newName) {
+          context.hasChanges = true;
+          path.node.typeName = j.identifier(newName);
+        }
       }
     });
 });

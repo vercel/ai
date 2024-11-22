@@ -1,0 +1,97 @@
+---
+title: Braintrust
+description: Monitoring and tracing LLM applications with Braintrust
+---
+
+# Braintrust Observability
+
+Braintrust is an end-to-end platform for building AI applications. When building with the AI SDK, you can integrate Braintrust to [log](https://www.braintrust.dev/docs/guides/logging), monitor, and take action on real-world interactions.
+
+## Setup
+
+### OpenTelemetry
+
+Braintrust supports [AI SDK telemetry data](/docs/ai-sdk-core/telemetry).
+To set up Braintrust as an [OpenTelemetry](https://opentelemetry.io/docs/) backend, you'll need to route the traces to Braintrust's OpenTelemetry endpoint, set your API key, and specify a parent project or experiment.
+
+Once you set up an [OpenTelemetry Protocol Exporter](https://opentelemetry.io/docs/languages/js/exporters/) (OTLP) to send traces to Braintrust, we automatically convert LLM calls into Braintrust `LLM` spans, which can be saved as [prompts](https://www.braintrust.dev/docs/guides/functions/prompts) and evaluated in the [playground](https://www.braintrust.dev/docs/guides/playground).
+
+To use the AI SDK to send telemetry data to Braintrust, set these environment variables in your Next.js app's `.env` file:
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=https://api.braintrust.dev/otel
+OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your API Key>, x-bt-parent=project_id:<Your Project ID>"
+```
+
+You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:
+
+```typescript
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const openai = createOpenAI();
+
+async function main() {
+  const result = await generateText({
+    model: openai('gpt-4o-mini'),
+    prompt: 'What is 2 + 2?',
+    experimental_telemetry: {
+      isEnabled: true,
+      metadata: {
+        query: 'weather',
+        location: 'San Francisco',
+      },
+    },
+  });
+  console.log(result);
+}
+
+main();
+```
+
+Traced LLM calls will appear under the Braintrust project or experiment provided in the `x-bt-parent` header.
+
+### Model Wrapping
+
+You can wrap AI SDK models in Braintrust to automatically log your requests.
+
+```typescript
+import { initLogger, wrapAISDKModel } from 'braintrust';
+import { openai } from '@ai-sdk/openai';
+
+const logger = initLogger({
+  projectName: 'My Project',
+  apiKey: process.env.BRAINTRUST_API_KEY,
+});
+
+const model = wrapAISDKModel(openai.chat('gpt-3.5-turbo'));
+
+async function main() {
+  // This will automatically log the request, response, and metrics to Braintrust
+  const response = await model.doGenerate({
+    inputFormat: 'messages',
+    mode: {
+      type: 'regular',
+    },
+    prompt: [
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'What is the capital of France?' }],
+      },
+    ],
+  });
+  console.log(response);
+}
+
+main();
+```
+
+## Resources
+
+To see a step-by-step example, check out the Braintrust [cookbook](https://www.braintrust.dev/docs/cookbook/recipes/OTEL-logging).
+
+After you log your application in Braintrust, explore other workflows like:
+
+- Adding [tools](https://www.braintrust.dev/docs/guides/functions/tools) to your library and using them in [experiments](https://www.braintrust.dev/docs/guides/evals) and the [playground](https://www.braintrust.dev/docs/guides/playground)
+- Creating [custom scorers](https://www.braintrust.dev/docs/guides/functions/scorers) to assess the quality of your LLM calls
+- Adding your logs to a [dataset](https://www.braintrust.dev/docs/guides/datasets) and running evaluations comparing models and prompts
