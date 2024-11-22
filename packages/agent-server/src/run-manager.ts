@@ -24,6 +24,9 @@ export class RunManager {
     const runId = this.generateRunId();
     const state = await agent.nextState({ currentState: 'START', context });
 
+    // durability: store run metadata (id, agent, created at), context, state,etc
+    // add job to queue
+
     return { runId, context, state };
   }
 }

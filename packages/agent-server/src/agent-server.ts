@@ -48,15 +48,7 @@ startService({
         request: c.req.raw,
       });
 
-      // durability: store run metadata (id, agent, created at), context, state,etc
-
-      // TODO what should be returned?
-      return c.json({
-        agentName,
-        context,
-        state, // TODO do not expose state
-        runId,
-      });
+      return c.json({ agentName, context, runId });
     });
 
     const server = serve({ fetch: app.fetch, hostname: host, port });
