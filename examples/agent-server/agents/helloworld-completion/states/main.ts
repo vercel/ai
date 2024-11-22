@@ -4,7 +4,7 @@ import { streamText } from 'ai';
 import { Context } from '../context';
 
 export default {
-  type: 'stream',
+  type: 'stream', // state type, in the future there will be other types
   async execute({ context }) {
     const result = streamText({
       model: openai('gpt-4o'),
