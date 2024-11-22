@@ -3,18 +3,10 @@
 import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const {
-    error,
-    input,
-    isLoading,
-    handleInputChange,
-    handleSubmit,
-    messages,
-    reload,
-    stop,
-  } = useChat({
-    api: 'http://localhost:3001/agent/routing-chatbot/start',
-  });
+  const { error, input, isLoading, handleInputChange, handleSubmit, messages } =
+    useChat({
+      api: 'http://localhost:3001/agent/routing-chatbot/start',
+    });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
