@@ -1,17 +1,12 @@
 import type { Agent } from '@ai-sdk/agent-server';
-import { bodySchema, Context } from './context.js';
+import { Context, contextSchema } from './context.js';
 
 export default {
-  async start({ request, metadata }) {
-    const body = bodySchema.parse(await request.json());
+  async start({ request }) {
     return {
-      context: {
-        prompt: body.prompt,
-        selectedRoute: null,
-      },
-      initialState: 'router',
+      context: contextSchema.parse(await request.json()),
+      initialState: 'main',
     };
   },
-
   headers: { 'X-Vercel-AI-Data-Stream': 'v1' },
 } satisfies Agent<Context>;

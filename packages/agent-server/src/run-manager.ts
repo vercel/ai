@@ -42,7 +42,9 @@ export class RunManager {
       request,
       metadata: { agentName: agent },
     });
-    const runId = this.generateRunId();
+
+    // const runId = this.generateRunId();
+    const runId = `${agent}-${Date.now()}`; // for easier data inspection
 
     await this.dataStore.updateRun({
       runId,
