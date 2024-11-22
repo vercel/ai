@@ -41,6 +41,8 @@ startService({
     // setup workers
     // the workers run in the same process in this prototype,
     // so if they perform CPU-bound tasks, they will block
+    // TODO multiple workers
+    // TODO extract worker logic
     jobs.startWorker(async ({ runId }) => {
       // load information from data store
 
@@ -49,6 +51,8 @@ startService({
       // execute module with context
 
       // wait for updated context
+
+      // store updated context
 
       // submit next job
 

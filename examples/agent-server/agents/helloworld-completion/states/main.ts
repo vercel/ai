@@ -1,12 +1,20 @@
+import { StreamState } from '@ai-sdk/agent-server';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
+import { Context } from '../context';
 
-export async function state() {
-  const result = streamText({
-    model: openai('gpt-4o'),
-    prompt: 'Hello, how are you?',
-  });
+export default {
+  type: 'stream',
+  async execute({ context }) {
+    // TODO onFinal should resolve context
+    const result = streamText({
+      model: openai('gpt-4o'),
+      prompt: context.prompt,
+    });
 
-  // TODO support non-streaming steps
-  return result.toDataStream(); // TODO special stream format toAgentStream
-}
+    return {
+      context: Promise.resolve(context),
+      stream: result.toDataStream().pipeThrough(new TextDecoderStream()),
+    };
+  },
+} satisfies StreamState<Context, string>;
