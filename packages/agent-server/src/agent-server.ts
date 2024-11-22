@@ -40,7 +40,7 @@ startService({
     app.post('/agent/:agent/start', async c => {
       const agentName = c.req.param('agent');
 
-      const agentPath = path.join(process.cwd(), 'agents', agentName);
+      const agentPath = path.join(process.cwd(), '.agents', agentName);
       const agentModulePath = path.join(agentPath, 'agent.js');
 
       try {
