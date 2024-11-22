@@ -62,6 +62,9 @@ export function createCallbacksTransformer(
       if (callbacks.onCompletion) {
         await callbacks.onCompletion(aggregatedResponse);
       }
+      if (callbacks.onFinal) {
+        await callbacks.onFinal(aggregatedResponse);
+      }
     },
   });
 }
