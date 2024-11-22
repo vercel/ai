@@ -7,11 +7,8 @@ import { logger as honoLogger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 import * as path from 'node:path';
 import zod from 'zod';
-import { Agent } from './types/agent';
-import { loadModule } from './util/load-module';
-import { startService } from './util/start-service';
-import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { RunManager } from './run-manager';
+import { startService } from './util/start-service';
 
 startService({
   name: '@ai-sdk/server',
