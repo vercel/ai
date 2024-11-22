@@ -14,15 +14,18 @@ export function createWorker({
       agent: runState.agent,
       state: runState.state,
     });
+    const { context, stream } = await stateModule.execute({
+      context: runState.context,
+    });
 
-    // execute module with context
+    // wait for stream to finish
 
     // wait for updated context
+
+    // calculate next state
 
     // store updated context
 
     // submit next job
-
-    console.log('TODO process job', runId);
   };
 }
