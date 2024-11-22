@@ -6,14 +6,13 @@ import { Context } from '../agent';
 export default {
   type: 'stream',
   async execute({ context, forwardStream }) {
+    // immediately start streaming status information:
     const streamData = new StreamData();
-
-    // immediately start streaming
     forwardStream(streamData.toAgentStream());
     streamData.append({ status: 'analyzing message' });
     streamData.close();
 
-    // blocking operation, but we already started streaming
+    // blocking operation, but we already started streaming:
     const lastUserMessage = context.messages.at(-1)?.content;
     const result = await generateObject({
       model: openai('gpt-4o-mini', { structuredOutputs: true }),
