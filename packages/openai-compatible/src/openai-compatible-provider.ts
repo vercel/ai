@@ -3,11 +3,7 @@ import {
   LanguageModelV1,
   ProviderV1,
 } from '@ai-sdk/provider';
-import {
-  FetchFunction,
-  loadApiKey,
-  withoutTrailingSlash,
-} from '@ai-sdk/provider-utils';
+import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 import { OpenAICompatibleChatSettings } from './openai-compatible-chat-settings';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
@@ -48,38 +44,23 @@ export interface OpenAICompatibleProvider<
 
 export interface OpenAICompatibleProviderSettings {
   /**
-Base URL for the API calls.
-     */
+   Base URL for the API calls.
+   */
   baseURL?: string;
 
   /**
-API key for authenticating requests.
-     */
-  apiKey?: string;
-
-  /**
-Custom headers to include in the requests.
-     */
+   Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   Custom fetch implementation. You can use it as a middleware to intercept requests,
+   or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
-The name of the environment variable from which to load the API key (if a key isn't explicitly provided).
-   */
-  apiKeyEnvVarName?: string;
-
-  /**
-Description of the API key environment variable (for use in error messages).
-   */
-  apiKeyEnvVarDescription?: string;
-
-  /**
-Provider name.
+   Provider name.
    */
   name?: string;
 }
@@ -108,15 +89,6 @@ export function createOpenAICompatible<
   }
   const providerName = options.name;
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: options.apiKeyEnvVarName ?? '',
-      description: options.apiKeyEnvVarDescription ?? '',
-    })}`,
-    ...options.headers,
-  });
-
   interface CommonModelConfig {
     provider: string;
     url: ({ path }: { path: string }) => string;
@@ -127,7 +99,7 @@ export function createOpenAICompatible<
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `${providerName}.${modelType}`,
     url: ({ path }) => `${baseURL}${path}`,
-    headers: getHeaders,
+    headers: () => options.headers ?? {},
     fetch: options.fetch,
   });
 

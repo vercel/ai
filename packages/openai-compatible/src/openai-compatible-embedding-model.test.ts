@@ -9,9 +9,11 @@ const dummyEmbeddings = [
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createOpenAICompatible({
-  apiKey: 'test-api-key',
   baseURL: 'https://my.api.com/v1/',
   name: 'test-provider',
+  headers: {
+    Authorization: `Bearer test-api-key`,
+  },
 });
 const model = provider.textEmbeddingModel('text-embedding-3-large');
 
@@ -107,10 +109,10 @@ describe('doEmbed', () => {
     prepareJsonResponse();
 
     const provider = createOpenAICompatible({
-      apiKey: 'test-api-key',
       baseURL: 'https://my.api.com/v1/',
       name: 'test-provider',
       headers: {
+        Authorization: `Bearer test-api-key`,
         'Custom-Provider-Header': 'provider-header-value',
       },
     });

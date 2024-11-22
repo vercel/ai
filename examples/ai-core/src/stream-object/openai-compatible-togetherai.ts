@@ -5,9 +5,11 @@ import { z } from 'zod';
 
 async function main() {
   const togetherai = createOpenAICompatible({
-    apiKeyEnvVarName: 'TOGETHER_AI_API_KEY',
     baseURL: 'https://api.together.xyz/v1',
     name: 'togetherai',
+    headers: {
+      Authorization: `Bearer ${process.env.TOGETHER_AI_API_KEY}`,
+    },
   });
   const model = togetherai.chatModel('mistralai/Mistral-7B-Instruct-v0.1');
   const result = streamObject({

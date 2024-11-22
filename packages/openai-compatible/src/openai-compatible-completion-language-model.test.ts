@@ -11,9 +11,11 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
 ];
 
 const provider = createOpenAICompatible({
-  apiKey: 'test-api-key',
   baseURL: 'https://my.api.com/v1/',
   name: 'test-provider',
+  headers: {
+    Authorization: `Bearer test-api-key`,
+  },
 });
 
 const model = provider.completionModel('gpt-3.5-turbo-instruct');
@@ -202,13 +204,10 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     const provider = createOpenAICompatible({
-      apiKey: 'test-api-key',
       baseURL: 'https://my.api.com/v1/',
       name: 'test-provider',
-      // TODO(shaper): Do we need these?
-      // organization: 'test-organization',
-      // project: 'test-project',
       headers: {
+        Authorization: `Bearer test-api-key`,
         'Custom-Provider-Header': 'provider-header-value',
       },
     });
@@ -432,10 +431,10 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     const provider = createOpenAICompatible({
-      apiKey: 'test-api-key',
       baseURL: 'https://my.api.com/v1/',
       name: 'test-provider',
       headers: {
+        Authorization: `Bearer test-api-key`,
         'Custom-Provider-Header': 'provider-header-value',
       },
     });

@@ -5,9 +5,11 @@ import fs from 'node:fs';
 
 async function main() {
   const openai = createOpenAICompatible({
-    apiKeyEnvVarName: 'OPENAI_API_KEY',
     baseURL: 'https://api.openai.com/v1',
     name: 'openai',
+    headers: {
+      Authorization: `Bearer ${process.env.TOGETHER_AI_API_KEY}`,
+    },
   });
   const model = openai.chatModel('gpt-4o-mini');
   const result = await generateText({

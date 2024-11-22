@@ -4,9 +4,11 @@ import { embedMany } from 'ai';
 
 async function main() {
   const togetherai = createOpenAICompatible({
-    apiKeyEnvVarName: 'TOGETHER_AI_API_KEY',
     baseURL: 'https://api.together.xyz/v1',
     name: 'togetherai',
+    headers: {
+      Authorization: `Bearer ${process.env.TOGETHER_AI_API_KEY}`,
+    },
   });
   const model = togetherai.textEmbeddingModel('BAAI/bge-large-en-v1.5');
   const { embeddings, usage } = await embedMany({

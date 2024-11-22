@@ -4,9 +4,11 @@ import { generateText } from 'ai';
 
 async function main() {
   const togetherai = createOpenAICompatible({
-    apiKeyEnvVarName: 'TOGETHER_AI_API_KEY',
     baseURL: 'https://api.together.xyz/v1',
     name: 'togetherai',
+    headers: {
+      Authorization: `Bearer ${process.env.TOGETHER_AI_API_KEY}`,
+    },
   });
   const model = togetherai.chatModel('meta-llama/Llama-3-70b-chat-hf');
   const result = await generateText({

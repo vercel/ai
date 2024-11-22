@@ -28,9 +28,11 @@ import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: createOpenAICompatible({
-    apiKeyEnvVarName: 'EXAMPLE_API_KEY',
     baseURL: 'https://api.example.com/v1',
     name: 'example',
+    headers: {
+      Authorization: `Bearer ${process.env.MY_API_KEY}`,
+    },
   }).chatModel('meta-llama/Llama-3-70b-chat-hf'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
@@ -62,14 +64,16 @@ const model = createOpenAICompatible<
   ExampleCompletionModelIds,
   ExampleEmbeddingModelIds
 >({
-  apiKeyEnvVarName: 'EXAMPLE_API_KEY',
   baseURL: 'https://api.example.com/v1',
   name: 'example',
+  headers: {
+    Authorization: `Bearer ${process.env.MY_API_KEY}`,
+  },
 });
 
 // Subsequent calls to e.g. `model.chatModel` will auto-complete the model id
-// from the list of `ExampleChatModelIds` (while still allowing free-form
-// strings as well).
+// from the list of `ExampleChatModelIds` while still allowing free-form
+// strings as well.
 
 const { text } = await generateText({
   model: model.chatModel('meta-llama/Llama-3-70b-chat-hf'),

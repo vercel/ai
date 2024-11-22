@@ -9,9 +9,11 @@ async function main() {
   let toolResponseAvailable = false;
 
   const togetherai = createOpenAICompatible({
-    apiKeyEnvVarName: 'TOGETHER_AI_API_KEY',
     baseURL: 'https://api.together.xyz/v1',
     name: 'togetherai',
+    headers: {
+      Authorization: `Bearer ${process.env.TOGETHER_AI_API_KEY}`,
+    },
   });
   const model = togetherai.chatModel(
     'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
