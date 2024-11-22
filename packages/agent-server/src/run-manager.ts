@@ -27,6 +27,6 @@ export class RunManager {
     // durability: store run metadata (id, agent, created at), context, state,etc
     // add job to queue
 
-    return { runId, context, state };
+    return { runId };
   }
 }

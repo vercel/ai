@@ -43,12 +43,12 @@ startService({
     app.post('/agent/:agent/start', async c => {
       const agentName = c.req.param('agent');
 
-      const { runId, context, state } = await runManager.startAgent({
+      const { runId } = await runManager.startAgent({
         name: agentName,
         request: c.req.raw,
       });
 
-      return c.json({ agentName, context, runId });
+      return c.json({ runId });
     });
 
     const server = serve({ fetch: app.fetch, hostname: host, port });
