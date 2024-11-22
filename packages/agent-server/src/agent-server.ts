@@ -58,6 +58,8 @@ startService({
         context,
       });
 
+      // durability: store run metadata (id, agent, created at), context, state,etc
+
       // TODO what should be returned? run id?
       return c.json({
         agentName,
