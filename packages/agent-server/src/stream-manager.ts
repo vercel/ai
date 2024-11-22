@@ -28,10 +28,8 @@ export class StreamManager {
       throw new Error(`No stream found for run ${runId}`);
     }
 
-    // Create a new teed stream for this consumer
-    const [newStream] = stitchableStream.stream.tee();
-
-    return newStream;
+    // TODO how to support multiple consumers? if we tee, the stitching breaks
+    return stitchableStream.stream;
   }
 
   closeStream(runId: string): void {

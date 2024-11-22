@@ -55,11 +55,6 @@ export function createWorker({
     const updatedContext =
       context === undefined ? runState.context : await context;
 
-    // calculate next state
-    const agentModule = await moduleLoader.loadAgent({
-      agent: runState.agent,
-    });
-
     // store updated context
     await dataStore.updateRun({
       runId,
@@ -72,8 +67,10 @@ export function createWorker({
     // submit next job or end
     if (nextState === 'END') {
       streamManager.closeStream(runId);
+      logger.info(`run ${runId} ended`);
     } else {
       submitJob({ runId });
+      logger.info(`run ${runId} submitted job for ${nextState}`);
     }
   };
 }
