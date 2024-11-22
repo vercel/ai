@@ -12,9 +12,9 @@ export default {
     return {
       // will be simplified to streamData.toAgentStream() in the future
       stream: streamData.stream.pipeThrough(new TextDecoderStream()),
-      nextState: context.prompt.includes('write')
+      nextState: context.prompt.toLowerCase().includes('write')
         ? 'write-blog'
-        : 'write-email',
+        : 'chat',
     };
   },
 } satisfies StreamState<Context, string>;
