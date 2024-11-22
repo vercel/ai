@@ -74,6 +74,20 @@ startService({
     );
 
     // routes setup
+    // OPTIONS for CORS preflight:
+    app.options('/agent/:agent/start', async c => {
+      const agent = await moduleLoader.loadAgent({
+        agent: c.req.param('agent'),
+      });
+
+      Object.entries(agent.headers ?? {}).forEach(([key, value]) => {
+        c.header(key, value);
+      });
+
+      return c.text('ok');
+    });
+
+    // POST to start an agent run:
     app.post('/agent/:agent/start', async c => {
       const { runId, headers } = await runManager.startAgent({
         agent: c.req.param('agent'),

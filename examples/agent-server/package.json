@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "start": "pnpm agent-server --port 3000 --host 127.0.0.1"
+    "start": "pnpm agent-server --port 3001 --host 127.0.0.1"
   },
   "devDependencies": {
     "@types/node": "22.9.1"

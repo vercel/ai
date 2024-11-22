@@ -20,5 +20,12 @@ export default {
 
   // Optional headers. Streams can be anything JSON-serializable,
   // so we enable agents to set the headers that are needed.
-  headers: { 'X-Vercel-AI-Data-Stream': 'v1' },
+  headers: {
+    'X-Vercel-AI-Data-Stream': 'v1',
+    // CORS headers for access from Next.js app
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'OPTIONS, GET, POST',
+    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Max-Age': '86400', // 24 hours
+  },
 } satisfies Agent<Context>;
