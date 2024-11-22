@@ -1,3 +1,4 @@
+import { JSONValue } from '@ai-sdk/provider';
 import { DataStore } from './data-store';
 import { ModuleLoader } from './module-loader';
 import { StreamManager } from './stream-manager';
@@ -21,32 +22,37 @@ export function createWorker({
 
     logger.info(`state ${runState.state} executing in ${runId}`);
 
+    const streams: Set<ReadableStream<JSONValue>> = new Set();
+
     const stateModule = await moduleLoader.loadState({
       agent: runState.agent,
       state: runState.state,
     });
     const { context, nextState: nextStatePromise } = await stateModule.execute({
       context: runState.context,
-      forwardStream: streamManager.addToStream.bind(streamManager, runId),
+      forwardStream: stream => {
+        const [newStream, original] = stream.tee();
+        streams.add(newStream);
+        streamManager.addToStream(runId, original); // immediately forward to client
+      },
     });
 
     const nextState = await nextStatePromise;
-    // const [newStream, original] = stream.tee();
 
-    // streamManager.addToStream(runId, original);
-
-    // consume stream without backpressure and store it
+    // consume all streams without backpressure and store it
     // to enable multiple consumers and re-consumption
-    // const reader = newStream.getReader();
-    // while (true) {
-    //   const { done, value } = await reader.read();
-    //   if (done) {
-    //     break;
-    //   }
+    for (const stream of streams) {
+      const reader = stream.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
 
-    //   // store append to stream file on disk
-    //   //   process.stdout.write(JSON.stringify(value));
-    // }
+        // store append to stream file on disk
+        //   process.stdout.write(JSON.stringify(value));
+      }
+    }
 
     // wait for updated context. if undefined, we use the old context
     const updatedContext =
