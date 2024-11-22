@@ -10,6 +10,7 @@ import zod from 'zod';
 import { RunManager } from './run-manager';
 import { startService } from './util/start-service';
 import { DataStore } from './data-store';
+import { JobQueue } from './util/job-queue';
 
 startService({
   name: '@ai-sdk/server',
@@ -27,15 +28,19 @@ startService({
     port: zod.number(),
   }),
   async initialize({ host, port }, logger) {
+    const jobs = new JobQueue<{ runId: string }>();
     const dataStore = new DataStore({
       dataPath: path.join(process.cwd(), '.data'),
     });
     const runManager = new RunManager({
       agentsPath: path.join(process.cwd(), '.agents'),
       dataStore,
-      submitJob: async ({ runId }) => {
-        console.log('TODO submit job', runId);
-      },
+      submitJob: jobs.push.bind(jobs),
+    });
+
+    // worker
+    jobs.startWorker(async ({ runId }) => {
+      console.log('TODO process job', runId);
     });
 
     // Hono setup
