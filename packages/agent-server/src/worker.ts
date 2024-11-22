@@ -1,20 +1,25 @@
 import { DataStore } from './data-store';
 import { ModuleLoader } from './module-loader';
 import { StreamManager } from './stream-manager';
+import pino from 'pino';
 
 export function createWorker({
   dataStore,
   moduleLoader,
   streamManager,
   submitJob,
+  logger,
 }: {
   dataStore: DataStore;
   moduleLoader: ModuleLoader;
   streamManager: StreamManager;
   submitJob: (job: { runId: string }) => Promise<void>;
+  logger: pino.Logger;
 }) {
   return async ({ runId }: { runId: string }) => {
     const runState = await dataStore.getRunState({ runId });
+
+    logger.info(`state ${runState.state} executing in ${runId}`);
 
     const stateModule = await moduleLoader.loadState({
       agent: runState.agent,
@@ -43,7 +48,7 @@ export function createWorker({
       }
 
       // store append to stream file on disk
-      process.stdout.write(JSON.stringify(value));
+      //   process.stdout.write(JSON.stringify(value));
     }
 
     // wait for updated context. if undefined, we use the old context

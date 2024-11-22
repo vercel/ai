@@ -47,6 +47,7 @@ startService({
       moduleLoader,
       submitJob,
       streamManager,
+      logger,
     });
 
     // setup workers
@@ -54,7 +55,13 @@ startService({
     // so if they perform CPU-bound tasks, they will block
     // TODO multiple workers
     jobs.startWorker(
-      createWorker({ dataStore, moduleLoader, streamManager, submitJob }),
+      createWorker({
+        dataStore,
+        moduleLoader,
+        streamManager,
+        submitJob,
+        logger,
+      }),
     );
 
     // Hono setup
