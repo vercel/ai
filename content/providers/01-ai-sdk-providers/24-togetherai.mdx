@@ -39,7 +39,7 @@ and create a provider instance with your settings:
 import { createTogetherAI } from '@ai-sdk/togetherai';
 
 const togetherai = createTogetherAI({
-  apiKey: 'your-api-key',
+  apiKey: process.env.TOGETHER_AI_API_KEY ?? '',
 });
 ```
 
@@ -96,16 +96,17 @@ The Together AI provider also supports [completion models](https://docs.together
 
 Together AI provides access to a wide range of models in [the Together AI documentation](https://docs.together.ai/docs/serverless-models), including:
 
-| Model                                             | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`     | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistralai/Mistral-7B-Instruct-v0.1`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `google/gemma-2b-it`                              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo`    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `mistralai/Mixtral-8x7B-Instruct-v0.1`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `Qwen/Qwen2.5-72B-Instruct-Turbo`                 | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `databricks/dbrx-instruct`                        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                                          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ---------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`  | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mistralai/Mistral-7B-Instruct-v0.1`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `google/gemma-2b-it`                           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo` | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `mistralai/Mixtral-8x7B-Instruct-v0.1`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen2.5-72B-Instruct-Turbo`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `databricks/dbrx-instruct`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
-  The above are just a subset of the more popular models. You can also pass any available provider model ID as a string if needed.
+  The above are just some of the more popular models. You can also pass any
+  available provider model ID as a string if needed.
 </Note>
