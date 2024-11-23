@@ -10,7 +10,7 @@
   "devDependencies": {
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.3",
+    "tailwindcss": "^3.4.15",
     "vinxi": "^0.4.3"
   },
   "dependencies": {
