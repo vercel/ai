@@ -10,6 +10,7 @@ import {
   embed,
   embedMany,
 } from 'ai';
+import fs from 'fs';
 
 const LONG_TEST_MILLIS = 10000;
 
@@ -192,6 +193,116 @@ describe('TogetherAI E2E Tests', () => {
       expect(parts.length).toBeGreaterThan(0);
       // TogetherAI API does not return usage data.
       // expect((await result.usage).totalTokens).toBeGreaterThan(0);
+    });
+
+    it.skip('should generate text with image URL input', async () => {
+      // NOTE(shaper): None of the models tested support image input.
+      const result = await generateText({
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe the image in detail.' },
+              {
+                type: 'image',
+                image:
+                  'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.text).toBeTruthy();
+      expect(result.text.toLowerCase()).toContain('cat');
+      expect(result.usage?.totalTokens).toBeGreaterThan(0);
+    });
+
+    it.skip('should generate text with image input', async () => {
+      // NOTE(shaper): None of the models tested support image input.
+      const result = await generateText({
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe the image in detail.' },
+              {
+                type: 'image',
+                image: fs
+                  .readFileSync('./data/comic-cat.png')
+                  .toString('base64'),
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.text.toLowerCase()).toContain('cat');
+      expect(result.text).toBeTruthy();
+      expect(result.usage?.totalTokens).toBeGreaterThan(0);
+    });
+
+    it.skip('should stream text with image URL input', async () => {
+      // NOTE(shaper): None of the models tested support image input.
+      const result = streamText({
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe the image in detail.' },
+              {
+                type: 'image',
+                image:
+                  'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+              },
+            ],
+          },
+        ],
+      });
+
+      const chunks: string[] = [];
+      for await (const chunk of result.textStream) {
+        chunks.push(chunk);
+      }
+
+      const fullText = chunks.join('');
+      expect(chunks.length).toBeGreaterThan(0);
+      expect(fullText.toLowerCase()).toContain('cat');
+      expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+    });
+
+    it.skip('should stream text with image input', async () => {
+      // NOTE(shaper): None of the models tested support image input.
+      const result = streamText({
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe the image in detail.' },
+              {
+                type: 'image',
+                image: fs
+                  .readFileSync('./data/comic-cat.png')
+                  .toString('base64'),
+              },
+            ],
+          },
+        ],
+      });
+
+      const chunks: string[] = [];
+      for await (const chunk of result.textStream) {
+        chunks.push(chunk);
+      }
+
+      const fullText = chunks.join('');
+      expect(fullText.toLowerCase()).toContain('cat');
+      expect(chunks.length).toBeGreaterThan(0);
+      expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
     });
   });
 
