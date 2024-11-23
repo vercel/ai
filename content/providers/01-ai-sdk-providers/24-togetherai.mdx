@@ -1,15 +1,15 @@
 ---
-title: Together AI
-description: Learn how to use Together AI's models with the AI SDK.
+title: Together.ai
+description: Learn how to use Together.ai's models with the AI SDK.
 ---
 
-# Together AI Provider
+# Together.ai Provider
 
-The [Together AI](https://together.ai) provider contains support for 200+ open-source models through the [Together.ai API](https://docs.together.ai/reference).
+The [Together.ai](https://together.ai) provider contains support for 200+ open-source models through the [Together.ai API](https://docs.together.ai/reference).
 
 ## Setup
 
-The Together AI provider is available via the `@ai-sdk/togetherai` module. You can
+The Together.ai provider is available via the `@ai-sdk/togetherai` module. You can
 install it with
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
@@ -43,7 +43,7 @@ const togetherai = createTogetherAI({
 });
 ```
 
-You can use the following optional settings to customize the Together AI provider instance:
+You can use the following optional settings to customize the Together.ai provider instance:
 
 - **baseURL** _string_
 
@@ -68,7 +68,7 @@ You can use the following optional settings to customize the Together AI provide
 
 ## Language Models
 
-You can create [Together AI models](https://docs.together.ai/docs/serverless-models) using a provider instance. The first argument is the model id, e.g. `google/gemma-2-9b-it`.
+You can create [Together.ai models](https://docs.together.ai/docs/serverless-models) using a provider instance. The first argument is the model id, e.g. `google/gemma-2-9b-it`.
 
 ```ts
 const model = togetherai('google/gemma-2-9b-it');
@@ -76,7 +76,7 @@ const model = togetherai('google/gemma-2-9b-it');
 
 ### Example
 
-You can use Together AI language models to generate text with the `generateText` function:
+You can use Together.ai language models to generate text with the `generateText` function:
 
 ```ts
 import { togetherai } from '@ai-sdk/togetherai';
@@ -88,13 +88,13 @@ const { text } = await generateText({
 });
 ```
 
-Together AI language models can also be used in the `streamText` and `streamUI` functions (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+Together.ai language models can also be used in the `streamText` and `streamUI` functions (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
-The Together AI provider also supports [completion models](https://docs.together.ai/docs/serverless-models#language-models) via (following the above example code) `togetherai.completionModel()` and [embedding models](https://docs.together.ai/docs/serverless-models#embedding-models) via `togetherai.textEmbeddingModel()`.
+The Together.ai provider also supports [completion models](https://docs.together.ai/docs/serverless-models#language-models) via (following the above example code) `togetherai.completionModel()` and [embedding models](https://docs.together.ai/docs/serverless-models#embedding-models) via `togetherai.textEmbeddingModel()`.
 
 ## Model Capabilities
 
-Together AI provides access to a wide range of models in [the Together AI documentation](https://docs.together.ai/docs/serverless-models), including:
+Together.ai provides access to a wide range of models in [the Together.ai documentation](https://docs.together.ai/docs/serverless-models), including:
 
 | Model                                          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ---------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |

@@ -1,10 +1,10 @@
-# AI SDK - Together AI Provider
+# AI SDK - Together.ai Provider
 
-The **[Together AI provider](https://sdk.vercel.ai/providers/ai-sdk-providers/togetherai)** for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Together AI](https://together.ai) platform.
+The **[Together.ai provider](https://sdk.vercel.ai/providers/ai-sdk-providers/togetherai)** for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Together.ai](https://together.ai) platform.
 
 ## Setup
 
-The Together AI provider is available in the `@ai-sdk/togetherai` module. You can install it with
+The Together.ai provider is available in the `@ai-sdk/togetherai` module. You can install it with
 
 ```bash
 npm i @ai-sdk/togetherai
@@ -32,4 +32,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[Together AI provider](https://sdk.vercel.ai/providers/ai-sdk-providers/togetherai)** for more information.
+Please check out the **[Together.ai provider](https://sdk.vercel.ai/providers/ai-sdk-providers/togetherai)** for more information.
