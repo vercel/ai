@@ -825,8 +825,8 @@ importers:
         specifier: ^18
         version: 18.18.9
       '@vue/reactivity':
-        specifier: 3.5.12
-        version: 3.5.12
+        specifier: 3.5.13
+        version: 3.5.13
       '@vue/runtime-core':
         specifier: 3.5.12
         version: 3.5.12

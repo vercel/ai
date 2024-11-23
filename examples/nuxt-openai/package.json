@@ -19,7 +19,7 @@
     "@nuxt/ui-templates": "1.3.4",
     "@nuxtjs/tailwindcss": "6.12.2",
     "@types/node": "^18",
-    "@vue/reactivity": "3.5.12",
+    "@vue/reactivity": "3.5.13",
     "@vue/runtime-core": "3.5.12",
     "@vue/runtime-dom": "3.5.13",
     "@vue/shared": "3.5.12",
