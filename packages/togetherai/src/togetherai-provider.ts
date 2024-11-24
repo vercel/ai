@@ -1,5 +1,4 @@
 import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
-import { OpenAICompatibleProviderSettings } from '@ai-sdk/openai-compatible';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
@@ -23,12 +22,24 @@ import {
   TogetherAICompletionSettings,
 } from './togetherai-completion-settings';
 
-export interface TogetherAIProviderSettings
-  extends OpenAICompatibleProviderSettings {
+export interface TogetherAIProviderSettings {
   /**
-   TogetherAI API key.
-   */
+TogetherAI API key.
+*/
   apiKey?: string;
+  /**
+Base URL for the API calls.
+*/
+  baseURL?: string;
+  /**
+Custom headers to include in the requests.
+*/
+  headers?: Record<string, string>;
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+*/
+  fetch?: FetchFunction;
 }
 
 export interface TogetherAIProvider {

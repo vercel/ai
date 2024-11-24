@@ -153,25 +153,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         return {
           args: {
             ...baseArgs,
-            response_format:
-              // TODO(shaper): Reconcile behavior below when a schema exists,
-              // re: `schema` vs `json_schema` keys.
-              //
-              // TogetherAI API docs: https://docs.together.ai/docs/json-mode
-              // { type: 'json_schema', schema: mode.schema }
-              //
-              // What we have below is taken from `OpenAIChatLanguageModel`.
-              mode.schema != null
-                ? {
-                    type: 'json_schema',
-                    json_schema: {
-                      schema: mode.schema,
-                      strict: true,
-                      name: mode.name ?? 'response',
-                      description: mode.description,
-                    },
-                  }
-                : { type: 'json_object' },
+            response_format: { type: 'json_object' },
           },
           warnings,
         };

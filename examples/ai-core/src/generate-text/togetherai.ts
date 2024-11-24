@@ -9,7 +9,6 @@ const togetherai = createTogetherAI({
 
 async function main() {
   const { text, usage } = await generateText({
-    // model: togetherai('google/gemma-2-9b-it'),
     model: togetherai('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
