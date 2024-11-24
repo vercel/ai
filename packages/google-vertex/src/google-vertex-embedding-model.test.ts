@@ -21,7 +21,9 @@ describe('GoogleVertexEmbeddingModel', () => {
       provider: 'google.vertex',
       region: 'us-central1',
       project: 'test-project',
-      generateAuthToken: async () => 'test-auth-token',
+      headers: async () => ({
+        authorization: 'Bearer test-auth-token',
+      }),
     },
   );
 
@@ -73,7 +75,7 @@ describe('GoogleVertexEmbeddingModel', () => {
         provider: 'google.vertex',
         region: 'us-central1',
         project: 'test-project',
-        generateAuthToken: async () => 'test-auth-token',
+        headers: async () => ({}),
       },
     );
 
@@ -135,7 +137,7 @@ describe('GoogleVertexEmbeddingModel', () => {
         provider: 'google.vertex',
         region: 'us-central1',
         project: 'test-project',
-        generateAuthToken: async () => 'test-auth-token',
+        headers: async () => ({}),
       },
     );
 

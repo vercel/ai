@@ -18,7 +18,7 @@ import {
 type GoogleGenerativeAIEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Promise<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -71,7 +71,7 @@ export class GoogleGenerativeAIEmbeddingModel
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:batchEmbedContents`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(await this.config.headers?.(), headers),
       body: {
         requests: values.map(value => ({
           model: `models/${this.modelId}`,

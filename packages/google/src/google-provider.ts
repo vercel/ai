@@ -82,7 +82,7 @@ It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
   /**
 Custom headers to include in the requests.
      */
-  headers?: Record<string, string>;
+  headers?: () => Promise<Record<string, string | undefined>>;
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -103,13 +103,13 @@ export function createGoogleGenerativeAI(
     withoutTrailingSlash(options.baseURL) ??
     'https://generativelanguage.googleapis.com/v1beta';
 
-  const getHeaders = () => ({
+  const getHeaders = async () => ({
     'x-goog-api-key': loadApiKey({
       apiKey: options.apiKey,
       environmentVariableName: 'GOOGLE_GENERATIVE_AI_API_KEY',
       description: 'Google Generative AI',
     }),
-    ...options.headers,
+    ...(await options.headers?.()),
   });
 
   const createChatModel = (

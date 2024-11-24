@@ -1,4 +1,4 @@
-// https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models
+// https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference#supported-models
 export type GoogleVertexModelId =
   | 'gemini-1.5-flash'
   | 'gemini-1.5-flash-001'
@@ -6,13 +6,21 @@ export type GoogleVertexModelId =
   | 'gemini-1.5-pro'
   | 'gemini-1.5-pro-001'
   | 'gemini-1.5-pro-002'
+  | 'gemini-1.0-pro-001'
+  | 'gemini-1.0-pro-vision-001'
   | 'gemini-1.0-pro'
   | 'gemini-1.0-pro-001'
-  | 'gemini-1.0-pro-vision'
-  | 'gemini-1.0-pro-vision-001'
+  | 'gemini-1.0-pro-002'
   | (string & {});
 
 export interface GoogleVertexSettings {
+  /**
+Optional.
+The name of the cached content used as context to serve the prediction.
+Format: cachedContents/{cachedContent}
+   */
+  cachedContent?: string;
+
   /**
    * Optional. Enable structured output. Default is true.
    *

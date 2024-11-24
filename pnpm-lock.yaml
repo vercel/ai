@@ -1266,16 +1266,19 @@ importers:
 
   packages/google-vertex:
     dependencies:
+      '@ai-sdk/google':
+        specifier: 1.0.4
+        version: link:../google
       '@ai-sdk/provider':
         specifier: 1.0.1
         version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: 2.0.2
         version: link:../provider-utils
+      google-auth-library:
+        specifier: ^9.15.0
+        version: 9.15.0
     devDependencies:
-      '@google-cloud/vertexai':
-        specifier: ^1.6.0
-        version: 1.8.1
       '@types/node':
         specifier: ^18
         version: 18.18.9
@@ -3530,10 +3533,6 @@ packages:
 
   '@fontsource/fira-mono@5.0.13':
     resolution: {integrity: sha512-fZDjR2BdAqmauEbTjcIT62zYzbOgDa5+IQH34D2k8Pxmy1T815mAqQkZciWZVQ9dc/BgdTtTUV9HJ2ulBNwchg==}
-
-  '@google-cloud/vertexai@1.8.1':
-    resolution: {integrity: sha512-E6GLYby+jKmS315LARO7TMB4o4aD88GSatJimmQ8xBRFx2dFp9B2vIWFfAY/I5aBusPRumUlsbNLeU2h+MbZLA==}
-    engines: {node: '>=18.0.0'}
 
   '@google/generative-ai@0.21.0':
     resolution: {integrity: sha512-7XhUbtnlkSEZK15kN3t+tzIMxsbKm/dSkKBFalj+20NvPKe1kBY7mR2P7vuijEn+f06z5+A8bVGKO0v39cr6Wg==}
@@ -8972,8 +8971,8 @@ packages:
   globrex@0.1.2:
     resolution: {integrity: sha512-uHJgbwAMwNFf5mLst7IWLNg14x1CkeqglJb/K3doi4dw6q2IvAAmM/Y81kevy83wP+Sst+nutFTYOGg3d1lsxg==}
 
-  google-auth-library@9.10.0:
-    resolution: {integrity: sha512-ol+oSa5NbcGdDqA+gZ3G3mev59OHBZksBTxY/tYwjtcp1H/scAFwJfSQU9/1RALoyZ7FslNbke8j4i3ipwlyuQ==}
+  google-auth-library@9.15.0:
+    resolution: {integrity: sha512-7ccSEJFDFO7exFbO6NRyC+xH8/mZ1GZGG2xxx9iHxZWcjUjJpjWxIMw3cofAKcueZ6DATiukmmprD7yavQHOyQ==}
     engines: {node: '>=14'}
 
   gopd@1.0.1:
@@ -15412,13 +15411,6 @@ snapshots:
       fast-deep-equal: 3.1.3
 
   '@fontsource/fira-mono@5.0.13': {}
-
-  '@google-cloud/vertexai@1.8.1':
-    dependencies:
-      google-auth-library: 9.10.0
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
 
   '@google/generative-ai@0.21.0': {}
 
@@ -22266,7 +22258,7 @@ snapshots:
 
   globrex@0.1.2: {}
 
-  google-auth-library@9.10.0:
+  google-auth-library@9.15.0:
     dependencies:
       base64-js: 1.5.1
       ecdsa-sig-formatter: 1.0.11

@@ -3,9 +3,7 @@ import {
   NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
-import { generateId, loadSetting } from '@ai-sdk/provider-utils';
-import { VertexAI, VertexInit } from '@google-cloud/vertexai';
-import { GoogleVertexLanguageModel } from './google-vertex-language-model';
+import { FetchFunction, generateId, loadSetting } from '@ai-sdk/provider-utils';
 import {
   GoogleVertexModelId,
   GoogleVertexSettings,
@@ -15,6 +13,8 @@ import {
   GoogleVertexEmbeddingSettings,
 } from './google-vertex-embedding-settings';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
+import { generateAuthToken } from './google-vertex-auth-edge';
+import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 
 export interface GoogleVertexProvider extends ProviderV1 {
   /**
@@ -48,19 +48,20 @@ Complete list of authentication options is documented in the
 GoogleAuthOptions interface:
 https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts.
    */
-  googleAuthOptions?: VertexInit['googleAuthOptions'];
+  generateAuthToken?: () => Promise<string | null | undefined>;
 
   // for testing
   generateId?: () => string;
 
-  // for testing
-  createVertexAI?: ({
-    project,
-    location,
-  }: {
-    project: string;
-    location: string;
-  }) => VertexAI;
+  /**
+Optional. The fetch function to use.
+   */
+  fetch?: FetchFunction;
+
+  /**
+Optional. The headers to use.
+   */
+  headers?: () => Promise<Record<string, string | undefined>>;
 }
 
 /**
@@ -85,38 +86,37 @@ export function createVertex(
       description: 'Google Vertex location',
     });
 
-  const createVertexAI = () => {
-    const config = {
-      project: loadVertexProject(),
-      location: loadVertexLocation(),
-      googleAuthOptions: options.googleAuthOptions,
-    };
-
-    return options.createVertexAI?.(config) ?? new VertexAI(config);
-  };
+  const getHeaders = async () => ({
+    Authorization: `Bearer ${await generateAuthToken()}`,
+    'Content-Type': 'application/json',
+    ...options.headers,
+  });
 
   const createChatModel = (
     modelId: GoogleVertexModelId,
     settings: GoogleVertexSettings = {},
-  ) =>
-    new GoogleVertexLanguageModel(modelId, settings, {
-      vertexAI: createVertexAI(),
+  ) => {
+    const region = loadVertexLocation();
+    const project = loadVertexProject();
+    return new GoogleGenerativeAILanguageModel(modelId, settings, {
+      provider: `google.vertex.chat`,
+      baseURL: `https://${region}-aiplatform.googleapis.com/v1/projects/${project}/locations/${region}/publishers/google`,
+      headers: getHeaders,
       generateId: options.generateId ?? generateId,
+      fetch: options.fetch,
     });
+  };
 
   const createEmbeddingModel = (
     modelId: GoogleVertexEmbeddingModelId,
     settings: GoogleVertexEmbeddingSettings = {},
-  ) => {
-    const vertexAI = createVertexAI();
-
-    return new GoogleVertexEmbeddingModel(modelId, settings, {
-      provider: 'google.vertex',
+  ) =>
+    new GoogleVertexEmbeddingModel(modelId, settings, {
+      provider: `google.vertex.embedding`,
       region: loadVertexLocation(),
       project: loadVertexProject(),
-      generateAuthToken: () => (vertexAI as any).googleAuth.getAccessToken(),
+      headers: getHeaders,
     });
-  };
 
   const provider = function (
     modelId: GoogleVertexModelId,

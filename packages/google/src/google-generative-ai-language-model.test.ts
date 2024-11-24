@@ -458,9 +458,9 @@ describe('doGenerate', () => {
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
       const provider = createGoogleGenerativeAI({
         apiKey: 'test-api-key',
-        headers: {
+        headers: async () => ({
           'Custom-Provider-Header': 'provider-header-value',
-        },
+        }),
       });
 
       await provider.chat('gemini-pro').doGenerate({
@@ -657,9 +657,9 @@ describe('doStream', () => {
       async ({ call }) => {
         const provider = createGoogleGenerativeAI({
           apiKey: 'test-api-key',
-          headers: {
+          headers: async () => ({
             'Custom-Provider-Header': 'provider-header-value',
-          },
+          }),
         });
 
         await provider.chat('gemini-pro').doStream({

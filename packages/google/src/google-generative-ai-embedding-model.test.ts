@@ -90,9 +90,9 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
 
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
-      headers: {
+      headers: async () => ({
         'Custom-Provider-Header': 'provider-header-value',
-      },
+      }),
     });
 
     await provider.embedding('text-embedding-004').doEmbed({
@@ -119,7 +119,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       {
         provider: 'google.generative-ai',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: () => ({}),
+        headers: async () => ({}),
       },
     );
 

@@ -8,7 +8,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { googleFailedResponseHandler } from './google-error';
+import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
   GoogleVertexEmbeddingModelId,
   GoogleVertexEmbeddingSettings,
@@ -18,7 +18,7 @@ type GoogleVertexEmbeddingConfig = {
   provider: string;
   region: string;
   project: string;
-  generateAuthToken: () => Promise<string | null | undefined>;
+  headers: () => Promise<Record<string, string | undefined>>;
 };
 
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
@@ -71,17 +71,14 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
         `https://${this.config.region}-aiplatform.googleapis.com/v1/` +
         `projects/${this.config.project}/locations/${this.config.region}/` +
         `publishers/google/models/${this.modelId}:predict`,
-      headers: combineHeaders(
-        { Authorization: `Bearer ${await this.config.generateAuthToken()}` },
-        headers,
-      ),
+      headers: combineHeaders(await this.config.headers(), headers),
       body: {
         instances: values.map(value => ({ content: value })),
         parameters: {
           outputDimensionality: this.settings.outputDimensionality,
         },
       },
-      failedResponseHandler: googleFailedResponseHandler,
+      failedResponseHandler: googleVertexFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         googleVertexTextEmbeddingResponseSchema,
       ),

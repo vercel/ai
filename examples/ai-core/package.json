@@ -27,6 +27,9 @@
   },
   "scripts": {
     "test:e2e": "vitest run src/e2e/*.test.ts",
+    "test:e2e:edge": "vitest run --config vitest.edge.config.js src/e2e/*.test.ts",
+    "test:file": "vitest run",
+    "test:file:edge": "vitest run --config vitest.edge.config.js",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {

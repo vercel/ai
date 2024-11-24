@@ -28,7 +28,7 @@ import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-fi
 type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: () => Promise<Record<string, string | undefined>>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -113,7 +113,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { tools, toolConfig, toolWarnings } = prepareTools(mode);
+        const { tools, toolConfig, toolWarnings } = prepareTools(
+          mode,
+          this.settings.useSearchGrounding ?? false,
+        );
 
         return {
           args: {
@@ -200,7 +203,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       url: `${this.config.baseURL}/${getModelPath(
         this.modelId,
       )}:generateContent`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(await this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(responseSchema),
@@ -247,7 +250,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       url: `${this.config.baseURL}/${getModelPath(
         this.modelId,
       )}:streamGenerateContent?alt=sse`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(await this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
