@@ -28,6 +28,7 @@ import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
+import { OutputStrategy } from './output-strategy';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -77,7 +78,10 @@ If set and supported by the model, calls will generate deterministic results.
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
  */
-export async function generateText<TOOLS extends Record<string, CoreTool>>({
+export async function generateText<
+  TOOLS extends Record<string, CoreTool>,
+  OUTPUT = never,
+>({
   model,
   tools,
   toolChoice,
@@ -149,6 +153,9 @@ changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
 
+    // TODO limit to specific strategies
+    experimental_output?: OutputStrategy<OUTPUT>;
+
     /**
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
@@ -161,7 +168,7 @@ changing the tool call and result types in the result.
       generateId?: () => string;
       currentDate?: () => Date;
     };
-  }): Promise<GenerateTextResult<TOOLS>> {
+  }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   if (maxSteps < 1) {
     throw new InvalidArgumentError({
       parameter: 'maxSteps',
@@ -221,7 +228,7 @@ changing the tool call and result types in the result.
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
       let text = '';
-      const steps: GenerateTextResult<TOOLS>['steps'] = [];
+      const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
       const usage: LanguageModelUsage = {
         completionTokens: 0,
         promptTokens: 0,
@@ -582,33 +589,43 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   );
 }
 
-class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
-  implements GenerateTextResult<TOOLS>
+class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>, OUTPUT>
+  implements GenerateTextResult<TOOLS, OUTPUT>
 {
-  readonly text: GenerateTextResult<TOOLS>['text'];
-  readonly toolCalls: GenerateTextResult<TOOLS>['toolCalls'];
-  readonly toolResults: GenerateTextResult<TOOLS>['toolResults'];
-  readonly finishReason: GenerateTextResult<TOOLS>['finishReason'];
-  readonly usage: GenerateTextResult<TOOLS>['usage'];
-  readonly warnings: GenerateTextResult<TOOLS>['warnings'];
-  readonly steps: GenerateTextResult<TOOLS>['steps'];
-  readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
-  readonly experimental_providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
-  readonly response: GenerateTextResult<TOOLS>['response'];
-  readonly request: GenerateTextResult<TOOLS>['request'];
+  readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
+  readonly toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
+  readonly toolResults: GenerateTextResult<TOOLS, OUTPUT>['toolResults'];
+  readonly finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
+  readonly usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
+  readonly warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
+  readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
+  readonly logprobs: GenerateTextResult<TOOLS, OUTPUT>['logprobs'];
+  readonly experimental_providerMetadata: GenerateTextResult<
+    TOOLS,
+    OUTPUT
+  >['experimental_providerMetadata'];
+  readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
+  readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
+  readonly experimental_object: GenerateTextResult<
+    TOOLS,
+    OUTPUT
+  >['experimental_object'] = undefined as OUTPUT;
 
   constructor(options: {
-    text: GenerateTextResult<TOOLS>['text'];
-    toolCalls: GenerateTextResult<TOOLS>['toolCalls'];
-    toolResults: GenerateTextResult<TOOLS>['toolResults'];
-    finishReason: GenerateTextResult<TOOLS>['finishReason'];
-    usage: GenerateTextResult<TOOLS>['usage'];
-    warnings: GenerateTextResult<TOOLS>['warnings'];
-    logprobs: GenerateTextResult<TOOLS>['logprobs'];
-    steps: GenerateTextResult<TOOLS>['steps'];
-    providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
-    response: GenerateTextResult<TOOLS>['response'];
-    request: GenerateTextResult<TOOLS>['request'];
+    text: GenerateTextResult<TOOLS, OUTPUT>['text'];
+    toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
+    toolResults: GenerateTextResult<TOOLS, OUTPUT>['toolResults'];
+    finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
+    usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
+    warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
+    logprobs: GenerateTextResult<TOOLS, OUTPUT>['logprobs'];
+    steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
+    providerMetadata: GenerateTextResult<
+      TOOLS,
+      OUTPUT
+    >['experimental_providerMetadata'];
+    response: GenerateTextResult<TOOLS, OUTPUT>['response'];
+    request: GenerateTextResult<TOOLS, OUTPUT>['request'];
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;

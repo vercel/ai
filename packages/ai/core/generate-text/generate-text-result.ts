@@ -17,11 +17,19 @@ import { ToolResultArray } from './tool-result';
 The result of a `generateText` call.
 It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
  */
-export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
+export interface GenerateTextResult<
+  TOOLS extends Record<string, CoreTool>,
+  OBJECT,
+> {
   /**
   The generated text.
      */
   readonly text: string;
+
+  /**
+  The generated object.
+   */
+  readonly experimental_object: OBJECT;
 
   /**
   The tool calls that were made during the generation.

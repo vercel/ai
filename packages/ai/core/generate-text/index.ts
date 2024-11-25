@@ -13,3 +13,5 @@ export type {
   ToolResult as CoreToolResult,
   ToolResultUnion as CoreToolResultUnion,
 } from './tool-result';
+
+export * as OutputStrategy from './output-strategy';
