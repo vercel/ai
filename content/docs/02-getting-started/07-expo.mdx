@@ -1,11 +1,11 @@
 ---
-title: Next.js App Router
-description: Welcome to the AI SDK quickstart guide for Next.js App Router!
+title: Expo
+description: Welcome to the AI SDK quickstart guide for Expo!
 ---
 
-# Next.js App Router Quickstart
+# Expo Quickstart
 
-In this quick start tutorial, you'll build a simple AI-chatbot with a streaming user interface. Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
+In this quick start tutorial, you'll build a simple AI-chatbot with a streaming user interface with [Expo](https://expo.dev/). Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
 
 Check out [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/advanced/why-streaming) if you haven't heard of them.
 
@@ -20,25 +20,19 @@ If you haven't obtained your OpenAI API key, you can do so by [signing up](https
 
 ## Create Your Application
 
-Start by creating a new Next.js application. This command will create a new directory named `my-ai-app` and set up a basic Next.js application inside it.
+Start by creating a new Expo application. This command will create a new directory named `my-ai-app` and set up a basic Expo application inside it.
 
-<div className="mb-4">
-  <Note>
-    Be sure to select yes when prompted to use the App Router. If you are
-    looking for the Next.js Pages Router quickstart guide, you can find it
-    [here](/docs/getting-started/nextjs-pages-router).
-  </Note>
-</div>
-
-<Snippet text="pnpm create next-app@latest my-ai-app" />
+<Snippet text="pnpm create expo-app@latest my-ai-app" />
 
 Navigate to the newly created directory:
 
 <Snippet text="cd my-ai-app" />
 
+<Note>This guide requires Expo 52 or higher.</Note>
+
 ### Install dependencies
 
-Install `ai` and `@ai-sdk/openai`, the AI package and AI SDK's [ OpenAI provider ](/providers/ai-sdk-providers/openai) respectively.
+Install `ai`, `@ai-sdk/react` and `@ai-sdk/openai`, the AI package, the AI React package and AI SDK's [ OpenAI provider ](/providers/ai-sdk-providers/openai) respectively.
 
 <Note>
   The AI SDK is designed to be a unified interface to interact with any large
@@ -50,13 +44,13 @@ Install `ai` and `@ai-sdk/openai`, the AI package and AI SDK's [ OpenAI provider
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm add ai @ai-sdk/openai zod" dark />
+      <Snippet text="pnpm add ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/openai zod" dark />
+      <Snippet text="npm install ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/openai zod" dark />
+      <Snippet text="yarn add ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -86,14 +80,11 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 
 ## Create a Route Handler
 
-Create a route handler, `app/api/chat/route.ts` and add the following code:
+Create a route handler, `app/api/chat+api.ts` and add the following code:
 
-```tsx filename="app/api/chat/route.ts"
+```tsx filename="app/api/chat+api.ts"
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -120,41 +111,70 @@ This Route Handler creates a POST request endpoint at `/api/chat`.
 
 Now that you have a Route Handler that can query an LLM, it's time to setup your frontend. The AI SDK's [ UI ](/docs/ai-sdk-ui) package abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
 
-Update your root page (`app/page.tsx`) with the following code to show a list of chat messages and provide a user message input:
+Update your root page (`app/(tabs)/index.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
-```tsx filename="app/page.tsx"
-'use client';
+```tsx filename="app/(tabs)/index.tsx"
+import { generateAPIUrl } from '@/utils';
+import { useChat } from '@ai-sdk/react';
+import { fetch as expoFetch } from 'expo/fetch';
+import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
 
-import { useChat } from 'ai/react';
+export default function App() {
+  const { messages, error, handleInputChange, input, handleSubmit } = useChat({
+    fetch: expoFetch as unknown as typeof globalThis.fetch,
+    api: generateAPIUrl('/api/chat'),
+    onError: error => console.error(error, 'ERROR'),
+  });
 
-export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  if (error) return <Text>{error.message}</Text>;
+
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
-        </div>
-      ))}
+    <SafeAreaView style={{ height: '100vh' }}>
+      <View
+        style={{
+          height: '95%',
+          display: 'flex',
+          flexDirection: 'column',
+          paddingHorizontal: 8,
+        }}
+      >
+        <ScrollView style={{ flex: 1 }}>
+          {messages.map(m => (
+            <View key={m.id} style={{ marginVertical: 8 }}>
+              <View>
+                <Text style={{ fontWeight: 700 }}>{m.role}</Text>
+                <Text>{m.content}</Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-      </form>
-    </div>
+        <View style={{ marginTop: 8 }}>
+          <TextInput
+            style={{ backgroundColor: 'white', padding: 8 }}
+            placeholder="Say something..."
+            value={input}
+            onChange={e =>
+              handleInputChange({
+                ...e,
+                target: {
+                  ...e.target,
+                  value: e.nativeEvent.text,
+                },
+              } as unknown as React.ChangeEvent<HTMLInputElement>)
+            }
+            onSubmitEditing={e => {
+              handleSubmit(e);
+              e.preventDefault();
+            }}
+            autoFocus={true}
+          />
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 ```
-
-<Note>
-  Make sure you add the `"use client"` directive to the top of your file. This
-  allows you to add interactivity with Javascript.
-</Note>
 
 This page utilizes the `useChat` hook, which will, by default, use the `POST` API route you created earlier (`/api/chat`). The hook provides functions and state for handling user input and form submission. The `useChat` hook provides multiple utility functions and state variables:
 
@@ -162,13 +182,52 @@ This page utilizes the `useChat` hook, which will, by default, use the `POST` AP
 - `input` - the current value of the user's input field.
 - `handleInputChange` and `handleSubmit` - functions to handle user interactions (typing into the input field and submitting the form, respectively).
 
+<Note>
+  You use the expo/fetch function instead of the native node fetch to enable
+  streaming of chat responses. This requires Expo 52 or higher.
+</Note>
+
+### Create the API URL Generator
+
+Because you're using expo/fetch for streaming responses instead of the native fetch function, you'll need an API URL generator to ensure you are using the correct base url and format depending on the client environment (e.g. web or mobile). Create a new file called `utils.ts` in the root of your project and add the following code:
+
+```ts filename="utils.ts"
+import Constants from 'expo-constants';
+
+export const generateAPIUrl = (relativePath: string) => {
+  const origin = Constants.experienceUrl.replace('exp://', 'http://');
+
+  const path = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+
+  if (process.env.NODE_ENV === 'development') {
+    return origin.concat(path);
+  }
+
+  if (!process.env.EXPO_PUBLIC_API_BASE_URL) {
+    throw new Error(
+      'EXPO_PUBLIC_API_BASE_URL environment variable is not defined',
+    );
+  }
+
+  return process.env.EXPO_PUBLIC_API_BASE_URL.concat(path);
+};
+```
+
+This utility function handles URL generation for both development and production environments, ensuring your API calls work correctly across different devices and configurations.
+
+<Note>
+  Before deploying to production, you must set the `EXPO_PUBLIC_API_BASE_URL`
+  environment variable in your production environment. This variable should
+  point to the base URL of your API server.
+</Note>
+
 ## Running Your Application
 
 With that, you have built everything you need for your chatbot! To start your application, use the command:
 
-<Snippet text="pnpm run dev" />
+<Snippet text="pnpm expo" />
 
-Head to your browser and open http://localhost:3000. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time! The AI SDK makes it fast and easy to build AI chat interfaces with Next.js.
+Head to your browser and open http://localhost:8081. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time! The AI SDK makes it fast and easy to build AI chat interfaces with Expo.
 
 ## Enhance Your Chatbot with Tools
 
@@ -182,14 +241,12 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 ### Update Your Route Handler
 
-Modify your `app/api/chat/route.ts` file to include the new weather tool:
+Modify your `app/api/chat+api.ts` file to include the new weather tool:
 
-```tsx filename="app/api/chat/route.ts" highlight="2,13-27"
+```tsx filename="app/api/chat+api.ts" highlight="2,13-27"
 import { openai } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
-
-export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -229,46 +286,90 @@ In this updated code:
 
    Now your chatbot can "fetch" weather information for any location the user asks about. When the model determines it needs to use the weather tool, it will generate a tool call with the necessary parameters. The `execute` function will then be automatically run, and you can access the results via `toolInvocations` that is available on the message object.
 
+<Note>
+  You may need to restart your development server for the changes to take
+  effect.
+</Note>
+
 Try asking something like "What's the weather in New York?" and see how the model uses the new tool.
 
 Notice the blank response in the UI? This is because instead of generating a text response, the model generated a tool call. You can access the tool call and subsequent tool result in the `toolInvocations` key of the message object.
 
 ### Update the UI
 
-To display the tool invocations in your UI, update your `app/page.tsx` file:
+To display the tool invocations in your UI, update your `app/(tabs)/index.tsx` file:
 
-```tsx filename="app/page.tsx" highlight="12-16"
-'use client';
+```tsx filename="app/(tabs)/index.tsx" highlight="31-35"
+import { generateAPIUrl } from '@/utils';
+import { useChat } from '@ai-sdk/react';
+import { fetch as expoFetch } from 'expo/fetch';
+import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
 
-import { useChat } from 'ai/react';
+export default function App() {
+  const { messages, error, handleInputChange, input, handleSubmit } = useChat({
+    fetch: expoFetch as unknown as typeof globalThis.fetch,
+    api: generateAPIUrl('/api/chat'),
+    onError: error => console.error(error, 'ERROR'),
+  });
 
-export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  if (error) return <Text>{error.message}</Text>;
+
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.toolInvocations ? (
-            <pre>{JSON.stringify(m.toolInvocations, null, 2)}</pre>
-          ) : (
-            <p>{m.content}</p>
-          )}
-        </div>
-      ))}
+    <SafeAreaView style={{ height: '100vh' }}>
+      <View
+        style={{
+          height: '95%',
+          display: 'flex',
+          flexDirection: 'column',
+          paddingHorizontal: 8,
+        }}
+      >
+        <ScrollView style={{ flex: 1 }}>
+          {messages.map(m => (
+            <View key={m.id} style={{ marginVertical: 8 }}>
+              <View>
+                <Text style={{ fontWeight: 700 }}>{m.role}</Text>
+                {m.toolInvocations ? (
+                  <Text>{JSON.stringify(m.toolInvocations, null, 2)}</Text>
+                ) : (
+                  <Text>{m.content}</Text>
+                )}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-      </form>
-    </div>
+        <View style={{ marginTop: 8 }}>
+          <TextInput
+            style={{ backgroundColor: 'white', padding: 8 }}
+            placeholder="Say something..."
+            value={input}
+            onChange={e =>
+              handleInputChange({
+                ...e,
+                target: {
+                  ...e.target,
+                  value: e.nativeEvent.text,
+                },
+              } as unknown as React.ChangeEvent<HTMLInputElement>)
+            }
+            onSubmitEditing={e => {
+              handleSubmit(e);
+              e.preventDefault();
+            }}
+            autoFocus={true}
+          />
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 ```
+
+<Note>
+  You may need to restart your development server for the changes to take
+  effect.
+</Note>
 
 With this change, you check each message for any tool calls (`toolInvocations`). These tool calls will be displayed as stringified JSON. Otherwise, you show the message content as before.
 
@@ -282,15 +383,17 @@ To solve this, you can enable multi-step tool calls using the `maxSteps` option 
 
 ### Update Your Client-Side Code
 
-Modify your `app/page.tsx` file to include the `maxSteps` option:
+Modify your `app/(tabs)/index.tsx` file to include the `maxSteps` option:
 
-```tsx filename="app/page.tsx" highlight="7"
-'use client';
+```tsx filename="app/(tabs)/index.tsx" highlight="11"
+import { useChat } from '@ai-sdk/react';
+// ... rest of your imports
 
-import { useChat } from 'ai/react';
-
-export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
+export default function App() {
+  const { messages, error, handleInputChange, input, handleSubmit } = useChat({
+    fetch: expoFetch as unknown as typeof globalThis.fetch,
+    api: generateAPIUrl('/api/chat'),
+    onError: error => console.error(error, 'ERROR'),
     maxSteps: 5,
   });
 
@@ -298,20 +401,23 @@ export default function Chat() {
 }
 ```
 
+<Note>
+  You may need to restart your development server for the changes to take
+  effect.
+</Note>
+
 Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 
 By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
 
 ### Update Your Route Handler
 
-Update your `app/api/chat/route.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
+Update your `app/api/chat+api.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="app/api/chat/route.ts" highlight="27-40"
+```tsx filename="app/api/chat+api.ts" highlight="27-40"
 import { openai } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
-
-export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -353,6 +459,11 @@ export async function POST(req: Request) {
   return result.toDataStreamResponse();
 }
 ```
+
+<Note>
+  You may need to restart your development server for the changes to take
+  effect.
+</Note>
 
 Now, when you ask "What's the weather in New York in celsius?", you should see a more complete interaction:
 
