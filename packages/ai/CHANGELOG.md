@@ -1,5 +1,12 @@
 # ai
 
+## 4.0.4
+
+### Patch Changes
+
+- 6ff6689: fix (ai): trigger onFinal when stream adapter finishes
+- 6ff6689: chore (ai): deprecate onCompletion (stream callbacks)
+
 ## 4.0.3
 
 ### Patch Changes
