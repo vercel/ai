@@ -133,6 +133,9 @@ export function createVertex(
 
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.rerankingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+  };
 
   return provider as GoogleVertexProvider;
 }

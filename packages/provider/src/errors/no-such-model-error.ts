@@ -8,7 +8,7 @@ export class NoSuchModelError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   readonly modelId: string;
-  readonly modelType: 'languageModel' | 'textEmbeddingModel';
+  readonly modelType: 'languageModel' | 'textEmbeddingModel' | 'rerankingModel';
 
   constructor({
     errorName = name,
@@ -18,7 +18,7 @@ export class NoSuchModelError extends AISDKError {
   }: {
     errorName?: string;
     modelId: string;
-    modelType: 'languageModel' | 'textEmbeddingModel';
+    modelType: 'languageModel' | 'textEmbeddingModel' | 'rerankingModel';
     message?: string;
   }) {
     super({ name: errorName, message });

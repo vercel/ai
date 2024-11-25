@@ -1,6 +1,7 @@
 import {
   EmbeddingModelV1,
   LanguageModelV1,
+  NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
 import {
@@ -127,6 +128,9 @@ export function createAmazonBedrock(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.rerankingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+  };
 
   return provider as AmazonBedrockProvider;
 }

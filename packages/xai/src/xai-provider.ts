@@ -101,6 +101,9 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
+  provider.rerankingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+  };
 
   return provider as XaiProvider;
 }

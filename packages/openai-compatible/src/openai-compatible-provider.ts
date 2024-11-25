@@ -1,6 +1,7 @@
 import {
   EmbeddingModelV1,
   LanguageModelV1,
+  NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
 import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
@@ -146,6 +147,9 @@ export function createOpenAICompatible<
   provider.chatModel = createChatModel;
   provider.completionModel = createCompletionModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.rerankingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+  };
 
   return provider as OpenAICompatibleProvider<
     CHAT_MODEL_IDS,
