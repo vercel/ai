@@ -1,11 +1,6 @@
-import { createTogetherAI } from '@ai-sdk/togetherai';
+import { togetherai } from '@ai-sdk/togetherai';
 import { generateText } from 'ai';
 import 'dotenv/config';
-
-const togetherai = createTogetherAI({
-  apiKey: process.env.TOGETHER_AI_API_KEY!,
-  baseURL: 'https://api.together.xyz/v1/',
-});
 
 async function main() {
   const { text, usage } = await generateText({
