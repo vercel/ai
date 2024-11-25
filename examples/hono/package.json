@@ -10,6 +10,8 @@
     "hono": "4.6.9"
   },
   "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "curl": "curl -i -X POST http://localhost:8080",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
