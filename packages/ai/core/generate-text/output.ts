@@ -1,35 +1,31 @@
-import { JSONSchema7, JSONValue } from '@ai-sdk/provider';
-import { ValidationResult } from '@ai-sdk/provider-utils';
+import { parseJSON, ValidationResult } from '@ai-sdk/provider-utils';
 import { asSchema, Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 
-export interface Output<RESULT> {
+export interface Output<OUTPUT> {
   readonly type: 'object' | 'text';
-  readonly jsonSchema: JSONSchema7 | undefined;
-
-  validateFinalResult(value: JSONValue | undefined): ValidationResult<RESULT>;
+  parseOutput({ text }: { text: string }): OUTPUT;
 }
 
 export const text = (): Output<string> => ({
   type: 'text',
-  jsonSchema: undefined,
-  validateFinalResult() {
-    return { success: true, value: '' };
+  parseOutput({ text }: { text: string }) {
+    return text;
   },
 });
 
-export const object = <OBJECT>({
+export const object = <OUTPUT>({
   schema: inputSchema,
 }: {
-  schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT>;
-}): Output<OBJECT> => {
+  schema: z.Schema<OUTPUT, z.ZodTypeDef, any> | Schema<OUTPUT>;
+}): Output<OUTPUT> => {
   const schema = asSchema(inputSchema);
+  // jsonSchema: schema.jsonSchema,
 
   return {
     type: 'object',
-    jsonSchema: schema.jsonSchema,
-    validateFinalResult() {
-      return { success: true, value: {} as OBJECT };
+    parseOutput({ text }: { text: string }) {
+      return parseJSON({ text, schema });
     },
   };
 };

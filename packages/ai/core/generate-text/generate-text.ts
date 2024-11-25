@@ -23,7 +23,7 @@ import {
 } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
 import { GenerateTextResult } from './generate-text-result';
-import { Output } from './output';
+import { Output, text } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
@@ -92,6 +92,7 @@ export async function generateText<
   abortSignal,
   headers,
   maxSteps = 1,
+  experimental_output: output,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
@@ -487,6 +488,8 @@ changing the tool call and result types in the result.
 
       return new DefaultGenerateTextResult({
         text,
+        output:
+          output == null ? (undefined as never) : output.parseOutput({ text }),
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
@@ -608,7 +611,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>, OUTPUT>
   readonly experimental_output: GenerateTextResult<
     TOOLS,
     OUTPUT
-  >['experimental_output'] = undefined as OUTPUT;
+  >['experimental_output'];
 
   constructor(options: {
     text: GenerateTextResult<TOOLS, OUTPUT>['text'];
@@ -625,6 +628,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>, OUTPUT>
     >['experimental_providerMetadata'];
     response: GenerateTextResult<TOOLS, OUTPUT>['response'];
     request: GenerateTextResult<TOOLS, OUTPUT>['request'];
+    output: GenerateTextResult<TOOLS, OUTPUT>['experimental_output'];
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -637,5 +641,6 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>, OUTPUT>
     this.steps = options.steps;
     this.experimental_providerMetadata = options.providerMetadata;
     this.logprobs = options.logprobs;
+    this.experimental_output = options.output;
   }
 }
