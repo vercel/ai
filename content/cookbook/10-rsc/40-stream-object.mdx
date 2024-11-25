@@ -1,0 +1,128 @@
+---
+title: Stream Object
+description: Learn how to stream object using the AI SDK and React Server Components.
+tags: ['rsc', 'streaming', 'structured data']
+---
+
+# Stream Object
+
+<Note>
+  This example uses React Server Components (RSC). If you want to client side
+  rendering and hooks instead, check out the ["streaming object generation"
+  example with
+  useObject](/examples/next-pages/basics/streaming-object-generation).
+</Note>
+
+Object generation can sometimes take a long time to complete, especially when you're generating a large schema. In such cases, it is useful to stream the object generation process to the client in real-time. This allows the client to display the generated object as it is being generated, rather than have users wait for it to complete before displaying the result.
+
+<Browser>
+  <ObjectGeneration
+    stream
+    object={{
+      notifications: [
+        {
+          name: 'Jamie Roberts',
+          message: "Hey! How's the study grind going? Need a coffee boost?",
+          minutesAgo: 15,
+        },
+        {
+          name: 'Prof. Morgan',
+          message:
+            'Reminder: Your term paper is due promptly at 8 AM tomorrow. Please ensure it meets the submission guidelines outlined.',
+          minutesAgo: 46,
+        },
+        {
+          name: 'Alex Chen',
+          message:
+            "Dude, urgent! Borrow your notes for tomorrow's exam? I swear mine got eaten by my dog!",
+          minutesAgo: 30,
+        },
+      ],
+    }}
+  />
+</Browser>
+
+## Client
+
+Let's create a simple React component that will call the `getNotifications` function when a button is clicked. The function will generate a list of notifications as described in the schema.
+
+```tsx filename='app/page.tsx'
+'use client';
+
+import { useState } from 'react';
+import { generate } from './actions';
+import { readStreamableValue } from 'ai/rsc';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export default function Home() {
+  const [generation, setGeneration] = useState<string>('');
+
+  return (
+    <div>
+      <button
+        onClick={async () => {
+          const { object } = await generate('Messages during finals week.');
+
+          for await (const partialObject of readStreamableValue(object)) {
+            if (partialObject) {
+              setGeneration(
+                JSON.stringify(partialObject.notifications, null, 2),
+              );
+            }
+          }
+        }}
+      >
+        Ask
+      </button>
+
+      <pre>{generation}</pre>
+    </div>
+  );
+}
+```
+
+## Server
+
+Now let's implement the `getNotifications` function. We'll use the `generateObject` function to generate the list of fictional notifications based on the schema we defined earlier.
+
+```typescript filename='app/actions.ts'
+'use server';
+
+import { streamObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { createStreamableValue } from 'ai/rsc';
+import { z } from 'zod';
+
+export async function generate(input: string) {
+  'use server';
+
+  const stream = createStreamableValue();
+
+  (async () => {
+    const { partialObjectStream } = streamObject({
+      model: openai('gpt-4-turbo'),
+      system: 'You generate three notifications for a messages app.',
+      prompt: input,
+      schema: z.object({
+        notifications: z.array(
+          z.object({
+            name: z.string().describe('Name of a fictional person.'),
+            message: z.string().describe('Do not use emojis or links.'),
+            minutesAgo: z.number(),
+          }),
+        ),
+      }),
+    });
+
+    for await (const partialObject of partialObjectStream) {
+      stream.update(partialObject);
+    }
+
+    stream.done();
+  })();
+
+  return { object: stream.value };
+}
+```

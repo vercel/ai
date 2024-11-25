@@ -97,7 +97,7 @@ export const POST = (async ({ request }) => {
   const { messages } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o'),
     messages,
   });
 
@@ -188,7 +188,7 @@ export const POST = (async ({ request }) => {
   const { messages } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o'),
     messages,
     tools: {
       weather: tool({
@@ -305,7 +305,7 @@ export const POST = (async ({ request }) => {
   const { messages } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o'),
     messages,
     tools: {
       weather: tool({

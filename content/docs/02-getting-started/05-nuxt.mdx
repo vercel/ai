@@ -106,7 +106,7 @@ export default defineLazyEventHandler(async () => {
     const { messages } = await readBody(event);
 
     const result = streamText({
-      model: openai('gpt-4-turbo'),
+      model: openai('gpt-4o'),
       messages,
     });
 
@@ -203,7 +203,7 @@ export default defineLazyEventHandler(async () => {
     const { messages } = await readBody(event);
 
     const result = streamText({
-      model: openai('gpt-4-turbo'),
+      model: openai('gpt-4o'),
       messages,
       tools: {
         weather: tool({
@@ -326,7 +326,7 @@ export default defineLazyEventHandler(async () => {
     const { messages } = await readBody(event);
 
     const result = streamText({
-      model: openai('gpt-4-turbo-preview'),
+      model: openai('gpt-4o-preview'),
       messages,
       tools: {
         weather: tool({
