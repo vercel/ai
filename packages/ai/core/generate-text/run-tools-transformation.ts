@@ -67,6 +67,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   toolCallStreaming,
   tracer,
   telemetry,
+  system,
   messages,
   abortSignal,
 }: {
@@ -75,6 +76,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   toolCallStreaming: boolean;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  system: string | undefined;
   messages: CoreMessage[];
   abortSignal: AbortSignal | undefined;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
@@ -190,6 +192,9 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
             const toolCall = await parseToolCall({
               toolCall: chunk,
               tools,
+              repairToolCall: undefined,
+              system,
+              messages,
             });
 
             controller.enqueue(toolCall);

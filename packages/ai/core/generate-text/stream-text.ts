@@ -509,6 +509,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             toolCallStreaming,
             tracer,
             telemetry,
+            system,
             messages: stepInputMessages,
             abortSignal,
           });

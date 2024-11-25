@@ -344,7 +344,13 @@ changing the tool call and result types in the result.
         // parse tool calls:
         currentToolCalls = await Promise.all(
           (currentModelResponse.toolCalls ?? []).map(toolCall =>
-            parseToolCall({ toolCall, tools }),
+            parseToolCall({
+              toolCall,
+              tools,
+              repairToolCall: undefined,
+              system,
+              messages: stepInputMessages,
+            }),
           ),
         );
 

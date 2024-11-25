@@ -8,27 +8,69 @@ import { CoreTool } from '../tool';
 import { inferParameters } from '../tool/tool';
 import { ToolCallUnion } from './tool-call';
 
-type ToolCallRepairer<TOOLS extends Record<string, CoreTool>> = (options: {
-  messages: CoreMessage[];
-  toolCall: LanguageModelV1FunctionToolCall;
-  tools: TOOLS;
-  error: NoSuchToolError | InvalidToolArgumentsError;
-}) => Promise<LanguageModelV1FunctionToolCall | null>;
-
-// TODO ToolCallRepairError
+type ToolCallRepairFunction<TOOLS extends Record<string, CoreTool>> =
+  (options: {
+    system: string | undefined;
+    messages: CoreMessage[];
+    toolCall: LanguageModelV1FunctionToolCall;
+    tools: TOOLS;
+    error: NoSuchToolError | InvalidToolArgumentsError;
+  }) => Promise<LanguageModelV1FunctionToolCall | null>;
 
 export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
   toolCall,
   tools,
+  repairToolCall,
+  system,
+  messages,
 }: {
   toolCall: LanguageModelV1FunctionToolCall;
-  tools?: TOOLS;
+  tools: TOOLS | undefined;
+  repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  system: string | undefined;
+  messages: CoreMessage[];
 }): Promise<ToolCallUnion<TOOLS>> {
-  const toolName = toolCall.toolName as keyof TOOLS & string;
-
   if (tools == null) {
     throw new NoSuchToolError({ toolName: toolCall.toolName });
   }
+
+  try {
+    return await doParseToolCall({ toolCall, tools });
+  } catch (error) {
+    if (
+      repairToolCall == null ||
+      !(
+        NoSuchToolError.isInstance(error) ||
+        InvalidToolArgumentsError.isInstance(error)
+      )
+    ) {
+      throw error;
+    }
+
+    const repairedToolCall = await repairToolCall({
+      toolCall,
+      tools,
+      system,
+      messages,
+      error,
+    });
+
+    if (repairedToolCall == null) {
+      throw error;
+    }
+
+    return await doParseToolCall({ toolCall: repairedToolCall, tools });
+  }
+}
+
+async function doParseToolCall<TOOLS extends Record<string, CoreTool>>({
+  toolCall,
+  tools,
+}: {
+  toolCall: LanguageModelV1FunctionToolCall;
+  tools: TOOLS;
+}): Promise<ToolCallUnion<TOOLS>> {
+  const toolName = toolCall.toolName as keyof TOOLS & string;
 
   const tool = tools[toolName];
 
@@ -51,14 +93,6 @@ export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
       : safeParseJSON({ text: toolCall.args, schema });
 
   if (parseResult.success === false) {
-    // could try to repair the tool call here
-
-    // needs: messages, system, error message, tools
-    // returns: InvalidToolArgumentsError | ToolCallUnion<TOOLS>
-    // problem: this is specific to the tools - can this instead happen
-    // on a string level?
-    // what tools calls should be repairable?? --> ALL OF THEM ==> try..catch
-
     throw new InvalidToolArgumentsError({
       toolName,
       toolArgs: toolCall.args,

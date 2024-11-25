@@ -20,6 +20,9 @@ it('should successfully parse a valid tool call', async () => {
         }),
       }),
     } as const,
+    repairToolCall: undefined,
+    messages: [],
+    system: undefined,
   });
 
   expect(result).toEqual({
@@ -43,6 +46,9 @@ it('should successfully process empty calls for tools that have no parameters', 
         parameters: z.object({}),
       }),
     } as const,
+    repairToolCall: undefined,
+    messages: [],
+    system: undefined,
   });
 
   expect(result).toEqual({
@@ -63,6 +69,9 @@ it('should throw NoSuchToolError when tools is null', async () => {
         args: '{}',
       },
       tools: undefined,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
     }),
   ).rejects.toThrow(NoSuchToolError);
 });
@@ -84,6 +93,9 @@ it('should throw NoSuchToolError when tool is not found', async () => {
           }),
         }),
       } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
     }),
   ).rejects.toThrow(NoSuchToolError);
 });
@@ -105,6 +117,9 @@ it('should throw InvalidToolArgumentsError when args are invalid', async () => {
           }),
         }),
       } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
     }),
   ).rejects.toThrow(InvalidToolArgumentsError);
 });
