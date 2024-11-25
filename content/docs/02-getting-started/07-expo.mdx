@@ -5,7 +5,7 @@ description: Welcome to the AI SDK quickstart guide for Expo!
 
 # Expo Quickstart
 
-In this quick start tutorial, you'll build a simple AI-chatbot with a streaming user interface. Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
+In this quick start tutorial, you'll build a simple AI-chatbot with a streaming user interface with [Expo](https://expo.dev/). Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
 
 Check out [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/advanced/why-streaming) if you haven't heard of them.
 
@@ -27,6 +27,8 @@ Start by creating a new Expo application. This command will create a new directo
 Navigate to the newly created directory:
 
 <Snippet text="cd my-ai-app" />
+
+<Note>This guide requires Expo 52 or higher.</Note>
 
 ### Install dependencies
 
@@ -119,8 +121,7 @@ import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
 
 export default function App() {
   const { messages, error, handleInputChange, input, handleSubmit } = useChat({
-    // @ts-ignore
-    fetch: expoFetch,
+    fetch: expoFetch as unknown as typeof globalThis.fetch,
     api: generateAPIUrl('/api/chat'),
     onError: error => console.error(error, 'ERROR'),
   });
@@ -156,12 +157,11 @@ export default function App() {
             onChange={e =>
               handleInputChange({
                 ...e,
-                // @ts-ignore
                 target: {
                   ...e.target,
                   value: e.nativeEvent.text,
                 },
-              })
+              } as unknown as React.ChangeEvent<HTMLInputElement>)
             }
             onSubmitEditing={e => {
               handleSubmit(e);
@@ -307,8 +307,7 @@ import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
 
 export default function App() {
   const { messages, error, handleInputChange, input, handleSubmit } = useChat({
-    // @ts-ignore
-    fetch: expoFetch,
+    fetch: expoFetch as unknown as typeof globalThis.fetch,
     api: generateAPIUrl('/api/chat'),
     onError: error => console.error(error, 'ERROR'),
   });
@@ -348,12 +347,11 @@ export default function App() {
             onChange={e =>
               handleInputChange({
                 ...e,
-                // @ts-ignore
                 target: {
                   ...e.target,
                   value: e.nativeEvent.text,
                 },
-              })
+              } as unknown as React.ChangeEvent<HTMLInputElement>)
             }
             onSubmitEditing={e => {
               handleSubmit(e);
@@ -393,8 +391,7 @@ import { useChat } from '@ai-sdk/react';
 
 export default function App() {
   const { messages, error, handleInputChange, input, handleSubmit } = useChat({
-    // @ts-ignore
-    fetch: expoFetch,
+    fetch: expoFetch as unknown as typeof globalThis.fetch,
     api: generateAPIUrl('/api/chat'),
     onError: error => console.error(error, 'ERROR'),
     maxSteps: 5,
