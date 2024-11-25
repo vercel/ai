@@ -23,12 +23,12 @@ import {
 } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
 import { GenerateTextResult } from './generate-text-result';
+import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
-import { OutputStrategy } from './output-strategy';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -153,8 +153,7 @@ changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
 
-    // TODO limit to specific strategies
-    experimental_output?: OutputStrategy<OUTPUT>;
+    experimental_output?: Output<OUTPUT>;
 
     /**
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
