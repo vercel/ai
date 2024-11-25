@@ -78,7 +78,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
   environment variable.
 </Note>
 
-## Create a Route Handler
+## Create a API Route
 
 Create a route handler, `app/api/chat+api.ts` and add the following code:
 
@@ -105,11 +105,11 @@ Let's take a look at what is happening in this code:
 3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toDataStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-data-stream-response) function which converts the result to a streamed response object.
 4. Finally, return the result to the client to stream the response.
 
-This Route Handler creates a POST request endpoint at `/api/chat`.
+This API route creates a POST request endpoint at `/api/chat`.
 
 ## Wire up the UI
 
-Now that you have a Route Handler that can query an LLM, it's time to setup your frontend. The AI SDK's [ UI ](/docs/ai-sdk-ui) package abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+Now that you have a API route that can query an LLM, it's time to setup your frontend. The AI SDK's [ UI ](/docs/ai-sdk-ui) package abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
 
 Update your root page (`app/(tabs)/index.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
@@ -239,7 +239,7 @@ For example, if a user asks about the current weather, without tools, the model 
 
 Let's enhance your chatbot by adding a simple weather tool.
 
-### Update Your Route Handler
+### Update Your API route
 
 Modify your `app/api/chat+api.ts` file to include the new weather tool:
 
@@ -385,7 +385,7 @@ To solve this, you can enable multi-step tool calls using the `maxSteps` option 
 
 Modify your `app/(tabs)/index.tsx` file to include the `maxSteps` option:
 
-```tsx filename="app/(tabs)/index.tsx" highlight="11"
+```tsx filename="app/(tabs)/index.tsx" highlight="9"
 import { useChat } from '@ai-sdk/react';
 // ... rest of your imports
 
@@ -410,7 +410,7 @@ Head back to the browser and ask about the weather in a location. You should now
 
 By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
 
-### Update Your Route Handler
+### Update Your API Route
 
 Update your `app/api/chat+api.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
