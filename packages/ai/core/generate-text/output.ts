@@ -1,6 +1,7 @@
 import { JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import { ValidationResult } from '@ai-sdk/provider-utils';
-import { Schema } from '@ai-sdk/ui-utils';
+import { asSchema, Schema } from '@ai-sdk/ui-utils';
+import { z } from 'zod';
 
 export interface Output<RESULT> {
   readonly type: 'object' | 'text';
@@ -18,13 +19,17 @@ export const text = (): Output<string> => ({
 });
 
 export const object = <OBJECT>({
-  schema,
+  schema: inputSchema,
 }: {
-  schema: Schema<OBJECT>;
-}): Output<OBJECT> => ({
-  type: 'object',
-  jsonSchema: schema.jsonSchema,
-  validateFinalResult() {
-    return { success: true, value: {} as OBJECT };
-  },
-});
+  schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT>;
+}): Output<OBJECT> => {
+  const schema = asSchema(inputSchema);
+
+  return {
+    type: 'object',
+    jsonSchema: schema.jsonSchema,
+    validateFinalResult() {
+      return { success: true, value: {} as OBJECT };
+    },
+  };
+};
