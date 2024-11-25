@@ -120,7 +120,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
     LanguageModelV1StreamPart,
     SingleRequestTextStreamPart<TOOLS>
   >({
-    transform(
+    async transform(
       chunk: LanguageModelV1StreamPart,
       controller: TransformStreamDefaultController<
         SingleRequestTextStreamPart<TOOLS>
@@ -187,7 +187,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
           }
 
           try {
-            const toolCall = parseToolCall({
+            const toolCall = await parseToolCall({
               toolCall: chunk,
               tools,
             });

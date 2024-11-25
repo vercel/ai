@@ -4,8 +4,8 @@ import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { tool } from '../tool';
 import { parseToolCall } from './parse-tool-call';
 
-it('should successfully parse a valid tool call', () => {
-  const result = parseToolCall({
+it('should successfully parse a valid tool call', async () => {
+  const result = await parseToolCall({
     toolCall: {
       toolCallType: 'function',
       toolName: 'testTool',
@@ -30,8 +30,8 @@ it('should successfully parse a valid tool call', () => {
   });
 });
 
-it('should successfully process empty calls for tools that have no parameters', () => {
-  const result = parseToolCall({
+it('should successfully process empty calls for tools that have no parameters', async () => {
+  const result = await parseToolCall({
     toolCall: {
       toolCallType: 'function',
       toolName: 'testTool',
@@ -53,8 +53,8 @@ it('should successfully process empty calls for tools that have no parameters', 
   });
 });
 
-it('should throw NoSuchToolError when tools is null', () => {
-  expect(() =>
+it('should throw NoSuchToolError when tools is null', async () => {
+  await expect(
     parseToolCall({
       toolCall: {
         toolCallType: 'function',
@@ -64,11 +64,11 @@ it('should throw NoSuchToolError when tools is null', () => {
       },
       tools: undefined,
     }),
-  ).toThrow(NoSuchToolError);
+  ).rejects.toThrow(NoSuchToolError);
 });
 
-it('should throw NoSuchToolError when tool is not found', () => {
-  expect(() =>
+it('should throw NoSuchToolError when tool is not found', async () => {
+  await expect(
     parseToolCall({
       toolCall: {
         toolCallType: 'function',
@@ -85,11 +85,11 @@ it('should throw NoSuchToolError when tool is not found', () => {
         }),
       } as const,
     }),
-  ).toThrow(NoSuchToolError);
+  ).rejects.toThrow(NoSuchToolError);
 });
 
-it('should throw InvalidToolArgumentsError when args are invalid', () => {
-  expect(() =>
+it('should throw InvalidToolArgumentsError when args are invalid', async () => {
+  await expect(
     parseToolCall({
       toolCall: {
         toolCallType: 'function',
@@ -106,5 +106,5 @@ it('should throw InvalidToolArgumentsError when args are invalid', () => {
         }),
       } as const,
     }),
-  ).toThrow(InvalidToolArgumentsError);
+  ).rejects.toThrow(InvalidToolArgumentsError);
 });
