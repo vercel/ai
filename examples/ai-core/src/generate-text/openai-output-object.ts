@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const { usage, experimental_output } = await generateText({
+  const { experimental_output } = await generateText({
     model: openai('gpt-4o-mini'), // TODO { structuredOutputs: true }),
     tools: {
       weather: tool({
@@ -29,9 +29,8 @@ async function main() {
     prompt: 'What is the weather in San Francisco?',
   });
 
+  // { location: 'San Francisco', temperature: 81 }
   console.log(experimental_output);
-  console.log();
-  console.log('Usage:', usage);
 }
 
 main().catch(console.error);
