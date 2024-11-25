@@ -9,14 +9,14 @@ tags: ['next', 'persistence']
 You can save the chat to an external database using the `onFinish` callback handler present in the `streamText` function.
 
 ```ts filename="@/app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai'
-import { saveChat } from '@/utils/queries'
-import { streamText, convertToCoreMessages } from 'ai'
+import { openai } from '@ai-sdk/openai';
+import { saveChat } from '@/utils/queries';
+import { streamText, convertToCoreMessages } from 'ai';
 
 export function POST(request) {
-  const { id, messages } = await request.json()
+  const { id, messages } = await request.json();
 
-  const coreMessages = convertToCoreMessages(messages)
+  const coreMessages = convertToCoreMessages(messages);
 
   const result = streamText({
     model: openai('gpt-4o'),
@@ -26,15 +26,15 @@ export function POST(request) {
       try {
         await saveChat({
           id,
-          messages: [...coreMessages, ...responseMessages]
-        })
+          messages: [...coreMessages, ...responseMessages],
+        });
       } catch (error) {
-        console.error('Failed to save chat')
+        console.error('Failed to save chat');
       }
-    }
-  })
+    },
+  });
 
-  return result.toDataStream()
+  return result.toDataStream();
 }
 ```
 
@@ -48,33 +48,33 @@ This example assumes that the database table schema has a `messages` column that
 export async function saveChat({
   id,
   messages,
-  userId
+  userId,
 }: {
-  id: string
-  messages: any
-  userId: string
+  id: string;
+  messages: any;
+  userId: string;
 }) {
   try {
-    const selectedChats = await db.select().from(chat).where(eq(chat.id, id))
+    const selectedChats = await db.select().from(chat).where(eq(chat.id, id));
 
     if (selectedChats.length > 0) {
       return await db
         .update(chat)
         .set({
-          messages: JSON.stringify(messages)
+          messages: JSON.stringify(messages),
         })
-        .where(eq(chat.id, id))
+        .where(eq(chat.id, id));
     }
 
     return await db.insert(chat).values({
       id,
       createdAt: new Date(),
       messages: JSON.stringify(messages),
-      userId
-    })
+      userId,
+    });
   } catch (error) {
-    console.error('Failed to save chat in database')
-    throw error
+    console.error('Failed to save chat in database');
+    throw error;
   }
 }
 ```

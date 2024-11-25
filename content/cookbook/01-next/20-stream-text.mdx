@@ -17,18 +17,18 @@ Text generation can sometimes take a long time to complete, especially when you'
 Let's create a simple React component that imports the `useCompletion` hook from the `ai/react` module. The `useCompletion` hook will call the `/api/completion` endpoint when a button is clicked. The endpoint will generate text based on the input prompt and stream it to the client.
 
 ```tsx filename="pages/index.tsx"
-import { useCompletion } from 'ai/react'
+import { useCompletion } from 'ai/react';
 
 export default function Page() {
   const { completion, complete } = useCompletion({
-    api: '/api/completion'
-  })
+    api: '/api/completion',
+  });
 
   return (
     <div>
       <div
         onClick={async () => {
-          await complete('Why is the sky blue?')
+          await complete('Why is the sky blue?');
         }}
       >
         Generate
@@ -36,7 +36,7 @@ export default function Page() {
 
       {completion}
     </div>
-  )
+  );
 }
 ```
 
@@ -45,19 +45,19 @@ export default function Page() {
 Let's create a route handler for `/api/completion` that will generate text based on the input prompt. The route will call the `streamText` function from the `ai` module, which will then generate text based on the input prompt and stream it to the client.
 
 ```typescript filename='app/api/completion/route.ts'
-import { streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
-  const { prompt }: { prompt: string } = await req.json()
+  const { prompt }: { prompt: string } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4'),
     system: 'You are a helpful assistant.',
-    prompt
-  })
+    prompt,
+  });
 
-  return result.toDataStreamResponse()
+  return result.toDataStreamResponse();
 }
 ```
 

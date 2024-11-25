@@ -9,16 +9,16 @@ When building AI applications, you might want to restore previous conversations 
 ## Client
 
 ```tsx filename='app/layout.tsx'
-import { ServerMessage } from './actions'
-import { AI } from './ai'
+import { ServerMessage } from './actions';
+import { AI } from './ai';
 
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   // Fetch stored messages from your database
-  const savedMessages: ServerMessage[] = getSavedMessages()
+  const savedMessages: ServerMessage[] = getSavedMessages();
 
   return (
     <html lang="en">
@@ -28,22 +28,22 @@ export default function RootLayout({
         </AI>
       </body>
     </html>
-  )
+  );
 }
 ```
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { ClientMessage } from './actions'
-import { useActions, useUIState } from 'ai/rsc'
-import { generateId } from 'ai'
+import { useState, useEffect } from 'react';
+import { ClientMessage } from './actions';
+import { useActions, useUIState } from 'ai/rsc';
+import { generateId } from 'ai';
 
 export default function Home() {
-  const [conversation, setConversation] = useUIState()
-  const [input, setInput] = useState<string>('')
-  const { continueConversation } = useActions()
+  const [conversation, setConversation] = useUIState();
+  const [input, setInput] = useState<string>('');
+  const { continueConversation } = useActions();
 
   return (
     <div>
@@ -67,26 +67,26 @@ export default function Home() {
             // Add user message to UI
             setConversation((currentConversation: ClientMessage[]) => [
               ...currentConversation,
-              { id: generateId(), role: 'user', display: input }
-            ])
+              { id: generateId(), role: 'user', display: input },
+            ]);
 
             // Get AI response
-            const message = await continueConversation(input)
+            const message = await continueConversation(input);
 
             // Add AI response to UI
             setConversation((currentConversation: ClientMessage[]) => [
               ...currentConversation,
-              message
-            ])
+              message,
+            ]);
 
-            setInput('')
+            setInput('');
           }}
         >
           Send
         </button>
       </div>
     </div>
-  )
+  );
 }
 ```
 
@@ -95,53 +95,53 @@ export default function Home() {
 The server-side implementation handles the restoration of messages and their transformation into the appropriate format for display.
 
 ```tsx filename='app/ai.ts'
-import { createAI } from 'ai/rsc'
-import { ServerMessage, ClientMessage, continueConversation } from './actions'
-import { Stock } from '@ai-studio/components/stock'
-import { generateId } from 'ai'
+import { createAI } from 'ai/rsc';
+import { ServerMessage, ClientMessage, continueConversation } from './actions';
+import { Stock } from '@ai-studio/components/stock';
+import { generateId } from 'ai';
 
 export const AI = createAI<ServerMessage[], ClientMessage[]>({
   actions: {
-    continueConversation
+    continueConversation,
   },
   onGetUIState: async () => {
-    'use server'
+    'use server';
 
     // Get the current AI state (stored messages)
-    const history: ServerMessage[] = getAIState()
+    const history: ServerMessage[] = getAIState();
 
     // Transform server messages into client messages
     return history.map(({ role, content }) => ({
       id: generateId(),
       role,
       display:
-        role === 'function' ? <Stock {...JSON.parse(content)} /> : content
-    }))
-  }
-})
+        role === 'function' ? <Stock {...JSON.parse(content)} /> : content,
+    }));
+  },
+});
 ```
 
 ```tsx filename='app/actions.tsx'
-'use server'
+'use server';
 
-import { getAIState } from 'ai/rsc'
+import { getAIState } from 'ai/rsc';
 
 export interface ServerMessage {
-  role: 'user' | 'assistant' | 'function'
-  content: string
+  role: 'user' | 'assistant' | 'function';
+  content: string;
 }
 
 export interface ClientMessage {
-  id: string
-  role: 'user' | 'assistant' | 'function'
-  display: ReactNode
+  id: string;
+  role: 'user' | 'assistant' | 'function';
+  display: ReactNode;
 }
 
 // Function to get saved messages from database
 export async function getSavedMessages(): Promise<ServerMessage[]> {
-  'use server'
+  'use server';
 
   // Implement your database fetching logic here
-  return await fetchMessagesFromDatabase()
+  return await fetchMessagesFromDatabase();
 }
 ```

@@ -10,9 +10,9 @@ Some models allow developers to provide a list of tools that can be called at an
 This is useful for extending the capabilites of a language model to either use logic or data to interact with systems external to the model.
 
 ```ts
-import { generateText, tool } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { z } from 'zod'
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 const result = await generateText({
   model: openai('gpt-4-turbo'),
@@ -20,20 +20,20 @@ const result = await generateText({
     weather: tool({
       description: 'Get the weather in a location',
       parameters: z.object({
-        location: z.string().describe('The location to get the weather for')
+        location: z.string().describe('The location to get the weather for'),
       }),
       execute: async ({ location }) => ({
         location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10
-      })
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
     }),
     cityAttractions: tool({
-      parameters: z.object({ city: z.string() })
-    })
+      parameters: z.object({ city: z.string() }),
+    }),
   },
   prompt:
-    'What is the weather in San Francisco and what attractions should I visit?'
-})
+    'What is the weather in San Francisco and what attractions should I visit?',
+});
 ```
 
 ## Accessing Tool Calls and Tool Results
@@ -41,12 +41,12 @@ const result = await generateText({
 If the model decides to call a tool, it will generate a tool call. You can access the tool call by checking the `toolCalls` property on the result.
 
 ```ts highlight="31-44"
-import { openai } from '@ai-sdk/openai'
-import { generateText, tool } from 'ai'
-import dotenv from 'dotenv'
-import { z } from 'zod'
+import { openai } from '@ai-sdk/openai';
+import { generateText, tool } from 'ai';
+import dotenv from 'dotenv';
+import { z } from 'zod';
 
-dotenv.config()
+dotenv.config();
 
 async function main() {
   const result = await generateText({
@@ -56,40 +56,40 @@ async function main() {
       weather: tool({
         description: 'Get the weather in a location',
         parameters: z.object({
-          location: z.string().describe('The location to get the weather for')
+          location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => ({
           location,
-          temperature: 72 + Math.floor(Math.random() * 21) - 10
-        })
+          temperature: 72 + Math.floor(Math.random() * 21) - 10,
+        }),
       }),
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() })
-      })
+        parameters: z.object({ city: z.string() }),
+      }),
     },
     prompt:
-      'What is the weather in San Francisco and what attractions should I visit?'
-  })
+      'What is the weather in San Francisco and what attractions should I visit?',
+  });
 
   // typed tool calls:
   for (const toolCall of result.toolCalls) {
     switch (toolCall.toolName) {
       case 'cityAttractions': {
-        toolCall.args.city // string
-        break
+        toolCall.args.city; // string
+        break;
       }
 
       case 'weather': {
-        toolCall.args.location // string
-        break
+        toolCall.args.location; // string
+        break;
       }
     }
   }
 
-  console.log(JSON.stringify(result, null, 2))
+  console.log(JSON.stringify(result, null, 2));
 }
 
-main().catch(console.error)
+main().catch(console.error);
 ```
 
 ## Accessing Tool Results
@@ -97,12 +97,12 @@ main().catch(console.error)
 You can access the result of a tool call by checking the `toolResults` property on the result.
 
 ```ts highlight="31-41"
-import { openai } from '@ai-sdk/openai'
-import { generateText, tool } from 'ai'
-import dotenv from 'dotenv'
-import { z } from 'zod'
+import { openai } from '@ai-sdk/openai';
+import { generateText, tool } from 'ai';
+import dotenv from 'dotenv';
+import { z } from 'zod';
 
-dotenv.config()
+dotenv.config();
 
 async function main() {
   const result = await generateText({
@@ -112,37 +112,37 @@ async function main() {
       weather: tool({
         description: 'Get the weather in a location',
         parameters: z.object({
-          location: z.string().describe('The location to get the weather for')
+          location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => ({
           location,
-          temperature: 72 + Math.floor(Math.random() * 21) - 10
-        })
+          temperature: 72 + Math.floor(Math.random() * 21) - 10,
+        }),
       }),
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() })
-      })
+        parameters: z.object({ city: z.string() }),
+      }),
     },
     prompt:
-      'What is the weather in San Francisco and what attractions should I visit?'
-  })
+      'What is the weather in San Francisco and what attractions should I visit?',
+  });
 
   // typed tool results for tools with execute method:
   for (const toolResult of result.toolResults) {
     switch (toolResult.toolName) {
       case 'weather': {
-        toolResult.args.location // string
-        toolResult.result.location // string
-        toolResult.result.temperature // number
-        break
+        toolResult.args.location; // string
+        toolResult.result.location; // string
+        toolResult.result.temperature; // number
+        break;
       }
     }
   }
 
-  console.log(JSON.stringify(result, null, 2))
+  console.log(JSON.stringify(result, null, 2));
 }
 
-main().catch(console.error)
+main().catch(console.error);
 ```
 
 <Note>

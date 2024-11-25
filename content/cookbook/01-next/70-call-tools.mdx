@@ -12,16 +12,16 @@ Some models allow developers to provide a list of tools that can be called at an
   <ChatGeneration
     history={[
       { role: 'User', content: 'How is it going?' },
-      { role: 'Assistant', content: 'All good, how may I help you?' }
+      { role: 'Assistant', content: 'All good, how may I help you?' },
     ]}
     inputMessage={{
       role: 'User',
-      content: 'What is the weather in Paris and New York?'
+      content: 'What is the weather in Paris and New York?',
     }}
     outputMessage={{
       role: 'Assistant',
       content:
-        'The weather is 24°C in New York and 25°C in Paris. It is sunny in both cities.'
+        'The weather is 24°C in New York and 25°C in Paris. It is sunny in both cities.',
     }}
   />
 </Browser>
@@ -33,26 +33,26 @@ Let's create a React component that imports the `useChat` hook from the `ai/reac
 We will use the `maxSteps` to specify the maximum number of steps (i.e., LLM calls) that can be made to prevent infinite loops. In this example, you will set it to `2` to allow for two backend calls to happen.
 
 ```tsx filename='pages/index.tsx'
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Page() {
   const { messages, input, setInput, append } = useChat({
     api: '/api/chat',
-    maxSteps: 2
-  })
+    maxSteps: 2,
+  });
 
   return (
     <div>
       <input
         value={input}
         onChange={event => {
-          setInput(event.target.value)
+          setInput(event.target.value);
         }}
         onKeyDown={async event => {
           if (event.key === 'Enter') {
-            append({ content: input, role: 'user' })
+            append({ content: input, role: 'user' });
           }
         }}
       />
@@ -61,7 +61,7 @@ export default function Page() {
         <div key={index}>{message.content}</div>
       ))}
     </div>
-  )
+  );
 }
 ```
 
@@ -74,18 +74,18 @@ You will use the [`tools`](/docs/reference/ai-sdk-core/generate-text#tools) para
 You will also use zod to specify the schema for the `celsiusToFahrenheit` function's parameters.
 
 ```tsx filename='app/api/chat/route.ts'
-import { ToolInvocation, streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { z } from 'zod'
+import { ToolInvocation, streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  toolInvocations?: ToolInvocation[]
+  role: 'user' | 'assistant';
+  content: string;
+  toolInvocations?: ToolInvocation[];
 }
 
 export async function POST(req: Request) {
-  const { messages }: { messages: Message[] } = await req.json()
+  const { messages }: { messages: Message[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
@@ -98,21 +98,21 @@ export async function POST(req: Request) {
           city: z.string().describe('The city to get the weather for'),
           unit: z
             .enum(['C', 'F'])
-            .describe('The unit to display the temperature in')
+            .describe('The unit to display the temperature in'),
         }),
         execute: async ({ city, unit }) => {
           const weather = {
             value: 24,
-            description: 'Sunny'
-          }
+            description: 'Sunny',
+          };
 
-          return `It is currently ${weather.value}°${unit} and ${weather.description} in ${city}!`
-        }
-      }
-    }
-  })
+          return `It is currently ${weather.value}°${unit} and ${weather.description} in ${city}!`;
+        },
+      },
+    },
+  });
 
-  return result.toDataStreamResponse()
+  return result.toDataStreamResponse();
 }
 ```
 

@@ -14,9 +14,9 @@ a number greater than 1.
 This option specifies the maximum number of steps (i.e., LLM calls) that can be made to prevent infinite loops.
 
 ```ts highlight={"7"}
-import { generateText, tool } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { z } from 'zod'
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 const { text } = await generateText({
   model: openai('gpt-4-turbo'),
@@ -25,14 +25,14 @@ const { text } = await generateText({
     weather: tool({
       description: 'Get the weather in a location',
       parameters: z.object({
-        location: z.string().describe('The location to get the weather for')
+        location: z.string().describe('The location to get the weather for'),
       }),
       execute: async ({ location }: { location: string }) => ({
         location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10
-      })
-    })
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
   },
-  prompt: 'What is the weather in San Francisco?'
-})
+  prompt: 'What is the weather in San Francisco?',
+});
 ```

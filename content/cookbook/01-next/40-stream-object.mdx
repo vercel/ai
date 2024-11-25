@@ -19,21 +19,21 @@ rather than have users wait for it to complete before displaying the result.
         {
           name: 'Jamie Roberts',
           message: "Hey! How's the study grind going? Need a coffee boost?",
-          minutesAgo: 15
+          minutesAgo: 15,
         },
         {
           name: 'Prof. Morgan',
           message:
             'Reminder: Your term paper is due promptly at 8 AM tomorrow. Please ensure it meets the submission guidelines outlined.',
-          minutesAgo: 46
+          minutesAgo: 46,
         },
         {
           name: 'Alex Chen',
           message:
             "Dude, urgent! Borrow your notes for tomorrow's exam? I swear mine got eaten by my dog!",
-          minutesAgo: 30
-        }
-      ]
+          minutesAgo: 30,
+        },
+      ],
     }}
   />
 </Browser>
@@ -43,17 +43,17 @@ rather than have users wait for it to complete before displaying the result.
 It is helpful to set up the schema in a separate file that is imported on both the client and server.
 
 ```ts filename='app/api/use-object/schema.ts'
-import { z } from 'zod'
+import { z } from 'zod';
 
 // define a schema for the notifications
 export const notificationSchema = z.object({
   notifications: z.array(
     z.object({
       name: z.string().describe('Name of a fictional person.'),
-      message: z.string().describe('Message. Do not use emojis or links.')
-    })
-  )
-})
+      message: z.string().describe('Message. Do not use emojis or links.'),
+    }),
+  ),
+});
 ```
 
 ## Client
@@ -64,16 +64,16 @@ The results are partial and are displayed as they are received.
 Please note the code for handling `undefined` values in the JSX.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { experimental_useObject as useObject } from 'ai/react'
-import { notificationSchema } from './api/use-object/schema'
+import { experimental_useObject as useObject } from 'ai/react';
+import { notificationSchema } from './api/use-object/schema';
 
 export default function Page() {
   const { object, submit } = useObject({
     api: '/api/use-object',
-    schema: notificationSchema
-  })
+    schema: notificationSchema,
+  });
 
   return (
     <div>
@@ -88,7 +88,7 @@ export default function Page() {
         </div>
       ))}
     </div>
-  )
+  );
 }
 ```
 
@@ -97,24 +97,24 @@ export default function Page() {
 On the server, we use [`streamObject`](/docs/reference/ai-sdk-core/stream-object) to stream the object generation process.
 
 ```typescript filename='app/api/use-object/route.ts'
-import { openai } from '@ai-sdk/openai'
-import { streamObject } from 'ai'
-import { notificationSchema } from './schema'
+import { openai } from '@ai-sdk/openai';
+import { streamObject } from 'ai';
+import { notificationSchema } from './schema';
 
 // Allow streaming responses up to 30 seconds
-export const maxDuration = 30
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const context = await req.json()
+  const context = await req.json();
 
   const result = streamObject({
     model: openai('gpt-4-turbo'),
     schema: notificationSchema,
     prompt:
-      `Generate 3 notifications for a messages app in this context:` + context
-  })
+      `Generate 3 notifications for a messages app in this context:` + context,
+  });
 
-  return result.toTextStreamResponse()
+  return result.toTextStreamResponse();
 }
 ```
 
@@ -124,16 +124,16 @@ You can use the `loading` state to display a loading indicator while the object 
 You can also use the `stop` function to stop the object generation process.
 
 ```tsx filename='app/page.tsx' highlight="7,16,21,24"
-'use client'
+'use client';
 
-import { experimental_useObject as useObject } from 'ai/react'
-import { notificationSchema } from './api/use-object/schema'
+import { experimental_useObject as useObject } from 'ai/react';
+import { notificationSchema } from './api/use-object/schema';
 
 export default function Page() {
   const { object, submit, isLoading, stop } = useObject({
     api: '/api/use-object',
-    schema: notificationSchema
-  })
+    schema: notificationSchema,
+  });
 
   return (
     <div>
@@ -160,6 +160,6 @@ export default function Page() {
         </div>
       ))}
     </div>
-  )
+  );
 }
 ```

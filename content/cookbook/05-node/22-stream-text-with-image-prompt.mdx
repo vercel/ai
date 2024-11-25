@@ -9,10 +9,10 @@ tags: ['node', 'streaming', 'multimodal']
 Vision-language models can analyze images alongside text prompts to generate responses about visual content. This multimodal approach allows for rich interactions where you can ask questions about images, request descriptions, or analyze visual details. The combination of image and text inputs enables more sophisticated AI applications like visual question answering and image analysis.
 
 ```ts
-import { anthropic } from '@ai-sdk/anthropic'
-import { streamText } from 'ai'
-import 'dotenv/config'
-import fs from 'node:fs'
+import { anthropic } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
+import 'dotenv/config';
+import fs from 'node:fs';
 
 async function main() {
   const result = streamText({
@@ -22,16 +22,16 @@ async function main() {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
-          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') }
-        ]
-      }
-    ]
-  })
+          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+        ],
+      },
+    ],
+  });
 
   for await (const textPart of result.textStream) {
-    process.stdout.write(textPart)
+    process.stdout.write(textPart);
   }
 }
 
-main().catch(console.error)
+main().catch(console.error);
 ```

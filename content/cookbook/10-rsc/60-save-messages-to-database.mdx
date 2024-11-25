@@ -13,16 +13,16 @@ Sometimes conversations with language models can get interesting and you might w
 ## Client
 
 ```tsx filename='app/layout.tsx'
-import { ServerMessage } from './actions'
-import { AI } from './ai'
+import { ServerMessage } from './actions';
+import { AI } from './ai';
 
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   // get chat history from database
-  const history: ServerMessage[] = getChat()
+  const history: ServerMessage[] = getChat();
 
   return (
     <html lang="en">
@@ -32,25 +32,25 @@ export default function RootLayout({
         </AI>
       </body>
     </html>
-  )
+  );
 }
 ```
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { ClientMessage } from './actions'
-import { useActions, useUIState } from 'ai/rsc'
-import { generateId } from 'ai'
+import { useState } from 'react';
+import { ClientMessage } from './actions';
+import { useActions, useUIState } from 'ai/rsc';
+import { generateId } from 'ai';
 
 // Allow streaming responses up to 30 seconds
-export const maxDuration = 30
+export const maxDuration = 30;
 
 export default function Home() {
-  const [input, setInput] = useState<string>('')
-  const [conversation, setConversation] = useUIState()
-  const { continueConversation } = useActions()
+  const [input, setInput] = useState<string>('');
+  const [conversation, setConversation] = useUIState();
+  const { continueConversation } = useActions();
 
   return (
     <div>
@@ -67,29 +67,29 @@ export default function Home() {
           type="text"
           value={input}
           onChange={event => {
-            setInput(event.target.value)
+            setInput(event.target.value);
           }}
         />
         <button
           onClick={async () => {
             setConversation((currentConversation: ClientMessage[]) => [
               ...currentConversation,
-              { id: generateId(), role: 'user', display: input }
-            ])
+              { id: generateId(), role: 'user', display: input },
+            ]);
 
-            const message = await continueConversation(input)
+            const message = await continueConversation(input);
 
             setConversation((currentConversation: ClientMessage[]) => [
               ...currentConversation,
-              message
-            ])
+              message,
+            ]);
           }}
         >
           Send Message
         </button>
       </div>
     </div>
-  )
+  );
 }
 ```
 
@@ -98,32 +98,32 @@ export default function Home() {
 We will use the callback function to listen to state changes and save the conversation once we receive a `done` event.
 
 ```tsx filename='app/actions.tsx'
-'use server'
+'use server';
 
-import { getAIState, getMutableAIState, streamUI } from 'ai/rsc'
-import { openai } from '@ai-sdk/openai'
-import { ReactNode } from 'react'
-import { z } from 'zod'
-import { generateId } from 'ai'
-import { Stock } from '@ai-studio/components/stock'
+import { getAIState, getMutableAIState, streamUI } from 'ai/rsc';
+import { openai } from '@ai-sdk/openai';
+import { ReactNode } from 'react';
+import { z } from 'zod';
+import { generateId } from 'ai';
+import { Stock } from '@ai-studio/components/stock';
 
 export interface ServerMessage {
-  role: 'user' | 'assistant' | 'function'
-  content: string
+  role: 'user' | 'assistant' | 'function';
+  content: string;
 }
 
 export interface ClientMessage {
-  id: string
-  role: 'user' | 'assistant' | 'function'
-  display: ReactNode
+  id: string;
+  role: 'user' | 'assistant' | 'function';
+  display: ReactNode;
 }
 
 export async function continueConversation(
-  input: string
+  input: string,
 ): Promise<ClientMessage> {
-  'use server'
+  'use server';
 
-  const history = getMutableAIState()
+  const history = getMutableAIState();
 
   const result = await streamUI({
     model: openai('gpt-3.5-turbo'),
@@ -133,11 +133,11 @@ export async function continueConversation(
         history.done([
           ...history.get(),
           { role: 'user', content: input },
-          { role: 'assistant', content }
-        ])
+          { role: 'assistant', content },
+        ]);
       }
 
-      return <div>{content}</div>
+      return <div>{content}</div>;
     },
     tools: {
       showStockInformation: {
@@ -149,7 +149,7 @@ export async function continueConversation(
             .describe('The stock symbol to get information for'),
           numOfMonths: z
             .number()
-            .describe('The number of months to get historical information for')
+            .describe('The number of months to get historical information for'),
         }),
         generate: async ({ symbol, numOfMonths }) => {
           history.done([
@@ -157,50 +157,50 @@ export async function continueConversation(
             {
               role: 'function',
               name: 'showStockInformation',
-              content: JSON.stringify({ symbol, numOfMonths })
-            }
-          ])
+              content: JSON.stringify({ symbol, numOfMonths }),
+            },
+          ]);
 
-          return <Stock symbol={symbol} numOfMonths={numOfMonths} />
-        }
-      }
-    }
-  })
+          return <Stock symbol={symbol} numOfMonths={numOfMonths} />;
+        },
+      },
+    },
+  });
 
   return {
     id: generateId(),
     role: 'assistant',
-    display: result.value
-  }
+    display: result.value,
+  };
 }
 ```
 
 ```ts filename='app/ai.ts'
-import { createAI } from 'ai/rsc'
-import { ServerMessage, ClientMessage, continueConversation } from './actions'
+import { createAI } from 'ai/rsc';
+import { ServerMessage, ClientMessage, continueConversation } from './actions';
 
 export const AI = createAI<ServerMessage[], ClientMessage[]>({
   actions: {
-    continueConversation
+    continueConversation,
   },
   onSetAIState: async ({ state, done }) => {
-    'use server'
+    'use server';
 
     if (done) {
-      saveChat(state)
+      saveChat(state);
     }
   },
   onGetUIState: async () => {
-    'use server'
+    'use server';
 
-    const history: ServerMessage[] = getAIState()
+    const history: ServerMessage[] = getAIState();
 
     return history.map(({ role, content }) => ({
       id: generateId(),
       role,
       display:
-        role === 'function' ? <Stock {...JSON.parse(content)} /> : content
-    }))
-  }
-})
+        role === 'function' ? <Stock {...JSON.parse(content)} /> : content,
+    }));
+  },
+});
 ```
