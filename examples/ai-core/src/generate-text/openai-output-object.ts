@@ -2,7 +2,6 @@ import { openai } from '@ai-sdk/openai';
 import { generateText, Output } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
-import { zodSchema } from '../../../../packages/ui-utils/dist';
 
 async function main() {
   const { text, usage, experimental_object } = await generateText({
