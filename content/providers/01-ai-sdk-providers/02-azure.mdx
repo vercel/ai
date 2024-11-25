@@ -77,6 +77,11 @@ You can use the following optional settings to customize the OpenAI provider ins
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **apiVersion** _string_
+
+  Custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation) to use. 
+  Defaults to `2024-10-01-preview`.
+
 ## Language Models
 
 The Azure OpenAI provider instance is a function that you can invoke to create a language model:
@@ -114,7 +119,7 @@ OpenAI language models can also be used in the `streamText`, `generateObject`, `
 
 <Note>
   The URL for calling Azure chat models will be constructed as follows:
-  `https://RESOURCE_NAME.openai.azure.com/openai/deployments/DEPLOYMENT_NAME/chat/completions?api-version=2024-10-01-preview`
+  `https://RESOURCE_NAME.openai.azure.com/openai/deployments/DEPLOYMENT_NAME/chat/completions?api-version=API_VERSION`
 </Note>
 
 Azure OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
