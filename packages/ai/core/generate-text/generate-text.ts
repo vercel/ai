@@ -23,7 +23,7 @@ import {
 } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
 import { GenerateTextResult } from './generate-text-result';
-import { Output, text } from './output';
+import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
@@ -185,7 +185,11 @@ changing the tool call and result types in the result.
   });
 
   const initialPrompt = standardizePrompt({
-    prompt: { system, prompt, messages },
+    prompt: {
+      system: output?.injectIntoSystemPrompt({ system, model }) ?? system,
+      prompt,
+      messages,
+    },
     tools,
   });
 
@@ -300,6 +304,7 @@ changing the tool call and result types in the result.
                 mode,
                 ...callSettings,
                 inputFormat: promptFormat,
+                responseFormat: output?.responseFormat,
                 prompt: promptMessages,
                 providerMetadata,
                 abortSignal,
