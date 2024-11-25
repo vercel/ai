@@ -1,0 +1,38 @@
+---
+title: Call Tools in Multiple Steps
+description: Learn how to call tools with multiple steps using the AI SDK and Node
+tags: ['node', 'tool use', 'agent']
+---
+
+# Call Tools in Multiple Steps
+
+Models call tools to gather information or perform actions that are not directly available to the model.
+When tool results are available, the model can use them to generate another response.
+
+You can enable multi-step tool calls in `generateText` by setting the `maxSteps` option to
+a number greater than 1.
+This option specifies the maximum number of steps (i.e., LLM calls) that can be made to prevent infinite loops.
+
+```ts highlight={"7"}
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: openai('gpt-4-turbo'),
+  maxSteps: 5,
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }: { location: string }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```

@@ -1,0 +1,79 @@
+---
+title: Record Token Usage After Streaming Object
+description: Learn how to record token usage when streaming structured data using the AI SDK and Node
+tags: ['node', 'streaming', 'structured data', 'observability']
+---
+
+# Record Token Usage After Streaming Object
+
+When you're streaming structured data with [`streamObject`](/docs/reference/ai-sdk-core/stream-object),
+you may want to record the token usage for billing purposes.
+
+## `onFinish` Callback
+
+You can use the `onFinish` callback to record token usage.
+It is called when the stream is finished.
+
+```ts file='index.ts' highlight={"15-17"}
+import { openai } from '@ai-sdk/openai';
+import { streamObject } from 'ai';
+import { z } from 'zod';
+
+const result = streamObject({
+  model: openai('gpt-4-turbo'),
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+  onFinish({ usage }) {
+    console.log('Token usage:', usage);
+  },
+});
+```
+
+## `usage` Promise
+
+The [`streamObject`](/docs/reference/ai-sdk-core/stream-object) result contains a `usage` promise that resolves to the total token usage.
+
+```ts file='index.ts' highlight={"29,32"}
+import { openai } from '@ai-sdk/openai';
+import { streamObject, TokenUsage } from 'ai';
+import { z } from 'zod';
+
+const result = streamObject({
+  model: openai('gpt-4-turbo'),
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+
+// your custom function to record token usage:
+function recordTokenUsage({
+  promptTokens,
+  completionTokens,
+  totalTokens,
+}: TokenUsage) {
+  console.log('Prompt tokens:', promptTokens);
+  console.log('Completion tokens:', completionTokens);
+  console.log('Total tokens:', totalTokens);
+}
+
+// use as promise:
+result.usage.then(recordTokenUsage);
+
+// use with async/await:
+recordTokenUsage(await result.usage);
+
+// note: the stream needs to be consumed because of backpressure
+for await (const partialObject of result.partialObjectStream) {
+}
+```
