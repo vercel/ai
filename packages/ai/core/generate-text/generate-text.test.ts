@@ -338,7 +338,7 @@ describe('result.response', () => {
 
 describe('options.maxSteps', () => {
   describe('2 steps: initial, tool-result', () => {
-    let result: GenerateTextResult<any>;
+    let result: GenerateTextResult<any, any>;
     let onStepFinishResults: StepResult<any>[];
 
     beforeEach(async () => {
@@ -531,7 +531,7 @@ describe('options.maxSteps', () => {
   });
 
   describe('4 steps: initial, continue, continue, continue', () => {
-    let result: GenerateTextResult<any>;
+    let result: GenerateTextResult<any, any>;
     let onStepFinishResults: StepResult<any>[];
 
     beforeEach(async () => {
