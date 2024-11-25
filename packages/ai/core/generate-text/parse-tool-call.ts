@@ -7,15 +7,7 @@ import { CoreMessage } from '../prompt';
 import { CoreTool } from '../tool';
 import { inferParameters } from '../tool/tool';
 import { ToolCallUnion } from './tool-call';
-
-type ToolCallRepairFunction<TOOLS extends Record<string, CoreTool>> =
-  (options: {
-    system: string | undefined;
-    messages: CoreMessage[];
-    toolCall: LanguageModelV1FunctionToolCall;
-    tools: TOOLS;
-    error: NoSuchToolError | InvalidToolArgumentsError;
-  }) => Promise<LanguageModelV1FunctionToolCall | null>;
+import { ToolCallRepairFunction } from './tool-call-repair';
 
 export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
   toolCall,

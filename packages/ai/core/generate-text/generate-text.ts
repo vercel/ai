@@ -28,6 +28,7 @@ import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
+import { ToolCallRepairFunction } from './tool-call-repair';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -92,6 +93,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   experimental_activeTools: activeTools,
+  experimental_repairToolCall: repairToolCall,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -148,6 +150,11 @@ Limits the tools that are available for the model to call without
 changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
+
+    /**
+    A function that attempts to repair a tool call that failed to parse.
+     */
+    experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 
     /**
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -347,7 +354,7 @@ changing the tool call and result types in the result.
             parseToolCall({
               toolCall,
               tools,
-              repairToolCall: undefined,
+              repairToolCall,
               system,
               messages: stepInputMessages,
             }),
