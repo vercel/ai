@@ -39,6 +39,7 @@ export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
       throw error;
     }
 
+    // TODO try..catch & dedicated error type
     const repairedToolCall = await repairToolCall({
       toolCall,
       tools,
@@ -47,6 +48,7 @@ export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
       error,
     });
 
+    // no repaired tool call returned
     if (repairedToolCall == null) {
       throw error;
     }
