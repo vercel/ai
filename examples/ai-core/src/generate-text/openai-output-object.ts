@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const { text, usage, experimental_object } = await generateText({
+  const { text, usage, experimental_output } = await generateText({
     model: openai('gpt-3.5-turbo'),
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_output: Output.object({
@@ -15,7 +15,7 @@ async function main() {
     }),
   });
 
-  console.log(experimental_object);
+  console.log(experimental_output);
   console.log();
   console.log('Usage:', usage);
 }

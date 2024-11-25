@@ -605,10 +605,10 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>, OUTPUT>
   >['experimental_providerMetadata'];
   readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
-  readonly experimental_object: GenerateTextResult<
+  readonly experimental_output: GenerateTextResult<
     TOOLS,
     OUTPUT
-  >['experimental_object'] = undefined as OUTPUT;
+  >['experimental_output'] = undefined as OUTPUT;
 
   constructor(options: {
     text: GenerateTextResult<TOOLS, OUTPUT>['text'];

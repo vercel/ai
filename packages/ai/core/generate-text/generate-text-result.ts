@@ -19,7 +19,7 @@ It contains the generated text, the tool calls that were made during the generat
  */
 export interface GenerateTextResult<
   TOOLS extends Record<string, CoreTool>,
-  OBJECT,
+  OUTPUT,
 > {
   /**
   The generated text.
@@ -27,9 +27,9 @@ export interface GenerateTextResult<
   readonly text: string;
 
   /**
-  The generated object.
+  The generated output.
    */
-  readonly experimental_object: OBJECT;
+  readonly experimental_output: OUTPUT;
 
   /**
   The tool calls that were made during the generation.
