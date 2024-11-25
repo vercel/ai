@@ -371,6 +371,13 @@ console.log('Usage:', {
 });
 ```
 
+<Note type="warning">
+  Reasoning models like `o1-mini` and `o1-preview` require additional runtime
+  inference to complete their reasoning phase before generating a response. This
+  introduces longer latency compared to other models, with `o1-preview`
+  exhbiting significantly more inference time than `o1-mini`.
+</Note>
+
 #### Prompt Caching
 
 OpenAI has introduced [Prompt Caching](https://platform.openai.com/docs/guides/prompt-caching) for supported models
