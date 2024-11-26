@@ -2,10 +2,10 @@ import { JSONValue } from '@ai-sdk/provider';
 import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
-import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import { prepareRetries } from '../prompt/prepare-retries';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -294,7 +294,7 @@ export async function generateObject<SCHEMA, RESULT>({
   system,
   prompt,
   messages,
-  maxRetries,
+  maxRetries: maxRetriesArg,
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
@@ -343,6 +343,8 @@ export async function generateObject<SCHEMA, RESULT>({
     enumValues,
   });
 
+  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+
   const outputStrategy = getOutputStrategy({
     output,
     schema: inputSchema,
@@ -389,8 +391,6 @@ export async function generateObject<SCHEMA, RESULT>({
     }),
     tracer,
     fn: async span => {
-      const retry = retryWithExponentialBackoff({ maxRetries });
-
       // use the default provider mode when the mode is set to 'auto' or unspecified
       if (mode === 'auto' || mode == null) {
         mode = model.defaultObjectGenerationMode;
