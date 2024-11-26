@@ -770,7 +770,7 @@ describe('onToolCall', () => {
 
 describe('tool invocations', () => {
   const TestComponent = () => {
-    const { messages, append } = useChat();
+    const { messages, append, addToolResult } = useChat();
 
     return (
       <div>
@@ -778,9 +778,22 @@ describe('tool invocations', () => {
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.toolInvocations?.map((toolInvocation, toolIdx) => {
               return (
-                <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
-                  {JSON.stringify(toolInvocation)}
-                </div>
+                <>
+                  <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
+                    {JSON.stringify(toolInvocation)}
+                  </div>
+                  {toolInvocation.state === 'call' && (
+                    <button
+                      data-testid={`add-result-${toolIdx}`}
+                      onClick={() => {
+                        addToolResult({
+                          toolCallId: toolInvocation.toolCallId,
+                          result: 'test-result',
+                        });
+                      }}
+                    />
+                  )}
+                </>
               );
             })}
           </div>
@@ -910,6 +923,42 @@ describe('tool invocations', () => {
           }),
         );
         streamController.close();
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+          );
+        });
+      },
+    ),
+  );
+
+  it(
+    'should update tool call to result when addToolResult is called',
+    withTestServer(
+      [
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: [
+            formatDataStreamPart('tool_call', {
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              args: { testArg: 'test-value' },
+            }),
+          ],
+        },
+      ],
+      async () => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+          );
+        });
+
+        await userEvent.click(screen.getByTestId('add-result-0'));
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
