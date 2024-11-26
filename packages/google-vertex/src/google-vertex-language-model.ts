@@ -38,7 +38,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   readonly supportsImageUrls = false;
 
   get supportsStructuredOutputs() {
-    return this.settings.structuredOutputs !== false;
+    return this.settings.structuredOutputs ?? true;
   }
 
   readonly modelId: GoogleVertexModelId;

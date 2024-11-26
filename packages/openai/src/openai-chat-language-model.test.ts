@@ -619,15 +619,136 @@ describe('doGenerate', () => {
     });
   });
 
-  describe('when structuredOutputs are enabled', () => {
-    it('should use json_schema & strict in object-json mode', async () => {
+  describe('response format', () => {
+    it('should not send a response_format when response format is text', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'text' },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+    });
+
+    it('should forward json response format as "json_object" without schema', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json' },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: { type: 'json_object' },
+      });
+    });
+
+    it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: false,
+      });
+
+      const { warnings } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: { type: 'json_object' },
+      });
+
+      expect(warnings).toEqual([
+        {
+          details:
+            'JSON response format schema is only supported with structuredOutputs',
+          setting: 'responseFormat',
+          type: 'unsupported-setting',
+        },
+      ]);
+    });
+
+    it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06', {
         structuredOutputs: true,
       });
 
-      const response = await model.doGenerate({
+      const { warnings } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      });
+
+      expect(warnings).toEqual([]);
+    });
+
+    it('should use json_schema & strict in object-json mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: true,
+      });
+
+      await model.doGenerate({
         inputFormat: 'prompt',
         mode: {
           type: 'object-json',
@@ -660,44 +781,21 @@ describe('doGenerate', () => {
           },
         },
       });
-
-      expect(response.text).toStrictEqual('{"value":"Spark"}');
-    });
-  });
-
-  it('should set name & description in object-json mode', async () => {
-    prepareJsonResponse({ content: '{"value":"Spark"}' });
-
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
     });
 
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-json',
-        name: 'test-name',
-        description: 'test description',
-        schema: {
-          type: 'object',
-          properties: { value: { type: 'string' } },
-          required: ['value'],
-          additionalProperties: false,
-          $schema: 'http://json-schema.org/draft-07/schema#',
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
+    it('should set name & description in object-json mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
-      messages: [{ role: 'user', content: 'Hello' }],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: true,
+      });
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-json',
           name: 'test-name',
           description: 'test description',
-          strict: true,
           schema: {
             type: 'object',
             properties: { value: { type: 'string' } },
@@ -706,82 +804,80 @@ describe('doGenerate', () => {
             $schema: 'http://json-schema.org/draft-07/schema#',
           },
         },
-      },
-    });
-  });
+        prompt: TEST_PROMPT,
+      });
 
-  it('should allow for undefined schema in object-json mode', async () => {
-    prepareJsonResponse({ content: '{"value":"Spark"}' });
-
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
-    });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-json',
-        name: 'test-name',
-        description: 'test description',
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
-      messages: [{ role: 'user', content: 'Hello' }],
-      response_format: {
-        type: 'json_object',
-      },
-    });
-  });
-
-  it('should set strict in object-tool mode', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Spark"}',
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'test-name',
+            description: 'test description',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
           },
         },
-      ],
+      });
     });
 
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
-    });
+    it('should allow for undefined schema in object-json mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-    const result = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-tool',
-        tool: {
-          type: 'function',
-          name: 'test-tool',
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: true,
+      });
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-json',
+          name: 'test-name',
           description: 'test description',
-          parameters: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
         },
-      },
-      prompt: TEST_PROMPT,
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_object',
+        },
+      });
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
-      messages: [{ role: 'user', content: 'Hello' }],
-      tool_choice: { type: 'function', function: { name: 'test-tool' } },
-      tools: [
-        {
-          type: 'function',
-          function: {
+    it('should set strict in object-tool mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+            type: 'function',
+            function: {
+              name: 'test-tool',
+              arguments: '{"value":"Spark"}',
+            },
+          },
+        ],
+      });
+
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: true,
+      });
+
+      const result = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-tool',
+          tool: {
+            type: 'function',
             name: 'test-tool',
             description: 'test description',
             parameters: {
@@ -791,23 +887,46 @@ describe('doGenerate', () => {
               additionalProperties: false,
               $schema: 'http://json-schema.org/draft-07/schema#',
             },
-            strict: true,
           },
         },
-      ],
-    });
+        prompt: TEST_PROMPT,
+      });
 
-    expect(result.toolCalls).toStrictEqual([
-      {
-        args: '{"value":"Spark"}',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-      },
-    ]);
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        tool_choice: { type: 'function', function: { name: 'test-tool' } },
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'test-tool',
+              description: 'test description',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+              strict: true,
+            },
+          },
+        ],
+      });
+
+      expect(result.toolCalls).toStrictEqual([
+        {
+          args: '{"value":"Spark"}',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolCallType: 'function',
+          toolName: 'test-tool',
+        },
+      ]);
+    });
   });
 
-  it('should set strict for tool usage', async () => {
+  it('should set strict for tool usage when structuredOutputs are enabled', async () => {
     prepareJsonResponse({
       tool_calls: [
         {

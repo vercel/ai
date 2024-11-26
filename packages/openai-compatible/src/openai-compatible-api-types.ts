@@ -42,6 +42,7 @@ export interface OpenAICompatibleMessageToolCall {
   function: {
     arguments: string;
     name: string;
+    strict?: boolean;
   };
 }
 
