@@ -304,7 +304,7 @@ changing the tool call and result types in the result.
                 mode,
                 ...callSettings,
                 inputFormat: promptFormat,
-                responseFormat: output?.responseFormat,
+                responseFormat: output?.responseFormat({ model }),
                 prompt: promptMessages,
                 providerMetadata,
                 abortSignal,

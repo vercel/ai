@@ -13,13 +13,15 @@ export interface Output<OUTPUT> {
     system: string | undefined;
     model: LanguageModel;
   }): string | undefined;
-  responseFormat: LanguageModelV1CallOptions['responseFormat'];
+  responseFormat: (options: {
+    model: LanguageModel;
+  }) => LanguageModelV1CallOptions['responseFormat'];
   parseOutput(options: { text: string }): OUTPUT;
 }
 
 export const text = (): Output<string> => ({
   type: 'text',
-  responseFormat: { type: 'text' },
+  responseFormat: () => ({ type: 'text' }),
   injectIntoSystemPrompt({ system }: { system: string | undefined }) {
     return system;
   },
@@ -37,7 +39,10 @@ export const object = <OUTPUT>({
 
   return {
     type: 'object',
-    responseFormat: { type: 'json', schema: schema.jsonSchema },
+    responseFormat: ({ model }) => ({
+      type: 'json',
+      schema: model.supportsStructuredOutputs ? schema.jsonSchema : undefined,
+    }),
     injectIntoSystemPrompt({ system, model }) {
       // when the model supports structured outputs,
       // we can use the system prompt as is:
