@@ -1,5 +1,12 @@
 # ai
 
+## 4.0.6
+
+### Patch Changes
+
+- fc18132: feat (ai/core): experimental output for generateText
+- 2779f6d: fix (ai/core): do not send maxRetries into providers
+
 ## 4.0.5
 
 ### Patch Changes

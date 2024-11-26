@@ -63,16 +63,16 @@ importers:
         specifier: 1.0.2
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../../packages/azure
       '@ai-sdk/cohere':
         specifier: 1.0.3
         version: link:../../packages/cohere
       '@ai-sdk/google':
-        specifier: 1.0.3
+        specifier: 1.0.4
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 1.0.3
+        specifier: 1.0.4
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 1.0.3
@@ -81,13 +81,13 @@ importers:
         specifier: 1.0.3
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.1
+        specifier: 0.0.2
         version: link:../../packages/openai-compatible
       '@ai-sdk/togetherai':
-        specifier: 0.0.1
+        specifier: 0.0.2
         version: link:../../packages/togetherai
       '@ai-sdk/xai':
         specifier: 1.0.3
@@ -105,7 +105,7 @@ importers:
         specifier: 1.27.0
         version: 1.27.0(@opentelemetry/api@1.9.0)
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -133,10 +133,10 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -161,10 +161,10 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -186,13 +186,13 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.12.2
         version: 1.12.2(hono@4.6.9)
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -214,7 +214,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.0.0
@@ -226,7 +226,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.9(@nestjs/common@10.4.2(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -305,7 +305,7 @@ importers:
         specifier: 1.0.2
         version: link:../../packages/ui-utils
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -363,7 +363,7 @@ importers:
         specifier: 0.0.28
         version: 0.0.28
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       langchain:
         specifier: 0.1.36
@@ -409,7 +409,7 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.0.3
@@ -421,7 +421,7 @@ importers:
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -473,13 +473,13 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@vercel/functions':
         specifier: latest
         version: 1.5.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0))
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -525,13 +525,13 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.0.3
         version: link:../../packages/react
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -580,7 +580,7 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.0.3
@@ -598,7 +598,7 @@ importers:
         specifier: 1.9.1
         version: 1.9.1(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.28.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.27.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.27.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -647,7 +647,7 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.0.3
@@ -671,7 +671,7 @@ importers:
         specifier: 1.9.1
         version: 1.9.1(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.28.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.27.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.27.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -720,7 +720,7 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -729,7 +729,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -775,10 +775,10 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -803,13 +803,13 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@ai-sdk/vue':
         specifier: 1.0.3
         version: link:../../packages/vue
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       zod:
         specifier: 3.23.8
@@ -858,7 +858,7 @@ importers:
   examples/solidstart-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@ai-sdk/solid':
         specifier: 1.0.3
@@ -873,7 +873,7 @@ importers:
         specifier: ^1.0.10
         version: 1.0.10(@testing-library/jest-dom@6.6.3)(solid-js@1.9.3)(vinxi@0.4.3(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.4.1)(terser@5.31.3)(typescript@5.6.3)(webpack-sources@3.2.3))(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       solid-js:
         specifier: ^1.9.3
@@ -898,13 +898,13 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@ai-sdk/svelte':
         specifier: 1.0.3
         version: link:../../packages/svelte
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       openai:
         specifier: 4.52.6
@@ -953,10 +953,10 @@ importers:
         specifier: 1.0.2
         version: link:../../packages/anthropic
       '@ai-sdk/google':
-        specifier: 1.0.3
+        specifier: 1.0.4
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 1.0.3
+        specifier: 1.0.4
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 1.0.3
@@ -965,16 +965,16 @@ importers:
         specifier: 1.0.3
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/openai
       '@ai-sdk/swarm':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../../packages/swarm
       '@google/generative-ai':
         specifier: 0.21.0
         version: 0.21.0
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -1140,7 +1140,7 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../openai
       '@ai-sdk/provider':
         specifier: 1.0.1
@@ -1607,7 +1607,7 @@ importers:
   packages/swarm:
     dependencies:
       ai:
-        specifier: 4.0.5
+        specifier: 4.0.6
         version: link:../ai
       zod:
         specifier: 3.23.8
@@ -1629,7 +1629,7 @@ importers:
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.1
+        specifier: 0.0.2
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.0
@@ -21285,7 +21285,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.35.0(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
@@ -21334,8 +21334,8 @@ snapshots:
       debug: 4.3.7(supports-color@9.4.0)
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
-      eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.2
       is-core-module: 2.13.1
@@ -21357,7 +21357,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-module-utils@2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -21379,7 +21379,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -21417,7 +21417,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
@@ -21427,7 +21427,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.15.0
       is-glob: 4.0.3
