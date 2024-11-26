@@ -104,8 +104,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     }
 
     if (
-      responseFormat != null &&
-      responseFormat.type === 'json' &&
+      responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       !this.supportsStructuredOutputs
     ) {
