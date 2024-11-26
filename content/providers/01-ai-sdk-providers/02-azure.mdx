@@ -57,6 +57,11 @@ You can use the following optional settings to customize the OpenAI provider ins
   API key that is being sent using the `api-key` header.
   It defaults to the `AZURE_API_KEY` environment variable.
 
+- **apiVersion** _string_
+
+  Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).
+  Defaults to `2024-10-01-preview`.
+
 - **baseURL** _string_
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
@@ -76,11 +81,6 @@ You can use the following optional settings to customize the OpenAI provider ins
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
-
-- **apiVersion** _string_
-
-  Custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation) to use. 
-  Defaults to `2024-10-01-preview`.
 
 ## Language Models
 
