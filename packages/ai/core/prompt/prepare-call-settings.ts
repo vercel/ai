@@ -13,10 +13,9 @@ export function prepareCallSettings({
   frequencyPenalty,
   stopSequences,
   seed,
-  maxRetries,
-}: Omit<CallSettings, 'abortSignal' | 'headers'>): Omit<
+}: Omit<CallSettings, 'abortSignal' | 'headers' | 'maxRetries'>): Omit<
   CallSettings,
-  'abortSignal' | 'headers'
+  'abortSignal' | 'headers' | 'maxRetries'
 > {
   if (maxTokens != null) {
     if (!Number.isInteger(maxTokens)) {
@@ -96,24 +95,6 @@ export function prepareCallSettings({
     }
   }
 
-  if (maxRetries != null) {
-    if (!Number.isInteger(maxRetries)) {
-      throw new InvalidArgumentError({
-        parameter: 'maxRetries',
-        value: maxRetries,
-        message: 'maxRetries must be an integer',
-      });
-    }
-
-    if (maxRetries < 0) {
-      throw new InvalidArgumentError({
-        parameter: 'maxRetries',
-        value: maxRetries,
-        message: 'maxRetries must be >= 0',
-      });
-    }
-  }
-
   return {
     maxTokens,
     temperature: temperature ?? 0,
@@ -126,6 +107,5 @@ export function prepareCallSettings({
         ? stopSequences
         : undefined,
     seed,
-    maxRetries: maxRetries ?? 2,
   };
 }

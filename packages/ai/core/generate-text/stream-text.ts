@@ -4,11 +4,11 @@ import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { StreamData } from '../../streams/stream-data';
 import { DelayedPromise } from '../../util/delayed-promise';
-import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import { prepareRetries } from '../prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
@@ -292,7 +292,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     telemetry,
     headers,
     settings,
-    maxRetries,
+    maxRetries: maxRetriesArg,
     abortSignal,
     system,
     prompt,
@@ -364,6 +364,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       });
     }
 
+    const { maxRetries, retry } = prepareRetries({
+      maxRetries: maxRetriesArg,
+    });
+
     const tracer = getTracer(telemetry);
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
@@ -397,8 +401,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       tracer,
       endWhenDone: false,
       fn: async rootSpan => {
-        const retry = retryWithExponentialBackoff({ maxRetries });
-
         // collect step results
         const stepResults: StepResult<TOOLS>[] = [];
 
