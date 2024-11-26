@@ -620,6 +620,127 @@ describe('doGenerate', () => {
   });
 
   describe('response format', () => {
+    it('should not send a response_format when response format is text', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'text' },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+    });
+
+    it('should forward json response format as "json_object" without schema', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json' },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: { type: 'json_object' },
+      });
+    });
+
+    it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: false,
+      });
+
+      const { warnings } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: { type: 'json_object' },
+      });
+
+      expect(warnings).toEqual([
+        {
+          details:
+            'JSON response format schema is only supported with structuredOutputs',
+          setting: 'responseFormat',
+          type: 'unsupported-setting',
+        },
+      ]);
+    });
+
+    it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: true,
+      });
+
+      const { warnings } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      });
+
+      expect(warnings).toEqual([]);
+    });
+
     it('should use json_schema & strict in object-json mode when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
@@ -627,7 +748,7 @@ describe('doGenerate', () => {
         structuredOutputs: true,
       });
 
-      const response = await model.doGenerate({
+      await model.doGenerate({
         inputFormat: 'prompt',
         mode: {
           type: 'object-json',
@@ -660,8 +781,6 @@ describe('doGenerate', () => {
           },
         },
       });
-
-      expect(response.text).toStrictEqual('{"value":"Spark"}');
     });
 
     it('should set name & description in object-json mode when structuredOutputs are enabled', async () => {
