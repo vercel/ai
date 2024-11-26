@@ -1220,7 +1220,6 @@ describe('options.output', () => {
       });
 
       expect(callOptions!).toEqual({
-        maxRetries: 2,
         temperature: 0,
         mode: { type: 'regular' },
         responseFormat: { type: 'text' },
@@ -1277,7 +1276,6 @@ describe('options.output', () => {
         });
 
         expect(callOptions!).toEqual({
-          maxRetries: 2,
           temperature: 0,
           mode: { type: 'regular' },
           inputFormat: 'prompt',
@@ -1340,7 +1338,6 @@ describe('options.output', () => {
         });
 
         expect(callOptions!).toEqual({
-          maxRetries: 2,
           temperature: 0,
           mode: { type: 'regular' },
           inputFormat: 'prompt',
