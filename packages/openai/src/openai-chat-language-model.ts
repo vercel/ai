@@ -106,12 +106,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     if (
       responseFormat != null &&
       responseFormat.type === 'json' &&
-      responseFormat.schema != null
+      responseFormat.schema != null &&
+      this.supportsStructuredOutputs === false
     ) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'responseFormat',
-        details: 'JSON response format schema is not supported',
+        details:
+          'JSON response format schema is only supported with structuredOutputs',
       });
     }
 
@@ -169,7 +171,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
       // response format:
       response_format:
-        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
+        responseFormat?.type === 'json'
+          ? this.settings.structuredOutputs === true &&
+            responseFormat.schema != null
+            ? {
+                type: 'json_schema',
+                json_schema: {
+                  schema: responseFormat.schema,
+                  strict: true,
+                  name: responseFormat.name ?? 'response',
+                  description: responseFormat.description,
+                },
+              }
+            : { type: 'json_object' }
+          : undefined,
 
       // messages:
       messages: convertToOpenAIChatMessages({
