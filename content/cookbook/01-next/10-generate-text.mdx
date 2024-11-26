@@ -16,7 +16,9 @@ A situation may arise when you need to generate text based on a prompt. For exam
 
 Let's create a simple React component that will make a POST request to the `/api/completion` endpoint when a button is clicked. The endpoint will generate text based on the input prompt.
 
-```tsx filename="pages/index.tsx"
+```tsx filename="app/page.tsx"
+'use client';
+
 import { useState } from 'react';
 
 export default function Page() {
