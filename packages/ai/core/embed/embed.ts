@@ -1,4 +1,4 @@
-import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
+import { prepareRetries } from '../prompt/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -23,7 +23,7 @@ Embed a value using an embedding model. The type of the value is defined by the 
 export async function embed<VALUE>({
   model,
   value,
-  maxRetries,
+  maxRetries: maxRetriesArg,
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
@@ -61,6 +61,8 @@ Only applicable for HTTP-based providers.
    */
   experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedResult<VALUE>> {
+  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
@@ -82,8 +84,6 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const retry = retryWithExponentialBackoff({ maxRetries });
-
       const { embedding, usage, rawResponse } = await retry(() =>
         // nested spans to align with the embedMany telemetry data:
         recordSpan({

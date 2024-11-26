@@ -57,6 +57,11 @@ You can use the following optional settings to customize the OpenAI provider ins
   API key that is being sent using the `api-key` header.
   It defaults to the `AZURE_API_KEY` environment variable.
 
+- **apiVersion** _string_
+
+  Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).
+  Defaults to `2024-10-01-preview`.
+
 - **baseURL** _string_
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
@@ -114,7 +119,7 @@ OpenAI language models can also be used in the `streamText`, `generateObject`, `
 
 <Note>
   The URL for calling Azure chat models will be constructed as follows:
-  `https://RESOURCE_NAME.openai.azure.com/openai/deployments/DEPLOYMENT_NAME/chat/completions?api-version=2024-10-01-preview`
+  `https://RESOURCE_NAME.openai.azure.com/openai/deployments/DEPLOYMENT_NAME/chat/completions?api-version=API_VERSION`
 </Note>
 
 Azure OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).

@@ -32,7 +32,9 @@ Let's create a React component that imports the `useChat` hook from the `ai/reac
 
 You will use the `maxSteps` to specify the maximum number of steps that can made before the model or the user responds with a text message. In this example, you will set it to `2` to allow for another call with the tool result to happen.
 
-```tsx filename='pages/index.tsx'
+```tsx filename='app/page.tsx'
+'use client';
+
 import { useChat } from 'ai/react';
 
 export default function Page() {
@@ -67,7 +69,7 @@ export default function Page() {
 
 You will create a new route at `/api/chat` that will use the `streamText` function from the `ai` module to generate the assistant's response based on the conversation history.
 
-You will use the [`tools`](/docs/reference/ai-sdk-core/generate-text#tools) parameter to specify a tool called `celsiusToFahrenheit` that will convert a user given value in celsius to fahrenheit.
+You will use the [`tools`](/docs/reference/ai-sdk-core/generate-text#tools) parameter to specify a tool called `getWeather` that will get the weather for a location.
 
 You will add the `getWeather` function and use zod to specify the schema for its parameters.
 

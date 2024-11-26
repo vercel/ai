@@ -28,7 +28,9 @@ A chat completion allows you to generate text based on a series of messages. Thi
 
 Let's start by creating a simple chat interface with an input field that sends the user's message and displays the conversation history. You will call the `/api/chat` endpoint to generate the assistant's response.
 
-```tsx filename='pages/index.tsx'
+```tsx filename='app/page.tsx'
+'use client';
+
 import { CoreMessage } from 'ai';
 import { useState } from 'react';
 

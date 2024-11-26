@@ -40,7 +40,9 @@ The function requires you to provide a schema using [zod](https://zod.dev), a li
 
 Let's create a simple React component that will make a POST request to the `/api/completion` endpoint when a button is clicked. The endpoint will return the generated object based on the input prompt and we'll display it.
 
-```tsx filename='pages/index.tsx'
+```tsx filename='app/page.tsx'
+'use client';
+
 import { useState } from 'react';
 
 export default function Page() {
