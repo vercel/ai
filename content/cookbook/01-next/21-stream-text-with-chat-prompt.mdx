@@ -13,12 +13,12 @@ Chat completion can sometimes take a long time to finish, especially when the re
     stream
     history={[
       { role: 'User', content: 'How is it going?' },
-      { role: 'Assistant', content: 'All good, how may I help you?' }
+      { role: 'Assistant', content: 'All good, how may I help you?' },
     ]}
     inputMessage={{ role: 'User', content: 'Why is the sky blue?' }}
     outputMessage={{
       role: 'Assistant',
-      content: 'The sky is blue because of rayleigh scattering.'
+      content: 'The sky is blue because of rayleigh scattering.',
     }}
   />
 </Browser>
@@ -28,23 +28,23 @@ Chat completion can sometimes take a long time to finish, especially when the re
 Let's create a React component that imports the `useChat` hook from the `ai/react` module. The `useChat` hook will call the `/api/chat` endpoint when the user sends a message. The endpoint will generate the assistant's response based on the conversation history and stream it to the client.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Page() {
-  const { messages, input, setInput, append } = useChat()
+  const { messages, input, setInput, append } = useChat();
 
   return (
     <div>
       <input
         value={input}
         onChange={event => {
-          setInput(event.target.value)
+          setInput(event.target.value);
         }}
         onKeyDown={async event => {
           if (event.key === 'Enter') {
-            append({ content: input, role: 'user' })
+            append({ content: input, role: 'user' });
           }
         }}
       />
@@ -53,7 +53,7 @@ export default function Page() {
         <div key={index}>{message.content}</div>
       ))}
     </div>
-  )
+  );
 }
 ```
 
@@ -62,19 +62,19 @@ export default function Page() {
 Next, let's create the `/api/chat` endpoint that generates the assistant's response based on the conversation history.
 
 ```typescript filename='app/api/chat/route.ts'
-import { CoreMessage, streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { CoreMessage, streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
-  const { messages }: { messages: CoreMessage[] } = await req.json()
+  const { messages }: { messages: CoreMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4'),
     system: 'You are a helpful assistant.',
-    messages
-  })
+    messages,
+  });
 
-  return result.toDataStreamResponse()
+  return result.toDataStreamResponse();
 }
 ```
 

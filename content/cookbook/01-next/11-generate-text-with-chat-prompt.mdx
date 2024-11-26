@@ -14,12 +14,12 @@ A chat completion allows you to generate text based on a series of messages. Thi
   <ChatGeneration
     history={[
       { role: 'User', content: 'How is it going?' },
-      { role: 'Assistant', content: 'All good, how may I help you?' }
+      { role: 'Assistant', content: 'All good, how may I help you?' },
     ]}
     inputMessage={{ role: 'User', content: 'Why is the sky blue?' }}
     outputMessage={{
       role: 'Assistant',
-      content: 'The sky is blue because of rayleigh scattering.'
+      content: 'The sky is blue because of rayleigh scattering.',
     }}
   />
 </Browser>
@@ -29,39 +29,42 @@ A chat completion allows you to generate text based on a series of messages. Thi
 Let's start by creating a simple chat interface with an input field that sends the user's message and displays the conversation history. You will call the `/api/chat` endpoint to generate the assistant's response.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { CoreMessage } from 'ai'
-import { useState } from 'react'
+import { CoreMessage } from 'ai';
+import { useState } from 'react';
 
 export default function Page() {
-  const [input, setInput] = useState('')
-  const [messages, setMessages] = useState<CoreMessage[]>([])
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<CoreMessage[]>([]);
 
   return (
     <div>
       <input
         value={input}
         onChange={event => {
-          setInput(event.target.value)
+          setInput(event.target.value);
         }}
         onKeyDown={async event => {
           if (event.key === 'Enter') {
             setMessages(currentMessages => [
               ...currentMessages,
-              { role: 'user', content: input }
-            ])
+              { role: 'user', content: input },
+            ]);
 
             const response = await fetch('/api/chat', {
               method: 'POST',
               body: JSON.stringify({
-                messages: [...messages, { role: 'user', content: input }]
-              })
-            })
+                messages: [...messages, { role: 'user', content: input }],
+              }),
+            });
 
-            const { messages: newMessages } = await response.json()
+            const { messages: newMessages } = await response.json();
 
-            setMessages(currentMessages => [...currentMessages, ...newMessages])
+            setMessages(currentMessages => [
+              ...currentMessages,
+              ...newMessages,
+            ]);
           }
         }}
       />
@@ -78,7 +81,7 @@ export default function Page() {
         </div>
       ))}
     </div>
-  )
+  );
 }
 ```
 
@@ -87,19 +90,19 @@ export default function Page() {
 Next, let's create the `/api/chat` endpoint that generates the assistant's response based on the conversation history.
 
 ```typescript filename='app/api/chat/route.ts'
-import { CoreMessage, generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { CoreMessage, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
-  const { messages }: { messages: CoreMessage[] } = await req.json()
+  const { messages }: { messages: CoreMessage[] } = await req.json();
 
   const { responseMessages } = await generateText({
     model: openai('gpt-4'),
     system: 'You are a helpful assistant.',
-    messages
-  })
+    messages,
+  });
 
-  return Response.json({ messages: responseMessages })
+  return Response.json({ messages: responseMessages });
 }
 ```
 

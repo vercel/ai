@@ -11,13 +11,13 @@ tags: ['next', 'streaming', 'assistant']
 Let's create a simple chat interface that allows users to send messages to the assistant and receive responses. You will integrate the `useAssistant` hook from `ai/react` to stream the messages and status.
 
 ```tsx filename='app/page.tsx'
-'use chat'
+'use chat';
 
-import { Message, useAssistant } from 'ai/react'
+import { Message, useAssistant } from 'ai/react';
 
 export default function Page() {
   const { status, messages, input, submitMessage, handleInputChange } =
-    useAssistant({ api: '/api/assistant' })
+    useAssistant({ api: '/api/assistant' });
 
   return (
     <div className="flex flex-col gap-2">
@@ -41,7 +41,7 @@ export default function Page() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -50,25 +50,25 @@ export default function Page() {
 Next, you will create an API route for `api/assistant` to handle the assistant's messages and responses. You will use the `AssistantResponse` function from `ai` to stream the assistant's responses back to the `useAssistant` hook on the client.
 
 ```tsx filename='app/api/assistant/route.ts'
-import OpenAI from 'openai'
-import { AssistantResponse } from 'ai'
+import OpenAI from 'openai';
+import { AssistantResponse } from 'ai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
-})
+  apiKey: process.env.OPENAI_API_KEY || '',
+});
 
 export async function POST(req: Request) {
   const input: {
-    threadId: string | null
-    message: string
-  } = await req.json()
+    threadId: string | null;
+    message: string;
+  } = await req.json();
 
-  const threadId = input.threadId ?? (await openai.beta.threads.create({})).id
+  const threadId = input.threadId ?? (await openai.beta.threads.create({})).id;
 
   const createdMessage = await openai.beta.threads.messages.create(threadId, {
     role: 'user',
-    content: input.message
-  })
+    content: input.message,
+  });
 
   return AssistantResponse(
     { threadId, messageId: createdMessage.id },
@@ -77,13 +77,13 @@ export async function POST(req: Request) {
         assistant_id:
           process.env.ASSISTANT_ID ??
           (() => {
-            throw new Error('ASSISTANT_ID environment is not set')
-          })()
-      })
+            throw new Error('ASSISTANT_ID environment is not set');
+          })(),
+      });
 
-      await forwardStream(runStream)
-    }
-  )
+      await forwardStream(runStream);
+    },
+  );
 }
 ```
 

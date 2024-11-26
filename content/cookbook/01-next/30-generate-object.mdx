@@ -17,21 +17,21 @@ The function requires you to provide a schema using [zod](https://zod.dev), a li
         {
           name: 'Jamie Roberts',
           message: "Hey! How's the study grind going? Need a coffee boost?",
-          minutesAgo: 15
+          minutesAgo: 15,
         },
         {
           name: 'Prof. Morgan',
           message:
             'Reminder: Your term paper is due promptly at 8 AM tomorrow. Please ensure it meets the submission guidelines outlined.',
-          minutesAgo: 46
+          minutesAgo: 46,
         },
         {
           name: 'Alex Chen',
           message:
             "Dude, urgent! Borrow your notes for tomorrow's exam? I swear mine got eaten by my dog!",
-          minutesAgo: 30
-        }
-      ]
+          minutesAgo: 30,
+        },
+      ],
     }}
   />
 </Browser>
@@ -41,31 +41,31 @@ The function requires you to provide a schema using [zod](https://zod.dev), a li
 Let's create a simple React component that will make a POST request to the `/api/completion` endpoint when a button is clicked. The endpoint will return the generated object based on the input prompt and we'll display it.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState } from 'react'
+import { useState } from 'react';
 
 export default function Page() {
-  const [generation, setGeneration] = useState()
-  const [isLoading, setIsLoading] = useState(false)
+  const [generation, setGeneration] = useState();
+  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <div>
       <div
         onClick={async () => {
-          setIsLoading(true)
+          setIsLoading(true);
 
           await fetch('/api/completion', {
             method: 'POST',
             body: JSON.stringify({
-              prompt: 'Messages during finals week.'
-            })
+              prompt: 'Messages during finals week.',
+            }),
           }).then(response => {
             response.json().then(json => {
-              setGeneration(json.object)
-              setIsLoading(false)
-            })
-          })
+              setGeneration(json.object);
+              setIsLoading(false);
+            });
+          });
         }}
       >
         Generate
@@ -73,7 +73,7 @@ export default function Page() {
 
       {isLoading ? 'Loading...' : <pre>{JSON.stringify(generation)}</pre>}
     </div>
-  )
+  );
 }
 ```
 
@@ -82,12 +82,12 @@ export default function Page() {
 Let's create a route handler for `/api/completion` that will generate an object based on the input prompt. The route will call the `generateObject` function from the `ai` module, which will then generate an object based on the input prompt and return it.
 
 ```typescript filename='app/api/completion/route.ts'
-import { generateObject } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { z } from 'zod'
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 export async function POST(req: Request) {
-  const { prompt }: { prompt: string } = await req.json()
+  const { prompt }: { prompt: string } = await req.json();
 
   const result = await generateObject({
     model: openai('gpt-4'),
@@ -98,13 +98,13 @@ export async function POST(req: Request) {
         z.object({
           name: z.string().describe('Name of a fictional person.'),
           message: z.string().describe('Do not use emojis or links.'),
-          minutesAgo: z.number()
-        })
-      )
-    })
-  })
+          minutesAgo: z.number(),
+        }),
+      ),
+    }),
+  });
 
-  return result.toJsonResponse()
+  return result.toJsonResponse();
 }
 ```
 
@@ -123,21 +123,21 @@ The function requires you to provide a schema using [zod](https://zod.dev), a li
         {
           name: 'Jamie Roberts',
           message: "Hey! How's the study grind going? Need a coffee boost?",
-          minutesAgo: 15
+          minutesAgo: 15,
         },
         {
           name: 'Prof. Morgan',
           message:
             'Reminder: Your term paper is due promptly at 8 AM tomorrow. Please ensure it meets the submission guidelines outlined.',
-          minutesAgo: 46
+          minutesAgo: 46,
         },
         {
           name: 'Alex Chen',
           message:
             "Dude, urgent! Borrow your notes for tomorrow's exam? I swear mine got eaten by my dog!",
-          minutesAgo: 30
-        }
-      ]
+          minutesAgo: 30,
+        },
+      ],
     }}
   />
 </Browser>
@@ -147,29 +147,29 @@ The function requires you to provide a schema using [zod](https://zod.dev), a li
 Let's create a simple React component that will make a POST request to the `/api/completion` endpoint when a button is clicked. The endpoint will return the generated object based on the input prompt and we'll display it.
 
 ```tsx filename='pages/index.tsx'
-import { useState } from 'react'
+import { useState } from 'react';
 
 export default function Page() {
-  const [generation, setGeneration] = useState()
-  const [isLoading, setIsLoading] = useState(false)
+  const [generation, setGeneration] = useState();
+  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <div>
       <div
         onClick={async () => {
-          setIsLoading(true)
+          setIsLoading(true);
 
           await fetch('/api/completion', {
             method: 'POST',
             body: JSON.stringify({
-              prompt: 'Messages during finals week.'
-            })
+              prompt: 'Messages during finals week.',
+            }),
           }).then(response => {
             response.json().then(json => {
-              setGeneration(json.object)
-              setIsLoading(false)
-            })
-          })
+              setGeneration(json.object);
+              setIsLoading(false);
+            });
+          });
         }}
       >
         Generate
@@ -177,7 +177,7 @@ export default function Page() {
 
       {isLoading ? 'Loading...' : <pre>{JSON.stringify(generation)}</pre>}
     </div>
-  )
+  );
 }
 ```
 
@@ -186,12 +186,12 @@ export default function Page() {
 Let's create a route handler for `/api/completion` that will generate an object based on the input prompt. The route will call the `generateObject` function from the `ai` module, which will then generate an object based on the input prompt and return it.
 
 ```typescript filename='app/api/completion/route.ts'
-import { generateObject } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { z } from 'zod'
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 export async function POST(req: Request) {
-  const { prompt }: { prompt: string } = await req.json()
+  const { prompt }: { prompt: string } = await req.json();
 
   const result = await generateObject({
     model: openai('gpt-4'),
@@ -202,13 +202,13 @@ export async function POST(req: Request) {
         z.object({
           name: z.string().describe('Name of a fictional person.'),
           message: z.string().describe('Do not use emojis or links.'),
-          minutesAgo: z.number()
-        })
-      )
-    })
-  })
+          minutesAgo: z.number(),
+        }),
+      ),
+    }),
+  });
 
-  return result.toJsonResponse()
+  return result.toJsonResponse();
 }
 ```
 

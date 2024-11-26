@@ -15,26 +15,26 @@ Let's create a React component that imports the `useChat` hook from the `ai/reac
 To call tools in multiple steps, you can use the `maxSteps` option to specify the maximum number of steps that can be made before the model or the user responds with a text message. In this example, you will set it to `5` to allow for multiple tool calls.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Page() {
   const { messages, input, setInput, append } = useChat({
     api: '/api/chat',
-    maxSteps: 5
-  })
+    maxSteps: 5,
+  });
 
   return (
     <div>
       <input
         value={input}
         onChange={event => {
-          setInput(event.target.value)
+          setInput(event.target.value);
         }}
         onKeyDown={async event => {
           if (event.key === 'Enter') {
-            append({ content: input, role: 'user' })
+            append({ content: input, role: 'user' });
           }
         }}
       />
@@ -43,7 +43,7 @@ export default function Page() {
         <div key={index}>{message.content}</div>
       ))}
     </div>
-  )
+  );
 }
 ```
 
@@ -56,26 +56,26 @@ You will use the [`tools`](/docs/reference/ai-sdk-core/generate-text#tools) para
 You will add the two functions mentioned earlier and use zod to specify the schema for its parameters.
 
 ```ts filename='app/api/chat/route.ts'
-import { ToolInvocation, streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { z } from 'zod'
+import { ToolInvocation, streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  toolInvocations?: ToolInvocation[]
+  role: 'user' | 'assistant';
+  content: string;
+  toolInvocations?: ToolInvocation[];
 }
 
 function getLocation({ lat, lon }) {
-  return { lat: 37.7749, lon: -122.4194 }
+  return { lat: 37.7749, lon: -122.4194 };
 }
 
 function getWeather({ lat, lon, unit }) {
-  return { value: 25, description: 'Sunny' }
+  return { value: 25, description: 'Sunny' };
 }
 
 export async function POST(req: Request) {
-  const { messages }: { messages: Message[] } = await req.json()
+  const { messages }: { messages: Message[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
@@ -86,9 +86,9 @@ export async function POST(req: Request) {
         description: 'Get the location of the user',
         parameters: z.object({}),
         execute: async () => {
-          const { lat, lon } = getLocation()
-          return `Your location is at latitude ${lat} and longitude ${lon}`
-        }
+          const { lat, lon } = getLocation();
+          return `Your location is at latitude ${lat} and longitude ${lon}`;
+        },
       },
       getWeather: {
         description: 'Get the weather for a location',
@@ -97,16 +97,16 @@ export async function POST(req: Request) {
           lon: z.number().describe('The longitude of the location'),
           unit: z
             .enum(['C', 'F'])
-            .describe('The unit to display the temperature in')
+            .describe('The unit to display the temperature in'),
         }),
         execute: async ({ lat, lon, unit }) => {
-          const { value, description } = getWeather({ lat, lon, unit })
-          return `It is currently ${value}°${unit} and ${description}!`
-        }
-      }
-    }
-  })
+          const { value, description } = getWeather({ lat, lon, unit });
+          return `It is currently ${value}°${unit} and ${description}!`;
+        },
+      },
+    },
+  });
 
-  return result.toDataStreamResponse()
+  return result.toDataStreamResponse();
 }
 ```
