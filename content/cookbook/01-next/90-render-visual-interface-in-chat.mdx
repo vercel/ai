@@ -12,11 +12,11 @@ An interesting consequence of language models that can call [tools](/docs/ai-sdk
   <ChatGeneration
     history={[
       { role: 'User', content: 'How is it going?' },
-      { role: 'Assistant', content: 'All good, how may I help you?' },
+      { role: 'Assistant', content: 'All good, how may I help you?' }
     ]}
     inputMessage={{
       role: 'User',
-      content: 'What is the weather in San Francisco?',
+      content: 'What is the weather in San Francisco?'
     }}
     outputMessage={{
       role: 'Assistant',
@@ -27,12 +27,12 @@ An interesting consequence of language models that can call [tools](/docs/ai-sdk
             content={{
               weather: {
                 temperature: 24,
-                condition: 'Sunny',
-              },
+                condition: 'Sunny'
+              }
             }}
           />
         </div>
-      ),
+      )
     }}
   />
 </Browser>
@@ -41,9 +41,11 @@ An interesting consequence of language models that can call [tools](/docs/ai-sdk
 
 Let's build an assistant that gets the weather for any city by calling the `getWeatherInformation` tool. Instead of returning text during the tool call, you will render a React component that displays the weather information on the client.
 
-```tsx filename='pages/index.tsx'
-import { ToolInvocation } from 'ai';
-import { Message, useChat } from 'ai/react';
+```tsx filename='app/page.tsx'
+'use client'
+
+import { ToolInvocation } from 'ai'
+import { Message, useChat } from 'ai/react'
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
@@ -54,16 +56,11 @@ export default function Chat() {
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {
         if (toolCall.toolName === 'getLocation') {
-          const cities = [
-            'New York',
-            'Los Angeles',
-            'Chicago',
-            'San Francisco',
-          ];
-          return cities[Math.floor(Math.random() * cities.length)];
+          const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco']
+          return cities[Math.floor(Math.random() * cities.length)]
         }
-      },
-    });
+      }
+    })
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch gap-4">
@@ -72,7 +69,7 @@ export default function Chat() {
           <strong>{`${m.role}: `}</strong>
           {m.content}
           {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
-            const toolCallId = toolInvocation.toolCallId;
+            const toolCallId = toolInvocation.toolCallId
 
             // render confirmation tool (client-side tool with user interaction)
             if (toolInvocation.toolName === 'askForConfirmation') {
@@ -92,7 +89,7 @@ export default function Chat() {
                           onClick={() =>
                             addToolResult({
                               toolCallId,
-                              result: 'Yes, confirmed.',
+                              result: 'Yes, confirmed.'
                             })
                           }
                         >
@@ -103,7 +100,7 @@ export default function Chat() {
                           onClick={() =>
                             addToolResult({
                               toolCallId,
-                              result: 'No, denied',
+                              result: 'No, denied'
                             })
                           }
                         >
@@ -113,7 +110,7 @@ export default function Chat() {
                     )}
                   </div>
                 </div>
-              );
+              )
             }
 
             // other tools:
@@ -141,7 +138,7 @@ export default function Chat() {
                           <div className="text-xs">{forecast.day}</div>
                           <div>{forecast.value}°</div>
                         </div>
-                      ),
+                      )
                     )}
                   </div>
                 </div>
@@ -162,7 +159,7 @@ export default function Chat() {
               <div key={toolCallId} className="text-gray-500">
                 Calling {toolInvocation.toolName}...
               </div>
-            );
+            )
           })}
         </div>
       ))}
@@ -176,19 +173,19 @@ export default function Chat() {
         />
       </form>
     </div>
-  );
+  )
 }
 ```
 
 ## Server
 
 ```tsx filename='api/chat.ts'
-import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
-import { z } from 'zod';
+import { openai } from '@ai-sdk/openai'
+import { streamText } from 'ai'
+import { z } from 'zod'
 
 export default async function POST(request: Request) {
-  const { messages } = await request.json();
+  const { messages } = await request.json()
 
   const result = streamText({
     model: openai('gpt-4-turbo'),
@@ -209,27 +206,27 @@ export default async function POST(request: Request) {
               { day: 'Thursday', value: 27 },
               { day: 'Friday', value: 28 },
               { day: 'Saturday', value: 29 },
-              { day: 'Sunday', value: 30 },
-            ],
-          };
-        },
+              { day: 'Sunday', value: 30 }
+            ]
+          }
+        }
       },
       // client-side tool that starts user interaction:
       askForConfirmation: {
         description: 'Ask the user for confirmation.',
         parameters: z.object({
-          message: z.string().describe('The message to ask for confirmation.'),
-        }),
+          message: z.string().describe('The message to ask for confirmation.')
+        })
       },
       // client-side tool that is automatically executed on the client:
       getLocation: {
         description:
           'Get the user location. Always ask for confirmation before using this tool.',
-        parameters: z.object({}),
-      },
-    },
-  });
+        parameters: z.object({})
+      }
+    }
+  })
 
-  return result.toDataStreamResponse();
+  return result.toDataStreamResponse()
 }
 ```
