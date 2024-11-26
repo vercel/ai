@@ -1,4 +1,4 @@
-import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
+import { prepareRetries } from '../prompt/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -28,7 +28,7 @@ has a limit on how many embeddings can be generated in a single call.
 export async function embedMany<VALUE>({
   model,
   values,
-  maxRetries,
+  maxRetries: maxRetriesArg,
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
@@ -66,6 +66,8 @@ Only applicable for HTTP-based providers.
    */
   experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedManyResult<VALUE>> {
+  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
@@ -90,7 +92,6 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const retry = retryWithExponentialBackoff({ maxRetries });
       const maxEmbeddingsPerCall = model.maxEmbeddingsPerCall;
 
       // the model has not specified limits on

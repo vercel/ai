@@ -1,5 +1,19 @@
 # ai
 
+## 4.0.6
+
+### Patch Changes
+
+- fc18132: feat (ai/core): experimental output for generateText
+- 2779f6d: fix (ai/core): do not send maxRetries into providers
+
+## 4.0.5
+
+### Patch Changes
+
+- Updated dependencies [630ac31]
+  - @ai-sdk/react@1.0.3
+
 ## 4.0.4
 
 ### Patch Changes

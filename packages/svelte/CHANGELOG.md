@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 1.0.3
+
+### Patch Changes
+
+- 630ac31: fix (ui): set tool invocation state to "result" when calling addToolResult
+
 ## 1.0.2
 
 ### Patch Changes

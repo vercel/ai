@@ -14,10 +14,10 @@ import {
 import { ServerResponse } from 'http';
 import { z } from 'zod';
 import { DelayedPromise } from '../../util/delayed-promise';
-import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import { prepareRetries } from '../prompt/prepare-retries';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -43,6 +43,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { createStitchableStream } from '../util/create-stitchable-stream';
 import { now as originalNow } from '../util/now';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
@@ -51,7 +52,6 @@ import { injectJsonInstruction } from './inject-json-instruction';
 import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { createStitchableStream } from '../util/create-stitchable-stream';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -417,7 +417,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     headers,
     telemetry,
     settings,
-    maxRetries,
+    maxRetries: maxRetriesArg,
     abortSignal,
     outputStrategy,
     system,
@@ -451,6 +451,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     currentDate: () => Date;
     now: () => number;
   }) {
+    const { maxRetries, retry } = prepareRetries({
+      maxRetries: maxRetriesArg,
+    });
+
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model,
       telemetry,
@@ -459,7 +463,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     });
 
     const tracer = getTracer(telemetry);
-    const retry = retryWithExponentialBackoff({ maxRetries });
     const self = this;
 
     recordSpan({
