@@ -20,6 +20,7 @@ import TestChatFormComponent from './TestChatFormComponent.vue';
 import TestChatFormOptionsComponent from './TestChatFormOptionsComponent.vue';
 import TestChatReloadComponent from './TestChatReloadComponent.vue';
 import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
+import TestChatToolInvocationsComponent from './TestChatToolInvocationsComponent.vue';
 
 describe('data protocol stream', () => {
   beforeEach(() => {
@@ -525,7 +526,7 @@ describe('onToolCall', () => {
 
 describe('tool invocations', () => {
   beforeEach(() => {
-    render(TestChatFormComponent);
+    render(TestChatToolInvocationsComponent);
   });
 
   afterEach(() => {
@@ -538,9 +539,7 @@ describe('tool invocations', () => {
     withTestServer(
       { url: '/api/chat', type: 'controlled-stream' },
       async ({ streamController }) => {
-        const firstInput = screen.getByTestId('do-input');
-        await userEvent.type(firstInput, 'hi');
-        await userEvent.keyboard('{Enter}');
+        await userEvent.click(screen.getByTestId('do-append'));
 
         streamController.enqueue(
           formatDataStreamPart('tool_call_streaming_start', {
@@ -548,8 +547,6 @@ describe('tool invocations', () => {
             toolName: 'test-tool',
           }),
         );
-
-        expect(screen.getByTestId('message-0')).toHaveTextContent('hi');
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -619,9 +616,7 @@ describe('tool invocations', () => {
     withTestServer(
       { url: '/api/chat', type: 'controlled-stream' },
       async ({ streamController }) => {
-        const firstInput = screen.getByTestId('do-input');
-        await userEvent.type(firstInput, 'hi');
-        await userEvent.keyboard('{Enter}');
+        await userEvent.click(screen.getByTestId('do-append'));
 
         streamController.enqueue(
           formatDataStreamPart('tool_call', {
@@ -648,6 +643,42 @@ describe('tool invocations', () => {
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
             'test-result',
+          );
+        });
+      },
+    ),
+  );
+
+  it(
+    'should update tool call to result when addToolResult is called',
+    withTestServer(
+      [
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: [
+            formatDataStreamPart('tool_call', {
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              args: { testArg: 'test-value' },
+            }),
+          ],
+        },
+      ],
+      async () => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+          );
+        });
+
+        await userEvent.click(screen.getByTestId('add-result-0'));
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
           );
         });
       },
