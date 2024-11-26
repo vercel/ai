@@ -97,7 +97,7 @@ or to provide a custom fetch implementation for e.g. testing.
   /**
 Custom api version to use. Defaults to `2024-10-01-preview`.
     */
-   apiVersion?: string;
+  apiVersion?: string;
 }
 
 /**
@@ -123,8 +123,7 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
-  const apiVersion = options.apiVersion? options.apiVersion : '2024-10-01-preview';
-
+  const apiVersion = options.apiVersion ?? '2024-10-01-preview';
   const url = ({ path, modelId }: { path: string; modelId: string }) =>
     options.baseURL
       ? `${options.baseURL}/${modelId}${path}?api-version=${apiVersion}`
