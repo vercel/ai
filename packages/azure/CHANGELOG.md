@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 1.0.6
+
+### Patch Changes
+
+- 153c563: feat (provider/azure): add api version provider option
+
 ## 1.0.5
 
 ### Patch Changes
