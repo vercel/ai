@@ -125,7 +125,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    if (useLegacyFunctionCalling && this.supportsStructuredOutputs === true) {
+    if (useLegacyFunctionCalling && this.supportsStructuredOutputs) {
       throw new UnsupportedFunctionalityError({
         functionality: 'structuredOutputs with useLegacyFunctionCalling',
       });
@@ -161,8 +161,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       presence_penalty: presencePenalty,
       response_format:
         responseFormat?.type === 'json'
-          ? this.supportsStructuredOutputs === true &&
-            responseFormat.schema != null
+          ? this.supportsStructuredOutputs && responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
@@ -225,7 +224,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           args: {
             ...baseArgs,
             response_format:
-              this.supportsStructuredOutputs === true && mode.schema != null
+              this.supportsStructuredOutputs && mode.schema != null
                 ? {
                     type: 'json_schema',
                     json_schema: {
