@@ -57,7 +57,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 
   get supportsStructuredOutputs(): boolean {
-    return this.settings.structuredOutputs === true;
+    return this.settings.structuredOutputs ?? false;
   }
 
   get defaultObjectGenerationMode() {
@@ -107,7 +107,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       responseFormat != null &&
       responseFormat.type === 'json' &&
       responseFormat.schema != null &&
-      this.supportsStructuredOutputs === false
+      !this.supportsStructuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -125,7 +125,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    if (useLegacyFunctionCalling && this.settings.structuredOutputs === true) {
+    if (useLegacyFunctionCalling && this.supportsStructuredOutputs === true) {
       throw new UnsupportedFunctionalityError({
         functionality: 'structuredOutputs with useLegacyFunctionCalling',
       });
@@ -159,20 +159,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
-      stop: stopSequences,
-      seed,
-
-      // openai specific settings:
-      max_completion_tokens:
-        providerMetadata?.openai?.maxCompletionTokens ?? undefined,
-      store: providerMetadata?.openai?.store ?? undefined,
-      metadata: providerMetadata?.openai?.metadata ?? undefined,
-      prediction: providerMetadata?.openai?.prediction ?? undefined,
-
-      // response format:
       response_format:
         responseFormat?.type === 'json'
-          ? this.settings.structuredOutputs === true &&
+          ? this.supportsStructuredOutputs === true &&
             responseFormat.schema != null
             ? {
                 type: 'json_schema',
@@ -185,6 +174,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               }
             : { type: 'json_object' }
           : undefined,
+      stop: stopSequences,
+      seed,
+
+      // openai specific settings:
+      max_completion_tokens:
+        providerMetadata?.openai?.maxCompletionTokens ?? undefined,
+      store: providerMetadata?.openai?.store ?? undefined,
+      metadata: providerMetadata?.openai?.metadata ?? undefined,
+      prediction: providerMetadata?.openai?.prediction ?? undefined,
 
       // messages:
       messages: convertToOpenAIChatMessages({
@@ -207,7 +205,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           prepareTools({
             mode,
             useLegacyFunctionCalling,
-            structuredOutputs: this.settings.structuredOutputs,
+            structuredOutputs: this.supportsStructuredOutputs,
           });
 
         return {
@@ -227,7 +225,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           args: {
             ...baseArgs,
             response_format:
-              this.settings.structuredOutputs === true && mode.schema != null
+              this.supportsStructuredOutputs === true && mode.schema != null
                 ? {
                     type: 'json_schema',
                     json_schema: {
@@ -272,10 +270,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       name: mode.tool.name,
                       description: mode.tool.description,
                       parameters: mode.tool.parameters,
-                      strict:
-                        this.settings.structuredOutputs === true
-                          ? true
-                          : undefined,
+                      strict: this.supportsStructuredOutputs ? true : undefined,
                     },
                   },
                 ],

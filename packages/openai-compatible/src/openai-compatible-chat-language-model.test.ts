@@ -5,6 +5,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from './openai-compatible-provider';
+import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -384,6 +385,364 @@ describe('doGenerate', () => {
         toolName: 'test-tool',
       },
     ]);
+  });
+
+  describe('response format', () => {
+    it('should not send a response_format when response format is text', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel(
+        'gpt-4o-2024-08-06',
+        {},
+        {
+          provider: 'test-provider',
+          url: () => 'https://my.api.com/v1/chat/completions',
+          headers: () => ({}),
+          supportsStructuredOutputs: false,
+        },
+      );
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'text' },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+    });
+
+    it('should forward json response format as "json_object" without schema', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider('gpt-4o-2024-08-06');
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json' },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: { type: 'json_object' },
+      });
+    });
+
+    it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel(
+        'gpt-4o-2024-08-06',
+        {},
+        {
+          provider: 'test-provider',
+          url: () => 'https://my.api.com/v1/chat/completions',
+          headers: () => ({}),
+          supportsStructuredOutputs: false,
+        },
+      );
+
+      const { warnings } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: { type: 'json_object' },
+      });
+
+      expect(warnings).toEqual([
+        {
+          details:
+            'JSON response format schema is only supported with structuredOutputs',
+          setting: 'responseFormat',
+          type: 'unsupported-setting',
+        },
+      ]);
+    });
+
+    it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel(
+        'gpt-4o-2024-08-06',
+        {},
+        {
+          provider: 'test-provider',
+          url: () => 'https://my.api.com/v1/chat/completions',
+          headers: () => ({}),
+          supportsStructuredOutputs: true,
+        },
+      );
+
+      const { warnings } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      });
+
+      expect(warnings).toEqual([]);
+    });
+
+    it('should use json_schema & strict in object-json mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel(
+        'gpt-4o-2024-08-06',
+        {},
+        {
+          provider: 'test-provider',
+          url: () => 'https://my.api.com/v1/chat/completions',
+          headers: () => ({}),
+          supportsStructuredOutputs: true,
+        },
+      );
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-json',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      });
+    });
+
+    it('should set name & description in object-json mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel(
+        'gpt-4o-2024-08-06',
+        {},
+        {
+          provider: 'test-provider',
+          url: () => 'https://my.api.com/v1/chat/completions',
+          headers: () => ({}),
+          supportsStructuredOutputs: true,
+        },
+      );
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-json',
+          name: 'test-name',
+          description: 'test description',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'test-name',
+            description: 'test description',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      });
+    });
+
+    it('should allow for undefined schema in object-json mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel(
+        'gpt-4o-2024-08-06',
+        {},
+        {
+          provider: 'test-provider',
+          url: () => 'https://my.api.com/v1/chat/completions',
+          headers: () => ({}),
+          supportsStructuredOutputs: true,
+        },
+      );
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-json',
+          name: 'test-name',
+          description: 'test description',
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_object',
+        },
+      });
+    });
+
+    it('should set strict in object-tool mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+            type: 'function',
+            function: {
+              name: 'test-tool',
+              arguments: '{"value":"Spark"}',
+            },
+          },
+        ],
+      });
+
+      const model = new OpenAICompatibleChatLanguageModel(
+        'gpt-4o-2024-08-06',
+        {},
+        {
+          provider: 'test-provider',
+          url: () => 'https://my.api.com/v1/chat/completions',
+          headers: () => ({}),
+          supportsStructuredOutputs: true,
+        },
+      );
+
+      const result = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-tool',
+          tool: {
+            type: 'function',
+            name: 'test-tool',
+            description: 'test description',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        tool_choice: { type: 'function', function: { name: 'test-tool' } },
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'test-tool',
+              description: 'test description',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+              strict: true,
+            },
+          },
+        ],
+      });
+
+      expect(result.toolCalls).toStrictEqual([
+        {
+          args: '{"value":"Spark"}',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolCallType: 'function',
+          toolName: 'test-tool',
+        },
+      ]);
+    });
   });
 
   it('should send request body', async () => {
