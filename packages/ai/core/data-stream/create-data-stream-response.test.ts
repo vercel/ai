@@ -3,7 +3,7 @@ import { sendDataStreamResponse } from './send-data-stream-response';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { formatDataStreamPart } from '@ai-sdk/ui-utils';
 
-describe('sendDataStreamResponse', () => {
+describe('createDataStreamResponse', () => {
   it('should create a Response with correct headers and encoded stream', async () => {
     const response = sendDataStreamResponse({
       status: 200,
@@ -12,7 +12,7 @@ describe('sendDataStreamResponse', () => {
         'Custom-Header': 'test',
       },
       execute: dataStream => {
-        dataStream.appendData('test-data');
+        dataStream.writeData('test-data');
       },
     });
 

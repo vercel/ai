@@ -20,15 +20,15 @@ export function createDataStream({
 
   try {
     const result = execute({
-      appendData(data) {
+      writeData(data) {
         controller.enqueue(formatDataStreamPart('data', [data]));
       },
-      appendMessageAnnotation(annotation) {
+      writeMessageAnnotation(annotation) {
         controller.enqueue(
           formatDataStreamPart('message_annotations', [annotation]),
         );
       },
-      forward(streamArg) {
+      merge(streamArg) {
         ongoingStreamPromises.push(
           (async () => {
             const reader = streamArg.getReader();

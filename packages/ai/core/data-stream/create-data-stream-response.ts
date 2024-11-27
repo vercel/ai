@@ -2,7 +2,7 @@ import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { createDataStream } from './create-data-stream';
 import { DataStream } from './data-stream';
 
-export function sendDataStreamResponse({
+export function createDataStreamResponse({
   status,
   statusText,
   headers,

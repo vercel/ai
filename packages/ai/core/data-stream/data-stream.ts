@@ -4,15 +4,16 @@ export interface DataStream {
   /**
    * Appends a data part to the stream.
    */
-  appendData(value: JSONValue): void;
+  writeData(value: JSONValue): void;
 
   /**
    * Appends a message annotation to the stream.
    */
-  appendMessageAnnotation(value: JSONValue): void;
+  writeMessageAnnotation(value: JSONValue): void;
 
   /**
-   * Forwards the contents of another stream to this stream.
+   * Merges the contents of another stream to this stream.
    */
-  forward(stream: ReadableStream<string>): void;
+  // TODO limit to data stream parts
+  merge(stream: ReadableStream<string>): void;
 }
