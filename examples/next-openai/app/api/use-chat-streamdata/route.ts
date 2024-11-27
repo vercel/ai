@@ -32,5 +32,10 @@ export async function POST(req: Request) {
         result.toDataStream().pipeThrough(new TextDecoderStream()),
       );
     },
+    onError: error => {
+      // Error messages are masked by default for security reasons.
+      // If you want to expose the error message to the client, you can do so here:
+      return error instanceof Error ? error.message : String(error);
+    },
   });
 }
