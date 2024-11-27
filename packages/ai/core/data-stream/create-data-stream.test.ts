@@ -28,4 +28,20 @@ describe('createDataStream', () => {
       ]),
     ]);
   });
+
+  it('should forward a single stream with 2 elements', async () => {
+    const stream = createDataStream(dataStream => {
+      dataStream.forward(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue('1a');
+            controller.enqueue('1b');
+            controller.close();
+          },
+        }),
+      );
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toEqual(['1a', '1b']);
+  });
 });

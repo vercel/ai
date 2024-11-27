@@ -6,7 +6,9 @@ export function createDataStream(
 ): ReadableStream<string> {
   let controller: ReadableStreamDefaultController<string>;
 
-  const stream1 = new ReadableStream({
+  const ongoingStreamPromises: Promise<void>[] = [];
+
+  const stream = new ReadableStream({
     start(controllerArg) {
       controller = controllerArg;
     },
@@ -21,10 +23,24 @@ export function createDataStream(
         formatDataStreamPart('message_annotations', [annotation]),
       );
     },
-    forward() {},
+    forward(streamArg) {
+      ongoingStreamPromises.push(
+        (async () => {
+          const reader = streamArg.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            await controller.enqueue(value);
+          }
+        })(),
+      );
+    },
   });
 
-  controller!.close();
+  // TODO error handling
+  Promise.all(ongoingStreamPromises).finally(() => {
+    controller!.close();
+  });
 
-  return stream1;
+  return stream;
 }
