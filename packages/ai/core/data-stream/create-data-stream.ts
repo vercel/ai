@@ -30,7 +30,7 @@ export function createDataStream(
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            await controller.enqueue(value);
+            controller.enqueue(value);
           }
         })(),
       );
