@@ -1,9 +1,13 @@
 import { formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { DataStream } from './data-stream';
 
-export function createDataStream(
-  callback: (dataStream: DataStream) => PromiseLike<void> | void,
-): ReadableStream<string> {
+export function createDataStream({
+  execute,
+  onError = () => 'An error occurred.', // mask error messages for safety by default
+}: {
+  execute: (dataStream: DataStream) => PromiseLike<void> | void;
+  onError?: (error: unknown) => string;
+}): ReadableStream<string> {
   let controller: ReadableStreamDefaultController<string>;
 
   const ongoingStreamPromises: Promise<void>[] = [];
@@ -14,7 +18,7 @@ export function createDataStream(
     },
   });
 
-  callback({
+  execute({
     appendData(data) {
       controller.enqueue(formatDataStreamPart('data', [data]));
     },
@@ -37,7 +41,7 @@ export function createDataStream(
     },
   });
 
-  // TODO error handling
+  // TODO error handling - what if a stream errors
   Promise.all(ongoingStreamPromises).finally(() => {
     controller!.close();
   });

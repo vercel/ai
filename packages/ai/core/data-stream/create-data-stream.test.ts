@@ -5,8 +5,10 @@ import { createDataStream } from './create-data-stream';
 
 describe('createDataStream', () => {
   it('should send single data json and close the stream', async () => {
-    const stream = createDataStream(dataStream => {
-      dataStream.appendData('1a');
+    const stream = createDataStream({
+      execute: dataStream => {
+        dataStream.appendData('1a');
+      },
     });
 
     expect(await convertReadableStreamToArray(stream)).toEqual([
@@ -15,11 +17,13 @@ describe('createDataStream', () => {
   });
 
   it('should send message annotation and close the stream', async () => {
-    const stream = createDataStream(dataStream => {
-      dataStream.appendMessageAnnotation({
-        type: 'message-annotation',
-        value: '1a',
-      });
+    const stream = createDataStream({
+      execute: dataStream => {
+        dataStream.appendMessageAnnotation({
+          type: 'message-annotation',
+          value: '1a',
+        });
+      },
     });
 
     expect(await convertReadableStreamToArray(stream)).toEqual([
@@ -30,16 +34,18 @@ describe('createDataStream', () => {
   });
 
   it('should forward a single stream with 2 elements', async () => {
-    const stream = createDataStream(dataStream => {
-      dataStream.forward(
-        new ReadableStream({
-          start(controller) {
-            controller.enqueue('1a');
-            controller.enqueue('1b');
-            controller.close();
-          },
-        }),
-      );
+    const stream = createDataStream({
+      execute: dataStream => {
+        dataStream.forward(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue('1a');
+              controller.enqueue('1b');
+              controller.close();
+            },
+          }),
+        );
+      },
     });
 
     expect(await convertReadableStreamToArray(stream)).toEqual(['1a', '1b']);
@@ -49,30 +55,32 @@ describe('createDataStream', () => {
     let controller1: ReadableStreamDefaultController<string>;
     let controller2: ReadableStreamDefaultController<string>;
 
-    const stream = createDataStream(dataStream => {
-      dataStream.appendData('data-part-1');
+    const stream = createDataStream({
+      execute: dataStream => {
+        dataStream.appendData('data-part-1');
 
-      dataStream.forward(
-        new ReadableStream({
-          start(controllerArg) {
-            controller1 = controllerArg;
-          },
-        }),
-      );
+        dataStream.forward(
+          new ReadableStream({
+            start(controllerArg) {
+              controller1 = controllerArg;
+            },
+          }),
+        );
 
-      controller1!.enqueue('1a');
-      dataStream.appendData('data-part-2');
-      controller1!.enqueue('1b');
+        controller1!.enqueue('1a');
+        dataStream.appendData('data-part-2');
+        controller1!.enqueue('1b');
 
-      dataStream.forward(
-        new ReadableStream({
-          start(controllerArg) {
-            controller2 = controllerArg;
-          },
-        }),
-      );
+        dataStream.forward(
+          new ReadableStream({
+            start(controllerArg) {
+              controller2 = controllerArg;
+            },
+          }),
+        );
 
-      dataStream.appendData('data-part-3');
+        dataStream.appendData('data-part-3');
+      },
     });
 
     controller2!.enqueue('2a');
