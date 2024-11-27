@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 1.0.4
+
+### Patch Changes
+
+- b1f31da: chore (providers): Remove obsolete 'internal' from several packages.
+
 ## 1.0.3
 
 ### Patch Changes
