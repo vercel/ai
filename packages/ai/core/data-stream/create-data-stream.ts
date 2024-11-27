@@ -41,8 +41,13 @@ export function createDataStream({
     },
   });
 
-  // TODO error handling - what if a stream errors
-  Promise.all(ongoingStreamPromises).finally(() => {
+  Promise.all(
+    ongoingStreamPromises.map(promise =>
+      promise.catch(error => {
+        controller.enqueue(formatDataStreamPart('error', onError(error)));
+      }),
+    ),
+  ).finally(() => {
     controller!.close();
   });
 

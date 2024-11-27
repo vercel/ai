@@ -106,4 +106,44 @@ describe('createDataStream', () => {
       '1e',
     ]);
   });
+
+  it('should add error parts when stream errors', async () => {
+    let controller1: ReadableStreamDefaultController<string>;
+    let controller2: ReadableStreamDefaultController<string>;
+
+    const stream = createDataStream({
+      execute: dataStream => {
+        dataStream.forward(
+          new ReadableStream({
+            start(controllerArg) {
+              controller1 = controllerArg;
+            },
+          }),
+        );
+        dataStream.forward(
+          new ReadableStream({
+            start(controllerArg) {
+              controller2 = controllerArg;
+            },
+          }),
+        );
+      },
+      onError: () => 'error-message',
+    });
+
+    controller1!.enqueue('1a');
+    controller1!.error(new Error('1-error'));
+    controller2!.enqueue('2a');
+    controller2!.enqueue('2b');
+    controller2!.close();
+
+    // note: this is potentially problematic when it comes to
+    // message annotations, because the order of the parts is not guaranteed
+    expect(await convertReadableStreamToArray(stream)).toEqual([
+      '1a',
+      '2a',
+      '2b',
+      formatDataStreamPart('error', 'error-message'),
+    ]);
+  });
 });
