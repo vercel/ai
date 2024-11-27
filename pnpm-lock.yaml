@@ -189,8 +189,8 @@ importers:
         specifier: 1.0.5
         version: link:../../packages/openai
       '@hono/node-server':
-        specifier: 1.12.2
-        version: 1.12.2(hono@4.6.9)
+        specifier: 1.13.7
+        version: 1.13.7(hono@4.6.9)
       ai:
         specifier: 4.0.6
         version: link:../../packages/ai
@@ -3549,8 +3549,8 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
-  '@hono/node-server@1.12.2':
-    resolution: {integrity: sha512-xjzhqhSWUE/OhN0g3KCNVzNsQMlFUAL+/8GgPUr3TKcU7cvgZVBGswFofJ8WwGEHTqobzze1lDpGJl9ZNckDhA==}
+  '@hono/node-server@1.13.7':
+    resolution: {integrity: sha512-kTfUMsoloVKtRA2fLiGSd9qBddmru9KadNyhJCwgKBxTiNkaAJEwkVN9KV/rS4HtmmNRtUh6P+YpmjRMl0d9vQ==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -15408,7 +15408,7 @@ snapshots:
       protobufjs: 7.3.2
       yargs: 17.7.2
 
-  '@hono/node-server@1.12.2(hono@4.6.9)':
+  '@hono/node-server@1.13.7(hono@4.6.9)':
     dependencies:
       hono: 4.6.9
 
