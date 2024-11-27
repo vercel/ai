@@ -2368,7 +2368,7 @@ exports[`streamText > result.pipeDataStreamToResponse > should create a Response
 
 exports[`streamText > result.pipeDataStreamToResponse > should mask error messages by default 1`] = `
 [
-  "3:""
+  "3:"An error occurred."
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
 ",
@@ -2517,7 +2517,7 @@ exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 
 exports[`streamText > result.toDataStream > should mask error messages by default 1`] = `
 [
-  "3:""
+  "3:"An error occurred."
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
 ",
@@ -2629,7 +2629,7 @@ exports[`streamText > result.toDataStreamResponse > should create a Response wit
 
 exports[`streamText > result.toDataStreamResponse > should mask error messages by default 1`] = `
 [
-  "3:""
+  "3:"An error occurred."
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
 ",
