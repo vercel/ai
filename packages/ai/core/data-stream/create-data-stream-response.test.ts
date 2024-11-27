@@ -1,11 +1,11 @@
 import { expect, it, describe } from 'vitest';
-import { sendDataStreamResponse } from './send-data-stream-response';
+import { createDataStreamResponse } from './create-data-stream-response';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { formatDataStreamPart } from '@ai-sdk/ui-utils';
 
 describe('createDataStreamResponse', () => {
   it('should create a Response with correct headers and encoded stream', async () => {
-    const response = sendDataStreamResponse({
+    const response = createDataStreamResponse({
       status: 200,
       statusText: 'OK',
       headers: {
@@ -40,7 +40,7 @@ describe('createDataStreamResponse', () => {
   });
 
   it('should handle errors in the stream', async () => {
-    const response = sendDataStreamResponse({
+    const response = createDataStreamResponse({
       status: 200,
       execute: () => {
         throw new Error('test error');
