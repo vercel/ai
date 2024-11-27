@@ -13,4 +13,19 @@ describe('createDataStream', () => {
       formatDataStreamPart('data', ['1a']),
     ]);
   });
+
+  it('should send message annotation and close the stream', async () => {
+    const stream = createDataStream(dataStream => {
+      dataStream.appendMessageAnnotation({
+        type: 'message-annotation',
+        value: '1a',
+      });
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toEqual([
+      formatDataStreamPart('message_annotations', [
+        { type: 'message-annotation', value: '1a' },
+      ]),
+    ]);
+  });
 });

@@ -4,23 +4,27 @@ import { DataStream } from './data-stream';
 export function createDataStream(
   callback: (dataStream: DataStream) => PromiseLike<void> | void,
 ): ReadableStream<string> {
-  let stream1Controller: ReadableStreamDefaultController<string> | undefined;
+  let controller: ReadableStreamDefaultController<string>;
 
   const stream1 = new ReadableStream({
-    start(controller) {
-      stream1Controller = controller;
+    start(controllerArg) {
+      controller = controllerArg;
     },
   });
 
   callback({
-    appendMessageAnnotation() {},
     appendData(data) {
-      stream1Controller!.enqueue(formatDataStreamPart('data', [data]));
+      controller.enqueue(formatDataStreamPart('data', [data]));
+    },
+    appendMessageAnnotation(annotation) {
+      controller.enqueue(
+        formatDataStreamPart('message_annotations', [annotation]),
+      );
     },
     forward() {},
   });
 
-  stream1Controller!.close();
+  controller!.close();
 
   return stream1;
 }
