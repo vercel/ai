@@ -1050,7 +1050,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   private toDataStreamInternal({
-    getErrorMessage = () => '', // mask error messages for safety by default
+    getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
   }: {
     getErrorMessage?: (error: unknown) => string;
