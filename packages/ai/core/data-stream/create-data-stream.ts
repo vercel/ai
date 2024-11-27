@@ -5,7 +5,7 @@ export function createDataStream({
   execute,
   onError = () => 'An error occurred.', // mask error messages for safety by default
 }: {
-  execute: (dataStream: DataStream) => PromiseLike<void> | void;
+  execute: (dataStream: DataStream) => Promise<void> | void;
   onError?: (error: unknown) => string;
 }): ReadableStream<string> {
   let controller: ReadableStreamDefaultController<string>;
@@ -19,7 +19,7 @@ export function createDataStream({
   });
 
   try {
-    execute({
+    const result = execute({
       appendData(data) {
         controller.enqueue(formatDataStreamPart('data', [data]));
       },
@@ -41,6 +41,12 @@ export function createDataStream({
         );
       },
     });
+
+    if (result) {
+      result.catch(error => {
+        controller.enqueue(formatDataStreamPart('error', onError(error)));
+      });
+    }
   } catch (error) {
     controller!.enqueue(formatDataStreamPart('error', onError(error)));
   }

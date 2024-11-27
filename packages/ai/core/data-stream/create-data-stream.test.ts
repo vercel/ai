@@ -155,4 +155,17 @@ describe('createDataStream', () => {
       formatDataStreamPart('error', 'error-message'),
     ]);
   });
+
+  it('should add error parts when execute throws with promise', async () => {
+    const stream = createDataStream({
+      execute: async () => {
+        throw new Error('execute-error');
+      },
+      onError: () => 'error-message',
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toEqual([
+      formatDataStreamPart('error', 'error-message'),
+    ]);
+  });
 });
