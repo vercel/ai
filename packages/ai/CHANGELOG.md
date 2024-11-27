@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.7
+
+### Patch Changes
+
+- 5b4f07b: fix (ai/core): change default error message for data streams to "An error occurred."
+
 ## 4.0.6
 
 ### Patch Changes
