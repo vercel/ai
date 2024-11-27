@@ -91,8 +91,6 @@ describe('createDataStream', () => {
     controller1!.enqueue('1e');
     controller1!.close();
 
-    // note: this is potentially problematic when it comes to
-    // message annotations, because the order of the parts is not guaranteed
     expect(await convertReadableStreamToArray(stream)).toEqual([
       formatDataStreamPart('data', ['data-part-1']),
       formatDataStreamPart('data', ['data-part-2']),
@@ -137,8 +135,6 @@ describe('createDataStream', () => {
     controller2!.enqueue('2b');
     controller2!.close();
 
-    // note: this is potentially problematic when it comes to
-    // message annotations, because the order of the parts is not guaranteed
     expect(await convertReadableStreamToArray(stream)).toEqual([
       '1a',
       '2a',
