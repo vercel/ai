@@ -18,28 +18,32 @@ export function createDataStream({
     },
   });
 
-  execute({
-    appendData(data) {
-      controller.enqueue(formatDataStreamPart('data', [data]));
-    },
-    appendMessageAnnotation(annotation) {
-      controller.enqueue(
-        formatDataStreamPart('message_annotations', [annotation]),
-      );
-    },
-    forward(streamArg) {
-      ongoingStreamPromises.push(
-        (async () => {
-          const reader = streamArg.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            controller.enqueue(value);
-          }
-        })(),
-      );
-    },
-  });
+  try {
+    execute({
+      appendData(data) {
+        controller.enqueue(formatDataStreamPart('data', [data]));
+      },
+      appendMessageAnnotation(annotation) {
+        controller.enqueue(
+          formatDataStreamPart('message_annotations', [annotation]),
+        );
+      },
+      forward(streamArg) {
+        ongoingStreamPromises.push(
+          (async () => {
+            const reader = streamArg.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              controller.enqueue(value);
+            }
+          })(),
+        );
+      },
+    });
+  } catch (error) {
+    controller!.enqueue(formatDataStreamPart('error', onError(error)));
+  }
 
   Promise.all(
     ongoingStreamPromises.map(promise =>
