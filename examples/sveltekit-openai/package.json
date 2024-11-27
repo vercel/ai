@@ -23,7 +23,7 @@
     "@sveltejs/kit": "^2",
     "@sveltejs/vite-plugin-svelte": "^3",
     "@types/cookie": "^1.0.0",
-    "svelte": "^4",
+    "svelte": "^5",
     "svelte-check": "^4.0",
     "tslib": "^2.6.0",
     "typescript": "5.6.3",
