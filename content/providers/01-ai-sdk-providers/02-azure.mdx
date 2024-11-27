@@ -57,6 +57,13 @@ You can use the following optional settings to customize the OpenAI provider ins
   API key that is being sent using the `api-key` header.
   It defaults to the `AZURE_API_KEY` environment variable.
 
+- **identityTokenProvider** _Promise&lt;string&gt;_
+
+  A function that returns a promise resolving to a token to be sent using the `Authorization` header.
+  This can be used with the `@azure/identity` package and `getBearerTokenProvider` function to authenticate with Azure Managed Identity.
+
+  If both `apiKey` and `identityTokenProvider` are provided, the `identityTokenProvider` takes precedence.
+
 - **apiVersion** _string_
 
   Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).

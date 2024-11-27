@@ -132,6 +132,67 @@ describe('chat', () => {
         'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-10-01-preview',
       );
     });
+
+    it('should use bearer token from identityTokenProvider', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        identityTokenProvider: async () => 'test-token',
+      });
+
+      await provider('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const requestHeaders = await server.getRequestHeaders();
+      expect(requestHeaders).toStrictEqual({
+        'content-type': 'application/json',
+        authorization: 'Bearer test-token',
+      });
+    });
+
+    it('should throw error if identity token is invalid', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        identityTokenProvider: async () => 1 as any,
+      });
+
+      await expect(
+        provider('test-deployment').doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toThrow(
+        'Invalid Azure Managed Identity token format: token must be a non-empty string. Received: 1',
+      );
+    });
+
+    it('should throw error if identity token provider fails', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        identityTokenProvider: async () => {
+          throw new Error('Network error');
+        },
+      });
+
+      await expect(
+        provider('test-deployment').doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toThrow(
+        'Failed to fetch Azure Managed Identity token: Network error',
+      );
+    });
   });
 });
 
@@ -227,6 +288,67 @@ describe('completion', () => {
         'custom-request-header': 'request-header-value',
       });
     });
+
+    it('should use bearer token from identityTokenProvider', async () => {
+      prepareJsonCompletionResponse({ content: 'Hello World!' });
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        identityTokenProvider: async () => 'test-token',
+      });
+
+      await provider.completion('gpt-35-turbo-instruct').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const requestHeaders = await server.getRequestHeaders();
+      expect(requestHeaders).toStrictEqual({
+        'content-type': 'application/json',
+        authorization: 'Bearer test-token',
+      });
+    });
+
+    it('should throw error if identity token is invalid', async () => {
+      prepareJsonCompletionResponse({ content: 'Hello World!' });
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        identityTokenProvider: async () => 1 as any,
+      });
+
+      await expect(
+        provider.completion('gpt-35-turbo-instruct').doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toThrow(
+        'Invalid Azure Managed Identity token format: token must be a non-empty string. Received: 1',
+      );
+    });
+
+    it('should throw error if identity token provider fails', async () => {
+      prepareJsonCompletionResponse({ content: 'Hello World!' });
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        identityTokenProvider: async () => {
+          throw new Error('Network error');
+        },
+      });
+
+      await expect(
+        provider.completion('gpt-35-turbo-instruct').doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toThrow(
+        'Failed to fetch Azure Managed Identity token: Network error',
+      );
+    });
   });
 });
 
@@ -302,6 +424,62 @@ describe('embedding', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+    });
+
+    it('should use bearer token from identityTokenProvider', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        identityTokenProvider: async () => 'test-token',
+      });
+
+      await provider.embedding('my-embedding').doEmbed({
+        values: testValues,
+      });
+
+      const requestHeaders = await server.getRequestHeaders();
+
+      expect(requestHeaders).toStrictEqual({
+        'content-type': 'application/json',
+        authorization: 'Bearer test-token',
+      });
+    });
+
+    it('should throw error if identity token is invalid', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        identityTokenProvider: async () => 1 as any,
+      });
+
+      await expect(
+        provider.embedding('my-embedding').doEmbed({
+          values: testValues,
+        }),
+      ).rejects.toThrow(
+        'Invalid Azure Managed Identity token format: token must be a non-empty string. Received: 1',
+      );
+    });
+
+    it('should throw error if identity token provider fails', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        identityTokenProvider: async () => {
+          throw new Error('Network error');
+        },
+      });
+
+      await expect(
+        provider.embedding('my-embedding').doEmbed({
+          values: testValues,
+        }),
+      ).rejects.toThrow(
+        'Failed to fetch Azure Managed Identity token: Network error',
+      );
     });
   });
 });
