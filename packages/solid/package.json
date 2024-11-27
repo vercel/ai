@@ -38,7 +38,7 @@
     "@solidjs/testing-library": "0.8.10",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.5.1",
-    "@types/node": "^18",
+    "@types/node": "^22",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vitejs/plugin-vue": "5.2.0",
     "eslint": "8.57.1",

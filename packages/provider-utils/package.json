@@ -43,7 +43,7 @@
     "secure-json-parse": "^2.7.0"
   },
   "devDependencies": {
-    "@types/node": "^18",
+    "@types/node": "^22",
     "@vercel/ai-tsconfig": "workspace:*",
     "msw": "2.6.4",
     "tsup": "^8",

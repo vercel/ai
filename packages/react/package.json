@@ -38,7 +38,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.5.2",
     "@testing-library/react": "^16.0.1",
-    "@types/node": "^18",
+    "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@vercel/ai-tsconfig": "workspace:*",

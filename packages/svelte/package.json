@@ -32,7 +32,7 @@
     "sswr": "^2.1.0"
   },
   "devDependencies": {
-    "@types/node": "^18",
+    "@types/node": "^22",
     "@vercel/ai-tsconfig": "workspace:*",
     "eslint": "8.57.1",
     "eslint-config-vercel-ai": "workspace:*",

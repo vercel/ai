@@ -19,7 +19,7 @@
     "sonner": "^1.7.0"
   },
   "devDependencies": {
-    "@types/node": "^17.0.12",
+    "@types/node": "^22.10.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",

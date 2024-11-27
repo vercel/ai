@@ -25,7 +25,7 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^18",
+    "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",

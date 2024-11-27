@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@smithy/types": "^3.5.0",
-    "@types/node": "^18.19.54",
+    "@types/node": "^22.10.0",
     "@vercel/ai-tsconfig": "workspace:*",
     "aws-sdk-client-mock": "^4.0.2",
     "tsup": "^8.3.0",
