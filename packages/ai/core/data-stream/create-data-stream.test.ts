@@ -44,4 +44,56 @@ describe('createDataStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toEqual(['1a', '1b']);
   });
+
+  it('should forward elements from multiple streams and data parts', async () => {
+    let controller1: ReadableStreamDefaultController<string>;
+    let controller2: ReadableStreamDefaultController<string>;
+
+    const stream = createDataStream(dataStream => {
+      dataStream.appendData('data-part-1');
+
+      dataStream.forward(
+        new ReadableStream({
+          start(controllerArg) {
+            controller1 = controllerArg;
+          },
+        }),
+      );
+
+      controller1!.enqueue('1a');
+      dataStream.appendData('data-part-2');
+      controller1!.enqueue('1b');
+
+      dataStream.forward(
+        new ReadableStream({
+          start(controllerArg) {
+            controller2 = controllerArg;
+          },
+        }),
+      );
+
+      dataStream.appendData('data-part-3');
+    });
+
+    controller2!.enqueue('2a');
+    controller1!.enqueue('1c');
+    controller2!.enqueue('2b');
+    controller2!.close();
+    controller1!.enqueue('1d');
+    controller1!.enqueue('1e');
+    controller1!.close();
+
+    expect(await convertReadableStreamToArray(stream)).toEqual([
+      formatDataStreamPart('data', ['data-part-1']),
+      formatDataStreamPart('data', ['data-part-2']),
+      formatDataStreamPart('data', ['data-part-3']),
+      '1a',
+      '2a',
+      '1b',
+      '2b',
+      '1c',
+      '1d',
+      '1e',
+    ]);
+  });
 });
