@@ -18,7 +18,6 @@ app.post('/stream-data', async (req: Request, res: Response) => {
   // immediately start streaming the response
   return pipeDataStreamToResponse(res, {
     execute: async dataStreamWriter => {
-      // send stream data:
       dataStreamWriter.writeData('initialized call');
 
       const result = streamText({
@@ -27,6 +26,11 @@ app.post('/stream-data', async (req: Request, res: Response) => {
       });
 
       result.mergeIntoDataStream(dataStreamWriter);
+    },
+    onError: error => {
+      // Error messages are masked by default for security reasons.
+      // If you want to expose the error message to the client, you can do so here:
+      return error instanceof Error ? error.message : String(error);
     },
   });
 });

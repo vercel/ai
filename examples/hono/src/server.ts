@@ -24,7 +24,6 @@ app.post('/stream-data', async c => {
   // immediately start streaming the response
   const dataStream = createDataStream({
     execute: async dataStreamWriter => {
-      // send stream data:
       dataStreamWriter.writeData('initialized call');
 
       const result = streamText({
@@ -33,6 +32,11 @@ app.post('/stream-data', async c => {
       });
 
       result.mergeIntoDataStream(dataStreamWriter);
+    },
+    onError: error => {
+      // Error messages are masked by default for security reasons.
+      // If you want to expose the error message to the client, you can do so here:
+      return error instanceof Error ? error.message : String(error);
     },
   });
 
