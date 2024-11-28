@@ -20,17 +20,17 @@ fastify.post('/', async function (request, reply) {
 
 fastify.post('/stream-data', async function (request, reply) {
   // immediately start streaming the response
-  const stream = createDataStream({
-    execute: async dataStream => {
+  const dataStream = createDataStream({
+    execute: async dataStreamWriter => {
       // send stream data:
-      dataStream.writeData('initialized call');
+      dataStreamWriter.writeData('initialized call');
 
       const result = streamText({
         model: openai('gpt-4o'),
         prompt: 'Invent a new holiday and describe its traditions.',
       });
 
-      result.mergeIntoDataStream(dataStream);
+      result.mergeIntoDataStream(dataStreamWriter);
     },
   });
 
@@ -38,7 +38,7 @@ fastify.post('/stream-data', async function (request, reply) {
   reply.header('X-Vercel-AI-Data-Stream', 'v1');
   reply.header('Content-Type', 'text/plain; charset=utf-8');
 
-  return reply.send(stream);
+  return reply.send(dataStream);
 });
 
 fastify.listen({ port: 8080 });

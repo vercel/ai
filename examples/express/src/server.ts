@@ -17,16 +17,16 @@ app.post('/', async (req: Request, res: Response) => {
 app.post('/stream-data', async (req: Request, res: Response) => {
   // immediately start streaming the response
   return pipeDataStreamToResponse(res, {
-    execute: async dataStream => {
+    execute: async dataStreamWriter => {
       // send stream data:
-      dataStream.writeData('initialized call');
+      dataStreamWriter.writeData('initialized call');
 
       const result = streamText({
         model: openai('gpt-4o'),
         prompt: 'Invent a new holiday and describe its traditions.',
       });
 
-      result.mergeIntoDataStream(dataStream);
+      result.mergeIntoDataStream(dataStreamWriter);
     },
   });
 });
