@@ -2,6 +2,8 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { expect, it } from 'vitest';
 import { createDataStream } from './create-data-stream';
+import { DataStream } from './data-stream';
+import { delay } from '../../util/delay';
 
 describe('createDataStream', () => {
   it('should send single data json and close the stream', async () => {
@@ -167,5 +169,83 @@ describe('createDataStream', () => {
     expect(await convertReadableStreamToArray(stream)).toEqual([
       formatDataStreamPart('error', 'error-message'),
     ]);
+  });
+
+  describe('when stream is closed', () => {
+    it('should throw error when writing data to stream', async () => {
+      let dataStream: DataStream;
+
+      const stream = createDataStream({
+        execute: dataStreamArg => {
+          dataStreamArg.writeData('1a');
+          dataStream = dataStreamArg;
+        },
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        formatDataStreamPart('data', ['1a']),
+      ]);
+
+      expect(() => dataStream!.writeData('1b')).toThrow(
+        'Invalid state: Controller is already closed',
+      );
+    });
+
+    it('should support writing from delayed merged streams', async () => {
+      let dataStream: DataStream;
+      let controller1: ReadableStreamDefaultController<string>;
+      let controller2: ReadableStreamDefaultController<string>;
+      let done = false;
+
+      const stream = createDataStream({
+        execute: dataStreamArg => {
+          dataStreamArg.merge(
+            new ReadableStream({
+              start(controllerArg) {
+                controller1 = controllerArg;
+              },
+            }),
+          );
+
+          dataStream = dataStreamArg;
+          done = true;
+        },
+      });
+
+      const result: string[] = [];
+      const reader = stream.getReader();
+      async function pull() {
+        const { value, done } = await reader.read();
+        result.push(value!);
+      }
+
+      // function is finished
+      expect(done).toBe(true);
+
+      controller1!.enqueue('1a');
+      await pull();
+
+      // controller1 is still open, create 2nd stream
+      dataStream!.merge(
+        new ReadableStream({
+          start(controllerArg) {
+            controller2 = controllerArg;
+          },
+        }),
+      );
+
+      // close controller1
+      controller1!.close();
+
+      await delay(); // relinquish control
+
+      // it should still be able to write to controller2
+      controller2!.enqueue('2a');
+      controller2!.close();
+
+      await pull();
+
+      expect(result).toEqual(['1a', '2a']);
+    });
   });
 });

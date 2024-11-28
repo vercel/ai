@@ -1,5 +1,6 @@
 import { formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { DataStream } from './data-stream';
+import { delay } from '../../util/delay';
 
 export function createDataStream({
   execute,
@@ -37,7 +38,9 @@ export function createDataStream({
               if (done) break;
               controller.enqueue(value);
             }
-          })(),
+          })().catch(error => {
+            controller.enqueue(formatDataStreamPart('error', onError(error)));
+          }),
         );
       },
     });
@@ -51,13 +54,18 @@ export function createDataStream({
     controller!.enqueue(formatDataStreamPart('error', onError(error)));
   }
 
-  Promise.all(
-    ongoingStreamPromises.map(promise =>
-      promise.catch(error => {
-        controller.enqueue(formatDataStreamPart('error', onError(error)));
-      }),
-    ),
-  ).finally(() => {
+  // Wait until all ongoing streams are done. This approach enables merging
+  // streams even after execute has returned, as long as there is still an
+  // open merged stream. This is important to e.g. forward new streams and
+  // from callbacks.
+  const waitForStreams: Promise<void> = new Promise(async resolve => {
+    while (ongoingStreamPromises.length > 0) {
+      await ongoingStreamPromises.shift();
+    }
+    resolve();
+  });
+
+  waitForStreams.finally(() => {
     controller!.close();
   });
 
