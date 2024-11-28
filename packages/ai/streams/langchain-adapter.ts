@@ -89,7 +89,9 @@ export function toDataStream(
       }),
     )
     .pipeThrough(createCallbacksTransformer(callbacks))
-    .pipeThrough(createStreamDataTransformer());
+    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(createStreamDataTransformer())
+    .pipeThrough(new TextEncoderStream());
 }
 
 export function toDataStreamResponse(

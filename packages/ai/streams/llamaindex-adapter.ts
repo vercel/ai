@@ -6,12 +6,13 @@ import {
   StreamCallbacks,
 } from './stream-callbacks';
 import { createStreamDataTransformer, StreamData } from './stream-data';
+import { DataStreamWriter } from '../core/data-stream/data-stream-writer';
 
 type EngineResponse = {
   delta: string;
 };
 
-export function toDataStream(
+function toDataStreamInternal(
   stream: AsyncIterable<EngineResponse>,
   callbacks?: StreamCallbacks,
 ) {
@@ -26,7 +27,17 @@ export function toDataStream(
       }),
     )
     .pipeThrough(createCallbacksTransformer(callbacks))
+    .pipeThrough(new TextDecoderStream())
     .pipeThrough(createStreamDataTransformer());
+}
+
+export function toDataStream(
+  stream: AsyncIterable<EngineResponse>,
+  callbacks?: StreamCallbacks,
+) {
+  return toDataStreamInternal(stream, callbacks).pipeThrough(
+    new TextEncoderStream(),
+  );
 }
 
 export function toDataStreamResponse(
@@ -38,7 +49,9 @@ export function toDataStreamResponse(
   } = {},
 ) {
   const { init, data, callbacks } = options;
-  const dataStream = toDataStream(stream, callbacks);
+  const dataStream = toDataStreamInternal(stream, callbacks).pipeThrough(
+    new TextEncoderStream(),
+  );
   const responseStream = data
     ? mergeStreams(data.stream, dataStream)
     : dataStream;
@@ -51,6 +64,16 @@ export function toDataStreamResponse(
       dataStreamVersion: 'v1',
     }),
   });
+}
+
+export function mergeIntoDataStream(
+  stream: AsyncIterable<EngineResponse>,
+  options: {
+    dataStream: DataStreamWriter;
+    callbacks?: StreamCallbacks;
+  },
+) {
+  options.dataStream.merge(toDataStreamInternal(stream, options.callbacks));
 }
 
 function trimStartOfStream(): (text: string) => string {

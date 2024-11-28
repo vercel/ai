@@ -92,12 +92,9 @@ export class StreamData {
  * This assumes every chunk is a 'text' chunk.
  */
 export function createStreamDataTransformer() {
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
   return new TransformStream({
     transform: async (chunk, controller) => {
-      const message = decoder.decode(chunk);
-      controller.enqueue(encoder.encode(formatDataStreamPart('text', message)));
+      controller.enqueue(formatDataStreamPart('text', chunk));
     },
   });
 }
