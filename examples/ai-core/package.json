@@ -20,7 +20,7 @@
     "@opentelemetry/sdk-trace-node": "1.27.0",
     "ai": "4.0.7",
     "dotenv": "16.4.5",
-    "mathjs": "12.4.2",
+    "mathjs": "14.0.0",
     "zod": "3.23.8",
     "zod-to-json-schema": "3.23.5",
     "@google/generative-ai": "0.21.0"
