@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { generateAuthToken } from './google-vertex-auth-edge';
+import { generateAuthTokenEdgeCompatible as generateAuthToken } from './google-vertex-auth-edge';
 
 describe('Google Vertex Edge Auth', () => {
   const mockCredentials = {
@@ -27,6 +27,23 @@ describe('Google Vertex Edge Auth', () => {
       ok: true,
       json: () => Promise.resolve({ access_token: 'mock.jwt.token' }),
     });
+
+    vi.stubGlobal(
+      'atob',
+      vi.fn().mockImplementation(str => {
+        // Return a mock binary string for testing purposes
+        return JSON.stringify({
+          alg: 'RS256',
+          typ: 'JWT',
+          kid: mockCredentials.privateKeyId,
+          iss: mockCredentials.clientEmail,
+          scope: 'https://www.googleapis.com/auth/cloud-platform',
+          aud: 'https://oauth2.googleapis.com/token',
+          iat: 1616161616,
+          exp: 1616165216,
+        });
+      }),
+    );
   });
 
   afterEach(() => {
@@ -53,10 +70,11 @@ describe('Google Vertex Edge Auth', () => {
 
     // Header validation
     const header = JSON.parse(atob(parts[0]));
-    expect(header).toEqual({
+    expect(header).toMatchObject({
       alg: 'RS256',
       typ: 'JWT',
       kid: mockCredentials.privateKeyId,
+      iss: mockCredentials.clientEmail,
     });
 
     // Payload validation

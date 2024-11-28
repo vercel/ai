@@ -196,7 +196,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
-
     const body = JSON.stringify(args);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -215,14 +214,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const candidate = response.candidates[0];
 
     const toolCalls = getToolCallsFromParts({
-      parts: candidate.content.parts,
+      parts: candidate.content?.parts ?? [],
       generateId: this.config.generateId,
     });
 
     const usageMetadata = response.usageMetadata;
 
     return {
-      text: getTextFromParts(candidate.content.parts),
+      text: getTextFromParts(candidate.content?.parts ?? []),
       toolCalls,
       finishReason: mapGoogleGenerativeAIFinishReason({
         finishReason: candidate.finishReason,
@@ -418,7 +417,7 @@ const contentSchema = z.object({
 const responseSchema = z.object({
   candidates: z.array(
     z.object({
-      content: contentSchema,
+      content: contentSchema.optional(),
       finishReason: z.string().optional(),
     }),
   ),

@@ -11,7 +11,7 @@ import {
   embedMany,
 } from 'ai';
 import fs from 'fs';
-import { experimental_generateAuthTokenEdge } from '@ai-sdk/google-vertex';
+import { generateAuthTokenEdgeCompatible as generateAuthToken } from '@ai-sdk/google-vertex';
 
 const LONG_TEST_MILLIS = 10000;
 
@@ -26,7 +26,7 @@ describe('Google Vertex E2E Tests', () => {
   const provider = createVertex({
     project: process.env.GOOGLE_VERTEX_PROJECT,
     location: process.env.GOOGLE_VERTEX_LOCATION,
-    generateAuthToken: experimental_generateAuthTokenEdge,
+    generateAuthToken,
   });
 
   describe.each(MODEL_VARIANTS.chat)('Chat Model: %s', modelId => {

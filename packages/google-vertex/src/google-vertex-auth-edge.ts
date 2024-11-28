@@ -55,25 +55,28 @@ const loadCredentials = async (): Promise<GoogleCredentials> => {
 const base64url = (str: string) => {
   return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 };
-
-// Import a private key from a string
 const importPrivateKey = async (pemKey: string) => {
   const pemHeader = '-----BEGIN PRIVATE KEY-----';
   const pemFooter = '-----END PRIVATE KEY-----';
-  const pemContents = pemKey.substring(
-    pemHeader.length,
-    pemKey.length - pemFooter.length,
-  );
-  const binaryDerString = Buffer.from(pemContents, 'base64').toString('binary');
-  const binaryDer = new Uint8Array(binaryDerString.length);
 
-  for (let i = 0; i < binaryDerString.length; i++) {
-    binaryDer[i] = binaryDerString.charCodeAt(i);
+  // Remove header, footer, and any whitespace/newlines
+  const pemContents = pemKey
+    .replace(pemHeader, '')
+    .replace(pemFooter, '')
+    .replace(/\s/g, '');
+
+  // Decode base64 to binary
+  const binaryString = atob(pemContents);
+
+  // Convert binary string to Uint8Array
+  const binaryData = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    binaryData[i] = binaryString.charCodeAt(i);
   }
 
   return await crypto.subtle.importKey(
     'pkcs8',
-    binaryDer.buffer,
+    binaryData,
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
     true,
     ['sign'],
@@ -124,7 +127,9 @@ const buildJwt = async (credentials: GoogleCredentials) => {
  * Generate an authentication token for Google Vertex AI in a manner compatible
  * with the Edge runtime.
  */
-export async function generateAuthToken(credentials?: GoogleCredentials) {
+export async function generateAuthTokenEdgeCompatible(
+  credentials?: GoogleCredentials,
+) {
   try {
     const creds = credentials || (await loadCredentials());
     const jwt = await buildJwt(creds);

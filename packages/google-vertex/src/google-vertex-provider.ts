@@ -13,7 +13,7 @@ import {
   GoogleVertexEmbeddingSettings,
 } from './google-vertex-embedding-settings';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
-import { generateAuthToken } from './google-vertex-auth-edge';
+import { generateAuthTokenEdgeCompatible as generateAuthToken } from './google-vertex-auth-edge';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 
 export interface GoogleVertexProvider extends ProviderV1 {
@@ -87,7 +87,8 @@ export function createVertex(
     });
 
   const getHeaders = async () => ({
-    Authorization: `Bearer ${await generateAuthToken()}`,
+    Authorization: `Bearer ${await (options.generateAuthToken?.() ??
+      generateAuthToken())}`,
     'Content-Type': 'application/json',
     ...options.headers,
   });
