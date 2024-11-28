@@ -369,7 +369,9 @@ With `streamText`, you can control how error messages and usage information are 
 
 ### Error Messages
 
-By default, the error message is suppressed for security reasons. You can forward it or send your own error message by providing a `getErrorMessage` function:
+By default, the error message is masked for security reasons.
+The default error message is "An error occurred."
+You can forward error messages or send your own error message by providing a `getErrorMessage` function:
 
 ```ts filename="app/api/chat/route.ts" highlight="13-27"
 import { openai } from '@ai-sdk/openai';
