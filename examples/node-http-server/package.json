@@ -10,7 +10,8 @@
     "zod-to-json-schema": "3.23.5"
   },
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "dev": "tsx src/server.ts"
   },
   "devDependencies": {
     "@types/node": "20.11.20",

@@ -16,7 +16,7 @@ app.post('/', async (req: Request, res: Response) => {
 
 app.post('/stream-data', async (req: Request, res: Response) => {
   // immediately start streaming the response
-  return pipeDataStreamToResponse(res, {
+  pipeDataStreamToResponse(res, {
     execute: async dataStreamWriter => {
       dataStreamWriter.writeData('initialized call');
 
