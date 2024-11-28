@@ -1,9 +1,10 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
-import { formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { StreamData } from '../../streams/stream-data';
 import { DelayedPromise } from '../../util/delayed-promise';
+import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
@@ -1055,7 +1056,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: {
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean;
-  } = {}) {
+  } = {}): ReadableStream<DataStreamString> {
     let aggregatedResponse = '';
 
     const callbackTransformer = new TransformStream<
@@ -1073,7 +1074,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     const streamPartsTransformer = new TransformStream<
       TextStreamPart<TOOLS>,
-      string
+      DataStreamString
     >({
       transform: async (chunk, controller) => {
         const chunkType = chunk.type;
@@ -1226,6 +1227,10 @@ However, the LLM results are expected to be small enough to not cause issues.
     }).pipeThrough(new TextEncoderStream());
 
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
+  }
+
+  mergeIntoDataStream(writer: DataStreamWriter) {
+    writer.merge(this.toDataStreamInternal());
   }
 
   toDataStreamResponse({

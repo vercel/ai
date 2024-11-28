@@ -2,7 +2,7 @@ import { ServerResponse } from 'node:http';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import { createDataStream } from './create-data-stream';
-import { DataStream } from './data-stream';
+import { DataStreamWriter } from './data-stream-writer';
 
 export function pipeDataStreamToResponse(
   response: ServerResponse,
@@ -13,7 +13,7 @@ export function pipeDataStreamToResponse(
     execute,
     onError,
   }: ResponseInit & {
-    execute: (dataStream: DataStream) => Promise<void> | void;
+    execute: (writer: DataStreamWriter) => Promise<void> | void;
     onError?: (error: unknown) => string;
   },
 ): void {

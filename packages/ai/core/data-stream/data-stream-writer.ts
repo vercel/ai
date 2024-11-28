@@ -1,7 +1,7 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { DataStreamString } from '@ai-sdk/ui-utils';
 
-export interface DataStream {
+export interface DataStreamWriter {
   /**
    * Appends a data part to the stream.
    */

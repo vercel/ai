@@ -1,11 +1,11 @@
 import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
-import { DataStream } from './data-stream';
+import { DataStreamWriter } from './data-stream-writer';
 
 export function createDataStream({
   execute,
   onError = () => 'An error occurred.', // mask error messages for safety by default
 }: {
-  execute: (dataStream: DataStream) => Promise<void> | void;
+  execute: (dataStream: DataStreamWriter) => Promise<void> | void;
   onError?: (error: unknown) => string;
 }): ReadableStream<DataStreamString> {
   let controller: ReadableStreamDefaultController<string>;

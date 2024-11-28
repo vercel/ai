@@ -1,6 +1,6 @@
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { createDataStream } from './create-data-stream';
-import { DataStream } from './data-stream';
+import { DataStreamWriter } from './data-stream-writer';
 
 export function createDataStreamResponse({
   status,
@@ -9,7 +9,7 @@ export function createDataStreamResponse({
   execute,
   onError,
 }: ResponseInit & {
-  execute: (dataStream: DataStream) => Promise<void> | void;
+  execute: (dataStream: DataStreamWriter) => Promise<void> | void;
   onError?: (error: unknown) => string;
 }): Response {
   return new Response(

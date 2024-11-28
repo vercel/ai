@@ -2,7 +2,7 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { expect, it } from 'vitest';
 import { createDataStream } from './create-data-stream';
-import { DataStream } from './data-stream';
+import { DataStreamWriter } from './data-stream-writer';
 import { delay } from '../../util/delay';
 
 describe('createDataStream', () => {
@@ -176,7 +176,7 @@ describe('createDataStream', () => {
 
   describe('when stream is closed', () => {
     it('should throw error when writing data to stream', async () => {
-      let dataStream: DataStream;
+      let dataStream: DataStreamWriter;
 
       const stream = createDataStream({
         execute: dataStreamArg => {
@@ -195,7 +195,7 @@ describe('createDataStream', () => {
     });
 
     it('should support writing from delayed merged streams', async () => {
-      let dataStream: DataStream;
+      let dataStream: DataStreamWriter;
       let controller1: ReadableStreamDefaultController<string>;
       let controller2: ReadableStreamDefaultController<string>;
       let done = false;
