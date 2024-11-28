@@ -54,7 +54,7 @@ app.listen(8080, () => {
 
 ```ts filename='index.ts' highlight="8-11,18"
 import { openai } from '@ai-sdk/openai';
-import { StreamData, streamText } from 'ai';
+import { pipeDataStreamToResponse, streamText } from 'ai';
 import express, { Request, Response } from 'express';
 
 const app = express();

@@ -59,7 +59,7 @@ serve({ fetch: app.fetch, port: 8080 });
 ```ts filename='index.ts' highlight="10-13,20"
 import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
-import { StreamData, streamText } from 'ai';
+import { createDataStream, streamText } from 'ai';
 import { Hono } from 'hono';
 import { stream } from 'hono/streaming';
 

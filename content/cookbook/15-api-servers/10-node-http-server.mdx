@@ -48,7 +48,7 @@ createServer(async (req, res) => {
 
 ```ts filename='index.ts' highlight="6-9,16"
 import { openai } from '@ai-sdk/openai';
-import { StreamData, streamText } from 'ai';
+import { pipeDataStreamToResponse, streamText } from 'ai';
 import { createServer } from 'http';
 
 createServer(async (req, res) => {
