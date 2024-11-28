@@ -17,7 +17,7 @@
     "@sentry/nextjs": "^8.22.0",
     "@sentry/opentelemetry": "8.22.0",
     "@vercel/otel": "1.9.1",
-    "ai": "4.0.7",
+    "ai": "4.0.8",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",

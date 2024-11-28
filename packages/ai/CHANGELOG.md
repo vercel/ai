@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.8
+
+### Patch Changes
+
+- a803d76: feat (ai/core): pass toolCallId option into tool execute function
+
 ## 4.0.7
 
 ### Patch Changes
