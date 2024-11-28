@@ -1,12 +1,13 @@
 import { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
+import { formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { DataStreamWriter } from '../core/data-stream/data-stream-writer';
 import { mergeStreams } from '../core/util/merge-streams';
 import { prepareResponseHeaders } from '../core/util/prepare-response-headers';
 import {
   createCallbacksTransformer,
   StreamCallbacks,
 } from './stream-callbacks';
-import { createStreamDataTransformer, StreamData } from './stream-data';
-import { DataStreamWriter } from '../core/data-stream/data-stream-writer';
+import { StreamData } from './stream-data';
 
 type EngineResponse = {
   delta: string;
@@ -28,7 +29,13 @@ function toDataStreamInternal(
     )
     .pipeThrough(createCallbacksTransformer(callbacks))
     .pipeThrough(new TextDecoderStream())
-    .pipeThrough(createStreamDataTransformer());
+    .pipeThrough(
+      new TransformStream({
+        transform: async (chunk, controller) => {
+          controller.enqueue(formatDataStreamPart('text', chunk));
+        },
+      }),
+    );
 }
 
 export function toDataStream(

@@ -1,10 +1,11 @@
+import { formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { mergeStreams } from '../core/util/merge-streams';
 import { prepareResponseHeaders } from '../core/util/prepare-response-headers';
 import {
   createCallbacksTransformer,
   StreamCallbacks,
 } from './stream-callbacks';
-import { createStreamDataTransformer, StreamData } from './stream-data';
+import { StreamData } from './stream-data';
 
 type LangChainImageDetail = 'auto' | 'low' | 'high';
 
@@ -90,7 +91,13 @@ export function toDataStream(
     )
     .pipeThrough(createCallbacksTransformer(callbacks))
     .pipeThrough(new TextDecoderStream())
-    .pipeThrough(createStreamDataTransformer())
+    .pipeThrough(
+      new TransformStream({
+        transform: async (chunk, controller) => {
+          controller.enqueue(formatDataStreamPart('text', chunk));
+        },
+      }),
+    )
     .pipeThrough(new TextEncoderStream());
 }
 
