@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.9
+
+### Patch Changes
+
+- fda9695: feat (ai/core): reworked data stream management
+
 ## 4.0.8
 
 ### Patch Changes
