@@ -17,7 +17,7 @@
     "@ai-sdk/xai": "1.0.4",
     "@opentelemetry/sdk-node": "0.54.2",
     "@opentelemetry/auto-instrumentations-node": "0.47.0",
-    "@opentelemetry/sdk-trace-node": "1.27.0",
+    "@opentelemetry/sdk-trace-node": "1.28.0",
     "ai": "4.0.7",
     "dotenv": "16.4.5",
     "mathjs": "14.0.0",
