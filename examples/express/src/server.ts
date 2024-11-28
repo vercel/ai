@@ -1,25 +1,34 @@
 import { openai } from '@ai-sdk/openai';
-import { StreamData, streamText } from 'ai';
+import { pipeDataStreamToResponse, streamText } from 'ai';
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 
 const app = express();
 
 app.post('/', async (req: Request, res: Response) => {
-  // use stream data (optional):
-  const data = new StreamData();
-  data.append('initialized call');
-
   const result = streamText({
     model: openai('gpt-4o'),
     prompt: 'Invent a new holiday and describe its traditions.',
-    onFinish() {
-      data.append('call completed');
-      data.close();
-    },
   });
 
-  result.pipeDataStreamToResponse(res, { data });
+  result.pipeDataStreamToResponse(res);
+});
+
+app.post('/stream-data', async (req: Request, res: Response) => {
+  // immediately start streaming the response
+  return pipeDataStreamToResponse(res, {
+    execute: async dataStream => {
+      // send stream data:
+      dataStream.writeData('initialized call');
+
+      const result = streamText({
+        model: openai('gpt-4o'),
+        prompt: 'Invent a new holiday and describe its traditions.',
+      });
+
+      result.mergeIntoDataStream(dataStream);
+    },
+  });
 });
 
 app.listen(8080, () => {
