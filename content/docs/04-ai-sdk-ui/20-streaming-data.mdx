@@ -1,63 +1,73 @@
 ---
-title: Streaming Data
-description: Welcome to the AI SDK documentation!
+title: Streaming Custom Data
+description: Learn how to stream custom data to the client.
 ---
 
-# Streaming Data
+# Streaming Custom Data
 
 It is often useful to send additional data alongside the model's response.
 For example, you may want to send status information, the message ids after storing them,
 or references to content that the language model is referring to.
 
-The AI SDK provides a `StreamData` helper that allows you to stream additional data to the client
-and attach it either to the `Message` or to the `data` object of the `useChat` hook.
+The AI SDK provides several helpers that allows you to stream additional data to the client
+and attach it either to the `Message` or to the `data` object of the `useChat` hook:
+
+- `createDataStream`: creates a data stream
+- `createDataStreamResponse`: creates a response object that streams data
+- `pipeDataStreamToResponse`: pipes a data stream to a server response object
+
 The data is streamed as part of the response stream.
 
-## Sending Stream Data
+## Sending Custom Data from the Server
 
-In your server-side route handler, you can use `StreamData` in combination with `streamText`.
+In your server-side route handler, you can use `createDataStreamResponse` and `pipeDataStreamToResponse` in combination with `streamText`.
 You need to:
 
-1. Initialize a `StreamData` object.
-2. Append data to it, which can either be message annotations (`appendMessageAnnotation`) or call annotations (`append`) .
-3. Close the `StreamData` object.
-4. Return the `StreamData` object in the `toDataStreamResponse` call.
+1. Call `createDataStreamResponse` or `pipeDataStreamToResponse` to get a callback function with a `DataStreamWriter`.
+2. Write to the `DataStreamWriter` to stream additional data.
+3. Merge the `streamText` result into the `DataStreamWriter`.
+4. Return the response from `createDataStreamResponse` (if that method is used)
 
 Here is an example:
 
-```tsx highlight="7,8,10,11, 16-20,22,23,25,26,31,32"
+```tsx highlight="7-10,16,19-23,25-26,30"
 import { openai } from '@ai-sdk/openai';
-import { streamText, StreamData } from 'ai';
+import { generateId, createDataStreamResponse, streamText } from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  // Create a new StreamData object
-  const data = new StreamData();
+  // immediately start streaming (solves RAG issues with status, etc.)
+  return createDataStreamResponse({
+    execute: dataStream => {
+      dataStream.writeData('initialized call');
 
-  // Append to general streamed data
-  data.append({ test: 'initialized calls' });
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages,
+        onChunk() {
+          dataStream.writeMessageAnnotation({ chunk: '123' });
+        },
+        onFinish() {
+          // message annotation:
+          dataStream.writeMessageAnnotation({
+            id: generateId(), // e.g. id from saved DB record
+            other: 'information',
+          });
 
-  const result = streamText({
-    model: openai('gpt-4-turbo'),
-    onFinish() {
-      // message annotation:
-      data.appendMessageAnnotation({
-        id: generateId(), // e.g. id from saved DB record
-        other: 'information',
+          // call annotation:
+          dataStream.writeData('call completed');
+        },
       });
 
-      // call annotation (can be any JSON serializable value)
-      data.append('call completed');
-
-      // close the StreamData object
-      data.close();
+      result.mergeIntoDataStream(dataStream);
     },
-    messages,
+    onError: error => {
+      // Error messages are masked by default for security reasons.
+      // If you want to expose the error message to the client, you can do so here:
+      return error instanceof Error ? error.message : String(error);
+    },
   });
-
-  // Respond with the stream and additional StreamData
-  return result.toDataStreamResponse({ data });
 }
 ```
 
@@ -67,7 +77,7 @@ export async function POST(req: Request) {
   Protocol](/docs/ai-sdk-ui/stream-protocol#data-stream-protocol).
 </Note>
 
-## Stream Data in useChat
+## Processing Custom Data in `useChat`
 
 The `useChat` hook automatically processes the streamed data and makes it available to you.
 
