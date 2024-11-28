@@ -42,9 +42,9 @@ createServer(async (req, res) => {
 }).listen(8080);
 ```
 
-### Data Stream With Stream Data
+### Sending Custom Data
 
-`pipeDataStreamToResponse` can be used to send additional data to the client.
+`pipeDataStreamToResponse` can be used to send custom data to the client.
 
 ```ts filename='index.ts' highlight="6-9,16"
 import { openai } from '@ai-sdk/openai';
