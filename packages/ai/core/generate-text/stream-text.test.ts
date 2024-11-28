@@ -2706,6 +2706,7 @@ describe('streamText', () => {
         { value: 'value' },
         {
           abortSignal: abortController.signal,
+          toolCallId: 'call-1',
           messages: expect.any(Array),
         },
       );
