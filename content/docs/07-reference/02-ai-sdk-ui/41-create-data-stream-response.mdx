@@ -21,21 +21,21 @@ const response = createDataStreamResponse({
   status: 200,
   statusText: 'OK',
   headers: {
-    'Custom-Header': 'value'
+    'Custom-Header': 'value',
   },
   async execute(dataStream) {
     // Write data
-    dataStream.writeData({ value: 'Hello' })
+    dataStream.writeData({ value: 'Hello' });
 
     // Write annotation
-    dataStream.writeMessageAnnotation({ type: 'status', value: 'processing' })
+    dataStream.writeMessageAnnotation({ type: 'status', value: 'processing' });
 
     // Merge another stream
-    const otherStream = getAnotherStream()
-    dataStream.merge(otherStream)
+    const otherStream = getAnotherStream();
+    dataStream.merge(otherStream);
   },
-  onError: error => `Custom error: ${error.message}`
-})
+  onError: error => `Custom error: ${error.message}`,
+});
 ```
 
 ## API Signature
@@ -47,17 +47,17 @@ const response = createDataStreamResponse({
     {
       name: 'status',
       type: 'number',
-      description: 'The status code for the response.'
+      description: 'The status code for the response.',
     },
     {
       name: 'statusText',
       type: 'string',
-      description: 'The status text for the response.'
+      description: 'The status text for the response.',
     },
     {
       name: 'headers',
       type: 'Headers | Record<string, string>',
-      description: 'Additional headers for the response.'
+      description: 'Additional headers for the response.',
     },
     {
       name: 'execute',
@@ -71,35 +71,35 @@ const response = createDataStreamResponse({
             {
               name: 'writeData',
               type: '(value: JSONValue) => void',
-              description: 'Appends a data part to the stream.'
+              description: 'Appends a data part to the stream.',
             },
             {
               name: 'writeMessageAnnotation',
               type: '(value: JSONValue) => void',
-              description: 'Appends a message annotation to the stream.'
+              description: 'Appends a message annotation to the stream.',
             },
             {
               name: 'merge',
               type: '(stream: ReadableStream<DataStreamString>) => void',
               description:
-                'Merges the contents of another stream to this stream.'
+                'Merges the contents of another stream to this stream.',
             },
             {
               name: 'onError',
               type: '((error: unknown) => string) | undefined',
               description:
-                'Error handler that is used by the data stream writer. This is intended for forwarding when merging streams to prevent duplicated error masking.'
-            }
-          ]
-        }
-      ]
+                'Error handler that is used by the data stream writer. This is intended for forwarding when merging streams to prevent duplicated error masking.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'onError',
       type: '(error: unknown) => string',
       description:
-        'A function that handles errors and returns an error message string. By default, it returns "An error occurred."'
-    }
+        'A function that handles errors and returns an error message string. By default, it returns "An error occurred."',
+    },
   ]}
 />
 
