@@ -854,7 +854,11 @@ describe('options.abortSignal', () => {
 
     expect(toolExecuteMock).toHaveBeenCalledWith(
       { value: 'value' },
-      { abortSignal: abortController.signal, messages: expect.any(Array) },
+      {
+        abortSignal: abortController.signal,
+        toolCallId: 'call-1',
+        messages: expect.any(Array),
+      },
     );
   });
 });

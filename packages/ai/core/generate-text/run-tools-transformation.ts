@@ -220,6 +220,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                 tracer,
                 fn: async span =>
                   tool.execute!(toolCall.args, {
+                    toolCallId: toolCall.toolCallId,
                     messages,
                     abortSignal,
                   }).then(

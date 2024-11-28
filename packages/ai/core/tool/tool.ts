@@ -12,6 +12,24 @@ export type inferParameters<PARAMETERS extends Parameters> =
     ? z.infer<PARAMETERS>
     : never;
 
+export interface ToolExecutionOptions {
+  /**
+   * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+   */
+  toolCallId: string;
+
+  /**
+   * Messages that were sent to the language model to initiate the response that contained the tool call.
+   * The messages **do not** include the system prompt nor the assistant response that contained the tool call.
+   */
+  messages: CoreMessage[];
+
+  /**
+   * An optional abort signal that indicates that the overall operation should be aborted.
+   */
+  abortSignal?: AbortSignal;
+}
+
 /**
 A tool contains the description and the schema of the input that the tool expects.
 This enables the language model to generate the input.
@@ -40,18 +58,7 @@ If not provided, the tool will not be executed automatically.
    */
   execute?: (
     args: inferParameters<PARAMETERS>,
-    options: {
-      /**
-       * Messages that were sent to the language model to initiate the response that contained the tool call.
-       * The messages **do not** include the system prompt nor the assistant response that contained the tool call.
-       */
-      messages: CoreMessage[];
-
-      /**
-       * An optional abort signal that indicates that the overall operation should be aborted.
-       */
-      abortSignal?: AbortSignal;
-    },
+    options: ToolExecutionOptions,
   ) => PromiseLike<RESULT>;
 } & (
   | {
@@ -91,19 +98,13 @@ export function tool<PARAMETERS extends Parameters, RESULT>(
   tool: CoreTool<PARAMETERS, RESULT> & {
     execute: (
       args: inferParameters<PARAMETERS>,
-      options: {
-        messages: CoreMessage[];
-        abortSignal?: AbortSignal;
-      },
+      options: ToolExecutionOptions,
     ) => PromiseLike<RESULT>;
   },
 ): CoreTool<PARAMETERS, RESULT> & {
   execute: (
     args: inferParameters<PARAMETERS>,
-    options: {
-      messages: CoreMessage[];
-      abortSignal?: AbortSignal;
-    },
+    options: ToolExecutionOptions,
   ) => PromiseLike<RESULT>;
 };
 export function tool<PARAMETERS extends Parameters, RESULT>(
