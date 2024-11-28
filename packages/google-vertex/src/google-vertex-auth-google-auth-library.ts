@@ -1,13 +1,24 @@
 import { GoogleAuth } from 'google-auth-library';
 
-const auth = new GoogleAuth({
-  scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-});
+let authInstance: GoogleAuth | null = null;
+
+function getAuth() {
+  if (!authInstance) {
+    authInstance = new GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
+  }
+  return authInstance;
+}
 
 export async function generateAuthToken() {
-  console.log('Generating auth token');
+  const auth = getAuth();
   const client = await auth.getClient();
   const token = await client.getAccessToken();
-  console.log('Auth token generated', token);
   return token?.token || null;
+}
+
+// For testing purposes only
+export function _resetAuthInstance() {
+  authInstance = null;
 }
