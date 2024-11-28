@@ -3,6 +3,8 @@ import { HANGING_STREAM_WARNING_TIME_MS } from '../util/constants';
 
 /**
  * A stream wrapper to send custom JSON-encoded data back to the client.
+ *
+ * @deprecated Please use `createDataStream`, `createDataStreamResponse`, and `pipeDataStreamToResponse` instead.
  */
 export class StreamData {
   private encoder = new TextEncoder();
