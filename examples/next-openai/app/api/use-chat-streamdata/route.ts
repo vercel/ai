@@ -27,10 +27,7 @@ export async function POST(req: Request) {
         },
       });
 
-      // TODO: result.mergeIntoDataStream(dataStream);
-      dataStream.merge(
-        result.toDataStream().pipeThrough(new TextDecoderStream()),
-      );
+      result.mergeIntoDataStream(dataStream);
     },
     onError: error => {
       // Error messages are masked by default for security reasons.
