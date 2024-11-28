@@ -1230,7 +1230,11 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   mergeIntoDataStream(writer: DataStreamWriter) {
-    writer.merge(this.toDataStreamInternal());
+    writer.merge(
+      this.toDataStreamInternal({
+        getErrorMessage: writer.onError,
+      }),
+    );
   }
 
   toDataStreamResponse({

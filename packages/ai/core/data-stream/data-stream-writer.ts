@@ -15,6 +15,12 @@ export interface DataStreamWriter {
   /**
    * Merges the contents of another stream to this stream.
    */
-  // TODO limit to data stream parts
   merge(stream: ReadableStream<DataStreamString>): void;
+
+  /**
+   * Error handler that is used by the data stream writer.
+   * This is intended for forwarding when merging streams
+   * to prevent duplicated error masking.
+   */
+  onError: ((error: unknown) => string) | undefined;
 }

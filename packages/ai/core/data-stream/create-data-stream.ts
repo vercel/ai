@@ -42,6 +42,7 @@ export function createDataStream({
           }),
         );
       },
+      onError,
     });
 
     if (result) {

@@ -2366,6 +2366,17 @@ exports[`streamText > result.mergeIntoDataStream > should merge the result into 
 ]
 `;
 
+exports[`streamText > result.mergeIntoDataStream > should use the onError handler from the data stream 1`] = `
+[
+  "3:"custom error message: error"
+",
+  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+",
+]
+`;
+
 exports[`streamText > result.pipeDataStreamToResponse > should create a Response with a data stream and custom headers 1`] = `
 [
   "0:"Hello"
