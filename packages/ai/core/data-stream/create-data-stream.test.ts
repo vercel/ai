@@ -41,8 +41,8 @@ describe('createDataStream', () => {
         dataStream.merge(
           new ReadableStream({
             start(controller) {
-              controller.enqueue('1a');
-              controller.enqueue('1b');
+              controller.enqueue(formatDataStreamPart('data', ['1a']));
+              controller.enqueue(formatDataStreamPart('data', ['1b']));
               controller.close();
             },
           }),
@@ -50,7 +50,10 @@ describe('createDataStream', () => {
       },
     });
 
-    expect(await convertReadableStreamToArray(stream)).toEqual(['1a', '1b']);
+    expect(await convertReadableStreamToArray(stream)).toEqual([
+      formatDataStreamPart('data', ['1a']),
+      formatDataStreamPart('data', ['1b']),
+    ]);
   });
 
   it('should forward elements from multiple streams and data parts', async () => {

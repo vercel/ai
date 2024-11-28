@@ -1,4 +1,5 @@
 import { JSONValue } from '@ai-sdk/provider';
+import { DataStreamString } from '@ai-sdk/ui-utils';
 
 export interface DataStream {
   /**
@@ -15,5 +16,5 @@ export interface DataStream {
    * Merges the contents of another stream to this stream.
    */
   // TODO limit to data stream parts
-  merge(stream: ReadableStream<string>): void;
+  merge(stream: ReadableStream<DataStreamString>): void;
 }

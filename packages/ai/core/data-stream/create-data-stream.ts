@@ -1,6 +1,5 @@
-import { formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { DataStream } from './data-stream';
-import { delay } from '../../util/delay';
 
 export function createDataStream({
   execute,
@@ -8,7 +7,7 @@ export function createDataStream({
 }: {
   execute: (dataStream: DataStream) => Promise<void> | void;
   onError?: (error: unknown) => string;
-}): ReadableStream<string> {
+}): ReadableStream<DataStreamString> {
   let controller: ReadableStreamDefaultController<string>;
 
   const ongoingStreamPromises: Promise<void>[] = [];
