@@ -9,6 +9,7 @@
     "fastify": "5.1.0"
   },
   "scripts": {
+    "dev": "tsx src/server.ts",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
