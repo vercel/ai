@@ -3,7 +3,12 @@ import {
   convertReadableStreamToArray,
   convertResponseStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { toDataStream, toDataStreamResponse } from './langchain-adapter';
+import { createDataStream } from '../core/data-stream/create-data-stream';
+import {
+  mergeIntoDataStream,
+  toDataStream,
+  toDataStreamResponse,
+} from './langchain-adapter';
 
 describe('toDataStream', () => {
   it('should convert ReadableStream<LangChainAIMessageChunk>', async () => {
@@ -71,5 +76,58 @@ describe('toDataStreamResponse', () => {
       '0:"Hello"\n',
       '0:"World"\n',
     ]);
+  });
+});
+
+describe('mergeIntoDataStream', () => {
+  it('should merge LangChain stream into existing data stream', async () => {
+    const inputStream = convertArrayToReadableStream([
+      { content: 'Hello' },
+      { content: ', ' },
+      { content: 'world!' },
+    ]);
+
+    const dataStream = createDataStream({
+      execute(writer) {
+        // First write some existing data
+        writer.writeData('stream-data-value');
+
+        // Then merge in the LangChain stream
+        mergeIntoDataStream(inputStream, { dataStream: writer });
+      },
+    });
+
+    assert.deepStrictEqual(await convertReadableStreamToArray(dataStream), [
+      '2:["stream-data-value"]\n',
+      '0:"Hello"\n',
+      '0:", "\n',
+      '0:"world!"\n',
+    ]);
+  });
+
+  it('should support callbacks while merging', async () => {
+    const inputStream = convertArrayToReadableStream([
+      { content: 'Hello' },
+      { content: 'World' },
+    ]);
+
+    const callbacks = {
+      onText: vi.fn(),
+    };
+
+    const dataStream = createDataStream({
+      execute(writer) {
+        mergeIntoDataStream(inputStream, {
+          dataStream: writer,
+          callbacks,
+        });
+      },
+    });
+
+    await convertReadableStreamToArray(dataStream);
+
+    expect(callbacks.onText).toHaveBeenCalledTimes(2);
+    expect(callbacks.onText).toHaveBeenNthCalledWith(1, 'Hello');
+    expect(callbacks.onText).toHaveBeenNthCalledWith(2, 'World');
   });
 });
