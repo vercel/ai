@@ -21,6 +21,7 @@ import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   GoogleGenerativeAIModelId,
   GoogleGenerativeAISettings,
+  InternalGoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
@@ -43,13 +44,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   }
 
   readonly modelId: GoogleGenerativeAIModelId;
-  readonly settings: GoogleGenerativeAISettings;
+  readonly settings: InternalGoogleGenerativeAISettings;
 
   private readonly config: GoogleGenerativeAIConfig;
 
   constructor(
     modelId: GoogleGenerativeAIModelId,
-    settings: GoogleGenerativeAISettings,
+    settings: InternalGoogleGenerativeAISettings,
     config: GoogleGenerativeAIConfig,
   ) {
     this.modelId = modelId;
