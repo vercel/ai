@@ -1172,8 +1172,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     return this.fullStream
       .pipeThrough(callbackTransformer)
-      .pipeThrough(streamPartsTransformer)
-      .pipeThrough(new TextEncoderStream());
+      .pipeThrough(streamPartsTransformer);
   }
 
   pipeDataStreamToResponse(
@@ -1215,6 +1214,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
+  // TODO breaking change 5.0: remove pipeThrough(new TextEncoderStream())
   toDataStream(options?: {
     data?: StreamData;
     getErrorMessage?: (error: unknown) => string;
@@ -1223,7 +1223,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     const stream = this.toDataStreamInternal({
       getErrorMessage: options?.getErrorMessage,
       sendUsage: options?.sendUsage,
-    });
+    }).pipeThrough(new TextEncoderStream());
 
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
   }
