@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { pipeDataStreamToResponse, StreamData, streamText } from 'ai';
+import { pipeDataStreamToResponse, streamText } from 'ai';
 import 'dotenv/config';
 import { createServer } from 'http';
 
