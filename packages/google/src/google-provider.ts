@@ -85,13 +85,6 @@ Custom headers to include in the requests.
   headers?: Record<string, string | undefined>;
 
   /**
-Experimental: async function to return custom headers to include in the requests.
-     */
-  experimental_getHeadersAsync?: () => Promise<
-    Record<string, string | undefined>
-  >;
-
-  /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
@@ -130,7 +123,7 @@ export function createGoogleGenerativeAI(
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
-      experimental_getHeadersAsync: options.experimental_getHeadersAsync,
+      experimental_getHeadersAsync: undefined,
       generateId: options.generateId ?? generateId,
       fetch: options.fetch,
     });
@@ -143,7 +136,7 @@ export function createGoogleGenerativeAI(
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
-      experimental_getHeadersAsync: options.experimental_getHeadersAsync,
+      experimental_getHeadersAsync: undefined,
       fetch: options.fetch,
     });
 

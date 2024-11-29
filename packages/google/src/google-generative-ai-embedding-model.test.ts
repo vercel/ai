@@ -134,17 +134,22 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   it('should merge async headers when experimental_getHeadersAsync is defined', async () => {
     prepareJsonResponse();
 
-    const provider = createGoogleGenerativeAI({
-      apiKey: 'test-api-key',
-      headers: {
-        'Custom-Provider-Header': 'provider-header-value',
+    const model = new GoogleGenerativeAIEmbeddingModel(
+      'text-embedding-004',
+      {},
+      {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({
+          'Custom-Provider-Header': 'provider-header-value',
+        }),
+        experimental_getHeadersAsync: async () => ({
+          'Async-Header': 'async-header-value',
+        }),
       },
-      experimental_getHeadersAsync: async () => ({
-        'Async-Header': 'async-header-value',
-      }),
-    });
+    );
 
-    await provider.textEmbeddingModel('text-embedding-004').doEmbed({
+    await model.doEmbed({
       values: testValues,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -154,7 +159,6 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     const requestHeaders = await server.getRequestHeaders();
 
     expect(requestHeaders).toStrictEqual({
-      'x-goog-api-key': 'test-api-key',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
@@ -165,15 +169,20 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   it('should skip async headers when experimental_getHeadersAsync is undefined', async () => {
     prepareJsonResponse();
 
-    const provider = createGoogleGenerativeAI({
-      apiKey: 'test-api-key',
-      headers: {
-        'Custom-Provider-Header': 'provider-header-value',
+    const model = new GoogleGenerativeAIEmbeddingModel(
+      'text-embedding-004',
+      {},
+      {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({
+          'Custom-Provider-Header': 'provider-header-value',
+        }),
+        experimental_getHeadersAsync: undefined,
       },
-      experimental_getHeadersAsync: undefined,
-    });
+    );
 
-    await provider.textEmbeddingModel('text-embedding-004').doEmbed({
+    await model.doEmbed({
       values: testValues,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -183,7 +192,6 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     const requestHeaders = await server.getRequestHeaders();
 
     expect(requestHeaders).toStrictEqual({
-      'x-goog-api-key': 'test-api-key',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',

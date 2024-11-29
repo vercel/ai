@@ -3,7 +3,12 @@ import {
   NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
-import { FetchFunction, generateId, loadSetting } from '@ai-sdk/provider-utils';
+import {
+  combineHeaders,
+  FetchFunction,
+  generateId,
+  loadSetting,
+} from '@ai-sdk/provider-utils';
 import {
   GoogleVertexModelId,
   GoogleVertexSettings,
@@ -43,25 +48,33 @@ Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_
   project?: string;
 
   /**
+Optional. The headers to use.
+   */
+  headers?: Record<string, string | undefined>;
+
+  /**
+Experimental: async function to return custom headers to include in the requests.
+     */
+  experimental_getHeadersAsync?: () => Promise<
+    Record<string, string | undefined>
+  >;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
+
+  // for testing
+  generateId?: () => string;
+
+  /**
  Optional. The Authentication options provided by google-auth-library.
 Complete list of authentication options is documented in the
 GoogleAuthOptions interface:
 https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts.
    */
   generateAuthToken?: () => Promise<string | null | undefined>;
-
-  // for testing
-  generateId?: () => string;
-
-  /**
-Optional. The fetch function to use.
-   */
-  fetch?: FetchFunction;
-
-  /**
-Optional. The headers to use.
-   */
-  headers?: () => Promise<Record<string, string | undefined>>;
 }
 
 /**
@@ -86,12 +99,20 @@ export function createVertex(
       description: 'Google Vertex location',
     });
 
-  const getHeaders = async () => ({
+  const getHeadersAsync = async () => ({
     Authorization: `Bearer ${await (options.generateAuthToken?.() ??
       generateAuthToken())}`,
     'Content-Type': 'application/json',
-    ...options.headers,
   });
+
+  const getMergedAsyncHeaders = () =>
+    options.experimental_getHeadersAsync
+      ? async () =>
+          combineHeaders(
+            await getHeadersAsync(),
+            await options.experimental_getHeadersAsync?.(),
+          )
+      : () => getHeadersAsync();
 
   const createChatModel = (
     modelId: GoogleVertexModelId,
@@ -102,7 +123,8 @@ export function createVertex(
     return new GoogleGenerativeAILanguageModel(modelId, settings, {
       provider: `google.vertex.chat`,
       baseURL: `https://${region}-aiplatform.googleapis.com/v1/projects/${project}/locations/${region}/publishers/google`,
-      headers: getHeaders,
+      headers: () => options.headers ?? {},
+      experimental_getHeadersAsync: getMergedAsyncHeaders(),
       generateId: options.generateId ?? generateId,
       fetch: options.fetch,
     });
@@ -116,7 +138,9 @@ export function createVertex(
       provider: `google.vertex.embedding`,
       region: loadVertexLocation(),
       project: loadVertexProject(),
-      headers: getHeaders,
+      headers: () => options.headers ?? {},
+      experimental_getHeadersAsync: getMergedAsyncHeaders(),
+      generateAuthToken: options.generateAuthToken,
     });
 
   const provider = function (

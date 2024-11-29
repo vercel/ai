@@ -5,6 +5,7 @@ import {
   withTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createGoogleGenerativeAI } from './google-provider';
+import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -536,17 +537,23 @@ describe('doGenerate', () => {
   it(
     'should merge async headers when experimental_getHeadersAsync is defined',
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
-      const provider = createGoogleGenerativeAI({
-        apiKey: 'test-api-key',
-        headers: {
-          'Custom-Provider-Header': 'provider-header-value',
+      const model = new GoogleGenerativeAILanguageModel(
+        'gemini-pro',
+        {},
+        {
+          provider: 'google.generative-ai',
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: () => ({
+            'Custom-Provider-Header': 'provider-header-value',
+          }),
+          experimental_getHeadersAsync: async () => ({
+            'Async-Header': 'async-header-value',
+          }),
+          generateId: () => 'foo',
         },
-        experimental_getHeadersAsync: async () => ({
-          'Async-Header': 'async-header-value',
-        }),
-      });
+      );
 
-      await provider.chat('gemini-pro').doGenerate({
+      await model.doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
@@ -562,7 +569,6 @@ describe('doGenerate', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
         'async-header': 'async-header-value',
-        'x-goog-api-key': 'test-api-key',
       });
     }),
   );
@@ -570,15 +576,21 @@ describe('doGenerate', () => {
   it(
     'should skip async headers when experimental_getHeadersAsync is undefined',
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
-      const provider = createGoogleGenerativeAI({
-        apiKey: 'test-api-key',
-        headers: {
-          'Custom-Provider-Header': 'provider-header-value',
+      const model = new GoogleGenerativeAILanguageModel(
+        'gemini-pro',
+        {},
+        {
+          provider: 'google.generative-ai',
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: () => ({
+            'Custom-Provider-Header': 'provider-header-value',
+          }),
+          experimental_getHeadersAsync: undefined,
+          generateId: () => 'foo',
         },
-        experimental_getHeadersAsync: undefined,
-      });
+      );
 
-      await provider.chat('gemini-pro').doGenerate({
+      await model.doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
@@ -593,7 +605,6 @@ describe('doGenerate', () => {
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
-        'x-goog-api-key': 'test-api-key',
       });
     }),
   );
@@ -803,17 +814,23 @@ describe('doStream', () => {
     withTestServer(
       prepareStreamResponse({ content: [''] }),
       async ({ call }) => {
-        const provider = createGoogleGenerativeAI({
-          apiKey: 'test-api-key',
-          headers: {
-            'Custom-Provider-Header': 'provider-header-value',
+        const model = new GoogleGenerativeAILanguageModel(
+          'gemini-pro',
+          {},
+          {
+            provider: 'google.generative-ai',
+            baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+            headers: () => ({
+              'Custom-Provider-Header': 'provider-header-value',
+            }),
+            experimental_getHeadersAsync: async () => ({
+              'Async-Header': 'async-header-value',
+            }),
+            generateId: () => 'foo',
           },
-          experimental_getHeadersAsync: async () => ({
-            'Async-Header': 'async-header-value',
-          }),
-        });
+        );
 
-        await provider.chat('gemini-pro').doStream({
+        await model.doStream({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
@@ -829,7 +846,6 @@ describe('doStream', () => {
           'custom-provider-header': 'provider-header-value',
           'custom-request-header': 'request-header-value',
           'async-header': 'async-header-value',
-          'x-goog-api-key': 'test-api-key',
         });
       },
     ),
@@ -840,15 +856,21 @@ describe('doStream', () => {
     withTestServer(
       prepareStreamResponse({ content: [''] }),
       async ({ call }) => {
-        const provider = createGoogleGenerativeAI({
-          apiKey: 'test-api-key',
-          headers: {
-            'Custom-Provider-Header': 'provider-header-value',
+        const model = new GoogleGenerativeAILanguageModel(
+          'gemini-pro',
+          {},
+          {
+            provider: 'google.generative-ai',
+            baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+            headers: () => ({
+              'Custom-Provider-Header': 'provider-header-value',
+            }),
+            experimental_getHeadersAsync: undefined,
+            generateId: () => 'foo',
           },
-          experimental_getHeadersAsync: undefined,
-        });
+        );
 
-        await provider.chat('gemini-pro').doStream({
+        await model.doStream({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
@@ -863,7 +885,6 @@ describe('doStream', () => {
           'content-type': 'application/json',
           'custom-provider-header': 'provider-header-value',
           'custom-request-header': 'request-header-value',
-          'x-goog-api-key': 'test-api-key',
         });
       },
     ),

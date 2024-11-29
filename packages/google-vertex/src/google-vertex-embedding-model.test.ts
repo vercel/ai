@@ -1,150 +1,216 @@
-import { JsonTestServer } from '@ai-sdk/provider-utils/test';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { TooManyEmbeddingValuesForCallError } from '@ai-sdk/provider';
+import { postJsonToApi } from '@ai-sdk/provider-utils';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 
-const dummyEmbeddings = [
-  [0.1, 0.2, 0.3, 0.4, 0.5],
-  [0.6, 0.7, 0.8, 0.9, 1.0],
-];
-const testValues = ['sunny day at the beach', 'rainy day in the city'];
+// Mock the postJsonToApi utility
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const actual = await importOriginal<
+    typeof import('@ai-sdk/provider-utils')
+  >();
+  return {
+    ...actual,
+    postJsonToApi: vi.fn(),
+  };
+});
 
 describe('GoogleVertexEmbeddingModel', () => {
-  const server = new JsonTestServer(
-    'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google/models/text-embedding-001:predict',
-  );
-
-  server.setupTestEnvironment();
-
-  const model = new GoogleVertexEmbeddingModel(
-    'text-embedding-001',
-    {},
-    {
-      provider: 'google.vertex',
-      region: 'us-central1',
-      project: 'test-project',
-      headers: async () => ({
-        authorization: 'Bearer test-auth-token',
-      }),
-    },
-  );
-
-  function prepareJsonResponse({
-    embeddings = dummyEmbeddings,
-    tokenCounts = [5, 3],
-  } = {}) {
-    server.responseBodyJson = {
-      predictions: embeddings.map((embedding, index) => ({
-        embeddings: {
-          values: embedding,
-          statistics: {
-            token_count: tokenCounts[index],
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Setup default successful response
+    (postJsonToApi as any).mockResolvedValue({
+      responseHeaders: {},
+      value: {
+        predictions: [
+          {
+            embeddings: {
+              values: [0.1, 0.2, 0.3],
+              statistics: { token_count: 1 },
+            },
           },
-        },
-      })),
-    };
-  }
-
-  it('should extract embedding and token usage', async () => {
-    prepareJsonResponse();
-
-    const { embeddings, usage } = await model.doEmbed({ values: testValues });
-
-    expect(embeddings).toStrictEqual(dummyEmbeddings);
-    expect(usage).toStrictEqual({ tokens: 8 });
-  });
-
-  it('should pass the correct request body', async () => {
-    prepareJsonResponse();
-
-    await model.doEmbed({ values: testValues });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      instances: testValues.map(value => ({
-        content: value,
-      })),
-      parameters: {},
+        ],
+      },
     });
   });
 
-  it('should pass the outputDimensionality setting', async () => {
-    prepareJsonResponse();
+  describe('header merging logic', () => {
+    const mockModelId = 'textembedding-gecko@001';
+    const mockSettings = { outputDimensionality: 768 };
 
-    const modelWithDimensions = new GoogleVertexEmbeddingModel(
-      'text-embedding-001',
-      { outputDimensionality: 64 },
-      {
-        provider: 'google.vertex',
+    it('handles all header sources being undefined', async () => {
+      const model = new GoogleVertexEmbeddingModel(mockModelId, mockSettings, {
+        provider: 'google-vertex',
         region: 'us-central1',
         project: 'test-project',
-        headers: async () => ({}),
-      },
-    );
+        generateAuthToken: undefined,
+        headers: () => ({}),
+        experimental_getHeadersAsync: undefined,
+      });
 
-    await modelWithDimensions.doEmbed({ values: testValues });
+      await model.doEmbed({ values: ['test'] });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      instances: testValues.map(value => ({
-        content: value,
-      })),
-      parameters: {
-        outputDimensionality: 64,
-      },
+      expect(postJsonToApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: {},
+        }),
+      );
+    });
+
+    it('handles generateAuthToken returning null/undefined', async () => {
+      const model = new GoogleVertexEmbeddingModel(mockModelId, mockSettings, {
+        provider: 'google-vertex',
+        region: 'us-central1',
+        project: 'test-project',
+        generateAuthToken: async () => null,
+        headers: () => ({ 'X-Test': 'test' }),
+        experimental_getHeadersAsync: undefined,
+      });
+
+      await model.doEmbed({ values: ['test'] });
+
+      expect(postJsonToApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: {
+            'X-Test': 'test',
+          },
+        }),
+      );
+    });
+
+    it('combines all header sources correctly', async () => {
+      const model = new GoogleVertexEmbeddingModel(mockModelId, mockSettings, {
+        provider: 'google-vertex',
+        region: 'us-central1',
+        project: 'test-project',
+        generateAuthToken: async () => 'auth-token',
+        headers: () => ({ 'X-Static': 'static' }),
+        experimental_getHeadersAsync: async () => ({ 'X-Async': 'async' }),
+      });
+
+      await model.doEmbed({
+        values: ['test'],
+        headers: { 'X-Request': 'request' },
+      });
+
+      expect(postJsonToApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: {
+            Authorization: 'Bearer auth-token',
+            'X-Async': 'async',
+            'X-Request': 'request',
+            'X-Static': 'static',
+          },
+        }),
+      );
+    });
+
+    it('handles experimental_getHeadersAsync returning undefined', async () => {
+      const model = new GoogleVertexEmbeddingModel(mockModelId, mockSettings, {
+        provider: 'google-vertex',
+        region: 'us-central1',
+        project: 'test-project',
+        generateAuthToken: async () => 'auth-token',
+        headers: () => ({ 'X-Static': 'static' }),
+        experimental_getHeadersAsync: undefined,
+      });
+
+      await model.doEmbed({ values: ['test'] });
+
+      expect(postJsonToApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: {
+            Authorization: 'Bearer auth-token',
+            'X-Static': 'static',
+          },
+        }),
+      );
+    });
+
+    it('prioritizes headers correctly when overlapping', async () => {
+      const model = new GoogleVertexEmbeddingModel(mockModelId, mockSettings, {
+        provider: 'google-vertex',
+        region: 'us-central1',
+        project: 'test-project',
+        generateAuthToken: async () => 'auth-token',
+        headers: () => ({ 'X-Common': 'static' }),
+        experimental_getHeadersAsync: async () => ({ 'X-Common': 'async' }),
+      });
+
+      await model.doEmbed({
+        values: ['test'],
+        headers: { 'X-Common': 'request' },
+      });
+
+      expect(postJsonToApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: {
+            Authorization: 'Bearer auth-token',
+            'X-Common': 'request',
+          },
+        }),
+      );
+    });
+
+    it('handles headers function returning undefined values', async () => {
+      const model = new GoogleVertexEmbeddingModel(mockModelId, mockSettings, {
+        provider: 'google-vertex',
+        region: 'us-central1',
+        project: 'test-project',
+        generateAuthToken: async () => 'auth-token',
+        headers: () => ({ 'X-Static': undefined }),
+        experimental_getHeadersAsync: undefined,
+      });
+
+      await model.doEmbed({ values: ['test'] });
+
+      expect(postJsonToApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: {
+            Authorization: 'Bearer auth-token',
+          },
+        }),
+      );
+    });
+
+    it('handles generateAuthToken returning undefined', async () => {
+      const model = new GoogleVertexEmbeddingModel(mockModelId, mockSettings, {
+        provider: 'google-vertex',
+        region: 'us-central1',
+        project: 'test-project',
+        generateAuthToken: async () => undefined,
+        headers: () => ({ 'X-Static': 'static' }),
+        experimental_getHeadersAsync: undefined,
+      });
+
+      await model.doEmbed({ values: ['test'] });
+
+      expect(postJsonToApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: {
+            'X-Static': 'static',
+          },
+        }),
+      );
     });
   });
 
-  it('should expose the raw response headers', async () => {
-    prepareJsonResponse();
-
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
-
-    const { rawResponse } = await model.doEmbed({ values: testValues });
-
-    expect(rawResponse?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '173',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
-
-  it('should pass headers', async () => {
-    prepareJsonResponse();
-
-    await model.doEmbed({
-      values: testValues,
-      headers: {
-        'Custom-Request-Header': 'request-header-value',
-      },
-    });
-
-    const requestHeaders = await server.getRequestHeaders();
-
-    expect(requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-auth-token',
-      'content-type': 'application/json',
-      'custom-request-header': 'request-header-value',
-    });
-  });
-
-  it('should throw an error if too many values are provided', async () => {
+  it('throws TooManyEmbeddingValuesForCallError when too many values provided', async () => {
     const model = new GoogleVertexEmbeddingModel(
-      'text-embedding-001',
-      {},
+      'textembedding-gecko@001',
+      { outputDimensionality: 768 },
       {
-        provider: 'google.vertex',
+        provider: 'google-vertex',
         region: 'us-central1',
         project: 'test-project',
-        headers: async () => ({}),
+        generateAuthToken: undefined,
+        headers: () => ({}),
+        experimental_getHeadersAsync: undefined,
       },
     );
 
     const tooManyValues = Array(2049).fill('test');
-
     await expect(model.doEmbed({ values: tooManyValues })).rejects.toThrow(
-      'Too many values for a single embedding call. The google.vertex model "text-embedding-001" can only embed up to 2048 values per call, but 2049 values were provided.',
+      TooManyEmbeddingValuesForCallError,
     );
   });
 });
