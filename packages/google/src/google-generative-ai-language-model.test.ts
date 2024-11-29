@@ -458,9 +458,9 @@ describe('doGenerate', () => {
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
       const provider = createGoogleGenerativeAI({
         apiKey: 'test-api-key',
-        headers: async () => ({
+        headers: {
           'Custom-Provider-Header': 'provider-header-value',
-        }),
+        },
       });
 
       await provider.chat('gemini-pro').doGenerate({
@@ -529,6 +529,71 @@ describe('doGenerate', () => {
 
       expect(request).toStrictEqual({
         body: '{"generationConfig":{},"contents":[{"role":"user","parts":[{"text":"Hello"}]}]}',
+      });
+    }),
+  );
+
+  it(
+    'should merge async headers when experimental_getHeadersAsync is defined',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      const provider = createGoogleGenerativeAI({
+        apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+        experimental_getHeadersAsync: async () => ({
+          'Async-Header': 'async-header-value',
+        }),
+      });
+
+      await provider.chat('gemini-pro').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      const requestHeaders = call(0).getRequestHeaders();
+
+      expect(requestHeaders).toStrictEqual({
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+        'async-header': 'async-header-value',
+        'x-goog-api-key': 'test-api-key',
+      });
+    }),
+  );
+
+  it(
+    'should skip async headers when experimental_getHeadersAsync is undefined',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      const provider = createGoogleGenerativeAI({
+        apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+        experimental_getHeadersAsync: undefined,
+      });
+
+      await provider.chat('gemini-pro').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      const requestHeaders = call(0).getRequestHeaders();
+
+      expect(requestHeaders).toStrictEqual({
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+        'x-goog-api-key': 'test-api-key',
       });
     }),
   );
@@ -657,9 +722,9 @@ describe('doStream', () => {
       async ({ call }) => {
         const provider = createGoogleGenerativeAI({
           apiKey: 'test-api-key',
-          headers: async () => ({
+          headers: {
             'Custom-Provider-Header': 'provider-header-value',
-          }),
+          },
         });
 
         await provider.chat('gemini-pro').doStream({
@@ -729,6 +794,77 @@ describe('doStream', () => {
             usage: { promptTokens: 294, completionTokens: 233 },
           },
         ]);
+      },
+    ),
+  );
+
+  it(
+    'should merge async headers when experimental_getHeadersAsync is defined',
+    withTestServer(
+      prepareStreamResponse({ content: [''] }),
+      async ({ call }) => {
+        const provider = createGoogleGenerativeAI({
+          apiKey: 'test-api-key',
+          headers: {
+            'Custom-Provider-Header': 'provider-header-value',
+          },
+          experimental_getHeadersAsync: async () => ({
+            'Async-Header': 'async-header-value',
+          }),
+        });
+
+        await provider.chat('gemini-pro').doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          headers: {
+            'Custom-Request-Header': 'request-header-value',
+          },
+        });
+
+        const requestHeaders = call(0).getRequestHeaders();
+
+        expect(requestHeaders).toStrictEqual({
+          'content-type': 'application/json',
+          'custom-provider-header': 'provider-header-value',
+          'custom-request-header': 'request-header-value',
+          'async-header': 'async-header-value',
+          'x-goog-api-key': 'test-api-key',
+        });
+      },
+    ),
+  );
+
+  it(
+    'should skip async headers when experimental_getHeadersAsync is undefined',
+    withTestServer(
+      prepareStreamResponse({ content: [''] }),
+      async ({ call }) => {
+        const provider = createGoogleGenerativeAI({
+          apiKey: 'test-api-key',
+          headers: {
+            'Custom-Provider-Header': 'provider-header-value',
+          },
+          experimental_getHeadersAsync: undefined,
+        });
+
+        await provider.chat('gemini-pro').doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          headers: {
+            'Custom-Request-Header': 'request-header-value',
+          },
+        });
+
+        const requestHeaders = call(0).getRequestHeaders();
+
+        expect(requestHeaders).toStrictEqual({
+          'content-type': 'application/json',
+          'custom-provider-header': 'provider-header-value',
+          'custom-request-header': 'request-header-value',
+          'x-goog-api-key': 'test-api-key',
+        });
       },
     ),
   );

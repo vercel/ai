@@ -82,7 +82,14 @@ It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
   /**
 Custom headers to include in the requests.
      */
-  headers?: () => Promise<Record<string, string | undefined>>;
+  headers?: Record<string, string | undefined>;
+
+  /**
+Experimental: async function to return custom headers to include in the requests.
+     */
+  experimental_getHeadersAsync?: () => Promise<
+    Record<string, string | undefined>
+  >;
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -90,6 +97,9 @@ or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
 
+  /**
+Optional function to generate a unique ID for each request.
+     */
   generateId?: () => string;
 }
 
@@ -103,13 +113,13 @@ export function createGoogleGenerativeAI(
     withoutTrailingSlash(options.baseURL) ??
     'https://generativelanguage.googleapis.com/v1beta';
 
-  const getHeaders = async () => ({
+  const getHeaders = () => ({
     'x-goog-api-key': loadApiKey({
       apiKey: options.apiKey,
       environmentVariableName: 'GOOGLE_GENERATIVE_AI_API_KEY',
       description: 'Google Generative AI',
     }),
-    ...(await options.headers?.()),
+    ...options.headers,
   });
 
   const createChatModel = (
@@ -120,6 +130,7 @@ export function createGoogleGenerativeAI(
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
+      experimental_getHeadersAsync: options.experimental_getHeadersAsync,
       generateId: options.generateId ?? generateId,
       fetch: options.fetch,
     });
@@ -132,6 +143,7 @@ export function createGoogleGenerativeAI(
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
+      experimental_getHeadersAsync: options.experimental_getHeadersAsync,
       fetch: options.fetch,
     });
 

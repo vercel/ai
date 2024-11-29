@@ -20,7 +20,6 @@ import { googleFailedResponseHandler } from './google-error';
 import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   GoogleGenerativeAIModelId,
-  GoogleGenerativeAISettings,
   InternalGoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
 import { prepareTools } from './google-prepare-tools';
@@ -29,7 +28,10 @@ import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-fi
 type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Promise<Record<string, string | undefined>>;
+  headers: () => Record<string, string | undefined>;
+  experimental_getHeadersAsync:
+    | (() => Promise<Record<string, string | undefined>>)
+    | undefined;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -199,11 +201,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = await this.getArgs(options);
     const body = JSON.stringify(args);
 
+    const asyncHeaders = this.config.experimental_getHeadersAsync?.();
+    const mergedHeaders = asyncHeaders
+      ? combineHeaders(
+          this.config.headers(),
+          await asyncHeaders,
+          options.headers,
+        )
+      : combineHeaders(this.config.headers(), options.headers);
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${getModelPath(
         this.modelId,
       )}:generateContent`,
-      headers: combineHeaders(await this.config.headers(), options.headers),
+      headers: mergedHeaders,
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(responseSchema),
@@ -246,11 +257,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const body = JSON.stringify(args);
 
+    const asyncHeaders = this.config.experimental_getHeadersAsync?.();
+    const headers = asyncHeaders
+      ? combineHeaders(
+          this.config.headers(),
+          await asyncHeaders,
+          options.headers,
+        )
+      : combineHeaders(this.config.headers(), options.headers);
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${getModelPath(
         this.modelId,
       )}:streamGenerateContent?alt=sse`,
-      headers: combineHeaders(await this.config.headers(), options.headers),
+      headers,
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),

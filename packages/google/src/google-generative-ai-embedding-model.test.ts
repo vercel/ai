@@ -90,9 +90,9 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
 
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
-      headers: async () => ({
+      headers: {
         'Custom-Provider-Header': 'provider-header-value',
-      }),
+      },
     });
 
     await provider.embedding('text-embedding-004').doEmbed({
@@ -119,7 +119,8 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       {
         provider: 'google.generative-ai',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: async () => ({}),
+        headers: () => ({}),
+        experimental_getHeadersAsync: undefined,
       },
     );
 
@@ -128,5 +129,64 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     await expect(model.doEmbed({ values: tooManyValues })).rejects.toThrow(
       'Too many values for a single embedding call. The google.generative-ai model "text-embedding-004" can only embed up to 2048 values per call, but 2049 values were provided.',
     );
+  });
+
+  it('should merge async headers when experimental_getHeadersAsync is defined', async () => {
+    prepareJsonResponse();
+
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      headers: {
+        'Custom-Provider-Header': 'provider-header-value',
+      },
+      experimental_getHeadersAsync: async () => ({
+        'Async-Header': 'async-header-value',
+      }),
+    });
+
+    await provider.textEmbeddingModel('text-embedding-004').doEmbed({
+      values: testValues,
+      headers: {
+        'Custom-Request-Header': 'request-header-value',
+      },
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+
+    expect(requestHeaders).toStrictEqual({
+      'x-goog-api-key': 'test-api-key',
+      'content-type': 'application/json',
+      'custom-provider-header': 'provider-header-value',
+      'custom-request-header': 'request-header-value',
+      'async-header': 'async-header-value',
+    });
+  });
+
+  it('should skip async headers when experimental_getHeadersAsync is undefined', async () => {
+    prepareJsonResponse();
+
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      headers: {
+        'Custom-Provider-Header': 'provider-header-value',
+      },
+      experimental_getHeadersAsync: undefined,
+    });
+
+    await provider.textEmbeddingModel('text-embedding-004').doEmbed({
+      values: testValues,
+      headers: {
+        'Custom-Request-Header': 'request-header-value',
+      },
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+
+    expect(requestHeaders).toStrictEqual({
+      'x-goog-api-key': 'test-api-key',
+      'content-type': 'application/json',
+      'custom-provider-header': 'provider-header-value',
+      'custom-request-header': 'request-header-value',
+    });
   });
 });
