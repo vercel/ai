@@ -11,13 +11,19 @@ import {
   embedMany,
 } from 'ai';
 import fs from 'fs';
-import { generateAuthTokenEdgeCompatible as generateAuthToken } from '@ai-sdk/google-vertex';
+import { generateAuthTokenEdgeCompatible as generateAuthToken } from '../lib/google-vertex-auth-edge';
 
 const LONG_TEST_MILLIS = 10000;
 
 // Model variants to test against
 const MODEL_VARIANTS = {
-  chat: ['gemini-1.5-flash', 'gemini-1.5-pro-001', 'gemini-1.0-pro-001'],
+  chat: [
+    'gemini-1.5-flash',
+    // Pro models have low quota limits and can only be used if you have a
+    // Google Cloud account with appropriate billing enabled.
+    // 'gemini-1.5-pro-001',
+    // 'gemini-1.0-pro-001',
+  ],
   embedding: ['textembedding-gecko', 'textembedding-gecko-multilingual'],
 } as const;
 
@@ -26,7 +32,9 @@ describe('Google Vertex E2E Tests', () => {
   const provider = createVertex({
     project: process.env.GOOGLE_VERTEX_PROJECT,
     location: process.env.GOOGLE_VERTEX_LOCATION,
-    generateAuthToken,
+    experimental_getHeadersAsync: async () => ({
+      Authorization: `Bearer ${await generateAuthToken()}`,
+    }),
   });
 
   describe.each(MODEL_VARIANTS.chat)('Chat Model: %s', modelId => {

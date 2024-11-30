@@ -15,7 +15,13 @@ import fs from 'fs';
 const LONG_TEST_MILLIS = 10000;
 
 const MODEL_VARIANTS = {
-  chat: ['gemini-1.5-flash-latest', 'gemini-1.5-pro-latest', 'gemini-1.0-pro'],
+  chat: [
+    'gemini-1.5-flash-latest',
+    // Pro models have low quota limits and can only be used if you have a
+    // Google Cloud account with appropriate billing enabled.
+    // 'gemini-1.5-pro-latest',
+    // 'gemini-1.0-pro',
+  ],
   embedding: ['text-embedding-004'],
 } as const;
 

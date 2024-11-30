@@ -42,7 +42,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         provider: 'google-vertex',
         region: 'us-central1',
         project: 'test-project',
-        generateAuthToken: undefined,
         headers: () => ({}),
         experimental_getHeadersAsync: undefined,
       });
@@ -61,7 +60,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         provider: 'google-vertex',
         region: 'us-central1',
         project: 'test-project',
-        generateAuthToken: async () => null,
         headers: () => ({ 'X-Test': 'test' }),
         experimental_getHeadersAsync: undefined,
       });
@@ -82,7 +80,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         provider: 'google-vertex',
         region: 'us-central1',
         project: 'test-project',
-        generateAuthToken: async () => 'auth-token',
         headers: () => ({ 'X-Static': 'static' }),
         experimental_getHeadersAsync: async () => ({ 'X-Async': 'async' }),
       });
@@ -95,7 +92,6 @@ describe('GoogleVertexEmbeddingModel', () => {
       expect(postJsonToApi).toHaveBeenCalledWith(
         expect.objectContaining({
           headers: {
-            Authorization: 'Bearer auth-token',
             'X-Async': 'async',
             'X-Request': 'request',
             'X-Static': 'static',
@@ -109,7 +105,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         provider: 'google-vertex',
         region: 'us-central1',
         project: 'test-project',
-        generateAuthToken: async () => 'auth-token',
         headers: () => ({ 'X-Static': 'static' }),
         experimental_getHeadersAsync: undefined,
       });
@@ -119,7 +114,6 @@ describe('GoogleVertexEmbeddingModel', () => {
       expect(postJsonToApi).toHaveBeenCalledWith(
         expect.objectContaining({
           headers: {
-            Authorization: 'Bearer auth-token',
             'X-Static': 'static',
           },
         }),
@@ -131,7 +125,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         provider: 'google-vertex',
         region: 'us-central1',
         project: 'test-project',
-        generateAuthToken: async () => 'auth-token',
         headers: () => ({ 'X-Common': 'static' }),
         experimental_getHeadersAsync: async () => ({ 'X-Common': 'async' }),
       });
@@ -144,7 +137,6 @@ describe('GoogleVertexEmbeddingModel', () => {
       expect(postJsonToApi).toHaveBeenCalledWith(
         expect.objectContaining({
           headers: {
-            Authorization: 'Bearer auth-token',
             'X-Common': 'request',
           },
         }),
@@ -156,7 +148,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         provider: 'google-vertex',
         region: 'us-central1',
         project: 'test-project',
-        generateAuthToken: async () => 'auth-token',
         headers: () => ({ 'X-Static': undefined }),
         experimental_getHeadersAsync: undefined,
       });
@@ -165,9 +156,7 @@ describe('GoogleVertexEmbeddingModel', () => {
 
       expect(postJsonToApi).toHaveBeenCalledWith(
         expect.objectContaining({
-          headers: {
-            Authorization: 'Bearer auth-token',
-          },
+          headers: {},
         }),
       );
     });
@@ -177,7 +166,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         provider: 'google-vertex',
         region: 'us-central1',
         project: 'test-project',
-        generateAuthToken: async () => undefined,
         headers: () => ({ 'X-Static': 'static' }),
         experimental_getHeadersAsync: undefined,
       });
@@ -202,7 +190,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         provider: 'google-vertex',
         region: 'us-central1',
         project: 'test-project',
-        generateAuthToken: undefined,
         headers: () => ({}),
         experimental_getHeadersAsync: undefined,
       },

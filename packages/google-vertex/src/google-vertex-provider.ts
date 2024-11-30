@@ -18,8 +18,9 @@ import {
   GoogleVertexEmbeddingSettings,
 } from './google-vertex-embedding-settings';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
-import { generateAuthTokenEdgeCompatible as generateAuthToken } from './google-vertex-auth-edge';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import { GoogleAuth, GoogleAuthOptions } from 'google-auth-library';
+import { generateAuthToken } from './google-vertex-auth-google-auth-library';
 
 export interface GoogleVertexProvider extends ProviderV1 {
   /**
@@ -53,7 +54,13 @@ Optional. The headers to use.
   headers?: Record<string, string | undefined>;
 
   /**
-Experimental: async function to return custom headers to include in the requests.
+Experimental: async function to return custom headers to include in the
+requests. This can be used to add an authorization header generated in whatever
+manner is appropriate for your use case and environment.
+
+If this is provided, the legacy behavior using the `googleAuthOptions1 setting
+and the `google-auth-library` to automatically generate an authorization header
+will be disabled.
      */
   experimental_getHeadersAsync?: () => Promise<
     Record<string, string | undefined>
@@ -74,7 +81,7 @@ Complete list of authentication options is documented in the
 GoogleAuthOptions interface:
 https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts.
    */
-  generateAuthToken?: () => Promise<string | null | undefined>;
+  googleAuthOptions?: GoogleAuthOptions;
 }
 
 /**
@@ -99,20 +106,30 @@ export function createVertex(
       description: 'Google Vertex location',
     });
 
-  const getHeadersAsync = async () => ({
-    Authorization: `Bearer ${await (options.generateAuthToken?.() ??
-      generateAuthToken())}`,
-    'Content-Type': 'application/json',
-  });
+  const getGoogleAuthLibraryHeaders = async (): Promise<
+    Record<string, string | undefined>
+  > => {
+    // Use the google auth library only if the user isn't specifying their own
+    // credentials via experimental_getHeadersAsync.
+    if (options.experimental_getHeadersAsync) {
+      return {};
+    }
+
+    const auth = new GoogleAuth(options.googleAuthOptions);
+    return {
+      Authorization: `Bearer ${await generateAuthToken()}`,
+      'Content-Type': 'application/json',
+    };
+  };
 
   const getMergedAsyncHeaders = () =>
     options.experimental_getHeadersAsync
       ? async () =>
           combineHeaders(
-            await getHeadersAsync(),
+            await getGoogleAuthLibraryHeaders(),
             await options.experimental_getHeadersAsync?.(),
           )
-      : () => getHeadersAsync();
+      : () => getGoogleAuthLibraryHeaders();
 
   const createChatModel = (
     modelId: GoogleVertexModelId,
@@ -140,7 +157,6 @@ export function createVertex(
       project: loadVertexProject(),
       headers: () => options.headers ?? {},
       experimental_getHeadersAsync: getMergedAsyncHeaders(),
-      generateAuthToken: options.generateAuthToken,
     });
 
   const provider = function (

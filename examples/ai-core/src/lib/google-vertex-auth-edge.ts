@@ -15,29 +15,15 @@ export interface GoogleCredentials {
   privateKeyId: string;
 }
 
-// Helper to load credentials from either file or env vars
 const loadCredentials = async (): Promise<GoogleCredentials> => {
   try {
-    // First try to load from credentials file
-    const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    if (credsPath) {
-      const credentials = require(credsPath);
-      return {
-        clientEmail: credentials.client_email,
-        privateKey: credentials.private_key,
-        privateKeyId: credentials.private_key_id,
-      };
-    }
-
-    // Fall back to environment variables
     const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
     const privateKey = process.env.GOOGLE_PRIVATE_KEY;
     const privateKeyId = process.env.GOOGLE_PRIVATE_KEY_ID;
     if (!clientEmail || !privateKey || !privateKeyId) {
       throw new Error(
-        'Google credentials not found. Please provide either:\n' +
-          '1. A credentials file path in GOOGLE_APPLICATION_CREDENTIALS, or\n' +
-          '2. GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY, and GOOGLE_PRIVATE_KEY_ID environment variables',
+        'Google credentials not found. Please provide\n' +
+          'GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY, and GOOGLE_PRIVATE_KEY_ID environment variables',
       );
     }
 

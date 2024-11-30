@@ -18,7 +18,6 @@ type GoogleVertexEmbeddingConfig = {
   provider: string;
   region: string;
   project: string;
-  generateAuthToken: (() => Promise<string | null | undefined>) | undefined;
   headers: () => Record<string, string | undefined>;
   experimental_getHeadersAsync:
     | (() => Promise<Record<string, string | undefined>>)
@@ -70,20 +69,8 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
       });
     }
 
-    let optionalAuthTokenHeader: Record<string, string | undefined> | undefined;
-    const authTokenPromise = this.config.generateAuthToken?.();
-    if (authTokenPromise) {
-      const authToken = await authTokenPromise;
-      if (authToken) {
-        optionalAuthTokenHeader = {
-          Authorization: `Bearer ${authToken}`,
-        };
-      }
-    }
-
     const asyncHeaders = this.config.experimental_getHeadersAsync?.();
     const mergedHeaders = combineHeaders(
-      optionalAuthTokenHeader,
       this.config.headers(),
       asyncHeaders ? await asyncHeaders : {},
       headers,
