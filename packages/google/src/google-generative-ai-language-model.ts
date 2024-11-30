@@ -202,13 +202,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const body = JSON.stringify(args);
 
     const asyncHeaders = this.config.experimental_getHeadersAsync?.();
-    const mergedHeaders = asyncHeaders
-      ? combineHeaders(
-          this.config.headers(),
-          await asyncHeaders,
-          options.headers,
-        )
-      : combineHeaders(this.config.headers(), options.headers);
+    const mergedHeaders = combineHeaders(
+      this.config.headers(),
+      asyncHeaders ? await asyncHeaders : {},
+      options.headers,
+    );
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${getModelPath(
@@ -258,13 +256,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const body = JSON.stringify(args);
 
     const asyncHeaders = this.config.experimental_getHeadersAsync?.();
-    const headers = asyncHeaders
-      ? combineHeaders(
-          this.config.headers(),
-          await asyncHeaders,
-          options.headers,
-        )
-      : combineHeaders(this.config.headers(), options.headers);
+    const headers = combineHeaders(
+      this.config.headers(),
+      asyncHeaders ? await asyncHeaders : {},
+      options.headers,
+    );
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${getModelPath(

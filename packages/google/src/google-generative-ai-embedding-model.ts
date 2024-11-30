@@ -73,9 +73,11 @@ export class GoogleGenerativeAIEmbeddingModel
     }
 
     const asyncHeaders = this.config.experimental_getHeadersAsync?.();
-    const mergedHeaders = asyncHeaders
-      ? combineHeaders(this.config.headers(), await asyncHeaders, headers)
-      : combineHeaders(this.config.headers(), headers);
+    const mergedHeaders = combineHeaders(
+      this.config.headers(),
+      asyncHeaders ? await asyncHeaders : {},
+      headers,
+    );
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:batchEmbedContents`,
