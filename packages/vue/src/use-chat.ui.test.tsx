@@ -837,7 +837,6 @@ describe('attachments with empty submit', () => {
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
-
     screen.debug();
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User:');

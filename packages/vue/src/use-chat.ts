@@ -174,13 +174,22 @@ export function useChat(
       const constructedMessagesPayload = sendExtraMessageFields
         ? chatRequest.messages
         : chatRequest.messages.map(
-            ({ role, content, data, annotations, toolInvocations, experimental_attachments }) => ({
+            ({
+              role,
+              content,
+              data,
+              annotations,
+              toolInvocations,
+              experimental_attachments,
+            }) => ({
               role,
               content,
               ...(data !== undefined && { data }),
               ...(annotations !== undefined && { annotations }),
               ...(toolInvocations !== undefined && { toolInvocations }),
-              ...(experimental_attachments !== undefined && { experimental_attachments }),
+              ...(experimental_attachments !== undefined && {
+                experimental_attachments,
+              }),
             }),
           );
 
@@ -261,9 +270,8 @@ export function useChat(
       options?.experimental_attachments,
     );
 
-    message.experimental_attachments = attachmentsForRequest.length > 0
-      ? attachmentsForRequest
-      : undefined;
+    message.experimental_attachments =
+      attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined;
 
     return triggerRequest(messages.value.concat(message as Message), options);
   };
