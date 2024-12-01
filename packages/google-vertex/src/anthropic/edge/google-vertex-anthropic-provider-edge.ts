@@ -1,0 +1,42 @@
+import {
+  generateAuthToken,
+  GoogleCredentials,
+} from '../../edge/google-vertex-auth-edge';
+import {
+  createGoogleVertexAnthropic as createGoogleVertexAnthropicOriginal,
+  GoogleVertexAnthropicProvider,
+  GoogleVertexAnthropicProviderSettings as GoogleVertexAnthropicProviderSettingsOriginal,
+} from '../google-vertex-anthropic-provider';
+
+export type { GoogleVertexAnthropicProvider };
+
+export interface GoogleVertexAnthropicProviderSettings
+  extends GoogleVertexAnthropicProviderSettingsOriginal {
+  /**
+   * Optional. The Google credentials for the Google Cloud service account. If
+   * not provided, the Google Vertex provider will use environment variables to
+   * load the credentials.
+   */
+  googleCredentials?: GoogleCredentials;
+}
+
+export function createGoogleVertexAnthropic(
+  options: GoogleVertexAnthropicProviderSettings = {},
+): GoogleVertexAnthropicProvider {
+  return createGoogleVertexAnthropicOriginal({
+    ...options,
+    headers:
+      options.headers ??
+      (async () => ({
+        'anthropic-version': 'vertex-2023-10-16',
+        Authorization: `Bearer ${await generateAuthToken(
+          options.googleCredentials,
+        )}`,
+      })),
+  });
+}
+
+/**
+ * Default Google Vertex AI Anthropic provider instance.
+ */
+export const googleVertexAnthropic = createGoogleVertexAnthropic();
