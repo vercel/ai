@@ -19,7 +19,7 @@ import {
 } from './google-vertex-embedding-settings';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { GoogleAuth, GoogleAuthOptions } from 'google-auth-library';
+import { GoogleAuthOptions } from 'google-auth-library';
 import { generateAuthToken } from './google-vertex-auth-google-auth-library';
 
 export interface GoogleVertexProvider extends ProviderV1 {
@@ -115,9 +115,10 @@ export function createVertex(
       return {};
     }
 
-    const auth = new GoogleAuth(options.googleAuthOptions);
     return {
-      Authorization: `Bearer ${await generateAuthToken()}`,
+      Authorization: `Bearer ${await generateAuthToken(
+        options.googleAuthOptions,
+      )}`,
       'Content-Type': 'application/json',
     };
   };
