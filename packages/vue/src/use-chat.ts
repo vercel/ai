@@ -1,4 +1,5 @@
 import type {
+  Attachment,
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
@@ -173,12 +174,13 @@ export function useChat(
       const constructedMessagesPayload = sendExtraMessageFields
         ? chatRequest.messages
         : chatRequest.messages.map(
-            ({ role, content, data, annotations, toolInvocations }) => ({
+            ({ role, content, data, annotations, toolInvocations, experimental_attachments }) => ({
               role,
               content,
               ...(data !== undefined && { data }),
               ...(annotations !== undefined && { annotations }),
               ...(toolInvocations !== undefined && { toolInvocations }),
+              ...(experimental_attachments !== undefined && { experimental_attachments }),
             }),
           );
 
@@ -252,9 +254,16 @@ export function useChat(
   }
 
   const append: UseChatHelpers['append'] = async (message, options) => {
-    if (!message.id) {
-      message.id = generateId();
-    }
+    message.id ??= generateId();
+    message.createdAt ??= new Date();
+
+    const attachmentsForRequest = await prepareAttachmentsForRequest(
+      options?.experimental_attachments,
+    );
+
+    message.experimental_attachments = attachmentsForRequest.length > 0
+      ? attachmentsForRequest
+      : undefined;
 
     return triggerRequest(messages.value.concat(message as Message), options);
   };
@@ -303,7 +312,7 @@ export function useChat(
 
   const input = ref(initialInput);
 
-  const handleSubmit = (
+  const handleSubmit = async (
     event?: { preventDefault?: () => void },
     options: ChatRequestOptions = {},
   ) => {
@@ -313,14 +322,22 @@ export function useChat(
 
     if (!inputValue && !options.allowEmptySubmit) return;
 
+    const attachmentsForRequest = await prepareAttachmentsForRequest(
+      options.experimental_attachments,
+    );
+
     triggerRequest(
-      !inputValue && options.allowEmptySubmit
+      !inputValue && !attachmentsForRequest.length && options.allowEmptySubmit
         ? messages.value
         : messages.value.concat({
             id: generateId(),
             createdAt: new Date(),
             content: inputValue,
             role: 'user',
+            experimental_attachments:
+              attachmentsForRequest.length > 0
+                ? attachmentsForRequest
+                : undefined,
           }),
       options,
     );
@@ -408,4 +425,41 @@ function countTrailingAssistantMessages(messages: Message[]) {
     }
   }
   return count;
+}
+
+async function prepareAttachmentsForRequest(
+  attachmentsFromOptions: FileList | Array<Attachment> | undefined,
+) {
+  if (!attachmentsFromOptions) {
+    return [];
+  }
+
+  if (attachmentsFromOptions instanceof FileList) {
+    return Promise.all(
+      Array.from(attachmentsFromOptions).map(async attachment => {
+        const { name, type } = attachment;
+
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = readerEvent => {
+            resolve(readerEvent.target?.result as string);
+          };
+          reader.onerror = error => reject(error);
+          reader.readAsDataURL(attachment);
+        });
+
+        return {
+          name,
+          contentType: type,
+          url: dataUrl,
+        };
+      }),
+    );
+  }
+
+  if (Array.isArray(attachmentsFromOptions)) {
+    return attachmentsFromOptions;
+  }
+
+  throw new Error('Invalid attachments type');
 }
