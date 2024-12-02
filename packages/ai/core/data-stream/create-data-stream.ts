@@ -46,9 +46,11 @@ export function createDataStream({
     });
 
     if (result) {
-      result.catch(error => {
-        controller.enqueue(formatDataStreamPart('error', onError(error)));
-      });
+      ongoingStreamPromises.push(
+        result.catch(error => {
+          controller.enqueue(formatDataStreamPart('error', onError(error)));
+        }),
+      );
     }
   } catch (error) {
     controller!.enqueue(formatDataStreamPart('error', onError(error)));
