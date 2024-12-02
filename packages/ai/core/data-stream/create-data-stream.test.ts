@@ -4,6 +4,8 @@ import { expect, it } from 'vitest';
 import { createDataStream } from './create-data-stream';
 import { DataStreamWriter } from './data-stream-writer';
 import { delay } from '../../util/delay';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
+import { DelayedPromise } from '../../util/delayed-promise';
 
 describe('createDataStream', () => {
   it('should send single data json and close the stream', async () => {
@@ -53,6 +55,23 @@ describe('createDataStream', () => {
     expect(await convertReadableStreamToArray(stream)).toEqual([
       formatDataStreamPart('data', ['1a']),
       formatDataStreamPart('data', ['1b']),
+    ]);
+  });
+
+  it('should send async message annotation and close the stream', async () => {
+    const waitPromise = new DelayedPromise<void>();
+
+    const stream = createDataStream({
+      execute: async dataStream => {
+        await waitPromise.value;
+        dataStream.writeData('1a');
+      },
+    });
+
+    waitPromise.resolve(undefined);
+
+    expect(await convertReadableStreamToArray(stream)).toEqual([
+      formatDataStreamPart('data', ['1a']),
     ]);
   });
 
