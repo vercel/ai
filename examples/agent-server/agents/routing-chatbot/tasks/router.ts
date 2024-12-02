@@ -1,14 +1,14 @@
-import { StreamState } from '@ai-sdk/agent-server';
+import { StreamTask } from '@ai-sdk/agent-server';
 import { openai } from '@ai-sdk/openai';
 import { generateObject, StreamData } from 'ai';
 import { Context } from '../agent';
 
 export default {
   type: 'stream',
-  async execute({ context, forwardStream }) {
+  async execute({ context, mergeStream }) {
     // immediately start streaming status information:
     const streamData = new StreamData();
-    forwardStream(streamData.toAgentStream());
+    mergeStream(streamData.toAgentStream());
     streamData.append({ status: 'analyzing message' });
     streamData.close();
 
@@ -29,4 +29,4 @@ export default {
 
     return { nextTask: result.object };
   },
-} satisfies StreamState<Context, string>;
+} satisfies StreamTask<Context, string>;

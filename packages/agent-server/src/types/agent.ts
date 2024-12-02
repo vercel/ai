@@ -1,5 +1,3 @@
-import { JSONValue } from '@ai-sdk/provider';
-
 export interface Agent<CONTEXT> {
   /**
    * Called when the agent run is started.

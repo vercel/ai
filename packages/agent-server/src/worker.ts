@@ -1,8 +1,8 @@
 import { JSONValue } from '@ai-sdk/provider';
+import pino from 'pino';
 import { DataStore } from './data-store';
 import { ModuleLoader } from './module-loader';
 import { StreamManager } from './stream-manager';
-import pino from 'pino';
 
 export function createWorker({
   dataStore,
@@ -38,7 +38,7 @@ export function createWorker({
 
     const { context, nextTask: nextTaskPromise } = await taskModule.execute({
       context: runState.context,
-      forwardStream: stream => {
+      mergeStream: stream => {
         const [newStream, original] = stream.tee();
         streams.add(newStream);
         streamManager.addToStream(runId, original); // immediately forward to client

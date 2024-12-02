@@ -1,8 +1,8 @@
-export interface StreamState<CONTEXT, CHUNK> {
+export interface StreamTask<CONTEXT, CHUNK> {
   type: 'stream';
   execute(options: {
     context: CONTEXT;
-    forwardStream: (stream: ReadableStream<CHUNK>) => void;
+    mergeStream: (stream: ReadableStream<CHUNK>) => void;
   }): PromiseLike<{
     context?: PromiseLike<CONTEXT> | CONTEXT;
     nextTask: PromiseLike<string> | string;

@@ -1,7 +1,7 @@
+import { JSONValue } from '@ai-sdk/provider';
 import * as path from 'node:path';
 import { Agent } from './types/agent';
-import { StreamState } from './types/state';
-import { JSONValue } from '@ai-sdk/provider';
+import { StreamTask } from './types/task';
 
 export class ModuleLoader {
   private readonly modulePath: string;
@@ -33,8 +33,8 @@ export class ModuleLoader {
   }: {
     agent: string;
     task: string;
-  }): Promise<StreamState<JSONValue, JSONValue>> {
-    return this.loadModule<StreamState<JSONValue, JSONValue>>({
+  }): Promise<StreamTask<JSONValue, JSONValue>> {
+    return this.loadModule<StreamTask<JSONValue, JSONValue>>({
       path: [agent, 'tasks', `${task}.js`],
     });
   }
