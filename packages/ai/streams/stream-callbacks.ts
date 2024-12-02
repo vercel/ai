@@ -4,12 +4,20 @@
 export interface StreamCallbacks {
   /** `onStart`: Called once when the stream is initialized. */
   onStart?: () => Promise<void> | void;
-  /** `onCompletion`: Called for each tokenized message. */
+
+  /**
+   * `onCompletion`: Called for each tokenized message.
+   *
+   * @deprecated Use `onFinal` instead.
+   */
   onCompletion?: (completion: string) => Promise<void> | void;
+
   /** `onFinal`: Called once when the stream is closed with the final completion message. */
   onFinal?: (completion: string) => Promise<void> | void;
+
   /** `onToken`: Called for each tokenized message. */
   onToken?: (token: string) => Promise<void> | void;
+
   /** `onText`: Called for each text chunk. */
   onText?: (text: string) => Promise<void> | void;
 }
@@ -61,6 +69,9 @@ export function createCallbacksTransformer(
     async flush(): Promise<void> {
       if (callbacks.onCompletion) {
         await callbacks.onCompletion(aggregatedResponse);
+      }
+      if (callbacks.onFinal) {
+        await callbacks.onFinal(aggregatedResponse);
       }
     },
   });

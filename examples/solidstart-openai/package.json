@@ -10,16 +10,16 @@
   "devDependencies": {
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.3",
+    "tailwindcss": "^3.4.15",
     "vinxi": "^0.4.3"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.4",
-    "@ai-sdk/solid": "1.0.2",
+    "@ai-sdk/openai": "1.0.5",
+    "@ai-sdk/solid": "1.0.3",
     "@solidjs/meta": "0.29.4",
     "@solidjs/router": "^0.13.6",
     "@solidjs/start": "^1.0.10",
-    "ai": "4.0.3",
+    "ai": "4.0.10",
     "solid-js": "^1.9.3",
     "zod": "^3.23.8"
   },

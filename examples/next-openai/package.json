@@ -9,11 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.4",
+    "@ai-sdk/openai": "1.0.5",
     "@ai-sdk/ui-utils": "1.0.2",
-    "@ai-sdk/react": "1.0.2",
+    "@ai-sdk/react": "1.0.3",
     "@vercel/blob": "^0.26.0",
-    "ai": "4.0.3",
+    "ai": "4.0.10",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",
@@ -29,7 +29,7 @@
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.3.2",
+    "tailwindcss": "^3.4.15",
     "typescript": "5.6.3"
   }
 }

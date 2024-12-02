@@ -3,13 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "1.0.4",
-    "@hono/node-server": "1.12.2",
-    "ai": "4.0.3",
+    "@ai-sdk/openai": "1.0.5",
+    "@hono/node-server": "1.13.7",
+    "ai": "4.0.10",
     "dotenv": "16.4.5",
     "hono": "4.6.9"
   },
   "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "curl": "curl -i -X POST http://localhost:8080",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {

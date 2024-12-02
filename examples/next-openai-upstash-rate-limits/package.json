@@ -9,10 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.4",
+    "@ai-sdk/openai": "1.0.5",
     "@upstash/ratelimit": "^0.4.3",
     "@vercel/kv": "^0.2.2",
-    "ai": "4.0.3",
+    "ai": "4.0.10",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18",
@@ -26,7 +26,7 @@
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.3.2",
+    "tailwindcss": "^3.4.15",
     "typescript": "5.6.3"
   }
 }

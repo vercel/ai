@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { CallSettings } from '../../core/prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../../core/prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
+import { prepareRetries } from '../../core/prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../../core/prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../../core/prompt/prompt';
 import { standardizePrompt } from '../../core/prompt/standardize-prompt';
@@ -23,7 +24,6 @@ import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { isAsyncGenerator } from '../../util/is-async-generator';
 import { isGenerator } from '../../util/is-generator';
-import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { createStreamableUI } from '../streamable-ui/create-streamable-ui';
 
 type Streamable = ReactNode | Promise<ReactNode>;
@@ -251,7 +251,8 @@ functionality that can be fully encapsulated in the provider.
     renderFinished.resolve(undefined);
   }
 
-  const retry = retryWithExponentialBackoff({ maxRetries });
+  const { retry } = prepareRetries({ maxRetries });
+
   const validatedPrompt = standardizePrompt({
     prompt: { system, prompt, messages },
     tools: undefined, // streamUI tools don't support multi-modal tool result conversion

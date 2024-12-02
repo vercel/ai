@@ -1,0 +1,80 @@
+---
+title: Save Messages to Database
+description: Learn how to save messages to an external database using the AI SDK and Next.js
+tags: ['next', 'persistence']
+---
+
+# Save Messages to Database
+
+You can save the chat to an external database using the `onFinish` callback handler present in the `streamText` function.
+
+```ts filename="@/app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { saveChat } from '@/utils/queries';
+import { streamText, convertToCoreMessages } from 'ai';
+
+export function POST(request) {
+  const { id, messages } = await request.json();
+
+  const coreMessages = convertToCoreMessages(messages);
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    system: 'you are a friendly assistant!',
+    messages: coreMessages,
+    onFinish: async ({ responseMessages }) => {
+      try {
+        await saveChat({
+          id,
+          messages: [...coreMessages, ...responseMessages],
+        });
+      } catch (error) {
+        console.error('Failed to save chat');
+      }
+    },
+  });
+
+  return result.toDataStream();
+}
+```
+
+The `saveChat` function is a server action that saves the chat to the database. It first checks if the chat already exists in the database and updates the chat if it does. If the chat does not exist, it inserts a new chat into the database.
+
+<Note>
+This example assumes that the database table schema has a `messages` column that stores the chat messages as a JSON string of type `Array<CoreMessage>`. You can modify the `saveChat` function to suit your database schema.
+</Note>
+
+```ts filename="@/app/utils/queries.ts"
+export async function saveChat({
+  id,
+  messages,
+  userId,
+}: {
+  id: string;
+  messages: any;
+  userId: string;
+}) {
+  try {
+    const selectedChats = await db.select().from(chat).where(eq(chat.id, id));
+
+    if (selectedChats.length > 0) {
+      return await db
+        .update(chat)
+        .set({
+          messages: JSON.stringify(messages),
+        })
+        .where(eq(chat.id, id));
+    }
+
+    return await db.insert(chat).values({
+      id,
+      createdAt: new Date(),
+      messages: JSON.stringify(messages),
+      userId,
+    });
+  } catch (error) {
+    console.error('Failed to save chat in database');
+    throw error;
+  }
+}
+```

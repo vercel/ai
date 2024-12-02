@@ -199,6 +199,45 @@ const result = await generateText({
 
 When tools are called, they receive additional options as a second parameter.
 
+### Tool Call ID
+
+The ID of the tool call is forwarded to the tool execution.
+You can use it e.g. when sending tool-call related information with stream data.
+
+```ts highlight="14-20"
+import { StreamData, streamText, tool } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const data = new StreamData();
+
+  const result = streamText({
+    // ...
+    messages,
+    tools: {
+      myTool: tool({
+        // ...
+        execute: async (args, { toolCallId }) => {
+          // return e.g. custom status for tool call
+          data.appendMessageAnnotation({
+            type: 'tool-status',
+            toolCallId,
+            status: 'in-progress',
+          });
+          // ...
+        },
+      }),
+    },
+    onFinish() {
+      data.close();
+    },
+  });
+
+  return result.toDataStreamResponse({ data });
+}
+```
+
 ### Messages
 
 The messages that were sent to the language model to initiate the response that contained the tool call are forwarded to the tool execution.

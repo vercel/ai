@@ -1,0 +1,55 @@
+---
+title: StreamData
+description: Learn to use streamData helper function in your application.
+---
+
+# `StreamData`
+
+<Note type="warning">
+
+The `StreamData` class is deprecated and will be removed in a future version of AI SDK.
+Please use `createDataStream`, `createDataStreamResponse`, and `pipeDataStreamToResponse` instead.
+
+</Note>
+
+The `StreamData` class allows you to stream additional data to the client (see [Streaming Data](/docs/ai-sdk-ui/streaming-data)).
+
+## Import
+
+### React
+
+<Snippet text={`import { StreamData } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Constructor
+
+```ts
+const data = new StreamData();
+```
+
+### Methods
+
+#### `append`
+
+Appends a value to the stream data.
+
+```ts
+data.append(value: JSONValue)
+```
+
+#### `appendMessageAnnotation`
+
+Appends a message annotation to the stream data.
+
+```ts
+data.appendMessageAnnotation(annotation: JSONValue)
+```
+
+#### `close`
+
+Closes the stream data.
+
+```ts
+data.close();
+```

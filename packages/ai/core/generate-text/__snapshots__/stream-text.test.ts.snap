@@ -507,6 +507,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.response.finishReason": "stop",
       "ai.response.text": "Hello, world!",
+      "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 3,
       "ai.usage.completionTokens": 15,
       "ai.usage.promptTokens": 4,
@@ -535,6 +536,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.settings.maxRetries": 2,
       "ai.usage.completionTokens": 10,
       "ai.usage.promptTokens": 3,
       "gen_ai.request.model": "mock-model-id",
@@ -593,6 +595,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.response.msToFirstChunk": 400,
       "ai.response.text": "Hello, world!",
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
+      "ai.settings.maxRetries": 2,
       "ai.usage.completionTokens": 5,
       "ai.usage.promptTokens": 1,
       "gen_ai.request.model": "mock-model-id",
@@ -1382,6 +1385,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.response.text": "part 1 
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
+      "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 5,
       "ai.usage.completionTokens": 29,
       "ai.usage.promptTokens": 46,
@@ -1406,6 +1410,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.response.text": "part 1 
  ",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+      "ai.settings.maxRetries": 2,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "gen_ai.request.model": "mock-model-id",
@@ -1448,6 +1453,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.response.msToFirstChunk": 400,
       "ai.response.text": "no-whitespace",
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
+      "ai.settings.maxRetries": 2,
       "ai.usage.completionTokens": 5,
       "ai.usage.promptTokens": 30,
       "gen_ai.request.model": "mock-model-id",
@@ -1490,6 +1496,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.response.msToFirstChunk": 0,
       "ai.response.text": "immediatefollow  ",
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
+      "ai.settings.maxRetries": 2,
       "ai.usage.completionTokens": 2,
       "ai.usage.promptTokens": 3,
       "gen_ai.request.model": "mock-model-id",
@@ -1533,6 +1540,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.response.text": "final value keep all whitespace
  end",
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
+      "ai.settings.maxRetries": 2,
       "ai.usage.completionTokens": 2,
       "ai.usage.promptTokens": 3,
       "gen_ai.request.model": "mock-model-id",
@@ -2343,6 +2351,32 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
 ]
 `;
 
+exports[`streamText > result.mergeIntoDataStream > should merge the result into a data stream 1`] = `
+[
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`streamText > result.mergeIntoDataStream > should use the onError handler from the data stream 1`] = `
+[
+  "3:"custom error message: error"
+",
+  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+",
+]
+`;
+
 exports[`streamText > result.pipeDataStreamToResponse > should create a Response with a data stream and custom headers 1`] = `
 [
   "0:"Hello"
@@ -2360,7 +2394,7 @@ exports[`streamText > result.pipeDataStreamToResponse > should create a Response
 
 exports[`streamText > result.pipeDataStreamToResponse > should mask error messages by default 1`] = `
 [
-  "3:""
+  "3:"An error occurred."
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
 ",
@@ -2509,7 +2543,7 @@ exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 
 exports[`streamText > result.toDataStream > should mask error messages by default 1`] = `
 [
-  "3:""
+  "3:"An error occurred."
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
 ",
@@ -2621,7 +2655,7 @@ exports[`streamText > result.toDataStreamResponse > should create a Response wit
 
 exports[`streamText > result.toDataStreamResponse > should mask error messages by default 1`] = `
 [
-  "3:""
+  "3:"An error occurred."
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
 ",
@@ -2679,6 +2713,7 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText",
       "ai.response.finishReason": "stop",
+      "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 1,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
@@ -2699,6 +2734,7 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "ai.response.msToFinish": 500,
       "ai.response.msToFirstChunk": 100,
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+      "ai.settings.maxRetries": 2,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "gen_ai.request.model": "mock-model-id",
@@ -2750,6 +2786,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.response.finishReason": "stop",
       "ai.response.text": "",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 1,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
@@ -2778,6 +2815,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.settings.maxRetries": 2,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "gen_ai.request.model": "mock-model-id",
@@ -2833,6 +2871,7 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
       "ai.response.finishReason": "stop",
       "ai.response.text": "Hello, world!",
       "ai.settings.frequencyPenalty": 0.3,
+      "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 1,
       "ai.settings.presencePenalty": 0.4,
       "ai.settings.stopSequences": [
@@ -2870,6 +2909,7 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
       "ai.response.text": "Hello, world!",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.settings.frequencyPenalty": 0.3,
+      "ai.settings.maxRetries": 2,
       "ai.settings.presencePenalty": 0.4,
       "ai.settings.stopSequences": [
         "stop",

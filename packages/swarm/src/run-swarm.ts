@@ -44,7 +44,7 @@ export async function runSwarm<CONTEXT = any>({
       ? [{ role: 'user' as const, content: prompt }]
       : prompt;
 
-  let lastResult: GenerateTextResult<any>;
+  let lastResult: GenerateTextResult<any, any>;
   const responseMessages: Array<CoreMessage> = [];
 
   do {

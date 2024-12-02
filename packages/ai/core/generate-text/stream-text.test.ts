@@ -10,6 +10,7 @@ import {
   StreamData,
   StreamTextResult,
   TextStreamPart,
+  createDataStream,
   jsonSchema,
   tool,
 } from '../../streams';
@@ -1341,6 +1342,60 @@ describe('streamText', () => {
       const response = result.toDataStreamResponse({ sendUsage: false });
 
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
+    });
+  });
+
+  describe('result.mergeIntoDataStream', () => {
+    it('should merge the result into a data stream', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: 'world!' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { promptTokens: 3, completionTokens: 10 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      const dataStream = createDataStream({
+        execute(writer) {
+          result.mergeIntoDataStream(writer);
+        },
+      });
+
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+    });
+
+    it('should use the onError handler from the data stream', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'error', error: 'error' },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      const dataStream = createDataStream({
+        execute(writer) {
+          result.mergeIntoDataStream(writer);
+        },
+        onError: error => `custom error message: ${error}`,
+      });
+
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
   });
 
@@ -2706,6 +2761,7 @@ describe('streamText', () => {
         { value: 'value' },
         {
           abortSignal: abortController.signal,
+          toolCallId: 'call-1',
           messages: expect.any(Array),
         },
       );
