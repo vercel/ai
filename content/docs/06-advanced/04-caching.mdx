@@ -105,9 +105,7 @@ Alternatively, each AI SDK Core function has special lifecycle callbacks you can
 
 Here's an example of how you can implement caching using Vercel KV and Next.js to cache the OpenAI response for 1 hour:
 
-## Example: Vercel KV
-
-This example uses [Upstash Redis](https://upstash.com/docs/redis/overall/getstarted) and Next.js to cache the OpenAI response for 1 hour.
+This example uses [Upstash Redis](https://upstash.com/docs/redis/overall/getstarted) and Next.js to cache the response for 1 hour.
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
