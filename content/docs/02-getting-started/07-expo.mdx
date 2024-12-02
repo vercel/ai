@@ -94,7 +94,11 @@ export async function POST(req: Request) {
     messages,
   });
 
-  return result.toDataStreamResponse();
+  return result.toDataStreamResponse({
+    headers: {
+      'Content-Type': 'application/octet-stream',
+    },
+  });
 }
 ```
 
@@ -106,6 +110,11 @@ Let's take a look at what is happening in this code:
 4. Finally, return the result to the client to stream the response.
 
 This API route creates a POST request endpoint at `/api/chat`.
+
+<Note>
+  To address issues with choppy streams on iOS, you can add the
+  `application/octet-stream` header to the response.
+</Note>
 
 ## Wire up the UI
 
@@ -271,7 +280,11 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toDataStreamResponse({
+    headers: {
+      'Content-Type': 'application/octet-stream',
+    },
+  });
 }
 ```
 
@@ -456,7 +469,11 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toDataStreamResponse({
+    headers: {
+      'Content-Type': 'application/octet-stream',
+    },
+  });
 }
 ```
 
