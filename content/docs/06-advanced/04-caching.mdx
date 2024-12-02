@@ -12,13 +12,13 @@ Depending on the type of application you're building, you may want to cache the 
 The recommended approach to caching responses is using [language model middleware](/docs/ai-sdk-core/middleware). Language model middleware is a way to enhance the behavior of language models by intercepting and modifying the calls to the language model. Let's see how you can use language model middleware to cache responses.
 
 ```ts filename="ai/middleware.ts"
-import { Redis } from "@upstash/redis";
+import { Redis } from '@upstash/redis';
 import type {
   LanguageModelV1,
   Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware,
   LanguageModelV1StreamPart,
-} from "ai";
-import { simulateReadableStream } from "ai/test";
+} from 'ai';
+import { simulateReadableStream } from 'ai/test';
 
 const redis = new Redis({
   url: process.env.KV_URL,
@@ -30,7 +30,7 @@ export const cacheMiddleware: LanguageModelV1Middleware = {
     const cacheKey = JSON.stringify(params);
 
     const cached = (await redis.get(cacheKey)) as Awaited<
-      ReturnType<LanguageModelV1["doGenerate"]>
+      ReturnType<LanguageModelV1['doGenerate']>
     > | null;
 
     if (cached !== null) {
@@ -60,13 +60,11 @@ export const cacheMiddleware: LanguageModelV1Middleware = {
     // If cached, return a simulated ReadableStream that yields the cached result
     if (cached !== null) {
       // Format the timestamps in the cached response
-      const formattedChunks = (cached as LanguageModelV1StreamPart[]).map(
-        (p) => {
-          if (p.type === "response-metadata" && p.timestamp) {
-            return { ...p, timestamp: new Date(p.timestamp) };
-          } else return p;
-        },
-      );
+      const formattedChunks = (cached as LanguageModelV1StreamPart[]).map(p => {
+        if (p.type === 'response-metadata' && p.timestamp) {
+          return { ...p, timestamp: new Date(p.timestamp) };
+        } else return p;
+      });
       return {
         stream: simulateReadableStream({
           initialDelayInMs: 0,
