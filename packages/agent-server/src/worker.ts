@@ -20,13 +20,13 @@ export function createWorker({
   return async ({ runId }: { runId: string }) => {
     const runState = await dataStore.getRunState({ runId });
 
-    logger.info(`state ${runState.state} executing in ${runId}`);
+    logger.info(`task ${runState.task} executing in ${runId}`);
 
     const streams: Set<ReadableStream<JSONValue>> = new Set();
 
-    const stateModule = await moduleLoader.loadState({
+    const taskModule = await moduleLoader.loadTask({
       agent: runState.agent,
-      state: runState.state,
+      task: runState.task,
     });
 
     await dataStore.storeStepState({
@@ -36,7 +36,7 @@ export function createWorker({
       inputContext: runState.context,
     });
 
-    const { context, nextState: nextStatePromise } = await stateModule.execute({
+    const { context, nextTask: nextTaskPromise } = await taskModule.execute({
       context: runState.context,
       forwardStream: stream => {
         const [newStream, original] = stream.tee();
@@ -45,7 +45,7 @@ export function createWorker({
       },
     });
 
-    const nextState = await nextStatePromise;
+    const nextTask = await nextTaskPromise;
 
     // consume all streams without backpressure and store it
     // to enable multiple consumers and re-consumption
@@ -77,25 +77,25 @@ export function createWorker({
       status: 'FINISHED',
       inputContext: runState.context,
       outputContext: updatedContext,
-      nextState,
+      nextTask,
     });
 
     await dataStore.updateRun({
       runId,
       agent: runState.agent,
       createdAt: runState.createdAt,
-      state: nextState,
+      task: nextTask,
       context: updatedContext,
       step: runState.step + 1,
     });
 
     // submit next job or end
-    if (nextState === 'END') {
+    if (nextTask === 'END') {
       streamManager.closeStream(runId);
       logger.info(`run ${runId} ended`);
     } else {
       submitJob({ runId });
-      logger.info(`run ${runId} submitted job for ${nextState}`);
+      logger.info(`run ${runId} submitted job for ${nextTask}`);
     }
   };
 }

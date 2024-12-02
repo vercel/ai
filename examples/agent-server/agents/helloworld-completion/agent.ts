@@ -14,7 +14,7 @@ export default {
   async start({ request }) {
     return {
       context: contextSchema.parse(await request.json()),
-      initialState: 'main',
+      initialTask: 'main',
     };
   },
 

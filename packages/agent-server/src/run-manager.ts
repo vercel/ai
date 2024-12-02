@@ -38,7 +38,7 @@ export class RunManager {
 
     this.logger.info(`agent ${agent} starting`);
 
-    const { context, initialState } = await agentModule.start({
+    const { context, initialTask } = await agentModule.start({
       request,
       metadata: { agentName: agent },
     });
@@ -49,7 +49,7 @@ export class RunManager {
     await this.dataStore.updateRun({
       runId,
       agent,
-      state: initialState,
+      task: initialTask,
       context,
       createdAt: Date.now(),
       step: 1,

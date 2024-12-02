@@ -5,6 +5,6 @@ export interface StreamState<CONTEXT, CHUNK> {
     forwardStream: (stream: ReadableStream<CHUNK>) => void;
   }): PromiseLike<{
     context?: PromiseLike<CONTEXT> | CONTEXT;
-    nextState: PromiseLike<string> | string;
+    nextTask: PromiseLike<string> | string;
   }>;
 }

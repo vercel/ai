@@ -36,7 +36,7 @@ export class DataStore {
     status: 'RUNNING' | 'FINISHED';
     inputContext: JSONValue;
     outputContext?: JSONValue;
-    nextState?: string;
+    nextTask?: string;
   }) {
     const filePath = this.getRunPath({
       runId: stepState.runId,

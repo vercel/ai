@@ -7,7 +7,7 @@ export default {
   async start({ request }) {
     return {
       context: (await request.json()) as Context,
-      initialState: 'router',
+      initialTask: 'router',
     };
   },
   headers: {

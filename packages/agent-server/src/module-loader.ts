@@ -27,15 +27,15 @@ export class ModuleLoader {
     });
   }
 
-  async loadState({
+  async loadTask({
     agent,
-    state,
+    task,
   }: {
     agent: string;
-    state: string;
+    task: string;
   }): Promise<StreamState<JSONValue, JSONValue>> {
     return this.loadModule<StreamState<JSONValue, JSONValue>>({
-      path: [agent, 'states', `${state}.js`],
+      path: [agent, 'tasks', `${task}.js`],
     });
   }
 }

@@ -16,7 +16,7 @@ export interface Agent<CONTEXT> {
     };
   }): PromiseLike<{
     context: CONTEXT;
-    initialState: string;
+    initialTask: string;
   }>;
 
   headers?: Record<string, string>;
