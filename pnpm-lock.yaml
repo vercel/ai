@@ -105,7 +105,7 @@ importers:
         specifier: 1.28.0
         version: 1.28.0(@opentelemetry/api@1.9.0)
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -136,7 +136,7 @@ importers:
         specifier: 1.0.5
         version: link:../../packages/openai
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -164,7 +164,7 @@ importers:
         specifier: 1.0.5
         version: link:../../packages/openai
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -192,7 +192,7 @@ importers:
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.9)
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -226,7 +226,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.9(@nestjs/common@10.4.2(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -242,8 +242,8 @@ importers:
         specifier: ^10.2.3
         version: 10.2.3(chokidar@3.6.0)(typescript@5.5.4)
       '@nestjs/testing':
-        specifier: ^10.4.8
-        version: 10.4.8(@nestjs/common@10.4.2(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)(@nestjs/platform-express@10.4.9)
+        specifier: ^10.4.12
+        version: 10.4.12(@nestjs/common@10.4.2(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)(@nestjs/platform-express@10.4.9)
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.0
@@ -305,7 +305,7 @@ importers:
         specifier: 1.0.2
         version: link:../../packages/ui-utils
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -363,7 +363,7 @@ importers:
         specifier: 0.0.28
         version: 0.0.28
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       langchain:
         specifier: 0.1.36
@@ -421,7 +421,7 @@ importers:
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -479,7 +479,7 @@ importers:
         specifier: latest
         version: 1.5.1(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0))
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -531,7 +531,7 @@ importers:
         specifier: 1.0.3
         version: link:../../packages/react
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -598,7 +598,7 @@ importers:
         specifier: 1.9.1
         version: 1.9.1(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.28.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.27.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -671,7 +671,7 @@ importers:
         specifier: 1.9.1
         version: 1.9.1(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.28.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.27.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -729,7 +729,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -778,7 +778,7 @@ importers:
         specifier: 1.0.5
         version: link:../../packages/openai
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -809,7 +809,7 @@ importers:
         specifier: 1.0.3
         version: link:../../packages/vue
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       zod:
         specifier: 3.23.8
@@ -873,7 +873,7 @@ importers:
         specifier: ^1.0.10
         version: 1.0.10(@testing-library/jest-dom@6.6.3)(solid-js@1.9.3)(vinxi@0.4.3(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.4.1)(terser@5.31.3)(typescript@5.6.3)(webpack-sources@3.2.3))(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       solid-js:
         specifier: ^1.9.3
@@ -904,7 +904,7 @@ importers:
         specifier: 1.0.3
         version: link:../../packages/svelte
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       openai:
         specifier: 4.52.6
@@ -968,13 +968,13 @@ importers:
         specifier: 1.0.5
         version: link:../../packages/openai
       '@ai-sdk/swarm':
-        specifier: 0.0.18
+        specifier: 0.0.19
         version: link:../../packages/swarm
       '@google/generative-ai':
         specifier: 0.21.0
         version: 0.21.0
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -1070,7 +1070,7 @@ importers:
         version: link:../../..
       next:
         specifier: canary
-        version: 15.0.4-canary.30(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@19.0.0-rc.1(react@19.0.0-rc.1))(react@19.0.0-rc.1)
+        version: 15.0.4-canary.31(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@19.0.0-rc.1(react@19.0.0-rc.1))(react@19.0.0-rc.1)
       react:
         specifier: rc
         version: 19.0.0-rc.1
@@ -1607,7 +1607,7 @@ importers:
   packages/swarm:
     dependencies:
       ai:
-        specifier: 4.0.9
+        specifier: 4.0.10
         version: link:../ai
       zod:
         specifier: 3.23.8
@@ -4184,8 +4184,8 @@ packages:
     peerDependencies:
       typescript: '>=4.8.2'
 
-  '@nestjs/testing@10.4.8':
-    resolution: {integrity: sha512-VusUnVgfY6KUc0gKU7ER9QQ2QyCoO770wcAfgLhtqydezt/w07FvqT6uOtb/Tf4SMfUbxx6AJwte6UUmkewbnQ==}
+  '@nestjs/testing@10.4.12':
+    resolution: {integrity: sha512-Q1ZpzmIqzem6Q9pBwT1qQRYE050HhvSh8U7AbdIavOHCI063GbXOy/erXEpUnE0o46mqT+y88Nn9NjTXAQt4nQ==}
     peerDependencies:
       '@nestjs/common': ^10.0.0
       '@nestjs/core': ^10.0.0
@@ -4215,8 +4215,8 @@ packages:
   '@next/env@15.0.3':
     resolution: {integrity: sha512-t9Xy32pjNOvVn2AS+Utt6VmyrshbpfUMhIjFO60gI58deSo/KgLOp31XZ4O+kY/Is8WAGYwA5gR7kOb1eORDBA==}
 
-  '@next/env@15.0.4-canary.30':
-    resolution: {integrity: sha512-9LMTJRuHL6wEKaWAmZVkM/qH+ImOe7ldc1Z7r4Z2EpqMqx7xB2x/+FqbVexyCNwFb9mfJfEcz0aDnKtkehfKSg==}
+  '@next/env@15.0.4-canary.31':
+    resolution: {integrity: sha512-YhIOqVXTP8Ge9MhNMJLjSVzxtuwozTw6MwQ6KXxtJtHadMy6rBBJN73Z/8cfayYEHcGLrmOcF7Ukn92c9elEPg==}
 
   '@next/eslint-plugin-next@14.2.3':
     resolution: {integrity: sha512-L3oDricIIjgj1AVnRdRor21gI7mShlSwU/1ZGHmqM3LzHhXXhdkrfeNY5zif25Bi5Dd7fiJHsbhoZCHfXYvlAw==}
@@ -4233,8 +4233,8 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@next/swc-darwin-arm64@15.0.4-canary.30':
-    resolution: {integrity: sha512-cH1Rg48gSgld2GXaA3tDGPSWrXiOIJ/ixlmyI9Gfj74WB26uzFKHdksBYX4zroQgk25KrjLSBnSoq8sNsmpmtg==}
+  '@next/swc-darwin-arm64@15.0.4-canary.31':
+    resolution: {integrity: sha512-GRNIttIS8Ih4fiU0vumM8sbrgJUow4U8Oi1evHd7mJRGmiTWty3VDrxxF4cQdWsrWocUSRy2QpNG8dLBI2evzg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
@@ -4251,8 +4251,8 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@next/swc-darwin-x64@15.0.4-canary.30':
-    resolution: {integrity: sha512-Jjs4n6lQU0ogIr7BsltO9B2H+McmVefOiCD+rX5FuZjkQ7LRHJnwz0MY9QiindMtuqUF+6ZPC2jL0p7BO4OQ2w==}
+  '@next/swc-darwin-x64@15.0.4-canary.31':
+    resolution: {integrity: sha512-lJCb6dx32qefA+M+TLbtOByDTZzNFOgour9pPvf+3sEqmNc1N34FjAkgM+sjyoLZLxOtDryRhhnfP9sNdz/rtw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
@@ -4269,8 +4269,8 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-gnu@15.0.4-canary.30':
-    resolution: {integrity: sha512-KwbAPpQE9gW0WOKPW07TuzbOsiH/diAw7iv63AbuQwvv8DZHm1dtI/deg/oC1mR91V28f4cecoMXYKyoEkyh3Q==}
+  '@next/swc-linux-arm64-gnu@15.0.4-canary.31':
+    resolution: {integrity: sha512-qc4Z52d++ETRG6SRIbtGINjTwqj6UuyoHIHHm2y3HdxuH7eyeUso9HQgCr/Wfa9u7EGMmV5v4J2Z8f3EX4n5VA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -4287,8 +4287,8 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-musl@15.0.4-canary.30':
-    resolution: {integrity: sha512-ikfvPN4G7evMPB3GuSWTtdK7IJ0jpJDOu1UvcC7+9KPQ/TsiDAaCtCr+od9Dn6olGT3Wj5pARDf1YDdPX8ieMQ==}
+  '@next/swc-linux-arm64-musl@15.0.4-canary.31':
+    resolution: {integrity: sha512-afRsrNX0vC9m4UEc8fTPq25i8ypjcpFmnQLvzq39OKJYTLWtgn03nLvGlAVbGn7g1SYurF7CrSC+sHLhL5dBEA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -4305,8 +4305,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-gnu@15.0.4-canary.30':
-    resolution: {integrity: sha512-NJtgw2xnykO8afoDuOaM0u/7O6GZ8G1IwgQWcCtxe7NaVSHEUXx2emGPtIX6CFEnLcc290oDMIcVNJ+QK9vEqQ==}
+  '@next/swc-linux-x64-gnu@15.0.4-canary.31':
+    resolution: {integrity: sha512-c3CE+jVZrqgsO7lhamKUhPLqHTFv2loMhjHTe2qA7oOpeQL1WN9BxWtv24mW1cHEbhHD1KgxotDScooLfXtv9A==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -4323,8 +4323,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-musl@15.0.4-canary.30':
-    resolution: {integrity: sha512-4Aobjfr0wpf6R94FkZ+64ec965LQ3MTc96zlL9j38S5QeqpZ22M2KQzdeRYZfUsh9teDFX1zBJSAcuxMT1jHWg==}
+  '@next/swc-linux-x64-musl@15.0.4-canary.31':
+    resolution: {integrity: sha512-xs/5S6SSS1nytGC0M39W+N3HmiJZqgoSVNgRHnWhMo+03lZIDXC5Q7l48ttlpg+kA/Cy5DeHqUkHz9tF5Zdksg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -4341,8 +4341,8 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  '@next/swc-win32-arm64-msvc@15.0.4-canary.30':
-    resolution: {integrity: sha512-zQAUZ3qfkT+IdOgSPlW3Dux5u6bzMiVdUDsem4JDqbI4AWahVmVryeHUjeJ4tNyEr8x5LULxs5rGmU24YJmcUg==}
+  '@next/swc-win32-arm64-msvc@15.0.4-canary.31':
+    resolution: {integrity: sha512-+WWjAxU2zCw+JyzYg7iXbb9jMi7XoAsvD/D/S9GLM4Nfkd0p961TIajbBqQcmHDNScWEt0208yX0PKeiu/YeRQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
@@ -4365,8 +4365,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@next/swc-win32-x64-msvc@15.0.4-canary.30':
-    resolution: {integrity: sha512-tNjWtxyr/Yn8aoXxkErHx2Gclw6hoWm7fuKTKo+e7rYYL46nVLHen9K1s+FvMJZ+L4Iq+FJSMhXP+6cAml/SWg==}
+  '@next/swc-win32-x64-msvc@15.0.4-canary.31':
+    resolution: {integrity: sha512-w7z8HPVTA/VgaBSCOphz8jLkee8GuyWz0H4dZFjIK/oe1/0TKB11Z0G8xUG4grJB7GlAWSPheeJYprtoc6yqQw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -10640,8 +10640,8 @@ packages:
       sass:
         optional: true
 
-  next@15.0.4-canary.30:
-    resolution: {integrity: sha512-1RfkSWCXJJbG4PXY9RrJ7fsHnTCwv7etAKnsrVwwi2I/HrhpjDSZ47g1pYEnl+Hk747DSnqSPvDrs9qj8g1EXw==}
+  next@15.0.4-canary.31:
+    resolution: {integrity: sha512-+tpf5T/2rKNTN8H3siwIqkde39x54PvLdGbeGWubeTHRYyBYrLYVvKTiYdsO46bqDs35xfh7BsQ4Ow7R0Vtw+g==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
     hasBin: true
     peerDependencies:
@@ -12625,6 +12625,9 @@ packages:
   tslib@2.7.0:
     resolution: {integrity: sha512-gLXCKdN1/j47AiHiOkJN69hJmcbGTHI0ImLmbYLHykhgeN0jVGola9yVjFgzCUklsZQMW55o+dW7IXv3RCXDzA==}
 
+  tslib@2.8.1:
+    resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
+
   tsscmp@1.0.6:
     resolution: {integrity: sha512-LxhtAkPDTkVCMQjt2h6eBVY28KCjikZqZfMcC15YBeNjkgUpdCfBu5HoiOTDu86v6smE8yOjyEktJ8hlbANHQA==}
     engines: {node: '>=0.6.x'}
@@ -13593,7 +13596,7 @@ snapshots:
     dependencies:
       '@aws-crypto/util': 5.2.0
       '@aws-sdk/types': 3.662.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-crypto/sha256-browser@5.2.0':
     dependencies:
@@ -13603,23 +13606,23 @@ snapshots:
       '@aws-sdk/types': 3.662.0
       '@aws-sdk/util-locate-window': 3.568.0
       '@smithy/util-utf8': 2.3.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-crypto/sha256-js@5.2.0':
     dependencies:
       '@aws-crypto/util': 5.2.0
       '@aws-sdk/types': 3.662.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-crypto/supports-web-crypto@5.2.0':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-crypto/util@5.2.0':
     dependencies:
       '@aws-sdk/types': 3.662.0
       '@smithy/util-utf8': 2.3.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/client-bedrock-runtime@3.663.0':
     dependencies:
@@ -13712,7 +13715,7 @@ snapshots:
       '@smithy/util-middleware': 3.0.7
       '@smithy/util-retry': 3.0.7
       '@smithy/util-utf8': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
     transitivePeerDependencies:
       - aws-crt
 
@@ -13755,7 +13758,7 @@ snapshots:
       '@smithy/util-middleware': 3.0.7
       '@smithy/util-retry': 3.0.7
       '@smithy/util-utf8': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
     transitivePeerDependencies:
       - aws-crt
 
@@ -13800,7 +13803,7 @@ snapshots:
       '@smithy/util-middleware': 3.0.7
       '@smithy/util-retry': 3.0.7
       '@smithy/util-utf8': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
     transitivePeerDependencies:
       - aws-crt
 
@@ -13815,14 +13818,14 @@ snapshots:
       '@smithy/types': 3.5.0
       '@smithy/util-middleware': 3.0.7
       fast-xml-parser: 4.4.1
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/credential-provider-env@3.662.0':
     dependencies:
       '@aws-sdk/types': 3.662.0
       '@smithy/property-provider': 3.1.7
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/credential-provider-http@3.662.0':
     dependencies:
@@ -13834,7 +13837,7 @@ snapshots:
       '@smithy/smithy-client': 3.3.6
       '@smithy/types': 3.5.0
       '@smithy/util-stream': 3.1.9
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/credential-provider-ini@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0)':
     dependencies:
@@ -13849,7 +13852,7 @@ snapshots:
       '@smithy/property-provider': 3.1.7
       '@smithy/shared-ini-file-loader': 3.1.8
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
     transitivePeerDependencies:
       - '@aws-sdk/client-sso-oidc'
       - aws-crt
@@ -13867,7 +13870,7 @@ snapshots:
       '@smithy/property-provider': 3.1.7
       '@smithy/shared-ini-file-loader': 3.1.8
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
     transitivePeerDependencies:
       - '@aws-sdk/client-sso-oidc'
       - '@aws-sdk/client-sts'
@@ -13879,7 +13882,7 @@ snapshots:
       '@smithy/property-provider': 3.1.7
       '@smithy/shared-ini-file-loader': 3.1.8
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/credential-provider-sso@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))':
     dependencies:
@@ -13889,7 +13892,7 @@ snapshots:
       '@smithy/property-provider': 3.1.7
       '@smithy/shared-ini-file-loader': 3.1.8
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
     transitivePeerDependencies:
       - '@aws-sdk/client-sso-oidc'
       - aws-crt
@@ -13900,27 +13903,27 @@ snapshots:
       '@aws-sdk/types': 3.662.0
       '@smithy/property-provider': 3.1.7
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/middleware-host-header@3.662.0':
     dependencies:
       '@aws-sdk/types': 3.662.0
       '@smithy/protocol-http': 4.1.4
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/middleware-logger@3.662.0':
     dependencies:
       '@aws-sdk/types': 3.662.0
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/middleware-recursion-detection@3.662.0':
     dependencies:
       '@aws-sdk/types': 3.662.0
       '@smithy/protocol-http': 4.1.4
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/middleware-user-agent@3.662.0':
     dependencies:
@@ -13928,7 +13931,7 @@ snapshots:
       '@aws-sdk/util-endpoints': 3.662.0
       '@smithy/protocol-http': 4.1.4
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/region-config-resolver@3.662.0':
     dependencies:
@@ -13937,7 +13940,7 @@ snapshots:
       '@smithy/types': 3.5.0
       '@smithy/util-config-provider': 3.0.0
       '@smithy/util-middleware': 3.0.7
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/token-providers@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))':
     dependencies:
@@ -13946,37 +13949,37 @@ snapshots:
       '@smithy/property-provider': 3.1.7
       '@smithy/shared-ini-file-loader': 3.1.8
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/types@3.662.0':
     dependencies:
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/util-endpoints@3.662.0':
     dependencies:
       '@aws-sdk/types': 3.662.0
       '@smithy/types': 3.5.0
       '@smithy/util-endpoints': 2.1.3
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/util-locate-window@3.568.0':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/util-user-agent-browser@3.662.0':
     dependencies:
       '@aws-sdk/types': 3.662.0
       '@smithy/types': 3.5.0
       bowser: 2.11.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@aws-sdk/util-user-agent-node@3.662.0':
     dependencies:
       '@aws-sdk/types': 3.662.0
       '@smithy/node-config-provider': 3.1.8
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@babel/code-frame@7.24.7':
     dependencies:
@@ -14870,7 +14873,7 @@ snapshots:
 
   '@emnapi/runtime@1.2.0':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
     optional: true
 
   '@esbuild/aix-ppc64@0.19.12':
@@ -16034,11 +16037,11 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@nestjs/testing@10.4.8(@nestjs/common@10.4.2(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)(@nestjs/platform-express@10.4.9)':
+  '@nestjs/testing@10.4.12(@nestjs/common@10.4.2(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)(@nestjs/platform-express@10.4.9)':
     dependencies:
       '@nestjs/common': 10.4.2(reflect-metadata@0.2.2)(rxjs@7.8.1)
       '@nestjs/core': 10.4.2(@nestjs/common@10.4.2(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/platform-express@10.4.9)(reflect-metadata@0.2.2)(rxjs@7.8.1)
-      tslib: 2.7.0
+      tslib: 2.8.1
     optionalDependencies:
       '@nestjs/platform-express': 10.4.9(@nestjs/common@10.4.2(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)
 
@@ -16057,7 +16060,7 @@ snapshots:
 
   '@next/env@15.0.3': {}
 
-  '@next/env@15.0.4-canary.30': {}
+  '@next/env@15.0.4-canary.31': {}
 
   '@next/eslint-plugin-next@14.2.3':
     dependencies:
@@ -16069,7 +16072,7 @@ snapshots:
   '@next/swc-darwin-arm64@15.0.3':
     optional: true
 
-  '@next/swc-darwin-arm64@15.0.4-canary.30':
+  '@next/swc-darwin-arm64@15.0.4-canary.31':
     optional: true
 
   '@next/swc-darwin-x64@15.0.0-canary.23':
@@ -16078,7 +16081,7 @@ snapshots:
   '@next/swc-darwin-x64@15.0.3':
     optional: true
 
-  '@next/swc-darwin-x64@15.0.4-canary.30':
+  '@next/swc-darwin-x64@15.0.4-canary.31':
     optional: true
 
   '@next/swc-linux-arm64-gnu@15.0.0-canary.23':
@@ -16087,7 +16090,7 @@ snapshots:
   '@next/swc-linux-arm64-gnu@15.0.3':
     optional: true
 
-  '@next/swc-linux-arm64-gnu@15.0.4-canary.30':
+  '@next/swc-linux-arm64-gnu@15.0.4-canary.31':
     optional: true
 
   '@next/swc-linux-arm64-musl@15.0.0-canary.23':
@@ -16096,7 +16099,7 @@ snapshots:
   '@next/swc-linux-arm64-musl@15.0.3':
     optional: true
 
-  '@next/swc-linux-arm64-musl@15.0.4-canary.30':
+  '@next/swc-linux-arm64-musl@15.0.4-canary.31':
     optional: true
 
   '@next/swc-linux-x64-gnu@15.0.0-canary.23':
@@ -16105,7 +16108,7 @@ snapshots:
   '@next/swc-linux-x64-gnu@15.0.3':
     optional: true
 
-  '@next/swc-linux-x64-gnu@15.0.4-canary.30':
+  '@next/swc-linux-x64-gnu@15.0.4-canary.31':
     optional: true
 
   '@next/swc-linux-x64-musl@15.0.0-canary.23':
@@ -16114,7 +16117,7 @@ snapshots:
   '@next/swc-linux-x64-musl@15.0.3':
     optional: true
 
-  '@next/swc-linux-x64-musl@15.0.4-canary.30':
+  '@next/swc-linux-x64-musl@15.0.4-canary.31':
     optional: true
 
   '@next/swc-win32-arm64-msvc@15.0.0-canary.23':
@@ -16123,7 +16126,7 @@ snapshots:
   '@next/swc-win32-arm64-msvc@15.0.3':
     optional: true
 
-  '@next/swc-win32-arm64-msvc@15.0.4-canary.30':
+  '@next/swc-win32-arm64-msvc@15.0.4-canary.31':
     optional: true
 
   '@next/swc-win32-ia32-msvc@15.0.0-canary.23':
@@ -16135,7 +16138,7 @@ snapshots:
   '@next/swc-win32-x64-msvc@15.0.3':
     optional: true
 
-  '@next/swc-win32-x64-msvc@15.0.4-canary.30':
+  '@next/swc-win32-x64-msvc@15.0.4-canary.31':
     optional: true
 
   '@nodelib/fs.scandir@2.1.5':
@@ -18069,7 +18072,7 @@ snapshots:
   '@smithy/abort-controller@3.1.5':
     dependencies:
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/config-resolver@3.0.9':
     dependencies:
@@ -18077,7 +18080,7 @@ snapshots:
       '@smithy/types': 3.5.0
       '@smithy/util-config-provider': 3.0.0
       '@smithy/util-middleware': 3.0.7
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/core@2.4.7':
     dependencies:
@@ -18090,7 +18093,7 @@ snapshots:
       '@smithy/util-body-length-browser': 3.0.0
       '@smithy/util-middleware': 3.0.7
       '@smithy/util-utf8': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/credential-provider-imds@3.2.4':
     dependencies:
@@ -18098,37 +18101,37 @@ snapshots:
       '@smithy/property-provider': 3.1.7
       '@smithy/types': 3.5.0
       '@smithy/url-parser': 3.0.7
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/eventstream-codec@3.1.6':
     dependencies:
       '@aws-crypto/crc32': 5.2.0
       '@smithy/types': 3.5.0
       '@smithy/util-hex-encoding': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/eventstream-serde-browser@3.0.10':
     dependencies:
       '@smithy/eventstream-serde-universal': 3.0.9
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/eventstream-serde-config-resolver@3.0.7':
     dependencies:
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/eventstream-serde-node@3.0.9':
     dependencies:
       '@smithy/eventstream-serde-universal': 3.0.9
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/eventstream-serde-universal@3.0.9':
     dependencies:
       '@smithy/eventstream-codec': 3.1.6
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/fetch-http-handler@3.2.9':
     dependencies:
@@ -18136,33 +18139,33 @@ snapshots:
       '@smithy/querystring-builder': 3.0.7
       '@smithy/types': 3.5.0
       '@smithy/util-base64': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/hash-node@3.0.7':
     dependencies:
       '@smithy/types': 3.5.0
       '@smithy/util-buffer-from': 3.0.0
       '@smithy/util-utf8': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/invalid-dependency@3.0.7':
     dependencies:
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/is-array-buffer@2.2.0':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/is-array-buffer@3.0.0':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/middleware-content-length@3.0.9':
     dependencies:
       '@smithy/protocol-http': 4.1.4
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/middleware-endpoint@3.1.4':
     dependencies:
@@ -18172,7 +18175,7 @@ snapshots:
       '@smithy/types': 3.5.0
       '@smithy/url-parser': 3.0.7
       '@smithy/util-middleware': 3.0.7
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/middleware-retry@3.0.22':
     dependencies:
@@ -18183,25 +18186,25 @@ snapshots:
       '@smithy/types': 3.5.0
       '@smithy/util-middleware': 3.0.7
       '@smithy/util-retry': 3.0.7
-      tslib: 2.7.0
+      tslib: 2.8.1
       uuid: 9.0.1
 
   '@smithy/middleware-serde@3.0.7':
     dependencies:
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/middleware-stack@3.0.7':
     dependencies:
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/node-config-provider@3.1.8':
     dependencies:
       '@smithy/property-provider': 3.1.7
       '@smithy/shared-ini-file-loader': 3.1.8
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/node-http-handler@3.2.4':
     dependencies:
@@ -18209,28 +18212,28 @@ snapshots:
       '@smithy/protocol-http': 4.1.4
       '@smithy/querystring-builder': 3.0.7
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/property-provider@3.1.7':
     dependencies:
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/protocol-http@4.1.4':
     dependencies:
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/querystring-builder@3.0.7':
     dependencies:
       '@smithy/types': 3.5.0
       '@smithy/util-uri-escape': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/querystring-parser@3.0.7':
     dependencies:
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/service-error-classification@3.0.7':
     dependencies:
@@ -18239,7 +18242,7 @@ snapshots:
   '@smithy/shared-ini-file-loader@3.1.8':
     dependencies:
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/signature-v4@4.2.0':
     dependencies:
@@ -18250,7 +18253,7 @@ snapshots:
       '@smithy/util-middleware': 3.0.7
       '@smithy/util-uri-escape': 3.0.0
       '@smithy/util-utf8': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/smithy-client@3.3.6':
     dependencies:
@@ -18259,7 +18262,7 @@ snapshots:
       '@smithy/protocol-http': 4.1.4
       '@smithy/types': 3.5.0
       '@smithy/util-stream': 3.1.9
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/types@3.5.0':
     dependencies:
@@ -18269,35 +18272,35 @@ snapshots:
     dependencies:
       '@smithy/querystring-parser': 3.0.7
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-base64@3.0.0':
     dependencies:
       '@smithy/util-buffer-from': 3.0.0
       '@smithy/util-utf8': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-body-length-browser@3.0.0':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-body-length-node@3.0.0':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-buffer-from@2.2.0':
     dependencies:
       '@smithy/is-array-buffer': 2.2.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-buffer-from@3.0.0':
     dependencies:
       '@smithy/is-array-buffer': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-config-provider@3.0.0':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-defaults-mode-browser@3.0.22':
     dependencies:
@@ -18305,7 +18308,7 @@ snapshots:
       '@smithy/smithy-client': 3.3.6
       '@smithy/types': 3.5.0
       bowser: 2.11.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-defaults-mode-node@3.0.22':
     dependencies:
@@ -18315,28 +18318,28 @@ snapshots:
       '@smithy/property-provider': 3.1.7
       '@smithy/smithy-client': 3.3.6
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-endpoints@2.1.3':
     dependencies:
       '@smithy/node-config-provider': 3.1.8
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-hex-encoding@3.0.0':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-middleware@3.0.7':
     dependencies:
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-retry@3.0.7':
     dependencies:
       '@smithy/service-error-classification': 3.0.7
       '@smithy/types': 3.5.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-stream@3.1.9':
     dependencies:
@@ -18347,21 +18350,21 @@ snapshots:
       '@smithy/util-buffer-from': 3.0.0
       '@smithy/util-hex-encoding': 3.0.0
       '@smithy/util-utf8': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-uri-escape@3.0.0':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-utf8@2.3.0':
     dependencies:
       '@smithy/util-buffer-from': 2.2.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@smithy/util-utf8@3.0.0':
     dependencies:
       '@smithy/util-buffer-from': 3.0.0
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@solid-primitives/trigger@1.1.0(solid-js@1.8.7)':
     dependencies:
@@ -18465,11 +18468,11 @@ snapshots:
 
   '@swc/helpers@0.5.11':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@swc/helpers@0.5.13':
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   '@testing-library/dom@10.4.0':
     dependencies:
@@ -19143,7 +19146,7 @@ snapshots:
       astring: 1.8.6
       magicast: 0.2.11
       recast: 0.23.9
-      tslib: 2.7.0
+      tslib: 2.8.1
       vinxi: 0.4.3(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.4.1)(terser@5.31.3)(typescript@5.6.3)(webpack-sources@3.2.3)
 
   '@vinxi/server-components@0.4.3(vinxi@0.4.3(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.4.1)(terser@5.31.3)(typescript@5.6.3)(webpack-sources@3.2.3))':
@@ -19826,11 +19829,11 @@ snapshots:
 
   ast-types@0.14.2:
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   ast-types@0.16.1:
     dependencies:
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   ast-walker-scope@0.6.2:
     dependencies:
@@ -21300,7 +21303,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.35.0(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
@@ -21349,8 +21352,8 @@ snapshots:
       debug: 4.3.7(supports-color@9.4.0)
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
-      eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.2
       is-core-module: 2.13.1
@@ -21372,7 +21375,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-module-utils@2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -21394,7 +21397,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -21432,7 +21435,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
@@ -21442,7 +21445,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.15.0
       is-glob: 4.0.3
@@ -24382,9 +24385,9 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  next@15.0.4-canary.30(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@19.0.0-rc.1(react@19.0.0-rc.1))(react@19.0.0-rc.1):
+  next@15.0.4-canary.31(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@19.0.0-rc.1(react@19.0.0-rc.1))(react@19.0.0-rc.1):
     dependencies:
-      '@next/env': 15.0.4-canary.30
+      '@next/env': 15.0.4-canary.31
       '@swc/counter': 0.1.3
       '@swc/helpers': 0.5.13
       busboy: 1.6.0
@@ -24394,14 +24397,14 @@ snapshots:
       react-dom: 19.0.0-rc.1(react@19.0.0-rc.1)
       styled-jsx: 5.1.6(react@19.0.0-rc.1)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 15.0.4-canary.30
-      '@next/swc-darwin-x64': 15.0.4-canary.30
-      '@next/swc-linux-arm64-gnu': 15.0.4-canary.30
-      '@next/swc-linux-arm64-musl': 15.0.4-canary.30
-      '@next/swc-linux-x64-gnu': 15.0.4-canary.30
-      '@next/swc-linux-x64-musl': 15.0.4-canary.30
-      '@next/swc-win32-arm64-msvc': 15.0.4-canary.30
-      '@next/swc-win32-x64-msvc': 15.0.4-canary.30
+      '@next/swc-darwin-arm64': 15.0.4-canary.31
+      '@next/swc-darwin-x64': 15.0.4-canary.31
+      '@next/swc-linux-arm64-gnu': 15.0.4-canary.31
+      '@next/swc-linux-arm64-musl': 15.0.4-canary.31
+      '@next/swc-linux-x64-gnu': 15.0.4-canary.31
+      '@next/swc-linux-x64-musl': 15.0.4-canary.31
+      '@next/swc-win32-arm64-msvc': 15.0.4-canary.31
+      '@next/swc-win32-x64-msvc': 15.0.4-canary.31
       '@opentelemetry/api': 1.9.0
       '@playwright/test': 1.46.0
       sharp: 0.33.5
@@ -25634,7 +25637,7 @@ snapshots:
       ast-types: 0.14.2
       esprima: 4.0.1
       source-map: 0.6.1
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   recast@0.23.9:
     dependencies:
@@ -25642,7 +25645,7 @@ snapshots:
       esprima: 4.0.1
       source-map: 0.6.1
       tiny-invariant: 1.3.3
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   redent@3.0.0:
     dependencies:
@@ -26567,7 +26570,7 @@ snapshots:
   synckit@0.9.1:
     dependencies:
       '@pkgr/core': 0.1.1
-      tslib: 2.7.0
+      tslib: 2.8.1
 
   system-architecture@0.1.0: {}
 
@@ -27019,6 +27022,8 @@ snapshots:
   tslib@2.6.3: {}
 
   tslib@2.7.0: {}
+
+  tslib@2.8.1: {}
 
   tsscmp@1.0.6: {}
 
