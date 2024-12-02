@@ -27,6 +27,6 @@ export default {
       prompt: `Here is the last user message: ${lastUserMessage}`,
     });
 
-    return { nextState: result.object };
+    return { nextTask: result.object };
   },
 } satisfies StreamState<Context, string>;

@@ -14,6 +14,6 @@ export default {
     // forward the stream as soon as possible while allowing for blocking operations:
     forwardStream(result.toAgentStream());
 
-    return { nextState: 'END' };
+    return { nextTask: 'END' };
   },
 } satisfies StreamState<Context, string>;

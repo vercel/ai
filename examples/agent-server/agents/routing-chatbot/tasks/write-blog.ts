@@ -17,6 +17,6 @@ export default {
 
     forwardStream(result.toAgentStream());
 
-    return { nextState: 'END' };
+    return { nextTask: 'END' };
   },
 } satisfies StreamState<Context, string>;

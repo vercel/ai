@@ -1,5 +1,11 @@
 ## Agent Server Examples
 
+### Start
+
+```sh
+pnpm build-watch
+```
+
 ### Snippets
 
 ```sh
