@@ -1,5 +1,12 @@
 # @ai-sdk/swarm
 
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies [913872d]
+  - ai@4.0.10
+
 ## 0.0.18
 
 ### Patch Changes
