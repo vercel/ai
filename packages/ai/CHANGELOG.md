@@ -1,5 +1,23 @@
 # ai
 
+## 4.0.10
+
+### Patch Changes
+
+- 913872d: fix (ai/core): track promise from async createDataStream.execute
+
+## 4.0.9
+
+### Patch Changes
+
+- fda9695: feat (ai/core): reworked data stream management
+
+## 4.0.8
+
+### Patch Changes
+
+- a803d76: feat (ai/core): pass toolCallId option into tool execute function
+
 ## 4.0.7
 
 ### Patch Changes

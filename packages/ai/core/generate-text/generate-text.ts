@@ -530,8 +530,8 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   abortSignal: AbortSignal | undefined;
 }): Promise<ToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(
-    toolCalls.map(async toolCall => {
-      const tool = tools[toolCall.toolName];
+    toolCalls.map(async ({ toolCallId, toolName, args }) => {
+      const tool = tools[toolName];
 
       if (tool?.execute == null) {
         return undefined;
@@ -546,16 +546,17 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
               operationId: 'ai.toolCall',
               telemetry,
             }),
-            'ai.toolCall.name': toolCall.toolName,
-            'ai.toolCall.id': toolCall.toolCallId,
+            'ai.toolCall.name': toolName,
+            'ai.toolCall.id': toolCallId,
             'ai.toolCall.args': {
-              output: () => JSON.stringify(toolCall.args),
+              output: () => JSON.stringify(args),
             },
           },
         }),
         tracer,
         fn: async span => {
-          const result = await tool.execute!(toolCall.args, {
+          const result = await tool.execute!(args, {
+            toolCallId,
             messages,
             abortSignal,
           });
@@ -583,9 +584,9 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
       });
 
       return {
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        args: toolCall.args,
+        toolCallId,
+        toolName,
+        args,
         result,
       } as ToolResultArray<TOOLS>[number];
     }),

@@ -4,13 +4,14 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/openai": "1.0.5",
-    "ai": "4.0.7",
+    "ai": "4.0.10",
     "dotenv": "16.4.5",
     "zod": "3.23.8",
     "zod-to-json-schema": "3.23.5"
   },
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "dev": "tsx src/server.ts"
   },
   "devDependencies": {
     "@types/node": "20.11.20",

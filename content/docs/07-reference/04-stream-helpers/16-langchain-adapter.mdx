@@ -34,6 +34,12 @@ It supports:
       type: '(stream: ReadableStream<LangChainAIMessageChunk> | ReadableStream<string>, options?: {init?: ResponseInit, data?: StreamData, callbacks?: AIStreamCallbacksAndOptions}) => Response',
       description: 'Converts LangChain output streams to data stream response.',
     },
+    {
+      name: 'mergeIntoDataStream',
+      type: '(stream: ReadableStream<LangChainStreamEvent> | ReadableStream<LangChainAIMessageChunk> | ReadableStream<string>, options: { dataStream: DataStreamWriter; callbacks?: StreamCallbacks }) => void',
+      description:
+        'Merges LangChain output streams into an existing data stream.',
+    },
   ]}
 />
 

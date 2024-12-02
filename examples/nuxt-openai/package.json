@@ -11,7 +11,7 @@
   "dependencies": {
     "@ai-sdk/vue": "1.0.3",
     "@ai-sdk/openai": "1.0.5",
-    "ai": "4.0.7",
+    "ai": "4.0.10",
     "zod": "3.23.8"
   },
   "devDependencies": {
@@ -27,7 +27,7 @@
     "tailwindcss": "3.4.15",
     "unctx": "2.3.1",
     "vue": "3.5.13",
-    "vue-router": "4.4.5"
+    "vue-router": "4.5.0"
   },
   "version": "0.0.0"
 }
