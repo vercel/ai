@@ -3,8 +3,8 @@ import { openai } from '@ai-sdk/openai';
 import { generateObject, StreamData } from 'ai';
 import { Context } from '../agent';
 
-export default {
-  type: 'stream',
+// TODO special DataStreamTask
+export default new StreamTask<Context, string>({
   async execute({ context, mergeStream }) {
     // immediately start streaming status information:
     const streamData = new StreamData();
@@ -29,4 +29,4 @@ export default {
 
     return { nextTask: result.object };
   },
-} satisfies StreamTask<Context, string>;
+});
