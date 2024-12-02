@@ -104,10 +104,9 @@ export const cacheMiddleware: LanguageModelV1Middleware = {
     }
 
     // If not cached, proceed with streaming
-    const { stream, rawCall, rawResponse, request, warnings } =
-      await doStream();
+    const { stream, ...rest } = await doStream();
 
-    const fullResponse: unknown[] = [];
+    const fullResponse: LanguageModelV1StreamPart[] = [];
 
     const transformStream = new TransformStream<
       LanguageModelV1StreamPart,
@@ -125,10 +124,7 @@ export const cacheMiddleware: LanguageModelV1Middleware = {
 
     return {
       stream: stream.pipeThrough(transformStream),
-      rawCall,
-      rawResponse,
-      request,
-      warnings,
+      ...rest,
     };
   },
 };
