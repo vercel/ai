@@ -1,11 +1,37 @@
 import { describe, it, expect, vi } from 'vitest';
-import { generateAuthToken } from './google-vertex-auth-edge';
+import {
+  generateAuthToken,
+  GoogleCredentials,
+} from './google-vertex-auth-edge';
 
 describe('Google Vertex Edge Auth', () => {
-  const mockCredentials = {
+  const mockCredentials: GoogleCredentials = {
     clientEmail: 'test@test.iam.gserviceaccount.com',
     privateKey: 'mock-private-key',
     privateKeyId: 'test-key-id',
+  };
+
+  const setupAtobStub = (credentials: typeof mockCredentials) => {
+    vi.stubGlobal(
+      'atob',
+      vi.fn().mockImplementation(str => {
+        const payload = {
+          alg: 'RS256',
+          typ: 'JWT',
+          iss: credentials.clientEmail,
+          scope: 'https://www.googleapis.com/auth/cloud-platform',
+          aud: 'https://oauth2.googleapis.com/token',
+          iat: 1616161616,
+          exp: 1616165216,
+        };
+
+        if (credentials.privateKeyId) {
+          Object.assign(payload, { kid: credentials.privateKeyId });
+        }
+
+        return JSON.stringify(payload);
+      }),
+    );
   };
 
   beforeEach(() => {
@@ -28,22 +54,7 @@ describe('Google Vertex Edge Auth', () => {
       json: () => Promise.resolve({ access_token: 'mock.jwt.token' }),
     });
 
-    vi.stubGlobal(
-      'atob',
-      vi.fn().mockImplementation(str => {
-        // Return a mock binary string for testing purposes
-        return JSON.stringify({
-          alg: 'RS256',
-          typ: 'JWT',
-          kid: mockCredentials.privateKeyId,
-          iss: mockCredentials.clientEmail,
-          scope: 'https://www.googleapis.com/auth/cloud-platform',
-          aud: 'https://oauth2.googleapis.com/token',
-          iat: 1616161616,
-          exp: 1616165216,
-        });
-      }),
-    );
+    setupAtobStub(mockCredentials);
   });
 
   afterEach(() => {
@@ -135,14 +146,58 @@ describe('Google Vertex Edge Auth', () => {
     delete process.env.GOOGLE_PRIVATE_KEY_ID;
   });
 
-  it('should throw error when credentials are missing', async () => {
+  it('should throw error when client email is missing', async () => {
     delete process.env.GOOGLE_CLIENT_EMAIL;
-    delete process.env.GOOGLE_PRIVATE_KEY;
-    delete process.env.GOOGLE_PRIVATE_KEY_ID;
+    process.env.GOOGLE_PRIVATE_KEY = mockCredentials.privateKey;
+    process.env.GOOGLE_PRIVATE_KEY_ID = mockCredentials.privateKeyId;
 
     await expect(generateAuthToken()).rejects.toThrow(
-      'Google credentials not found. Please provide',
+      "Google client email setting is missing. Pass it using the 'clientEmail' parameter or the GOOGLE_CLIENT_EMAIL environment variable.",
     );
+
+    // Clean up
+    delete process.env.GOOGLE_PRIVATE_KEY;
+    delete process.env.GOOGLE_PRIVATE_KEY_ID;
+  });
+
+  it('should throw error when private key is missing', async () => {
+    process.env.GOOGLE_CLIENT_EMAIL = mockCredentials.clientEmail;
+    delete process.env.GOOGLE_PRIVATE_KEY;
+    process.env.GOOGLE_PRIVATE_KEY_ID = mockCredentials.privateKeyId;
+
+    await expect(generateAuthToken()).rejects.toThrow(
+      "Google private key setting is missing. Pass it using the 'privateKey' parameter or the GOOGLE_PRIVATE_KEY environment variable.",
+    );
+
+    // Clean up
+    delete process.env.GOOGLE_CLIENT_EMAIL;
+    delete process.env.GOOGLE_PRIVATE_KEY_ID;
+  });
+
+  it('should work with or without private key ID', async () => {
+    // Test with private key ID
+    process.env.GOOGLE_CLIENT_EMAIL = mockCredentials.clientEmail;
+    process.env.GOOGLE_PRIVATE_KEY = mockCredentials.privateKey;
+    process.env.GOOGLE_PRIVATE_KEY_ID = mockCredentials.privateKeyId;
+
+    // Mock successful token exchange
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ access_token: 'mock.jwt.token' }),
+    });
+
+    const tokenWithKeyId = await generateAuthToken();
+    expect(tokenWithKeyId).toBeTruthy();
+
+    // Test without private key ID
+    delete process.env.GOOGLE_PRIVATE_KEY_ID;
+
+    const tokenWithoutKeyId = await generateAuthToken();
+    expect(tokenWithoutKeyId).toBeTruthy();
+
+    // Clean up
+    delete process.env.GOOGLE_CLIENT_EMAIL;
+    delete process.env.GOOGLE_PRIVATE_KEY;
   });
 
   it('should handle newlines in private key from env vars', async () => {
@@ -191,5 +246,30 @@ describe('Google Vertex Edge Auth', () => {
     await expect(generateAuthToken(mockCredentials)).rejects.toThrow(
       'Token request failed: Unauthorized',
     );
+  });
+
+  it('should work without privateKeyId', async () => {
+    const credentialsWithoutKeyId = {
+      clientEmail: mockCredentials.clientEmail,
+      privateKey: mockCredentials.privateKey,
+    };
+    setupAtobStub(credentialsWithoutKeyId);
+
+    // Mock successful token exchange
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ access_token: 'mock.jwt.token' }),
+    });
+
+    const token = await generateAuthToken(credentialsWithoutKeyId);
+    expect(token).toBeTruthy();
+
+    // Verify the JWT structure
+    const parts = token.split('.');
+    expect(parts).toHaveLength(3);
+
+    // Verify header doesn't include kid when privateKeyId is not provided
+    const header = JSON.parse(atob(parts[0]));
+    expect(header).not.toHaveProperty('kid');
   });
 });

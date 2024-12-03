@@ -1,3 +1,5 @@
+import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
+
 export interface GoogleCredentials {
   /**
    * The client email for the Google Cloud service account.
@@ -10,27 +12,30 @@ export interface GoogleCredentials {
   privateKey: string;
 
   /**
-   * The private key ID for the Google Cloud service account.
+   * Optional. The private key ID for the Google Cloud service account.
    */
-  privateKeyId: string;
+  privateKeyId?: string;
 }
 
 const loadCredentials = async (): Promise<GoogleCredentials> => {
   try {
-    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-    const privateKey = process.env.GOOGLE_PRIVATE_KEY;
-    const privateKeyId = process.env.GOOGLE_PRIVATE_KEY_ID;
-    if (!clientEmail || !privateKey || !privateKeyId) {
-      throw new Error(
-        'Google credentials not found. Please provide\n' +
-          'GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY, and GOOGLE_PRIVATE_KEY_ID environment variables',
-      );
-    }
-
     return {
-      clientEmail,
-      privateKey,
-      privateKeyId,
+      clientEmail: loadSetting({
+        settingValue: undefined,
+        settingName: 'clientEmail',
+        environmentVariableName: 'GOOGLE_CLIENT_EMAIL',
+        description: 'Google client email',
+      }),
+      privateKey: loadSetting({
+        settingValue: undefined,
+        settingName: 'privateKey',
+        environmentVariableName: 'GOOGLE_PRIVATE_KEY',
+        description: 'Google private key',
+      }),
+      privateKeyId: loadOptionalSetting({
+        settingValue: undefined,
+        environmentVariableName: 'GOOGLE_PRIVATE_KEY_ID',
+      }),
     };
   } catch (error: any) {
     throw new Error(`Failed to load Google credentials: ${error.message}`);
@@ -72,11 +77,15 @@ const importPrivateKey = async (pemKey: string) => {
 const buildJwt = async (credentials: GoogleCredentials) => {
   const now = Math.floor(Date.now() / 1000);
 
-  const header = {
+  // Only include kid in header if privateKeyId is provided
+  const header: { alg: string; typ: string; kid?: string } = {
     alg: 'RS256',
     typ: 'JWT',
-    kid: credentials.privateKeyId,
   };
+
+  if (credentials.privateKeyId) {
+    header.kid = credentials.privateKeyId;
+  }
 
   const payload = {
     iss: credentials.clientEmail,
