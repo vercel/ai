@@ -15,7 +15,6 @@ import {
 } from './google-vertex-embedding-settings';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { generateAuthToken } from './generate-auth-token';
 
 export interface GoogleVertexProvider extends ProviderV1 {
   /**
@@ -93,11 +92,7 @@ export function createVertex(
     return new GoogleGenerativeAILanguageModel(modelId, settings, {
       provider: `google.vertex.chat`,
       baseURL: `https://${region}-aiplatform.googleapis.com/v1/projects/${project}/locations/${region}/publishers/google`,
-      headers:
-        options.headers ??
-        (async () => ({
-          Authorization: `Bearer ${await generateAuthToken()}`,
-        })),
+      headers: options.headers ?? {},
       generateId: options.generateId ?? generateId,
       fetch: options.fetch,
     });

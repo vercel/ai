@@ -1,1 +1,1 @@
-export { generateAuthToken } from './google-vertex-auth-google-auth-library';
+export { generateAuthToken } from '../google-vertex-auth-google-auth-library';
