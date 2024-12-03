@@ -12,7 +12,7 @@ let updateCalls: Array<{
 }> = [];
 const update = (newMessages: Message[], data: JSONValue[] | undefined) => {
   // clone to preserve the original object
-  updateCalls.push(JSON.parse(JSON.stringify({ newMessages, data })));
+  updateCalls.push({ newMessages, data });
 };
 
 let finishCalls: Array<{
@@ -26,7 +26,7 @@ const onFinish = (options: {
   usage: LanguageModelUsage;
 }) => {
   // clone to preserve the original object
-  finishCalls.push(JSON.parse(JSON.stringify(options)));
+  finishCalls.push({ ...options });
 };
 
 export function mockId(): () => string {
@@ -70,7 +70,7 @@ describe('scenario: simple text response', () => {
         newMessages: [
           {
             content: 'Hello, ',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-1',
             role: 'assistant',
@@ -82,7 +82,7 @@ describe('scenario: simple text response', () => {
         newMessages: [
           {
             content: 'Hello, world!',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-2',
             role: 'assistant',
@@ -98,7 +98,7 @@ describe('scenario: simple text response', () => {
       {
         message: {
           content: 'Hello, world!',
-          createdAt: '2023-01-01T00:00:00.000Z',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
           id: 'id-0',
           role: 'assistant',
         },
@@ -160,7 +160,7 @@ describe('scenario: server-side tool roundtrip', () => {
             revisionId: 'id-1',
             role: 'assistant',
             content: '',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             toolInvocations: [
               {
                 args: {
@@ -182,7 +182,7 @@ describe('scenario: server-side tool roundtrip', () => {
             revisionId: 'id-2',
             role: 'assistant',
             content: '',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             toolInvocations: [
               {
                 args: {
@@ -204,7 +204,7 @@ describe('scenario: server-side tool roundtrip', () => {
         newMessages: [
           {
             content: '',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             role: 'assistant',
             toolInvocations: [
@@ -226,7 +226,7 @@ describe('scenario: server-side tool roundtrip', () => {
             revisionId: 'id-4',
             role: 'assistant',
             content: 'The weather in London is sunny.',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
           },
         ],
         data: [],
@@ -241,7 +241,7 @@ describe('scenario: server-side tool roundtrip', () => {
           id: 'id-3',
           role: 'assistant',
           content: 'The weather in London is sunny.',
-          createdAt: '2023-01-01T00:00:00.000Z',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
         },
         finishReason: 'stop',
         usage: {
@@ -293,7 +293,7 @@ describe('scenario: server-side continue roundtrip', () => {
             revisionId: 'id-1',
             role: 'assistant',
             content: 'The weather in London ',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
           },
         ],
         data: [],
@@ -305,7 +305,7 @@ describe('scenario: server-side continue roundtrip', () => {
             revisionId: 'id-2',
             role: 'assistant',
             content: 'The weather in London is sunny.',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
           },
         ],
         data: [],
@@ -320,7 +320,7 @@ describe('scenario: server-side continue roundtrip', () => {
           id: 'id-0',
           role: 'assistant',
           content: 'The weather in London is sunny.',
-          createdAt: '2023-01-01T00:00:00.000Z',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
         },
         finishReason: 'stop',
         usage: {
@@ -369,7 +369,7 @@ describe('scenario: delayed message annotations in onFinish', () => {
         newMessages: [
           {
             content: 'text',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-1',
             role: 'assistant',
@@ -381,7 +381,7 @@ describe('scenario: delayed message annotations in onFinish', () => {
         newMessages: [
           {
             content: 'text',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-2',
             role: 'assistant',
@@ -398,7 +398,7 @@ describe('scenario: delayed message annotations in onFinish', () => {
       {
         message: {
           content: 'text',
-          createdAt: '2023-01-01T00:00:00.000Z',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
           id: 'id-0',
           role: 'assistant',
           annotations: [{ example: 'annotation' }],
@@ -451,7 +451,7 @@ describe('scenario: message annotations in onChunk', () => {
         newMessages: [
           {
             content: 't1',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-1',
             role: 'assistant',
@@ -464,7 +464,7 @@ describe('scenario: message annotations in onChunk', () => {
         newMessages: [
           {
             content: 't1',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-2',
             role: 'assistant',
@@ -477,7 +477,7 @@ describe('scenario: message annotations in onChunk', () => {
         newMessages: [
           {
             content: 't1t2',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-3',
             role: 'assistant',
@@ -494,7 +494,7 @@ describe('scenario: message annotations in onChunk', () => {
       {
         message: {
           content: 't1t2',
-          createdAt: '2023-01-01T00:00:00.000Z',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
           id: 'id-0',
           role: 'assistant',
           annotations: ['annotation1', 'annotation2'],
@@ -560,7 +560,7 @@ describe('scenario: tool call streaming', () => {
         newMessages: [
           {
             content: '',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-1',
             role: 'assistant',
@@ -579,7 +579,7 @@ describe('scenario: tool call streaming', () => {
         newMessages: [
           {
             content: '',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-2',
             role: 'assistant',
@@ -601,7 +601,7 @@ describe('scenario: tool call streaming', () => {
         newMessages: [
           {
             content: '',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-3',
             role: 'assistant',
@@ -623,7 +623,7 @@ describe('scenario: tool call streaming', () => {
         newMessages: [
           {
             content: '',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-4',
             role: 'assistant',
@@ -645,7 +645,7 @@ describe('scenario: tool call streaming', () => {
         newMessages: [
           {
             content: '',
-            createdAt: '2023-01-01T00:00:00.000Z',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
             id: 'id-0',
             revisionId: 'id-5',
             role: 'assistant',
@@ -672,7 +672,7 @@ describe('scenario: tool call streaming', () => {
       {
         message: {
           content: '',
-          createdAt: '2023-01-01T00:00:00.000Z',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
           id: 'id-0',
           role: 'assistant',
           toolInvocations: [
