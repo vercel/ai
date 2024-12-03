@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { useChat, type Message } from '@ai-sdk/vue';
+import { useChat } from '@ai-sdk/vue';
 
 const { input, messages, append } = useChat({
-  api: '/api/chat-with-attachments',
-  maxSteps: 5,
+  api: '/api/chat',
 });
 
 const files = ref<FileList | null>(null);
@@ -14,8 +13,8 @@ const submit = () => {
     { role: 'user', content: input.value },
     {
       experimental_attachments: files.value ?? undefined,
-    }
-  )
+    },
+  );
 
   input.value = '';
   fileInputRef.value!.value = '';
@@ -34,20 +33,43 @@ const filesWithUrl = computed(() => {
 
 <template>
   <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-    <div v-for="message in messages" :key="message.id" class="whitespace-pre-wrap">
+    <div
+      v-for="message in messages"
+      :key="message.id"
+      class="whitespace-pre-wrap"
+    >
       <strong>{{ `${message.role}: ` }}</strong>
       {{ message.content }}
 
       <div v-if="message.experimental_attachments" class="flex flex-row gap-2">
-        <img v-for="(attachment, index) in message.experimental_attachments" :key="`${message.id}-${index}`" :src="attachment.url" class="rounded-md size-20" />
+        <img
+          v-for="(attachment, index) in message.experimental_attachments"
+          :key="`${message.id}-${index}`"
+          :src="attachment.url"
+          class="rounded-md size-20"
+        />
       </div>
     </div>
 
-    <form @submit.prevent="submit" class="fixed bottom-0 flex flex-col gap-2 max-w-md mb-8">
+    <form
+      @submit.prevent="submit"
+      class="fixed bottom-0 flex flex-col max-w-md gap-2 mb-8"
+    >
       <div class="flex flex-row gap-2">
-        <img v-for="file in filesWithUrl" :key="file.file.name" :src="file.url" class="rounded-md size-20" />
+        <img
+          v-for="file in filesWithUrl"
+          :key="file.file.name"
+          :src="file.url"
+          class="rounded-md size-20"
+        />
       </div>
-      <input ref="fileInputRef" type="file" accept="image/*" multiple @change="files = ($event.target as HTMLInputElement).files" />
+      <input
+        ref="fileInputRef"
+        type="file"
+        accept="image/*"
+        multiple
+        @change="files = ($event.target as HTMLInputElement).files"
+      />
       <input
         class="w-full p-2 border border-gray-300 rounded shadow-xl"
         v-model="input"
