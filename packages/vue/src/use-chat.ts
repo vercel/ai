@@ -6,7 +6,11 @@ import type {
   Message,
   UseChatOptions,
 } from '@ai-sdk/ui-utils';
-import { callChatApi, generateId as generateIdFunc } from '@ai-sdk/ui-utils';
+import {
+  callChatApi,
+  generateId as generateIdFunc,
+  prepareAttachmentsForRequest,
+} from '@ai-sdk/ui-utils';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
 import { ref, unref } from 'vue';
@@ -173,9 +177,19 @@ export function useChat(
       const constructedMessagesPayload = sendExtraMessageFields
         ? chatRequest.messages
         : chatRequest.messages.map(
-            ({ role, content, data, annotations, toolInvocations }) => ({
+            ({
               role,
               content,
+              experimental_attachments,
+              data,
+              annotations,
+              toolInvocations,
+            }) => ({
+              role,
+              content,
+              ...(experimental_attachments !== undefined && {
+                experimental_attachments,
+              }),
               ...(data !== undefined && { data }),
               ...(annotations !== undefined && { annotations }),
               ...(toolInvocations !== undefined && { toolInvocations }),
@@ -252,11 +266,20 @@ export function useChat(
   }
 
   const append: UseChatHelpers['append'] = async (message, options) => {
-    if (!message.id) {
-      message.id = generateId();
-    }
+    const attachmentsForRequest = await prepareAttachmentsForRequest(
+      options?.experimental_attachments,
+    );
 
-    return triggerRequest(messages.value.concat(message as Message), options);
+    return triggerRequest(
+      messages.value.concat({
+        ...message,
+        id: message.id ?? generateId(),
+        createdAt: message.createdAt ?? new Date(),
+        experimental_attachments:
+          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+      }),
+      options,
+    );
   };
 
   const reload: UseChatHelpers['reload'] = async options => {
@@ -303,7 +326,7 @@ export function useChat(
 
   const input = ref(initialInput);
 
-  const handleSubmit = (
+  const handleSubmit = async (
     event?: { preventDefault?: () => void },
     options: ChatRequestOptions = {},
   ) => {
@@ -313,14 +336,22 @@ export function useChat(
 
     if (!inputValue && !options.allowEmptySubmit) return;
 
+    const attachmentsForRequest = await prepareAttachmentsForRequest(
+      options.experimental_attachments,
+    );
+
     triggerRequest(
-      !inputValue && options.allowEmptySubmit
+      !inputValue && !attachmentsForRequest.length && options.allowEmptySubmit
         ? messages.value
         : messages.value.concat({
             id: generateId(),
             createdAt: new Date(),
             content: inputValue,
             role: 'user',
+            experimental_attachments:
+              attachmentsForRequest.length > 0
+                ? attachmentsForRequest
+                : undefined,
           }),
       options,
     );
