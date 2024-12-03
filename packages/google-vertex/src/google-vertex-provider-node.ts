@@ -2,10 +2,22 @@ import { generateAuthToken } from './google-vertex-auth-google-auth-library';
 import {
   createVertex as createVertexOriginal,
   GoogleVertexProvider,
-  GoogleVertexProviderSettings,
+  GoogleVertexProviderSettings as GoogleVertexProviderSettingsOriginal,
 } from './google-vertex-provider';
+import { GoogleAuthOptions } from 'google-auth-library';
 
-export type { GoogleVertexProviderSettings, GoogleVertexProvider };
+export interface GoogleVertexProviderSettings
+  extends GoogleVertexProviderSettingsOriginal {
+  /**
+ Optional. The Authentication options provided by google-auth-library.
+Complete list of authentication options is documented in the
+GoogleAuthOptions interface:
+https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts.
+   */
+  googleAuthOptions?: GoogleAuthOptions;
+}
+
+export type { GoogleVertexProvider };
 
 export function createVertex(
   options: GoogleVertexProviderSettings = {},
@@ -15,7 +27,9 @@ export function createVertex(
     headers:
       options.headers ??
       (async () => ({
-        Authorization: `Bearer ${await generateAuthToken()}`,
+        Authorization: `Bearer ${await generateAuthToken(
+          options.googleAuthOptions,
+        )}`,
       })),
   });
 }

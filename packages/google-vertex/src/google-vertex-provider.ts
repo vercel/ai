@@ -3,7 +3,6 @@ import {
   FetchFunction,
   generateId,
   loadSetting,
-  resolve,
   Resolvable,
 } from '@ai-sdk/provider-utils';
 import {

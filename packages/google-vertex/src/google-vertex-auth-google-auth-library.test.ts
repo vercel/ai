@@ -46,4 +46,14 @@ describe('generateAuthToken', () => {
     const token = await generateAuthToken();
     expect(token).toBeNull();
   });
+
+  it('should create new auth instance with provided options', async () => {
+    const options = { keyFile: 'test-key.json' };
+    await generateAuthToken(options);
+
+    expect(GoogleAuth).toHaveBeenCalledWith({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      keyFile: 'test-key.json',
+    });
+  });
 });
