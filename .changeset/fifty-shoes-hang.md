@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/vue': minor
+'@ai-sdk/vue': patch
 ---
 
 feat (ui/vue): add support for attachments in useChat
