@@ -11,7 +11,7 @@ import {
   embedMany,
 } from 'ai';
 import fs from 'fs';
-import { generateAuthTokenEdgeCompatible as generateAuthToken } from '../lib/google-vertex-auth-edge';
+import { generateAuthToken } from '@ai-sdk/google-vertex/auth-edge';
 
 const LONG_TEST_MILLIS = 10000;
 
@@ -32,7 +32,7 @@ describe('Google Vertex E2E Tests', () => {
   const provider = createVertex({
     project: process.env.GOOGLE_VERTEX_PROJECT,
     location: process.env.GOOGLE_VERTEX_LOCATION,
-    experimental_getHeadersAsync: async () => ({
+    headers: async () => ({
       Authorization: `Bearer ${await generateAuthToken()}`,
     }),
   });

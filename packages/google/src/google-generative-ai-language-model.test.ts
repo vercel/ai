@@ -534,80 +534,104 @@ describe('doGenerate', () => {
     }),
   );
 
-  it(
-    'should merge async headers when experimental_getHeadersAsync is defined',
-    withTestServer(prepareJsonResponse({}), async ({ call }) => {
-      const model = new GoogleGenerativeAILanguageModel(
-        'gemini-pro',
-        {},
-        {
-          provider: 'google.generative-ai',
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: () => ({
-            'Custom-Provider-Header': 'provider-header-value',
-          }),
-          experimental_getHeadersAsync: async () => ({
-            'Async-Header': 'async-header-value',
-          }),
-          generateId: () => 'foo',
-        },
-      );
+  describe('async headers handling', () => {
+    it(
+      'merges async config headers with sync request headers',
+      withTestServer(prepareJsonResponse({}), async ({ call }) => {
+        const model = new GoogleGenerativeAILanguageModel(
+          'gemini-pro',
+          {},
+          {
+            provider: 'google.generative-ai',
+            baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+            headers: async () => ({
+              'X-Async-Config': 'async-config-value',
+              'X-Common': 'config-value',
+            }),
+            generateId: () => 'test-id',
+          },
+        );
 
-      await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-        headers: {
-          'Custom-Request-Header': 'request-header-value',
-        },
-      });
+        await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          headers: {
+            'X-Sync-Request': 'sync-request-value',
+            'X-Common': 'request-value', // Should override config value
+          },
+        });
 
-      const requestHeaders = call(0).getRequestHeaders();
+        const requestHeaders = call(0).getRequestHeaders();
+        expect(requestHeaders).toStrictEqual({
+          'content-type': 'application/json',
+          'x-async-config': 'async-config-value',
+          'x-sync-request': 'sync-request-value',
+          'x-common': 'request-value', // Request headers take precedence
+        });
+      }),
+    );
 
-      expect(requestHeaders).toStrictEqual({
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-        'async-header': 'async-header-value',
-      });
-    }),
-  );
+    it(
+      'handles Promise-based headers',
+      withTestServer(prepareJsonResponse({}), async ({ call }) => {
+        const model = new GoogleGenerativeAILanguageModel(
+          'gemini-pro',
+          {},
+          {
+            provider: 'google.generative-ai',
+            baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+            headers: Promise.resolve({
+              'X-Promise-Header': 'promise-value',
+            }),
+            generateId: () => 'test-id',
+          },
+        );
 
-  it(
-    'should skip async headers when experimental_getHeadersAsync is undefined',
-    withTestServer(prepareJsonResponse({}), async ({ call }) => {
-      const model = new GoogleGenerativeAILanguageModel(
-        'gemini-pro',
-        {},
-        {
-          provider: 'google.generative-ai',
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: () => ({
-            'Custom-Provider-Header': 'provider-header-value',
-          }),
-          experimental_getHeadersAsync: undefined,
-          generateId: () => 'foo',
-        },
-      );
+        await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
 
-      await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-        headers: {
-          'Custom-Request-Header': 'request-header-value',
-        },
-      });
+        const requestHeaders = call(0).getRequestHeaders();
+        expect(requestHeaders).toStrictEqual({
+          'content-type': 'application/json',
+          'x-promise-header': 'promise-value',
+        });
+      }),
+    );
 
-      const requestHeaders = call(0).getRequestHeaders();
+    it(
+      'handles async function headers from config',
+      withTestServer(prepareJsonResponse({}), async ({ call }) => {
+        const model = new GoogleGenerativeAILanguageModel(
+          'gemini-pro',
+          {},
+          {
+            provider: 'google.generative-ai',
+            baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+            headers: async () => ({
+              'X-Async-Header': 'async-value',
+            }),
+            generateId: () => 'test-id',
+          },
+        );
 
-      expect(requestHeaders).toStrictEqual({
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
-    }),
-  );
+        await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const requestHeaders = call(0).getRequestHeaders();
+        expect(requestHeaders).toStrictEqual({
+          'content-type': 'application/json',
+          'x-async-header': 'async-value',
+        });
+      }),
+    );
+  });
 });
 
 describe('doStream', () => {
@@ -805,87 +829,6 @@ describe('doStream', () => {
             usage: { promptTokens: 294, completionTokens: 233 },
           },
         ]);
-      },
-    ),
-  );
-
-  it(
-    'should merge async headers when experimental_getHeadersAsync is defined',
-    withTestServer(
-      prepareStreamResponse({ content: [''] }),
-      async ({ call }) => {
-        const model = new GoogleGenerativeAILanguageModel(
-          'gemini-pro',
-          {},
-          {
-            provider: 'google.generative-ai',
-            baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-            headers: () => ({
-              'Custom-Provider-Header': 'provider-header-value',
-            }),
-            experimental_getHeadersAsync: async () => ({
-              'Async-Header': 'async-header-value',
-            }),
-            generateId: () => 'foo',
-          },
-        );
-
-        await model.doStream({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
-          prompt: TEST_PROMPT,
-          headers: {
-            'Custom-Request-Header': 'request-header-value',
-          },
-        });
-
-        const requestHeaders = call(0).getRequestHeaders();
-
-        expect(requestHeaders).toStrictEqual({
-          'content-type': 'application/json',
-          'custom-provider-header': 'provider-header-value',
-          'custom-request-header': 'request-header-value',
-          'async-header': 'async-header-value',
-        });
-      },
-    ),
-  );
-
-  it(
-    'should skip async headers when experimental_getHeadersAsync is undefined',
-    withTestServer(
-      prepareStreamResponse({ content: [''] }),
-      async ({ call }) => {
-        const model = new GoogleGenerativeAILanguageModel(
-          'gemini-pro',
-          {},
-          {
-            provider: 'google.generative-ai',
-            baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-            headers: () => ({
-              'Custom-Provider-Header': 'provider-header-value',
-            }),
-            experimental_getHeadersAsync: undefined,
-            generateId: () => 'foo',
-          },
-        );
-
-        await model.doStream({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
-          prompt: TEST_PROMPT,
-          headers: {
-            'Custom-Request-Header': 'request-header-value',
-          },
-        });
-
-        const requestHeaders = call(0).getRequestHeaders();
-
-        expect(requestHeaders).toStrictEqual({
-          'content-type': 'application/json',
-          'custom-provider-header': 'provider-header-value',
-          'custom-request-header': 'request-header-value',
-        });
       },
     ),
   );

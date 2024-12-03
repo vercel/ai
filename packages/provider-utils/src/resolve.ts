@@ -11,9 +11,14 @@ export type Resolvable<T> =
 export async function resolve<T>(value: Resolvable<T>): Promise<T> {
   // If it's a function, call it to get the value/promise
   if (typeof value === 'function') {
-    value = (value as Function)();
+    const result = (value as Function)();
+    return Promise.resolve(result);
   }
 
   // Otherwise just resolve whatever we got (value or promise)
-  return Promise.resolve(value as T);
+  return Promise.resolve(value);
 }
+
+// Helper for common case of resolving headers
+export type ResolvableHeaders = Resolvable<Record<string, string | undefined>>;
+export const resolveHeaders = (headers: ResolvableHeaders) => resolve(headers);

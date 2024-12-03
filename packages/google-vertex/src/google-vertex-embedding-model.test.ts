@@ -43,7 +43,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         region: 'us-central1',
         project: 'test-project',
         headers: () => ({}),
-        experimental_getHeadersAsync: undefined,
       });
 
       await model.doEmbed({ values: ['test'] });
@@ -61,7 +60,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         region: 'us-central1',
         project: 'test-project',
         headers: () => ({ 'X-Test': 'test' }),
-        experimental_getHeadersAsync: undefined,
       });
 
       await model.doEmbed({ values: ['test'] });
@@ -81,7 +79,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         region: 'us-central1',
         project: 'test-project',
         headers: () => ({ 'X-Static': 'static' }),
-        experimental_getHeadersAsync: async () => ({ 'X-Async': 'async' }),
       });
 
       await model.doEmbed({
@@ -92,7 +89,6 @@ describe('GoogleVertexEmbeddingModel', () => {
       expect(postJsonToApi).toHaveBeenCalledWith(
         expect.objectContaining({
           headers: {
-            'X-Async': 'async',
             'X-Request': 'request',
             'X-Static': 'static',
           },
@@ -106,7 +102,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         region: 'us-central1',
         project: 'test-project',
         headers: () => ({ 'X-Static': 'static' }),
-        experimental_getHeadersAsync: undefined,
       });
 
       await model.doEmbed({ values: ['test'] });
@@ -126,7 +121,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         region: 'us-central1',
         project: 'test-project',
         headers: () => ({ 'X-Common': 'static' }),
-        experimental_getHeadersAsync: async () => ({ 'X-Common': 'async' }),
       });
 
       await model.doEmbed({
@@ -149,7 +143,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         region: 'us-central1',
         project: 'test-project',
         headers: () => ({ 'X-Static': undefined }),
-        experimental_getHeadersAsync: undefined,
       });
 
       await model.doEmbed({ values: ['test'] });
@@ -167,7 +160,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         region: 'us-central1',
         project: 'test-project',
         headers: () => ({ 'X-Static': 'static' }),
-        experimental_getHeadersAsync: undefined,
       });
 
       await model.doEmbed({ values: ['test'] });
@@ -176,6 +168,89 @@ describe('GoogleVertexEmbeddingModel', () => {
         expect.objectContaining({
           headers: {
             'X-Static': 'static',
+          },
+        }),
+      );
+    });
+  });
+
+  describe('async headers handling', () => {
+    const mockModelId = 'textembedding-gecko@001';
+    const mockSettings = { outputDimensionality: 768 };
+
+    it('handles async function headers from config', async () => {
+      const model = new GoogleVertexEmbeddingModel(mockModelId, mockSettings, {
+        provider: 'google-vertex',
+        region: 'us-central1',
+        project: 'test-project',
+        headers: async () => ({
+          'X-Async-Header': 'async-value',
+        }),
+      });
+
+      await model.doEmbed({ values: ['test'] });
+
+      expect(postJsonToApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: {
+            'X-Async-Header': 'async-value',
+          },
+        }),
+      );
+    });
+
+    it('handles Promise-based headers', async () => {
+      const model = new GoogleVertexEmbeddingModel(mockModelId, mockSettings, {
+        provider: 'google-vertex',
+        region: 'us-central1',
+        project: 'test-project',
+        headers: Promise.resolve({
+          'X-Promise-Header': 'promise-value',
+        }),
+      });
+
+      await model.doEmbed({ values: ['test'] });
+
+      expect(postJsonToApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: {
+            'X-Promise-Header': 'promise-value',
+          },
+        }),
+      );
+    });
+
+    it('merges async config headers with sync request headers', async () => {
+      const model = new GoogleVertexEmbeddingModel(
+        'textembedding-gecko@001',
+        { outputDimensionality: 768 },
+        {
+          provider: 'google-vertex',
+          region: 'us-central1',
+          project: 'test-project',
+          headers: async () => ({
+            'X-Async-Config': 'async-config-value',
+            'X-Common': 'config-value',
+          }),
+        },
+      );
+
+      const embedPromise = model.doEmbed({
+        values: ['test'],
+        headers: {
+          'X-Sync-Request': 'sync-request-value',
+          'X-Common': 'request-value', // Should override config value
+        },
+      });
+
+      await embedPromise;
+
+      expect(postJsonToApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: {
+            'X-Async-Config': 'async-config-value',
+            'X-Sync-Request': 'sync-request-value',
+            'X-Common': 'request-value', // Request headers take precedence
           },
         }),
       );
@@ -191,7 +266,6 @@ describe('GoogleVertexEmbeddingModel', () => {
         region: 'us-central1',
         project: 'test-project',
         headers: () => ({}),
-        experimental_getHeadersAsync: undefined,
       },
     );
 

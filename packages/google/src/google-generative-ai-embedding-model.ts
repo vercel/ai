@@ -7,6 +7,7 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   postJsonToApi,
+  resolveHeaders,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { googleFailedResponseHandler } from './google-error';
@@ -19,9 +20,6 @@ type GoogleGenerativeAIEmbeddingConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
-  experimental_getHeadersAsync:
-    | (() => Promise<Record<string, string | undefined>>)
-    | undefined;
   fetch?: FetchFunction;
 };
 
@@ -72,10 +70,8 @@ export class GoogleGenerativeAIEmbeddingModel
       });
     }
 
-    const asyncHeaders = this.config.experimental_getHeadersAsync?.();
     const mergedHeaders = combineHeaders(
-      this.config.headers(),
-      asyncHeaders ? await asyncHeaders : {},
+      await resolveHeaders(this.config.headers),
       headers,
     );
 

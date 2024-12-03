@@ -1,13 +1,9 @@
+import { LanguageModelV1, ProviderV1 } from '@ai-sdk/provider';
 import {
-  LanguageModelV1,
-  NoSuchModelError,
-  ProviderV1,
-} from '@ai-sdk/provider';
-import {
-  combineHeaders,
   FetchFunction,
   generateId,
   loadSetting,
+  ResolvableHeaders,
 } from '@ai-sdk/provider-utils';
 import {
   GoogleVertexModelId,
@@ -19,8 +15,6 @@ import {
 } from './google-vertex-embedding-settings';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { GoogleAuthOptions } from 'google-auth-library';
-import { generateAuthToken } from './google-vertex-auth-google-auth-library';
 
 export interface GoogleVertexProvider extends ProviderV1 {
   /**
@@ -49,22 +43,13 @@ Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_
   project?: string;
 
   /**
-Optional. The headers to use.
+   * Headers to use for requests. Can be:
+   * - A headers object
+   * - A Promise that resolves to a headers object
+   * - A function that returns a headers object
+   * - A function that returns a Promise of a headers object
    */
-  headers?: Record<string, string | undefined>;
-
-  /**
-Experimental: async function to return custom headers to include in the
-requests. This can be used to add an authorization header generated in whatever
-manner is appropriate for your use case and environment.
-
-If this is provided, the legacy behavior using the `googleAuthOptions1 setting
-and the `google-auth-library` to automatically generate an authorization header
-will be disabled.
-     */
-  experimental_getHeadersAsync?: () => Promise<
-    Record<string, string | undefined>
-  >;
+  headers?: ResolvableHeaders;
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -74,14 +59,6 @@ or to provide a custom fetch implementation for e.g. testing.
 
   // for testing
   generateId?: () => string;
-
-  /**
- Optional. The Authentication options provided by google-auth-library.
-Complete list of authentication options is documented in the
-GoogleAuthOptions interface:
-https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts.
-   */
-  googleAuthOptions?: GoogleAuthOptions;
 }
 
 /**
@@ -106,32 +83,6 @@ export function createVertex(
       description: 'Google Vertex location',
     });
 
-  const getGoogleAuthLibraryHeaders = async (): Promise<
-    Record<string, string | undefined>
-  > => {
-    // Use the google auth library only if the user isn't specifying their own
-    // credentials via experimental_getHeadersAsync.
-    if (options.experimental_getHeadersAsync) {
-      return {};
-    }
-
-    return {
-      Authorization: `Bearer ${await generateAuthToken(
-        options.googleAuthOptions,
-      )}`,
-      'Content-Type': 'application/json',
-    };
-  };
-
-  const getMergedAsyncHeaders = () =>
-    options.experimental_getHeadersAsync
-      ? async () =>
-          combineHeaders(
-            await getGoogleAuthLibraryHeaders(),
-            await options.experimental_getHeadersAsync?.(),
-          )
-      : () => getGoogleAuthLibraryHeaders();
-
   const createChatModel = (
     modelId: GoogleVertexModelId,
     settings: GoogleVertexSettings = {},
@@ -141,8 +92,7 @@ export function createVertex(
     return new GoogleGenerativeAILanguageModel(modelId, settings, {
       provider: `google.vertex.chat`,
       baseURL: `https://${region}-aiplatform.googleapis.com/v1/projects/${project}/locations/${region}/publishers/google`,
-      headers: () => options.headers ?? {},
-      experimental_getHeadersAsync: getMergedAsyncHeaders(),
+      headers: options.headers ?? {},
       generateId: options.generateId ?? generateId,
       fetch: options.fetch,
     });
@@ -156,8 +106,7 @@ export function createVertex(
       provider: `google.vertex.embedding`,
       region: loadVertexLocation(),
       project: loadVertexProject(),
-      headers: () => options.headers ?? {},
-      experimental_getHeadersAsync: getMergedAsyncHeaders(),
+      headers: options.headers ?? {},
     });
 
   const provider = function (

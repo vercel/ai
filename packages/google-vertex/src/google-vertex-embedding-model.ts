@@ -6,6 +6,8 @@ import {
   combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
+  ResolvableHeaders,
+  resolveHeaders,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
@@ -18,10 +20,7 @@ type GoogleVertexEmbeddingConfig = {
   provider: string;
   region: string;
   project: string;
-  headers: () => Record<string, string | undefined>;
-  experimental_getHeadersAsync:
-    | (() => Promise<Record<string, string | undefined>>)
-    | undefined;
+  headers: ResolvableHeaders;
 };
 
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
@@ -69,10 +68,8 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
       });
     }
 
-    const asyncHeaders = this.config.experimental_getHeadersAsync?.();
     const mergedHeaders = combineHeaders(
-      this.config.headers(),
-      asyncHeaders ? await asyncHeaders : {},
+      await resolveHeaders(this.config.headers),
       headers,
     );
 

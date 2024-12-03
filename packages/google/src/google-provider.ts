@@ -123,7 +123,6 @@ export function createGoogleGenerativeAI(
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
-      experimental_getHeadersAsync: undefined,
       generateId: options.generateId ?? generateId,
       fetch: options.fetch,
     });
@@ -136,7 +135,6 @@ export function createGoogleGenerativeAI(
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
-      experimental_getHeadersAsync: undefined,
       fetch: options.fetch,
     });
 

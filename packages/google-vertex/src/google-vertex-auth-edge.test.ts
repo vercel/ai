@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { generateAuthTokenEdgeCompatible as generateAuthToken } from './google-vertex-auth-edge';
+import { generateAuthToken } from './google-vertex-auth-edge';
 
 describe('Google Vertex Edge Auth', () => {
   const mockCredentials = {

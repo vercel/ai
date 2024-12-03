@@ -113,9 +113,7 @@ const buildJwt = async (credentials: GoogleCredentials) => {
  * Generate an authentication token for Google Vertex AI in a manner compatible
  * with the Edge runtime.
  */
-export async function generateAuthTokenEdgeCompatible(
-  credentials?: GoogleCredentials,
-) {
+export async function generateAuthToken(credentials?: GoogleCredentials) {
   try {
     const creds = credentials || (await loadCredentials());
     const jwt = await buildJwt(creds);

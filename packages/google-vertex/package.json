@@ -8,12 +8,14 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "auth-edge/dist/**/*",
+    "auth-google/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist && rm -rf auth-edge/dist && rm -rf auth-google/dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -27,6 +29,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./auth-edge": {
+      "types": "./auth-edge/dist/index.d.ts",
+      "import": "./auth-edge/dist/index.mjs",
+      "require": "./auth-edge/dist/index.js"
+    },
+    "./auth-google": {
+      "types": "./auth-google/dist/index.d.ts",
+      "import": "./auth-google/dist/index.mjs",
+      "require": "./auth-google/dist/index.js"
     }
   },
   "dependencies": {

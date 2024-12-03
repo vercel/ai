@@ -11,6 +11,8 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
+  ResolvableHeaders,
+  resolveHeaders,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -28,10 +30,7 @@ import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-fi
 type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
-  experimental_getHeadersAsync:
-    | (() => Promise<Record<string, string | undefined>>)
-    | undefined;
+  headers: ResolvableHeaders;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -201,10 +200,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = await this.getArgs(options);
     const body = JSON.stringify(args);
 
-    const asyncHeaders = this.config.experimental_getHeadersAsync?.();
     const mergedHeaders = combineHeaders(
-      this.config.headers(),
-      asyncHeaders ? await asyncHeaders : {},
+      await resolveHeaders(this.config.headers),
       options.headers,
     );
 
@@ -254,11 +251,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = await this.getArgs(options);
 
     const body = JSON.stringify(args);
-
-    const asyncHeaders = this.config.experimental_getHeadersAsync?.();
     const headers = combineHeaders(
-      this.config.headers(),
-      asyncHeaders ? await asyncHeaders : {},
+      await resolveHeaders(this.config.headers),
       options.headers,
     );
 
