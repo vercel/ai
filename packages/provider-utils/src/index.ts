@@ -10,6 +10,7 @@ export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
 export * from './parse-json';
 export * from './post-to-api';
+export * from './resolve';
 export * from './response-handler';
 export * from './uint8-utils';
 export * from './validate-types';
