@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.0.3
+
+### Patch Changes
+
+- a9a19cb: fix (provider/openai,groq): prevent sending duplicate tool calls
+
 ## 0.0.2
 
 ### Patch Changes
