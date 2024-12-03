@@ -396,10 +396,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
         experimental_attachments,
       }: ChatRequestOptions = {},
     ) => {
-      if (!message.id) {
-        message.id = generateId();
-      }
-
       const attachmentsForRequest = await prepareAttachmentsForRequest(
         experimental_attachments,
       );

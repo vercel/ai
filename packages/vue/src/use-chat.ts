@@ -177,19 +177,19 @@ export function useChat(
             ({
               role,
               content,
+              experimental_attachments,
               data,
               annotations,
               toolInvocations,
-              experimental_attachments,
             }) => ({
               role,
               content,
-              ...(data !== undefined && { data }),
-              ...(annotations !== undefined && { annotations }),
-              ...(toolInvocations !== undefined && { toolInvocations }),
               ...(experimental_attachments !== undefined && {
                 experimental_attachments,
               }),
+              ...(data !== undefined && { data }),
+              ...(annotations !== undefined && { annotations }),
+              ...(toolInvocations !== undefined && { toolInvocations }),
             }),
           );
 
@@ -263,17 +263,20 @@ export function useChat(
   }
 
   const append: UseChatHelpers['append'] = async (message, options) => {
-    message.id ??= generateId();
-    message.createdAt ??= new Date();
-
     const attachmentsForRequest = await prepareAttachmentsForRequest(
       options?.experimental_attachments,
     );
 
-    message.experimental_attachments =
-      attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined;
-
-    return triggerRequest(messages.value.concat(message as Message), options);
+    return triggerRequest(
+      messages.value.concat({
+        ...message,
+        id: message.id ?? generateId(),
+        createdAt: message.createdAt ?? new Date(),
+        experimental_attachments:
+          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+      }),
+      options,
+    );
   };
 
   const reload: UseChatHelpers['reload'] = async options => {
