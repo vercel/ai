@@ -24,7 +24,8 @@ export default function Home() {
     <div className="min-h-screen p-8">
       <main className="flex flex-col gap-4 items-center">
         <h1 className="text-xl font-medium text-gray-700">
-          Demo text generation with Google Vertex using google-auth-library authentication
+          Demo text generation with Google Vertex using google-auth-library
+          authentication
         </h1>
         <button
           onClick={generateText}
