@@ -1,9 +1,9 @@
-import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
+import { generateAuthToken } from './google-vertex-auth-google-auth-library';
 import {
   createVertex as createVertexOriginal,
   GoogleVertexProvider,
   GoogleVertexProviderSettings,
-} from '../google-vertex-provider';
+} from './google-vertex-provider';
 
 export type { GoogleVertexProviderSettings, GoogleVertexProvider };
 

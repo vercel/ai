@@ -1,4 +1,4 @@
-import { vertex } from '@ai-sdk/google-vertex/node';
+import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 export async function GET() {

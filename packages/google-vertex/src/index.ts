@@ -1,5 +1,5 @@
-export { createVertex, vertex } from './google-vertex-provider';
+export { createVertex, vertex } from './google-vertex-provider-node';
 export type {
   GoogleVertexProvider,
   GoogleVertexProviderSettings,
-} from './google-vertex-provider';
+} from './google-vertex-provider-node';

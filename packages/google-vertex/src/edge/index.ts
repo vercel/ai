@@ -1,3 +1,5 @@
-export type { GoogleCredentials } from '../google-vertex-auth-edge';
-export { generateAuthToken } from '../google-vertex-auth-edge';
-export * from './google-vertex-provider-edge';
+export type {
+  GoogleVertexProviderSettings,
+  GoogleVertexProvider,
+} from './google-vertex-provider-edge';
+export { createVertex, vertex } from './google-vertex-provider-edge';

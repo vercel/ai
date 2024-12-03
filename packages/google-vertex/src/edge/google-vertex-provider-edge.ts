@@ -1,4 +1,4 @@
-import { generateAuthToken } from '../google-vertex-auth-edge';
+import { generateAuthToken } from './google-vertex-auth-edge';
 import {
   createVertex as createVertexOriginal,
   GoogleVertexProvider,

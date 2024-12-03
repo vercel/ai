@@ -34,11 +34,6 @@
       "types": "./edge/dist/index.d.ts",
       "import": "./edge/dist/index.mjs",
       "require": "./edge/dist/index.js"
-    },
-    "./node": {
-      "types": "./node/dist/index.d.ts",
-      "import": "./node/dist/index.mjs",
-      "require": "./node/dist/index.js"
     }
   },
   "dependencies": {

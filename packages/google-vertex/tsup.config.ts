@@ -9,13 +9,6 @@ export default defineConfig([
     outDir: 'dist',
   },
   {
-    entry: ['src/node/index.ts'],
-    format: ['cjs', 'esm'],
-    dts: true,
-    sourcemap: true,
-    outDir: 'node/dist',
-  },
-  {
     entry: ['src/edge/index.ts'],
     format: ['cjs', 'esm'],
     dts: true,
