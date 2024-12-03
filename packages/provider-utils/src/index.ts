@@ -1,5 +1,6 @@
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
+export * from './detect-runtime';
 export * from './extract-response-headers';
 export * from './fetch-function';
 export { createIdGenerator, generateId } from './generate-id';
