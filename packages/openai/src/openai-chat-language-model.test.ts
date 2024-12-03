@@ -1828,7 +1828,7 @@ describe('doStream', () => {
     });
   });
 
-  it('Should handle cached tokens in experimental_providerMetadata', async () => {
+  it('should handle cached tokens in experimental_providerMetadata', async () => {
     prepareStreamResponse({
       content: [],
       usage: {
@@ -1921,7 +1921,7 @@ describe('doStream', () => {
     });
   });
 
-  describe('should stream for reasoning models', () => {
+  describe('reasoning models', () => {
     it('should stream text delta', async () => {
       prepareStreamResponse({
         content: ['Hello, World!'],
