@@ -61,12 +61,62 @@ You can use FriendliAI language models to generate text with the `generateText` 
 
 ```ts
 import { friendli } from '@friendliai/ai-provider';
-import { generateText } from 'ai'
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: friendli('meta-llama-3.1-8b-instruct')
+  model: friendli('meta-llama-3.1-8b-instruct'),
   prompt: 'What is the meaning of life?',
-})
+});
+
+console.log(text);
+```
+
+### Example: Structured Outputs (regex)
+
+The regex option allows you to control the format of your LLM's output by specifying patterns. This can be particularly useful when you need:
+
+- Specific formats like CSV
+- Restrict output to specific characters such as Korean or Japanese
+
+This feature is available with both `generateText` and `streamText` functions.
+
+For a deeper understanding of how to effectively use regex patterns with LLMs, check out our detailed guide in the [Structured Output LLM Agents](https://friendli.ai/blog/structured-output-llm-agents) blog post.
+
+```ts highlight="1,6"
+import { friendli } from '@friendliai/ai-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: friendli('meta-llama-3.1-8b-instruct', {
+    regex: '[\n ,.?!0-9\uac00-\ud7af]*',
+  }),
+  prompt: 'Who is the first king of the Joseon Dynasty?',
+});
+
+console.log(text);
+```
+
+### Example: Structured Outputs (json)
+
+Structured outputs are a form of guided generation. The JSON schema is used as a grammar and the outputs will always conform to the schema.
+
+```ts
+import { friendli } from '@friendliai/ai-provider';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const { object } = await generateObject({
+  model: friendli('meta-llama-3.1-8b-instruct'),
+  schema: z.object({
+    brand: z.string(),
+    model: z.string(),
+    car_type: z.enum(['sedan', 'suv', 'truck', 'coupe']),
+  }),
+  prompt:
+    'Generate a JSON with the brand, model and car_type of the most iconic car from the 90s',
+});
+
+console.log(JSON.stringify(object, null, 2));
 ```
 
 ### Example: Using built-in tools
@@ -77,25 +127,20 @@ If you use `@friendliai/ai-provider`, you can use the [built-in tools](https://f
 
 Built-in tools allow models to use tools to generate better answers. For example, a `web:search` tool can provide up-to-date answers to current questions.
 
-```ts highlight="1,8,9,10,11,12,13,14"
+```ts highlight="1,5,6,7"
 import { friendli } from '@friendliai/ai-provider';
 import { streamText } from 'ai';
 
-export async function POST(req: Request) {
-  const { messages } = await req.json();
+const result = streamText({
+  model: friendli('meta-llama-3.1-70b-instruct', {
+    tools: [{ type: 'web:search' }, { type: 'math:calculator' }],
+  }),
+  prompt:
+    'Find the current USD to CAD exchange rate and calculate how much $5,000 USD would be in Canadian dollars.',
+});
 
-  const result = streamText({
-    model: friendli('meta-llama-3.1-70b-instruct', {
-      tools: [
-        { type: 'web:search' },
-        { type: 'math:calculator' },
-        { type: 'code:python-interpreter' }, // and more tools..!!
-      ],
-    }),
-    messages,
-  });
-
-  return result.toDataStreamResponse();
+for await (const textPart of result.textStream) {
+  console.log(textPart);
 }
 ```
 
