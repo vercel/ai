@@ -9,13 +9,12 @@
   "files": [
     "dist/**/*",
     "edge/dist/**/*",
-    "node/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf auth-edge/dist && rm -rf auth-google/dist",
+    "clean": "rm -rf dist && rm -rf edge/dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
