@@ -3,7 +3,8 @@ import {
   FetchFunction,
   generateId,
   loadSetting,
-  ResolvableHeaders,
+  resolve,
+  Resolvable,
 } from '@ai-sdk/provider-utils';
 import {
   GoogleVertexModelId,
@@ -49,7 +50,7 @@ Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_
    * - A function that returns a headers object
    * - A function that returns a Promise of a headers object
    */
-  headers?: ResolvableHeaders;
+  headers?: Resolvable<Record<string, string | undefined>>;
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,

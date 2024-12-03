@@ -72,8 +72,8 @@ describe('resolve', () => {
     expect(await resolve(value)).toEqual({ nested: { value: 42 } });
   });
 
-  // Test resolveHeaders helper
-  describe('resolveHeaders', () => {
+  // Test resolving objects as frequently used in headers as a common example
+  describe('resolve headers', () => {
     it('should resolve header objects', async () => {
       const headers = { 'Content-Type': 'application/json' };
       expect(await resolve(headers)).toEqual(headers);
@@ -92,6 +92,16 @@ describe('resolve', () => {
     it('should resolve header promises', async () => {
       const headers = Promise.resolve({ Accept: 'application/json' });
       expect(await resolve(headers)).toEqual({ Accept: 'application/json' });
+    });
+
+    it('should call async header functions each time when resolved multiple times', async () => {
+      let counter = 0;
+      const headers = async () => ({ 'X-Request-Number': String(++counter) });
+
+      // Resolve the same headers function multiple times
+      expect(await resolve(headers)).toEqual({ 'X-Request-Number': '1' });
+      expect(await resolve(headers)).toEqual({ 'X-Request-Number': '2' });
+      expect(await resolve(headers)).toEqual({ 'X-Request-Number': '3' });
     });
   });
 

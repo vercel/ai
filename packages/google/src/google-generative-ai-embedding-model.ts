@@ -7,7 +7,7 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   postJsonToApi,
-  resolveHeaders,
+  resolve,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { googleFailedResponseHandler } from './google-error';
@@ -71,7 +71,7 @@ export class GoogleGenerativeAIEmbeddingModel
     }
 
     const mergedHeaders = combineHeaders(
-      await resolveHeaders(this.config.headers),
+      await resolve(this.config.headers),
       headers,
     );
 
