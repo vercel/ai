@@ -7,10 +7,6 @@ description: Learn how to use the Google Vertex AI provider.
 
 The Google Vertex provider for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
 
-<Note>
-  The Google Vertex provider is not compatible with edge environments.
-</Note>
-
 ## Setup
 
 The Google provider is available in the `@ai-sdk/google-vertex` module. You can install it with
@@ -32,38 +28,40 @@ The Google provider is available in the `@ai-sdk/google-vertex` module. You can 
 
 ## Provider Instance
 
-You can import the default provider instance `vertex` from `@ai-sdk/google-vertex`:
+To get started, import `createVertex` from `@ai-sdk/google-vertex` and create a provider instance with your settings. The Google Vertex provider supports two different authentication methods depending on your runtime environment.
 
-```ts
-import { vertex } from '@ai-sdk/google-vertex';
-```
+### Node.js Runtime
 
-If you need a customized setup, you can import `createVertex` from `@ai-sdk/google-vertex` and create a provider instance with your settings:
+The Node.js runtime supports all standard Google Cloud authentication options through the [`google-auth-library`](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#ways-to-authenticate). Typical use involves setting a path to a json credentials file in the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. The credentials file can be obtained from the Google Cloud Console.
+
+To create a provider instance, import `createVertex` and `generateAuthToken` from `@ai-sdk/google-vertex/auth-google` and pass the `Authorization` header with the `Bearer` token to the `createVertex` function:
 
 ```ts
 import { createVertex } from '@ai-sdk/google-vertex';
+import { generateAuthToken } from '@ai-sdk/google-vertex/auth-google';
 
 const vertex = createVertex({
+  headers: async () => ({
+    Authorization: `Bearer ${await generateAuthToken()}`,
+  }),
   project: 'my-project', // optional
   location: 'us-central1', // optional
 });
 ```
 
-You can use the following optional settings to customize the Google Generative AI provider instance:
+If you want to customize the google authentication options, you can pass them as an options argument to `generateAuthToken`.
 
-- **project** _string_
+```ts
+const token = await generateAuthToken({
+  scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+});
+```
 
-  The Google Cloud project ID that you want to use for the API calls.
-  It uses the `GOOGLE_VERTEX_PROJECT` environment variable by default.
-
-- **location** _string_
-
-  The Google Cloud location that you want to use for the API calls, e.g. `us-central1`.
-  It uses the `GOOGLE_VERTEX_LOCATION` environment variable by default.
+The following options are available for the `googleAuthOptions` argument:
 
 - **googleAuthOptions** _object_
 
-  Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/):
+  Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/). See also the [GoogleAuthOptions](https://github.com/googleapis/google-auth-library-nodejs/blob/08978822e1b7b5961f0e355df51d738e012be392/src/auth/googleauth.ts#L87C18-L87C35) interface.
 
   - **authClient** _object_
     An `AuthClient` to use.
@@ -88,6 +86,85 @@ You can use the following optional settings to customize the Google Generative A
 
   - **universeDomain** _string_
     The default service domain for a given Cloud universe.
+
+#### Optional Provider Settings
+
+You can use the following optional settings to customize the provider instance:
+
+- **project** _string_
+
+  The Google Cloud project ID that you want to use for the API calls.
+  It uses the `GOOGLE_VERTEX_PROJECT` environment variable by default.
+
+- **location** _string_
+
+  The Google Cloud location that you want to use for the API calls, e.g. `us-central1`.
+  It uses the `GOOGLE_VERTEX_LOCATION` environment variable by default.
+
+- **headers** _ResolvableHeaders_
+
+  Headers to include in the requests. Can be provided in multiple formats:
+
+  - A record of header key-value pairs: `Record<string, string | undefined>`
+  - A function that returns headers: `() => Record<string, string | undefined>`
+  - An async function that returns headers: `async () => Record<string, string | undefined>`
+  - A promise that resolves to headers: `Promise<Record<string, string | undefined>>`
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+### Edge Runtime
+
+The Edge runtime supports Google's [Application Default Credentials](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#application-default-credentials) through environment variables. The values can be obtained from a json credentials file obtained from the Google Cloud Console.
+
+To create a provider instance, import `createVertex` and `generateAuthToken` from `@ai-sdk/google-vertex/auth-edge` and pass the `Authorization` header with the `Bearer` token to the `createVertex` function:
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex';
+import { generateAuthToken } from '@ai-sdk/google-vertex/auth-edge';
+
+const vertex = createVertex({
+  headers: async () => ({
+    Authorization: `Bearer ${await generateAuthToken()}`,
+  }),
+  project: 'my-project', // optional
+  location: 'us-central1', // optional
+});
+```
+
+#### Optional Provider Settings
+
+You can use the following optional settings to customize the provider instance:
+
+- **project** _string_
+
+  The Google Cloud project ID that you want to use for the API calls.
+  It uses the `GOOGLE_VERTEX_PROJECT` environment variable by default.
+
+- **location** _string_
+
+  The Google Cloud location that you want to use for the API calls, e.g. `us-central1`.
+  It uses the `GOOGLE_VERTEX_LOCATION` environment variable by default.
+
+- **headers** _ResolvableHeaders_
+
+  Headers to include in the requests. Can be provided in multiple formats:
+
+  - A record of header key-value pairs: `Record<string, string | undefined>`
+  - A function that returns headers: `() => Record<string, string | undefined>`
+  - An async function that returns headers: `async () => Record<string, string | undefined>`
+  - A promise that resolves to headers: `Promise<Record<string, string | undefined>>`
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
 
 ## Language Models
 
@@ -142,6 +219,7 @@ The following optional settings are available for Google Vertex models:
     - `HARM_CATEGORY_DANGEROUS_CONTENT`
     - `HARM_CATEGORY_HARASSMENT`
     - `HARM_CATEGORY_SEXUALLY_EXPLICIT`
+    - `HARM_CATEGORY_CIVIC_INTEGRITY`
 
   - **threshold** _string_
 
@@ -160,8 +238,15 @@ The following optional settings are available for Google Vertex models:
 You can use Google Vertex language models to generate text with the `generateText` function:
 
 ```ts highlight="1,5"
-import { vertex } from '@ai-sdk/google-vertex';
+import { createVertex } from '@ai-sdk/google-vertex';
+import { generateAuthToken } from '@ai-sdk/google-vertex/auth-edge';
 import { generateText } from 'ai';
+
+const vertex = createVertex({
+  headers: async () => ({
+    Authorization: `Bearer ${await generateAuthToken()}`,
+  }),
+});
 
 const { text } = await generateText({
   model: vertex('gemini-1.5-pro'),
@@ -177,8 +262,15 @@ Google Vertex language models can also be used in the `streamText` and `streamUI
 The Google Vertex provider supports file inputs, e.g. PDF files.
 
 ```ts
-import { vertex } from '@ai-sdk/google-vertex';
+import { createVertex } from '@ai-sdk/google-vertex';
+import { generateAuthToken } from '@ai-sdk/google-vertex/auth-edge';
 import { generateText } from 'ai';
+
+const vertex = createVertex({
+  headers: async () => ({
+    Authorization: `Bearer ${await generateAuthToken()}`,
+  }),
+});
 
 const { text } = await generateText({
   model: vertex('gemini-1.5-pro'),
@@ -216,9 +308,15 @@ the model has access to the latest information using Google search.
 Search grounding can e.g. be used to provide answers around current events:
 
 ```ts highlight="6,13-15"
-import { vertex } from '@ai-sdk/google-vertex';
+import { createVertex } from '@ai-sdk/google-vertex';
+import { generateAuthToken } from '@ai-sdk/google-vertex/auth-edge';
 import { generateText } from 'ai';
 
+const vertex = createVertex({
+  headers: async () => ({
+    Authorization: `Bearer ${await generateAuthToken()}`,
+  }),
+});
 const { text, experimental_providerMetadata } = await generateText({
   model: vertex('gemini-1.5-pro', {
     useSearchGrounding: true,
@@ -313,3 +411,71 @@ The following optional settings are available for Google Vertex AI embedding mod
   The table above lists popular models. You can also pass any available provider
   model ID as a string if needed.
 </Note>
+
+## Upgrading from Pre-2.0 Versions
+
+If you're upgrading from a version earlier than 2.0, there are several important changes to note:
+
+- the Google Vertex provider now supports both Node.js and Edge runtimes
+- there is no longer a default provider instance. You must create your own using the `createVertex` function.
+- authentication is now handled through a `headers` async function that you must pass to the provider
+
+More on these changes below.
+
+### Authentication Changes
+
+Authentication is now handled through a `headers` async function that you must pass to the provider. The implementation depends on your runtime environment:
+
+#### Node.js Runtime
+
+For Node.js environments, import the authentication helper from the dedicated sub-module:
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex';
+import { generateAuthToken } from '@ai-sdk/google-vertex/auth-google';
+
+const vertex = createVertex({
+  project: 'my-project',
+  location: 'us-central1',
+  headers: async () => {
+    const token = await generateAuthToken({
+      // The previous googleAuthOptions are now passed here
+      keyFilename: 'path/to/service-account.json',
+      // ... other auth options
+    });
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  },
+});
+```
+
+Another common way to specify the path to the service account JSON file is by setting the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. If you do so, you can omit the `keyFilename` option. For more, see the [Google Auth Library documentation](https://cloud.google.com/nodejs/docs/reference/google-auth-library/latest).
+
+#### Edge Runtime
+
+For Edge environments, use the edge-specific authentication helper:
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex';
+import { generateAuthToken } from '@ai-sdk/google-vertex/auth-edge';
+
+const vertex = createVertex({
+  project: 'my-project',
+  location: 'us-central1',
+  headers: async () => {
+    const token = await generateAuthToken();
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  },
+});
+```
+
+For Edge runtime authentication, you'll need to set these environment variables from your Google Default Application Credentials JSON file:
+
+- `GOOGLE_PRIVATE_KEY`
+- `GOOGLE_PRIVATE_KEY_ID`
+- `GOOGLE_CLIENT_EMAIL`
+
+These values can be obtained from your service account JSON file in the Google Cloud Console.
