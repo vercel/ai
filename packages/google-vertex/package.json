@@ -8,8 +8,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "auth-edge/dist/**/*",
-    "auth-google/dist/**/*",
+    "edge/dist/**/*",
+    "node/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
@@ -30,15 +30,15 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
-    "./auth-edge": {
-      "types": "./auth-edge/dist/index.d.ts",
-      "import": "./auth-edge/dist/index.mjs",
-      "require": "./auth-edge/dist/index.js"
+    "./edge": {
+      "types": "./edge/dist/index.d.ts",
+      "import": "./edge/dist/index.mjs",
+      "require": "./edge/dist/index.js"
     },
-    "./auth-google": {
-      "types": "./auth-google/dist/index.d.ts",
-      "import": "./auth-google/dist/index.mjs",
-      "require": "./auth-google/dist/index.js"
+    "./node": {
+      "types": "./node/dist/index.d.ts",
+      "import": "./node/dist/index.mjs",
+      "require": "./node/dist/index.js"
     }
   },
   "dependencies": {

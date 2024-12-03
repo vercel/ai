@@ -9,17 +9,17 @@ export default defineConfig([
     outDir: 'dist',
   },
   {
-    entry: ['src/auth-edge/index.ts'],
+    entry: ['src/node/index.ts'],
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
-    outDir: 'auth-edge/dist',
+    outDir: 'node/dist',
   },
   {
-    entry: ['src/auth-google/index.ts'],
+    entry: ['src/edge/index.ts'],
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
-    outDir: 'auth-google/dist',
+    outDir: 'edge/dist',
   },
 ]);

@@ -1,15 +1,9 @@
 export const runtime = 'edge';
 
 import { generateText } from 'ai';
-import { createVertex } from '@ai-sdk/google-vertex';
-import { generateAuthToken } from '@ai-sdk/google-vertex/auth-edge';
+import { vertex } from '@ai-sdk/google-vertex/edge';
 
 export async function GET() {
-  const vertex = createVertex({
-    headers: async () => ({
-      Authorization: `Bearer ${await generateAuthToken()}`,
-    }),
-  });
   const model = vertex('gemini-1.5-flash');
   const { text } = await generateText({
     model,
