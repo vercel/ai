@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.10
+
+### Patch Changes
+
+- 913872d: fix (ai/core): track promise from async createDataStream.execute
+
 ## 4.0.9
 
 ### Patch Changes

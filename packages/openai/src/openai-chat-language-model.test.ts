@@ -1538,6 +1538,129 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should not duplicate tool calls when there is an additional empty chunk after the tool call has been completed', async () => {
+    server.responseChunks = [
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":226,"completion_tokens":0}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"id":"chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",` +
+        `"type":"function","index":0,"function":{"name":"searchGoogle"}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":233,"completion_tokens":7}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":"{\\"query\\": \\""}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":241,"completion_tokens":15}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":"latest"}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":242,"completion_tokens":16}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":" news"}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":243,"completion_tokens":17}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":" on"}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":244,"completion_tokens":18}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":" ai\\"}"}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":245,"completion_tokens":19}}\n\n`,
+      // empty arguments chunk after the tool call has already been finished:
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":""}}]},"logprobs":null,"finish_reason":"tool_calls","stop_reason":128008}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
+      `data: [DONE]\n\n`,
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'searchGoogle',
+            parameters: {
+              type: 'object',
+              properties: { query: { type: 'string' } },
+              required: ['query'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chat-2267f7e2910a4254bac0650ba74cfc1c',
+        modelId: 'meta/llama-3.1-8b-instruct:fp8',
+        timestamp: new Date('2024-12-02T17:57:21.000Z'),
+      },
+      {
+        type: 'text-delta',
+        textDelta: '',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        argsTextDelta: '{"query": "',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        argsTextDelta: 'latest',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        argsTextDelta: ' news',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        argsTextDelta: ' on',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        argsTextDelta: ' ai"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        args: '{"query": "latest news on ai"}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'tool-calls',
+        logprobs: undefined,
+        usage: { promptTokens: 226, completionTokens: 20 },
+      },
+    ]);
+  });
+
   it('should stream tool call that is sent in one chunk', async () => {
     server.responseChunks = [
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
@@ -1828,7 +1951,7 @@ describe('doStream', () => {
     });
   });
 
-  it('Should handle cached tokens in experimental_providerMetadata', async () => {
+  it('should handle cached tokens in experimental_providerMetadata', async () => {
     prepareStreamResponse({
       content: [],
       usage: {
@@ -1921,7 +2044,7 @@ describe('doStream', () => {
     });
   });
 
-  describe('should stream for reasoning models', () => {
+  describe('reasoning models', () => {
     it('should stream text delta', async () => {
       prepareStreamResponse({
         content: ['Hello, World!'],
