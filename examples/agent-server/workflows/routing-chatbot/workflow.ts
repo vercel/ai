@@ -1,9 +1,9 @@
-import type { Workflow } from '@ai-sdk/agent-server';
+import { workflow } from '@ai-sdk/agent-server';
 import { Message } from 'ai';
 
 export type Context = { messages: Message[] };
 
-export default {
+export default workflow({
   async start({ request }) {
     return {
       context: (await request.json()) as Context,
@@ -18,4 +18,4 @@ export default {
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Max-Age': '86400', // 24 hours
   },
-} satisfies Workflow<Context>;
+});

@@ -19,3 +19,7 @@ export interface Workflow<CONTEXT> {
 
   headers?: Record<string, string>;
 }
+
+export function workflow<CONTEXT>(options: Workflow<CONTEXT>) {
+  return options;
+}

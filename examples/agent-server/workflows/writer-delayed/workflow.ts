@@ -1,10 +1,10 @@
-import type { Workflow } from '@ai-sdk/agent-server';
+import { workflow } from '@ai-sdk/agent-server';
 import { z } from 'zod';
 
 export const contextSchema = z.object({ prompt: z.string() });
 export type Context = z.infer<typeof contextSchema>;
 
-export default {
+export default workflow({
   async start({ request }) {
     return {
       context: contextSchema.parse(await request.json()),
@@ -14,4 +14,4 @@ export default {
   headers: {
     'X-Vercel-AI-Data-Stream': 'v1',
   },
-} satisfies Workflow<Context>;
+});
