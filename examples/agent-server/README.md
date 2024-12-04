@@ -15,7 +15,13 @@ pnpm start
 ### Snippets
 
 ```sh
-curl -X POST http://127.0.0.1:3001/agent/helloworld-completion/start \
+curl -i -X POST http://127.0.0.1:3001/agent/helloworld-completion/start \
   -H "Content-Type: application/json" \
   -d '{"prompt": "Hello, world!"}'
+```
+
+```sh
+curl -i -X POST http://127.0.0.1:3001/agent/routing-chatbot/start \
+  -H "Content-Type: application/json" \
+  -d '{"messages": [{"role": "user", "content": "Write a blog post about Berlin."}]}'
 ```
