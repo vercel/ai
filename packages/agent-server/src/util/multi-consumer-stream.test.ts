@@ -40,37 +40,31 @@ describe('MultiConsumerStream', () => {
       stream: convertArrayToReadableStream(['1', '2', '3']),
     });
 
-    const stream1 = multiConsumerStream.split();
-    const result1: string[] = [];
-    const reader1 = stream1.getReader();
+    const consumer1 = new TestConsumer(multiConsumerStream.split());
+    await consumer1.pull();
+    await consumer1.pull();
+    consumer1.reader.cancel();
 
-    async function pull1() {
-      const { value, done } = await reader1.read();
-      if (!done) {
-        result1.push(value!);
-      }
-    }
+    const consumer2 = new TestConsumer(multiConsumerStream.split());
+    await consumer2.pull();
 
-    await pull1();
-    await pull1();
-
-    // disconnect through cancel
-    reader1.cancel();
-
-    const stream2 = multiConsumerStream.split();
-    const result2: string[] = [];
-    const reader2 = stream2.getReader();
-
-    async function pull2() {
-      const { value, done } = await reader2.read();
-      if (!done) {
-        result2.push(value);
-      }
-    }
-
-    await pull2();
-
-    expect(result1).toEqual(['1', '2']);
-    expect(result2).toEqual(['3']);
+    expect(consumer1.result).toEqual(['1', '2']);
+    expect(consumer2.result).toEqual(['3']);
   });
 });
+
+class TestConsumer<CHUNK> {
+  readonly reader: ReadableStreamDefaultReader<CHUNK>;
+  readonly result: CHUNK[] = [];
+
+  constructor(stream: ReadableStream<CHUNK>) {
+    this.reader = stream.getReader();
+  }
+
+  async pull() {
+    const { value, done } = await this.reader.read();
+    if (!done) {
+      this.result.push(value!);
+    }
+  }
+}
