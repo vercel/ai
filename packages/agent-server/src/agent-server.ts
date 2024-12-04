@@ -128,6 +128,7 @@ startService({
       const stitchedStream = createStitchableStream();
       stitchedStream.addStream(recordedStream);
       stitchedStream.addStream(runStream);
+      stitchedStream.close();
 
       return stream(c, stream =>
         stream.pipe(stitchedStream.stream.pipeThrough(new TextEncoderStream())),
