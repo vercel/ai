@@ -11,7 +11,6 @@ it('should pass through all provided values and set defaults correctly', () => {
     frequencyPenalty: 0.3,
     stopSequences: ['stop1', 'stop2'],
     seed: 42,
-    maxRetries: 3,
   };
 
   const result = prepareCallSettings(input);
@@ -24,13 +23,5 @@ it('should pass through all provided values and set defaults correctly', () => {
     frequencyPenalty: 0.3,
     stopSequences: ['stop1', 'stop2'],
     seed: 42,
-    maxRetries: 3,
   });
-});
-
-it('should set default values correctly when no input is provided', () => {
-  const defaultResult = prepareCallSettings({});
-  expect(defaultResult.temperature).toBe(0);
-  expect(defaultResult.maxRetries).toBe(2);
-  expect(defaultResult.stopSequences).toBeUndefined();
 });

@@ -369,7 +369,9 @@ With `streamText`, you can control how error messages and usage information are 
 
 ### Error Messages
 
-By default, the error message is suppressed for security reasons. You can forward it or send your own error message by providing a `getErrorMessage` function:
+By default, the error message is masked for security reasons.
+The default error message is "An error occurred."
+You can forward error messages or send your own error message by providing a `getErrorMessage` function:
 
 ```ts filename="app/api/chat/route.ts" highlight="13-27"
 import { openai } from '@ai-sdk/openai';
@@ -486,9 +488,11 @@ export default function Chat() {
 
 ## Attachments (Experimental)
 
-The `useChat` hook supports sending attachments along with a message as well as rendering them on the client. This can be useful for building applications that involve sending images, files, or other media content to the AI provider.
+<Note type="warning">
+  The attachments feature is currently only available for React and Vue.js.
+</Note>
 
-> **Note:** Attachments is currently only available for React frameworks.
+The `useChat` hook supports sending attachments along with a message as well as rendering them on the client. This can be useful for building applications that involve sending images, files, or other media content to the AI provider.
 
 There are two ways to send attachments with a message, either by providing a `FileList` object or a list of URLs to the `handleSubmit` function:
 
@@ -496,7 +500,12 @@ There are two ways to send attachments with a message, either by providing a `Fi
 
 By using `FileList`, you can send multiple files as attachments along with a message using the file input element. The `useChat` hook will automatically convert them into data URLs and send them to the AI provider.
 
-> **Note:** Currently, only `image/*` and `text/*` content types get automatically converted into [multi-modal content parts](https://sdk.vercel.ai/docs/foundations/prompts#multi-modal-messages). You will need to handle other content types manually.
+<Note>
+  Currently, only `image/*` and `text/*` content types get automatically
+  converted into [multi-modal content
+  parts](https://sdk.vercel.ai/docs/foundations/prompts#multi-modal-messages).
+  You will need to handle other content types manually.
+</Note>
 
 ```tsx filename="app/page.tsx"
 'use client';

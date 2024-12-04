@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 1.0.4
+
+### Patch Changes
+
+- 6373c60: fix (provider/google): send json schema into provider
+
 ## 1.0.3
 
 ### Patch Changes

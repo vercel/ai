@@ -1,14 +1,15 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
-import { formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { StreamData } from '../../streams/stream-data';
 import { DelayedPromise } from '../../util/delayed-promise';
-import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
+import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import { prepareRetries } from '../prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
@@ -292,7 +293,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     telemetry,
     headers,
     settings,
-    maxRetries,
+    maxRetries: maxRetriesArg,
     abortSignal,
     system,
     prompt,
@@ -364,6 +365,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       });
     }
 
+    const { maxRetries, retry } = prepareRetries({
+      maxRetries: maxRetriesArg,
+    });
+
     const tracer = getTracer(telemetry);
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
@@ -397,8 +402,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       tracer,
       endWhenDone: false,
       fn: async rootSpan => {
-        const retry = retryWithExponentialBackoff({ maxRetries });
-
         // collect step results
         const stepResults: StepResult<TOOLS>[] = [];
 
@@ -1048,12 +1051,12 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   private toDataStreamInternal({
-    getErrorMessage = () => '', // mask error messages for safety by default
+    getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
   }: {
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean;
-  } = {}) {
+  } = {}): ReadableStream<DataStreamString> {
     let aggregatedResponse = '';
 
     const callbackTransformer = new TransformStream<
@@ -1071,7 +1074,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     const streamPartsTransformer = new TransformStream<
       TextStreamPart<TOOLS>,
-      string
+      DataStreamString
     >({
       transform: async (chunk, controller) => {
         const chunkType = chunk.type;
@@ -1170,8 +1173,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     return this.fullStream
       .pipeThrough(callbackTransformer)
-      .pipeThrough(streamPartsTransformer)
-      .pipeThrough(new TextEncoderStream());
+      .pipeThrough(streamPartsTransformer);
   }
 
   pipeDataStreamToResponse(
@@ -1213,6 +1215,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
+  // TODO breaking change 5.0: remove pipeThrough(new TextEncoderStream())
   toDataStream(options?: {
     data?: StreamData;
     getErrorMessage?: (error: unknown) => string;
@@ -1221,9 +1224,17 @@ However, the LLM results are expected to be small enough to not cause issues.
     const stream = this.toDataStreamInternal({
       getErrorMessage: options?.getErrorMessage,
       sendUsage: options?.sendUsage,
-    });
+    }).pipeThrough(new TextEncoderStream());
 
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
+  }
+
+  mergeIntoDataStream(writer: DataStreamWriter) {
+    writer.merge(
+      this.toDataStreamInternal({
+        getErrorMessage: writer.onError,
+      }),
+    );
   }
 
   toDataStreamResponse({

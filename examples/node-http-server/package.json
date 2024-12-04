@@ -3,14 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "1.0.4",
-    "ai": "4.0.4",
+    "@ai-sdk/openai": "1.0.6",
+    "ai": "4.0.11",
     "dotenv": "16.4.5",
     "zod": "3.23.8",
     "zod-to-json-schema": "3.23.5"
   },
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "dev": "tsx src/server.ts"
   },
   "devDependencies": {
     "@types/node": "20.11.20",

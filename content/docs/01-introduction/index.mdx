@@ -47,3 +47,22 @@ We've built some [templates](https://vercel.com/templates?type=ai) that include 
 ## Join our Community
 
 If you have questions about anything related to the AI SDK, you're always welcome to ask our community on [GitHub Discussions](https://github.com/vercel/ai/discussions).
+
+## `llms.txt`
+
+You can access the entire AI SDK documentation in Markdown format at [sdk.vercel.ai/llms.txt](/llms.txt). This can be used to ask any LLM (assuming it has a big enough context window) questions about the AI SDK based on the most up-to-date documentation.
+
+### Example Usage
+
+For instance, to prompt an LLM with questions about the AI SDK:
+
+1. Copy the documentation contents from [sdk.vercel.ai/llms.txt](/llms.txt)
+2. Use the following prompt format:
+
+```prompt
+Documentation:
+{paste documentation here}
+---
+Based on the above documentation, answer the following:
+{your question}
+```

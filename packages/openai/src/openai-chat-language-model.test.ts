@@ -619,15 +619,136 @@ describe('doGenerate', () => {
     });
   });
 
-  describe('when structuredOutputs are enabled', () => {
-    it('should use json_schema & strict in object-json mode', async () => {
+  describe('response format', () => {
+    it('should not send a response_format when response format is text', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'text' },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+    });
+
+    it('should forward json response format as "json_object" without schema', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json' },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: { type: 'json_object' },
+      });
+    });
+
+    it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: false,
+      });
+
+      const { warnings } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: { type: 'json_object' },
+      });
+
+      expect(warnings).toEqual([
+        {
+          details:
+            'JSON response format schema is only supported with structuredOutputs',
+          setting: 'responseFormat',
+          type: 'unsupported-setting',
+        },
+      ]);
+    });
+
+    it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06', {
         structuredOutputs: true,
       });
 
-      const response = await model.doGenerate({
+      const { warnings } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      });
+
+      expect(warnings).toEqual([]);
+    });
+
+    it('should use json_schema & strict in object-json mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: true,
+      });
+
+      await model.doGenerate({
         inputFormat: 'prompt',
         mode: {
           type: 'object-json',
@@ -660,44 +781,21 @@ describe('doGenerate', () => {
           },
         },
       });
-
-      expect(response.text).toStrictEqual('{"value":"Spark"}');
-    });
-  });
-
-  it('should set name & description in object-json mode', async () => {
-    prepareJsonResponse({ content: '{"value":"Spark"}' });
-
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
     });
 
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-json',
-        name: 'test-name',
-        description: 'test description',
-        schema: {
-          type: 'object',
-          properties: { value: { type: 'string' } },
-          required: ['value'],
-          additionalProperties: false,
-          $schema: 'http://json-schema.org/draft-07/schema#',
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
+    it('should set name & description in object-json mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
-      messages: [{ role: 'user', content: 'Hello' }],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: true,
+      });
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-json',
           name: 'test-name',
           description: 'test description',
-          strict: true,
           schema: {
             type: 'object',
             properties: { value: { type: 'string' } },
@@ -706,82 +804,80 @@ describe('doGenerate', () => {
             $schema: 'http://json-schema.org/draft-07/schema#',
           },
         },
-      },
-    });
-  });
+        prompt: TEST_PROMPT,
+      });
 
-  it('should allow for undefined schema in object-json mode', async () => {
-    prepareJsonResponse({ content: '{"value":"Spark"}' });
-
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
-    });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-json',
-        name: 'test-name',
-        description: 'test description',
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
-      messages: [{ role: 'user', content: 'Hello' }],
-      response_format: {
-        type: 'json_object',
-      },
-    });
-  });
-
-  it('should set strict in object-tool mode', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Spark"}',
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'test-name',
+            description: 'test description',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
           },
         },
-      ],
+      });
     });
 
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
-    });
+    it('should allow for undefined schema in object-json mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-    const result = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-tool',
-        tool: {
-          type: 'function',
-          name: 'test-tool',
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: true,
+      });
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-json',
+          name: 'test-name',
           description: 'test description',
-          parameters: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
         },
-      },
-      prompt: TEST_PROMPT,
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_object',
+        },
+      });
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
-      messages: [{ role: 'user', content: 'Hello' }],
-      tool_choice: { type: 'function', function: { name: 'test-tool' } },
-      tools: [
-        {
-          type: 'function',
-          function: {
+    it('should set strict in object-tool mode when structuredOutputs are enabled', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+            type: 'function',
+            function: {
+              name: 'test-tool',
+              arguments: '{"value":"Spark"}',
+            },
+          },
+        ],
+      });
+
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: true,
+      });
+
+      const result = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-tool',
+          tool: {
+            type: 'function',
             name: 'test-tool',
             description: 'test description',
             parameters: {
@@ -791,23 +887,46 @@ describe('doGenerate', () => {
               additionalProperties: false,
               $schema: 'http://json-schema.org/draft-07/schema#',
             },
-            strict: true,
           },
         },
-      ],
-    });
+        prompt: TEST_PROMPT,
+      });
 
-    expect(result.toolCalls).toStrictEqual([
-      {
-        args: '{"value":"Spark"}',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-      },
-    ]);
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        tool_choice: { type: 'function', function: { name: 'test-tool' } },
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'test-tool',
+              description: 'test description',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+              strict: true,
+            },
+          },
+        ],
+      });
+
+      expect(result.toolCalls).toStrictEqual([
+        {
+          args: '{"value":"Spark"}',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolCallType: 'function',
+          toolName: 'test-tool',
+        },
+      ]);
+    });
   });
 
-  it('should set strict for tool usage', async () => {
+  it('should set strict for tool usage when structuredOutputs are enabled', async () => {
     prepareJsonResponse({
       tool_calls: [
         {
@@ -1419,6 +1538,129 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should not duplicate tool calls when there is an additional empty chunk after the tool call has been completed', async () => {
+    server.responseChunks = [
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":226,"completion_tokens":0}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"id":"chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",` +
+        `"type":"function","index":0,"function":{"name":"searchGoogle"}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":233,"completion_tokens":7}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":"{\\"query\\": \\""}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":241,"completion_tokens":15}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":"latest"}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":242,"completion_tokens":16}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":" news"}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":243,"completion_tokens":17}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":" on"}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":244,"completion_tokens":18}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":" ai\\"}"}}]},"logprobs":null,"finish_reason":null}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":245,"completion_tokens":19}}\n\n`,
+      // empty arguments chunk after the tool call has already been finished:
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+        `"function":{"arguments":""}}]},"logprobs":null,"finish_reason":"tool_calls","stop_reason":128008}],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
+      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[],` +
+        `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
+      `data: [DONE]\n\n`,
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'searchGoogle',
+            parameters: {
+              type: 'object',
+              properties: { query: { type: 'string' } },
+              required: ['query'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chat-2267f7e2910a4254bac0650ba74cfc1c',
+        modelId: 'meta/llama-3.1-8b-instruct:fp8',
+        timestamp: new Date('2024-12-02T17:57:21.000Z'),
+      },
+      {
+        type: 'text-delta',
+        textDelta: '',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        argsTextDelta: '{"query": "',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        argsTextDelta: 'latest',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        argsTextDelta: ' news',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        argsTextDelta: ' on',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        argsTextDelta: ' ai"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
+        toolCallType: 'function',
+        toolName: 'searchGoogle',
+        args: '{"query": "latest news on ai"}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'tool-calls',
+        logprobs: undefined,
+        usage: { promptTokens: 226, completionTokens: 20 },
+      },
+    ]);
+  });
+
   it('should stream tool call that is sent in one chunk', async () => {
     server.responseChunks = [
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
@@ -1709,7 +1951,7 @@ describe('doStream', () => {
     });
   });
 
-  it('Should handle cached tokens in experimental_providerMetadata', async () => {
+  it('should handle cached tokens in experimental_providerMetadata', async () => {
     prepareStreamResponse({
       content: [],
       usage: {
@@ -1802,7 +2044,7 @@ describe('doStream', () => {
     });
   });
 
-  describe('should stream for reasoning models', () => {
+  describe('reasoning models', () => {
     it('should stream text delta', async () => {
       prepareStreamResponse({
         content: ['Hello, World!'],

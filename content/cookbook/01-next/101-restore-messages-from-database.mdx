@@ -1,0 +1,68 @@
+---
+title: Restore Messages from Database
+description: Learn to restore messages from an external database using the AI SDK and Next.js
+tags: ['next', 'persistence']
+---
+
+# Restore Messages from Database
+
+The `useChat` hook accepts `initialMessages` to load an earlier chat history of messages.
+
+As messages are typically loaded from an external database, we can use server actions inside the Page component to fetch an already existing chat from the database during static generation and pass the messages as props to the `<Chat/>` component.
+
+<Note>
+This example assumes that the database table schema has a `messages` column that stores the chat messages as a JSON string of type `Array<CoreMessage>`. You can modify the `convertToUIMessages` function to suit your database schema, but here's an [example implementation](https://github.com/vercel/ai-chatbot/blob/00b125378c998d19ef60b73fe576df0fe5a0e9d4/lib/utils.ts).
+</Note>
+
+```tsx filename="@/app/chat/[id]/page.tsx"
+import { Chat } from '@/app/components/chat';
+import { getChatById } from '@/utils/queries';
+import { convertToUIMessages } from '@/utils/functions';
+
+export default async function Page({ params }: { params: any }) {
+  const { id } = params;
+  const chatFromDb = await getChatById({ id });
+
+  const chat: Chat = {
+    ...chatFromDb,
+    messages: convertToUIMessages(chatFromDb.messages),
+  };
+
+  return <Chat key={id} id={chat.id} initialMessages={chat.messages} />;
+}
+```
+
+In the above code snippet, we fetch the chat from the database using the `getChatById` server action and convert the messages to the format expected by `useChat` component using the `convertToUIMessages` function.
+
+```tsx filename="@/app/components/chat.tsx"
+'use client';
+
+import { Message } from 'ai';
+import { useChat } from 'ai/react';
+
+export function Chat({
+  id,
+  initialMessages,
+}: {
+  id;
+  initialMessages: Array<Message>;
+}) {
+  const { messages } = useChat({
+    id,
+    initialMessages,
+  });
+
+  return (
+    <div>
+      {messages.map(message => (
+        <div key={message.id}>
+          <div>{message.role}</div>
+          <div>{message.content}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+In the `Chat` component, we pass the `initialMessages` prop to the `useChat` hook to load the chat history. The `useChat` hook will then return the messages to be rendered in the chat window.

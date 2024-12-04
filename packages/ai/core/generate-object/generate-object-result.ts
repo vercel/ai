@@ -11,11 +11,11 @@ import { LanguageModelUsage } from '../types/usage';
 /**
 The result of a `generateObject` call.
  */
-export interface GenerateObjectResult<T> {
+export interface GenerateObjectResult<OBJECT> {
   /**
   The generated object (typed according to the schema).
      */
-  readonly object: T;
+  readonly object: OBJECT;
 
   /**
   The reason why the generation finished.

@@ -1,5 +1,52 @@
 # ai
 
+## 4.0.11
+
+### Patch Changes
+
+- Updated dependencies [953469c]
+- Updated dependencies [a3dd2ed]
+  - @ai-sdk/ui-utils@1.0.3
+  - @ai-sdk/react@1.0.4
+
+## 4.0.10
+
+### Patch Changes
+
+- 913872d: fix (ai/core): track promise from async createDataStream.execute
+
+## 4.0.9
+
+### Patch Changes
+
+- fda9695: feat (ai/core): reworked data stream management
+
+## 4.0.8
+
+### Patch Changes
+
+- a803d76: feat (ai/core): pass toolCallId option into tool execute function
+
+## 4.0.7
+
+### Patch Changes
+
+- 5b4f07b: fix (ai/core): change default error message for data streams to "An error occurred."
+
+## 4.0.6
+
+### Patch Changes
+
+- fc18132: feat (ai/core): experimental output for generateText
+- 2779f6d: fix (ai/core): do not send maxRetries into providers
+
+## 4.0.5
+
+### Patch Changes
+
+- Updated dependencies [630ac31]
+  - @ai-sdk/react@1.0.3
+
 ## 4.0.4
 
 ### Patch Changes

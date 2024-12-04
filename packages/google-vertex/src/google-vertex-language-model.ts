@@ -37,8 +37,8 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
 
-  get supportsObjectGeneration() {
-    return this.settings.structuredOutputs !== false;
+  get supportsStructuredOutputs() {
+    return this.settings.structuredOutputs ?? true;
   }
 
   readonly modelId: GoogleVertexModelId;
@@ -110,7 +110,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
         responseFormat.schema != null &&
         // Google Vertex does not support all OpenAPI Schema features,
         // so this is needed as an escape hatch:
-        this.supportsObjectGeneration
+        this.supportsStructuredOutputs
           ? (convertJSONSchemaToOpenAPISchema(
               responseFormat.schema,
             ) as ResponseSchema)
@@ -154,7 +154,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
                 mode.schema != null &&
                 // Google Vertex does not support all OpenAPI Schema features,
                 // so this is needed as an escape hatch:
-                this.supportsObjectGeneration
+                this.supportsStructuredOutputs
                   ? (convertJSONSchemaToOpenAPISchema(
                       mode.schema,
                     ) as ResponseSchema)

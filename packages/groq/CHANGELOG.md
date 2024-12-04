@@ -1,5 +1,17 @@
 # @ai-sdk/groq
 
+## 1.0.5
+
+### Patch Changes
+
+- a9a19cb: fix (provider/openai,groq): prevent sending duplicate tool calls
+
+## 1.0.4
+
+### Patch Changes
+
+- b1f31da: chore (providers): Remove obsolete 'internal' from several packages.
+
 ## 1.0.3
 
 ### Patch Changes

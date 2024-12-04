@@ -57,7 +57,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 
   get supportsStructuredOutputs(): boolean {
-    return this.settings.structuredOutputs === true;
+    return this.settings.structuredOutputs ?? false;
   }
 
   get defaultObjectGenerationMode() {
@@ -104,14 +104,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     }
 
     if (
-      responseFormat != null &&
-      responseFormat.type === 'json' &&
-      responseFormat.schema != null
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !this.supportsStructuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'responseFormat',
-        details: 'JSON response format schema is not supported',
+        details:
+          'JSON response format schema is only supported with structuredOutputs',
       });
     }
 
@@ -123,7 +124,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    if (useLegacyFunctionCalling && this.settings.structuredOutputs === true) {
+    if (useLegacyFunctionCalling && this.supportsStructuredOutputs) {
       throw new UnsupportedFunctionalityError({
         functionality: 'structuredOutputs with useLegacyFunctionCalling',
       });
@@ -157,6 +158,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
+      response_format:
+        responseFormat?.type === 'json'
+          ? this.supportsStructuredOutputs && responseFormat.schema != null
+            ? {
+                type: 'json_schema',
+                json_schema: {
+                  schema: responseFormat.schema,
+                  strict: true,
+                  name: responseFormat.name ?? 'response',
+                  description: responseFormat.description,
+                },
+              }
+            : { type: 'json_object' }
+          : undefined,
       stop: stopSequences,
       seed,
 
@@ -166,10 +181,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       store: providerMetadata?.openai?.store ?? undefined,
       metadata: providerMetadata?.openai?.metadata ?? undefined,
       prediction: providerMetadata?.openai?.prediction ?? undefined,
-
-      // response format:
-      response_format:
-        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
       messages: convertToOpenAIChatMessages({
@@ -192,7 +203,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           prepareTools({
             mode,
             useLegacyFunctionCalling,
-            structuredOutputs: this.settings.structuredOutputs,
+            structuredOutputs: this.supportsStructuredOutputs,
           });
 
         return {
@@ -212,7 +223,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           args: {
             ...baseArgs,
             response_format:
-              this.settings.structuredOutputs === true && mode.schema != null
+              this.supportsStructuredOutputs && mode.schema != null
                 ? {
                     type: 'json_schema',
                     json_schema: {
@@ -257,10 +268,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       name: mode.tool.name,
                       description: mode.tool.description,
                       parameters: mode.tool.parameters,
-                      strict:
-                        this.settings.structuredOutputs === true
-                          ? true
-                          : undefined,
+                      strict: this.supportsStructuredOutputs ? true : undefined,
                     },
                   },
                 ],
@@ -388,6 +396,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         name: string;
         arguments: string;
       };
+      hasFinished: boolean;
     }> = [];
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
@@ -536,6 +545,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       name: toolCallDelta.function.name,
                       arguments: toolCallDelta.function.arguments ?? '',
                     },
+                    hasFinished: false,
                   };
 
                   const toolCall = toolCalls[index];
@@ -565,14 +575,19 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                         toolName: toolCall.function.name,
                         args: toolCall.function.arguments,
                       });
+                      toolCall.hasFinished = true;
                     }
                   }
 
                   continue;
                 }
 
-                // existing tool call, merge
+                // existing tool call, merge if not finished
                 const toolCall = toolCalls[index];
+
+                if (toolCall.hasFinished) {
+                  continue;
+                }
 
                 if (toolCallDelta.function?.arguments != null) {
                   toolCall.function!.arguments +=
@@ -601,6 +616,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                     toolName: toolCall.function.name,
                     args: toolCall.function.arguments,
                   });
+                  toolCall.hasFinished = true;
                 }
               }
             }

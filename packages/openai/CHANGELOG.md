@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 1.0.6
+
+### Patch Changes
+
+- a9a19cb: fix (provider/openai,groq): prevent sending duplicate tool calls
+
+## 1.0.5
+
+### Patch Changes
+
+- fc18132: feat (ai/core): experimental output for generateText
+
 ## 1.0.4
 
 ### Patch Changes

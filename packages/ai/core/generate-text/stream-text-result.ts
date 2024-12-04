@@ -1,5 +1,6 @@
 import { ServerResponse } from 'node:http';
 import { StreamData } from '../../streams/stream-data';
+import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { CoreTool } from '../tool';
 import {
@@ -126,6 +127,13 @@ need to be added separately.
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean; // default to true (change to false in v4: secure by default)
   }): ReadableStream<Uint8Array>;
+
+  /**
+   * Merges the result as a data stream into another data stream.
+   *
+   * @param dataStream A data stream writer.
+   */
+  mergeIntoDataStream(dataStream: DataStreamWriter): void;
 
   /**
   Writes data stream output to a Node.js response-like object.

@@ -1,5 +1,12 @@
 # @ai-sdk/ui-utils
 
+## 1.0.3
+
+### Patch Changes
+
+- 953469c: chore (ui): extract prepareAttachmentsForRequest
+- a3dd2ed: fix (ui): preserve createdAt as Date object
+
 ## 1.0.2
 
 ### Patch Changes

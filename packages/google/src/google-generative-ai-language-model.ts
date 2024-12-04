@@ -38,8 +38,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
 
-  get supportsObjectGeneration() {
-    return this.settings.structuredOutputs !== false;
+  get supportsStructuredOutputs() {
+    return this.settings.structuredOutputs ?? true;
   }
 
   readonly modelId: GoogleGenerativeAIModelId;
@@ -103,7 +103,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         responseFormat.schema != null &&
         // Google GenAI does not support all OpenAPI Schema features,
         // so this is needed as an escape hatch:
-        this.supportsObjectGeneration
+        this.supportsStructuredOutputs
           ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
           : undefined,
     };
@@ -139,7 +139,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 mode.schema != null &&
                 // Google GenAI does not support all OpenAPI Schema features,
                 // so this is needed as an escape hatch:
-                this.supportsObjectGeneration
+                this.supportsStructuredOutputs
                   ? convertJSONSchemaToOpenAPISchema(mode.schema)
                   : undefined,
             },

@@ -283,13 +283,19 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'execute',
               isOptional: true,
-              type: 'async (parameters: T, options: ExecutionOptions) => RESULT',
+              type: 'async (parameters: T, options: ToolExecutionOptions) => RESULT',
               description:
                 'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.',
               properties: [
                 {
-                  type: 'ExecutionOptions',
+                  type: 'ToolExecutionOptions',
                   parameters: [
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.',
+                    },
                     {
                       name: 'messages',
                       type: 'CoreMessage[]',
@@ -467,6 +473,41 @@ To see `generateText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'The tools that are currently active. All tools are active by default.',
+    },
+    {
+      name: 'experimental_output',
+      type: 'Output',
+      isOptional: true,
+      description: 'Experimental setting for generating structured outputs.',
+      properties: [
+        {
+          type: 'Output',
+          parameters: [
+            {
+              name: 'Output.text()',
+              type: 'Output',
+              description: 'Forward text output.',
+            },
+            {
+              name: 'Output.object()',
+              type: 'Output',
+              description: 'Generate a JSON object of type OBJECT.',
+              properties: [
+                {
+                  type: 'Options',
+                  parameters: [
+                    {
+                      name: 'schema',
+                      type: 'Schema<OBJECT>',
+                      description: 'The schema of the JSON object to generate.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'onStepFinish',
