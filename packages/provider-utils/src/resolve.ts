@@ -8,21 +8,19 @@
  * - (() => T): Function returning value
  * - (() => Promise<T>): Function returning promise of value
  */
-export type Resolvable<T extends object> =
-  | T
-  | Promise<T>
-  | (() => T)
-  | (() => Promise<T>);
+export type Resolvable<
+  T extends object | number | string | boolean | null | undefined,
+> = T | Promise<T> | (() => T) | (() => Promise<T>);
 
 /**
  * Resolves a value that could be a raw value, a Promise, a function returning a value,
  * or a function returning a Promise.
  */
-export async function resolve<T extends object>(
-  value: Resolvable<T>,
-): Promise<T> {
+export async function resolve<
+  T extends object | number | string | boolean | null | undefined,
+>(value: Resolvable<T>): Promise<T> {
   if (typeof value === 'function') {
     value = value();
   }
-  return Promise.resolve(value);
+  return Promise.resolve(value) as T;
 }
