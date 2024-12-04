@@ -51,6 +51,33 @@ describe('MultiConsumerStream', () => {
     expect(consumer1.result).toEqual(['1', '2']);
     expect(consumer2.result).toEqual(['3']);
   });
+
+  describe('scenario: 3 overlapping consumers with start/cancel', async () => {
+    const multiConsumerStream = new MultiConsumerStream({
+      stream: convertArrayToReadableStream(['1', '2', '3']),
+    });
+
+    const stream1 = multiConsumerStream.split();
+
+    const consumer2 = new TestConsumer(multiConsumerStream.split());
+    await consumer2.pull();
+
+    const consumer3 = new TestConsumer(multiConsumerStream.split());
+
+    await consumer2.pull();
+    consumer2.reader.cancel();
+
+    await consumer3.pull();
+    await consumer3.pull();
+
+    expect(await convertReadableStreamToArray(stream1)).toEqual([
+      '1',
+      '2',
+      '3',
+    ]);
+    expect(consumer2.result).toEqual(['1', '2']);
+    expect(consumer3.result).toEqual(['2', '3']);
+  });
 });
 
 class TestConsumer<CHUNK> {
