@@ -107,6 +107,17 @@ startService({
       );
     });
 
+    // GET join an agent run stream
+    app.get('/run/:runId/stream', async c => {
+      const runStream = streamManager.getStream(c.req.param('runId'));
+
+      // TODO set correct agent stream headers
+
+      return stream(c, stream =>
+        stream.pipe(runStream.pipeThrough(new TextEncoderStream())),
+      );
+    });
+
     const server = serve({ fetch: app.fetch, hostname: host, port });
 
     return {
