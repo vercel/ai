@@ -1,21 +1,23 @@
 #!/usr/bin/env node
 
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { serve } from '@hono/node-server';
 import { Option } from 'commander';
+import 'dotenv/config';
 import { Hono } from 'hono';
 import { logger as honoLogger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
+import { stream } from 'hono/streaming';
 import * as path from 'node:path';
 import zod from 'zod';
 import { DataStore } from './data-store';
 import { ModuleLoader } from './module-loader';
 import { RunManager } from './run-manager';
+import { StreamManager } from './stream-manager';
+import { createStitchableStream } from './util/create-stitchable-stream';
 import { JobQueue } from './util/job-queue';
 import { startService } from './util/start-service';
 import { createWorker } from './worker';
-import { StreamManager } from './stream-manager';
-import { stream } from 'hono/streaming';
-import 'dotenv/config';
 
 startService({
   name: '@ai-sdk/server',
@@ -121,8 +123,14 @@ startService({
         c.header(key, value);
       });
 
+      const streamRecording = await dataStore.loadRunStreamRecording({ runId });
+      const recordedStream = convertArrayToReadableStream(streamRecording);
+      const stitchedStream = createStitchableStream();
+      stitchedStream.addStream(recordedStream);
+      stitchedStream.addStream(runStream);
+
       return stream(c, stream =>
-        stream.pipe(runStream.pipeThrough(new TextEncoderStream())),
+        stream.pipe(stitchedStream.stream.pipeThrough(new TextEncoderStream())),
       );
     });
 

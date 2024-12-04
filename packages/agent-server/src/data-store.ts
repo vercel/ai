@@ -10,8 +10,10 @@ export class DataStore {
     this.dataPath = dataPath;
   }
 
-  private getRunPath({ runId, file }: { runId: string; file: string }) {
-    return path.join(this.dataPath, 'runs', runId, file);
+  private getRunPath({ runId, file }: { runId: string; file?: string }) {
+    return file == null
+      ? path.join(this.dataPath, 'runs', runId)
+      : path.join(this.dataPath, 'runs', runId, file);
   }
 
   async updateRun(runState: RunState) {
@@ -63,5 +65,31 @@ export class DataStore {
 
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.appendFile(filePath, JSON.stringify(chunk) + '\n');
+  }
+
+  async loadRunStreamRecording({
+    runId,
+  }: {
+    runId: string;
+  }): Promise<Array<JSONValue>> {
+    const files = await fs.readdir(this.getRunPath({ runId }));
+
+    const streamFiles = files
+      .filter(file => file.startsWith('step-') && file.endsWith('.stream.json'))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    const streamContent: Array<JSONValue> = [];
+    for (const file of streamFiles) {
+      const filePath = this.getRunPath({ runId, file });
+      const fileContent = await fs.readFile(filePath, 'utf8');
+      streamContent.push(
+        ...fileContent
+          .split('\n')
+          .filter(line => line.trim() !== '')
+          .map(line => JSON.parse(line)),
+      );
+    }
+
+    return streamContent;
   }
 }
