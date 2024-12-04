@@ -36,7 +36,9 @@
   "dependencies": {
     "@ai-sdk/provider": "1.0.1",
     "@ai-sdk/provider-utils": "2.0.2",
+    "@ai-sdk/ui-utils": "1.0.2",
     "@hono/node-server": "1.13.7",
+    "ai": "4.0.10",
     "commander": "12.1.0",
     "hono": "4.6.11",
     "pino": "9.5.0",

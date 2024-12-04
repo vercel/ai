@@ -1,16 +1,11 @@
-import { streamTask } from '@ai-sdk/agent-server';
+import { dataStreamTask } from '@ai-sdk/agent-server';
 import { openai } from '@ai-sdk/openai';
-import { generateObject, StreamData } from 'ai';
+import { generateObject } from 'ai';
 import { Context } from '../workflow';
 
-// TODO special DataStreamTask
-export default streamTask<Context, string>({
-  async execute({ context, mergeStream }) {
-    // immediately start streaming status information:
-    const streamData = new StreamData();
-    mergeStream(streamData.toAgentStream());
-    streamData.append({ status: 'analyzing message' });
-    streamData.close();
+export default dataStreamTask<Context>({
+  async execute({ context, writer }) {
+    writer.writeData({ status: 'analyzing message' });
 
     // blocking operation, but we already started streaming:
     const lastUserMessage = context.messages.at(-1)?.content;

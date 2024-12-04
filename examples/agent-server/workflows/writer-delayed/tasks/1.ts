@@ -1,18 +1,9 @@
-import { streamTask } from '@ai-sdk/agent-server';
-import { StreamData } from 'ai';
+import { dataStreamTask } from '@ai-sdk/agent-server';
 import { Context } from '../workflow';
 
-// TODO special DataStreamTask
-export default streamTask<Context, string>({
-  async execute({ context, mergeStream }) {
-    // immediately start streaming status information:
-    const streamData = new StreamData();
-    mergeStream(streamData.toAgentStream());
-    streamData.append({ status: 'analyzing message' });
-    streamData.close();
-
-    console.log('task 1 done');
-
+export default dataStreamTask<Context>({
+  async execute({ writer }) {
+    writer.writeData({ status: 'analyzing message' });
     return { nextTask: '2' };
   },
 });

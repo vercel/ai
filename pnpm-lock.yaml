@@ -1078,9 +1078,15 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 2.0.2
         version: link:../provider-utils
+      '@ai-sdk/ui-utils':
+        specifier: 1.0.2
+        version: link:../ui-utils
       '@hono/node-server':
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.11)
+      ai:
+        specifier: 4.0.10
+        version: link:../ai
       commander:
         specifier: 12.1.0
         version: 12.1.0
