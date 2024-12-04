@@ -10,9 +10,9 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
-    "rootDir": "./agents",
-    "outDir": "./.agents",
+    "rootDir": "./workflows",
+    "outDir": "./.workflows",
     "skipLibCheck": true
   },
-  "include": ["agents/**/*.ts"]
+  "include": ["workflows/**/*.ts"]
 }

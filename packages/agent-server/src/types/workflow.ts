@@ -1,16 +1,16 @@
-export interface Agent<CONTEXT> {
+export interface Workflow<CONTEXT> {
   /**
-   * Called when the agent run is started.
+   * Called when the workflow run is started.
    *
    * @param request - The request object.
-   * @param metadata - Additional metadata about the agent.
+   * @param metadata - Additional metadata about the workflow.
    *
-   * @returns initial context for the agent run.
+   * @returns initial context for the workflow run.
    */
   start(options: {
     request: Request;
     metadata: {
-      agentName: string;
+      workflowName: string;
     };
   }): PromiseLike<{
     context: CONTEXT;

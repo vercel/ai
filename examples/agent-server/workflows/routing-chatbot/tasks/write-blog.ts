@@ -1,7 +1,7 @@
 import { streamTask } from '@ai-sdk/agent-server';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import { Context } from '../agent';
+import { Context } from '../workflow';
 
 export default streamTask<Context, string>({
   async execute({ context, mergeStream }) {

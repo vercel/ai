@@ -1,6 +1,6 @@
 import { streamTask } from '@ai-sdk/agent-server';
 import { StreamData } from 'ai';
-import { Context } from '../agent';
+import { Context } from '../workflow';
 
 // TODO special DataStreamTask
 export default streamTask<Context, string>({

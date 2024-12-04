@@ -1,4 +1,4 @@
-import type { Agent } from '@ai-sdk/agent-server';
+import type { Workflow } from '@ai-sdk/agent-server';
 import { z } from 'zod';
 
 // agent context is available to all states.
@@ -28,4 +28,4 @@ export default {
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Max-Age': '86400', // 24 hours
   },
-} satisfies Agent<Context>;
+} satisfies Workflow<Context>;

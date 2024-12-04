@@ -34,7 +34,7 @@ startService({
   }),
   async initialize({ host, port }, logger) {
     const moduleLoader = new ModuleLoader({
-      modulePath: path.join(process.cwd(), '.agents'),
+      modulePath: path.join(process.cwd(), '.workflows'),
     });
     const jobs = new JobQueue<{ runId: string }>();
     const submitJob = jobs.push.bind(jobs);
@@ -75,29 +75,29 @@ startService({
 
     // routes setup
     // OPTIONS for CORS preflight:
-    app.options('/agent/:agent/start', async c => {
-      const agent = await moduleLoader.loadAgent({
-        agent: c.req.param('agent'),
+    app.options('/workflow/:workflow/start', async c => {
+      const workflow = await moduleLoader.loadWorkflow({
+        workflow: c.req.param('workflow'),
       });
 
-      Object.entries(agent.headers ?? {}).forEach(([key, value]) => {
+      Object.entries(workflow.headers ?? {}).forEach(([key, value]) => {
         c.header(key, value);
       });
 
       return c.text('ok');
     });
 
-    // POST to start an agent run:
-    app.post('/agent/:agent/start', async c => {
-      const { runId, headers } = await runManager.startAgent({
-        agent: c.req.param('agent'),
+    // POST to start an workflow run:
+    app.post('/workflow/:workflow/start', async c => {
+      const { runId, headers } = await runManager.startWorkflow({
+        workflow: c.req.param('workflow'),
         request: c.req.raw,
       });
 
       const runStream = streamManager.getStream(runId);
 
       // headers
-      c.header('X-Agent-Run-Id', runId);
+      c.header('X-Workflow-Run-Id', runId);
       Object.entries(headers ?? {}).forEach(([key, value]) => {
         c.header(key, value);
       });
@@ -107,11 +107,11 @@ startService({
       );
     });
 
-    // GET join an agent run stream
+    // GET join an workflow run stream
     app.get('/run/:runId/stream', async c => {
       const runStream = streamManager.getStream(c.req.param('runId'));
 
-      // TODO set correct agent stream headers
+      // TODO set correct workflow stream headers
 
       return stream(c, stream =>
         stream.pipe(runStream.pipeThrough(new TextEncoderStream())),

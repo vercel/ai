@@ -1,7 +1,7 @@
 import { JSONValue } from '@ai-sdk/provider';
 import * as path from 'node:path';
-import { Agent } from './types/agent';
 import { StreamTask } from './types/task';
+import { Workflow } from './types/workflow';
 
 export class ModuleLoader {
   private readonly modulePath: string;
@@ -21,21 +21,25 @@ export class ModuleLoader {
     }
   }
 
-  async loadAgent({ agent }: { agent: string }): Promise<Agent<JSONValue>> {
-    return this.loadModule<Agent<JSONValue>>({
-      path: [agent, 'agent.js'],
+  async loadWorkflow({
+    workflow,
+  }: {
+    workflow: string;
+  }): Promise<Workflow<JSONValue>> {
+    return this.loadModule<Workflow<JSONValue>>({
+      path: [workflow, 'workflow.js'],
     });
   }
 
   async loadTask({
-    agent,
+    workflow,
     task,
   }: {
-    agent: string;
+    workflow: string;
     task: string;
   }): Promise<StreamTask<JSONValue, JSONValue>> {
     return this.loadModule<StreamTask<JSONValue, JSONValue>>({
-      path: [agent, 'tasks', `${task}.js`],
+      path: [workflow, 'tasks', `${task}.js`],
     });
   }
 }

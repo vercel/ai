@@ -1,2 +1,2 @@
-export * from './types/agent.js';
+export * from './types/workflow.js';
 export * from './types/task.js';

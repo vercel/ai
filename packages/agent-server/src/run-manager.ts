@@ -33,22 +33,28 @@ export class RunManager {
     this.logger = logger;
   }
 
-  async startAgent({ agent, request }: { agent: string; request: Request }) {
-    const agentModule = await this.moduleLoader.loadAgent({ agent });
+  async startWorkflow({
+    workflow,
+    request,
+  }: {
+    workflow: string;
+    request: Request;
+  }) {
+    const workflowModule = await this.moduleLoader.loadWorkflow({ workflow });
 
-    this.logger.info(`agent ${agent} starting`);
+    this.logger.info(`workflow ${workflow} starting`);
 
-    const { context, initialTask } = await agentModule.start({
+    const { context, initialTask } = await workflowModule.start({
       request,
-      metadata: { agentName: agent },
+      metadata: { workflowName: workflow },
     });
 
     // const runId = this.generateRunId();
-    const runId = `${agent}-${Date.now()}`; // for easier data inspection
+    const runId = `${workflow}-${Date.now()}`; // for easier data inspection
 
     await this.dataStore.updateRun({
       runId,
-      agent,
+      workflow,
       task: initialTask,
       context,
       createdAt: Date.now(),
@@ -59,8 +65,8 @@ export class RunManager {
 
     await this.submitJob({ runId });
 
-    this.logger.info(`${runId} of agent ${agent} started`);
+    this.logger.info(`${runId} of workflow ${workflow} started`);
 
-    return { runId, headers: agentModule.headers };
+    return { runId, headers: workflowModule.headers };
   }
 }

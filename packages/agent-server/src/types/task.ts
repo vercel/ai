@@ -1,3 +1,7 @@
+export type StreamTask<CONTEXT, CHUNK> = ReturnType<
+  typeof streamTask<CONTEXT, CHUNK>
+>;
+
 export function streamTask<CONTEXT, CHUNK>(options: {
   execute: ({
     context,

@@ -25,7 +25,7 @@ export function createWorker({
     const streams: Set<ReadableStream<JSONValue>> = new Set();
 
     const taskModule = await moduleLoader.loadTask({
-      agent: runState.agent,
+      workflow: runState.workflow,
       task: runState.task,
     });
 
@@ -82,7 +82,7 @@ export function createWorker({
 
     await dataStore.updateRun({
       runId,
-      agent: runState.agent,
+      workflow: runState.workflow,
       createdAt: runState.createdAt,
       task: nextTask,
       context: updatedContext,
