@@ -3,4 +3,4 @@
 '@ai-sdk/google': patch
 ---
 
-feat (provider/google-vertex): Add support for edge runtime.
+feat (provider/google-vertex): Rewrite for Edge runtime support.

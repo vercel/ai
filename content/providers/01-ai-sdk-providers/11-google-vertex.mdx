@@ -132,7 +132,9 @@ You can use the following optional settings to customize the provider instance:
 
 ### Edge Runtime
 
-The Edge runtime supports Google's [Application Default Credentials](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#application-default-credentials) through environment variables. The values can be obtained from a json credentials file from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+Edge runtimes (like Vercel Edge Functions and Cloudflare Workers) are lightweight JavaScript environments that run closer to users at the network edge. They offer better performance and lower latency, but only provide a subset of the standard Node.js APIs. For example, direct file system access is not available, and many Node.js-specific libraries (including the standard Google Auth library) are not compatible.
+
+The Edge runtime version of the Google Vertex provider supports Google's [Application Default Credentials](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#application-default-credentials) through environment variables. The values can be obtained from a json credentials file from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 
 You can import the default provider instance `vertex` from `@ai-sdk/google-vertex/edge`:
 
@@ -178,6 +180,19 @@ You can use the following optional settings to customize the provider instance:
 
   The Google Cloud location that you want to use for the API calls, e.g. `us-central1`.
   It uses the `GOOGLE_VERTEX_LOCATION` environment variable by default.
+
+- **googleCredentials** _object_
+
+  Optional. The credentials used by the Edge provider for authentication. These credentials are typically set through environment variables and are derived from a service account JSON file.
+
+  - **clientEmail** _string_
+    The client email from the service account JSON file. Defaults to the `GOOGLE_CLIENT_EMAIL` environment variable.
+
+  - **privateKey** _string_
+    The private key from the service account JSON file. Defaults to the `GOOGLE_PRIVATE_KEY` environment variable.
+
+  - **privateKeyId** _string_
+    The private key ID from the service account JSON file (optional). Defaults to the `GOOGLE_PRIVATE_KEY_ID` environment variable.
 
 - **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
 

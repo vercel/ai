@@ -2,17 +2,20 @@ import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
 
 export interface GoogleCredentials {
   /**
-   * The client email for the Google Cloud service account.
+   * The client email for the Google Cloud service account. Defaults to the
+   * value of the `GOOGLE_CLIENT_EMAIL` environment variable.
    */
   clientEmail: string;
 
   /**
-   * The private key for the Google Cloud service account.
+   * The private key for the Google Cloud service account. Defaults to the
+   * value of the `GOOGLE_PRIVATE_KEY` environment variable.
    */
   privateKey: string;
 
   /**
-   * Optional. The private key ID for the Google Cloud service account.
+   * Optional. The private key ID for the Google Cloud service account. Defaults
+   * to the value of the `GOOGLE_PRIVATE_KEY_ID` environment variable.
    */
   privateKeyId?: string;
 }

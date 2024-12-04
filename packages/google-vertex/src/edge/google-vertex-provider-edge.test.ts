@@ -71,4 +71,27 @@ describe('google-vertex-provider-edge', () => {
     expect(passedOptions?.headers).toBeDefined();
     expect(passedOptions?.headers?.toString()).toContain('generateAuthToken');
   });
+
+  it('should call generateAuthToken with provided googleCredentials', async () => {
+    const mockCredentials = {
+      clientEmail: 'test@example.com',
+      privateKey: 'test-key',
+    };
+
+    createVertex({
+      project: 'test-project',
+      googleCredentials: mockCredentials,
+    });
+
+    const mockCreateVertex = vi.mocked(baseProvider.createVertex);
+    const passedOptions = mockCreateVertex.mock.calls[0][0];
+    const headersFunction = passedOptions?.headers as () => Promise<
+      Record<string, string>
+    >;
+
+    // Call the headers function to trigger generateAuthToken
+    await headersFunction();
+
+    expect(edgeAuth.generateAuthToken).toHaveBeenCalledWith(mockCredentials);
+  });
 });

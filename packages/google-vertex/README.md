@@ -75,6 +75,27 @@ const { text } = await generateText({
 
 The `googleAuthOptions` object is not present in the Edge provider options but custom provider creation is otherwise identical.
 
+The Edge provider supports a `googleCredentials` option rather than `googleAuthOptions`. This can be used to specify the Google Cloud service account credentials and will take precedence over the environment variables used otherwise.
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex/edge';
+import { generateText } from 'ai';
+
+const customProvider = createVertex({
+  projectId: 'your-project-id',
+  location: 'us-central1',
+  googleCredentials: {
+    clientEmail: 'your-client-email',
+    privateKey: 'your-private-key',
+  },
+});
+
+const { text } = await generateText({
+  model: customProvider('gemini-1.5-flash'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
 ## Documentation
 
 Please check out the **[Google Vertex provider](https://sdk.vercel.ai/providers/ai-sdk-providers/google-vertex)** for more information.
