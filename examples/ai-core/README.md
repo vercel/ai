@@ -1,4 +1,4 @@
-# Basic Examples
+Basic Examples
 
 Basic examples for the `ai/core` functions (script usage).
 
