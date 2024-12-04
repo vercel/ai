@@ -1,9 +1,9 @@
-import { StreamTask } from '@ai-sdk/agent-server';
+import { streamTask } from '@ai-sdk/agent-server';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { Context } from '../agent';
 
-export default new StreamTask<Context, string>({
+export default streamTask<Context, string>({
   async execute({ context, mergeStream }) {
     // wait for 15 seconds
     await new Promise(resolve => setTimeout(resolve, 15000));

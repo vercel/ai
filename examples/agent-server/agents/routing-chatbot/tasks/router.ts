@@ -1,10 +1,10 @@
-import { StreamTask } from '@ai-sdk/agent-server';
+import { streamTask } from '@ai-sdk/agent-server';
 import { openai } from '@ai-sdk/openai';
 import { generateObject, StreamData } from 'ai';
 import { Context } from '../agent';
 
 // TODO special DataStreamTask
-export default new StreamTask<Context, string>({
+export default streamTask<Context, string>({
   async execute({ context, mergeStream }) {
     // immediately start streaming status information:
     const streamData = new StreamData();

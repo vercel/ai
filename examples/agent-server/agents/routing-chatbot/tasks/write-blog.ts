@@ -1,10 +1,9 @@
-import { StreamTask } from '@ai-sdk/agent-server';
+import { streamTask } from '@ai-sdk/agent-server';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { Context } from '../agent';
 
-export default {
-  type: 'stream',
+export default streamTask<Context, string>({
   async execute({ context, mergeStream }) {
     const result = streamText({
       model: openai('gpt-4o'),
@@ -19,4 +18,4 @@ export default {
 
     return { nextTask: 'END' };
   },
-} satisfies StreamTask<Context, string>;
+});
