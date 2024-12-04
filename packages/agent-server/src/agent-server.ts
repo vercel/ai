@@ -109,9 +109,17 @@ startService({
 
     // GET join an workflow run stream
     app.get('/run/:runId/stream', async c => {
-      const runStream = streamManager.getStream(c.req.param('runId'));
+      const runId = c.req.param('runId');
+      const runStream = streamManager.getStream(runId);
 
-      // TODO set correct workflow stream headers
+      // get workflow name from runId (TODO load from status file)
+      const workflow = runId.substring(0, runId.lastIndexOf('-'));
+
+      const workflowModule = await moduleLoader.loadWorkflow({ workflow });
+      c.header('X-Workflow-Run-Id', runId);
+      Object.entries(workflowModule.headers ?? {}).forEach(([key, value]) => {
+        c.header(key, value);
+      });
 
       return stream(c, stream =>
         stream.pipe(runStream.pipeThrough(new TextEncoderStream())),
