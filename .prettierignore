@@ -4,5 +4,5 @@ node_modules
 dist
 .svelte-kit
 .solid
-_nuxt
-__testfixtures__
+nuxt
+testfixtures__
