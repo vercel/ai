@@ -134,8 +134,3 @@ export function createVertex(
 
   return provider as GoogleVertexProvider;
 }
-
-/**
-Default Google Vertex AI provider instance.
- */
-export const vertex = createVertex();
