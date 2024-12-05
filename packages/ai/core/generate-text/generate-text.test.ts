@@ -9,6 +9,7 @@ import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
+import { ToolExecutionError } from '../../errors';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -1370,10 +1371,37 @@ describe('options.output', () => {
 
 describe('tool execution errors', () => {
   it('should throw a ToolExecutionError when a tool execution throws an error', async () => {
-    await expect(
-      generateText({
-        model: new MockLanguageModelV1({}),
+    await expect(async () => {
+      await generateText({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async () => {
+              throw new Error('test error');
+            },
+          },
+        },
+        prompt: 'test-input',
+      });
+    }).rejects.toThrow(
+      new ToolExecutionError({
+        toolName: 'tool1',
+        toolArgs: { value: 'value' },
+        cause: new Error('test error'),
       }),
-    ).rejects.toThrow(ToolExecutionError);
+    );
   });
 });
