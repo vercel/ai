@@ -48,7 +48,7 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "1.0.2",
+    "@ai-sdk/anthropic": "1.0.3",
     "@ai-sdk/google": "1.0.5",
     "@ai-sdk/provider": "1.0.1",
     "@ai-sdk/provider-utils": "2.0.3",
