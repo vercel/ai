@@ -25071,7 +25071,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.6
       estree-walker: 3.0.3
-      is-reference: 3.0.2
+      is-reference: 3.0.3
 
   pg-int8@1.0.1: {}
 
