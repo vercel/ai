@@ -3,7 +3,7 @@ import {
   GoogleCredentials,
 } from '../../edge/google-vertex-auth-edge';
 import {
-  createGoogleVertexAnthropic as createGoogleVertexAnthropicOriginal,
+  createVertexAnthropic as createVertexAnthropicOriginal,
   GoogleVertexAnthropicProvider,
   GoogleVertexAnthropicProviderSettings as GoogleVertexAnthropicProviderSettingsOriginal,
 } from '../google-vertex-anthropic-provider';
@@ -20,10 +20,10 @@ export interface GoogleVertexAnthropicProviderSettings
   googleCredentials?: GoogleCredentials;
 }
 
-export function createGoogleVertexAnthropic(
+export function createVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
 ): GoogleVertexAnthropicProvider {
-  return createGoogleVertexAnthropicOriginal({
+  return createVertexAnthropicOriginal({
     ...options,
     headers:
       options.headers ??
@@ -39,4 +39,4 @@ export function createGoogleVertexAnthropic(
 /**
  * Default Google Vertex AI Anthropic provider instance.
  */
-export const googleVertexAnthropic = createGoogleVertexAnthropic();
+export const vertexAnthropic = createVertexAnthropic();

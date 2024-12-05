@@ -79,7 +79,7 @@ Custom ID generator.
 /**
 Create a Google Vertex Anthropic provider instance.
  */
-export function createGoogleVertexAnthropic(
+export function createVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
 ): GoogleVertexAnthropicProvider {
   const location = loadOptionalSetting({

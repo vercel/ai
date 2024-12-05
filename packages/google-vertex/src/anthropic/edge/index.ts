@@ -1,6 +1,6 @@
 export {
-  createGoogleVertexAnthropic,
-  googleVertexAnthropic,
+  createVertexAnthropic as createGoogleVertexAnthropic,
+  vertexAnthropic as googleVertexAnthropic,
 } from './google-vertex-anthropic-provider-edge';
 export type {
   GoogleVertexAnthropicProviderSettings,

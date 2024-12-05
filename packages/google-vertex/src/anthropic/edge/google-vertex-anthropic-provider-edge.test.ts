@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createGoogleVertexAnthropic } from './google-vertex-anthropic-provider-edge';
+import { createVertexAnthropic } from './google-vertex-anthropic-provider-edge';
 import * as baseProvider from '../google-vertex-anthropic-provider';
 import * as edgeAuth from '../../edge/google-vertex-auth-edge';
 
@@ -9,7 +9,7 @@ vi.mock('../../edge/google-vertex-auth-edge', () => ({
 }));
 
 vi.mock('../google-vertex-anthropic-provider', () => ({
-  createGoogleVertexAnthropic: vi.fn().mockImplementation(options => ({
+  createVertexAnthropic: vi.fn().mockImplementation(options => ({
     ...options,
   })),
 }));
@@ -20,11 +20,9 @@ describe('google-vertex-anthropic-provider-edge', () => {
   });
 
   it('should set up default auth token header when no headers provided', () => {
-    createGoogleVertexAnthropic({ project: 'test-project' });
+    createVertexAnthropic({ project: 'test-project' });
 
-    const mockCreateProvider = vi.mocked(
-      baseProvider.createGoogleVertexAnthropic,
-    );
+    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
     const passedOptions = mockCreateProvider.mock.calls[0][0];
 
     expect(mockCreateProvider).toHaveBeenCalledTimes(1);
@@ -32,11 +30,9 @@ describe('google-vertex-anthropic-provider-edge', () => {
   });
 
   it('default headers function should return auth token and anthropic version', async () => {
-    createGoogleVertexAnthropic({ project: 'test-project' });
+    createVertexAnthropic({ project: 'test-project' });
 
-    const mockCreateProvider = vi.mocked(
-      baseProvider.createGoogleVertexAnthropic,
-    );
+    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
     const passedOptions = mockCreateProvider.mock.calls[0][0];
     const headersFunction = passedOptions?.headers as () => Promise<
       Record<string, string>
@@ -54,14 +50,12 @@ describe('google-vertex-anthropic-provider-edge', () => {
       'Custom-Header': 'custom-value',
     });
 
-    createGoogleVertexAnthropic({
+    createVertexAnthropic({
       project: 'test-project',
       headers: customHeaders,
     });
 
-    const mockCreateProvider = vi.mocked(
-      baseProvider.createGoogleVertexAnthropic,
-    );
+    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
     const passedOptions = mockCreateProvider.mock.calls[0][0];
 
     expect(mockCreateProvider).toHaveBeenCalledTimes(1);
@@ -69,11 +63,9 @@ describe('google-vertex-anthropic-provider-edge', () => {
   });
 
   it('should use edge auth token generator', () => {
-    createGoogleVertexAnthropic({ project: 'test-project' });
+    createVertexAnthropic({ project: 'test-project' });
 
-    const mockCreateProvider = vi.mocked(
-      baseProvider.createGoogleVertexAnthropic,
-    );
+    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
     const passedOptions = mockCreateProvider.mock.calls[0][0];
 
     expect(passedOptions?.headers).toBeDefined();
@@ -86,14 +78,12 @@ describe('google-vertex-anthropic-provider-edge', () => {
       privateKey: 'test-key',
     };
 
-    createGoogleVertexAnthropic({
+    createVertexAnthropic({
       project: 'test-project',
       googleCredentials: mockCredentials,
     });
 
-    const mockCreateProvider = vi.mocked(
-      baseProvider.createGoogleVertexAnthropic,
-    );
+    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
     const passedOptions = mockCreateProvider.mock.calls[0][0];
     const headersFunction = passedOptions?.headers as () => Promise<
       Record<string, string>

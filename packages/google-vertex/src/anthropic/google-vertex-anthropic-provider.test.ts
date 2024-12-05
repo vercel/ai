@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createGoogleVertexAnthropic } from './google-vertex-anthropic-provider';
+import { createVertexAnthropic } from './google-vertex-anthropic-provider';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import {
   AnthropicMessagesLanguageModel,
@@ -29,7 +29,7 @@ describe('google-vertex-anthropic-provider', () => {
   });
 
   it('should create a language model with default settings', () => {
-    const provider = createGoogleVertexAnthropic({
+    const provider = createVertexAnthropic({
       project: 'test-project',
       location: 'test-location',
     });
@@ -52,7 +52,7 @@ describe('google-vertex-anthropic-provider', () => {
   });
 
   it('should throw an error when using new keyword', () => {
-    const provider = createGoogleVertexAnthropic({ project: 'test-project' });
+    const provider = createVertexAnthropic({ project: 'test-project' });
 
     expect(() => new (provider as any)('test-model-id')).toThrow(
       'The Anthropic model function cannot be called with the new keyword.',
@@ -61,7 +61,7 @@ describe('google-vertex-anthropic-provider', () => {
 
   it('should pass baseURL to the model when created', () => {
     const customBaseURL = 'https://custom-url.com';
-    const provider = createGoogleVertexAnthropic({
+    const provider = createVertexAnthropic({
       project: 'test-project',
       baseURL: customBaseURL,
     });
@@ -78,7 +78,7 @@ describe('google-vertex-anthropic-provider', () => {
   });
 
   it('should throw NoSuchModelError for textEmbeddingModel', () => {
-    const provider = createGoogleVertexAnthropic({ project: 'test-project' });
+    const provider = createVertexAnthropic({ project: 'test-project' });
 
     expect(() => provider.textEmbeddingModel('invalid-model-id')).toThrow(
       NoSuchModelError,
@@ -86,14 +86,14 @@ describe('google-vertex-anthropic-provider', () => {
   });
 
   it('should include anthropicTools', () => {
-    const provider = createGoogleVertexAnthropic({ project: 'test-project' });
+    const provider = createVertexAnthropic({ project: 'test-project' });
 
     expect(provider.tools).toBe(anthropicTools);
   });
 
   it('should pass custom headers to the model constructor', () => {
     const customHeaders = { 'Custom-Header': 'custom-value' };
-    const provider = createGoogleVertexAnthropic({
+    const provider = createVertexAnthropic({
       project: 'test-project',
       headers: customHeaders,
     });
