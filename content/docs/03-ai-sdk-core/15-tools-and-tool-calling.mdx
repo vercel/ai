@@ -340,6 +340,62 @@ async function generateSomething(prompt: string): Promise<{
 }
 ```
 
+## Handling Errors
+
+The AI SDK has three tool-call related errors:
+
+- [`NoSuchToolError`](/docs/reference/ai-sdk-errors/ai-no-such-tool-error): the model tries to call a tool that is not defined in the tools object
+- [`InvalidToolArgumentsError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-arguments-error): the model calls a tool with arguments that do not match the tool's parameters
+- [`ToolExecutionError`](/docs/reference/ai-sdk-errors/ai-tool-execution-error): an error that occurred during tool execution
+
+### `generateText`
+
+`generateText` throws errors and can be handled using a `try`/`catch` block:
+
+```ts
+try {
+  const result = await generateText({
+    //...
+  });
+} catch (error) {
+  if (NoSuchToolError.isInstance(error)) {
+    // handle the no such tool error
+  } else if (InvalidToolArgumentsError.isInstance(error)) {
+    // handle the invalid tool arguments error
+  } else if (ToolExecutionError.isInstance(error)) {
+    // handle the tool execution error
+  } else {
+    // handle other errors
+  }
+}
+```
+
+### `streamText`
+
+`streamText` sends the errors as part of the full stream. The error parts contain the error object.
+
+When using `toDataStreamResponse`, you can pass an `getErrorMessage` function to extract the error message from the error part and forward it as part of the data stream response:
+
+```ts
+const result = streamText({
+  // ...
+});
+
+return result.toDataStreamResponse({
+  getErrorMessage: error => {
+    if (NoSuchToolError.isInstance(error)) {
+      return 'The model tried to call a unknown tool.';
+    } else if (InvalidToolArgumentsError.isInstance(error)) {
+      return 'The model called a tool with invalid arguments.';
+    } else if (ToolExecutionError.isInstance(error)) {
+      return 'An error occurred during tool execution.';
+    } else {
+      return 'An unknown error occurred.';
+    }
+  },
+});
+```
+
 ## Active Tools
 
 <Note type="warning">
