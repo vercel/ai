@@ -4,24 +4,21 @@ import {
   convertReadableStreamToArray,
   convertResponseStreamToArray,
 } from '@ai-sdk/provider-utils/test';
+import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
-import {
-  StreamData,
-  StreamTextResult,
-  TextStreamPart,
-  ToolExecutionError,
-  createDataStream,
-  jsonSchema,
-  tool,
-} from '../../streams';
+import { ToolExecutionError } from '../../errors/tool-execution-error';
+import { StreamData } from '../../streams/stream-data';
 import { delay } from '../../util/delay';
+import { createDataStream } from '../data-stream/create-data-stream';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
+import { tool } from '../tool/tool';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
+import { StreamTextResult, TextStreamPart } from './stream-text-result';
 
 describe('streamText', () => {
   describe('result.textStream', () => {
