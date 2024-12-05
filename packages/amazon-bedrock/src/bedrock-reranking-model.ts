@@ -44,7 +44,7 @@ export class BedrockRerankingModel implements RerankingModelV1<string> {
     const payload = {
       query: query,
       documents: values,
-      top_k: topK,
+      top_n: topK,
     };
 
     const command = new InvokeModelCommand({
