@@ -14,7 +14,7 @@
     "dev": "tsx src/server.ts"
   },
   "devDependencies": {
-    "@types/node": "20.11.20",
+    "@types/node": "22.10.1",
     "tsx": "4.7.1",
     "typescript": "5.6.3"
   }

@@ -69,7 +69,7 @@
   },
   "devDependencies": {
     "@edge-runtime/vm": "^4.0.4",
-    "@types/node": "^18",
+    "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
