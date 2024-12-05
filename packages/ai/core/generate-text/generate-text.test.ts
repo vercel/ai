@@ -1367,3 +1367,13 @@ describe('options.output', () => {
     });
   });
 });
+
+describe('tool execution errors', () => {
+  it('should throw a ToolExecutionError when a tool execution throws an error', async () => {
+    await expect(
+      generateText({
+        model: new MockLanguageModelV1({}),
+      }),
+    ).rejects.toThrow(ToolExecutionError);
+  });
+});

@@ -1,6 +1,6 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { InvalidArgumentError } from '../../errors';
+import { InvalidArgumentError, ToolExecutionError } from '../../errors';
 import { CoreAssistantMessage, CoreMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -555,32 +555,39 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         }),
         tracer,
         fn: async span => {
-          // TODO tool call error
-          const result = await tool.execute!(args, {
-            toolCallId,
-            messages,
-            abortSignal,
-          });
-
           try {
-            span.setAttributes(
-              selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.toolCall.result': {
-                    output: () => JSON.stringify(result),
-                  },
-                },
-              }),
-            );
-          } catch (ignored) {
-            // JSON stringify might fail if the result is not serializable,
-            // in which case we just ignore it. In the future we might want to
-            // add an optional serialize method to the tool interface and warn
-            // if the result is not serializable.
-          }
+            const result = await tool.execute!(args, {
+              toolCallId,
+              messages,
+              abortSignal,
+            });
 
-          return result;
+            try {
+              span.setAttributes(
+                selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    'ai.toolCall.result': {
+                      output: () => JSON.stringify(result),
+                    },
+                  },
+                }),
+              );
+            } catch (ignored) {
+              // JSON stringify might fail if the result is not serializable,
+              // in which case we just ignore it. In the future we might want to
+              // add an optional serialize method to the tool interface and warn
+              // if the result is not serializable.
+            }
+
+            return result;
+          } catch (error) {
+            throw new ToolExecutionError({
+              toolName,
+              toolArgs: args,
+              cause: error,
+            });
+          }
         },
       });
 
