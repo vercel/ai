@@ -11,15 +11,12 @@ It allows you to closely monitor and evaluate your application, so you can ship 
 Use of LangChain's open source frameworks is not necessary, and LangSmith integrates with the [Vercel AI SDK](/docs/introduction) via the `AISDKExporter` OpenTelemetry trace exporter.
 This guide will walk through an example.
 
-:::note
-A version of this guide is also available in the [LangSmith documentation](https://docs.smith.langchain.com/observability/how_to_guides/tracing/trace_with_vercel_ai_sdk).
-:::
+<Note>
+  A version of this guide is also available in the [LangSmith
+  documentation](https://docs.smith.langchain.com/observability/how_to_guides/tracing/trace_with_vercel_ai_sdk).
+</Note>
 
-## 0. Installation
-
-:::note
-The `AISDKExporter` class is only available in `langsmith` SDK version `>=0.2.1`.
-:::
+## Setup
 
 Install an AI SDK model provider and the [LangSmith client SDK](https://npmjs.com/package/langsmith).
 The code snippets below will use Vercel's OpenAI integration, but you can use any [other supported provider](/docs/foundations/providers-and-models) as well.
@@ -36,7 +33,10 @@ The code snippets below will use Vercel's OpenAI integration, but you can use an
   </Tab>
 </Tabs>
 
-## 1. Configure your environment
+<Note>
+  The `AISDKExporter` class is only available in `langsmith` SDK version
+  `>=0.2.1`.
+</Note>
 
 Next, set required environment variables.
 
@@ -44,14 +44,13 @@ Next, set required environment variables.
 export LANGCHAIN_TRACING_V2=true
 export LANGCHAIN_API_KEY=<your-api-key>
 
-# The below examples use the OpenAI API, though it's not necessary in general
-export OPENAI_API_KEY=<your-openai-api-key>
+export OPENAI_API_KEY=<your-openai-api-key> # The examples use the OpenAI API (not necessary in general)
 ```
 
 You can also [see this guide](https://docs.smith.langchain.com/observability/how_to_guides/tracing/trace_without_env_vars) for other ways to configure LangSmith,
 or [the section below](#custom-langsmith-client) for how to pass in a custom LangSmith client instance.
 
-## 2. Log a trace
+## Trace Logging
 
 ### Next.js
 
@@ -183,7 +182,9 @@ client?.traceProvider?.addSpanProcessor(
 );
 ```
 
-## Customize run name
+## Configuration
+
+### Customize run name
 
 You can customize the run name by passing the `runName` argument to the `AISDKExporter.getSettings()` method.
 
@@ -201,7 +202,7 @@ await generateText({
 });
 ```
 
-## Customize run ID
+### Customize run ID
 
 You can customize the run ID by passing the `runId` argument to the `AISDKExporter.getSettings()` method. This is especially useful if you want to know the run ID before the run has been completed.
 
@@ -219,7 +220,7 @@ await generateText({
 });
 ```
 
-## Nesting runs
+### Nesting runs
 
 You can also nest runs within other traced functions to create a hierarchy of associated runs.
 Here's an example using the [`traceable`](https://docs.smith.langchain.com/observability/how_to_guides/tracing/annotate_code#use-traceable--traceable) method:
@@ -261,7 +262,7 @@ const result = await wrappedGenerateText(
 
 The resulting trace will look like [this one](https://smith.langchain.com/public/c0466ed5-3932-4140-83b1-cf11e998fa6a/r).
 
-## Custom LangSmith client
+### Custom LangSmith client
 
 You can also pass a LangSmith client instance into the `AISDKExporter` constructor:
 
@@ -291,7 +292,7 @@ await generateText({
 });
 ```
 
-## Debugging Exporter
+### Debugging Exporter
 
 You can enable debug logs for the `AISDKExporter` by passing the `debug` argument to the constructor.
 
@@ -301,7 +302,7 @@ const traceExporter = new AISDKExporter({ debug: true });
 
 Alternatively, you can set the `OTEL_LOG_LEVEL=DEBUG` environment variable to enable debug logs for the exporter as well as the rest of the OpenTelemetry stack.
 
-## Adding metadata
+### Adding metadata
 
 You can add metadata to your traces to help organize and filter them in the LangSmith UI:
 
