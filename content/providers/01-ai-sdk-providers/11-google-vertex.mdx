@@ -5,18 +5,19 @@ description: Learn how to use the Google Vertex AI provider.
 
 # Google Vertex Provider
 
-The Google Vertex provider for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
+The Google Vertex provider for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs. This includes support for [Google's Gemini models](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models) and [Anthropic's Claude partner models](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude).
 
 <Note>
   The Google Vertex provider is compatible with both Node.js and Edge runtimes.
   The Edge runtime is supported through the `@ai-sdk/google-vertex/edge`
-  sub-module. More details can be found in the [Edge Runtime](#edge-runtime)
-  section below.
+  sub-module. More details can be found in the [Google Vertex Edge
+  Runtime](#google-vertex-edge-runtime) and [Google Vertex Anthropic Edge
+  Runtime](#google-vertex-anthropic-edge-runtime) sections below.
 </Note>
 
 ## Setup
 
-The Google provider is available in the `@ai-sdk/google-vertex` module. You can install it with
+Both the Google Vertex and Google Vertex Anthropic providers are available in the `@ai-sdk/google-vertex` module. You can install it with
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
@@ -33,7 +34,11 @@ The Google provider is available in the `@ai-sdk/google-vertex` module. You can 
   </Tab>
 </Tabs>
 
-## Provider Instance
+## Google Vertex Provider Usage
+
+The Google Vertex provider instance is used to create model instances that call the Vertex AI API. The models available with this provider include [Google's Gemini models](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models). If you're looking to use [Anthropic's Claude models](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude), see the [Google Vertex Anthropic Provider](#google-vertex-anthropic-provider-usage) section below.
+
+### Provider Instance
 
 You can import the default provider instance `vertex` from `@ai-sdk/google-vertex`:
 
@@ -54,7 +59,7 @@ const vertex = createVertex({
 
 Google Vertex supports two different authentication implementations depending on your runtime environment.
 
-### Node.js Runtime
+#### Node.js Runtime
 
 The Node.js runtime is the default runtime supported by the AI SDK. It supports all standard Google Cloud authentication options through the [`google-auth-library`](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#ways-to-authenticate). Typical use involves setting a path to a json credentials file in the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. The credentials file can be obtained from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 
@@ -73,7 +78,7 @@ const vertex = createVertex({
 });
 ```
 
-#### Optional Provider Settings
+##### Optional Provider Settings
 
 You can use the following optional settings to customize the provider instance:
 
@@ -131,7 +136,8 @@ You can use the following optional settings to customize the provider instance:
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
-### Edge Runtime
+<a id="google-vertex-edge-runtime"></a>
+#### Edge Runtime
 
 Edge runtimes (like Vercel Edge Functions and Cloudflare Workers) are lightweight JavaScript environments that run closer to users at the network edge.
 They only provide a subset of the standard Node.js APIs.
@@ -171,7 +177,7 @@ For Edge runtime authentication, you'll need to set these environment variables 
 
 These values can be obtained from a service account JSON file from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 
-#### Optional Provider Settings
+##### Optional Provider Settings
 
 You can use the following optional settings to customize the provider instance:
 
@@ -190,13 +196,13 @@ You can use the following optional settings to customize the provider instance:
   Optional. The credentials used by the Edge provider for authentication. These credentials are typically set through environment variables and are derived from a service account JSON file.
 
   - **clientEmail** _string_
-    The client email from the service account JSON file. Defaults to the `GOOGLE_CLIENT_EMAIL` environment variable.
+    The client email from the service account JSON file. Defaults to the contents of the `GOOGLE_CLIENT_EMAIL` environment variable.
 
   - **privateKey** _string_
-    The private key from the service account JSON file. Defaults to the `GOOGLE_PRIVATE_KEY` environment variable.
+    The private key from the service account JSON file. Defaults to the contents of the `GOOGLE_PRIVATE_KEY` environment variable.
 
   - **privateKeyId** _string_
-    The private key ID from the service account JSON file (optional). Defaults to the `GOOGLE_PRIVATE_KEY_ID` environment variable.
+    The private key ID from the service account JSON file (optional). Defaults to the contents of the `GOOGLE_PRIVATE_KEY_ID` environment variable.
 
 - **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
 
@@ -214,7 +220,7 @@ You can use the following optional settings to customize the provider instance:
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
-## Language Models
+### Language Models
 
 You can create models that call the Vertex API using the provider instance.
 The first argument is the model id, e.g. `gemini-1.5-pro`.
@@ -298,7 +304,7 @@ const { text } = await generateText({
 Google Vertex language models can also be used in the `streamText` and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
-### File Inputs
+#### File Inputs
 
 The Google Vertex provider supports file inputs, e.g. PDF files.
 
@@ -335,7 +341,7 @@ const { text } = await generateText({
 
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
 
-### Search Grounding
+#### Search Grounding
 
 With [search grounding](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview),
 the model has access to the latest information using Google search.
@@ -397,6 +403,8 @@ const result = await generateObject({
 
 ### Model Capabilities
 
+The latest Googel Vertex model list is available [here](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference#supported-models).
+
 | Model              | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
 | `gemini-1.5-flash` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -407,7 +415,7 @@ const result = await generateObject({
   model ID as a string if needed.
 </Note>
 
-## Embedding Models
+### Embedding Models
 
 You can create models that call the Google Vertex AI embeddings API using the `.textEmbeddingModel()` factory method:
 
@@ -429,11 +437,204 @@ The following optional settings are available for Google Vertex AI embedding mod
 
   Optional reduced dimension for the output embedding. If set, excessive values in the output embedding are truncated from the end.
 
-### Model Capabilities
+#### Model Capabilities
 
 | Model                | Max Values Per Call | Parallel Calls      |
 | -------------------- | ------------------- | ------------------- |
 | `text-embedding-004` | 2048                | <Check size={18} /> |
+
+<Note>
+  The table above lists popular models. You can also pass any available provider
+  model ID as a string if needed.
+</Note>
+
+## Google Vertex Anthropic Provider Usage
+
+The Google Vertex Anthropic provider for the [AI SDK](https://sdk.vercel.ai/docs) offers support for Anthropic's Claude models through the Google Vertex AI APIs. This section provides details on how to set up and use the Google Vertex Anthropic provider.
+
+### Provider Instance
+
+You can import the default provider instance `vertexAnthropic` from `@ai-sdk/google-vertex/anthropic`:
+
+```typescript
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+```
+
+If you need a customized setup, you can import `createVertexAnthropic` from `@ai-sdk/google-vertex/anthropic` and create a provider instance with your settings:
+
+```typescript
+import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+
+const vertexAnthropic = createVertexAnthropic({
+  project: 'my-project', // optional
+  location: 'us-central1', // optional
+});
+```
+
+#### Node.js Runtime
+
+For Node.js environments, the Google Vertex Anthropic provider supports all standard Google Cloud authentication options through the `google-auth-library`. You can customize the authentication options by passing them to the `createVertexAnthropic` function:
+
+```typescript
+import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+
+const vertexAnthropic = createVertexAnthropic({
+  googleAuthOptions: {
+    credentials: {
+      client_email: 'my-email',
+      private_key: 'my-private-key',
+    },
+  },
+});
+```
+
+##### Optional Provider Settings
+
+You can use the following optional settings to customize the Google Vertex Anthropic provider instance:
+
+- **project** _string_
+
+  The Google Cloud project ID that you want to use for the API calls.
+  It uses the `GOOGLE_VERTEX_PROJECT` environment variable by default.
+
+- **location** _string_
+
+  The Google Cloud location that you want to use for the API calls, e.g. `us-central1`.
+  It uses the `GOOGLE_VERTEX_LOCATION` environment variable by default.
+
+- **googleAuthOptions** _object_
+
+  Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/). See also the [GoogleAuthOptions](https://github.com/googleapis/google-auth-library-nodejs/blob/08978822e1b7b5961f0e355df51d738e012be392/src/auth/googleauth.ts#L87C18-L87C35) interface.
+
+  - **authClient** _object_
+    An `AuthClient` to use.
+
+  - **keyFilename** _string_
+    Path to a .json, .pem, or .p12 key file.
+
+  - **keyFile** _string_
+    Path to a .json, .pem, or .p12 key file.
+
+  - **credentials** _object_
+    Object containing client_email and private_key properties, or the external account client options.
+
+  - **clientOptions** _object_
+    Options object passed to the constructor of the client.
+
+  - **scopes** _string | string[]_
+    Required scopes for the desired API request.
+
+  - **projectId** _string_
+    Your project ID.
+
+  - **universeDomain** _string_
+    The default service domain for a given Cloud universe.
+
+- **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
+
+  Headers to include in the requests. Can be provided in multiple formats:
+
+  - A record of header key-value pairs: `Record<string, string | undefined>`
+  - A function that returns headers: `() => Record<string, string | undefined>`
+  - An async function that returns headers: `async () => Record<string, string | undefined>`
+  - A promise that resolves to headers: `Promise<Record<string, string | undefined>>`
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+<a id="google-vertex-anthropic-edge-runtime"></a>
+#### Edge Runtime
+
+Edge runtimes (like Vercel Edge Functions and Cloudflare Workers) are lightweight JavaScript environments that run closer to users at the network edge.
+They only provide a subset of the standard Node.js APIs.
+For example, direct file system access is not available, and many Node.js-specific libraries
+(including the standard Google Auth library) are not compatible.
+
+The Edge runtime version of the Google Vertex Anthropic provider supports Google's [Application Default Credentials](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#application-default-credentials) through environment variables. The values can be obtained from a json credentials file from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+
+For Edge runtimes, you can import the provider instance from `@ai-sdk/google-vertex/anthropic/edge`:
+
+```typescript
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic/edge';
+```
+
+To customize the setup, use `createVertexAnthropic` from the same module:
+
+```typescript
+import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic/edge';
+
+const vertexAnthropic = createVertexAnthropic({
+  project: 'my-project', // optional
+  location: 'us-central1', // optional
+});
+```
+
+For Edge runtime authentication, set these environment variables from your Google Default Application Credentials JSON file:
+
+- `GOOGLE_CLIENT_EMAIL`
+- `GOOGLE_PRIVATE_KEY`
+- `GOOGLE_PRIVATE_KEY_ID` (optional)
+
+##### Optional Provider Settings
+
+You can use the following optional settings to customize the provider instance:
+
+- **project** _string_
+
+  The Google Cloud project ID that you want to use for the API calls.
+  It uses the `GOOGLE_VERTEX_PROJECT` environment variable by default.
+
+- **location** _string_
+
+  The Google Cloud location that you want to use for the API calls, e.g. `us-central1`.
+  It uses the `GOOGLE_VERTEX_LOCATION` environment variable by default.
+
+- **googleCredentials** _object_
+
+  Optional. The credentials used by the Edge provider for authentication. These credentials are typically set through environment variables and are derived from a service account JSON file.
+
+  - **clientEmail** _string_
+    The client email from the service account JSON file. Defaults to the contents of the `GOOGLE_CLIENT_EMAIL` environment variable.
+
+  - **privateKey** _string_
+    The private key from the service account JSON file. Defaults to the contents of the `GOOGLE_PRIVATE_KEY` environment variable.
+
+  - **privateKeyId** _string_
+    The private key ID from the service account JSON file (optional). Defaults to the contents of the `GOOGLE_PRIVATE_KEY_ID` environment variable.
+
+- **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
+
+  Headers to include in the requests. Can be provided in multiple formats:
+
+  - A record of header key-value pairs: `Record<string, string | undefined>`
+  - A function that returns headers: `() => Record<string, string | undefined>`
+  - An async function that returns headers: `async () => Record<string, string | undefined>`
+  - A promise that resolves to headers: `Promise<Record<string, string | undefined>>`
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+### Model Capabilities
+
+The latest Anthropic model list on Vertex AI is available [here](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude#model-list).
+See also [Anthropic Model Comparison](https://docs.anthropic.com/en/docs/about-claude/models#model-comparison).
+
+| Model                           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-3-5-sonnet-v2@20241022` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-5-sonnet@20240620`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-5-haiku@20241022`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-sonnet@20240229`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-haiku@20240307`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-opus@20240229`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. You can also pass any available provider

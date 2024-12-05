@@ -5,14 +5,17 @@ import { createGoogleVertexAnthropic as createVertexAnthropicEdge } from '@ai-sd
 import { generateText, streamText } from 'ai';
 import fs from 'fs';
 
-const LONG_TEST_MILLIS = 10000;
+const LONG_TEST_MILLIS = 20000;
 
 // Model variants to test against
 const MODEL_VARIANTS = {
   chat: [
-    'claude-3-5-sonnet@20240620',
-    // 'claude-3-5-sonnet-v2@20241022',
-    // 'claude-3-5-haiku@20241022'
+    'claude-3-5-sonnet-v2@20241022',
+    // 'claude-3-5-haiku@20241022',
+    // 'claude-3-5-sonnet@20240620',
+    // 'claude-3-haiku@20240307',
+    // 'claude-3-sonnet@20240229',
+    // 'claude-3-opus@20240229',
   ],
 } as const;
 
