@@ -1,18 +1,5 @@
 # @ai-sdk/google-vertex
 
-## 2.0.0
-
-### Major Changes
-
-- a4abea0: feat (provider/google-vertex): Rewrite for Edge runtime support.
-
-### Patch Changes
-
-- Updated dependencies [a4abea0]
-- Updated dependencies [a674958]
-  - @ai-sdk/google@1.0.5
-  - @ai-sdk/provider-utils@2.0.3
-
 ## 1.0.4
 
 ### Patch Changes
