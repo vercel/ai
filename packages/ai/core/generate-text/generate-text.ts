@@ -555,6 +555,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         }),
         tracer,
         fn: async span => {
+          // TODO tool call error
           const result = await tool.execute!(args, {
             toolCallId,
             messages,
