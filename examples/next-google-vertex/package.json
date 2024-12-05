@@ -3,7 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "clean": "rm -rf .next node_modules",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
