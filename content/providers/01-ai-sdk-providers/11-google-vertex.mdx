@@ -132,7 +132,10 @@ You can use the following optional settings to customize the provider instance:
 
 ### Edge Runtime
 
-Edge runtimes (like Vercel Edge Functions and Cloudflare Workers) are lightweight JavaScript environments that run closer to users at the network edge. They offer better performance and lower latency, but only provide a subset of the standard Node.js APIs. For example, direct file system access is not available, and many Node.js-specific libraries (including the standard Google Auth library) are not compatible.
+Edge runtimes (like Vercel Edge Functions and Cloudflare Workers) are lightweight JavaScript environments that run closer to users at the network edge.
+They only provide a subset of the standard Node.js APIs.
+For example, direct file system access is not available, and many Node.js-specific libraries
+(including the standard Google Auth library) are not compatible.
 
 The Edge runtime version of the Google Vertex provider supports Google's [Application Default Credentials](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#application-default-credentials) through environment variables. The values can be obtained from a json credentials file from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 
