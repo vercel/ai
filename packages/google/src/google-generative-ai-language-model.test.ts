@@ -5,6 +5,7 @@ import {
   withTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createGoogleGenerativeAI } from './google-provider';
+import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -532,6 +533,105 @@ describe('doGenerate', () => {
       });
     }),
   );
+
+  describe('async headers handling', () => {
+    it(
+      'merges async config headers with sync request headers',
+      withTestServer(prepareJsonResponse({}), async ({ call }) => {
+        const model = new GoogleGenerativeAILanguageModel(
+          'gemini-pro',
+          {},
+          {
+            provider: 'google.generative-ai',
+            baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+            headers: async () => ({
+              'X-Async-Config': 'async-config-value',
+              'X-Common': 'config-value',
+            }),
+            generateId: () => 'test-id',
+          },
+        );
+
+        await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          headers: {
+            'X-Sync-Request': 'sync-request-value',
+            'X-Common': 'request-value', // Should override config value
+          },
+        });
+
+        const requestHeaders = call(0).getRequestHeaders();
+        expect(requestHeaders).toStrictEqual({
+          'content-type': 'application/json',
+          'x-async-config': 'async-config-value',
+          'x-sync-request': 'sync-request-value',
+          'x-common': 'request-value', // Request headers take precedence
+        });
+      }),
+    );
+
+    it(
+      'handles Promise-based headers',
+      withTestServer(prepareJsonResponse({}), async ({ call }) => {
+        const model = new GoogleGenerativeAILanguageModel(
+          'gemini-pro',
+          {},
+          {
+            provider: 'google.generative-ai',
+            baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+            headers: Promise.resolve({
+              'X-Promise-Header': 'promise-value',
+            }),
+            generateId: () => 'test-id',
+          },
+        );
+
+        await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const requestHeaders = call(0).getRequestHeaders();
+        expect(requestHeaders).toStrictEqual({
+          'content-type': 'application/json',
+          'x-promise-header': 'promise-value',
+        });
+      }),
+    );
+
+    it(
+      'handles async function headers from config',
+      withTestServer(prepareJsonResponse({}), async ({ call }) => {
+        const model = new GoogleGenerativeAILanguageModel(
+          'gemini-pro',
+          {},
+          {
+            provider: 'google.generative-ai',
+            baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+            headers: async () => ({
+              'X-Async-Header': 'async-value',
+            }),
+            generateId: () => 'test-id',
+          },
+        );
+
+        await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const requestHeaders = call(0).getRequestHeaders();
+        expect(requestHeaders).toStrictEqual({
+          'content-type': 'application/json',
+          'x-async-header': 'async-value',
+        });
+      }),
+    );
+  });
 });
 
 describe('doStream', () => {

@@ -7,6 +7,7 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   postJsonToApi,
+  resolve,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { googleFailedResponseHandler } from './google-error';
@@ -69,9 +70,14 @@ export class GoogleGenerativeAIEmbeddingModel
       });
     }
 
+    const mergedHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      headers,
+    );
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:batchEmbedContents`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: mergedHeaders,
       body: {
         requests: values.map(value => ({
           model: `models/${this.modelId}`,
