@@ -14,7 +14,7 @@
     "@opentelemetry/api-logs": "0.55.0",
     "@opentelemetry/sdk-logs": "0.55.0",
     "@opentelemetry/instrumentation": "0.52.1",
-    "@vercel/otel": "1.9.1",
+    "@vercel/otel": "1.10.0",
     "ai": "4.0.12",
     "next": "latest",
     "openai": "4.52.6",
