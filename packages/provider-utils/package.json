@@ -39,7 +39,7 @@
   "dependencies": {
     "@ai-sdk/provider": "1.0.1",
     "eventsource-parser": "^3.0.0",
-    "nanoid": "^3.3.7",
+    "nanoid": "^5.0.9",
     "secure-json-parse": "^2.7.0"
   },
   "devDependencies": {
