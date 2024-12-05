@@ -1,6 +1,5 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
-  Attachment,
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
@@ -9,7 +8,11 @@ import type {
   Message,
   UseChatOptions,
 } from '@ai-sdk/ui-utils';
-import { callChatApi, generateId as generateIdFunc } from '@ai-sdk/ui-utils';
+import {
+  callChatApi,
+  generateId as generateIdFunc,
+  prepareAttachmentsForRequest,
+} from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
 import { throttle } from './throttle';
@@ -396,10 +399,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
         experimental_attachments,
       }: ChatRequestOptions = {},
     ) => {
-      if (!message.id) {
-        message.id = generateId();
-      }
-
       const attachmentsForRequest = await prepareAttachmentsForRequest(
         experimental_attachments,
       );
@@ -611,41 +610,4 @@ function countTrailingAssistantMessages(messages: Message[]) {
     }
   }
   return count;
-}
-
-async function prepareAttachmentsForRequest(
-  attachmentsFromOptions: FileList | Array<Attachment> | undefined,
-) {
-  if (attachmentsFromOptions == null) {
-    return [];
-  }
-
-  if (attachmentsFromOptions instanceof FileList) {
-    return Promise.all(
-      Array.from(attachmentsFromOptions).map(async attachment => {
-        const { name, type } = attachment;
-
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = readerEvent => {
-            resolve(readerEvent.target?.result as string);
-          };
-          reader.onerror = error => reject(error);
-          reader.readAsDataURL(attachment);
-        });
-
-        return {
-          name,
-          contentType: type,
-          url: dataUrl,
-        };
-      }),
-    );
-  }
-
-  if (Array.isArray(attachmentsFromOptions)) {
-    return attachmentsFromOptions;
-  }
-
-  throw new Error('Invalid attachments type');
 }

@@ -21,6 +21,7 @@ export { getTextFromDataUrl } from './data-url';
 export type { DeepPartial } from './deep-partial';
 export { isDeepEqualData } from './is-deep-equal-data';
 export { parsePartialJson } from './parse-partial-json';
+export { prepareAttachmentsForRequest } from './prepare-attachments-for-request';
 export { processAssistantStream } from './process-assistant-stream';
 export { processDataStream } from './process-data-stream';
 export { processTextStream } from './process-text-stream';

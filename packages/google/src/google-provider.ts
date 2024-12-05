@@ -83,7 +83,7 @@ It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
   /**
 Custom headers to include in the requests.
      */
-  headers?: Record<string, string>;
+  headers?: Record<string, string | undefined>;
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -91,6 +91,9 @@ or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
 
+  /**
+Optional function to generate a unique ID for each request.
+     */
   generateId?: () => string;
 }
 
