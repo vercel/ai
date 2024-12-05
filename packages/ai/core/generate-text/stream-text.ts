@@ -964,11 +964,12 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         });
       },
     }).catch(error => {
-      // add an empty stream with an error to break the stream:
+      // add an error stream part and close the streams:
       self.stitchableStream.addStream(
         new ReadableStream({
           start(controller) {
-            controller.error(error);
+            controller.enqueue({ type: 'error', error });
+            controller.close();
           },
         }),
       );
