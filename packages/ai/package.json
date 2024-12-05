@@ -68,7 +68,7 @@
     "zod-to-json-schema": "^3.23.5"
   },
   "devDependencies": {
-    "@edge-runtime/vm": "^4.0.4",
+    "@edge-runtime/vm": "^5.0.0",
     "@types/node": "^18",
     "@types/react": "^18",
     "@types/react-dom": "^18",
