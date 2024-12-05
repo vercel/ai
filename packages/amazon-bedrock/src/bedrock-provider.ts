@@ -3,6 +3,7 @@ import {
   LanguageModelV1,
   NoSuchModelError,
   ProviderV1,
+  RerankingModelV1,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -23,6 +24,11 @@ import {
   BedrockEmbeddingModelId,
   BedrockEmbeddingSettings,
 } from './bedrock-embedding-settings';
+import { BedrockRerankingModel } from './bedrock-reranking-model';
+import {
+  BedrockRerankingModelId,
+  BedrockRerankingSettings,
+} from './bedrock-reranking-settings';
 
 export interface AmazonBedrockProviderSettings {
   region?: string;
@@ -56,6 +62,11 @@ export interface AmazonBedrockProvider extends ProviderV1 {
     modelId: BedrockEmbeddingModelId,
     settings?: BedrockEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  reranking(
+    modelId: BedrockRerankingModelId,
+    settings?: BedrockRerankingSettings,
+  ): RerankingModelV1<string>;
 }
 
 /**
@@ -124,13 +135,20 @@ export function createAmazonBedrock(
       client: createBedrockRuntimeClient(),
     });
 
+  const createRerankingModel = (
+    modelId: string,
+    settings: BedrockEmbeddingSettings = {},
+  ) =>
+    new BedrockRerankingModel(modelId, settings, {
+      client: createBedrockRuntimeClient(),
+    });
+
   provider.languageModel = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
-  provider.rerankingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
-  };
+  provider.reranking = createRerankingModel;
+  provider.rerankingModel = createRerankingModel;
 
   return provider as AmazonBedrockProvider;
 }

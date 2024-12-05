@@ -1,4 +1,8 @@
-import { LanguageModelV1, ProviderV1 } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  NoSuchModelError,
+  ProviderV1,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,

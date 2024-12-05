@@ -49,6 +49,7 @@ export class CohereRerankingModel implements RerankingModelV1<string> {
     return this.config.provider;
   }
 
+  // current implementation is based on v1 of the API: https://docs.cohere.com/v1/reference/rerank
   async doRerank({
     values,
     headers,

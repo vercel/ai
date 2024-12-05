@@ -5,11 +5,14 @@ import { RerankingModelV1DocumentIndex } from '@ai-sdk/provider';
 const dummyDocumentsIndices = [1, 0];
 const dummyDocuments = ['sunny day at the beach', 'rainy day in the city'];
 
-const provider = createCohere({ apiKey: 'test-api-key' });
+const provider = createCohere({
+  baseURL: 'https://api.cohere.com/v1',
+  apiKey: 'test-api-key',
+});
 const model = provider.reranking('rerank-english-v3.0');
 
 describe('doRerank', () => {
-  const server = new JsonTestServer('https://api.cohere.com/v2/rerank');
+  const server = new JsonTestServer('https://api.cohere.com/v1/rerank');
 
   server.setupTestEnvironment();
 
@@ -150,6 +153,7 @@ describe('doRerank', () => {
     prepareJsonResponse();
 
     const provider = createCohere({
+      baseURL: 'https://api.cohere.com/v1',
       apiKey: 'test-api-key',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
