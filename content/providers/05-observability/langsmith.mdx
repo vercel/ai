@@ -142,9 +142,10 @@ sdk.start();
 
 Afterwards, add the `experimental_telemetry` argument to your AI SDK calls that you want to trace.
 
-:::info
-Do not forget to call `await sdk.shutdown()` before your application shuts down in order to flush any remaining traces to LangSmith.
-:::
+<Note>
+  Do not forget to call `await sdk.shutdown()` before your application shuts
+  down in order to flush any remaining traces to LangSmith.
+</Note>
 
 ```ts
 import { generateText } from 'ai';
