@@ -1,11 +1,11 @@
 import 'dotenv/config';
-import { googleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: googleVertexAnthropic('claude-3-5-sonnet-20240620'),
+    model: vertexAnthropic('claude-3-5-sonnet-20240620'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),

@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { googleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { CoreMessage, streamText, tool } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
@@ -18,7 +18,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: googleVertexAnthropic('claude-3-5-sonnet@20240620'),
+      model: vertexAnthropic('claude-3-5-sonnet@20240620'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',

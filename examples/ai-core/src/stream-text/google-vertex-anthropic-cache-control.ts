@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { googleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { streamText } from 'ai';
 import fs from 'node:fs';
 
@@ -7,7 +7,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 async function main() {
   const result = streamText({
-    model: googleVertexAnthropic('claude-3-5-sonnet@20240620', {
+    model: vertexAnthropic('claude-3-5-sonnet@20240620', {
       cacheControl: true,
     }),
     messages: [

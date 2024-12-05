@@ -1,10 +1,10 @@
 import 'dotenv/config';
-import { googleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { streamText } from 'ai';
 
 async function main() {
   const result = streamText({
-    model: googleVertexAnthropic('claude-3-5-sonnet@20241022'),
+    model: vertexAnthropic('claude-3-5-sonnet@20241022'),
     maxTokens: 512, // artificial limit for demo purposes
     maxSteps: 5,
     experimental_continueSteps: true,

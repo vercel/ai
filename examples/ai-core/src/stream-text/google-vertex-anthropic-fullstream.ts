@@ -1,12 +1,12 @@
 import 'dotenv/config';
-import { googleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { streamText } from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = streamText({
-    model: googleVertexAnthropic('claude-3-5-sonnet@20240620'),
+    model: vertexAnthropic('claude-3-5-sonnet@20240620'),
     tools: {
       weather: weatherTool,
       cityAttractions: {

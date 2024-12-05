@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { googleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 
 async function main() {
@@ -9,9 +9,9 @@ This is a test file.
   `;
 
   const result = await generateText({
-    model: googleVertexAnthropic('claude-3-5-sonnet@20241022'),
+    model: vertexAnthropic('claude-3-5-sonnet@20241022'),
     tools: {
-      str_replace_editor: googleVertexAnthropic.tools.textEditor_20241022({
+      str_replace_editor: vertexAnthropic.tools.textEditor_20241022({
         async execute({ command, path, old_str, new_str }) {
           console.log({ command, path, old_str, new_str });
           switch (command) {

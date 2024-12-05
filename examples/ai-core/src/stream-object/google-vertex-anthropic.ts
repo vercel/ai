@@ -1,11 +1,11 @@
 import 'dotenv/config';
-import { googleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 
 async function main() {
   const result = streamObject({
-    model: googleVertexAnthropic('claude-3-5-sonnet-20240620'),
+    model: vertexAnthropic('claude-3-5-sonnet-20240620'),
     maxTokens: 2000,
     schema: z.object({
       characters: z.array(

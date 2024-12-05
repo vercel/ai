@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { googleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { CoreMessage, generateText } from 'ai';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
@@ -21,7 +21,7 @@ async function main() {
     }
 
     const { text, toolCalls, toolResults, response } = await generateText({
-      model: googleVertexAnthropic('claude-3-5-sonnet@20240620'),
+      model: vertexAnthropic('claude-3-5-sonnet@20240620'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

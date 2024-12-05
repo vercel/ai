@@ -57,16 +57,11 @@ The Google Vertex Anthropic provider is available for both Node.js and Edge runt
 ### Node.js Runtime
 
 ```ts
-import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 
-const anthropicProvider = createVertexAnthropic({
-  project: 'your-project-id',
-  location: 'us-central1',
-});
-
 const { text } = await generateText({
-  model: anthropicProvider('gemini-1.5-flash'),
+  model: vertexAnthropic('claude-3-5-sonnet@20240620'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -74,16 +69,11 @@ const { text } = await generateText({
 ### Edge Runtime
 
 ```ts
-import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic/edge';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic/edge';
 import { generateText } from 'ai';
 
-const anthropicProvider = createVertexAnthropic({
-  project: 'your-project-id',
-  location: 'us-central1',
-});
-
 const { text } = await generateText({
-  model: anthropicProvider('gemini-1.5-flash'),
+  model: vertexAnthropic('claude-3-5-sonnet@20240620'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -132,6 +122,42 @@ const customProvider = createVertex({
 
 const { text } = await generateText({
   model: customProvider('gemini-1.5-flash'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+### Google Vertex Anthropic Provider Custom Configuration
+
+The Google Vertex Anthropic provider custom configuration is analogous to the above:
+
+```ts
+import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { generateText } from 'ai';
+
+const customProvider = createVertexAnthropic({
+  project: 'your-project-id',
+  location: 'us-east5',
+});
+
+const { text } = await generateText({
+  model: customProvider('claude-3-5-sonnet@20240620'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+And for the Edge runtime:
+
+```ts
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic/edge';
+import { generateText } from 'ai';
+
+const customProvider = createVertexAnthropic({
+  project: 'your-project-id',
+  location: 'us-east5',
+});
+
+const { text } = await generateText({
+  model: customProvider('claude-3-5-sonnet@20240620'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```

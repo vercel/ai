@@ -44,12 +44,12 @@ Anthropic-specific computer use tool.
 
 export interface GoogleVertexAnthropicProviderSettings {
   /**
-   * Google Cloud project ID. Required for Vertex AI.
+   * Google Cloud project ID. Defaults to the value of the `GOOGLE_VERTEX_PROJECT` environment variable.
    */
   project?: string;
 
   /**
-   * Google Cloud region. Defaults to 'us-central1'.
+   * Google Cloud region. Defaults to the value of the `GOOGLE_VERTEX_LOCATION` environment variable.
    */
   location?: string;
 
@@ -69,11 +69,6 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
-
-  /**
-Custom ID generator.
-   */
-  generateId?: () => string;
 }
 
 /**

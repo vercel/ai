@@ -1,12 +1,12 @@
 import 'dotenv/config';
-import { googleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = await generateText({
-    model: googleVertexAnthropic('claude-3-opus@20240229'),
+    model: vertexAnthropic('claude-3-opus@20240229'),
     maxTokens: 512,
     tools: {
       weather: weatherTool,
