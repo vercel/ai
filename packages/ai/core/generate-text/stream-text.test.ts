@@ -10,6 +10,7 @@ import {
   StreamData,
   StreamTextResult,
   TextStreamPart,
+  ToolExecutionError,
   createDataStream,
   jsonSchema,
   tool,
@@ -3142,5 +3143,99 @@ describe('streamText', () => {
     await expect(async () => {
       await convertAsyncIterableToArray(result.textStream);
     }).rejects.toThrow('test error');
+  });
+});
+
+describe('tool execution errors', () => {
+  it('should send a ToolExecutionError when a tool execution throws an error', async () => {
+    const result = streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      tools: {
+        tool1: tool({
+          parameters: z.object({ value: z.string() }),
+          execute: async (): Promise<string> => {
+            throw new Error('test error');
+          },
+        }),
+      },
+      prompt: 'test-input',
+    });
+
+    expect(await convertAsyncIterableToArray(result.fullStream)).toStrictEqual([
+      {
+        args: {
+          value: 'value',
+        },
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        type: 'tool-call',
+      },
+      {
+        error: new ToolExecutionError({
+          toolName: 'tool1',
+          toolArgs: { value: 'value' },
+          cause: new Error('test error'),
+        }),
+        type: 'error',
+      },
+      {
+        experimental_providerMetadata: undefined,
+        finishReason: 'stop',
+        isContinued: false,
+        logprobs: undefined,
+        response: {
+          id: 'id-0',
+          modelId: 'mock-model-id',
+          timestamp: new Date(0),
+        },
+        type: 'step-finish',
+        usage: {
+          completionTokens: 10,
+          promptTokens: 3,
+          totalTokens: 13,
+        },
+      },
+      {
+        experimental_providerMetadata: undefined,
+        finishReason: 'stop',
+        logprobs: undefined,
+        response: {
+          id: 'id-0',
+          modelId: 'mock-model-id',
+          timestamp: new Date(0),
+        },
+        type: 'finish',
+        usage: {
+          completionTokens: 10,
+          promptTokens: 3,
+          totalTokens: 13,
+        },
+      },
+    ]);
   });
 });
