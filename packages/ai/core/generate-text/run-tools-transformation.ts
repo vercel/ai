@@ -1,6 +1,7 @@
 import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
 import { Tracer } from '@opentelemetry/api';
+import { ToolExecutionError } from '../../errors';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { CoreMessage } from '../prompt/message';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -17,8 +18,8 @@ import {
 import { calculateLanguageModelUsage } from '../types/usage';
 import { parseToolCall } from './parse-tool-call';
 import { ToolCallUnion } from './tool-call';
+import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
-import { ToolExecutionError } from '../../errors';
 
 export type SingleRequestTextStreamPart<
   TOOLS extends Record<string, CoreTool>,
@@ -71,6 +72,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   system,
   messages,
   abortSignal,
+  repairToolCall,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV1StreamPart>;
@@ -80,6 +82,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   system: string | undefined;
   messages: CoreMessage[];
   abortSignal: AbortSignal | undefined;
+  repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -193,7 +196,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
             const toolCall = await parseToolCall({
               toolCall: chunk,
               tools,
-              repairToolCall: undefined,
+              repairToolCall,
               system,
               messages,
             });

@@ -159,7 +159,7 @@ changing the tool call and result types in the result.
     experimental_output?: Output<OUTPUT>;
 
     /**
-    A function that attempts to repair a tool call that failed to parse.
+A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 

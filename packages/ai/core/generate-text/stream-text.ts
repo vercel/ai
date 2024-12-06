@@ -47,6 +47,7 @@ import { StepResult } from './step-result';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
+import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
@@ -114,6 +115,7 @@ export function streamText<TOOLS extends Record<string, CoreTool>>({
   experimental_providerMetadata: providerMetadata,
   experimental_toolCallStreaming: toolCallStreaming = false,
   experimental_activeTools: activeTools,
+  experimental_repairToolCall: repairToolCall,
   onChunk,
   onFinish,
   onStepFinish,
@@ -173,6 +175,11 @@ Limits the tools that are available for the model to call without
 changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
+
+    /**
+A function that attempts to repair a tool call that failed to parse.
+     */
+    experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 
     /**
 Enable streaming of tool call deltas as they are generated. Disabled by default.
@@ -239,6 +246,7 @@ Details for all steps.
     toolChoice,
     toolCallStreaming,
     activeTools,
+    repairToolCall,
     maxSteps,
     continueSteps,
     providerMetadata,
@@ -302,6 +310,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     toolChoice,
     toolCallStreaming,
     activeTools,
+    repairToolCall,
     maxSteps,
     continueSteps,
     providerMetadata,
@@ -325,6 +334,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     toolChoice: CoreToolChoice<TOOLS> | undefined;
     toolCallStreaming: boolean;
     activeTools: Array<keyof TOOLS> | undefined;
+    repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
     continueSteps: boolean;
     providerMetadata: ProviderMetadata | undefined;
@@ -514,6 +524,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             telemetry,
             system,
             messages: stepInputMessages,
+            repairToolCall,
             abortSignal,
           });
 
