@@ -1,3 +1,6 @@
-export * from '../anthropic-messages-language-model';
-export * from '../anthropic-messages-settings';
-export * from '../anthropic-tools';
+export { AnthropicMessagesLanguageModel } from '../anthropic-messages-language-model';
+export { anthropicTools } from '../anthropic-tools';
+export type {
+  AnthropicMessagesModelId,
+  AnthropicMessagesSettings,
+} from '../anthropic-messages-settings';
