@@ -27,7 +27,6 @@ export function createVertexAnthropic(
     headers:
       options.headers ??
       (async () => ({
-        'anthropic-version': 'vertex-2023-10-16',
         Authorization: `Bearer ${await generateAuthToken(
           options.googleAuthOptions,
         )}`,
