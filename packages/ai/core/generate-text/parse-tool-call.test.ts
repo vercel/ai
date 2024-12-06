@@ -122,4 +122,57 @@ it('should throw InvalidToolArgumentsError when args are invalid', async () => {
       system: undefined,
     }),
   ).rejects.toThrow(InvalidToolArgumentsError);
+
+  describe('tool call repair', () => {
+    it('should invoke repairTool when provided and use its result', async () => {
+      const repairToolCall = vi.fn().mockResolvedValue({
+        toolCallType: 'function',
+        toolName: 'testTool',
+        toolCallId: '123',
+        args: '{"param1": "test", "param2": 42}',
+      });
+
+      const result = await parseToolCall({
+        toolCall: {
+          toolCallType: 'function',
+          toolName: 'testTool',
+          toolCallId: '123',
+          args: 'invalid json', // This will trigger repair
+        },
+        tools: {
+          testTool: tool({
+            parameters: z.object({
+              param1: z.string(),
+              param2: z.number(),
+            }),
+          }),
+        } as const,
+        repairToolCall,
+        messages: [{ role: 'user', content: 'test message' }],
+        system: 'test system',
+      });
+
+      // Verify repair function was called
+      expect(repairToolCall).toHaveBeenCalledTimes(1);
+      expect(repairToolCall).toHaveBeenCalledWith({
+        toolCall: expect.objectContaining({
+          toolName: 'testTool',
+          args: 'invalid json',
+        }),
+        tools: expect.any(Object),
+        parameterSchema: expect.any(Function),
+        messages: [{ role: 'user', content: 'test message' }],
+        system: 'test system',
+        error: expect.any(InvalidToolArgumentsError),
+      });
+
+      // Verify the repaired result was used
+      expect(result).toEqual({
+        type: 'tool-call',
+        toolCallId: '123',
+        toolName: 'testTool',
+        args: { param1: 'test', param2: 42 },
+      });
+    });
+  });
 });
