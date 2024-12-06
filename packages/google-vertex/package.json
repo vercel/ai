@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "1.0.3",
+  "version": "2.0.0",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,12 +8,13 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "edge/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist && rm -rf edge/dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -27,14 +28,20 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./edge": {
+      "types": "./edge/dist/index.d.ts",
+      "import": "./edge/dist/index.mjs",
+      "require": "./edge/dist/index.js"
     }
   },
   "dependencies": {
+    "@ai-sdk/google": "1.0.5",
     "@ai-sdk/provider": "1.0.1",
-    "@ai-sdk/provider-utils": "2.0.2"
+    "@ai-sdk/provider-utils": "2.0.3",
+    "google-auth-library": "^9.15.0"
   },
   "devDependencies": {
-    "@google-cloud/vertexai": "^1.6.0",
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
@@ -42,8 +49,7 @@
     "zod": "3.23.8"
   },
   "peerDependencies": {
-    "zod": "^3.0.0",
-    "@google-cloud/vertexai": "^1.6.0"
+    "zod": "^3.0.0"
   },
   "engines": {
     "node": ">=18"

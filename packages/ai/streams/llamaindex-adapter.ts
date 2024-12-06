@@ -1,17 +1,19 @@
 import { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
+import { formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { DataStreamWriter } from '../core/data-stream/data-stream-writer';
 import { mergeStreams } from '../core/util/merge-streams';
 import { prepareResponseHeaders } from '../core/util/prepare-response-headers';
 import {
   createCallbacksTransformer,
   StreamCallbacks,
 } from './stream-callbacks';
-import { createStreamDataTransformer, StreamData } from './stream-data';
+import { StreamData } from './stream-data';
 
 type EngineResponse = {
   delta: string;
 };
 
-export function toDataStream(
+function toDataStreamInternal(
   stream: AsyncIterable<EngineResponse>,
   callbacks?: StreamCallbacks,
 ) {
@@ -26,7 +28,23 @@ export function toDataStream(
       }),
     )
     .pipeThrough(createCallbacksTransformer(callbacks))
-    .pipeThrough(createStreamDataTransformer());
+    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(
+      new TransformStream({
+        transform: async (chunk, controller) => {
+          controller.enqueue(formatDataStreamPart('text', chunk));
+        },
+      }),
+    );
+}
+
+export function toDataStream(
+  stream: AsyncIterable<EngineResponse>,
+  callbacks?: StreamCallbacks,
+) {
+  return toDataStreamInternal(stream, callbacks).pipeThrough(
+    new TextEncoderStream(),
+  );
 }
 
 export function toDataStreamResponse(
@@ -38,7 +56,9 @@ export function toDataStreamResponse(
   } = {},
 ) {
   const { init, data, callbacks } = options;
-  const dataStream = toDataStream(stream, callbacks);
+  const dataStream = toDataStreamInternal(stream, callbacks).pipeThrough(
+    new TextEncoderStream(),
+  );
   const responseStream = data
     ? mergeStreams(data.stream, dataStream)
     : dataStream;
@@ -51,6 +71,16 @@ export function toDataStreamResponse(
       dataStreamVersion: 'v1',
     }),
   });
+}
+
+export function mergeIntoDataStream(
+  stream: AsyncIterable<EngineResponse>,
+  options: {
+    dataStream: DataStreamWriter;
+    callbacks?: StreamCallbacks;
+  },
+) {
+  options.dataStream.merge(toDataStreamInternal(stream, options.callbacks));
 }
 
 function trimStartOfStream(): (text: string) => string {

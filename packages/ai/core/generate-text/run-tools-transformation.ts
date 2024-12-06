@@ -18,6 +18,7 @@ import { calculateLanguageModelUsage } from '../types/usage';
 import { parseToolCall } from './parse-tool-call';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
+import { ToolExecutionError } from '../../errors';
 
 export type SingleRequestTextStreamPart<
   TOOLS extends Record<string, CoreTool>,
@@ -225,6 +226,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                 tracer,
                 fn: async span =>
                   tool.execute!(toolCall.args, {
+                    toolCallId: toolCall.toolCallId,
                     messages,
                     abortSignal,
                   }).then(
@@ -261,7 +263,11 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                     (error: any) => {
                       toolResultsStreamController!.enqueue({
                         type: 'error',
-                        error,
+                        error: new ToolExecutionError({
+                          toolName: toolCall.toolName,
+                          toolArgs: toolCall.args,
+                          cause: error,
+                        }),
                       });
 
                       outstandingToolResults.delete(toolExecutionId);

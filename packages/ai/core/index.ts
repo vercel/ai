@@ -1,5 +1,6 @@
 export { jsonSchema } from '@ai-sdk/ui-utils';
 export type { DeepPartial, Schema } from '@ai-sdk/ui-utils';
+export * from './data-stream';
 export * from './embed';
 export * from './generate-object';
 export * from './generate-text';

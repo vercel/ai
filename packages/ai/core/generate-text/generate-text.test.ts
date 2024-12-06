@@ -1,6 +1,9 @@
+import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
+import { Output } from '.';
+import { ToolExecutionError } from '../../errors';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
@@ -19,7 +22,7 @@ describe('result.text', () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
+          expect(mode).toStrictEqual({
             type: 'regular',
             tools: undefined,
             toolChoice: undefined,
@@ -338,7 +341,7 @@ describe('result.response', () => {
 
 describe('options.maxSteps', () => {
   describe('2 steps: initial, tool-result', () => {
-    let result: GenerateTextResult<any>;
+    let result: GenerateTextResult<any, any>;
     let onStepFinishResults: StepResult<any>[];
 
     beforeEach(async () => {
@@ -531,7 +534,7 @@ describe('options.maxSteps', () => {
   });
 
   describe('4 steps: initial, continue, continue, continue', () => {
-    let result: GenerateTextResult<any>;
+    let result: GenerateTextResult<any, any>;
     let onStepFinishResults: StepResult<any>[];
 
     beforeEach(async () => {
@@ -852,7 +855,11 @@ describe('options.abortSignal', () => {
 
     expect(toolExecuteMock).toHaveBeenCalledWith(
       { value: 'value' },
-      { abortSignal: abortController.signal, messages: expect.any(Array) },
+      {
+        abortSignal: abortController.signal,
+        toolCallId: 'call-1',
+        messages: expect.any(Array),
+      },
     );
   });
 });
@@ -1164,5 +1171,237 @@ describe('options.messages', () => {
     });
 
     expect(result.text).toStrictEqual('Hello, world!');
+  });
+});
+
+describe('options.output', () => {
+  describe('no output', () => {
+    it('should have undefined output', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            text: `Hello, world!`,
+          }),
+        }),
+        prompt: 'prompt',
+      });
+
+      expect(result.experimental_output).toBeUndefined();
+    });
+  });
+
+  describe('text output', () => {
+    it('should forward text as output', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            text: `Hello, world!`,
+          }),
+        }),
+        prompt: 'prompt',
+        experimental_output: Output.text(),
+      });
+
+      expect(result.experimental_output).toStrictEqual('Hello, world!');
+    });
+
+    it('should set responseFormat to text and not change the prompt', async () => {
+      let callOptions: LanguageModelV1CallOptions;
+
+      await generateText({
+        model: new MockLanguageModelV1({
+          doGenerate: async args => {
+            callOptions = args;
+            return {
+              ...dummyResponseValues,
+              text: `Hello, world!`,
+            };
+          },
+        }),
+        prompt: 'prompt',
+        experimental_output: Output.text(),
+      });
+
+      expect(callOptions!).toEqual({
+        temperature: 0,
+        mode: { type: 'regular' },
+        responseFormat: { type: 'text' },
+        inputFormat: 'prompt',
+        prompt: [
+          {
+            content: [{ text: 'prompt', type: 'text' }],
+            providerMetadata: undefined,
+            role: 'user',
+          },
+        ],
+      });
+    });
+  });
+
+  describe('object output', () => {
+    describe('without structured output model', () => {
+      it('should parse the output', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV1({
+            supportsStructuredOutputs: false,
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              text: `{ "value": "test-value" }`,
+            }),
+          }),
+          prompt: 'prompt',
+          experimental_output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(result.experimental_output).toEqual({ value: 'test-value' });
+      });
+
+      it('should set responseFormat to json and inject schema and JSON instruction into the prompt', async () => {
+        let callOptions: LanguageModelV1CallOptions;
+
+        await generateText({
+          model: new MockLanguageModelV1({
+            supportsStructuredOutputs: false,
+            doGenerate: async args => {
+              callOptions = args;
+              return {
+                ...dummyResponseValues,
+                text: `{ "value": "test-value" }`,
+              };
+            },
+          }),
+          prompt: 'prompt',
+          experimental_output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(callOptions!).toEqual({
+          temperature: 0,
+          mode: { type: 'regular' },
+          inputFormat: 'prompt',
+          responseFormat: { type: 'json', schema: undefined },
+          prompt: [
+            {
+              content:
+                'JSON schema:\n' +
+                '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+              role: 'system',
+            },
+            {
+              content: [{ text: 'prompt', type: 'text' }],
+              providerMetadata: undefined,
+              role: 'user',
+            },
+          ],
+        });
+      });
+    });
+
+    describe('with structured output model', () => {
+      it('should parse the output', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV1({
+            supportsStructuredOutputs: true,
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              text: `{ "value": "test-value" }`,
+            }),
+          }),
+          prompt: 'prompt',
+          experimental_output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(result.experimental_output).toEqual({ value: 'test-value' });
+      });
+
+      it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
+        let callOptions: LanguageModelV1CallOptions;
+
+        await generateText({
+          model: new MockLanguageModelV1({
+            supportsStructuredOutputs: true,
+            doGenerate: async args => {
+              callOptions = args;
+              return {
+                ...dummyResponseValues,
+                text: `{ "value": "test-value" }`,
+              };
+            },
+          }),
+          prompt: 'prompt',
+          experimental_output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(callOptions!).toEqual({
+          temperature: 0,
+          mode: { type: 'regular' },
+          inputFormat: 'prompt',
+          responseFormat: {
+            type: 'json',
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              type: 'object',
+            },
+          },
+          prompt: [
+            {
+              content: [{ text: 'prompt', type: 'text' }],
+              providerMetadata: undefined,
+              role: 'user',
+            },
+          ],
+        });
+      });
+    });
+  });
+});
+
+describe('tool execution errors', () => {
+  it('should throw a ToolExecutionError when a tool execution throws an error', async () => {
+    await expect(async () => {
+      await generateText({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async () => {
+              throw new Error('test error');
+            },
+          },
+        },
+        prompt: 'test-input',
+      });
+    }).rejects.toThrow(
+      new ToolExecutionError({
+        toolName: 'tool1',
+        toolArgs: { value: 'value' },
+        cause: new Error('test error'),
+      }),
+    );
   });
 });

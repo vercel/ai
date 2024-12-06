@@ -224,6 +224,38 @@ async function generateRecipe(
 }
 ```
 
+## Structured output with `generateText`
+
+<Note type="warning">
+  Structured output with `generateText` is experimental and may change in the
+  future.
+</Note>
+
+You can also generate structured data with `generateText` by using the `experimental_output` setting.
+This enables you to use structured outputs together with tool calling (for models that support it - currently only OpenAI).
+
+```ts highlight="1,3,4"
+const { experimental_output } = await generateText({
+  // ...
+  experimental_output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number().nullable().describe('Age of the person.'),
+      contact: z.object({
+        type: z.literal('email'),
+        value: z.string(),
+      }),
+      occupation: z.object({
+        type: z.literal('employed'),
+        company: z.string(),
+        position: z.string(),
+      }),
+    }),
+  }),
+  prompt: 'Generate an example person for testing.',
+});
+```
+
 ## More Examples
 
 You can see `generateObject` and `streamObject` in action using various frameworks in the following examples:

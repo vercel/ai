@@ -1,0 +1,91 @@
+---
+title: Stream Text with Image Prompt
+description: Learn how to stream text with an image prompt using the AI SDK and Next.js
+tags: ['next', 'streaming', 'multimodal']
+---
+
+# Stream Text with Image Prompt
+
+Vision models such as GPT-4 can process both text and images. In this example, we will show you how to send an image URL along with the user's message to the model.
+
+## Using Image URLs
+
+### Server
+
+We split the user's message into two parts: the text and the image URL. We then send both parts to the model.
+The last message is the user's message, and we add the image URL to it.
+
+```tsx filename='app/api/chat/route.ts' highlight="8,9,23"
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+export const maxDuration = 60;
+
+export async function POST(req: Request) {
+  // 'data' contains the additional data that you have sent:
+  const { messages, data } = await req.json();
+
+  const initialMessages = messages.slice(0, -1);
+  const currentMessage = messages[messages.length - 1];
+
+  // Call the language model
+  const result = streamText({
+    model: openai('gpt-4-turbo'),
+    messages: [
+      ...initialMessages,
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: currentMessage.content },
+          { type: 'image', image: new URL(data.imageUrl) },
+        ],
+      },
+    ],
+  });
+
+  // Respond with the stream
+  return result.toDataStreamResponse();
+}
+```
+
+### Client
+
+On the client we can send the image URL along with the user's message by adding the `data` object to the `handleSubmit` function.
+You can replace the `imageUrl` with the actual URL of the image you want to send.
+
+```typescript filename='app/page.tsx' highlight="18-20"
+'use client';
+
+import { useChat } from 'ai/react';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
+
+      <form
+        onSubmit={e => {
+          handleSubmit(e, {
+            data: { imageUrl: 'https://somewhere.com/image.png' },
+          });
+        }}
+      >
+        <input
+          value={input}
+          placeholder="What does the image show..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  );
+}
+```

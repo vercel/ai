@@ -20,6 +20,10 @@ import TestChatFormComponent from './TestChatFormComponent.vue';
 import TestChatFormOptionsComponent from './TestChatFormOptionsComponent.vue';
 import TestChatReloadComponent from './TestChatReloadComponent.vue';
 import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
+import TestChatToolInvocationsComponent from './TestChatToolInvocationsComponent.vue';
+import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
+import TestChatUrlAttachmentsComponent from './TestChatUrlAttachmentsComponent.vue';
+import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsComponent.vue';
 
 describe('data protocol stream', () => {
   beforeEach(() => {
@@ -525,7 +529,7 @@ describe('onToolCall', () => {
 
 describe('tool invocations', () => {
   beforeEach(() => {
-    render(TestChatFormComponent);
+    render(TestChatToolInvocationsComponent);
   });
 
   afterEach(() => {
@@ -538,9 +542,7 @@ describe('tool invocations', () => {
     withTestServer(
       { url: '/api/chat', type: 'controlled-stream' },
       async ({ streamController }) => {
-        const firstInput = screen.getByTestId('do-input');
-        await userEvent.type(firstInput, 'hi');
-        await userEvent.keyboard('{Enter}');
+        await userEvent.click(screen.getByTestId('do-append'));
 
         streamController.enqueue(
           formatDataStreamPart('tool_call_streaming_start', {
@@ -548,8 +550,6 @@ describe('tool invocations', () => {
             toolName: 'test-tool',
           }),
         );
-
-        expect(screen.getByTestId('message-0')).toHaveTextContent('hi');
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -619,9 +619,7 @@ describe('tool invocations', () => {
     withTestServer(
       { url: '/api/chat', type: 'controlled-stream' },
       async ({ streamController }) => {
-        const firstInput = screen.getByTestId('do-input');
-        await userEvent.type(firstInput, 'hi');
-        await userEvent.keyboard('{Enter}');
+        await userEvent.click(screen.getByTestId('do-append'));
 
         streamController.enqueue(
           formatDataStreamPart('tool_call', {
@@ -653,4 +651,241 @@ describe('tool invocations', () => {
       },
     ),
   );
+
+  it(
+    'should update tool call to result when addToolResult is called',
+    withTestServer(
+      [
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: [
+            formatDataStreamPart('tool_call', {
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              args: { testArg: 'test-value' },
+            }),
+          ],
+        },
+      ],
+      async () => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+          );
+        });
+
+        await userEvent.click(screen.getByTestId('add-result-0'));
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+          );
+        });
+      },
+    ),
+  );
+});
+
+describe('file attachments with data url', () => {
+  beforeEach(() => {
+    render(TestChatAttachmentsComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should handle text file attachment and submission', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['0:"Response to message with text attachment"\n'],
+    });
+
+    const file = new File(['test file content'], 'test.txt', {
+      type: 'text/plain',
+    });
+
+    const fileInput = screen.getByTestId('file-input');
+    await userEvent.upload(fileInput, file);
+
+    const messageInput = screen.getByTestId('message-input');
+    await userEvent.type(messageInput, 'Message with text attachment');
+
+    const submitButton = screen.getByTestId('submit-button');
+    await userEvent.click(submitButton);
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent(
+      'User: Message with text attachment',
+    );
+
+    await screen.findByTestId('attachment-0');
+    expect(screen.getByTestId('attachment-0')).toHaveTextContent(
+      'test file content',
+    );
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Response to message with text attachment',
+    );
+  });
+
+  it('should handle image file attachment and submission', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['0:"Response to message with image attachment"\n'],
+    });
+
+    const file = new File(['test image content'], 'test.png', {
+      type: 'image/png',
+    });
+
+    const fileInput = screen.getByTestId('file-input');
+    await userEvent.upload(fileInput, file);
+
+    const messageInput = screen.getByTestId('message-input');
+    await userEvent.type(messageInput, 'Message with image attachment');
+
+    const submitButton = screen.getByTestId('submit-button');
+    await userEvent.click(submitButton);
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent(
+      'User: Message with image attachment',
+    );
+
+    await screen.findByTestId('attachment-0');
+    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+      'src',
+      expect.stringContaining('data:image/png;base64'),
+    );
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Response to message with image attachment',
+    );
+  });
+});
+
+describe('file attachments with url', () => {
+  beforeEach(() => {
+    render(TestChatUrlAttachmentsComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should handle image file attachment and submission', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['0:"Response to message with image attachment"\n'],
+    });
+
+    const messageInput = screen.getByTestId('message-input');
+    await userEvent.type(messageInput, 'Message with image attachment');
+
+    const submitButton = screen.getByTestId('submit-button');
+    await userEvent.click(submitButton);
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent(
+      'User: Message with image attachment',
+    );
+
+    await screen.findByTestId('attachment-0');
+    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+      'src',
+      'https://example.com/image.png',
+    );
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Response to message with image attachment',
+    );
+  });
+});
+
+describe('attachments with empty submit', () => {
+  beforeEach(() => {
+    render(TestChatAttachmentsComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should handle image file attachment and empty submission', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['0:"Response to empty message with attachment"\n'],
+    });
+
+    const file = new File(['test image content'], 'test.png', {
+      type: 'image/png',
+    });
+
+    const fileInput = screen.getByTestId('file-input');
+    await userEvent.upload(fileInput, file);
+
+    const submitButton = screen.getByTestId('submit-button');
+    await userEvent.click(submitButton);
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User:');
+
+    await screen.findByTestId('attachment-0');
+    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+      'src',
+      expect.stringContaining('data:image/png;base64'),
+    );
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Response to empty message with attachment',
+    );
+  });
+});
+
+describe('should append message with attachments', () => {
+  beforeEach(() => {
+    render(TestChatAppendAttachmentsComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should handle image file attachment with append', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['0:"Response to message with image attachment"\n'],
+    });
+
+    const appendButton = screen.getByTestId('do-append');
+    await userEvent.click(appendButton);
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent(
+      'User: Message with image attachment',
+    );
+
+    await screen.findByTestId('attachment-0');
+    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+      'src',
+      'https://example.com/image.png',
+    );
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Response to message with image attachment',
+    );
+  });
 });

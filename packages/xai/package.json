@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/xai",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf internal/dist",
+    "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "1.0.1",
-    "@ai-sdk/provider-utils": "2.0.2"
+    "@ai-sdk/provider-utils": "2.0.3"
   },
   "devDependencies": {
     "@types/node": "^18",

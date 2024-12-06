@@ -43,12 +43,17 @@ no mode is specified. Should be the mode with the best results for this
 model. `undefined` can be specified if object generation is not supported.
   */
   defaultObjectGenerationMode?: LanguageModelV1ObjectGenerationMode;
+
+  /**
+   * Whether the model supports structured outputs.
+   */
+  supportsStructuredOutputs?: boolean;
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
 
-  readonly supportsStructuredOutputs = false;
+  readonly supportsStructuredOutputs: boolean;
 
   readonly modelId: OpenAICompatibleChatModelId;
   readonly settings: OpenAICompatibleChatSettings;
@@ -63,6 +68,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     this.modelId = modelId;
     this.settings = settings;
     this.config = config;
+
+    this.supportsStructuredOutputs = config.supportsStructuredOutputs ?? false;
   }
 
   get defaultObjectGenerationMode(): 'json' | 'tool' | undefined {
@@ -85,10 +92,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
-    stream,
-  }: Parameters<LanguageModelV1['doGenerate']>[0] & {
-    stream: boolean;
-  }) {
+  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
     const warnings: LanguageModelV1CallWarning[] = [];
@@ -101,14 +105,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     }
 
     if (
-      responseFormat != null &&
-      responseFormat.type === 'json' &&
-      responseFormat.schema != null
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !this.supportsStructuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'responseFormat',
-        details: 'JSON response format schema is not supported',
+        details:
+          'JSON response format schema is only supported with structuredOutputs',
       });
     }
 
@@ -125,12 +130,24 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
+      response_format:
+        responseFormat?.type === 'json'
+          ? this.supportsStructuredOutputs === true &&
+            responseFormat.schema != null
+            ? {
+                type: 'json_schema',
+                json_schema: {
+                  schema: responseFormat.schema,
+                  strict: true,
+                  name: responseFormat.name ?? 'response',
+                  description: responseFormat.description,
+                },
+              }
+            : { type: 'json_object' }
+          : undefined,
+
       stop: stopSequences,
       seed,
-
-      // response format:
-      response_format:
-        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
       messages: convertToOpenAICompatibleChatMessages(prompt),
@@ -138,13 +155,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { tools, tool_choice, toolWarnings } = prepareTools({ mode });
+        const { tools, tool_choice, toolWarnings } = prepareTools({
+          mode,
+          structuredOutputs: this.supportsStructuredOutputs,
+        });
+
         return {
-          args: {
-            ...baseArgs,
-            tools,
-            tool_choice,
-          },
+          args: { ...baseArgs, tools, tool_choice },
           warnings: [...warnings, ...toolWarnings],
         };
       }
@@ -153,7 +170,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         return {
           args: {
             ...baseArgs,
-            response_format: { type: 'json_object' },
+            response_format:
+              this.supportsStructuredOutputs === true && mode.schema != null
+                ? {
+                    type: 'json_schema',
+                    json_schema: {
+                      schema: mode.schema,
+                      strict: true,
+                      name: mode.name ?? 'response',
+                      description: mode.description,
+                    },
+                  }
+                : { type: 'json_object' },
           },
           warnings,
         };
@@ -174,6 +202,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                   name: mode.tool.name,
                   description: mode.tool.description,
                   parameters: mode.tool.parameters,
+                  strict: this.supportsStructuredOutputs ? true : undefined,
                 },
               },
             ],
@@ -192,7 +221,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = this.getArgs({ ...options, stream: false });
+    const { args, warnings } = this.getArgs({ ...options });
 
     const body = JSON.stringify(args);
 
@@ -238,7 +267,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { args, warnings } = this.getArgs({ ...options, stream: true });
+    const { args, warnings } = this.getArgs({ ...options });
 
     const body = JSON.stringify({ ...args, stream: true });
 
@@ -269,6 +298,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         name: string;
         arguments: string;
       };
+      hasFinished: boolean;
     }> = [];
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
@@ -375,6 +405,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                       name: toolCallDelta.function.name,
                       arguments: toolCallDelta.function.arguments ?? '',
                     },
+                    hasFinished: false,
                   };
 
                   const toolCall = toolCalls[index];
@@ -404,14 +435,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                         toolName: toolCall.function.name,
                         args: toolCall.function.arguments,
                       });
+                      toolCall.hasFinished = true;
                     }
                   }
 
                   continue;
                 }
 
-                // existing tool call, merge
+                // existing tool call, merge if not finished
                 const toolCall = toolCalls[index];
+
+                if (toolCall.hasFinished) {
+                  continue;
+                }
 
                 if (toolCallDelta.function?.arguments != null) {
                   toolCall.function!.arguments +=
@@ -440,6 +476,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                     toolName: toolCall.function.name,
                     args: toolCall.function.arguments,
                   });
+                  toolCall.hasFinished = true;
                 }
               }
             }

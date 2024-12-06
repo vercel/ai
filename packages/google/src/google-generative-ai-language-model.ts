@@ -11,6 +11,8 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
+  resolve,
+  Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -20,7 +22,7 @@ import { googleFailedResponseHandler } from './google-error';
 import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   GoogleGenerativeAIModelId,
-  GoogleGenerativeAISettings,
+  InternalGoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
@@ -28,7 +30,7 @@ import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-fi
 type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -38,18 +40,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
 
-  get supportsObjectGeneration() {
-    return this.settings.structuredOutputs !== false;
+  get supportsStructuredOutputs() {
+    return this.settings.structuredOutputs ?? true;
   }
 
   readonly modelId: GoogleGenerativeAIModelId;
-  readonly settings: GoogleGenerativeAISettings;
+  readonly settings: InternalGoogleGenerativeAISettings;
 
   private readonly config: GoogleGenerativeAIConfig;
 
   constructor(
     modelId: GoogleGenerativeAIModelId,
-    settings: GoogleGenerativeAISettings,
+    settings: InternalGoogleGenerativeAISettings,
     config: GoogleGenerativeAIConfig,
   ) {
     this.modelId = modelId;
@@ -103,7 +105,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         responseFormat.schema != null &&
         // Google GenAI does not support all OpenAPI Schema features,
         // so this is needed as an escape hatch:
-        this.supportsObjectGeneration
+        this.supportsStructuredOutputs
           ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
           : undefined,
     };
@@ -113,7 +115,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { tools, toolConfig, toolWarnings } = prepareTools(mode);
+        const { tools, toolConfig, toolWarnings } = prepareTools(
+          mode,
+          this.settings.useSearchGrounding ?? false,
+        );
 
         return {
           args: {
@@ -139,7 +144,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 mode.schema != null &&
                 // Google GenAI does not support all OpenAPI Schema features,
                 // so this is needed as an escape hatch:
-                this.supportsObjectGeneration
+                this.supportsStructuredOutputs
                   ? convertJSONSchemaToOpenAPISchema(mode.schema)
                   : undefined,
             },
@@ -193,14 +198,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
-
     const body = JSON.stringify(args);
+
+    const mergedHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${getModelPath(
         this.modelId,
       )}:generateContent`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: mergedHeaders,
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(responseSchema),
@@ -212,14 +221,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const candidate = response.candidates[0];
 
     const toolCalls = getToolCallsFromParts({
-      parts: candidate.content.parts,
+      parts: candidate.content?.parts ?? [],
       generateId: this.config.generateId,
     });
 
     const usageMetadata = response.usageMetadata;
 
     return {
-      text: getTextFromParts(candidate.content.parts),
+      text: getTextFromParts(candidate.content?.parts ?? []),
       toolCalls,
       finishReason: mapGoogleGenerativeAIFinishReason({
         finishReason: candidate.finishReason,
@@ -242,12 +251,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = await this.getArgs(options);
 
     const body = JSON.stringify(args);
+    const headers = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${getModelPath(
         this.modelId,
       )}:streamGenerateContent?alt=sse`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers,
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
@@ -415,7 +428,7 @@ const contentSchema = z.object({
 const responseSchema = z.object({
   candidates: z.array(
     z.object({
-      content: contentSchema,
+      content: contentSchema.optional(),
       finishReason: z.string().optional(),
     }),
   ),

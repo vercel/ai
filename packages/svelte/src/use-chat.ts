@@ -446,7 +446,11 @@ export function useChat({
             ...message,
             toolInvocations: message.toolInvocations.map(toolInvocation =>
               toolInvocation.toolCallId === toolCallId
-                ? { ...toolInvocation, result }
+                ? {
+                    ...toolInvocation,
+                    result,
+                    state: 'result' as const,
+                  }
                 : toolInvocation,
             ),
           }

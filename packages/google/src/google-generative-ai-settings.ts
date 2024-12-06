@@ -40,10 +40,12 @@ Optional. A list of unique safety settings for blocking unsafe content.
    */
   safetySettings?: Array<{
     category:
+      | 'HARM_CATEGORY_UNSPECIFIED'
       | 'HARM_CATEGORY_HATE_SPEECH'
       | 'HARM_CATEGORY_DANGEROUS_CONTENT'
       | 'HARM_CATEGORY_HARASSMENT'
-      | 'HARM_CATEGORY_SEXUALLY_EXPLICIT';
+      | 'HARM_CATEGORY_SEXUALLY_EXPLICIT'
+      | 'HARM_CATEGORY_CIVIC_INTEGRITY';
 
     threshold:
       | 'HARM_BLOCK_THRESHOLD_UNSPECIFIED'
@@ -52,4 +54,14 @@ Optional. A list of unique safety settings for blocking unsafe content.
       | 'BLOCK_ONLY_HIGH'
       | 'BLOCK_NONE';
   }>;
+}
+
+export interface InternalGoogleGenerativeAISettings
+  extends GoogleGenerativeAISettings {
+  /**
+Optional. When enabled, the model will use Google search to ground the response.
+
+@see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview
+   */
+  useSearchGrounding?: boolean;
 }

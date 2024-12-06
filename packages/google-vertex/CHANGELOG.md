@@ -1,5 +1,25 @@
 # @ai-sdk/google-vertex
 
+## 2.0.0
+
+### Major Changes
+
+- 0984f0b: feat (provider/google-vertex): Rewrite for Edge runtime support.
+
+### Patch Changes
+
+- 0984f0b: chore (providers/google-vertex): Remove unref'd base default provider.
+- Updated dependencies [0984f0b]
+- Updated dependencies [0984f0b]
+  - @ai-sdk/google@1.0.5
+  - @ai-sdk/provider-utils@2.0.3
+
+## 1.0.4
+
+### Patch Changes
+
+- 6373c60: fix (provider/google): send json schema into provider
+
 ## 1.0.3
 
 ### Patch Changes

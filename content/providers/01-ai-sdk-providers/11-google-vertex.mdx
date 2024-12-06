@@ -8,7 +8,10 @@ description: Learn how to use the Google Vertex AI provider.
 The Google Vertex provider for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
 
 <Note>
-  The Google Vertex provider is not compatible with edge environments.
+  The Google Vertex provider is compatible with both Node.js and Edge runtimes.
+  The Edge runtime is supported through the `@ai-sdk/google-vertex/edge`
+  sub-module. More details can be found in the [Edge Runtime](#edge-runtime)
+  section below.
 </Note>
 
 ## Setup
@@ -49,7 +52,30 @@ const vertex = createVertex({
 });
 ```
 
-You can use the following optional settings to customize the Google Generative AI provider instance:
+Google Vertex supports two different authentication implementations depending on your runtime environment.
+
+### Node.js Runtime
+
+The Node.js runtime is the default runtime supported by the AI SDK. It supports all standard Google Cloud authentication options through the [`google-auth-library`](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#ways-to-authenticate). Typical use involves setting a path to a json credentials file in the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. The credentials file can be obtained from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+
+If you want to customize the Google authentication options you can pass them as options to the `createVertex` function, for example:
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex';
+
+const vertex = createVertex({
+  googleAuthOptions: {
+    credentials: {
+      client_email: 'my-email',
+      private_key: 'my-private-key',
+    },
+  },
+});
+```
+
+#### Optional Provider Settings
+
+You can use the following optional settings to customize the provider instance:
 
 - **project** _string_
 
@@ -63,7 +89,7 @@ You can use the following optional settings to customize the Google Generative A
 
 - **googleAuthOptions** _object_
 
-  Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/):
+  Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/). See also the [GoogleAuthOptions](https://github.com/googleapis/google-auth-library-nodejs/blob/08978822e1b7b5961f0e355df51d738e012be392/src/auth/googleauth.ts#L87C18-L87C35) interface.
 
   - **authClient** _object_
     An `AuthClient` to use.
@@ -88,6 +114,105 @@ You can use the following optional settings to customize the Google Generative A
 
   - **universeDomain** _string_
     The default service domain for a given Cloud universe.
+
+- **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
+
+  Headers to include in the requests. Can be provided in multiple formats:
+
+  - A record of header key-value pairs: `Record<string, string | undefined>`
+  - A function that returns headers: `() => Record<string, string | undefined>`
+  - An async function that returns headers: `async () => Record<string, string | undefined>`
+  - A promise that resolves to headers: `Promise<Record<string, string | undefined>>`
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+### Edge Runtime
+
+Edge runtimes (like Vercel Edge Functions and Cloudflare Workers) are lightweight JavaScript environments that run closer to users at the network edge.
+They only provide a subset of the standard Node.js APIs.
+For example, direct file system access is not available, and many Node.js-specific libraries
+(including the standard Google Auth library) are not compatible.
+
+The Edge runtime version of the Google Vertex provider supports Google's [Application Default Credentials](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#application-default-credentials) through environment variables. The values can be obtained from a json credentials file from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+
+You can import the default provider instance `vertex` from `@ai-sdk/google-vertex/edge`:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex/edge';
+```
+
+<Note>
+  The `/edge` sub-module is included in the `@ai-sdk/google-vertex` package, so
+  you don't need to install it separately. You must import from
+  `@ai-sdk/google-vertex/edge` to differentiate it from the Node.js provider.
+</Note>
+
+If you need a customized setup, you can import `createVertex` from `@ai-sdk/google-vertex/edge` and create a provider instance with your settings:
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex/edge';
+
+const vertex = createVertex({
+  project: 'my-project', // optional
+  location: 'us-central1', // optional
+});
+```
+
+For Edge runtime authentication, you'll need to set these environment variables from your Google Default Application Credentials JSON file:
+
+- `GOOGLE_CLIENT_EMAIL`
+- `GOOGLE_PRIVATE_KEY`
+- `GOOGLE_PRIVATE_KEY_ID` (optional)
+
+These values can be obtained from a service account JSON file from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+
+#### Optional Provider Settings
+
+You can use the following optional settings to customize the provider instance:
+
+- **project** _string_
+
+  The Google Cloud project ID that you want to use for the API calls.
+  It uses the `GOOGLE_VERTEX_PROJECT` environment variable by default.
+
+- **location** _string_
+
+  The Google Cloud location that you want to use for the API calls, e.g. `us-central1`.
+  It uses the `GOOGLE_VERTEX_LOCATION` environment variable by default.
+
+- **googleCredentials** _object_
+
+  Optional. The credentials used by the Edge provider for authentication. These credentials are typically set through environment variables and are derived from a service account JSON file.
+
+  - **clientEmail** _string_
+    The client email from the service account JSON file. Defaults to the `GOOGLE_CLIENT_EMAIL` environment variable.
+
+  - **privateKey** _string_
+    The private key from the service account JSON file. Defaults to the `GOOGLE_PRIVATE_KEY` environment variable.
+
+  - **privateKeyId** _string_
+    The private key ID from the service account JSON file (optional). Defaults to the `GOOGLE_PRIVATE_KEY_ID` environment variable.
+
+- **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
+
+  Headers to include in the requests. Can be provided in multiple formats:
+
+  - A record of header key-value pairs: `Record<string, string | undefined>`
+  - A function that returns headers: `() => Record<string, string | undefined>`
+  - An async function that returns headers: `async () => Record<string, string | undefined>`
+  - A promise that resolves to headers: `Promise<Record<string, string | undefined>>`
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
 
 ## Language Models
 
@@ -142,6 +267,7 @@ The following optional settings are available for Google Vertex models:
     - `HARM_CATEGORY_DANGEROUS_CONTENT`
     - `HARM_CATEGORY_HARASSMENT`
     - `HARM_CATEGORY_SEXUALLY_EXPLICIT`
+    - `HARM_CATEGORY_CIVIC_INTEGRITY`
 
   - **threshold** _string_
 
