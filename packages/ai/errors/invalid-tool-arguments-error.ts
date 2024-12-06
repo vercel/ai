@@ -4,7 +4,6 @@ const name = 'AI_InvalidToolArgumentsError';
 const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
-// TODO breaking change: move into `ai` package
 export class InvalidToolArgumentsError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
