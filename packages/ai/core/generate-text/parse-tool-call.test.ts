@@ -174,5 +174,33 @@ it('should throw InvalidToolArgumentsError when args are invalid', async () => {
         args: { param1: 'test', param2: 42 },
       });
     });
+
+    it('should re-throw error if tool call repair returns null', async () => {
+      const repairToolCall = vi.fn().mockResolvedValue(null);
+
+      await expect(
+        parseToolCall({
+          toolCall: {
+            toolCallType: 'function',
+            toolName: 'testTool',
+            toolCallId: '123',
+            args: 'invalid json',
+          },
+          tools: {
+            testTool: tool({
+              parameters: z.object({
+                param1: z.string(),
+                param2: z.number(),
+              }),
+            }),
+          } as const,
+          repairToolCall,
+          messages: [],
+          system: undefined,
+        }),
+      ).rejects.toThrow(InvalidToolArgumentsError);
+
+      expect(repairToolCall).toHaveBeenCalledTimes(1);
+    });
   });
 });
