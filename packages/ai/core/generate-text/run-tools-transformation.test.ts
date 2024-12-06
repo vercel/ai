@@ -29,6 +29,7 @@ it('should forward text deltas correctly', async () => {
     messages: [],
     system: undefined,
     abortSignal: undefined,
+    repairToolCall: undefined,
   });
 
   const result = await convertReadableStreamToArray(transformedStream);
@@ -77,6 +78,7 @@ it('should handle immediate tool execution', async () => {
     messages: [],
     system: undefined,
     abortSignal: undefined,
+    repairToolCall: undefined,
   });
 
   const result = await convertReadableStreamToArray(transformedStream);
@@ -140,6 +142,7 @@ it('should hold off on sending finish until the delayed tool result is received'
     messages: [],
     system: undefined,
     abortSignal: undefined,
+    repairToolCall: undefined,
   });
 
   const result = await convertReadableStreamToArray(transformedStream);
