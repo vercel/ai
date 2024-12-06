@@ -43,6 +43,8 @@ export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
     const repairedToolCall = await repairToolCall({
       toolCall,
       tools,
+      parameterSchema: ({ toolName }) =>
+        asSchema(tools[toolName].parameters).jsonSchema,
       system,
       messages,
       error,
