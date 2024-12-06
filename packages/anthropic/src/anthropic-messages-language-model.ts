@@ -33,7 +33,7 @@ type AnthropicMessagesConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
-  transformArgs?: (args: Record<string, any>) => Record<string, any>;
+  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
@@ -196,8 +196,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     );
   }
 
-  private transformArgs(args: Record<string, any>): Record<string, any> {
-    return this.config.transformArgs?.(args) ?? args;
+  private transformRequestBody(args: Record<string, any>): Record<string, any> {
+    return this.config.transformRequestBody?.(args) ?? args;
   }
 
   async doGenerate(
@@ -208,7 +208,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({ betas, headers: options.headers }),
-      body: this.transformArgs(args),
+      body: this.transformRequestBody(args),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicMessagesResponseSchema,
@@ -282,7 +282,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.buildRequestUrl(true),
       headers: await this.getHeaders({ betas, headers: options.headers }),
-      body: this.transformArgs(body),
+      body: this.transformRequestBody(body),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         anthropicMessagesChunkSchema,

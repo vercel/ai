@@ -46,7 +46,7 @@ describe('google-vertex-anthropic-provider', () => {
         provider: 'vertex.anthropic.messages',
         headers: expect.any(Object),
         buildRequestUrl: expect.any(Function),
-        transformArgs: expect.any(Function),
+        transformRequestBody: expect.any(Function),
       }),
     );
   });

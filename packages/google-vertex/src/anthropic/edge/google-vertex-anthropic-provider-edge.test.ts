@@ -40,7 +40,6 @@ describe('google-vertex-anthropic-provider-edge', () => {
     const headers = await headersFunction();
 
     expect(headers).toEqual({
-      'anthropic-version': 'vertex-2023-10-16',
       Authorization: 'Bearer mock-auth-token',
     });
   });
