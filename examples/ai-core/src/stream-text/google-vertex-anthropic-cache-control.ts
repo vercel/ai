@@ -7,7 +7,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 async function main() {
   const result = streamText({
-    model: vertexAnthropic('claude-3-5-sonnet@20240620', {
+    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022', {
       cacheControl: true,
     }),
     messages: [

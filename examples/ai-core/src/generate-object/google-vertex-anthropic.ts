@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: vertexAnthropic('claude-3-5-sonnet-20240620'),
+    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),

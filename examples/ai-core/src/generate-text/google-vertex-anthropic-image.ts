@@ -5,7 +5,7 @@ import fs from 'node:fs';
 
 async function main() {
   const result = await generateText({
-    model: vertexAnthropic('claude-3-5-sonnet@20240620'),
+    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     messages: [
       {
         role: 'user',
