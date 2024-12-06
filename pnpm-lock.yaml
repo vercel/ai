@@ -60,7 +60,7 @@ importers:
         specifier: 1.0.4
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 1.0.3
+        specifier: 1.0.4
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
         specifier: 1.0.9
@@ -72,7 +72,7 @@ importers:
         specifier: 1.0.5
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 1.0.6
@@ -354,7 +354,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../../packages/google-vertex
       ai:
         specifier: 4.0.13
@@ -996,13 +996,13 @@ importers:
   examples/swarm:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: 1.0.3
+        specifier: 1.0.4
         version: link:../../packages/anthropic
       '@ai-sdk/google':
         specifier: 1.0.5
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 1.0.6
@@ -1313,7 +1313,7 @@ importers:
   packages/google-vertex:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: 1.0.3
+        specifier: 1.0.4
         version: link:../anthropic
       '@ai-sdk/google':
         specifier: 1.0.5

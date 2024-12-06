@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 1.0.4
+
+### Patch Changes
+
+- bcd892e: feat (provider/google-vertex): Add support for Anthropic models.
+
 ## 1.0.3
 
 ### Patch Changes
