@@ -91,8 +91,8 @@ const customProvider = createVertex({
   location: 'us-central1',
   googleAuthOptions: {
     credentials: {
-      clientEmail: 'your-client-email',
-      privateKey: 'your-private-key',
+      client_email: 'your-client-email',
+      private_key: 'your-private-key',
     },
   },
 });
