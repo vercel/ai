@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.13
+
+### Patch Changes
+
+- 9f32213: feat (ai/core): add experimental tool call repair
+
 ## 4.0.12
 
 ### Patch Changes
