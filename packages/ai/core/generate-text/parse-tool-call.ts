@@ -8,6 +8,7 @@ import { CoreTool } from '../tool';
 import { inferParameters } from '../tool/tool';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
+import { ToolCallRepairError } from '../../errors/tool-call-repair-error';
 
 export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
   toolCall,
@@ -39,16 +40,24 @@ export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
       throw error;
     }
 
-    // TODO try..catch & dedicated error type
-    const repairedToolCall = await repairToolCall({
-      toolCall,
-      tools,
-      parameterSchema: ({ toolName }) =>
-        asSchema(tools[toolName].parameters).jsonSchema,
-      system,
-      messages,
-      error,
-    });
+    let repairedToolCall: LanguageModelV1FunctionToolCall | null = null;
+
+    try {
+      repairedToolCall = await repairToolCall({
+        toolCall,
+        tools,
+        parameterSchema: ({ toolName }) =>
+          asSchema(tools[toolName].parameters).jsonSchema,
+        system,
+        messages,
+        error,
+      });
+    } catch (repairError) {
+      throw new ToolCallRepairError({
+        cause: repairError,
+        originalError: error,
+      });
+    }
 
     // no repaired tool call returned
     if (repairedToolCall == null) {
