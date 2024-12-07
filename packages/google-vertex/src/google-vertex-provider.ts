@@ -1,4 +1,8 @@
-import { LanguageModelV1, ProviderV1 } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  NoSuchModelError,
+  ProviderV1,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
@@ -124,6 +128,9 @@ export function createVertex(
 
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.rerankingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+  };
 
   return provider as GoogleVertexProvider;
 }
