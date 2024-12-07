@@ -1,5 +1,22 @@
 # ai
 
+## 4.0.13
+
+### Patch Changes
+
+- 9f32213: feat (ai/core): add experimental tool call repair
+
+## 4.0.12
+
+### Patch Changes
+
+- 5167bec: fix (ai/core): forward streamText errors as error parts
+- 0984f0b: feat (ai/core): add ToolExecutionError type
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+  - @ai-sdk/react@1.0.5
+  - @ai-sdk/ui-utils@1.0.4
+
 ## 4.0.11
 
 ### Patch Changes

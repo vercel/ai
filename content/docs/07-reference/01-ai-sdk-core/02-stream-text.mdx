@@ -484,6 +484,52 @@ To see `streamText` in action, check out [these examples](#examples).
         'The tools that are currently active. All tools are active by default.',
     },
     {
+      name: 'experimental_repairToolCall',
+      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV1FunctionToolCall | null>',
+      isOptional: true,
+      description:
+        'A function that attempts to repair a tool call that failed to parse. Return either a repaired tool call or null if the tool call cannot be repaired.',
+      properties: [
+        {
+          type: 'ToolCallRepairOptions',
+          parameters: [
+            {
+              name: 'system',
+              type: 'string | undefined',
+              description: 'The system prompt.',
+            },
+            {
+              name: 'messages',
+              type: 'CoreMessage[]',
+              description: 'The messages in the current generation step.',
+            },
+            {
+              name: 'toolCall',
+              type: 'LanguageModelV1FunctionToolCall',
+              description: 'The tool call that failed to parse.',
+            },
+            {
+              name: 'tools',
+              type: 'TOOLS',
+              description: 'The tools that are available.',
+            },
+            {
+              name: 'parameterSchema',
+              type: '(options: { toolName: string }) => JSONSchema7',
+              description:
+                'A function that returns the JSON Schema for a tool.',
+            },
+            {
+              name: 'error',
+              type: 'NoSuchToolError | InvalidToolArgumentsError',
+              description:
+                'The error that occurred while parsing the tool call.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'onChunk',
       type: '(event: OnChunkResult) => Promise<void> |void',
       isOptional: true,

@@ -1,14 +1,15 @@
+import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
+import { ToolExecutionError } from '../../errors';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
-import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -1365,5 +1366,42 @@ describe('options.output', () => {
         });
       });
     });
+  });
+});
+
+describe('tool execution errors', () => {
+  it('should throw a ToolExecutionError when a tool execution throws an error', async () => {
+    await expect(async () => {
+      await generateText({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async () => {
+              throw new Error('test error');
+            },
+          },
+        },
+        prompt: 'test-input',
+      });
+    }).rejects.toThrow(
+      new ToolExecutionError({
+        toolName: 'tool1',
+        toolArgs: { value: 'value' },
+        cause: new Error('test error'),
+      }),
+    );
   });
 });

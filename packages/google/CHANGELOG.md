@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 1.0.5
+
+### Patch Changes
+
+- 0984f0b: feat (provider/google-vertex): Rewrite for Edge runtime support.
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+
 ## 1.0.4
 
 ### Patch Changes

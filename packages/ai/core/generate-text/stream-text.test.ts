@@ -4,23 +4,21 @@ import {
   convertReadableStreamToArray,
   convertResponseStreamToArray,
 } from '@ai-sdk/provider-utils/test';
+import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
-import {
-  StreamData,
-  StreamTextResult,
-  TextStreamPart,
-  createDataStream,
-  jsonSchema,
-  tool,
-} from '../../streams';
+import { ToolExecutionError } from '../../errors/tool-execution-error';
+import { StreamData } from '../../streams/stream-data';
 import { delay } from '../../util/delay';
+import { createDataStream } from '../data-stream/create-data-stream';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
+import { tool } from '../tool/tool';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
+import { StreamTextResult, TextStreamPart } from './stream-text-result';
 
 describe('streamText', () => {
   describe('result.textStream', () => {
@@ -97,6 +95,21 @@ describe('streamText', () => {
         await convertAsyncIterableToArray(result.textStream),
         ['Hello', ', ', 'world!'],
       );
+    });
+
+    it('should re-throw error in doStream', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => {
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+      });
+
+      await expect(async () => {
+        await convertAsyncIterableToArray(result.textStream);
+      }).rejects.toThrow('test error');
     });
   });
 
@@ -692,6 +705,26 @@ describe('streamText', () => {
       expect(
         await convertAsyncIterableToArray(result.fullStream),
       ).toMatchSnapshot();
+    });
+
+    it('should forward error in doStream as error stream part', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => {
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.fullStream),
+      ).toStrictEqual([
+        {
+          type: 'error',
+          error: new Error('test error'),
+        },
+      ]);
     });
   });
 
@@ -3129,18 +3162,99 @@ describe('streamText', () => {
     });
   });
 
-  it('should handle error in doStream', async () => {
-    const result = streamText({
-      model: new MockLanguageModelV1({
-        doStream: async () => {
-          throw new Error('test error');
+  describe('tool execution errors', () => {
+    it('should send a ToolExecutionError when a tool execution throws an error', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            parameters: z.object({ value: z.string() }),
+            execute: async (): Promise<string> => {
+              throw new Error('test error');
+            },
+          }),
         },
-      }),
-      prompt: 'test-input',
-    });
+        prompt: 'test-input',
+      });
 
-    await expect(async () => {
-      await convertAsyncIterableToArray(result.textStream);
-    }).rejects.toThrow('test error');
+      expect(
+        await convertAsyncIterableToArray(result.fullStream),
+      ).toStrictEqual([
+        {
+          args: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-call',
+        },
+        {
+          error: new ToolExecutionError({
+            toolName: 'tool1',
+            toolArgs: { value: 'value' },
+            cause: new Error('test error'),
+          }),
+          type: 'error',
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'stop',
+          isContinued: false,
+          logprobs: undefined,
+          response: {
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          type: 'step-finish',
+          usage: {
+            completionTokens: 10,
+            promptTokens: 3,
+            totalTokens: 13,
+          },
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'stop',
+          logprobs: undefined,
+          response: {
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          type: 'finish',
+          usage: {
+            completionTokens: 10,
+            promptTokens: 3,
+            totalTokens: 13,
+          },
+        },
+      ]);
+    });
   });
 });

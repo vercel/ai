@@ -1,5 +1,27 @@
 # @ai-sdk/google-vertex
 
+## 2.0.1
+
+### Patch Changes
+
+- bcd892e: feat (provider/google-vertex): Add support for Anthropic models.
+- Updated dependencies [bcd892e]
+  - @ai-sdk/anthropic@1.0.4
+
+## 2.0.0
+
+### Major Changes
+
+- 0984f0b: feat (provider/google-vertex): Rewrite for Edge runtime support.
+
+### Patch Changes
+
+- 0984f0b: chore (providers/google-vertex): Remove unref'd base default provider.
+- Updated dependencies [0984f0b]
+- Updated dependencies [0984f0b]
+  - @ai-sdk/google@1.0.5
+  - @ai-sdk/provider-utils@2.0.3
+
 ## 1.0.4
 
 ### Patch Changes
