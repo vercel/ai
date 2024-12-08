@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -9,12 +9,14 @@
   "files": [
     "dist/**/*",
     "edge/dist/**/*",
+    "anthropic/dist/**/*",
+    "anthropic/edge/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf edge/dist",
+    "clean": "rm -rf dist && rm -rf edge/dist && rm -rf anthropic/dist && rm -rf anthropic/edge/dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -33,9 +35,20 @@
       "types": "./edge/dist/index.d.ts",
       "import": "./edge/dist/index.mjs",
       "require": "./edge/dist/index.js"
+    },
+    "./anthropic": {
+      "types": "./anthropic/dist/index.d.ts",
+      "import": "./anthropic/dist/index.mjs",
+      "require": "./anthropic/dist/index.js"
+    },
+    "./anthropic/edge": {
+      "types": "./anthropic/edge/dist/index.d.ts",
+      "import": "./anthropic/edge/dist/index.mjs",
+      "require": "./anthropic/edge/dist/index.js"
     }
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "1.0.4",
     "@ai-sdk/google": "1.0.5",
     "@ai-sdk/provider": "1.0.1",
     "@ai-sdk/provider-utils": "2.0.3",
