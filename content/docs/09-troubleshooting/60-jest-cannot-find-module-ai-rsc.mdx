@@ -1,6 +1,6 @@
 ---
-title: Jest: cannot find module 'ai/rsc'
-description: Troubleshooting AI SDK errors related to the "Jest: cannot find module 'ai/rsc'" error.
+title: "Jest: cannot find module 'ai/rsc'"
+description: "Troubleshooting AI SDK errors related to the "Jest: cannot find module 'ai/rsc'" error".
 ---
 
 # Jest: cannot find module 'ai/rsc'
@@ -15,6 +15,8 @@ I am getting the following error: `Cannot find module 'ai/rsc'`.
 
 Configure the module resolution via `jest config update` in `moduleNameMapper`:
 
-```
-moduleNameMapper: { ... '^ai/rsc$': '<rootDir>/node_modules/ai/rsc/dist', }
+```json filename="jest.config.js"
+"moduleNameMapper": {
+  "^ai/rsc$": "<rootDir>/node_modules/ai/rsc/dist"
+}
 ```
