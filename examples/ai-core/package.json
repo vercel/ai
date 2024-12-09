@@ -9,7 +9,7 @@
     "@ai-sdk/cohere": "1.0.4",
     "@ai-sdk/google": "1.0.5",
     "@ai-sdk/google-vertex": "2.0.1",
-    "@ai-sdk/groq": "1.0.6",
+    "@ai-sdk/groq": "1.0.7",
     "@ai-sdk/mistral": "1.0.4",
     "@ai-sdk/openai": "1.0.7",
     "@ai-sdk/openai-compatible": "0.0.4",
