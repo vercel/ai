@@ -101,6 +101,9 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
+  provider.rerankingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+  };
 
   return provider as GroqProvider;
 }

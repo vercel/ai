@@ -2,7 +2,9 @@ import {
   EmbeddingModelV1,
   LanguageModelV1,
   ProviderV1,
+  RerankingModelV1,
 } from '@ai-sdk/provider';
+
 import {
   FetchFunction,
   loadApiKey,
@@ -15,6 +17,11 @@ import {
   CohereEmbeddingModelId,
   CohereEmbeddingSettings,
 } from './cohere-embedding-settings';
+import {
+  CohereRerankingModelId,
+  CohereRerankingSettings,
+} from './cohere-reranking-settings';
+import { CohereRerankingModel } from './cohere-reranking-model';
 
 export interface CohereProvider extends ProviderV1 {
   (modelId: CohereChatModelId, settings?: CohereChatSettings): LanguageModelV1;
@@ -36,6 +43,16 @@ Creates a model for text generation.
     modelId: CohereEmbeddingModelId,
     settings?: CohereEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  reranking(
+    modelId: CohereRerankingModelId,
+    settings?: CohereRerankingSettings,
+  ): RerankingModelV1<string>;
+
+  rerankingModel(
+    modelId: CohereRerankingModelId,
+    settings?: CohereRerankingSettings,
+  ): RerankingModelV1<string>;
 }
 
 export interface CohereProviderSettings {
@@ -103,6 +120,17 @@ export function createCohere(
       fetch: options.fetch,
     });
 
+  const createRerankingModel = (
+    modelId: CohereRerankingModelId,
+    settings: CohereRerankingSettings = {},
+  ) =>
+    new CohereRerankingModel(modelId, settings, {
+      provider: 'cohere.reranking',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (
     modelId: CohereChatModelId,
     settings?: CohereChatSettings,
@@ -119,6 +147,8 @@ export function createCohere(
   provider.languageModel = createChatModel;
   provider.embedding = createTextEmbeddingModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.reranking = createRerankingModel;
+  provider.rerankingModel = createRerankingModel;
 
   return provider as CohereProvider;
 }
