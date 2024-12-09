@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 1.0.7
+
+### Patch Changes
+
+- 8ec0014: chore (provider/groq): update model list
+
 ## 1.0.6
 
 ### Patch Changes

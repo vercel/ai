@@ -75,7 +75,7 @@ importers:
         specifier: 2.0.1
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../../packages/groq
       '@ai-sdk/mistral':
         specifier: 1.0.4
@@ -1005,7 +1005,7 @@ importers:
         specifier: 2.0.1
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../../packages/groq
       '@ai-sdk/mistral':
         specifier: 1.0.4
