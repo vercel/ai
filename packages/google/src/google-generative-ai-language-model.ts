@@ -7,12 +7,12 @@ import {
 import {
   FetchFunction,
   ParseResult,
+  Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
-  Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -428,17 +428,17 @@ const contentSchema = z.object({
 const responseSchema = z.object({
   candidates: z.array(
     z.object({
-      content: contentSchema.optional(),
-      finishReason: z.string().optional(),
+      content: contentSchema.nullish(),
+      finishReason: z.string().nullish(),
     }),
   ),
   usageMetadata: z
     .object({
-      promptTokenCount: z.number(),
+      promptTokenCount: z.number().nullish(),
       candidatesTokenCount: z.number().nullish(),
-      totalTokenCount: z.number(),
+      totalTokenCount: z.number().nullish(),
     })
-    .optional(),
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -447,16 +447,16 @@ const chunkSchema = z.object({
   candidates: z
     .array(
       z.object({
-        content: contentSchema.optional(),
-        finishReason: z.string().optional(),
+        content: contentSchema.nullish(),
+        finishReason: z.string().nullish(),
       }),
     )
     .nullish(),
   usageMetadata: z
     .object({
-      promptTokenCount: z.number(),
+      promptTokenCount: z.number().nullish(),
       candidatesTokenCount: z.number().nullish(),
-      totalTokenCount: z.number(),
+      totalTokenCount: z.number().nullish(),
     })
     .nullish(),
 });
