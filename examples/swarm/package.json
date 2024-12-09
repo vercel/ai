@@ -5,7 +5,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "1.0.4",
     "@ai-sdk/google": "1.0.5",
-    "@ai-sdk/google-vertex": "2.0.1",
+    "@ai-sdk/google-vertex": "2.0.2",
     "@ai-sdk/groq": "1.0.7",
     "@ai-sdk/mistral": "1.0.4",
     "@ai-sdk/openai": "1.0.7",

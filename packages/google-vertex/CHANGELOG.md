@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 2.0.2
+
+### Patch Changes
+
+- 5b0366e: fix (provider/vertex): fix internal reference
+
 ## 2.0.1
 
 ### Patch Changes
