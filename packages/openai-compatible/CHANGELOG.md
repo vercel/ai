@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.0.5
+
+### Patch Changes
+
+- e958996: fix (provider/openai-compatible): remove unused index property from validation
+
 ## 0.0.4
 
 ### Patch Changes
