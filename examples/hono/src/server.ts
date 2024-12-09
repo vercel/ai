@@ -44,7 +44,9 @@ app.post('/stream-data', async c => {
   c.header('X-Vercel-AI-Data-Stream', 'v1');
   c.header('Content-Type', 'text/plain; charset=utf-8');
 
-  return stream(c, stream => stream.pipe(dataStream));
+  return stream(c, stream =>
+    stream.pipe(dataStream.pipeThrough(new TextEncoderStream())),
+  );
 });
 
 serve({ fetch: app.fetch, port: 8080 });
