@@ -4,6 +4,7 @@ import {
   generateId,
   loadSetting,
   Resolvable,
+  withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import {
   GoogleVertexModelId,
@@ -59,6 +60,11 @@ or to provide a custom fetch implementation for e.g. testing.
 
   // for testing
   generateId?: () => string;
+
+  /**
+Base URL for the Google Vertex API calls.
+     */
+  baseURL?: string;
 }
 
 /**
@@ -83,18 +89,25 @@ export function createVertex(
       description: 'Google Vertex location',
     });
 
+  const loadBaseURL = () => {
+    const region = loadVertexLocation();
+    const project = loadVertexProject();
+    return (
+      withoutTrailingSlash(options.baseURL) ??
+      `https://${region}-aiplatform.googleapis.com/v1/projects/${project}/locations/${region}/publishers/google`
+    );
+  };
+
   const createChatModel = (
     modelId: GoogleVertexModelId,
     settings: GoogleVertexSettings = {},
   ) => {
-    const region = loadVertexLocation();
-    const project = loadVertexProject();
     return new GoogleGenerativeAILanguageModel(modelId, settings, {
       provider: `google.vertex.chat`,
-      baseURL: `https://${region}-aiplatform.googleapis.com/v1/projects/${project}/locations/${region}/publishers/google`,
       headers: options.headers ?? {},
       generateId: options.generateId ?? generateId,
       fetch: options.fetch,
+      baseURL: loadBaseURL(),
     });
   };
 
@@ -107,6 +120,7 @@ export function createVertex(
       region: loadVertexLocation(),
       project: loadVertexProject(),
       headers: options.headers ?? {},
+      baseURL: loadBaseURL(),
     });
 
   const provider = function (

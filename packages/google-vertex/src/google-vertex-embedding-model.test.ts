@@ -19,6 +19,8 @@ describe('GoogleVertexEmbeddingModel', () => {
     region: 'us-central1',
     project: 'test-project',
     headers: () => ({}),
+    baseURL:
+      'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
   };
 
   const model = new GoogleVertexEmbeddingModel(

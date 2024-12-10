@@ -7,6 +7,7 @@ import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 vi.mock('@ai-sdk/provider-utils', () => ({
   loadSetting: vi.fn().mockImplementation(({ settingValue }) => settingValue),
   generateId: vi.fn().mockReturnValue('mock-id'),
+  withoutTrailingSlash: vi.fn().mockImplementation(url => url),
 }));
 
 vi.mock('@ai-sdk/google/internal', () => ({
@@ -65,6 +66,8 @@ describe('google-vertex-provider', () => {
         project: 'test-project',
         region: 'test-location',
         headers: expect.any(Object),
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
       }),
     );
   });

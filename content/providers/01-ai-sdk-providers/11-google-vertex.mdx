@@ -136,6 +136,11 @@ You can use the following optional settings to customize the provider instance:
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **baseURL** _string_
+
+  Optional. Base URL for the Google Vertex API calls e.g. to use proxy servers. By default, it is constructed using the location and project:
+  `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google`
+
 <a id="google-vertex-edge-runtime"></a>
 #### Edge Runtime
 
