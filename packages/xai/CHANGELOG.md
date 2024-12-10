@@ -1,5 +1,13 @@
 # @ai-sdk/xai
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/provider-utils@2.0.4
+
 ## 1.0.5
 
 ### Patch Changes

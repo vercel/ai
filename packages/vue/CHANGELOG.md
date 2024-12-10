@@ -1,5 +1,12 @@
 # @ai-sdk/vue
 
+## 1.0.6
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@2.0.4
+- @ai-sdk/ui-utils@1.0.5
+
 ## 1.0.5
 
 ### Patch Changes
