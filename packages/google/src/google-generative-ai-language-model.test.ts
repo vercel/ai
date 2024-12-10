@@ -675,6 +675,11 @@ describe('doStream', () => {
           {
             type: 'finish',
             finishReason: 'stop',
+            providerMetadata: {
+              google: {
+                groundingMetadata: null,
+              },
+            },
             usage: { promptTokens: 294, completionTokens: 233 },
           },
         ]);
@@ -826,6 +831,11 @@ describe('doStream', () => {
           {
             type: 'finish',
             finishReason: 'stop',
+            providerMetadata: {
+              google: {
+                groundingMetadata: null,
+              },
+            },
             usage: { promptTokens: 294, completionTokens: 233 },
           },
         ]);

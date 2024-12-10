@@ -1,3 +1,6 @@
+import { groundingMetadataSchema } from './google-generative-ai-language-model';
+import { z } from 'zod';
+
 export type GoogleGenerativeAIPrompt = {
   systemInstruction?: GoogleGenerativeAISystemInstruction;
   contents: Array<GoogleGenerativeAIContent>;
@@ -38,3 +41,11 @@ export type GoogleGenerativeAIContentPart =
         fileUri: string;
       };
     };
+
+export type GoogleGenerativeAIGroundingMetadata = z.infer<
+  typeof groundingMetadataSchema
+>;
+
+export interface GoogleGenerativeAIProviderMetadata {
+  groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
+}
