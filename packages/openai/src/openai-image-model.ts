@@ -56,11 +56,13 @@ export class OpenAIImageModel implements ImageModelV1 {
     });
 
     return {
-      images: response.map(item => item.b64_json),
+      images: response.data.map(item => item.b64_json),
     };
   }
 }
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiImageResponseSchema = z.array(z.object({ b64_json: z.string() }));
+const openaiImageResponseSchema = z.object({
+  data: z.array(z.object({ b64_json: z.string() })),
+});

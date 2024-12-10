@@ -35,7 +35,7 @@ The prompt that should be used to generate the image.
   /**
 Number of images to generate.
    */
-  n: number;
+  n?: number;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -58,7 +58,12 @@ Only applicable for HTTP-based providers.
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const { images } = await retry(() =>
-    model.doGenerate({ prompt, n, abortSignal, headers }),
+    model.doGenerate({
+      prompt,
+      n: n ?? 1,
+      abortSignal,
+      headers,
+    }),
   );
 
   return new DefaultGenerateImageResult({ images });
