@@ -445,7 +445,7 @@ const contentSchema = z.object({
 });
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search
-const groundingMetadataSchema = z.object({
+export const groundingMetadataSchema = z.object({
   webSearchQueries: z.array(z.string()).nullish(),
   searchEntryPoint: z
     .object({
