@@ -1,6 +1,7 @@
 import { EmbeddingModelV1 } from '@ai-sdk/provider';
 import { Embedding } from '../types';
 import { EmbeddingModelUsage } from '../types/usage';
+import { notImplemented } from './not-implemented';
 
 export class MockEmbeddingModelV1<VALUE> implements EmbeddingModelV1<VALUE> {
   readonly specificationVersion = 'v1';
@@ -44,8 +45,4 @@ export function mockEmbed<VALUE>(
     assert.deepStrictEqual(expectedValues, values);
     return { embeddings, usage };
   };
-}
-
-function notImplemented(): never {
-  throw new Error('Not implemented');
 }
