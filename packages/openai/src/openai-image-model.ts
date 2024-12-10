@@ -44,7 +44,7 @@ export class OpenAIImageModel implements ImageModelV1 {
         prompt,
         n,
         // TODO size
-        // TODO passthrough settings
+        // TODO passthrough provider options
         response_format: 'b64_json',
       },
       failedResponseHandler: openaiFailedResponseHandler,
