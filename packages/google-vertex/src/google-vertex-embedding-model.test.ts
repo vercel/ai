@@ -19,6 +19,8 @@ describe('GoogleVertexEmbeddingModel', () => {
     region: 'us-central1',
     project: 'test-project',
     headers: () => ({}),
+    baseURL:
+      'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
   };
 
   const model = new GoogleVertexEmbeddingModel(
@@ -129,6 +131,55 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     await expect(model.doEmbed({ values: tooManyValues })).rejects.toThrow(
       TooManyEmbeddingValuesForCallError,
+    );
+  });
+});
+
+describe('GoogleVertexEmbeddingModel', () => {
+  const customBaseURL = 'https://custom-endpoint.com';
+  const server = new JsonTestServer(
+    `${customBaseURL}/models/textembedding-gecko@001:predict`,
+  );
+  server.setupTestEnvironment();
+
+  it('should use custom baseURL when provided', async () => {
+    server.responseBodyJson = {
+      predictions: dummyEmbeddings.map(values => ({
+        embeddings: {
+          values,
+          statistics: { token_count: 1 },
+        },
+      })),
+    };
+
+    const fetchSpy = vi.spyOn(global, 'fetch');
+
+    const modelWithCustomUrl = new GoogleVertexEmbeddingModel(
+      'textembedding-gecko@001',
+      { outputDimensionality: 768 },
+      {
+        headers: () => ({}),
+        baseURL: customBaseURL,
+        provider: 'google-vertex',
+        region: 'us-central1',
+        project: 'test-project',
+      },
+    );
+
+    const response = await modelWithCustomUrl.doEmbed({
+      values: testValues,
+    });
+
+    expect(response.embeddings).toStrictEqual(dummyEmbeddings);
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining(customBaseURL),
+      expect.any(Object),
+    );
+
+    const requestUrl = await server.getRequestUrl();
+    expect(requestUrl).toBe(
+      'https://custom-endpoint.com/models/textembedding-gecko@001:predict',
     );
   });
 });
