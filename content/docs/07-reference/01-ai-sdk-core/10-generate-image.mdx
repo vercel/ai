@@ -1,0 +1,140 @@
+---
+title: generateImage
+description: API Reference for generateImage.
+---
+
+# `generateImage()`
+
+<Note type="warning">`generateImage` is an experimental feature.</Note>
+
+Generates images based on a given prompt using an image model.
+
+It is ideal for use cases where you need to generate images programmatically,
+such as creating visual content or generating images for data augmentation.
+
+```ts
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: openai.image('dall-e-3'),
+  prompt: 'A futuristic cityscape at sunset',
+  n: 3,
+  size: '1024x1024',
+});
+
+console.log(images);
+```
+
+## Import
+
+<Snippet
+  text={`import { experimental_generateImage as generateImage } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'ImageModelV1',
+      description: 'The image model to use.',
+    },
+    {
+      name: 'prompt',
+      type: 'string',
+      description: 'The input prompt to generate the image from.',
+    },
+    {
+      name: 'n',
+      type: 'number',
+      isOptional: true,
+      description: 'Number of images to generate.',
+    },
+    {
+      name: 'size',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Size of the images to generate. Format: `{width}x{height}`.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'Record<string, Record<string, JSONValue>>',
+      isOptional: true,
+      description: 'Additional provider-specific options.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      isOptional: true,
+      description: 'Maximum number of retries. Default: 2.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description: 'An optional abort signal to cancel the call.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description: 'Additional HTTP headers for the request.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'image',
+      type: 'GeneratedImage',
+      description: 'The first image that was generated.',
+      properties: [
+        {
+          type: 'GeneratedImage',
+          parameters: [
+            {
+              name: 'base64',
+              type: 'string',
+              description: 'Image as a base64 encoded string.',
+            },
+            {
+              name: 'uint8Array',
+              type: 'Uint8Array',
+              description: 'Image as a Uint8Array.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'images',
+      type: 'Array<GeneratedImage>',
+      description: 'All images that were generated.',
+      properties: [
+        {
+          type: 'GeneratedImage',
+          parameters: [
+            {
+              name: 'base64',
+              type: 'string',
+              description: 'Image as a base64 encoded string.',
+            },
+            {
+              name: 'uint8Array',
+              type: 'Uint8Array',
+              description: 'Image as a Uint8Array.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
