@@ -347,8 +347,9 @@ With [search grounding](https://cloud.google.com/vertex-ai/generative-ai/docs/gr
 the model has access to the latest information using Google search.
 Search grounding can be used to provide answers around current events:
 
-```ts highlight="6,13-15"
+```ts highlight="6,14-17"
 import { vertex } from '@ai-sdk/google-vertex';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, experimental_providerMetadata } = await generateText({
@@ -360,9 +361,12 @@ const { text, experimental_providerMetadata } = await generateText({
     'You must include the date of each article.',
 });
 
-// access the grounding metadata
-const groundingMetadata =
-  experimental_providerMetadata?.google.groundingMetadata;
+// access the grounding metadata. Casting to the provider metadata type
+// is optional but provides autocomplete and type safety.
+const metadata = experimental_providerMetadata?.google as
+  | GoogleGenerativeAIProviderMetadata
+  | undefined;
+const groundingMetadata = metadata?.groundingMetadata;
 ```
 
 The grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:

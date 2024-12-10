@@ -12,7 +12,7 @@ import {
   embedMany,
 } from 'ai';
 import fs from 'fs';
-import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google/internal';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 
 const LONG_TEST_MILLIS = 10000;
 
