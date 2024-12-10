@@ -244,9 +244,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       warnings,
       providerMetadata: {
         google: {
-          groundingMetadata: candidate.groundingMetadata
-            ? candidate.groundingMetadata
-            : null,
+          groundingMetadata: candidate.groundingMetadata ?? null,
         },
       },
       request: { body },
