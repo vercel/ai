@@ -1,7 +1,7 @@
-import { ImageModelV1 } from '@ai-sdk/provider';
+import { ImageModelV1, JSONValue } from '@ai-sdk/provider';
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../prompt/prepare-retries';
 import { GenerateImageResult } from './generate-image-result';
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 
 /**
 Embed a value using an embedding model. The type of the value is defined by the embedding model.
@@ -20,6 +20,7 @@ export async function generateImage({
   prompt,
   n,
   size,
+  providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -43,6 +44,22 @@ Number of images to generate.
 Size of the images to generate. Must have the format `{width}x{height}`.
    */
   size?: `${number}x${number}`;
+
+  /**
+Additional provider-specific options that are passed through to the provider
+as body parameters.
+
+The outer record is keyed by the provider name, and the inner
+record is keyed by the provider-specific metadata key.
+```ts
+{
+  "openai": {
+    "style": "vivid"
+  }
+}
+```
+     */
+  providerOptions?: Record<string, Record<string, JSONValue>>;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -71,6 +88,7 @@ Only applicable for HTTP-based providers.
       abortSignal,
       headers,
       size,
+      providerOptions: providerOptions ?? {},
     }),
   );
 

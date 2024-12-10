@@ -5,9 +5,12 @@ import fs from 'fs';
 
 async function main() {
   const { imageAsUint8Array: image } = await generateImage({
-    model: openai.image('dall-e-2'),
+    model: openai.image('dall-e-3'),
     prompt: 'Santa Claus driving a Cadillac',
-    size: '512x512',
+    size: '1024x1024',
+    providerOptions: {
+      openai: { style: 'vivid', quality: 'hd' },
+    },
   });
 
   const filename = `image-${Date.now()}.png`;

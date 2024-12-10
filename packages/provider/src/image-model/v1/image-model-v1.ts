@@ -1,9 +1,7 @@
+import { JSONValue } from '../../json-value/json-value';
+
 /**
 Image generation model specification version 1.
-
-VALUE is the type of the values that the model can embed.
-This will allow us to go beyond text embeddings in the future,
-e.g. to support image embeddings
  */
 export type ImageModelV1 = {
   /**
@@ -43,6 +41,22 @@ Number of images to generate.
 Size of the images to generate. Must have the format `{width}x{height}`.
      */
     size: `${number}x${number}` | undefined;
+
+    /**
+Additional provider-specific options that are passed through to the provider
+as body parameters.
+
+The outer record is keyed by the provider name, and the inner
+record is keyed by the provider-specific metadata key.
+```ts
+{
+  "openai": {
+    "style": "vivid"
+  }
+}
+```
+     */
+    providerOptions: Record<string, Record<string, JSONValue>>;
 
     /**
 Abort signal for cancelling the operation.

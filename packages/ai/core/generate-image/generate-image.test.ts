@@ -20,6 +20,7 @@ describe('generateImage', () => {
       }),
       prompt,
       size: '1024x1024',
+      providerOptions: { openai: { style: 'vivid' } },
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
     });
@@ -28,6 +29,7 @@ describe('generateImage', () => {
       n: 1,
       prompt,
       size: '1024x1024',
+      providerOptions: { openai: { style: 'vivid' } },
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
     });

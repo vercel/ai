@@ -29,6 +29,7 @@ export class OpenAIImageModel implements ImageModelV1 {
     prompt,
     n,
     size,
+    providerOptions,
     headers,
     abortSignal,
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
@@ -45,7 +46,7 @@ export class OpenAIImageModel implements ImageModelV1 {
         prompt,
         n,
         size,
-        // TODO passthrough provider options
+        ...(providerOptions.openai ?? {}),
         response_format: 'b64_json',
       },
       failedResponseHandler: openaiFailedResponseHandler,
