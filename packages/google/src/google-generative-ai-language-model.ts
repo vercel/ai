@@ -3,6 +3,7 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
+  LanguageModelV1ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -241,6 +242,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
+      providerMetadata: {
+        google: {
+          groundingMetadata: candidate.groundingMetadata
+            ? candidate.groundingMetadata
+            : null,
+        },
+      },
       request: { body },
     };
   }
@@ -275,6 +283,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
+    let providerMetadata: LanguageModelV1ProviderMetadata | undefined =
+      undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -314,6 +324,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 finishReason: candidate.finishReason,
                 hasToolCalls,
               });
+
+              providerMetadata = {
+                google: {
+                  groundingMetadata: candidate.groundingMetadata ?? null,
+                },
+              };
             }
 
             const content = candidate.content;
@@ -359,7 +375,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              usage,
+              providerMetadata,
+            });
           },
         }),
       ),
@@ -423,13 +444,43 @@ const contentSchema = z.object({
   ),
 });
 
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
+// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search
+const groundingMetadataSchema = z.object({
+  webSearchQueries: z.array(z.string()).nullish(),
+  searchEntryPoint: z
+    .object({
+      renderedContent: z.string(),
+    })
+    .nullish(),
+  groundingSupports: z
+    .array(
+      z.object({
+        segment: z.object({
+          startIndex: z.number().nullish(),
+          endIndex: z.number().nullish(),
+          text: z.string().nullish(),
+        }),
+        groundingChunkIndices: z.array(z.number()),
+        confidenceScores: z.array(z.number()),
+      }),
+    )
+    .nullish(),
+  retrievalMetadata: z
+    .union([
+      z.object({
+        webDynamicRetrievalScore: z.number(),
+      }),
+      z.object({}),
+    ])
+    .nullish(),
+});
+
 const responseSchema = z.object({
   candidates: z.array(
     z.object({
       content: contentSchema.nullish(),
       finishReason: z.string().nullish(),
+      groundingMetadata: groundingMetadataSchema.nullish(),
     }),
   ),
   usageMetadata: z
@@ -449,6 +500,7 @@ const chunkSchema = z.object({
       z.object({
         content: contentSchema.nullish(),
         finishReason: z.string().nullish(),
+        groundingMetadata: groundingMetadataSchema.nullish(),
       }),
     )
     .nullish(),

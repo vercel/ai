@@ -38,3 +38,21 @@ export type GoogleGenerativeAIContentPart =
         fileUri: string;
       };
     };
+
+export interface GoogleGenerativeAIGroundingMetadata {
+  webSearchQueries?: string[] | null;
+  searchEntryPoint?: { renderedContent: string } | null;
+  groundingSupports?: Array<{
+    segment: {
+      text?: string | null;
+      startIndex?: number | null;
+      endIndex?: number | null;
+    };
+    groundingChunkIndices: number[];
+    confidenceScores: number[];
+  }> | null;
+}
+
+export interface GoogleGenerativeAIProviderMetadata {
+  groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
+}
