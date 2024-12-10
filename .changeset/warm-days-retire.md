@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/google-vertex': minor
+'@ai-sdk/google-vertex': patch
 ---
 
 feat (provider/google-vertex): Add support for baseURL in API calls.
