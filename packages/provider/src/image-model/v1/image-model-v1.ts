@@ -40,6 +40,11 @@ Number of images to generate.
     n: number;
 
     /**
+Size of the images to generate. Must have the format `{width}x{height}`.
+     */
+    size: `${number}x${number}` | undefined;
+
+    /**
 Abort signal for cancelling the operation.
      */
     abortSignal?: AbortSignal;

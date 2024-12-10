@@ -19,13 +19,15 @@ describe('generateImage', () => {
         },
       }),
       prompt,
+      size: '1024x1024',
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
     });
 
     expect(capturedArgs).toStrictEqual({
-      prompt,
       n: 1,
+      prompt,
+      size: '1024x1024',
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
     });

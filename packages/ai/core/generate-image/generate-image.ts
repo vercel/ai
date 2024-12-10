@@ -18,6 +18,7 @@ export async function generateImage({
   model,
   prompt,
   n,
+  size,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -36,6 +37,11 @@ The prompt that should be used to generate the image.
 Number of images to generate.
    */
   n?: number;
+
+  /**
+Size of the images to generate. Must have the format `{width}x{height}`.
+   */
+  size?: `${number}x${number}`;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -63,6 +69,7 @@ Only applicable for HTTP-based providers.
       n: n ?? 1,
       abortSignal,
       headers,
+      size,
     }),
   );
 

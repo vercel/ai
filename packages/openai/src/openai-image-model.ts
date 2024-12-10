@@ -28,6 +28,7 @@ export class OpenAIImageModel implements ImageModelV1 {
   async doGenerate({
     prompt,
     n,
+    size,
     headers,
     abortSignal,
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
@@ -43,7 +44,7 @@ export class OpenAIImageModel implements ImageModelV1 {
         model: this.modelId,
         prompt,
         n,
-        // TODO size
+        size,
         // TODO passthrough provider options
         response_format: 'b64_json',
       },
