@@ -35,6 +35,11 @@ Prompt for the image generation.
     prompt: string;
 
     /**
+Number of images to generate.
+     */
+    n: number;
+
+    /**
 Abort signal for cancelling the operation.
      */
     abortSignal?: AbortSignal;
