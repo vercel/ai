@@ -16,7 +16,7 @@
     "@ai-sdk/togetherai": "0.0.6",
     "@ai-sdk/xai": "1.0.5",
     "@opentelemetry/sdk-node": "0.54.2",
-    "@opentelemetry/auto-instrumentations-node": "0.47.0",
+    "@opentelemetry/auto-instrumentations-node": "0.54.0",
     "@opentelemetry/sdk-trace-node": "1.28.0",
     "ai": "4.0.13",
     "dotenv": "16.4.5",
