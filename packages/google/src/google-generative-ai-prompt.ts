@@ -1,3 +1,6 @@
+import { z } from 'zod';
+import { safetyRatingSchema } from './google-generative-ai-language-model';
+
 export type GoogleGenerativeAIPrompt = {
   systemInstruction?: GoogleGenerativeAISystemInstruction;
   contents: Array<GoogleGenerativeAIContent>;
@@ -53,6 +56,9 @@ export interface GoogleGenerativeAIGroundingMetadata {
   }> | null;
 }
 
+export type GoogleGenerativeAISafetyRating = z.infer<typeof safetyRatingSchema>;
+
 export interface GoogleGenerativeAIProviderMetadata {
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
+  safetyRatings: GoogleGenerativeAISafetyRating[] | null;
 }
