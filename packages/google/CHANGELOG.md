@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.0.6
+
+### Patch Changes
+
+- 9e54403: fix (provider/google-vertex): support empty object as usage metadata
+
 ## 1.0.5
 
 ### Patch Changes
