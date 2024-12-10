@@ -82,4 +82,8 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   constructor(options: { images: GenerateImageResult['images'] }) {
     this.images = options.images;
   }
+
+  get image() {
+    return this.images[0];
+  }
 }

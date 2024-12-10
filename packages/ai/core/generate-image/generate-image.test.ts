@@ -37,15 +37,25 @@ describe('generateImage', () => {
     const result = await generateImage({
       model: new MockImageModelV1({
         doGenerate: async () => {
-          return { images: ['base64-image-data', 'base64-image-data'] };
+          return { images: ['base64-image-1', 'base64-image-2'] };
         },
       }),
       prompt,
     });
 
-    expect(result.images).toStrictEqual([
-      'base64-image-data',
-      'base64-image-data',
-    ]);
+    expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
+  });
+
+  it('should return the first image', async () => {
+    const result = await generateImage({
+      model: new MockImageModelV1({
+        doGenerate: async () => {
+          return { images: ['base64-image-1', 'base64-image-2'] };
+        },
+      }),
+      prompt,
+    });
+
+    expect(result.image).toStrictEqual('base64-image-1');
   });
 });
