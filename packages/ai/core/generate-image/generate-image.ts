@@ -1,7 +1,7 @@
 import { ImageModelV1, JSONValue } from '@ai-sdk/provider';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../prompt/prepare-retries';
-import { GenerateImageResult } from './generate-image-result';
+import { GeneratedImage, GenerateImageResult } from './generate-image-result';
 
 /**
 Embed a value using an embedding model. The type of the value is defined by the embedding model.
@@ -92,25 +92,22 @@ Only applicable for HTTP-based providers.
     }),
   );
 
-  return new DefaultGenerateImageResult({ images });
+  return new DefaultGenerateImageResult({ base64Images: images });
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {
-  readonly images: GenerateImageResult['images'];
+  readonly images: Array<GeneratedImage>;
 
-  constructor(options: { images: GenerateImageResult['images'] }) {
-    this.images = options.images;
+  constructor(options: { base64Images: Array<string> }) {
+    this.images = options.base64Images.map(base64 => ({
+      base64,
+      get uint8Array() {
+        return convertBase64ToUint8Array(this.base64);
+      },
+    }));
   }
 
   get image() {
     return this.images[0];
-  }
-
-  get imageAsUint8Array() {
-    return convertBase64ToUint8Array(this.image);
-  }
-
-  get imagesAsUint8Arrays() {
-    return this.images.map(convertBase64ToUint8Array);
   }
 }

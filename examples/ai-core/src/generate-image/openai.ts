@@ -4,7 +4,7 @@ import 'dotenv/config';
 import fs from 'fs';
 
 async function main() {
-  const { imageAsUint8Array: image } = await generateImage({
+  const { image } = await generateImage({
     model: openai.image('dall-e-3'),
     prompt: 'Santa Claus driving a Cadillac',
     size: '1024x1024',
@@ -14,7 +14,7 @@ async function main() {
   });
 
   const filename = `image-${Date.now()}.png`;
-  fs.writeFileSync(filename, image);
+  fs.writeFileSync(filename, image.uint8Array);
   console.log(`Image saved to ${filename}`);
 }
 

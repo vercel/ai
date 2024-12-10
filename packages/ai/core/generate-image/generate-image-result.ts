@@ -4,22 +4,24 @@ It contains the images and additional information.
  */
 export interface GenerateImageResult {
   /**
-The first image that was generated (base64 encoded).
+The first image that was generated.
    */
-  readonly image: string;
+  readonly image: GeneratedImage;
 
   /**
-The first image that was generated, as a Uint8Array.
-   */
-  readonly imageAsUint8Array: Uint8Array;
-
-  /**
-The images that were generated (base64 encoded).
+The images that were generated.
      */
-  readonly images: Array<string>;
+  readonly images: Array<GeneratedImage>;
+}
+
+export interface GeneratedImage {
+  /**
+Image as a base64 encoded string.
+   */
+  readonly base64: string;
 
   /**
-The images that were generated as Uint8Array objects.
+Image as a Uint8Array.
    */
-  readonly imagesAsUint8Arrays: Array<Uint8Array>;
+  readonly uint8Array: Uint8Array;
 }
