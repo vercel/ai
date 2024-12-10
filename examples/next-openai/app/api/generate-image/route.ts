@@ -1,7 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { experimental_generateImage as generateImage } from 'ai';
 
-export const runtime = 'edge';
+// Allow responses up to 60 seconds
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
