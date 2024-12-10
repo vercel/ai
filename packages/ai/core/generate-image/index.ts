@@ -1,2 +1,2 @@
-export { generateImage } from './generate-image';
-export type { GenerateImageResult } from './generate-image-result';
+export { generateImage as experimental_generateImage } from './generate-image';
+export type { GenerateImageResult as Experimental_GenerateImageResult } from './generate-image-result';
