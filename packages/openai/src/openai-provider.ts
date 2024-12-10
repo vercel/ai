@@ -237,6 +237,7 @@ export function createOpenAI(
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
+
   return provider as OpenAIProvider;
 }
 
