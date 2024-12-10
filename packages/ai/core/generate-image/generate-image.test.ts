@@ -30,4 +30,20 @@ describe('generateImage', () => {
       abortSignal,
     });
   });
+
+  it('should return generated images', async () => {
+    const result = await generateImage({
+      model: new MockImageModelV1({
+        doGenerate: async () => {
+          return { images: ['base64-image-data', 'base64-image-data'] };
+        },
+      }),
+      prompt,
+    });
+
+    expect(result.images).toStrictEqual([
+      'base64-image-data',
+      'base64-image-data',
+    ]);
+  });
 });
