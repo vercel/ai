@@ -4,16 +4,19 @@ import { prepareRetries } from '../prompt/prepare-retries';
 import { GeneratedImage, GenerateImageResult } from './generate-image-result';
 
 /**
-Embed a value using an embedding model. The type of the value is defined by the embedding model.
+Generates images using an image model.
 
-@param model - The embedding model to use.
-@param value - The value that should be embedded.
-
+@param model - The image model to use.
+@param prompt - The prompt that should be used to generate the image.
+@param n - Number of images to generate. Default: 1.
+@param size - Size of the images to generate. Must have the format `{width}x{height}`.
+@param providerOptions - Additional provider-specific options that are passed through to the provider
+as body parameters.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@returns A result object that contains the embedding, the value, and additional information.
+@returns A result object that contains the generated images.
  */
 export async function generateImage({
   model,
