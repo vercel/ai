@@ -4,7 +4,7 @@ It contains the images and additional information.
  */
 export interface GenerateImageResult {
   /**
-The first image that was generated.
+The first image that was generated (base64 encoded).
    */
   readonly image: string;
 
