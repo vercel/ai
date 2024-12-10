@@ -121,4 +121,22 @@ describe('google-vertex-provider', () => {
       expect.any(Object),
     );
   });
+
+  it('should use custom baseURL when provided', () => {
+    const customBaseURL = 'https://custom-endpoint.example.com';
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+      baseURL: customBaseURL,
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      {},
+      expect.objectContaining({
+        baseURL: customBaseURL,
+      }),
+    );
+  });
 });
