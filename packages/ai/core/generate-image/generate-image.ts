@@ -1,6 +1,7 @@
 import { ImageModelV1 } from '@ai-sdk/provider';
 import { prepareRetries } from '../prompt/prepare-retries';
 import { GenerateImageResult } from './generate-image-result';
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 
 /**
 Embed a value using an embedding model. The type of the value is defined by the embedding model.
@@ -85,5 +86,13 @@ class DefaultGenerateImageResult implements GenerateImageResult {
 
   get image() {
     return this.images[0];
+  }
+
+  get imageAsUint8Array() {
+    return convertBase64ToUint8Array(this.image);
+  }
+
+  get imagesAsUint8Arrays() {
+    return this.images.map(convertBase64ToUint8Array);
   }
 }
