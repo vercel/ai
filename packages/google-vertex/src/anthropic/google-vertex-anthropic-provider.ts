@@ -13,7 +13,6 @@ import {
   anthropicTools,
   AnthropicMessagesLanguageModel,
   AnthropicMessagesModelId,
-  AnthropicMessagesSettings,
 } from '@ai-sdk/anthropic/internal';
 import {
   GoogleVertexAnthropicMessagesModelId,
@@ -25,7 +24,7 @@ Creates a model for text generation.
 */
   (
     modelId: GoogleVertexAnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
+    settings?: GoogleVertexAnthropicMessagesSettings,
   ): LanguageModelV1;
 
   /**
@@ -33,7 +32,7 @@ Creates a model for text generation.
 */
   languageModel(
     modelId: GoogleVertexAnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
+    settings?: GoogleVertexAnthropicMessagesSettings,
   ): LanguageModelV1;
 
   /**
