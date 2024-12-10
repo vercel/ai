@@ -1,7 +1,7 @@
 import { EmbeddingModelV1Embedding } from './embedding-model-v1-embedding';
 
 /**
-Experimental: Specification for an embedding model that implements the embedding model 
+Experimental: Specification for an embedding model that implements the embedding model
 interface version 1.
 
 VALUE is the type of the values that the model can embed.
