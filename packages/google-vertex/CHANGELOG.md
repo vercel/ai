@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 2.0.4
+
+### Patch Changes
+
+- 3cfcd0a: fix (provider/google-vertex): Remove unsupported cache control setting from Vertex Anthropic.
+
 ## 2.0.3
 
 ### Patch Changes
