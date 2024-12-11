@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@ai-sdk/agent-server": "0.0.0",
-    "@ai-sdk/openai": "1.0.5",
-    "ai": "4.0.10",
+    "@ai-sdk/openai": "1.0.8",
+    "ai": "4.0.14",
     "zod": "3.23.8"
   }
 }
