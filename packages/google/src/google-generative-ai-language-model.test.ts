@@ -632,6 +632,57 @@ describe('doGenerate', () => {
       }),
     );
   });
+
+  it(
+    'should expose safety ratings in provider metadata',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'test response' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: [
+                {
+                  category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                  probability: 'NEGLIGIBLE',
+                  probabilityScore: 0.1,
+                  severity: 'LOW',
+                  severityScore: 0.2,
+                  blocked: false,
+                },
+              ],
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        },
+      },
+      async () => {
+        const { providerMetadata } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(providerMetadata?.google.safetyRatings).toStrictEqual([
+          {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            probability: 'NEGLIGIBLE',
+            probabilityScore: 0.1,
+            severity: 'LOW',
+            severityScore: 0.2,
+            blocked: false,
+          },
+        ]);
+      },
+    ),
+  );
 });
 
 describe('doStream', () => {
@@ -678,6 +729,24 @@ describe('doStream', () => {
             providerMetadata: {
               google: {
                 groundingMetadata: null,
+                safetyRatings: [
+                  {
+                    category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_HATE_SPEECH',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_HARASSMENT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                ],
               },
             },
             usage: { promptTokens: 294, completionTokens: 233 },
@@ -834,9 +903,67 @@ describe('doStream', () => {
             providerMetadata: {
               google: {
                 groundingMetadata: null,
+                safetyRatings: [
+                  {
+                    category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_HATE_SPEECH',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_HARASSMENT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                ],
               },
             },
             usage: { promptTokens: 294, completionTokens: 233 },
+          },
+        ]);
+      },
+    ),
+  );
+
+  it(
+    'should expose safety ratings in provider metadata on finish',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
+        type: 'stream-values',
+        content: [
+          `data: {"candidates": [{"content": {"parts": [{"text": "test"}],"role": "model"},` +
+            `"finishReason": "STOP","index": 0,"safetyRatings": [` +
+            `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE",` +
+            `"probabilityScore": 0.1,"severity": "LOW","severityScore": 0.2,"blocked": false}]}]}\n\n`,
+        ],
+      },
+      async () => {
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const finishEvent = events.find(event => event.type === 'finish');
+
+        expect(
+          finishEvent?.type === 'finish' &&
+            finishEvent.providerMetadata?.google.safetyRatings,
+        ).toStrictEqual([
+          {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            probability: 'NEGLIGIBLE',
+            probabilityScore: 0.1,
+            severity: 'LOW',
+            severityScore: 0.2,
+            blocked: false,
           },
         ]);
       },
