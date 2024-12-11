@@ -55,10 +55,7 @@ Optional. A list of unique safety settings for blocking unsafe content.
       | 'BLOCK_ONLY_HIGH'
       | 'BLOCK_NONE';
   }>;
-}
 
-export interface InternalGoogleGenerativeAISettings
-  extends GoogleGenerativeAISettings {
   /**
 Optional. When enabled, the model will use Google search to ground the response.
 
@@ -66,3 +63,6 @@ Optional. When enabled, the model will use Google search to ground the response.
    */
   useSearchGrounding?: boolean;
 }
+
+export interface InternalGoogleGenerativeAISettings
+  extends GoogleGenerativeAISettings {}
