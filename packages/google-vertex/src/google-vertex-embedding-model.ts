@@ -6,9 +6,11 @@ import {
   combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
+  resolve,
+  Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { googleFailedResponseHandler } from './google-error';
+import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
   GoogleVertexEmbeddingModelId,
   GoogleVertexEmbeddingSettings,
@@ -18,7 +20,8 @@ type GoogleVertexEmbeddingConfig = {
   provider: string;
   region: string;
   project: string;
-  generateAuthToken: () => Promise<string | null | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
+  baseURL: string;
 };
 
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
@@ -66,22 +69,22 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
       });
     }
 
+    const mergedHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      headers,
+    );
+
+    const url = `${this.config.baseURL}/models/${this.modelId}:predict`;
     const { responseHeaders, value: response } = await postJsonToApi({
-      url:
-        `https://${this.config.region}-aiplatform.googleapis.com/v1/` +
-        `projects/${this.config.project}/locations/${this.config.region}/` +
-        `publishers/google/models/${this.modelId}:predict`,
-      headers: combineHeaders(
-        { Authorization: `Bearer ${await this.config.generateAuthToken()}` },
-        headers,
-      ),
+      url,
+      headers: mergedHeaders,
       body: {
         instances: values.map(value => ({ content: value })),
         parameters: {
           outputDimensionality: this.settings.outputDimensionality,
         },
       },
-      failedResponseHandler: googleFailedResponseHandler,
+      failedResponseHandler: googleVertexFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         googleVertexTextEmbeddingResponseSchema,
       ),

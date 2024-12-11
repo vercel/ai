@@ -107,6 +107,13 @@ Let's take a look at what is happening in this code:
 
 This API route creates a POST request endpoint at `/api/chat`.
 
+<Note>
+  If you are experiencing issues with choppy/delayed streams on iOS, you can add
+  the `Content-Type`: `application/octet-stream` header to the response. For
+  more information, check out [this GitHub
+  issue](https://github.com/vercel/ai/issues/3946).
+</Note>
+
 ## Wire up the UI
 
 Now that you have an API route that can query an LLM, it's time to setup your frontend. The AI SDK's [ UI ](/docs/ai-sdk-ui) package abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).

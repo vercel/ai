@@ -298,6 +298,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         name: string;
         arguments: string;
       };
+      hasFinished: boolean;
     }> = [];
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
@@ -404,6 +405,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                       name: toolCallDelta.function.name,
                       arguments: toolCallDelta.function.arguments ?? '',
                     },
+                    hasFinished: false,
                   };
 
                   const toolCall = toolCalls[index];
@@ -433,14 +435,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                         toolName: toolCall.function.name,
                         args: toolCall.function.arguments,
                       });
+                      toolCall.hasFinished = true;
                     }
                   }
 
                   continue;
                 }
 
-                // existing tool call, merge
+                // existing tool call, merge if not finished
                 const toolCall = toolCalls[index];
+
+                if (toolCall.hasFinished) {
+                  continue;
+                }
 
                 if (toolCallDelta.function?.arguments != null) {
                   toolCall.function!.arguments +=
@@ -469,6 +476,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                     toolName: toolCall.function.name,
                     args: toolCall.function.arguments,
                   });
+                  toolCall.hasFinished = true;
                 }
               }
             }
@@ -519,7 +527,6 @@ const OpenAICompatibleChatResponseSchema = z.object({
           )
           .nullish(),
       }),
-      index: z.number(),
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -559,8 +566,7 @@ const OpenAICompatibleChatChunkSchema = z.union([
               .nullish(),
           })
           .nullish(),
-        finish_reason: z.string().nullable().optional(),
-        index: z.number(),
+        finish_reason: z.string().nullish(),
       }),
     ),
     usage: z

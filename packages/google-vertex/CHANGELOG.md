@@ -1,5 +1,65 @@
 # @ai-sdk/google-vertex
 
+## 2.0.6
+
+### Patch Changes
+
+- b7372dc: feat (provider/google): Include optional response grounding metadata.
+- 8224964: feat (provider/google-vertex): Add support for baseURL in API calls.
+- Updated dependencies [b7372dc]
+  - @ai-sdk/google@1.0.8
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/anthropic@1.0.5
+  - @ai-sdk/google@1.0.7
+  - @ai-sdk/provider-utils@2.0.4
+
+## 2.0.4
+
+### Patch Changes
+
+- 3cfcd0a: fix (provider/google-vertex): Remove unsupported cache control setting from Vertex Anthropic.
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [9e54403]
+  - @ai-sdk/google@1.0.6
+
+## 2.0.2
+
+### Patch Changes
+
+- 5b0366e: fix (provider/vertex): fix internal reference
+
+## 2.0.1
+
+### Patch Changes
+
+- bcd892e: feat (provider/google-vertex): Add support for Anthropic models.
+- Updated dependencies [bcd892e]
+  - @ai-sdk/anthropic@1.0.4
+
+## 2.0.0
+
+### Major Changes
+
+- 0984f0b: feat (provider/google-vertex): Rewrite for Edge runtime support.
+
+### Patch Changes
+
+- 0984f0b: chore (providers/google-vertex): Remove unref'd base default provider.
+- Updated dependencies [0984f0b]
+- Updated dependencies [0984f0b]
+  - @ai-sdk/google@1.0.5
+  - @ai-sdk/provider-utils@2.0.3
+
 ## 1.0.4
 
 ### Patch Changes

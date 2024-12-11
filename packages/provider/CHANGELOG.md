@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.0.2
+
+### Patch Changes
+
+- 09a9cab: feat (ai/core): add experimental generateImage function
+
 ## 1.0.1
 
 ### Patch Changes

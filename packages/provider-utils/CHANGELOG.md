@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+
+## 2.0.3
+
+### Patch Changes
+
+- 0984f0b: feat (provider-utils): Add resolvable type and utility routine.
+
 ## 2.0.2
 
 ### Patch Changes

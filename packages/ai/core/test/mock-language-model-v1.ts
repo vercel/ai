@@ -1,4 +1,5 @@
 import { LanguageModelV1 } from '@ai-sdk/provider';
+import { notImplemented } from './not-implemented';
 
 export class MockLanguageModelV1 implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
@@ -38,8 +39,4 @@ export class MockLanguageModelV1 implements LanguageModelV1 {
     this.defaultObjectGenerationMode = defaultObjectGenerationMode;
     this.supportsStructuredOutputs = supportsStructuredOutputs;
   }
-}
-
-function notImplemented(): never {
-  throw new Error('Not implemented');
 }

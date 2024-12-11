@@ -27,7 +27,7 @@
         "@vercel/ai-tsconfig": "workspace:*",
         "msw": "2.6.4",
         "tsup": "^8",
-        "tsx": "4.7.1",
+        "tsx": "4.19.2",
         "typescript": "5.6.3",
         "vitest": "2.1.4"
     },

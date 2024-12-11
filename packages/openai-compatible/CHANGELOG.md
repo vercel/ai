@@ -1,5 +1,32 @@
 # @ai-sdk/openai-compatible
 
+## 0.0.6
+
+### Patch Changes
+
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/provider-utils@2.0.4
+
+## 0.0.5
+
+### Patch Changes
+
+- e958996: fix (provider/openai-compatible): remove unused index property from validation
+
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+
+## 0.0.3
+
+### Patch Changes
+
+- a9a19cb: fix (provider/openai,groq): prevent sending duplicate tool calls
+
 ## 0.0.2
 
 ### Patch Changes

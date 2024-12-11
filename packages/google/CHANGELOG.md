@@ -1,5 +1,33 @@
 # @ai-sdk/google
 
+## 1.0.8
+
+### Patch Changes
+
+- b7372dc: feat (provider/google): Include optional response grounding metadata.
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/provider-utils@2.0.4
+
+## 1.0.6
+
+### Patch Changes
+
+- 9e54403: fix (provider/google-vertex): support empty object as usage metadata
+
+## 1.0.5
+
+### Patch Changes
+
+- 0984f0b: feat (provider/google-vertex): Rewrite for Edge runtime support.
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+
 ## 1.0.4
 
 ### Patch Changes
