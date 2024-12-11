@@ -3,7 +3,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { Context } from '../workflow';
 
-export default task<Context, string>({
+export default task<Context>({
   async execute({ context, mergeStream }) {
     // wait for 15 seconds
     await new Promise(resolve => setTimeout(resolve, 15000));
@@ -14,7 +14,7 @@ export default task<Context, string>({
     });
 
     // forward the stream as soon as possible while allowing for blocking operations:
-    mergeStream(result.toAgentStream());
+    mergeStream(result.toAgentStream() as any);
 
     return { nextTask: 'END' };
   },

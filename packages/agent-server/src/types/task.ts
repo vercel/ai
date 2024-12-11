@@ -7,45 +7,31 @@ import {
 } from 'ai';
 import { DelayedPromise } from '../util/delayed-promise';
 import { DataStreamString } from '@ai-sdk/ui-utils';
+import { JSONValue } from '@ai-sdk/provider';
 
-export type Task<CONTEXT, CHUNK> = ReturnType<typeof task<CONTEXT, CHUNK>>;
+export type Task<CONTEXT> = ReturnType<typeof task<CONTEXT>>;
 
-export function task<CONTEXT, CHUNK>(options: {
-  execute: (options: {
-    messages: CoreMessage[];
-    context: CONTEXT;
-    // TODO writeChunk: (chunk: CHUNK) => void;
-    mergeStream: (stream: ReadableStream<CHUNK>) => void;
-  }) => PromiseLike<{
-    context?: PromiseLike<CONTEXT> | CONTEXT;
-    messages?: PromiseLike<CoreMessage[]> | CoreMessage[];
-    nextTask: PromiseLike<string> | string;
-  }>;
-}) {
-  return {
-    type: 'stream',
-    execute: options.execute,
-  } as const;
-}
-
-export function dataStreamTask<CONTEXT>({
+export function task<CONTEXT>({
   execute: originalExecute,
 }: {
   execute: ({
     messages,
     context,
     writer,
+    writeData,
   }: {
     messages: CoreMessage[];
     context: CONTEXT;
     writer: DataStreamWriter;
+    writeData(value: JSONValue): void;
+    mergeStream(stream: ReadableStream<DataStreamString>): void;
   }) => PromiseLike<{
     context?: PromiseLike<CONTEXT> | CONTEXT;
     nextTask: PromiseLike<string> | string;
   }>;
 }) {
   return {
-    type: 'data-stream',
+    type: 'stream',
     execute(options: {
       messages: CoreMessage[];
       context: CONTEXT;
@@ -59,6 +45,8 @@ export function dataStreamTask<CONTEXT>({
               messages: options.messages,
               context: options.context,
               writer,
+              writeData: writer.writeData.bind(writer),
+              mergeStream: writer.merge.bind(writer),
             });
             delayedPromise.resolve(result);
           },

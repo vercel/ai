@@ -1,10 +1,10 @@
-import { dataStreamTask } from '@ai-sdk/agent-server';
+import { task } from '@ai-sdk/agent-server';
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 
-export default dataStreamTask<null>({
-  async execute({ messages, writer }) {
-    writer.writeData({ status: 'analyzing message' });
+export default task({
+  async execute({ messages, writeData }) {
+    writeData({ status: 'analyzing message' });
 
     // blocking operation, but we already started streaming:
     const lastUserMessage = messages.at(-1)?.content;
