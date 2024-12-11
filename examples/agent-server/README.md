@@ -3,7 +3,7 @@
 ### Build
 
 ```sh
-pnpm build-watch
+pnpm build:watch
 ```
 
 ### Start

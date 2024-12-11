@@ -1,14 +1,13 @@
 import { dataStreamTask } from '@ai-sdk/agent-server';
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import { Context } from '../workflow';
 
-export default dataStreamTask<Context>({
-  async execute({ context, writer }) {
+export default dataStreamTask<null>({
+  async execute({ messages, writer }) {
     writer.writeData({ status: 'analyzing message' });
 
     // blocking operation, but we already started streaming:
-    const lastUserMessage = context.messages.at(-1)?.content;
+    const lastUserMessage = messages.at(-1)?.content;
     const result = await generateObject({
       model: openai('gpt-4o-mini', { structuredOutputs: true }),
       output: 'enum',

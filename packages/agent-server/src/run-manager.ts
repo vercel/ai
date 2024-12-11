@@ -44,7 +44,7 @@ export class RunManager {
 
     this.logger.info(`workflow ${workflow} starting`);
 
-    const { context, initialTask } = await workflowModule.start({
+    const { context, messages, initialTask } = await workflowModule.start({
       request,
       metadata: { workflowName: workflow },
     });
@@ -57,6 +57,7 @@ export class RunManager {
       workflow,
       task: initialTask,
       context,
+      messages,
       createdAt: Date.now(),
       step: 1,
     });

@@ -1,6 +1,6 @@
 import { JSONValue } from '@ai-sdk/provider';
 import * as path from 'node:path';
-import { StreamTask } from './types/task';
+import { Task } from './types/task';
 import { Workflow } from './types/workflow';
 
 export class ModuleLoader {
@@ -37,8 +37,8 @@ export class ModuleLoader {
   }: {
     workflow: string;
     task: string;
-  }): Promise<StreamTask<JSONValue, JSONValue>> {
-    return this.loadModule<StreamTask<JSONValue, JSONValue>>({
+  }): Promise<Task<JSONValue, JSONValue>> {
+    return this.loadModule<Task<JSONValue, JSONValue>>({
       path: [workflow, 'tasks', `${task}.js`],
     });
   }

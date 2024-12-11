@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { RunState } from './types/run-state';
 import { JSONValue } from '@ai-sdk/provider';
+import { CoreMessage } from 'ai';
 
 export class DataStore {
   private readonly dataPath: string;
@@ -38,6 +39,8 @@ export class DataStore {
     status: 'RUNNING' | 'FINISHED';
     inputContext: JSONValue;
     outputContext?: JSONValue;
+    inputMessages: CoreMessage[];
+    outputMessages?: CoreMessage[];
     nextTask?: string;
   }) {
     const filePath = this.getRunPath({

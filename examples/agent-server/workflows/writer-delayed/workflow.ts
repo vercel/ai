@@ -7,6 +7,7 @@ export type Context = z.infer<typeof contextSchema>;
 export default workflow({
   async start({ request }) {
     return {
+      messages: [],
       context: contextSchema.parse(await request.json()),
       initialTask: '1',
     };

@@ -1,12 +1,15 @@
 import { workflow } from '@ai-sdk/agent-server';
-import { Message } from 'ai';
-
-export type Context = { messages: Message[] };
+import { convertToCoreMessages, Message } from 'ai';
 
 export default workflow({
   async start({ request }) {
+    const { messages: uiMessages } = (await request.json()) as {
+      messages: Message[];
+    };
+
     return {
-      context: (await request.json()) as Context,
+      messages: convertToCoreMessages(uiMessages),
+      context: undefined,
       initialTask: 'router',
     };
   },

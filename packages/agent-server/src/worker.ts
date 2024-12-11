@@ -34,9 +34,15 @@ export function createWorker({
       step: runState.step,
       status: 'RUNNING',
       inputContext: runState.context,
+      inputMessages: runState.messages,
     });
 
-    const { context, nextTask: nextTaskPromise } = await taskModule.execute({
+    const {
+      context,
+      messages,
+      nextTask: nextTaskPromise,
+    } = await taskModule.execute({
+      messages: runState.messages,
       context: runState.context,
       mergeStream: stream => {
         const [newStream, original] = stream.tee();
@@ -69,6 +75,8 @@ export function createWorker({
     // wait for updated context. if undefined, we use the old context
     const updatedContext =
       context === undefined ? runState.context : await context;
+    const updatedMessages =
+      messages === undefined ? runState.messages : await messages;
 
     // store updated context
     await dataStore.storeStepState({
@@ -77,6 +85,8 @@ export function createWorker({
       status: 'FINISHED',
       inputContext: runState.context,
       outputContext: updatedContext,
+      inputMessages: runState.messages,
+      outputMessages: updatedMessages,
       nextTask,
     });
 
@@ -86,6 +96,7 @@ export function createWorker({
       createdAt: runState.createdAt,
       task: nextTask,
       context: updatedContext,
+      messages: updatedMessages,
       step: runState.step + 1,
     });
 

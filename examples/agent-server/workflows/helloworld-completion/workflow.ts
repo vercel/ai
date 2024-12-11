@@ -1,19 +1,20 @@
 import { workflow } from '@ai-sdk/agent-server';
 import { z } from 'zod';
 
-// workflow context is available to all states.
-// it can be used to pass data between states.
-export const contextSchema = z.object({ prompt: z.string() });
-export type Context = z.infer<typeof contextSchema>;
+export const inputSchema = z.object({ prompt: z.string() });
 
 export default workflow({
   // Explicit start method that receives the request, so that the user
   // can perform any data validation, transformation, and loading
   // that is required for their workflow.
-  // The goal is to provide the initial context for the workflow run.
+  //
+  // The goal is to provide the initial context and messages
+  // for the workflow run.
   async start({ request }) {
+    const input = inputSchema.parse(await request.json());
     return {
-      context: contextSchema.parse(await request.json()),
+      messages: [{ role: 'user', content: input.prompt }],
+      context: undefined,
       initialTask: 'main',
     };
   },
