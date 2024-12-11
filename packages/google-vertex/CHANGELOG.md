@@ -1,5 +1,14 @@
 # @ai-sdk/google-vertex
 
+## 2.0.6
+
+### Patch Changes
+
+- b7372dc: feat (provider/google): Include optional response grounding metadata.
+- 8224964: feat (provider/google-vertex): Add support for baseURL in API calls.
+- Updated dependencies [b7372dc]
+  - @ai-sdk/google@1.0.8
+
 ## 2.0.5
 
 ### Patch Changes
