@@ -63,6 +63,7 @@ describe('doGenerate', () => {
       totalTokenCount: 3,
     },
     headers,
+    url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
   }: {
     content?: string;
     usage?: {
@@ -71,8 +72,9 @@ describe('doGenerate', () => {
       totalTokenCount: number;
     };
     headers?: Record<string, string>;
+    url?: string;
   }): TestServerResponse => ({
-    url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+    url,
     type: 'json-value',
     content: {
       candidates: [
@@ -632,17 +634,95 @@ describe('doGenerate', () => {
       }),
     );
   });
+
+  describe('search tool selection', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+
+    it(
+      'should use googleSearch for gemini-2.0-pro',
+      withTestServer(
+        prepareJsonResponse({
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:generateContent',
+        }),
+        async ({ call }) => {
+          const gemini2Pro = provider.languageModel('gemini-2.0-pro', {
+            useSearchGrounding: true,
+          });
+          await gemini2Pro.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearch: {} },
+          });
+        },
+      ),
+    );
+
+    it(
+      'should use googleSearch for gemini-2.0-flash-exp',
+      withTestServer(
+        prepareJsonResponse({
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
+        }),
+        async ({ call }) => {
+          const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp', {
+            useSearchGrounding: true,
+          });
+          await gemini2Flash.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearch: {} },
+          });
+        },
+      ),
+    );
+
+    it(
+      'should use googleSearchRetrieval for non-gemini-2 models',
+      withTestServer(
+        prepareJsonResponse({
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent',
+        }),
+        async ({ call }) => {
+          const geminiPro = provider.languageModel('gemini-1.0-pro', {
+            useSearchGrounding: true,
+          });
+          await geminiPro.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearchRetrieval: {} },
+          });
+        },
+      ),
+    );
+  });
 });
 
 describe('doStream', () => {
   const prepareStreamResponse = ({
     content,
     headers,
+    url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
   }: {
     content: string[];
     headers?: Record<string, string>;
+    url?: string;
   }): TestServerResponse => ({
-    url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
+    url,
     type: 'stream-values',
     content: content.map(
       text =>
@@ -842,4 +922,83 @@ describe('doStream', () => {
       },
     ),
   );
+
+  describe('search tool selection', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+
+    it(
+      'should use googleSearch for gemini-2.0-pro',
+      withTestServer(
+        prepareStreamResponse({
+          content: [''],
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:streamGenerateContent',
+        }),
+        async ({ call }) => {
+          const gemini2Pro = provider.languageModel('gemini-2.0-pro', {
+            useSearchGrounding: true,
+          });
+          await gemini2Pro.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearch: {} },
+          });
+        },
+      ),
+    );
+
+    it(
+      'should use googleSearch for gemini-2.0-flash-exp',
+      withTestServer(
+        prepareStreamResponse({
+          content: [''],
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:streamGenerateContent',
+        }),
+        async ({ call }) => {
+          const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp', {
+            useSearchGrounding: true,
+          });
+          await gemini2Flash.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearch: {} },
+          });
+        },
+      ),
+    );
+
+    it(
+      'should use googleSearchRetrieval for non-gemini-2 models',
+      withTestServer(
+        prepareStreamResponse({
+          content: [''],
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:streamGenerateContent',
+        }),
+        async ({ call }) => {
+          const geminiPro = provider.languageModel('gemini-1.0-pro', {
+            useSearchGrounding: true,
+          });
+          await geminiPro.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearchRetrieval: {} },
+          });
+        },
+      ),
+    );
+  });
 });
