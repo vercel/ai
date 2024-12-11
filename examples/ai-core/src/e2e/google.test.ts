@@ -16,6 +16,7 @@ const LONG_TEST_MILLIS = 10000;
 
 const MODEL_VARIANTS = {
   chat: [
+    'gemini-2.0-flash-exp',
     'gemini-1.5-flash-latest',
     // Pro models have low quota limits and can only be used if you have a
     // Google Cloud account with appropriate billing enabled.
