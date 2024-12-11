@@ -1,5 +1,16 @@
 # ai
 
+## 4.0.14
+
+### Patch Changes
+
+- 09a9cab: feat (ai/core): add experimental generateImage function
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/provider-utils@2.0.4
+  - @ai-sdk/ui-utils@1.0.5
+  - @ai-sdk/react@1.0.6
+
 ## 4.0.13
 
 ### Patch Changes

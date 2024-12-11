@@ -12,6 +12,7 @@ import {
   embedMany,
 } from 'ai';
 import fs from 'fs';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 
 const LONG_TEST_MILLIS = 10000;
 
@@ -45,21 +46,6 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
     vi.setConfig({ testTimeout: LONG_TEST_MILLIS });
 
     describe.each(MODEL_VARIANTS.chat)('Chat Model: %s', modelId => {
-      it('should generate text with search grounding', async () => {
-        const model = vertex(modelId, {
-          useSearchGrounding: true,
-        });
-
-        const result = await generateText({
-          model,
-          prompt: 'What is the capital of France?',
-        });
-
-        expect(result.text).toBeTruthy();
-        expect(result.text.toLowerCase()).toContain('paris');
-        expect(result.usage?.totalTokens).toBeGreaterThan(0);
-      });
-
       it('should generate text', async () => {
         const model = vertex(modelId);
         const result = await generateText({
@@ -93,6 +79,45 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
           args: { expression: '2+2' },
         });
         expect(result.toolResults?.[0].result).toBe('4');
+        expect(result.usage?.totalTokens).toBeGreaterThan(0);
+      });
+
+      it('should generate text with search grounding metadata in response when search grounding is enabled', async () => {
+        const model = vertex(modelId, {
+          useSearchGrounding: true,
+        });
+
+        const result = await generateText({
+          model,
+          prompt: 'What is the current population of Tokyo?',
+        });
+
+        expect(result.text).toBeTruthy();
+        expect(result.text.toLowerCase()).toContain('tokyo');
+        expect(result.usage?.totalTokens).toBeGreaterThan(0);
+
+        // Verify specific grounding metadata fields
+        const metadata = result.experimental_providerMetadata?.google as
+          | GoogleGenerativeAIProviderMetadata
+          | undefined;
+        const groundingMetadata = metadata?.groundingMetadata;
+        expect(Array.isArray(groundingMetadata?.webSearchQueries)).toBe(true);
+        expect(groundingMetadata?.webSearchQueries?.length).toBeGreaterThan(0);
+
+        // Verify search entry point exists
+        expect(
+          groundingMetadata?.searchEntryPoint?.renderedContent,
+        ).toBeDefined();
+
+        // Verify grounding supports
+        expect(Array.isArray(groundingMetadata?.groundingSupports)).toBe(true);
+        const support = groundingMetadata?.groundingSupports?.[0];
+        expect(support?.segment).toBeDefined();
+        expect(Array.isArray(support?.groundingChunkIndices)).toBe(true);
+        expect(Array.isArray(support?.confidenceScores)).toBe(true);
+
+        // Basic response checks
+        expect(result.text).toBeTruthy();
         expect(result.usage?.totalTokens).toBeGreaterThan(0);
       });
 
@@ -192,6 +217,52 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
           result: '12',
         });
 
+        expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+      });
+
+      it('should stream text with search grounding metadata when search grounding is enabled', async () => {
+        const model = vertex(modelId, {
+          useSearchGrounding: true,
+        });
+
+        const result = streamText({
+          model,
+          prompt: 'What is the current population of Tokyo?',
+        });
+
+        const chunks: string[] = [];
+        for await (const chunk of result.textStream) {
+          chunks.push(chunk);
+        }
+
+        // Get the complete response metadata
+        const metadata = (await result.experimental_providerMetadata)
+          ?.google as GoogleGenerativeAIProviderMetadata | undefined;
+        const groundingMetadata = metadata?.groundingMetadata;
+
+        const completeText = chunks.join('');
+        expect(completeText).toBeTruthy();
+        expect(completeText.toLowerCase()).toContain('tokyo');
+        expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+
+        // Verify specific grounding metadata fields
+        expect(Array.isArray(groundingMetadata?.webSearchQueries)).toBe(true);
+        expect(groundingMetadata?.webSearchQueries?.length).toBeGreaterThan(0);
+
+        // Verify search entry point exists
+        expect(
+          groundingMetadata?.searchEntryPoint?.renderedContent,
+        ).toBeDefined();
+
+        // Verify grounding supports
+        expect(Array.isArray(groundingMetadata?.groundingSupports)).toBe(true);
+        const support = groundingMetadata?.groundingSupports?.[0];
+        expect(support?.segment).toBeDefined();
+        expect(Array.isArray(support?.groundingChunkIndices)).toBe(true);
+        expect(Array.isArray(support?.confidenceScores)).toBe(true);
+
+        // Basic response checks
+        expect(chunks.join('')).toBeTruthy();
         expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
       });
 

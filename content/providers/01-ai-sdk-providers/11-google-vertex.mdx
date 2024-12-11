@@ -350,10 +350,11 @@ See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use
 
 With [search grounding](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview),
 the model has access to the latest information using Google search.
-Search grounding can e.g. be used to provide answers around current events:
+Search grounding can be used to provide answers around current events:
 
-```ts highlight="6,13-15"
+```ts highlight="6,14-17"
 import { vertex } from '@ai-sdk/google-vertex';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, experimental_providerMetadata } = await generateText({
@@ -365,10 +366,61 @@ const { text, experimental_providerMetadata } = await generateText({
     'You must include the date of each article.',
 });
 
-// access the grounding metadata
-const groundingMetadata =
-  experimental_providerMetadata?.vertex.groundingMetadata;
+// access the grounding metadata. Casting to the provider metadata type
+// is optional but provides autocomplete and type safety.
+const metadata = experimental_providerMetadata?.google as
+  | GoogleGenerativeAIProviderMetadata
+  | undefined;
+const groundingMetadata = metadata?.groundingMetadata;
 ```
+
+The grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
+
+- **`webSearchQueries`** (`string[] | null`)
+
+  - Array of search queries used to retrieve information
+  - Example: `["What's the weather in Chicago this weekend?"]`
+
+- **`searchEntryPoint`** (`{ renderedContent: string } | null`)
+
+  - Contains the main search result content used as an entry point
+  - The `renderedContent` field contains the formatted content
+
+- **`groundingSupports`** (Array of support objects | null)
+  - Contains details about how specific response parts are supported by search results
+  - Each support object includes:
+    - **`segment`**: Information about the grounded text segment
+      - `text`: The actual text segment
+      - `startIndex`: Starting position in the response
+      - `endIndex`: Ending position in the response
+    - **`groundingChunkIndices`**: References to supporting search result chunks
+    - **`confidenceScores`**: Confidence scores (0-1) for each supporting chunk
+
+Example response:
+
+```json
+{
+  "groundingMetadata": {
+    "webSearchQueries": ["What's the weather in Chicago this weekend?"],
+    "searchEntryPoint": {
+      "renderedContent": "..."
+    },
+    "groundingSupports": [
+      {
+        "segment": {
+          "startIndex": 0,
+          "endIndex": 65,
+          "text": "Chicago weather changes rapidly, so layers let you adjust easily."
+        },
+        "groundingChunkIndices": [0],
+        "confidenceScores": [0.99]
+      }
+    ]
+  }
+}
+```
+
+For more details, see the [Google Vertex AI documentation on grounding with Google Search](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search).
 
 ### Troubleshooting
 

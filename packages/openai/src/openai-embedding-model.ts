@@ -5,28 +5,21 @@ import {
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
+import { OpenAIConfig } from './openai-config';
 import {
   OpenAIEmbeddingModelId,
   OpenAIEmbeddingSettings,
 } from './openai-embedding-settings';
 import { openaiFailedResponseHandler } from './openai-error';
 
-type OpenAIEmbeddingConfig = {
-  provider: string;
-  url: (options: { modelId: string; path: string }) => string;
-  headers: () => Record<string, string | undefined>;
-  fetch?: FetchFunction;
-};
-
 export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
   readonly specificationVersion = 'v1';
   readonly modelId: OpenAIEmbeddingModelId;
 
-  private readonly config: OpenAIEmbeddingConfig;
+  private readonly config: OpenAIConfig;
   private readonly settings: OpenAIEmbeddingSettings;
 
   get provider(): string {
@@ -44,7 +37,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
   constructor(
     modelId: OpenAIEmbeddingModelId,
     settings: OpenAIEmbeddingSettings,
-    config: OpenAIEmbeddingConfig,
+    config: OpenAIConfig,
   ) {
     this.modelId = modelId;
     this.settings = settings;
