@@ -37,8 +37,8 @@ export class ModuleLoader {
   }: {
     workflow: string;
     task: string;
-  }): Promise<Task<JSONValue, JSONValue>> {
-    return this.loadModule<Task<JSONValue, JSONValue>>({
+  }): Promise<Task<JSONValue>> {
+    return this.loadModule<Task<JSONValue>>({
       path: [workflow, 'tasks', `${task}.js`],
     });
   }

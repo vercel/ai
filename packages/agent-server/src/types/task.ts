@@ -26,8 +26,9 @@ export function task<CONTEXT>({
     writeData(value: JSONValue): void;
     mergeStream(stream: ReadableStream<DataStreamString>): void;
   }) => PromiseLike<{
-    context?: PromiseLike<CONTEXT> | CONTEXT;
-    nextTask: PromiseLike<string> | string;
+    context?: CONTEXT;
+    messages?: CoreMessage[];
+    nextTask: string;
   }>;
 }) {
   return {
@@ -37,18 +38,27 @@ export function task<CONTEXT>({
       context: CONTEXT;
       mergeStream: (stream: ReadableStream<DataStreamString>) => void;
     }) {
-      const delayedPromise = new DelayedPromise();
+      const delayedPromise = new DelayedPromise<{
+        context?: CONTEXT;
+        messages: CoreMessage[];
+        nextTask: string;
+      }>();
       options.mergeStream(
         createDataStream({
-          execute(writer) {
-            const result = originalExecute({
+          async execute(writer) {
+            const result = await originalExecute({
               messages: options.messages,
               context: options.context,
               writer,
               writeData: writer.writeData.bind(writer),
               mergeStream: writer.merge.bind(writer),
             });
-            delayedPromise.resolve(result);
+
+            delayedPromise.resolve({
+              context: result.context ?? options.context,
+              messages: result.messages ?? options.messages,
+              nextTask: result.nextTask,
+            });
           },
         }) as ReadableStream<DataStreamString>,
       );

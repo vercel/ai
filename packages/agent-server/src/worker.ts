@@ -44,7 +44,7 @@ export function createWorker({
     } = await taskModule.execute({
       messages: runState.messages,
       context: runState.context!,
-      mergeStream: stream => {
+      mergeStream: (stream: ReadableStream<JSONValue>) => {
         const [newStream, original] = stream.tee();
         streams.add(newStream);
         streamManager.addToStream(runId, original); // immediately forward to client
