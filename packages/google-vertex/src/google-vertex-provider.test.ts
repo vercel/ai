@@ -7,6 +7,7 @@ import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 vi.mock('@ai-sdk/provider-utils', () => ({
   loadSetting: vi.fn().mockImplementation(({ settingValue }) => settingValue),
   generateId: vi.fn().mockReturnValue('mock-id'),
+  withoutTrailingSlash: vi.fn().mockImplementation(url => url),
 }));
 
 vi.mock('@ai-sdk/google/internal', () => ({
@@ -65,6 +66,8 @@ describe('google-vertex-provider', () => {
         project: 'test-project',
         region: 'test-location',
         headers: expect.any(Object),
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
       }),
     );
   });
@@ -116,6 +119,24 @@ describe('google-vertex-provider', () => {
       'test-model-id',
       { structuredOutputs: true },
       expect.any(Object),
+    );
+  });
+
+  it('should use custom baseURL when provided', () => {
+    const customBaseURL = 'https://custom-endpoint.example.com';
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+      baseURL: customBaseURL,
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      {},
+      expect.objectContaining({
+        baseURL: customBaseURL,
+      }),
     );
   });
 });
