@@ -10,6 +10,7 @@ export function prepareTools(
     type: 'regular';
   },
   useSearchGrounding: boolean,
+  isGemini2: boolean,
 ): {
   tools:
     | undefined
@@ -20,7 +21,8 @@ export function prepareTools(
           parameters: unknown;
         }>;
       }
-    | { googleSearchRetrieval: Record<string, never> };
+    | { googleSearchRetrieval: Record<string, never> }
+    | { googleSearch: Record<string, never> };
   toolConfig:
     | undefined
     | {
@@ -36,7 +38,7 @@ export function prepareTools(
 
   if (useSearchGrounding) {
     return {
-      tools: { googleSearchRetrieval: {} },
+      tools: isGemini2 ? { googleSearch: {} } : { googleSearchRetrieval: {} },
       toolConfig: undefined,
       toolWarnings,
     };

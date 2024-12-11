@@ -402,7 +402,7 @@ Example response excerpt:
 ```json
 {
   "groundingMetadata": {
-    "webSearchQueries": ["What's the weather in Chicago this weekend?"],
+    "retrievalQueries": ["What's the weather in Chicago this weekend?"],
     "searchEntryPoint": {
       "renderedContent": "..."
     },
@@ -460,6 +460,11 @@ Example response excerpt:
   ]
 }
 ```
+
+<Note>
+  The Google Vertex provider does not yet support [dynamic retrieval mode and
+  threshold](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#dynamic-retrieval).
+</Note>
 
 For more details, see the [Google Vertex AI documentation on grounding with Google Search](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search).
 
