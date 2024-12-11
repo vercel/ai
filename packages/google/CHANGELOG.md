@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.0.8
+
+### Patch Changes
+
+- b7372dc: feat (provider/google): Include optional response grounding metadata.
+
 ## 1.0.7
 
 ### Patch Changes
