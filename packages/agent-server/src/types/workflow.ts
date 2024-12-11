@@ -1,6 +1,6 @@
 import { CoreMessage } from 'ai';
 
-export interface Workflow<CONTEXT> {
+export interface Workflow<CONTEXT = undefined> {
   /**
    * Called when the workflow run is started.
    *
@@ -16,7 +16,7 @@ export interface Workflow<CONTEXT> {
     };
   }): PromiseLike<{
     messages: CoreMessage[];
-    context: CONTEXT;
+    context?: CONTEXT;
     initialTask: string;
   }>;
 

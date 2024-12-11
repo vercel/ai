@@ -8,13 +8,12 @@ export default workflow({
   // can perform any data validation, transformation, and loading
   // that is required for their workflow.
   //
-  // The goal is to provide the initial context and messages
+  // The goal is to provide the initial task, context, and messages
   // for the workflow run.
   async start({ request }) {
     const input = inputSchema.parse(await request.json());
     return {
       messages: [{ role: 'user', content: input.prompt }],
-      context: undefined,
       initialTask: 'main',
     };
   },
