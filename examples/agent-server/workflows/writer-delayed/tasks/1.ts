@@ -1,7 +1,6 @@
 import { task } from '@ai-sdk/agent-server';
-import { Context } from '../workflow';
 
-export default task<Context>({
+export default task({
   async execute({ writeData }) {
     writeData({ status: 'analyzing message' });
     return { nextTask: '2' };

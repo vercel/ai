@@ -7,5 +7,5 @@ export default agenticTask({
     'You are an outstanding writer. ' +
     'Write a blog post. ' +
     'The blog post MUST BE at least 4 paragraphs long. ',
-  finalize: () => ({ nextTask: 'END' }),
+  finalize: async () => ({ nextTask: 'END' }),
 });

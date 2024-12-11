@@ -3,5 +3,5 @@ import { openai } from '@ai-sdk/openai';
 
 export default agenticTask({
   model: openai('gpt-4o'),
-  finalize: () => ({ nextTask: 'END' }),
+  finalize: async () => ({ nextTask: 'END' }),
 });

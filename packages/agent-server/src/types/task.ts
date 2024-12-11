@@ -60,36 +60,55 @@ export function task<CONTEXT>({
 export function agenticTask<CONTEXT = undefined>({
   model,
   instruction,
+  prepare,
   finalize,
 }: {
   model: LanguageModelV1;
   instruction?: string;
-  finalize: (options: { messages: CoreMessage[]; context: CONTEXT }) => {
+  prepare?: (options: {
+    messages: CoreMessage[];
+    context: CONTEXT;
+  }) => PromiseLike<{
+    messages?: CoreMessage[];
+    context?: CONTEXT;
+  }>;
+  finalize: (options: {
+    messages: CoreMessage[];
+    context: CONTEXT;
+  }) => PromiseLike<{
     nextTask: string;
     context?: CONTEXT;
-  };
+  }>;
 }) {
   return {
     type: 'agentic',
-    execute(options: {
+    async execute(options: {
       messages: CoreMessage[];
       context: CONTEXT;
       mergeStream: (stream: ReadableStream<DataStreamString>) => void;
     }) {
+      const {
+        messages = options.messages,
+        context: preparedContext = options.context,
+      } = (await prepare?.({
+        messages: options.messages,
+        context: options.context,
+      })) ?? { messages: options.messages, context: options.context };
+
       const delayedPromise = new DelayedPromise();
 
       const result = streamText({
         model,
         system: instruction,
-        messages: options.messages,
+        messages,
 
         // TODO bug: resolve if there are error and onFinish is not called
-        onFinish({ response }) {
-          const allMessages = [...options.messages, ...response.messages];
+        async onFinish({ response }) {
+          const allMessages = [...messages, ...response.messages];
 
-          const { nextTask, context } = finalize({
+          const { nextTask, context } = await finalize({
             messages: allMessages,
-            context: options.context,
+            context: preparedContext,
           });
 
           delayedPromise.resolve({

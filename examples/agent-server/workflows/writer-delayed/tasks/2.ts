@@ -1,21 +1,16 @@
-import { task } from '@ai-sdk/agent-server';
+import { agenticTask } from '@ai-sdk/agent-server';
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
 import { Context } from '../workflow';
 
-export default task<Context>({
-  async execute({ context, mergeStream }) {
-    // wait for 15 seconds
+export default agenticTask<Context>({
+  model: openai('gpt-4'),
+  prepare: async ({ context }) => {
+    // artificial delay:
     await new Promise(resolve => setTimeout(resolve, 15000));
 
-    const result = streamText({
-      model: openai('gpt-4'), // slow model
-      prompt: context.prompt,
-    });
-
-    // forward the stream as soon as possible while allowing for blocking operations:
-    mergeStream(result.toAgentStream() as any);
-
-    return { nextTask: 'END' };
+    return {
+      messages: [{ role: 'user', content: context.prompt }],
+    };
   },
+  finalize: async () => ({ nextTask: 'END' }),
 });
