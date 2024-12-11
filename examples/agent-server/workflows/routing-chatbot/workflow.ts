@@ -1,15 +1,9 @@
-import { workflow } from '@ai-sdk/agent-server';
-import { convertToCoreMessages, Message } from 'ai';
+import { parseMessages, workflow } from '@ai-sdk/agent-server';
 
 export default workflow({
   async start({ request }) {
-    // TODO parseMessages helper
-    const { messages: uiMessages } = (await request.json()) as {
-      messages: Message[];
-    };
-
     return {
-      messages: convertToCoreMessages(uiMessages),
+      messages: await parseMessages(request),
       initialTask: 'router',
     };
   },

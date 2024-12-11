@@ -5,7 +5,7 @@ export type RunState = {
   runId: string;
   task: string;
   workflow: string;
-  context: JSONValue;
+  context: JSONValue | undefined;
   messages: CoreMessage[];
   createdAt: number;
   step: number;

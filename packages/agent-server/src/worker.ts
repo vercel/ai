@@ -33,7 +33,7 @@ export function createWorker({
       runId,
       step: runState.step,
       status: 'RUNNING',
-      inputContext: runState.context,
+      inputContext: runState.context!,
       inputMessages: runState.messages,
     });
 
@@ -43,7 +43,7 @@ export function createWorker({
       nextTask: nextTaskPromise,
     } = await taskModule.execute({
       messages: runState.messages,
-      context: runState.context,
+      context: runState.context!,
       mergeStream: stream => {
         const [newStream, original] = stream.tee();
         streams.add(newStream);
@@ -83,7 +83,7 @@ export function createWorker({
       runId,
       step: runState.step,
       status: 'FINISHED',
-      inputContext: runState.context,
+      inputContext: runState.context!,
       outputContext: updatedContext,
       inputMessages: runState.messages,
       outputMessages: updatedMessages,
