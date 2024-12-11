@@ -226,7 +226,7 @@ const { text: meatLasangaRecipe } = await generateText({
 });
 ```
 
-#### Search Grounding
+### Search Grounding
 
 With [search grounding](https://ai.google.dev/gemini-api/docs/grounding),
 the model has access to the latest information using Google search.
@@ -301,7 +301,7 @@ Example response:
 }
 ```
 
-The safety ratings provide insight into how the model's response was grounded to search results. See [Google Vertex AI documentation on configuring safety filters](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters).
+The safety ratings provide insight into how the model's response was grounded to search results. See [Google AI documentation on safety settings](https://ai.google.dev/gemini-api/docs/safety-settings).
 
 Example response excerpt:
 
@@ -346,8 +346,6 @@ Example response excerpt:
   and
   threshold](https://ai.google.dev/gemini-api/docs/grounding?lang=rest#dynamic-retrieval).
 </Note>
-
-For more details, see the [Google Vertex AI documentation on grounding with Google Search](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search).
 
 ### Troubleshooting
 
