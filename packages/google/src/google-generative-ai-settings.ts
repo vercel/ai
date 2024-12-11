@@ -54,6 +54,15 @@ Optional. A list of unique safety settings for blocking unsafe content.
       | 'BLOCK_ONLY_HIGH'
       | 'BLOCK_NONE';
   }>;
+  /**
+   * Optional. Enables timestamp understanding for audio-only files.
+   * This is a preview feature.
+   *
+   * Available for the following models:
+   * - gemini-1.5-pro-002
+   * - gemini-1.5-flash-002
+   */
+  audioTimestamp?: boolean;
 }
 
 export interface InternalGoogleGenerativeAISettings
