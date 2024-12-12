@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.16
+
+### Patch Changes
+
+- e3fac3f: fix (ai/core): change smoothStream default delay to 10ms
+
 ## 4.0.15
 
 ### Patch Changes
