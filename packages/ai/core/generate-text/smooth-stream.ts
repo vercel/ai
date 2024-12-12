@@ -2,8 +2,14 @@ import { delay as originalDelay } from '../../util/delay';
 import { CoreTool } from '../tool/tool';
 import { TextStreamPart } from './stream-text-result';
 
+/**
+ * Smooths text streaming output.
+ *
+ * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms.
+ * @returns A transform stream that smooths text streaming output.
+ */
 export function smoothStream<TOOLS extends Record<string, CoreTool>>({
-  delayInMs = 40,
+  delayInMs = 10,
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number;

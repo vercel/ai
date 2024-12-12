@@ -17,7 +17,7 @@ const result = streamText({
   model,
   prompt,
   experimental_transform: smoothStream({
-    delayInMs: 40, // optional: defaults to 40ms
+    delayInMs: 20, // optional: defaults to 10ms
   }),
 });
 ```
@@ -37,7 +37,7 @@ const result = streamText({
       type: 'number',
       isOptional: true,
       description:
-        'The delay in milliseconds between outputting each word. Defaults to 40ms. Set to 0 to disable delays.',
+        'The delay in milliseconds between outputting each word. Defaults to 10ms. Set to 0 to disable delays.',
     },
   ]}
 />
