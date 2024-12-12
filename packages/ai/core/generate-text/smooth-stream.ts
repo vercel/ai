@@ -1,12 +1,27 @@
-import { delay } from '../../util/delay';
+import { delay as originalDelay } from '../../util/delay';
 
-export function smoothStream({ delayInMs = 40 }: { delayInMs?: number } = {}) {
+export function smoothStream({
+  delayInMs = 40,
+  _internal: { delay = originalDelay } = {},
+}: {
+  delayInMs?: number;
+
+  /**
+   * Internal. For test use only. May change without notice.
+   */
+  _internal?: {
+    delay?: (delayInMs: number) => Promise<void>;
+  };
+} = {}) {
   let buffer = '';
 
   return new TransformStream({
     async transform(chunk, controller) {
-      if (chunk.type === 'finish') {
+      if (chunk.type === 'step-finish') {
         if (buffer.length > 0) {
+          if (delayInMs > 0) {
+            await delay(delayInMs);
+          }
           controller.enqueue({ type: 'text-delta', textDelta: buffer });
           buffer = '';
         }
@@ -23,12 +38,10 @@ export function smoothStream({ delayInMs = 40 }: { delayInMs?: number } = {}) {
       buffer += chunk.textDelta;
 
       // Stream out complete words when whitespace is found
-      let isFirst = true;
       while (buffer.match(/\s/)) {
-        if (!isFirst && delayInMs > 0) {
+        if (delayInMs > 0) {
           await delay(delayInMs);
         }
-        isFirst = false;
 
         const whitespaceIndex = buffer.search(/\s/);
         const word = buffer.slice(0, whitespaceIndex + 1);
