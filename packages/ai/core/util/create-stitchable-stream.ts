@@ -6,7 +6,11 @@ import { createResolvablePromise } from '../../util/create-resolvable-promise';
  * @template T - The type of values emitted by the streams.
  * @returns {Object} An object containing the stitchable stream and control methods.
  */
-export function createStitchableStream<T>() {
+export function createStitchableStream<T>(): {
+  stream: ReadableStream<T>;
+  addStream: (innerStream: ReadableStream<T>) => void;
+  close: () => void;
+} {
   let innerStreamReaders: ReadableStreamDefaultReader<T>[] = [];
   let controller: ReadableStreamDefaultController<T> | null = null;
   let isClosed = false;
