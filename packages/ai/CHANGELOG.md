@@ -1,5 +1,12 @@
 # ai
 
+## 4.0.15
+
+### Patch Changes
+
+- cc16a83: feat (ai/core): add smoothStream helper
+- cc16a83: feat (ai/core): add experimental transform option to streamText
+
 ## 4.0.14
 
 ### Patch Changes
