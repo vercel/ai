@@ -245,6 +245,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       providerMetadata: {
         google: {
           groundingMetadata: candidate.groundingMetadata ?? null,
+          safetyRatings: candidate.safetyRatings ?? null,
         },
       },
       request: { body },
@@ -326,6 +327,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               providerMetadata = {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,
+                  safetyRatings: candidate.safetyRatings ?? null,
                 },
               };
             }
@@ -473,11 +475,22 @@ export const groundingMetadataSchema = z.object({
     .nullish(),
 });
 
+// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
+export const safetyRatingSchema = z.object({
+  category: z.string(),
+  probability: z.string(),
+  probabilityScore: z.number().nullish(),
+  severity: z.string().nullish(),
+  severityScore: z.number().nullish(),
+  blocked: z.boolean().nullish(),
+});
+
 const responseSchema = z.object({
   candidates: z.array(
     z.object({
       content: contentSchema.nullish(),
       finishReason: z.string().nullish(),
+      safetyRatings: z.array(safetyRatingSchema).nullish(),
       groundingMetadata: groundingMetadataSchema.nullish(),
     }),
   ),
@@ -498,6 +511,7 @@ const chunkSchema = z.object({
       z.object({
         content: contentSchema.nullish(),
         finishReason: z.string().nullish(),
+        safetyRatings: z.array(safetyRatingSchema).nullish(),
         groundingMetadata: groundingMetadataSchema.nullish(),
       }),
     )

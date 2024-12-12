@@ -1,4 +1,7 @@
-import { groundingMetadataSchema } from './google-generative-ai-language-model';
+import {
+  groundingMetadataSchema,
+  safetyRatingSchema,
+} from './google-generative-ai-language-model';
 import { z } from 'zod';
 
 export type GoogleGenerativeAIPrompt = {
@@ -46,6 +49,9 @@ export type GoogleGenerativeAIGroundingMetadata = z.infer<
   typeof groundingMetadataSchema
 >;
 
+export type GoogleGenerativeAISafetyRating = z.infer<typeof safetyRatingSchema>;
+
 export interface GoogleGenerativeAIProviderMetadata {
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
+  safetyRatings: GoogleGenerativeAISafetyRating[] | null;
 }
