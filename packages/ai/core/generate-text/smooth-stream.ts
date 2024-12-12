@@ -19,9 +19,6 @@ export function smoothStream({
     async transform(chunk, controller) {
       if (chunk.type === 'step-finish') {
         if (buffer.length > 0) {
-          if (delayInMs > 0) {
-            await delay(delayInMs);
-          }
           controller.enqueue({ type: 'text-delta', textDelta: buffer });
           buffer = '';
         }
@@ -39,14 +36,14 @@ export function smoothStream({
 
       // Stream out complete words when whitespace is found
       while (buffer.match(/\s/)) {
-        if (delayInMs > 0) {
-          await delay(delayInMs);
-        }
-
         const whitespaceIndex = buffer.search(/\s/);
         const word = buffer.slice(0, whitespaceIndex + 1);
         controller.enqueue({ type: 'text-delta', textDelta: word });
         buffer = buffer.slice(whitespaceIndex + 1);
+
+        if (delayInMs > 0) {
+          await delay(delayInMs);
+        }
       }
     },
   });
