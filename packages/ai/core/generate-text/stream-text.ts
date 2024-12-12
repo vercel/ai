@@ -116,7 +116,7 @@ export function streamText<TOOLS extends Record<string, CoreTool>>({
   experimental_toolCallStreaming: toolCallStreaming = false,
   experimental_activeTools: activeTools,
   experimental_repairToolCall: repairToolCall,
-  experimental_transformStream: transformStream,
+  experimental_transform: transform,
   onChunk,
   onFinish,
   onStepFinish,
@@ -190,7 +190,7 @@ Enable streaming of tool call deltas as they are generated. Disabled by default.
     /**
 Optional transformation that is applied to the stream.
      */
-    experimental_transformStream?: TransformStream<
+    experimental_transform?: TransformStream<
       TextStreamPart<TOOLS>,
       TextStreamPart<TOOLS>
     >;
@@ -254,7 +254,7 @@ Details for all steps.
     tools,
     toolChoice,
     toolCallStreaming,
-    transformStream,
+    transform,
     activeTools,
     repairToolCall,
     maxSteps,
@@ -324,7 +324,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     tools,
     toolChoice,
     toolCallStreaming,
-    transformStream,
+    transform,
     activeTools,
     repairToolCall,
     maxSteps,
@@ -349,7 +349,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     tools: TOOLS | undefined;
     toolChoice: CoreToolChoice<TOOLS> | undefined;
     toolCallStreaming: boolean;
-    transformStream:
+    transform:
       | TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>
       | undefined;
     activeTools: Array<keyof TOOLS> | undefined;
@@ -398,8 +398,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     const stitchableStream = createStitchableStream<TextStreamPart<TOOLS>>();
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
-    this.baseStream = transformStream
-      ? stitchableStream.stream.pipeThrough(transformStream)
+    this.baseStream = transform
+      ? stitchableStream.stream.pipeThrough(transform)
       : stitchableStream.stream;
 
     const { maxRetries, retry } = prepareRetries({
