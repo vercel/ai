@@ -116,6 +116,20 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         expect(Array.isArray(support?.groundingChunkIndices)).toBe(true);
         expect(Array.isArray(support?.confidenceScores)).toBe(true);
 
+        // Verify safety ratings
+        const safetyRatings = metadata?.safetyRatings;
+        expect(Array.isArray(safetyRatings)).toBe(true);
+        expect(safetyRatings?.length).toBeGreaterThan(0);
+
+        // Verify each safety rating has required properties
+        safetyRatings?.forEach(rating => {
+          expect(rating.category).toBeDefined();
+          expect(rating.probability).toBeDefined();
+          expect(typeof rating.probabilityScore).toBe('number');
+          expect(rating.severity).toBeDefined();
+          expect(typeof rating.severityScore).toBe('number');
+        });
+
         // Basic response checks
         expect(result.text).toBeTruthy();
         expect(result.usage?.totalTokens).toBeGreaterThan(0);
@@ -260,6 +274,20 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         expect(support?.segment).toBeDefined();
         expect(Array.isArray(support?.groundingChunkIndices)).toBe(true);
         expect(Array.isArray(support?.confidenceScores)).toBe(true);
+
+        // Verify safety ratings
+        const safetyRatings = metadata?.safetyRatings;
+        expect(Array.isArray(safetyRatings)).toBe(true);
+        expect(safetyRatings?.length).toBeGreaterThan(0);
+
+        // Verify each safety rating has required properties
+        safetyRatings?.forEach(rating => {
+          expect(rating.category).toBeDefined();
+          expect(rating.probability).toBeDefined();
+          expect(typeof rating.probabilityScore).toBe('number');
+          expect(rating.severity).toBeDefined();
+          expect(typeof rating.severityScore).toBe('number');
+        });
 
         // Basic response checks
         expect(chunks.join('')).toBeTruthy();
