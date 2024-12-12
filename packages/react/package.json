@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "1.0.0-canary.9",
+  "version": "1.0.6",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,13 +29,13 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@ai-sdk/provider-utils": "2.0.0-canary.3",
-    "@ai-sdk/ui-utils": "1.0.0-canary.9",
+    "@ai-sdk/provider-utils": "2.0.4",
+    "@ai-sdk/ui-utils": "1.0.5",
     "swr": "^2.2.5",
     "throttleit": "2.1.0"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.4.8",
+    "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.5.2",
     "@testing-library/react": "^16.0.1",
     "@types/node": "^18",

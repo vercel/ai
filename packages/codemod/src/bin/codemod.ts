@@ -30,7 +30,12 @@ addTransformOptions(
     .argument('<codemod>', 'Codemod to run (e.g., rewrite-framework-imports)')
     .argument('<source>', 'Path to source files or directory to transform'),
 ).action((codemod, source, options: TransformOptions) => {
-  transform(codemod, source, options);
+  try {
+    transform(codemod, source, options);
+  } catch (err: any) {
+    error(`Error transforming: ${err}`);
+    process.exit(1);
+  }
 });
 
 addTransformOptions(
@@ -41,7 +46,7 @@ addTransformOptions(
   try {
     upgrade(options);
   } catch (err: any) {
-    error('Error upgrading:', err);
+    error(`Error upgrading: ${err}`);
     process.exit(1);
   }
 });

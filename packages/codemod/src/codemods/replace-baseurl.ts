@@ -1,4 +1,4 @@
-import { API, FileInfo } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
 const PROVIDER_CREATORS = [
   'createAnthropic',
@@ -27,9 +27,8 @@ function isWithinProviderCall(j: any, path: any): boolean {
   return false;
 }
 
-export default function transformer(fileInfo: FileInfo, api: API) {
-  const j = api.jscodeshift;
-  const root = j(fileInfo.source);
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
   // Find and rename baseUrl properties
   root
@@ -43,9 +42,8 @@ export default function transformer(fileInfo: FileInfo, api: API) {
     .forEach(path => {
       // Rename baseUrl to baseURL
       if (path.node.key.type === 'Identifier') {
+        context.hasChanges = true;
         path.node.key.name = 'baseURL';
       }
     });
-
-  return root.toSource();
-}
+});

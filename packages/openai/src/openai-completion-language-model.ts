@@ -23,7 +23,7 @@ import {
   OpenAICompletionSettings,
 } from './openai-completion-settings';
 import {
-  openAIErrorDataSchema,
+  openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
 import { getResponseMetadata } from './get-response-metadata';
@@ -180,7 +180,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        openAICompletionResponseSchema,
+        openaiCompletionResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -327,7 +327,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openAICompletionResponseSchema = z.object({
+const openaiCompletionResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -378,5 +378,5 @@ const openaiCompletionChunkSchema = z.union([
       })
       .nullish(),
   }),
-  openAIErrorDataSchema,
+  openaiErrorDataSchema,
 ]);

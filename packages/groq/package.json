@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/groq",
-  "version": "1.0.0-canary.3",
+  "version": "1.0.8",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,13 +8,12 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "internal/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf internal/dist",
+    "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -28,17 +27,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    },
-    "./internal": {
-      "types": "./internal/dist/index.d.ts",
-      "import": "./internal/dist/index.mjs",
-      "module": "./internal/dist/index.mjs",
-      "require": "./internal/dist/index.js"
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.0.0-canary.0",
-    "@ai-sdk/provider-utils": "2.0.0-canary.3"
+    "@ai-sdk/provider": "1.0.2",
+    "@ai-sdk/provider-utils": "2.0.4"
   },
   "devDependencies": {
     "@types/node": "^18",

@@ -285,9 +285,34 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'execute',
               isOptional: true,
-              type: 'async (parameters: T, options: { abortSignal: AbortSignal }) => JSONValue',
+              type: 'async (parameters: T, options: ToolExecutionOptions) => RESULT',
               description:
                 'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.',
+              properties: [
+                {
+                  type: 'ToolExecutionOptions',
+                  parameters: [
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.',
+                    },
+                    {
+                      name: 'messages',
+                      type: 'CoreMessage[]',
+                      description:
+                        'Messages that were sent to the language model to initiate the response that contained the tool call. The messages do not include the system prompt nor the assistant response that contained the tool call.',
+                    },
+                    {
+                      name: 'abortSignal',
+                      type: 'AbortSignal',
+                      description:
+                        'An optional abort signal that indicates that the overall operation should be aborted.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
@@ -457,6 +482,52 @@ To see `streamText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'The tools that are currently active. All tools are active by default.',
+    },
+    {
+      name: 'experimental_repairToolCall',
+      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV1FunctionToolCall | null>',
+      isOptional: true,
+      description:
+        'A function that attempts to repair a tool call that failed to parse. Return either a repaired tool call or null if the tool call cannot be repaired.',
+      properties: [
+        {
+          type: 'ToolCallRepairOptions',
+          parameters: [
+            {
+              name: 'system',
+              type: 'string | undefined',
+              description: 'The system prompt.',
+            },
+            {
+              name: 'messages',
+              type: 'CoreMessage[]',
+              description: 'The messages in the current generation step.',
+            },
+            {
+              name: 'toolCall',
+              type: 'LanguageModelV1FunctionToolCall',
+              description: 'The tool call that failed to parse.',
+            },
+            {
+              name: 'tools',
+              type: 'TOOLS',
+              description: 'The tools that are available.',
+            },
+            {
+              name: 'parameterSchema',
+              type: '(options: { toolName: string }) => JSONSchema7',
+              description:
+                'A function that returns the JSON Schema for a tool.',
+            },
+            {
+              name: 'error',
+              type: 'NoSuchToolError | InvalidToolArgumentsError',
+              description:
+                'The error that occurred while parsing the tool call.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'onChunk',

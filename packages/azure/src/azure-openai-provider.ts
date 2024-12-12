@@ -93,6 +93,11 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
+
+  /**
+Custom api version to use. Defaults to `2024-10-01-preview`.
+    */
+  apiVersion?: string;
 }
 
 /**
@@ -118,10 +123,11 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
+  const apiVersion = options.apiVersion ?? '2024-10-01-preview';
   const url = ({ path, modelId }: { path: string; modelId: string }) =>
     options.baseURL
-      ? `${options.baseURL}/${modelId}${path}?api-version=2024-08-01-preview`
-      : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-08-01-preview`;
+      ? `${options.baseURL}/${modelId}${path}?api-version=${apiVersion}`
+      : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=${apiVersion}`;
 
   const createChatModel = (
     deploymentName: string,

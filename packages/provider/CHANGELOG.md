@@ -1,5 +1,24 @@
 # @ai-sdk/provider
 
+## 1.0.2
+
+### Patch Changes
+
+- 09a9cab: feat (ai/core): add experimental generateImage function
+
+## 1.0.1
+
+### Patch Changes
+
+- b446ae5: feat (provider): Define type for ObjectGenerationMode.
+
+## 1.0.0
+
+### Major Changes
+
+- b469a7e: chore: remove isXXXError methods
+- c0ddc24: chore (ai): remove toJSON method from AI SDK errors
+
 ## 1.0.0-canary.0
 
 ### Major Changes

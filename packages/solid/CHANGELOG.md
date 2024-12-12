@@ -1,5 +1,83 @@
 # @ai-sdk/solid
 
+## 1.0.6
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@2.0.4
+- @ai-sdk/ui-utils@1.0.5
+
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+  - @ai-sdk/ui-utils@1.0.4
+
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [953469c]
+- Updated dependencies [a3dd2ed]
+  - @ai-sdk/ui-utils@1.0.3
+
+## 1.0.3
+
+### Patch Changes
+
+- 630ac31: fix (ui): set tool invocation state to "result" when calling addToolResult
+
+## 1.0.2
+
+### Patch Changes
+
+- 88b364b: feat (ui/solid): add useObject
+- 88b364b: feat (ui/solid): add useAssistant
+- 88b364b: fix (ui/solid): fix useChat deep object updates
+- Updated dependencies [88b364b]
+  - @ai-sdk/ui-utils@1.0.2
+  - @ai-sdk/provider-utils@2.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [c3ab5de]
+  - @ai-sdk/provider-utils@2.0.1
+  - @ai-sdk/ui-utils@1.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- e117b54: chore (ui): remove deprecated useChat roundtrip options
+- 8bf5756: chore: remove legacy function/tool calling
+- 7814c4b: chore (ui): remove streamMode setting from useChat & useCompletion
+- fe4f109: chore (ui): set default value of useChat keepLastMessageOnError to true
+- 84edae5: chore (release): bump ui package versions for 4.0 release
+
+### Patch Changes
+
+- 79c6dd9: fix (ui): remove unnecessary calls to mutateStreamData in useChat
+- Updated dependencies [8bf5756]
+- Updated dependencies [b469a7e]
+- Updated dependencies [9f81e66]
+- Updated dependencies [70f28f6]
+- Updated dependencies [dce4158]
+- Updated dependencies [7814c4b]
+- Updated dependencies [fe4f109]
+- Updated dependencies [b1da952]
+- Updated dependencies [04d3747]
+- Updated dependencies [dce4158]
+- Updated dependencies [7e89ccb]
+- Updated dependencies [8426f55]
+- Updated dependencies [db46ce5]
+- Updated dependencies [b053413]
+  - @ai-sdk/ui-utils@1.0.0
+  - @ai-sdk/provider-utils@2.0.0
+
 ## 1.0.0-canary.9
 
 ### Patch Changes

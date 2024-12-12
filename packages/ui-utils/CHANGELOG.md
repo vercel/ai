@@ -1,5 +1,68 @@
 # @ai-sdk/ui-utils
 
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/provider-utils@2.0.4
+
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+
+## 1.0.3
+
+### Patch Changes
+
+- 953469c: chore (ui): extract prepareAttachmentsForRequest
+- a3dd2ed: fix (ui): preserve createdAt as Date object
+
+## 1.0.2
+
+### Patch Changes
+
+- 88b364b: fix (ui-utils): deep clone messages
+- Updated dependencies [b446ae5]
+  - @ai-sdk/provider@1.0.1
+  - @ai-sdk/provider-utils@2.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [c3ab5de]
+  - @ai-sdk/provider-utils@2.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 8bf5756: chore: remove legacy function/tool calling
+- 7814c4b: chore (ui): remove streamMode setting from useChat & useCompletion
+- fe4f109: chore (ui): set default value of useChat keepLastMessageOnError to true
+- 7e89ccb: chore: remove nanoid export
+
+### Patch Changes
+
+- 9f81e66: chore (ui-utils): remove unnecessary dependencies
+- 70f28f6: chore (ui-utils): mark vitest as external to reduce bundle size of /test
+- 04d3747: chore (ui-utils): restructure processAssistantMessage
+- b053413: chore (ui): refactorings & README update
+- Updated dependencies [b469a7e]
+- Updated dependencies [dce4158]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [b1da952]
+- Updated dependencies [dce4158]
+- Updated dependencies [8426f55]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0
+  - @ai-sdk/provider@1.0.0
+
 ## 1.0.0-canary.9
 
 ### Patch Changes

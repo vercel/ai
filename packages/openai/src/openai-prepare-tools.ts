@@ -8,13 +8,13 @@ import {
 export function prepareTools({
   mode,
   useLegacyFunctionCalling = false,
-  structuredOutputs = false,
+  structuredOutputs,
 }: {
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
   };
-  useLegacyFunctionCalling?: boolean;
-  structuredOutputs?: boolean;
+  useLegacyFunctionCalling: boolean | undefined;
+  structuredOutputs: boolean;
 }): {
   tools?: {
     type: 'function';
@@ -109,7 +109,7 @@ export function prepareTools({
       name: string;
       description: string | undefined;
       parameters: JSONSchema7;
-      strict?: boolean;
+      strict: boolean | undefined;
     };
   }> = [];
 
@@ -123,7 +123,7 @@ export function prepareTools({
           name: tool.name,
           description: tool.description,
           parameters: tool.parameters,
-          strict: structuredOutputs === true ? true : undefined,
+          strict: structuredOutputs ? true : undefined,
         },
       });
     }

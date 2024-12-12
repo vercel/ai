@@ -102,6 +102,16 @@ const bedrock = createAmazonBedrock({
 });
 ```
 
+<Note>
+  The top level credentials settings below fall back to environment variable
+  defaults. These may be set by your serverless environment without your
+  awareness, which can lead to merged/conflicting credential values and provider
+  errors around failed authentication. If you're experiencing issues try (1)
+  using the `bedrockOptions` object as it will take precedence over the other
+  settings and does not inherit environment variable values, or (2) explicitly
+  specifying all settings (even if `undefined`) to avoid any defaults.
+</Note>
+
 You can use the following optional settings to customize the Amazon Bedrock provider instance:
 
 - **region** _string_
@@ -235,8 +245,6 @@ See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/be
 
 ### Model Capabilities
 
-> Note: This model list is ever changing and may not be complete. Refer to the [Amazon Bedrock ](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html#conversation-inference-supported-models-features) documentation for up to date information.
-
 | Model                                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `amazon.titan-tg1-large`                    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
@@ -254,14 +262,23 @@ See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/be
 | `meta.llama2-70b-chat-v1`                   | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta.llama3-8b-instruct-v1:0`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta.llama3-70b-instruct-v1:0`             | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `meta.llama3-1-8b-instruct-v1:0`            | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `meta.llama3-1-70b-instruct-v1:0`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `meta.llama3-1-405b-instruct-v1:0`          | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `meta.llama3-2-1b-instruct-v1:0`            | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `meta.llama3-2-3b-instruct-v1:0`            | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `meta.llama3-2-11b-instruct-v1:0`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `meta.llama3-2-90b-instruct-v1:0`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `mistral.mistral-7b-instruct-v0:2`          | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `mistral.mixtral-8x7b-instruct-v0:1`        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `mistral.mistral-large-2402-v1:0`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `mistral.mistral-small-2402-v1:0`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
-  The table above lists popular models. You can also pass any available provider
-  model ID as a string if needed.
+  The table above lists popular models. Please see the [Amazon Bedrock
+  docs](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html#conversation-inference-supported-models-features)
+  for a full list of available models. The table above lists popular models. You
+  can also pass any available provider model ID as a string if needed.
 </Note>
 
 ## Embedding Models
@@ -297,5 +314,5 @@ The following optional settings are available for Bedrock Titan embedding models
 
 | Model                          | Default Dimensions | Custom Dimensions   |
 | ------------------------------ | ------------------ | ------------------- |
-| `amazon.titan-embed-text-v1`   | 1024               | <Cross size={18} /> |
+| `amazon.titan-embed-text-v1`   | 1536               | <Cross size={18} /> |
 | `amazon.titan-embed-text-v2:0` | 1024               | <Check size={18} /> |

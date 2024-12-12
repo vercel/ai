@@ -5,7 +5,7 @@ import fs from 'node:fs';
 
 async function main() {
   const result = await generateText({
-    model: mistral('pixtral-12b-2409'),
+    model: mistral('pixtral-large-latest'),
     messages: [
       {
         role: 'user',

@@ -1,9 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["CI", "PORT"],
+  "globalEnv": [
+    "CI",
+    "PORT"
+  ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "env": [
         "ANTHROPIC_API_KEY",
         "ASSISTANT_ID",
@@ -14,7 +19,13 @@
         "DEEPSEEK_API_KEY",
         "FIREWORKS_API_KEY",
         "GOOGLE_API_KEY",
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "GOOGLE_CLIENT_EMAIL",
         "GOOGLE_GENERATIVE_AI_API_KEY",
+        "GOOGLE_PRIVATE_KEY",
+        "GOOGLE_PRIVATE_KEY_ID",
+        "GOOGLE_VERTEX_LOCATION",
+        "GOOGLE_VERTEX_PROJECT",
         "GROQ_API_KEY",
         "MISTRAL_API_KEY",
         "NEXT_RUNTIME",
@@ -39,19 +50,32 @@
       ]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": [
+        "^lint"
+      ]
     },
     "type-check": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": [
+        "^build",
+        "build"
+      ]
     },
     "test": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": [
+        "^build",
+        "build"
+      ]
     },
     "publint": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": [
+        "^build",
+        "build"
+      ]
     },
     "clean": {
-      "dependsOn": ["^clean"]
+      "dependsOn": [
+        "^clean"
+      ]
     },
     "dev": {
       "cache": false,
@@ -59,7 +83,10 @@
     },
     "prettier-check": {},
     "integration-test": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": [
+        "^build",
+        "build"
+      ]
     }
   }
 }

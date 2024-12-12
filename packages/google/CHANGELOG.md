@@ -1,5 +1,89 @@
 # @ai-sdk/google
 
+## 1.0.9
+
+### Patch Changes
+
+- c0b1c7e: feat (provider/google): Add Gemini 2.0 model.
+
+## 1.0.8
+
+### Patch Changes
+
+- b7372dc: feat (provider/google): Include optional response grounding metadata.
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/provider-utils@2.0.4
+
+## 1.0.6
+
+### Patch Changes
+
+- 9e54403: fix (provider/google-vertex): support empty object as usage metadata
+
+## 1.0.5
+
+### Patch Changes
+
+- 0984f0b: feat (provider/google-vertex): Rewrite for Edge runtime support.
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+
+## 1.0.4
+
+### Patch Changes
+
+- 6373c60: fix (provider/google): send json schema into provider
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [b446ae5]
+  - @ai-sdk/provider@1.0.1
+  - @ai-sdk/provider-utils@2.0.2
+
+## 1.0.2
+
+### Patch Changes
+
+- b748dfb: feat (providers): update model lists
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [c3ab5de]
+  - @ai-sdk/provider-utils@2.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 66060f7: chore (release): bump major version to 4.0
+- 0d3d3f5: chore (providers): remove baseUrl option
+- 36b03b0: chore (provider/google): remove topK model setting
+- 277fc6b: chore (provider/google): remove facade
+
+### Patch Changes
+
+- c38a0db: fix (provider/google): allow empty candidates array when streaming
+- 0509c34: fix (provider/google): add name/content details to tool responses
+- Updated dependencies [b469a7e]
+- Updated dependencies [dce4158]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [b1da952]
+- Updated dependencies [dce4158]
+- Updated dependencies [8426f55]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0
+  - @ai-sdk/provider@1.0.0
+
 ## 1.0.0-canary.6
 
 ### Patch Changes

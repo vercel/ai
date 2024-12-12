@@ -36,7 +36,7 @@ model. `undefined` can be returned if object generation is not supported.
 This is needed to generate the best objects possible w/o requiring the
 user to explicitly specify the object generation mode.
    */
-  readonly defaultObjectGenerationMode: 'json' | 'tool' | undefined;
+  readonly defaultObjectGenerationMode: LanguageModelV1ObjectGenerationMode;
 
   /**
 Flag whether this model supports image URLs. Default is `true`.
@@ -280,3 +280,9 @@ export type LanguageModelV1StreamPart =
 
   // error parts are streamed, allowing for multiple errors
   | { type: 'error'; error: unknown };
+
+/**
+The object generation modes available for use with a model. `undefined`
+represents no support for object generation.
+   */
+export type LanguageModelV1ObjectGenerationMode = 'json' | 'tool' | undefined;

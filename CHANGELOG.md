@@ -12,6 +12,7 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/cohere](./packages/cohere/CHANGELOG.md)
 - [@ai-sdk/google](./packages/google/CHANGELOG.md)
 - [@ai-sdk/google-vertex](./packages/google-vertex/CHANGELOG.md)
+- [@ai-sdk/xai](./packages/xai/CHANGELOG.md)
 - [@ai-sdk/mistral](./packages/mistral/CHANGELOG.md)
 - [@ai-sdk/openai](./packages/openai/CHANGELOG.md)
 

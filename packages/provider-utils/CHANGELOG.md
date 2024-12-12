@@ -1,5 +1,48 @@
 # @ai-sdk/provider-utils
 
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+
+## 2.0.3
+
+### Patch Changes
+
+- 0984f0b: feat (provider-utils): Add resolvable type and utility routine.
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [b446ae5]
+  - @ai-sdk/provider@1.0.1
+
+## 2.0.1
+
+### Patch Changes
+
+- c3ab5de: fix (provider-utils): downgrade nanoid and secure-json-parse (ESM compatibility)
+
+## 2.0.0
+
+### Major Changes
+
+- b469a7e: chore: remove isXXXError methods
+- b1da952: chore (provider-utils): remove convertStreamToArray
+- 8426f55: chore (ai):increase id generator default size from 7 to 16.
+- db46ce5: chore (provider-utils): remove isParseableJson export
+
+### Patch Changes
+
+- dce4158: chore (dependencies): update eventsource-parser to 3.0.0
+- dce4158: chore (dependencies): update nanoid to 5.0.8
+- Updated dependencies [b469a7e]
+- Updated dependencies [c0ddc24]
+  - @ai-sdk/provider@1.0.0
+
 ## 2.0.0-canary.3
 
 ### Major Changes

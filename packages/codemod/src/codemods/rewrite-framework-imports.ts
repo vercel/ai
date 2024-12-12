@@ -1,16 +1,14 @@
-import { API, FileInfo, JSCodeshift } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
-export default function transformer(fileInfo: FileInfo, api: API) {
-  const j: JSCodeshift = api.jscodeshift;
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
-  return j(fileInfo.source)
-    .find(j.ImportDeclaration)
-    .forEach(path => {
-      const sourceValue = path.node.source.value as string;
-      const match = sourceValue.match(/^ai\/(svelte|vue|solid)$/);
-      if (match) {
-        path.node.source.value = `@ai-sdk/${match[1]}`;
-      }
-    })
-    .toSource({ quote: 'single' });
-}
+  root.find(j.ImportDeclaration).forEach(path => {
+    const sourceValue = path.node.source.value as string;
+    const match = sourceValue.match(/^ai\/(svelte|vue|solid)$/);
+    if (match) {
+      context.hasChanges = true;
+      path.node.source.value = `@ai-sdk/${match[1]}`;
+    }
+  });
+});

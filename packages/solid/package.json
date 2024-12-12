@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/solid",
-  "version": "1.0.0-canary.9",
+  "version": "1.0.6",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,13 +29,15 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@ai-sdk/provider-utils": "2.0.0-canary.3",
-    "@ai-sdk/ui-utils": "1.0.0-canary.9"
+    "@ai-sdk/provider-utils": "2.0.4",
+    "@ai-sdk/ui-utils": "1.0.5",
+    "@solid-primitives/trigger": "^1.1.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.4.5",
+    "@solidjs/testing-library": "0.8.10",
+    "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.5.1",
-    "@solidjs/testing-library": "0.8.8",
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vitejs/plugin-vue": "5.2.0",

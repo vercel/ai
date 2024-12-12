@@ -1,5 +1,62 @@
 # @ai-sdk/anthropic
 
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/provider-utils@2.0.4
+
+## 1.0.4
+
+### Patch Changes
+
+- bcd892e: feat (provider/google-vertex): Add support for Anthropic models.
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [b446ae5]
+  - @ai-sdk/provider@1.0.1
+  - @ai-sdk/provider-utils@2.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [c3ab5de]
+  - @ai-sdk/provider-utils@2.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 66060f7: chore (release): bump major version to 4.0
+- 0d3d3f5: chore (providers): remove baseUrl option
+- 8ad0504: chore (provider/anthropic): remove Anthropic facade
+- 2f6e8c0: chore (provider/anthropic): remove topK model setting
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [dce4158]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [b1da952]
+- Updated dependencies [dce4158]
+- Updated dependencies [8426f55]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0
+  - @ai-sdk/provider@1.0.0
+
 ## 1.0.0-canary.4
 
 ### Major Changes

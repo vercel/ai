@@ -34,6 +34,12 @@ It supports:
       description:
         'Converts LlamaIndex output streams to data stream response.',
     },
+    {
+      name: 'mergeIntoDataStream',
+      type: '(stream: AsyncIterable<EngineResponse>, options: { dataStream: DataStreamWriter; callbacks?: StreamCallbacks }) => void',
+      description:
+        'Merges LlamaIndex output streams into an existing data stream.',
+    },
   ]}
 />
 

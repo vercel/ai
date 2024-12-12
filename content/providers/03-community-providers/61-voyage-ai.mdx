@@ -1,0 +1,97 @@
+---
+title: Voyage AI Provider
+description: Learn how to use the Voyage AI provider.
+---
+
+# Voyage AI Provider
+
+[patelvivekdev/voyage-ai-provider](https://github.com/patelvivekdev/voyageai-ai-provider) is a community provider that uses [Voyage AI](https://www.voyageai.com) to provide Embedding support for the AI SDK.
+
+## Setup
+
+The Voyage provider is available in the `voyage-ai-provider` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add voyage-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install voyage-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add voyage-ai-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `voyage ` from `voyage-ai-provider`:
+
+```ts
+import { voyage } from 'voyage-ai-provider';
+```
+
+If you need a customized setup, you can import `createVoyage` from `voyage-ai-provider` and create a provider instance with your settings:
+
+```ts
+import { createVoyage } from 'voyage-ai-provider';
+
+const voyage = createVoyage({
+  baseURL: 'https://api.voyageai.com/v1',
+  apiKey: process.env.VOYAGE_API_KEY,
+});
+```
+
+You can use the following optional settings to customize the Voyage provider instance:
+
+- **baseURL** _string_
+
+  The base URL of the voyage API
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+## Embedding Models
+
+You can create models that call the [Voyage embeddings API](https://docs.voyageai.com/reference/embeddings-api)
+using the `.embedding()` factory method.
+
+```ts
+import { voyage } from 'voyage-ai-provider';
+
+const embeddingModel = voyage.textEmbeddingModel('voyage-3');
+```
+
+You can find more models on the [Voyage Library](https://docs.voyageai.com/docs/embeddings) homepage.
+
+### Model Capabilities
+
+| Model                   | Default Dimensions | Context Length |
+| ----------------------- | ------------------ | -------------- |
+| `voyage-3`              | 1024               | 32000          |
+| `voyage-3-lite`         | 512                | 32000          |
+| `voyage-finance-2`      | 1024               | 32000          |
+| `voyage-multilingual-2` | 1024               | 32000          |
+| `voyage-law-2`          | 1024               | 32000          |
+| `voyage-code-2`         | 1024               | 16000          |
+| `voyage-3-lite`         | 1024               | 16000          |
+
+<Note>
+  The table above lists popular models. Please see the [Voyage
+  docs](https://docs.voyageai.com/docs/embeddings) for a full list of available
+  models.
+</Note>
+
+### Add settings to the model
+
+The settings object should contain the settings you want to add to the model.
+
+```ts
+import { voyage } from 'voyage-ai-provider';
+
+const embeddingModel = voyage.textEmbeddingModel('voyage-3', {
+  inputType: 'document', // 'document' or 'query'
+  truncation: false,
+});
+```

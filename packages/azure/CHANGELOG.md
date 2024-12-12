@@ -1,5 +1,101 @@
 # @ai-sdk/azure
 
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/openai@1.0.8
+  - @ai-sdk/provider-utils@2.0.4
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+  - @ai-sdk/openai@1.0.7
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [a9a19cb]
+  - @ai-sdk/openai@1.0.6
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [fc18132]
+  - @ai-sdk/openai@1.0.5
+
+## 1.0.6
+
+### Patch Changes
+
+- 153c563: feat (provider/azure): add api version provider option
+
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [b446ae5]
+  - @ai-sdk/provider@1.0.1
+  - @ai-sdk/openai@1.0.4
+  - @ai-sdk/provider-utils@2.0.2
+
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [b748dfb]
+  - @ai-sdk/openai@1.0.3
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [c3ab5de]
+  - @ai-sdk/provider-utils@2.0.1
+  - @ai-sdk/openai@1.0.2
+
+## 1.0.2
+
+### Patch Changes
+
+- 700b2be: chore (provider/azure): update Azure OpenAI API version to 2024-10-01-preview
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [5e6419a]
+  - @ai-sdk/openai@1.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 66060f7: chore (release): bump major version to 4.0
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [66060f7]
+- Updated dependencies [dce4158]
+- Updated dependencies [79644e9]
+- Updated dependencies [0d3d3f5]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [b1da952]
+- Updated dependencies [dce4158]
+- Updated dependencies [8426f55]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0
+  - @ai-sdk/provider@1.0.0
+  - @ai-sdk/openai@1.0.0
+
 ## 1.0.0-canary.3
 
 ### Patch Changes

@@ -1,12 +1,6 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { togetherai } from '@ai-sdk/togetherai';
 import { streamText } from 'ai';
 import 'dotenv/config';
-
-const togetherai = createOpenAI({
-  name: 'togetherai',
-  apiKey: process.env.TOGETHER_AI_API_KEY!,
-  baseURL: 'https://api.together.xyz/v1/',
-});
 
 async function main() {
   const result = streamText({

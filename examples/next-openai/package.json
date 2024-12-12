@@ -9,11 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.0-canary.3",
-    "@ai-sdk/ui-utils": "1.0.0-canary.9",
-    "@ai-sdk/react": "1.0.0-canary.9",
+    "@ai-sdk/openai": "1.0.8",
+    "@ai-sdk/ui-utils": "1.0.5",
+    "@ai-sdk/react": "1.0.6",
     "@vercel/blob": "^0.26.0",
-    "ai": "4.0.0-canary.13",
+    "ai": "4.0.14",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",
@@ -28,8 +28,8 @@
     "autoprefixer": "^10.4.14",
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.3",
-    "postcss": "^8.4.23",
-    "tailwindcss": "^3.3.2",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
     "typescript": "5.6.3"
   }
 }

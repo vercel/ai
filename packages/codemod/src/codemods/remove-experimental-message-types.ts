@@ -1,8 +1,8 @@
-import { API, FileInfo, Identifier } from 'jscodeshift';
+import { Identifier } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
-export default function transformer(file: FileInfo, api: API) {
-  const j = api.jscodeshift;
-  const root = j(file.source);
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
   // Type mapping
   const typeMap = {
@@ -17,6 +17,7 @@ export default function transformer(file: FileInfo, api: API) {
     .find(j.ImportSpecifier)
     .filter(path => Object.keys(typeMap).includes(path.node.imported.name))
     .forEach(path => {
+      context.hasChanges = true;
       const oldName = path.node.imported.name;
       const newName = typeMap[oldName as keyof typeof typeMap];
 
@@ -34,9 +35,8 @@ export default function transformer(file: FileInfo, api: API) {
       );
     })
     .forEach(path => {
+      context.hasChanges = true;
       const typeName = path.node.typeName as Identifier;
       typeName.name = typeMap[typeName.name as keyof typeof typeMap];
     });
-
-  return root.toSource();
-}
+});

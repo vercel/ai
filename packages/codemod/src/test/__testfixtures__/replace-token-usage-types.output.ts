@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { LanguageModelUsage, LanguageModelUsage, EmbeddingModelUsage } from 'ai';
+import { LanguageModelUsage, EmbeddingModelUsage } from 'ai';
 
 function recordUsage(usage: LanguageModelUsage) {
   console.log(usage);

@@ -26,7 +26,10 @@ it('should forward text deltas correctly', async () => {
     toolCallStreaming: false,
     tracer: new MockTracer(),
     telemetry: undefined,
+    messages: [],
+    system: undefined,
     abortSignal: undefined,
+    repairToolCall: undefined,
   });
 
   const result = await convertReadableStreamToArray(transformedStream);
@@ -72,7 +75,10 @@ it('should handle immediate tool execution', async () => {
     toolCallStreaming: false,
     tracer: new MockTracer(),
     telemetry: undefined,
+    messages: [],
+    system: undefined,
     abortSignal: undefined,
+    repairToolCall: undefined,
   });
 
   const result = await convertReadableStreamToArray(transformedStream);
@@ -133,7 +139,10 @@ it('should hold off on sending finish until the delayed tool result is received'
     toolCallStreaming: false,
     tracer: new MockTracer(),
     telemetry: undefined,
+    messages: [],
+    system: undefined,
     abortSignal: undefined,
+    repairToolCall: undefined,
   });
 
   const result = await convertReadableStreamToArray(transformedStream);

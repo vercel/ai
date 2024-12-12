@@ -1,6 +1,7 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
   JSONValue,
+  Message,
   RequestOptions,
   UseCompletionOptions,
 } from '@ai-sdk/ui-utils';
@@ -14,7 +15,8 @@ import {
   createSignal,
   createUniqueId,
 } from 'solid-js';
-import { createStore } from 'solid-js/store';
+import { ReactiveLRU } from './utils/reactive-lru';
+import { convertToAccessorOptions } from './utils/convert-to-accessor-options';
 
 export type { UseCompletionOptions };
 
@@ -70,7 +72,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 };
 
-const [store, setStore] = createStore<Record<string, string>>({});
+const completionCache = new ReactiveLRU<string, string>();
 
 export function useCompletion(
   rawUseCompletionOptions:
@@ -92,11 +94,13 @@ export function useCompletion(
 
   const completion = createMemo(
     () =>
-      store[completionKey()] ?? useCompletionOptions().initialCompletion?.(),
+      completionCache.get(completionKey()) ??
+      useCompletionOptions().initialCompletion?.() ??
+      '',
   );
 
   const mutate = (data: string) => {
-    setStore(completionKey(), data);
+    completionCache.set(completionKey(), data);
   };
 
   const [error, setError] = createSignal<undefined | Error>(undefined);
@@ -189,25 +193,4 @@ export function useCompletion(
     isLoading,
     data: streamData,
   };
-}
-
-/**
- * Handle reactive and non-reactive useChatOptions
- */
-function convertToAccessorOptions(
-  options: UseCompletionOptions | Accessor<UseCompletionOptions>,
-) {
-  const resolvedOptions = typeof options === 'function' ? options() : options;
-
-  return Object.entries(resolvedOptions).reduce(
-    (reactiveOptions, [key, value]) => {
-      reactiveOptions[key as keyof UseCompletionOptions] = createMemo(
-        () => value,
-      ) as any;
-      return reactiveOptions;
-    },
-    {} as {
-      [K in keyof UseCompletionOptions]: Accessor<UseCompletionOptions[K]>;
-    },
-  );
 }

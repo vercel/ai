@@ -1,0 +1,99 @@
+---
+title: Image Generation
+description: Learn how to generate images with the AI SDK.
+---
+
+# Image Generation
+
+<Note type="warning">Image generation is an experimental feature.</Note>
+
+The AI SDK provides the [`generateImage`](/docs/reference/ai-sdk-core/generate-image)
+function to generate images based on a given prompt using an image model.
+
+```tsx
+import { experimental_generateImage as generateImage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { image } = await generateImage({
+  model: openai.image('dall-e-3'),
+  prompt: 'Santa Claus driving a Cadillac',
+  size: '1024x1024',
+});
+```
+
+You can access the image data using the `base64` or `uint8Array` properties:
+
+```tsx
+const base64 = image.base64; // base64 image data
+const uint8Array = image.uint8Array; // Uint8Array image data
+```
+
+### Generating Multiple Images
+
+`generateImage` also supports generating multiple images at once:
+
+```tsx highlight={"4"}
+const { images } = await generateImage({
+  model: openai.image('dall-e-3'),
+  prompt: 'Santa Claus driving a Cadillac',
+  n: 4, // number of images to generate
+});
+```
+
+### Provider-specific Settings
+
+Image models often have provider- or even model-specific settings.
+You can pass such settings to the `generateImage` function
+using the `providerOptions` parameter. The options for the provider
+(`openai` in the example below) become request body properties.
+
+```tsx highlight={"5-7"}
+const { image } = await generateImage({
+  model: openai.image('dall-e-3'),
+  prompt: 'Santa Claus driving a Cadillac',
+  size: '1024x1024',
+  providerOptions: {
+    openai: { style: 'vivid', quality: 'hd' },
+  },
+});
+```
+
+### Abort Signals and Timeouts
+
+`generateImage` accepts an optional `abortSignal` parameter of
+type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
+that you can use to abort the image generation process or set a timeout.
+
+```ts highlight={"7"}
+import { openai } from '@ai-sdk/openai';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: openai.image('dall-e-3'),
+  prompt: 'Santa Claus driving a Cadillac',
+  abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
+});
+```
+
+### Custom Headers
+
+`generateImage` accepts an optional `headers` parameter of type `Record<string, string>`
+that you can use to add custom headers to the image generation request.
+
+```ts highlight={"7"}
+import { openai } from '@ai-sdk/openai';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: openai.image('dall-e-3'),
+  value: 'sunny day at the beach',
+  headers: { 'X-Custom-Header': 'custom-value' },
+});
+```
+
+## Image Models
+
+| Provider                                                  | Model      | Supported Sizes                 |
+| --------------------------------------------------------- | ---------- | ------------------------------- |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models) | `dall-e-3` | 1024x1024, 1792x1024, 1024x1792 |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models) | `dall-e-2` | 256x256, 512x512, 1024x1024     |

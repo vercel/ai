@@ -59,6 +59,8 @@ You can use an **answer tool** and the `toolChoice: 'required'` setting to force
 the LLM to answer with a structured output that matches the schema of the answer tool.
 The answer tool has no `execute` function, so invoking it will terminate the agent.
 
+Alternatively, you can use the [`experimental_output`](/docs/ai-sdk-core/generating-structured-data#structured-output-with-generatetext) setting for `generateText` to generate structured outputs.
+
 ### Example
 
 ```ts highlight="6,16-29,31,45"

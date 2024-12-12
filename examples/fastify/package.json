@@ -3,17 +3,18 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "1.0.0-canary.3",
-    "ai": "4.0.0-canary.13",
+    "@ai-sdk/openai": "1.0.8",
+    "ai": "4.0.14",
     "dotenv": "16.4.5",
     "fastify": "5.1.0"
   },
   "scripts": {
+    "dev": "tsx src/server.ts",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "20.11.20",
-    "tsx": "4.7.1",
+    "tsx": "4.19.2",
     "typescript": "5.6.3"
   }
 }

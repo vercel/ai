@@ -20,11 +20,11 @@ pnpm build
 3. Run the following command:
 
 ```sh
-pnpm tsx src/server.ts
+pnpm dev
 ```
 
 4. Test the endpoint with Curl:
 
 ```sh
-curl -X POST http://localhost:8080
+curl -i -X POST http://localhost:8080
 ```

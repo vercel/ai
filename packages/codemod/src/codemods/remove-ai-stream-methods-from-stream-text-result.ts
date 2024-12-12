@@ -1,4 +1,4 @@
-import { API, FileInfo, JSCodeshift } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
 const REMOVED_METHODS = [
   'toAIStream',
@@ -6,10 +6,8 @@ const REMOVED_METHODS = [
   'toAIStreamResponse',
 ];
 
-export default function transformer(fileInfo: FileInfo, api: API) {
-  const j: JSCodeshift = api.jscodeshift;
-  const root = j(fileInfo.source);
-  let hasRemovedMethods = false;
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
   // Find calls to removed methods
   root.find(j.MemberExpression).forEach(path => {
@@ -17,7 +15,7 @@ export default function transformer(fileInfo: FileInfo, api: API) {
       path.node.property.type === 'Identifier' &&
       REMOVED_METHODS.includes(path.node.property.name)
     ) {
-      hasRemovedMethods = true;
+      context.hasChanges = true;
 
       // Find the parent statement to add the comment
       const statement = path.parent.parent;
@@ -36,13 +34,11 @@ export default function transformer(fileInfo: FileInfo, api: API) {
     }
   });
 
-  if (hasRemovedMethods) {
-    api.report(
+  if (context.hasChanges) {
+    context.messages.push(
       `Found usage of removed streamText methods: ${REMOVED_METHODS.join(
         ', ',
       )}. These methods have been removed. Please see migration guide.`,
     );
   }
-
-  return root.toSource({ quote: 'single' });
-}
+});

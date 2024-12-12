@@ -67,13 +67,19 @@ export async function processChatResponse({
       currentMessage.annotations = messageAnnotations;
     }
 
-    // create a copy of the current message with a revision id to
-    // trigger update for streaming by copying adding a revision id that changes
-    // (without it, the changes get stuck in SWR and are not forwarded to rendering):
     const copiedMessage = {
-      ...currentMessage,
+      // deep copy the message to ensure that deep changes (msg attachments) are updated
+      // with SolidJS. SolidJS uses referential integration of sub-objects to detect changes.
+      ...JSON.parse(JSON.stringify(currentMessage)),
+      // add a revision id to ensure that the message is updated with SWR. SWR uses a
+      // hashing approach by default to detect changes, but it only works for shallow
+      // changes. This is why we need to add a revision id to ensure that the message
+      // is updated with SWR (without it, the changes get stuck in SWR and are not
+      // forwarded to rendering):
       revisionId: generateId(),
-    };
+      // Fill in createdAt to retain Date object (lost in JSON.parse):
+      createdAt: currentMessage.createdAt,
+    } as Message;
 
     update([...previousMessages, copiedMessage], copiedData);
   }

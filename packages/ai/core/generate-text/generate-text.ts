@@ -1,11 +1,11 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { InvalidArgumentError } from '../../errors';
-import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
-import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
+import { InvalidArgumentError, ToolExecutionError } from '../../errors';
+import { CoreAssistantMessage, CoreMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import { prepareRetries } from '../prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
@@ -23,11 +23,13 @@ import {
 } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
 import { GenerateTextResult } from './generate-text-result';
+import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
+import { ToolCallRepairFunction } from './tool-call-repair';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -77,21 +79,26 @@ If set and supported by the model, calls will generate deterministic results.
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
  */
-export async function generateText<TOOLS extends Record<string, CoreTool>>({
+export async function generateText<
+  TOOLS extends Record<string, CoreTool>,
+  OUTPUT = never,
+>({
   model,
   tools,
   toolChoice,
   system,
   prompt,
   messages,
-  maxRetries,
+  maxRetries: maxRetriesArg,
   abortSignal,
   headers,
   maxSteps = 1,
+  experimental_output: output,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   experimental_activeTools: activeTools,
+  experimental_repairToolCall: repairToolCall,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -149,6 +156,13 @@ changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
 
+    experimental_output?: Output<OUTPUT>;
+
+    /**
+A function that attempts to repair a tool call that failed to parse.
+     */
+    experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
+
     /**
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
@@ -161,7 +175,7 @@ changing the tool call and result types in the result.
       generateId?: () => string;
       currentDate?: () => Date;
     };
-  }): Promise<GenerateTextResult<TOOLS>> {
+  }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   if (maxSteps < 1) {
     throw new InvalidArgumentError({
       parameter: 'maxSteps',
@@ -169,6 +183,8 @@ changing the tool call and result types in the result.
       message: 'maxSteps must be at least 1',
     });
   }
+
+  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
@@ -178,7 +194,11 @@ changing the tool call and result types in the result.
   });
 
   const initialPrompt = standardizePrompt({
-    prompt: { system, prompt, messages },
+    prompt: {
+      system: output?.injectIntoSystemPrompt({ system, model }) ?? system,
+      prompt,
+      messages,
+    },
     tools,
   });
 
@@ -203,8 +223,6 @@ changing the tool call and result types in the result.
     }),
     tracer,
     fn: async span => {
-      const retry = retryWithExponentialBackoff({ maxRetries });
-
       const mode = {
         type: 'regular' as const,
         ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
@@ -221,7 +239,7 @@ changing the tool call and result types in the result.
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
       let text = '';
-      const steps: GenerateTextResult<TOOLS>['steps'] = [];
+      const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
       const usage: LanguageModelUsage = {
         completionTokens: 0,
         promptTokens: 0,
@@ -231,18 +249,19 @@ changing the tool call and result types in the result.
       let stepType: 'initial' | 'tool-result' | 'continue' | 'done' = 'initial';
 
       do {
-        if (stepCount === 1) {
-          initialPrompt.type = 'messages';
-        }
-
         // after the 1st step, we need to switch to messages format:
         const promptFormat = stepCount === 0 ? initialPrompt.type : 'messages';
+
+        const stepInputMessages = [
+          ...initialPrompt.messages,
+          ...responseMessages,
+        ];
 
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
             type: promptFormat,
             system: initialPrompt.system,
-            messages: [...initialPrompt.messages, ...responseMessages],
+            messages: stepInputMessages,
           },
           modelSupportsImageUrls: model.supportsImageUrls,
           modelSupportsUrl: model.supportsUrl,
@@ -292,6 +311,7 @@ changing the tool call and result types in the result.
                 mode,
                 ...callSettings,
                 inputFormat: promptFormat,
+                responseFormat: output?.responseFormat({ model }),
                 prompt: promptMessages,
                 providerMetadata,
                 abortSignal,
@@ -341,8 +361,16 @@ changing the tool call and result types in the result.
         );
 
         // parse tool calls:
-        currentToolCalls = (currentModelResponse.toolCalls ?? []).map(
-          modelToolCall => parseToolCall({ toolCall: modelToolCall, tools }),
+        currentToolCalls = await Promise.all(
+          (currentModelResponse.toolCalls ?? []).map(toolCall =>
+            parseToolCall({
+              toolCall,
+              tools,
+              repairToolCall,
+              system,
+              messages: stepInputMessages,
+            }),
+          ),
         );
 
         // execute tools:
@@ -354,6 +382,7 @@ changing the tool call and result types in the result.
                 tools,
                 tracer,
                 telemetry,
+                messages: stepInputMessages,
                 abortSignal,
               });
 
@@ -479,6 +508,8 @@ changing the tool call and result types in the result.
 
       return new DefaultGenerateTextResult({
         text,
+        output:
+          output == null ? (undefined as never) : output.parseOutput({ text }),
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
@@ -503,17 +534,19 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   tools,
   tracer,
   telemetry,
+  messages,
   abortSignal,
 }: {
   toolCalls: ToolCallArray<TOOLS>;
   tools: TOOLS;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  messages: CoreMessage[];
   abortSignal: AbortSignal | undefined;
 }): Promise<ToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(
-    toolCalls.map(async toolCall => {
-      const tool = tools[toolCall.toolName];
+    toolCalls.map(async ({ toolCallId, toolName, args }) => {
+      const tool = tools[toolName];
 
       if (tool?.execute == null) {
         return undefined;
@@ -528,43 +561,55 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
               operationId: 'ai.toolCall',
               telemetry,
             }),
-            'ai.toolCall.name': toolCall.toolName,
-            'ai.toolCall.id': toolCall.toolCallId,
+            'ai.toolCall.name': toolName,
+            'ai.toolCall.id': toolCallId,
             'ai.toolCall.args': {
-              output: () => JSON.stringify(toolCall.args),
+              output: () => JSON.stringify(args),
             },
           },
         }),
         tracer,
         fn: async span => {
-          const result = await tool.execute!(toolCall.args, { abortSignal });
-
           try {
-            span.setAttributes(
-              selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.toolCall.result': {
-                    output: () => JSON.stringify(result),
-                  },
-                },
-              }),
-            );
-          } catch (ignored) {
-            // JSON stringify might fail if the result is not serializable,
-            // in which case we just ignore it. In the future we might want to
-            // add an optional serialize method to the tool interface and warn
-            // if the result is not serializable.
-          }
+            const result = await tool.execute!(args, {
+              toolCallId,
+              messages,
+              abortSignal,
+            });
 
-          return result;
+            try {
+              span.setAttributes(
+                selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    'ai.toolCall.result': {
+                      output: () => JSON.stringify(result),
+                    },
+                  },
+                }),
+              );
+            } catch (ignored) {
+              // JSON stringify might fail if the result is not serializable,
+              // in which case we just ignore it. In the future we might want to
+              // add an optional serialize method to the tool interface and warn
+              // if the result is not serializable.
+            }
+
+            return result;
+          } catch (error) {
+            throw new ToolExecutionError({
+              toolName,
+              toolArgs: args,
+              cause: error,
+            });
+          }
         },
       });
 
       return {
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        args: toolCall.args,
+        toolCallId,
+        toolName,
+        args,
         result,
       } as ToolResultArray<TOOLS>[number];
     }),
@@ -575,33 +620,44 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   );
 }
 
-class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
-  implements GenerateTextResult<TOOLS>
+class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>, OUTPUT>
+  implements GenerateTextResult<TOOLS, OUTPUT>
 {
-  readonly text: GenerateTextResult<TOOLS>['text'];
-  readonly toolCalls: GenerateTextResult<TOOLS>['toolCalls'];
-  readonly toolResults: GenerateTextResult<TOOLS>['toolResults'];
-  readonly finishReason: GenerateTextResult<TOOLS>['finishReason'];
-  readonly usage: GenerateTextResult<TOOLS>['usage'];
-  readonly warnings: GenerateTextResult<TOOLS>['warnings'];
-  readonly steps: GenerateTextResult<TOOLS>['steps'];
-  readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
-  readonly experimental_providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
-  readonly response: GenerateTextResult<TOOLS>['response'];
-  readonly request: GenerateTextResult<TOOLS>['request'];
+  readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
+  readonly toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
+  readonly toolResults: GenerateTextResult<TOOLS, OUTPUT>['toolResults'];
+  readonly finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
+  readonly usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
+  readonly warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
+  readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
+  readonly logprobs: GenerateTextResult<TOOLS, OUTPUT>['logprobs'];
+  readonly experimental_providerMetadata: GenerateTextResult<
+    TOOLS,
+    OUTPUT
+  >['experimental_providerMetadata'];
+  readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
+  readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
+  readonly experimental_output: GenerateTextResult<
+    TOOLS,
+    OUTPUT
+  >['experimental_output'];
 
   constructor(options: {
-    text: GenerateTextResult<TOOLS>['text'];
-    toolCalls: GenerateTextResult<TOOLS>['toolCalls'];
-    toolResults: GenerateTextResult<TOOLS>['toolResults'];
-    finishReason: GenerateTextResult<TOOLS>['finishReason'];
-    usage: GenerateTextResult<TOOLS>['usage'];
-    warnings: GenerateTextResult<TOOLS>['warnings'];
-    logprobs: GenerateTextResult<TOOLS>['logprobs'];
-    steps: GenerateTextResult<TOOLS>['steps'];
-    providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
-    response: GenerateTextResult<TOOLS>['response'];
-    request: GenerateTextResult<TOOLS>['request'];
+    text: GenerateTextResult<TOOLS, OUTPUT>['text'];
+    toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
+    toolResults: GenerateTextResult<TOOLS, OUTPUT>['toolResults'];
+    finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
+    usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
+    warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
+    logprobs: GenerateTextResult<TOOLS, OUTPUT>['logprobs'];
+    steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
+    providerMetadata: GenerateTextResult<
+      TOOLS,
+      OUTPUT
+    >['experimental_providerMetadata'];
+    response: GenerateTextResult<TOOLS, OUTPUT>['response'];
+    request: GenerateTextResult<TOOLS, OUTPUT>['request'];
+    output: GenerateTextResult<TOOLS, OUTPUT>['experimental_output'];
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -614,5 +670,6 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.steps = options.steps;
     this.experimental_providerMetadata = options.providerMetadata;
     this.logprobs = options.logprobs;
+    this.experimental_output = options.output;
   }
 }

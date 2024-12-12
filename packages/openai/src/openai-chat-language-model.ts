@@ -24,7 +24,7 @@ import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import {
-  openAIErrorDataSchema,
+  openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
 import { getResponseMetadata } from './get-response-metadata';
@@ -57,7 +57,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 
   get supportsStructuredOutputs(): boolean {
-    return this.settings.structuredOutputs === true;
+    return this.settings.structuredOutputs ?? false;
   }
 
   get defaultObjectGenerationMode() {
@@ -104,14 +104,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     }
 
     if (
-      responseFormat != null &&
-      responseFormat.type === 'json' &&
-      responseFormat.schema != null
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !this.supportsStructuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'responseFormat',
-        details: 'JSON response format schema is not supported',
+        details:
+          'JSON response format schema is only supported with structuredOutputs',
       });
     }
 
@@ -123,7 +124,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    if (useLegacyFunctionCalling && this.settings.structuredOutputs === true) {
+    if (useLegacyFunctionCalling && this.supportsStructuredOutputs) {
       throw new UnsupportedFunctionalityError({
         functionality: 'structuredOutputs with useLegacyFunctionCalling',
       });
@@ -157,6 +158,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
+      response_format:
+        responseFormat?.type === 'json'
+          ? this.supportsStructuredOutputs && responseFormat.schema != null
+            ? {
+                type: 'json_schema',
+                json_schema: {
+                  schema: responseFormat.schema,
+                  strict: true,
+                  name: responseFormat.name ?? 'response',
+                  description: responseFormat.description,
+                },
+              }
+            : { type: 'json_object' }
+          : undefined,
       stop: stopSequences,
       seed,
 
@@ -166,10 +181,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       store: providerMetadata?.openai?.store ?? undefined,
       metadata: providerMetadata?.openai?.metadata ?? undefined,
       prediction: providerMetadata?.openai?.prediction ?? undefined,
-
-      // response format:
-      response_format:
-        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
       messages: convertToOpenAIChatMessages({
@@ -192,7 +203,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           prepareTools({
             mode,
             useLegacyFunctionCalling,
-            structuredOutputs: this.settings.structuredOutputs,
+            structuredOutputs: this.supportsStructuredOutputs,
           });
 
         return {
@@ -212,7 +223,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           args: {
             ...baseArgs,
             response_format:
-              this.settings.structuredOutputs === true && mode.schema != null
+              this.supportsStructuredOutputs && mode.schema != null
                 ? {
                     type: 'json_schema',
                     json_schema: {
@@ -257,10 +268,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       name: mode.tool.name,
                       description: mode.tool.description,
                       parameters: mode.tool.parameters,
-                      strict:
-                        this.settings.structuredOutputs === true
-                          ? true
-                          : undefined,
+                      strict: this.supportsStructuredOutputs ? true : undefined,
                     },
                   },
                 ],
@@ -290,7 +298,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        openAIChatResponseSchema,
+        openaiChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -351,50 +359,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    // reasoning models don't support streaming, we simulate it:
-    if (isReasoningModel(this.modelId)) {
-      const result = await this.doGenerate(options);
-
-      const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
-        start(controller) {
-          controller.enqueue({ type: 'response-metadata', ...result.response });
-
-          if (result.text) {
-            controller.enqueue({
-              type: 'text-delta',
-              textDelta: result.text,
-            });
-          }
-
-          if (result.toolCalls) {
-            for (const toolCall of result.toolCalls) {
-              controller.enqueue({
-                type: 'tool-call',
-                ...toolCall,
-              });
-            }
-          }
-
-          controller.enqueue({
-            type: 'finish',
-            finishReason: result.finishReason,
-            usage: result.usage,
-            logprobs: result.logprobs,
-            providerMetadata: result.providerMetadata,
-          });
-
-          controller.close();
-        },
-      });
-
-      return {
-        stream: simulatedStream,
-        rawCall: result.rawCall,
-        rawResponse: result.rawResponse,
-        warnings: result.warnings,
-      };
-    }
-
     const { args, warnings } = this.getArgs(options);
 
     const body = {
@@ -432,6 +396,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         name: string;
         arguments: string;
       };
+      hasFinished: boolean;
     }> = [];
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
@@ -485,13 +450,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 promptTokens: value.usage.prompt_tokens ?? undefined,
                 completionTokens: value.usage.completion_tokens ?? undefined,
               };
-              if (value.usage.prompt_tokens_details?.cached_tokens != null) {
-                providerMetadata = {
-                  openai: {
-                    cachedPromptTokens:
-                      value.usage.prompt_tokens_details?.cached_tokens,
-                  },
-                };
+
+              const {
+                completion_tokens_details: completionTokenDetails,
+                prompt_tokens_details: promptTokenDetails,
+              } = value.usage;
+
+              if (
+                completionTokenDetails?.reasoning_tokens != null ||
+                promptTokenDetails?.cached_tokens != null
+              ) {
+                providerMetadata = { openai: {} };
+                if (completionTokenDetails?.reasoning_tokens != null) {
+                  providerMetadata.openai.reasoningTokens =
+                    completionTokenDetails?.reasoning_tokens;
+                }
+                if (promptTokenDetails?.cached_tokens != null) {
+                  providerMetadata.openai.cachedPromptTokens =
+                    promptTokenDetails?.cached_tokens;
+                }
               }
             }
 
@@ -568,6 +545,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       name: toolCallDelta.function.name,
                       arguments: toolCallDelta.function.arguments ?? '',
                     },
+                    hasFinished: false,
                   };
 
                   const toolCall = toolCalls[index];
@@ -597,14 +575,19 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                         toolName: toolCall.function.name,
                         args: toolCall.function.arguments,
                       });
+                      toolCall.hasFinished = true;
                     }
                   }
 
                   continue;
                 }
 
-                // existing tool call, merge
+                // existing tool call, merge if not finished
                 const toolCall = toolCalls[index];
+
+                if (toolCall.hasFinished) {
+                  continue;
+                }
 
                 if (toolCallDelta.function?.arguments != null) {
                   toolCall.function!.arguments +=
@@ -633,6 +616,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                     toolName: toolCall.function.name,
                     args: toolCall.function.arguments,
                   });
+                  toolCall.hasFinished = true;
                 }
               }
             }
@@ -660,7 +644,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 }
 
-const openAITokenUsageSchema = z
+const openaiTokenUsageSchema = z
   .object({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
@@ -679,7 +663,7 @@ const openAITokenUsageSchema = z
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openAIChatResponseSchema = z.object({
+const openaiChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -729,7 +713,7 @@ const openAIChatResponseSchema = z.object({
       finish_reason: z.string().nullish(),
     }),
   ),
-  usage: openAITokenUsageSchema,
+  usage: openaiTokenUsageSchema,
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -788,9 +772,9 @@ const openaiChatChunkSchema = z.union([
         index: z.number(),
       }),
     ),
-    usage: openAITokenUsageSchema,
+    usage: openaiTokenUsageSchema,
   }),
-  openAIErrorDataSchema,
+  openaiErrorDataSchema,
 ]);
 
 function isReasoningModel(modelId: string) {

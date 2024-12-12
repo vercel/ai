@@ -14,6 +14,12 @@ const provider = createAzure({
   apiKey: 'test-api-key',
 });
 
+const providerApiVersionChanged = createAzure({
+  resourceName: 'test-resource',
+  apiKey: 'test-api-key',
+  apiVersion: '2024-08-01-preview',
+});
+
 describe('chat', () => {
   describe('doGenerate', () => {
     const server = new JsonTestServer(
@@ -47,10 +53,25 @@ describe('chat', () => {
       };
     }
 
-    it('should set the correct api version', async () => {
+    it('should set the correct default api version', async () => {
       prepareJsonResponse();
 
       await provider('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const searchParams = await server.getRequestUrlSearchParams();
+      expect(searchParams.get('api-version')).toStrictEqual(
+        '2024-10-01-preview',
+      );
+    });
+
+    it('should set the correct modified api version', async () => {
+      prepareJsonResponse();
+
+      await providerApiVersionChanged('test-deployment').doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
@@ -108,7 +129,7 @@ describe('chat', () => {
 
       const requestUrl = await server.getRequestUrl();
       expect(requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-08-01-preview',
+        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-10-01-preview',
       );
     });
   });
@@ -173,7 +194,7 @@ describe('completion', () => {
 
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-08-01-preview',
+        '2024-10-01-preview',
       );
     });
 
@@ -251,7 +272,7 @@ describe('embedding', () => {
 
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-08-01-preview',
+        '2024-10-01-preview',
       );
     });
 

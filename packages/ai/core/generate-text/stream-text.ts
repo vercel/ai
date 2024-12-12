@@ -1,14 +1,15 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
-import { formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { StreamData } from '../../streams/stream-data';
 import { DelayedPromise } from '../../util/delayed-promise';
-import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
+import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import { prepareRetries } from '../prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
@@ -46,6 +47,7 @@ import { StepResult } from './step-result';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
+import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
@@ -113,6 +115,7 @@ export function streamText<TOOLS extends Record<string, CoreTool>>({
   experimental_providerMetadata: providerMetadata,
   experimental_toolCallStreaming: toolCallStreaming = false,
   experimental_activeTools: activeTools,
+  experimental_repairToolCall: repairToolCall,
   onChunk,
   onFinish,
   onStepFinish,
@@ -172,6 +175,11 @@ Limits the tools that are available for the model to call without
 changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
+
+    /**
+A function that attempts to repair a tool call that failed to parse.
+     */
+    experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 
     /**
 Enable streaming of tool call deltas as they are generated. Disabled by default.
@@ -238,6 +246,7 @@ Details for all steps.
     toolChoice,
     toolCallStreaming,
     activeTools,
+    repairToolCall,
     maxSteps,
     continueSteps,
     providerMetadata,
@@ -292,7 +301,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     telemetry,
     headers,
     settings,
-    maxRetries,
+    maxRetries: maxRetriesArg,
     abortSignal,
     system,
     prompt,
@@ -301,6 +310,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     toolChoice,
     toolCallStreaming,
     activeTools,
+    repairToolCall,
     maxSteps,
     continueSteps,
     providerMetadata,
@@ -324,6 +334,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     toolChoice: CoreToolChoice<TOOLS> | undefined;
     toolCallStreaming: boolean;
     activeTools: Array<keyof TOOLS> | undefined;
+    repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
     continueSteps: boolean;
     providerMetadata: ProviderMetadata | undefined;
@@ -364,6 +375,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       });
     }
 
+    const { maxRetries, retry } = prepareRetries({
+      maxRetries: maxRetriesArg,
+    });
+
     const tracer = getTracer(telemetry);
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
@@ -397,8 +412,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       tracer,
       endWhenDone: false,
       fn: async rootSpan => {
-        const retry = retryWithExponentialBackoff({ maxRetries });
-
         // collect step results
         const stepResults: StepResult<TOOLS>[] = [];
 
@@ -421,11 +434,16 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           const promptFormat =
             responseMessages.length === 0 ? initialPrompt.type : 'messages';
 
+          const stepInputMessages = [
+            ...initialPrompt.messages,
+            ...responseMessages,
+          ];
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               type: promptFormat,
               system: initialPrompt.system,
-              messages: [...initialPrompt.messages, ...responseMessages],
+              messages: stepInputMessages,
             },
             modelSupportsImageUrls: model.supportsImageUrls,
             modelSupportsUrl: model.supportsUrl,
@@ -504,6 +522,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             toolCallStreaming,
             tracer,
             telemetry,
+            system,
+            messages: stepInputMessages,
+            repairToolCall,
             abortSignal,
           });
 
@@ -955,11 +976,12 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         });
       },
     }).catch(error => {
-      // add an empty stream with an error to break the stream:
+      // add an error stream part and close the streams:
       self.stitchableStream.addStream(
         new ReadableStream({
           start(controller) {
-            controller.error(error);
+            controller.enqueue({ type: 'error', error });
+            controller.close();
           },
         }),
       );
@@ -1042,12 +1064,12 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   private toDataStreamInternal({
-    getErrorMessage = () => '', // mask error messages for safety by default
+    getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
   }: {
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean;
-  } = {}) {
+  } = {}): ReadableStream<DataStreamString> {
     let aggregatedResponse = '';
 
     const callbackTransformer = new TransformStream<
@@ -1065,7 +1087,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     const streamPartsTransformer = new TransformStream<
       TextStreamPart<TOOLS>,
-      string
+      DataStreamString
     >({
       transform: async (chunk, controller) => {
         const chunkType = chunk.type;
@@ -1164,8 +1186,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     return this.fullStream
       .pipeThrough(callbackTransformer)
-      .pipeThrough(streamPartsTransformer)
-      .pipeThrough(new TextEncoderStream());
+      .pipeThrough(streamPartsTransformer);
   }
 
   pipeDataStreamToResponse(
@@ -1207,6 +1228,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
+  // TODO breaking change 5.0: remove pipeThrough(new TextEncoderStream())
   toDataStream(options?: {
     data?: StreamData;
     getErrorMessage?: (error: unknown) => string;
@@ -1215,9 +1237,17 @@ However, the LLM results are expected to be small enough to not cause issues.
     const stream = this.toDataStreamInternal({
       getErrorMessage: options?.getErrorMessage,
       sendUsage: options?.sendUsage,
-    });
+    }).pipeThrough(new TextEncoderStream());
 
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
+  }
+
+  mergeIntoDataStream(writer: DataStreamWriter) {
+    writer.merge(
+      this.toDataStreamInternal({
+        getErrorMessage: writer.onError,
+      }),
+    );
   }
 
   toDataStreamResponse({

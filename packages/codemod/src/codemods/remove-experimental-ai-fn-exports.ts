@@ -1,4 +1,4 @@
-import { API, FileInfo, JSCodeshift } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
 const EXPERIMENTAL_MAPPINGS = {
   experimental_generateText: 'generateText',
@@ -7,9 +7,8 @@ const EXPERIMENTAL_MAPPINGS = {
   experimental_streamObject: 'streamObject',
 } as const;
 
-export default function transformer(fileInfo: FileInfo, api: API) {
-  const j: JSCodeshift = api.jscodeshift;
-  const root = j(fileInfo.source);
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
   // Replace imports of experimental functions
   root.find(j.ImportDeclaration).forEach(path => {
@@ -20,6 +19,7 @@ export default function transformer(fileInfo: FileInfo, api: API) {
           specifier.imported.type === 'Identifier' &&
           specifier.imported.name in EXPERIMENTAL_MAPPINGS
         ) {
+          context.hasChanges = true;
           const newName =
             EXPERIMENTAL_MAPPINGS[
               specifier.imported.name as keyof typeof EXPERIMENTAL_MAPPINGS
@@ -39,12 +39,11 @@ export default function transformer(fileInfo: FileInfo, api: API) {
       path.node.callee.type === 'Identifier' &&
       path.node.callee.name in EXPERIMENTAL_MAPPINGS
     ) {
+      context.hasChanges = true;
       path.node.callee.name =
         EXPERIMENTAL_MAPPINGS[
           path.node.callee.name as keyof typeof EXPERIMENTAL_MAPPINGS
         ];
     }
   });
-
-  return root.toSource();
-}
+});

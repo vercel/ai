@@ -9,10 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "1.0.0-canary.9",
+    "@ai-sdk/react": "1.0.6",
     "@langchain/openai": "0.0.28",
     "@langchain/core": "0.1.63",
-    "ai": "4.0.0-canary.13",
+    "ai": "4.0.14",
     "langchain": "0.1.36",
     "next": "latest",
     "react": "^18",
@@ -25,8 +25,8 @@
     "autoprefixer": "^10.4.14",
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.3",
-    "postcss": "^8.4.23",
-    "tailwindcss": "^3.3.2",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
     "typescript": "5.6.3"
   }
 }

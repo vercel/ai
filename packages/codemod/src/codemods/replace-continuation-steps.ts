@@ -1,8 +1,7 @@
-import { API, FileInfo } from 'jscodeshift';
+import { createTransformer } from './lib/create-transformer';
 
-export default function transformer(file: FileInfo, api: API) {
-  const j = api.jscodeshift;
-  const root = j(file.source);
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
   // Track imports from 'ai' package
   const targetImports = new Set<string>();
@@ -49,9 +48,8 @@ export default function transformer(file: FileInfo, api: API) {
     )
     .forEach(path => {
       if (path.node.key.type === 'Identifier') {
+        context.hasChanges = true;
         path.node.key.name = 'experimental_continueSteps';
       }
     });
-
-  return root.toSource();
-}
+});

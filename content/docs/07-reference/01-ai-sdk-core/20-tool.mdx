@@ -63,9 +63,31 @@ export const weatherTool = tool({
             {
               name: 'execute',
               isOptional: true,
-              type: 'async (parameters: T, options: { abortSignal: AbortSignal }) => RESULT',
+              type: 'async (parameters: T, options: ToolExecutionOptions) => RESULT',
               description:
-                'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.'
+                'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.',
+                properties: [
+                  {
+                    type: "ToolExecutionOptions",
+                    parameters: [
+                      {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description: 'The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.',
+                    },
+                    {
+                        name: "messages",
+                        type: "CoreMessage[]",
+                        description: "Messages that were sent to the language model to initiate the response that contained the tool call. The messages do not include the system prompt nor the assistant response that contained the tool call."
+                      },
+                      {
+                        name: "abortSignal",
+                        type: "AbortSignal",
+                        description: "An optional abort signal that indicates that the overall operation should be aborted."
+                      }
+                    ]
+                  }
+                ]
             },
             {
               name: 'experimental_toToolResultContent',

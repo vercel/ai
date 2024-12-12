@@ -1,5 +1,118 @@
 # @ai-sdk/google-vertex
 
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [c0b1c7e]
+  - @ai-sdk/google@1.0.9
+
+## 2.0.6
+
+### Patch Changes
+
+- b7372dc: feat (provider/google): Include optional response grounding metadata.
+- 8224964: feat (provider/google-vertex): Add support for baseURL in API calls.
+- Updated dependencies [b7372dc]
+  - @ai-sdk/google@1.0.8
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/anthropic@1.0.5
+  - @ai-sdk/google@1.0.7
+  - @ai-sdk/provider-utils@2.0.4
+
+## 2.0.4
+
+### Patch Changes
+
+- 3cfcd0a: fix (provider/google-vertex): Remove unsupported cache control setting from Vertex Anthropic.
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [9e54403]
+  - @ai-sdk/google@1.0.6
+
+## 2.0.2
+
+### Patch Changes
+
+- 5b0366e: fix (provider/vertex): fix internal reference
+
+## 2.0.1
+
+### Patch Changes
+
+- bcd892e: feat (provider/google-vertex): Add support for Anthropic models.
+- Updated dependencies [bcd892e]
+  - @ai-sdk/anthropic@1.0.4
+
+## 2.0.0
+
+### Major Changes
+
+- 0984f0b: feat (provider/google-vertex): Rewrite for Edge runtime support.
+
+### Patch Changes
+
+- 0984f0b: chore (providers/google-vertex): Remove unref'd base default provider.
+- Updated dependencies [0984f0b]
+- Updated dependencies [0984f0b]
+  - @ai-sdk/google@1.0.5
+  - @ai-sdk/provider-utils@2.0.3
+
+## 1.0.4
+
+### Patch Changes
+
+- 6373c60: fix (provider/google): send json schema into provider
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [b446ae5]
+  - @ai-sdk/provider@1.0.1
+  - @ai-sdk/provider-utils@2.0.2
+
+## 1.0.2
+
+### Patch Changes
+
+- b748dfb: feat (providers): update model lists
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [c3ab5de]
+  - @ai-sdk/provider-utils@2.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 66060f7: chore (release): bump major version to 4.0
+- 8c5daa3: chore (provider/vertex): remove topK model setting
+
+### Patch Changes
+
+- Updated dependencies [b469a7e]
+- Updated dependencies [dce4158]
+- Updated dependencies [c0ddc24]
+- Updated dependencies [b1da952]
+- Updated dependencies [dce4158]
+- Updated dependencies [8426f55]
+- Updated dependencies [db46ce5]
+  - @ai-sdk/provider-utils@2.0.0
+  - @ai-sdk/provider@1.0.0
+
 ## 1.0.0-canary.3
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "1.0.0-canary.3",
+  "version": "2.0.7",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,12 +8,15 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "edge/dist/**/*",
+    "anthropic/dist/**/*",
+    "anthropic/edge/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist && rm -rf edge/dist && rm -rf anthropic/dist && rm -rf anthropic/edge/dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -27,14 +30,31 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./edge": {
+      "types": "./edge/dist/index.d.ts",
+      "import": "./edge/dist/index.mjs",
+      "require": "./edge/dist/index.js"
+    },
+    "./anthropic": {
+      "types": "./anthropic/dist/index.d.ts",
+      "import": "./anthropic/dist/index.mjs",
+      "require": "./anthropic/dist/index.js"
+    },
+    "./anthropic/edge": {
+      "types": "./anthropic/edge/dist/index.d.ts",
+      "import": "./anthropic/edge/dist/index.mjs",
+      "require": "./anthropic/edge/dist/index.js"
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.0.0-canary.0",
-    "@ai-sdk/provider-utils": "2.0.0-canary.3"
+    "@ai-sdk/anthropic": "1.0.5",
+    "@ai-sdk/google": "1.0.9",
+    "@ai-sdk/provider": "1.0.2",
+    "@ai-sdk/provider-utils": "2.0.4",
+    "google-auth-library": "^9.15.0"
   },
   "devDependencies": {
-    "@google-cloud/vertexai": "^1.6.0",
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
@@ -42,8 +62,7 @@
     "zod": "3.23.8"
   },
   "peerDependencies": {
-    "zod": "^3.0.0",
-    "@google-cloud/vertexai": "^1.6.0"
+    "zod": "^3.0.0"
   },
   "engines": {
     "node": ">=18"
