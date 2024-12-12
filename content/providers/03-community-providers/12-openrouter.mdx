@@ -3,7 +3,7 @@ title: OpenRouter
 description: OpenRouter Provider for the AI SDK
 ---
 
-# OpenRouter Provider
+# OpenRouter
 
 [OpenRouter](https://openrouter.ai/) is a unified API gateway that provides access to hundreds of AI models from leading providers like Anthropic, Google, Meta, Mistral, and more. The OpenRouter provider for the AI SDK enables seamless integration with all these models while offering unique advantages:
 
@@ -55,7 +55,9 @@ OpenRouter supports both chat and completion models. Use `openrouter.chatModel()
 const chatModel = openrouter.chatModel('anthropic/claude-3.5-sonnet');
 
 // Completion models
-const completionModel = openrouter.completionModel('meta-llama/llama-3.1-405b-instruct');
+const completionModel = openrouter.completionModel(
+  'meta-llama/llama-3.1-405b-instruct',
+);
 ```
 
 You can find the full list of available models in the [OpenRouter Models documentation](https://openrouter.ai/docs#models).
