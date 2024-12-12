@@ -1,4 +1,6 @@
-export function smoothStream({ delayMs = 40 }: { delayMs?: number } = {}) {
+import { delay } from '../../util/delay';
+
+export function smoothStream({ delayInMs = 40 }: { delayInMs?: number } = {}) {
   let buffer = '';
 
   return new TransformStream({
@@ -23,8 +25,8 @@ export function smoothStream({ delayMs = 40 }: { delayMs?: number } = {}) {
       // Stream out complete words when whitespace is found
       let isFirst = true;
       while (buffer.match(/\s/)) {
-        if (!isFirst && delayMs > 0) {
-          await new Promise(resolve => setTimeout(resolve, delayMs));
+        if (!isFirst && delayInMs > 0) {
+          await delay(delayInMs);
         }
         isFirst = false;
 
