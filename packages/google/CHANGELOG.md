@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.0.9
+
+### Patch Changes
+
+- c0b1c7e: feat (provider/google): Add Gemini 2.0 model.
+
 ## 1.0.8
 
 ### Patch Changes
