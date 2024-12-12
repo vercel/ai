@@ -116,6 +116,7 @@ export function streamText<TOOLS extends Record<string, CoreTool>>({
   experimental_toolCallStreaming: toolCallStreaming = false,
   experimental_activeTools: activeTools,
   experimental_repairToolCall: repairToolCall,
+  experimental_transformStream: transformStream,
   onChunk,
   onFinish,
   onStepFinish,
@@ -187,6 +188,14 @@ Enable streaming of tool call deltas as they are generated. Disabled by default.
     experimental_toolCallStreaming?: boolean;
 
     /**
+Optional transformation that is applied to the stream.
+     */
+    experimental_transformStream?: TransformStream<
+      TextStreamPart<TOOLS>,
+      TextStreamPart<TOOLS>
+    >;
+
+    /**
 Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
      */
     onChunk?: (event: {
@@ -245,6 +254,7 @@ Details for all steps.
     tools,
     toolChoice,
     toolCallStreaming,
+    transformStream,
     activeTools,
     repairToolCall,
     maxSteps,
@@ -314,6 +324,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     tools,
     toolChoice,
     toolCallStreaming,
+    transformStream,
     activeTools,
     repairToolCall,
     maxSteps,
@@ -338,6 +349,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     tools: TOOLS | undefined;
     toolChoice: CoreToolChoice<TOOLS> | undefined;
     toolCallStreaming: boolean;
+    transformStream:
+      | TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>
+      | undefined;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
@@ -384,7 +398,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     const stitchableStream = createStitchableStream<TextStreamPart<TOOLS>>();
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
-    this.baseStream = stitchableStream.stream;
+    this.baseStream = transformStream
+      ? stitchableStream.stream.pipeThrough(transformStream)
+      : stitchableStream.stream;
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
