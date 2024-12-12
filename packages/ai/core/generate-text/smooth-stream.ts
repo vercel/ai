@@ -1,6 +1,8 @@
 import { delay as originalDelay } from '../../util/delay';
+import { CoreTool } from '../tool/tool';
+import { TextStreamPart } from './stream-text-result';
 
-export function smoothStream({
+export function smoothStream<TOOLS extends Record<string, CoreTool>>({
   delayInMs = 40,
   _internal: { delay = originalDelay } = {},
 }: {
@@ -12,10 +14,10 @@ export function smoothStream({
   _internal?: {
     delay?: (delayInMs: number) => Promise<void>;
   };
-} = {}) {
+} = {}): TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>> {
   let buffer = '';
 
-  return new TransformStream({
+  return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
     async transform(chunk, controller) {
       if (chunk.type === 'step-finish') {
         if (buffer.length > 0) {
