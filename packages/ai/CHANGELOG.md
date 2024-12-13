@@ -1,5 +1,12 @@
 # ai
 
+## 4.0.18
+
+### Patch Changes
+
+- 304e6d3: feat (ai/core): standardize generateObject, streamObject, and output errors to NoObjectGeneratedError
+- 304e6d3: feat (ai/core): add additional information to NoObjectGeneratedError
+
 ## 4.0.17
 
 ### Patch Changes
