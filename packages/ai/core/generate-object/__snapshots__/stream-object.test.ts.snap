@@ -28,18 +28,7 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
 
 exports[`streamObject > output = "object" > options.onFinish > should be called when object doesn't match the schema 1`] = `
 {
-  "error": [AI_TypeValidationError: Type validation failed: Value: {"invalid":"Hello, world!"}.
-Error message: [
-  {
-    "code": "invalid_type",
-    "expected": "string",
-    "received": "undefined",
-    "path": [
-      "content"
-    ],
-    "message": "Required"
-  }
-]],
+  "error": [AI_NoObjectGeneratedError: No object generated: response did not match schema.],
   "experimental_providerMetadata": undefined,
   "object": undefined,
   "response": {

@@ -7,6 +7,7 @@ import {
 import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
+import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
@@ -884,13 +885,7 @@ describe('streamObject', () => {
         // consume stream (runs in parallel)
         convertAsyncIterableToArray(result.partialObjectStream);
 
-        await result.object
-          .then(() => {
-            assert.fail('Expected object promise to be rejected');
-          })
-          .catch(error => {
-            expect(TypeValidationError.isInstance(error)).toBeTruthy();
-          });
+        expect(result.object).rejects.toThrow(NoObjectGeneratedError);
       });
 
       it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
@@ -1241,6 +1236,198 @@ describe('streamObject', () => {
             { content: 'Hello, world' },
             { content: 'Hello, world!' },
           ],
+        );
+      });
+    });
+
+    describe('error handling', () => {
+      it('should throw NoObjectGeneratedError when schema validation fails in tool mode', async () => {
+        const result = streamObject({
+          model: new MockLanguageModelV1({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call-delta',
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: '{ "content": 123 }',
+                },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'tool',
+          prompt: 'prompt',
+        });
+
+        await expect(async () => {
+          await convertAsyncIterableToArray(result.partialObjectStream);
+          await result.object;
+        }).rejects.toThrow(
+          new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+          }),
+        );
+      });
+
+      it('should throw NoObjectGeneratedError when schema validation fails in json mode', async () => {
+        const result = streamObject({
+          model: new MockLanguageModelV1({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-delta', textDelta: '{ "content": 123 }' },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+        });
+
+        await expect(async () => {
+          await convertAsyncIterableToArray(result.partialObjectStream);
+          await result.object;
+        }).rejects.toThrow(
+          new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+          }),
+        );
+      });
+
+      it('should throw NoObjectGeneratedError when parsing fails in tool mode', async () => {
+        const result = streamObject({
+          model: new MockLanguageModelV1({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call-delta',
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: '{ broken json',
+                },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'tool',
+          prompt: 'prompt',
+        });
+
+        await expect(async () => {
+          await convertAsyncIterableToArray(result.partialObjectStream);
+          await result.object;
+        }).rejects.toThrow(
+          new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+          }),
+        );
+      });
+
+      it('should throw NoObjectGeneratedError when parsing fails in json mode', async () => {
+        const result = streamObject({
+          model: new MockLanguageModelV1({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-delta', textDelta: '{ broken json' },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+        });
+
+        await expect(async () => {
+          await convertAsyncIterableToArray(result.partialObjectStream);
+          await result.object;
+        }).rejects.toThrow(
+          new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+          }),
+        );
+      });
+
+      it('should throw NoObjectGeneratedError when no tool call is made in tool mode', async () => {
+        const result = streamObject({
+          model: new MockLanguageModelV1({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'tool',
+          prompt: 'prompt',
+        });
+
+        await expect(async () => {
+          await convertAsyncIterableToArray(result.partialObjectStream);
+          await result.object;
+        }).rejects.toThrow(
+          new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+          }),
+        );
+      });
+
+      it('should throw NoObjectGeneratedError when no text is generated in json mode', async () => {
+        const result = streamObject({
+          model: new MockLanguageModelV1({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+        });
+
+        await expect(async () => {
+          await convertAsyncIterableToArray(result.partialObjectStream);
+          await result.object;
+        }).rejects.toThrow(
+          new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+          }),
         );
       });
     });
