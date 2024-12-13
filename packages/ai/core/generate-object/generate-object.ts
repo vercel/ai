@@ -685,7 +685,10 @@ export async function generateObject<SCHEMA, RESULT>({
       );
 
       if (!validationResult.success) {
-        throw validationResult.error;
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+          cause: validationResult.error,
+        });
       }
 
       // Add response information to the span:

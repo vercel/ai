@@ -2,11 +2,10 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
+import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
-import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
-import { JSONParseError } from '@ai-sdk/provider';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -699,8 +698,52 @@ describe('output = "object"', () => {
   });
 
   describe('error handling', () => {
-    // TODO when schema validation fails in json mode
-    // TODO when schema validation fails in tool mode
+    it('should throw NoObjectGeneratedError when schema validation fails in tool model', async () => {
+      expect(
+        generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              toolCalls: [
+                {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  args: `{ "content": 123 }`,
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'tool',
+          prompt: 'prompt',
+        }),
+      ).rejects.toThrow(
+        new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+        }),
+      );
+    });
+
+    it('should throw NoObjectGeneratedError when schema validation fails in json model', async () => {
+      expect(
+        generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              text: `{ "content": 123 }`,
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+        }),
+      ).rejects.toThrow(
+        new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+        }),
+      );
+    });
 
     it('should throw NoObjectGeneratedError when parsing fails in tool model', async () => {
       expect(
