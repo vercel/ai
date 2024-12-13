@@ -6,6 +6,7 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
 import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
+import { JSONParseError } from '@ai-sdk/provider';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -723,10 +724,7 @@ describe('output = "object"', () => {
         }),
       ).rejects.toThrow(
         new NoObjectGeneratedError({
-          // cause: new JSONParseError({
-          //   message: 'Unexpected end of JSON input',
-          //   input: '{ broken json',
-          // }),
+          message: 'No object generated: could not parse the response.',
         }),
       );
     });
@@ -746,10 +744,7 @@ describe('output = "object"', () => {
         }),
       ).rejects.toThrow(
         new NoObjectGeneratedError({
-          // cause: new JSONParseError({
-          //   message: 'Unexpected end of JSON input',
-          //   input: '{ broken json',
-          // }),
+          message: 'No object generated: could not parse the response.',
         }),
       );
     });
@@ -767,7 +762,11 @@ describe('output = "object"', () => {
           mode: 'tool',
           prompt: 'prompt',
         }),
-      ).rejects.toThrow(new NoObjectGeneratedError({}));
+      ).rejects.toThrow(
+        new NoObjectGeneratedError({
+          message: 'No object generated: the tool was not called.',
+        }),
+      );
     });
 
     it('should throw NoObjectGeneratedError when no text is available in json model', async () => {
@@ -783,7 +782,11 @@ describe('output = "object"', () => {
           mode: 'json',
           prompt: 'prompt',
         }),
-      ).rejects.toThrow(new NoObjectGeneratedError({}));
+      ).rejects.toThrow(
+        new NoObjectGeneratedError({
+          message: 'No object generated: the model did not return a response.',
+        }),
+      );
     });
   });
 });

@@ -14,8 +14,11 @@ Thrown when no object could be generated. This can have several causes:
 export class NoObjectGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
-  constructor({ message = 'No object generated.' }: { message?: string } = {}) {
-    super({ name, message });
+  constructor({
+    message = 'No object generated.',
+    cause,
+  }: { message?: string; cause?: Error } = {}) {
+    super({ name, message, cause });
   }
 
   static isInstance(error: unknown): error is NoObjectGeneratedError {

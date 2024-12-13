@@ -479,7 +479,10 @@ export async function generateObject<SCHEMA, RESULT>({
                 });
 
                 if (result.text === undefined) {
-                  throw new NoObjectGeneratedError();
+                  throw new NoObjectGeneratedError({
+                    message:
+                      'No object generated: the model did not return a response.',
+                  });
                 }
 
                 const responseData = {
@@ -600,7 +603,9 @@ export async function generateObject<SCHEMA, RESULT>({
                 const objectText = result.toolCalls?.[0]?.args;
 
                 if (objectText === undefined) {
-                  throw new NoObjectGeneratedError();
+                  throw new NoObjectGeneratedError({
+                    message: 'No object generated: the tool was not called.',
+                  });
                 }
 
                 const responseData = {
@@ -669,9 +674,9 @@ export async function generateObject<SCHEMA, RESULT>({
       const parseResult = safeParseJSON({ text: result });
 
       if (!parseResult.success) {
-        // throw parseResult.error;
         throw new NoObjectGeneratedError({
-          // cause: parseResult.error,
+          message: 'No object generated: could not parse the response.',
+          cause: parseResult.error,
         });
       }
 
