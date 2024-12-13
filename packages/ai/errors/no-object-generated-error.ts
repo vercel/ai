@@ -59,3 +59,18 @@ export class NoObjectGeneratedError extends AISDKError {
     return AISDKError.hasMarker(error, marker);
   }
 }
+
+export function verifyNoObjectGeneratedError(
+  error: unknown,
+  expected: {
+    message: string;
+    response: LanguageModelResponseMetadata;
+    usage: LanguageModelUsage;
+  },
+) {
+  expect(NoObjectGeneratedError.isInstance(error)).toBeTruthy();
+  const noObjectGeneratedError = error as NoObjectGeneratedError;
+  expect(noObjectGeneratedError.message).toStrictEqual(expected.message);
+  expect(noObjectGeneratedError.response).toStrictEqual(expected.response);
+  expect(noObjectGeneratedError.usage).toStrictEqual(expected.usage);
+}

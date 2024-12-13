@@ -1,6 +1,6 @@
 import { fail } from 'assert';
 import { z } from 'zod';
-import { NoObjectGeneratedError } from '../../errors';
+import { verifyNoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { object } from './output';
 
 const context = {
@@ -19,17 +19,6 @@ const context = {
 describe('Output.object', () => {
   const output = object({ schema: z.object({ content: z.string() }) });
 
-  function verifyNoObjectGeneratedError(
-    error: unknown,
-    { message }: { message: string },
-  ) {
-    expect(NoObjectGeneratedError.isInstance(error)).toBeTruthy();
-    const noObjectGeneratedError = error as NoObjectGeneratedError;
-    expect(noObjectGeneratedError.message).toStrictEqual(message);
-    expect(noObjectGeneratedError.response).toStrictEqual(context.response);
-    expect(noObjectGeneratedError.usage).toStrictEqual(context.usage);
-  }
-
   it('should parse the output of the model', () => {
     const result = output.parseOutput(
       { text: `{ "content": "test" }` },
@@ -46,6 +35,8 @@ describe('Output.object', () => {
     } catch (error) {
       verifyNoObjectGeneratedError(error, {
         message: 'No object generated: could not parse the response.',
+        response: context.response,
+        usage: context.usage,
       });
     }
   });
@@ -57,6 +48,8 @@ describe('Output.object', () => {
     } catch (error) {
       verifyNoObjectGeneratedError(error, {
         message: 'No object generated: response did not match schema.',
+        response: context.response,
+        usage: context.usage,
       });
     }
   });
