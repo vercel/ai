@@ -698,10 +698,63 @@ describe('output = "object"', () => {
   });
 
   describe('error handling', () => {
-    // TODO when parsing fails in json mode
-    // TODO when parsing fails in tool mode
+    // TODO when schema validation fails in json mode
+    // TODO when schema validation fails in tool mode
 
-    it('should throw NoObjectGeneratedError when the tool was not called', async () => {
+    it('should throw NoObjectGeneratedError when parsing fails in tool model', async () => {
+      expect(
+        generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              toolCalls: [
+                {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  args: `{ broken json`,
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'tool',
+          prompt: 'prompt',
+        }),
+      ).rejects.toThrow(
+        new NoObjectGeneratedError({
+          // cause: new JSONParseError({
+          //   message: 'Unexpected end of JSON input',
+          //   input: '{ broken json',
+          // }),
+        }),
+      );
+    });
+
+    it('should throw NoObjectGeneratedError when parsing fails in json model', async () => {
+      expect(
+        generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              text: '{ broken json',
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+        }),
+      ).rejects.toThrow(
+        new NoObjectGeneratedError({
+          // cause: new JSONParseError({
+          //   message: 'Unexpected end of JSON input',
+          //   input: '{ broken json',
+          // }),
+        }),
+      );
+    });
+
+    it('should throw NoObjectGeneratedError when the tool was not called in tool mode', async () => {
       expect(
         generateObject({
           model: new MockLanguageModelV1({

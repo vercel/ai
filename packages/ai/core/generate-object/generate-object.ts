@@ -669,7 +669,10 @@ export async function generateObject<SCHEMA, RESULT>({
       const parseResult = safeParseJSON({ text: result });
 
       if (!parseResult.success) {
-        throw parseResult.error;
+        // throw parseResult.error;
+        throw new NoObjectGeneratedError({
+          // cause: parseResult.error,
+        });
       }
 
       const validationResult = outputStrategy.validateFinalResult(
