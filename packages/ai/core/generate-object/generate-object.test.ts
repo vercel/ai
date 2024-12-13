@@ -2,7 +2,10 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod';
-import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
+import {
+  NoObjectGeneratedError,
+  verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError,
+} from '../../errors/no-object-generated-error';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
@@ -703,18 +706,18 @@ describe('output = "object"', () => {
       error: unknown,
       { message }: { message: string },
     ) {
-      expect(NoObjectGeneratedError.isInstance(error)).toBeTruthy();
-      const noObjectGeneratedError = error as NoObjectGeneratedError;
-      expect(noObjectGeneratedError.message).toStrictEqual(message);
-      expect(noObjectGeneratedError.response).toStrictEqual({
-        id: 'id-1',
-        timestamp: new Date(123),
-        modelId: 'm-1',
-      });
-      expect(noObjectGeneratedError.usage).toStrictEqual({
-        completionTokens: 20,
-        promptTokens: 10,
-        totalTokens: 30,
+      originalVerifyNoObjectGeneratedError(error, {
+        message,
+        response: {
+          id: 'id-1',
+          timestamp: new Date(123),
+          modelId: 'm-1',
+        },
+        usage: {
+          completionTokens: 20,
+          promptTokens: 10,
+          totalTokens: 30,
+        },
       });
     }
 
