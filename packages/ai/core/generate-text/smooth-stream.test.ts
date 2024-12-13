@@ -21,7 +21,7 @@ describe('smoothStream', () => {
             return Promise.resolve();
           },
         },
-      }),
+      })({ tools: {} }),
     );
 
     // Get a reader and read chunks
@@ -70,7 +70,7 @@ describe('smoothStream', () => {
             return Promise.resolve();
           },
         },
-      }),
+      })({ tools: {} }),
     );
 
     // Get a reader and read chunks
