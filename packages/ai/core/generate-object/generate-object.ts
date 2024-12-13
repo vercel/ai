@@ -478,20 +478,20 @@ export async function generateObject<SCHEMA, RESULT>({
                   headers,
                 });
 
-                if (result.text === undefined) {
-                  throw new NoObjectGeneratedError({
-                    message:
-                      'No object generated: the model did not return a response.',
-                    response,
-                    usage: calculateLanguageModelUsage(result.usage),
-                  });
-                }
-
                 const responseData = {
                   id: result.response?.id ?? generateId(),
                   timestamp: result.response?.timestamp ?? currentDate(),
                   modelId: result.response?.modelId ?? model.modelId,
                 };
+
+                if (result.text === undefined) {
+                  throw new NoObjectGeneratedError({
+                    message:
+                      'No object generated: the model did not return a response.',
+                    response: responseData,
+                    usage: calculateLanguageModelUsage(result.usage),
+                  });
+                }
 
                 // Add response information to the span:
                 span.setAttributes(
@@ -604,19 +604,19 @@ export async function generateObject<SCHEMA, RESULT>({
 
                 const objectText = result.toolCalls?.[0]?.args;
 
-                if (objectText === undefined) {
-                  throw new NoObjectGeneratedError({
-                    message: 'No object generated: the tool was not called.',
-                    response,
-                    usage: calculateLanguageModelUsage(result.usage),
-                  });
-                }
-
                 const responseData = {
                   id: result.response?.id ?? generateId(),
                   timestamp: result.response?.timestamp ?? currentDate(),
                   modelId: result.response?.modelId ?? model.modelId,
                 };
+
+                if (objectText === undefined) {
+                  throw new NoObjectGeneratedError({
+                    message: 'No object generated: the tool was not called.',
+                    response: responseData,
+                    usage: calculateLanguageModelUsage(result.usage),
+                  });
+                }
 
                 // Add response information to the span:
                 span.setAttributes(
