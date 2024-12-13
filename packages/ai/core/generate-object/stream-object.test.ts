@@ -1273,6 +1273,10 @@ describe('streamObject', () => {
         }).rejects.toThrow(
           new NoObjectGeneratedError({
             message: 'No object generated: response did not match schema.',
+
+            // not tested, just for type checking:
+            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
           }),
         );
       });
@@ -1303,6 +1307,10 @@ describe('streamObject', () => {
         }).rejects.toThrow(
           new NoObjectGeneratedError({
             message: 'No object generated: response did not match schema.',
+
+            // not tested, just for type checking:
+            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
           }),
         );
       });
@@ -1339,9 +1347,10 @@ describe('streamObject', () => {
         }).rejects.toThrow(
           new NoObjectGeneratedError({
             message: 'No object generated: response did not match schema.',
-            text: '{ broken json',
-            response: undefined,
-            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+
+            // not tested, just for type checking:
+            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
           }),
         );
       });
@@ -1372,6 +1381,10 @@ describe('streamObject', () => {
         }).rejects.toThrow(
           new NoObjectGeneratedError({
             message: 'No object generated: response did not match schema.',
+
+            // not tested, just for type checking:
+            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
           }),
         );
       });
@@ -1401,6 +1414,10 @@ describe('streamObject', () => {
         }).rejects.toThrow(
           new NoObjectGeneratedError({
             message: 'No object generated: response did not match schema.',
+
+            // not tested, just for type checking:
+            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
           }),
         );
       });
@@ -1430,6 +1447,10 @@ describe('streamObject', () => {
         }).rejects.toThrow(
           new NoObjectGeneratedError({
             message: 'No object generated: response did not match schema.',
+
+            // not tested, just for type checking:
+            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
           }),
         );
       });

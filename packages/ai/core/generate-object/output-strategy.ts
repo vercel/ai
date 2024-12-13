@@ -16,6 +16,7 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { ObjectStreamPart } from './stream-object-result';
+import { LanguageModelResponseMetadata, LanguageModelUsage } from '../types';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'enum' | 'no-schema';
@@ -35,7 +36,14 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
     partial: PARTIAL;
     textDelta: string;
   }>;
-  validateFinalResult(value: JSONValue | undefined): ValidationResult<RESULT>;
+  validateFinalResult(
+    value: JSONValue | undefined,
+    context: {
+      text: string;
+      response: LanguageModelResponseMetadata;
+      usage: LanguageModelUsage;
+    },
+  ): ValidationResult<RESULT>;
 
   createElementStream(
     originalStream: ReadableStream<ObjectStreamPart<PARTIAL>>,
@@ -52,9 +60,22 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
 
   validateFinalResult(
     value: JSONValue | undefined,
+    context: {
+      text: string;
+      response: LanguageModelResponseMetadata;
+      usage: LanguageModelUsage;
+    },
   ): ValidationResult<JSONValue> {
     return value === undefined
-      ? { success: false, error: new NoObjectGeneratedError() }
+      ? {
+          success: false,
+          error: new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+            text: context.text,
+            response: context.response,
+            usage: context.usage,
+          }),
+        }
       : { success: true, value };
   },
 

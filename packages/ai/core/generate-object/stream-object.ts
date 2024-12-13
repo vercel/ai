@@ -799,8 +799,14 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     });
 
                     // resolve the object promise with the latest object:
-                    const validationResult =
-                      outputStrategy.validateFinalResult(latestObjectJson);
+                    const validationResult = outputStrategy.validateFinalResult(
+                      latestObjectJson,
+                      {
+                        text: accumulatedText,
+                        response,
+                        usage,
+                      },
+                    );
 
                     if (validationResult.success) {
                       object = validationResult.value;

@@ -721,6 +721,10 @@ describe('output = "object"', () => {
       ).rejects.toThrow(
         new NoObjectGeneratedError({
           message: 'No object generated: response did not match schema.',
+
+          // not tested, just for type checking:
+          response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+          usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
         }),
       );
     });
@@ -741,6 +745,10 @@ describe('output = "object"', () => {
       ).rejects.toThrow(
         new NoObjectGeneratedError({
           message: 'No object generated: response did not match schema.',
+
+          // not tested, just for type checking:
+          response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+          usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
         }),
       );
     });
@@ -768,6 +776,10 @@ describe('output = "object"', () => {
       ).rejects.toThrow(
         new NoObjectGeneratedError({
           message: 'No object generated: could not parse the response.',
+
+          // not tested, just for type checking:
+          response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+          usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
         }),
       );
     });
@@ -788,6 +800,10 @@ describe('output = "object"', () => {
       ).rejects.toThrow(
         new NoObjectGeneratedError({
           message: 'No object generated: could not parse the response.',
+
+          // not tested, just for type checking:
+          response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+          usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
         }),
       );
     });
@@ -808,6 +824,10 @@ describe('output = "object"', () => {
       ).rejects.toThrow(
         new NoObjectGeneratedError({
           message: 'No object generated: the tool was not called.',
+
+          // not tested, just for type checking:
+          response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+          usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
         }),
       );
     });
@@ -828,6 +848,10 @@ describe('output = "object"', () => {
       ).rejects.toThrow(
         new NoObjectGeneratedError({
           message: 'No object generated: the model did not return a response.',
+
+          // not tested, just for type checking:
+          response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
+          usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
         }),
       );
     });

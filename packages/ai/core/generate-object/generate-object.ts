@@ -689,6 +689,11 @@ export async function generateObject<SCHEMA, RESULT>({
 
       const validationResult = outputStrategy.validateFinalResult(
         parseResult.value,
+        {
+          text: result,
+          response,
+          usage: calculateLanguageModelUsage(usage),
+        },
       );
 
       if (!validationResult.success) {
