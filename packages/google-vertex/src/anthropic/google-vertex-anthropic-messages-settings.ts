@@ -1,4 +1,4 @@
-import { AnthropicMessagesSettings } from '@ai-sdk/anthropic/internal/dist';
+import { AnthropicMessagesSettings } from '@ai-sdk/anthropic/internal';
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude
 export type GoogleVertexAnthropicMessagesModelId =
@@ -11,4 +11,4 @@ export type GoogleVertexAnthropicMessagesModelId =
   | (string & {});
 
 export interface GoogleVertexAnthropicMessagesSettings
-  extends AnthropicMessagesSettings {}
+  extends Omit<AnthropicMessagesSettings, 'cacheControl'> {}

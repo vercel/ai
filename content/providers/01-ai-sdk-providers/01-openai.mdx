@@ -517,8 +517,10 @@ The following optional settings are available for OpenAI completion models:
 | `o1-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
-  The table above lists popular models. You can also pass any available provider
-  model ID as a string if needed.
+  The table above lists popular models. Please see the [OpenAI
+  docs](https://platform.openai.com/docs/models) for a full list of available
+  models. The table above lists popular models. You can also pass any available
+  provider model ID as a string if needed.
 </Note>
 
 ## Embedding Models
@@ -559,3 +561,19 @@ The following optional settings are available for OpenAI embedding models:
 | `text-embedding-3-large` | 3072               | <Check size={18} /> |
 | `text-embedding-3-small` | 1536               | <Check size={18} /> |
 | `text-embedding-ada-002` | 1536               | <Cross size={18} /> |
+
+## Image Models
+
+You can create models that call the [OpenAI image generation API](https://platform.openai.com/docs/api-reference/images)
+using the `.image()` factory method.
+
+```ts
+const model = openai.image('dall-e-3');
+```
+
+### Model Capabilities
+
+| Model      | Supported Sizes                 |
+| ---------- | ------------------------------- |
+| `dall-e-3` | 1024x1024, 1792x1024, 1024x1792 |
+| `dall-e-2` | 256x256, 512x512, 1024x1024     |

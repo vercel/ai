@@ -1,5 +1,6 @@
 import {
   EmbeddingModelV1,
+  ImageModelV1,
   LanguageModelV1,
   NoSuchModelError,
   ProviderV1,
@@ -21,6 +22,7 @@ import {
   OpenAIEmbeddingModelId,
   OpenAIEmbeddingSettings,
 } from './openai-embedding-settings';
+import { OpenAIImageModel, OpenAIImageModelId } from './openai-image-model';
 
 export interface OpenAIProvider extends ProviderV1 {
   (
@@ -82,6 +84,11 @@ Creates a model for text embeddings.
     modelId: OpenAIEmbeddingModelId,
     settings?: OpenAIEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  /**
+Creates a model for image generation.
+   */
+  image(modelId: OpenAIImageModelId): ImageModelV1;
 }
 
 export interface OpenAIProviderSettings {
@@ -189,6 +196,14 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
+  const createImageModel = (modelId: OpenAIImageModelId) =>
+    new OpenAIImageModel(modelId, {
+      provider: `${providerName}.image`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createLanguageModel = (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
@@ -222,6 +237,7 @@ export function createOpenAI(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.image = createImageModel;
   provider.rerankingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
   };

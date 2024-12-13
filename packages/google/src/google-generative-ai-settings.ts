@@ -1,5 +1,6 @@
 // https://ai.google.dev/models/gemini
 export type GoogleGenerativeAIModelId =
+  | 'gemini-2.0-flash-exp'
   | 'gemini-1.5-flash'
   | 'gemini-1.5-flash-latest'
   | 'gemini-1.5-flash-001'
@@ -54,10 +55,7 @@ Optional. A list of unique safety settings for blocking unsafe content.
       | 'BLOCK_ONLY_HIGH'
       | 'BLOCK_NONE';
   }>;
-}
 
-export interface InternalGoogleGenerativeAISettings
-  extends GoogleGenerativeAISettings {
   /**
 Optional. When enabled, the model will use Google search to ground the response.
 
@@ -65,3 +63,6 @@ Optional. When enabled, the model will use Google search to ground the response.
    */
   useSearchGrounding?: boolean;
 }
+
+export interface InternalGoogleGenerativeAISettings
+  extends GoogleGenerativeAISettings {}

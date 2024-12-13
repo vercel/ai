@@ -527,7 +527,6 @@ const OpenAICompatibleChatResponseSchema = z.object({
           )
           .nullish(),
       }),
-      index: z.number(),
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -567,8 +566,7 @@ const OpenAICompatibleChatChunkSchema = z.union([
               .nullish(),
           })
           .nullish(),
-        finish_reason: z.string().nullable().optional(),
-        index: z.number(),
+        finish_reason: z.string().nullish(),
       }),
     ),
     usage: z

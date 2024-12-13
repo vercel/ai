@@ -21,6 +21,7 @@ type GoogleVertexEmbeddingConfig = {
   region: string;
   project: string;
   headers: Resolvable<Record<string, string | undefined>>;
+  baseURL: string;
 };
 
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
@@ -73,11 +74,9 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
       headers,
     );
 
+    const url = `${this.config.baseURL}/models/${this.modelId}:predict`;
     const { responseHeaders, value: response } = await postJsonToApi({
-      url:
-        `https://${this.config.region}-aiplatform.googleapis.com/v1/` +
-        `projects/${this.config.project}/locations/${this.config.region}/` +
-        `publishers/google/models/${this.modelId}:predict`,
+      url,
       headers: mergedHeaders,
       body: {
         instances: values.map(value => ({ content: value })),

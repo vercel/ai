@@ -470,6 +470,12 @@ To see `streamText` in action, check out [these examples](#examples).
         'Enable streaming of tool call deltas as they are generated. Disabled by default.',
     },
     {
+      name: 'experimental_transform',
+      type: 'TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>',
+      isOptional: true,
+      description: 'Optional transformation that is applied to the stream.',
+    },
+    {
       name: 'experimental_providerMetadata',
       type: 'Record<string,Record<string,JSONValue>> | undefined',
       isOptional: true,
