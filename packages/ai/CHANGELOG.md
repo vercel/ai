@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.17
+
+### Patch Changes
+
+- 54bbf21: fix (ai/core): change streamText.experimental_transform signature to support tool type inference
+
 ## 4.0.16
 
 ### Patch Changes
