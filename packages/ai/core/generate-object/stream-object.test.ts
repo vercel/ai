@@ -1,13 +1,15 @@
-import { TypeValidationError } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { jsonSchema } from '@ai-sdk/ui-utils';
-import assert from 'node:assert';
+import assert, { fail } from 'node:assert';
 import { z } from 'zod';
-import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
+import {
+  NoObjectGeneratedError,
+  verifyNoObjectGeneratedError,
+} from '../../errors/no-object-generated-error';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
@@ -1254,6 +1256,12 @@ describe('streamObject', () => {
                   argsTextDelta: '{ "content": 123 }',
                 },
                 {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  timestamp: new Date(123),
+                  modelId: 'model-1',
+                },
+                {
                   type: 'finish',
                   finishReason: 'stop',
                   usage: { completionTokens: 10, promptTokens: 3 },
@@ -1267,18 +1275,21 @@ describe('streamObject', () => {
           prompt: 'prompt',
         });
 
-        await expect(async () => {
+        try {
           await convertAsyncIterableToArray(result.partialObjectStream);
           await result.object;
-        }).rejects.toThrow(
-          new NoObjectGeneratedError({
+          fail('must throw error');
+        } catch (error) {
+          verifyNoObjectGeneratedError(error, {
             message: 'No object generated: response did not match schema.',
-
-            // not tested, just for type checking:
-            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
-            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
-          }),
-        );
+            response: {
+              id: 'id-1',
+              timestamp: new Date(123),
+              modelId: 'model-1',
+            },
+            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          });
+        }
       });
 
       it('should throw NoObjectGeneratedError when schema validation fails in json mode', async () => {
@@ -1287,6 +1298,12 @@ describe('streamObject', () => {
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-delta', textDelta: '{ "content": 123 }' },
+                {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  timestamp: new Date(123),
+                  modelId: 'model-1',
+                },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -1301,18 +1318,21 @@ describe('streamObject', () => {
           prompt: 'prompt',
         });
 
-        await expect(async () => {
+        try {
           await convertAsyncIterableToArray(result.partialObjectStream);
           await result.object;
-        }).rejects.toThrow(
-          new NoObjectGeneratedError({
+          fail('must throw error');
+        } catch (error) {
+          verifyNoObjectGeneratedError(error, {
             message: 'No object generated: response did not match schema.',
-
-            // not tested, just for type checking:
-            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
-            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
-          }),
-        );
+            response: {
+              id: 'id-1',
+              timestamp: new Date(123),
+              modelId: 'model-1',
+            },
+            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          });
+        }
       });
 
       it('should throw NoObjectGeneratedError when parsing fails in tool mode', async () => {
@@ -1328,6 +1348,12 @@ describe('streamObject', () => {
                   argsTextDelta: '{ broken json',
                 },
                 {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  timestamp: new Date(123),
+                  modelId: 'model-1',
+                },
+                {
                   type: 'finish',
                   finishReason: 'stop',
                   usage: { completionTokens: 10, promptTokens: 3 },
@@ -1341,18 +1367,21 @@ describe('streamObject', () => {
           prompt: 'prompt',
         });
 
-        await expect(async () => {
+        try {
           await convertAsyncIterableToArray(result.partialObjectStream);
           await result.object;
-        }).rejects.toThrow(
-          new NoObjectGeneratedError({
+          fail('must throw error');
+        } catch (error) {
+          verifyNoObjectGeneratedError(error, {
             message: 'No object generated: response did not match schema.',
-
-            // not tested, just for type checking:
-            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
-            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
-          }),
-        );
+            response: {
+              id: 'id-1',
+              timestamp: new Date(123),
+              modelId: 'model-1',
+            },
+            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          });
+        }
       });
 
       it('should throw NoObjectGeneratedError when parsing fails in json mode', async () => {
@@ -1362,6 +1391,12 @@ describe('streamObject', () => {
               stream: convertArrayToReadableStream([
                 { type: 'text-delta', textDelta: '{ broken json' },
                 {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  timestamp: new Date(123),
+                  modelId: 'model-1',
+                },
+                {
                   type: 'finish',
                   finishReason: 'stop',
                   usage: { completionTokens: 10, promptTokens: 3 },
@@ -1375,18 +1410,21 @@ describe('streamObject', () => {
           prompt: 'prompt',
         });
 
-        await expect(async () => {
+        try {
           await convertAsyncIterableToArray(result.partialObjectStream);
           await result.object;
-        }).rejects.toThrow(
-          new NoObjectGeneratedError({
+          fail('must throw error');
+        } catch (error) {
+          verifyNoObjectGeneratedError(error, {
             message: 'No object generated: response did not match schema.',
-
-            // not tested, just for type checking:
-            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
-            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
-          }),
-        );
+            response: {
+              id: 'id-1',
+              timestamp: new Date(123),
+              modelId: 'model-1',
+            },
+            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          });
+        }
       });
 
       it('should throw NoObjectGeneratedError when no tool call is made in tool mode', async () => {
@@ -1394,6 +1432,12 @@ describe('streamObject', () => {
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
+                {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  timestamp: new Date(123),
+                  modelId: 'model-1',
+                },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -1408,18 +1452,21 @@ describe('streamObject', () => {
           prompt: 'prompt',
         });
 
-        await expect(async () => {
+        try {
           await convertAsyncIterableToArray(result.partialObjectStream);
           await result.object;
-        }).rejects.toThrow(
-          new NoObjectGeneratedError({
+          fail('must throw error');
+        } catch (error) {
+          verifyNoObjectGeneratedError(error, {
             message: 'No object generated: response did not match schema.',
-
-            // not tested, just for type checking:
-            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
-            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
-          }),
-        );
+            response: {
+              id: 'id-1',
+              timestamp: new Date(123),
+              modelId: 'model-1',
+            },
+            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          });
+        }
       });
 
       it('should throw NoObjectGeneratedError when no text is generated in json mode', async () => {
@@ -1427,6 +1474,12 @@ describe('streamObject', () => {
           model: new MockLanguageModelV1({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
+                {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  timestamp: new Date(123),
+                  modelId: 'model-1',
+                },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -1441,18 +1494,21 @@ describe('streamObject', () => {
           prompt: 'prompt',
         });
 
-        await expect(async () => {
+        try {
           await convertAsyncIterableToArray(result.partialObjectStream);
           await result.object;
-        }).rejects.toThrow(
-          new NoObjectGeneratedError({
+          fail('must throw error');
+        } catch (error) {
+          verifyNoObjectGeneratedError(error, {
             message: 'No object generated: response did not match schema.',
-
-            // not tested, just for type checking:
-            response: { id: 'id', timestamp: new Date(0), modelId: 'id' },
-            usage: { completionTokens: 0, promptTokens: 0, totalTokens: 0 },
-          }),
-        );
+            response: {
+              id: 'id-1',
+              timestamp: new Date(123),
+              modelId: 'model-1',
+            },
+            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          });
+        }
       });
     });
   });

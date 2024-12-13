@@ -2,10 +2,7 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod';
-import {
-  NoObjectGeneratedError,
-  verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError,
-} from '../../errors/no-object-generated-error';
+import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
