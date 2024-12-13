@@ -700,7 +700,22 @@ describe('output = "object"', () => {
   describe('error handling', () => {
     // TODO when parsing fails in json mode
     // TODO when parsing fails in tool mode
-    // TODO when no object is generated in tool mode (no such tool call)
+
+    it('should throw NoObjectGeneratedError when the tool was not called', async () => {
+      expect(
+        generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              text: undefined,
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'tool',
+          prompt: 'prompt',
+        }),
+      ).rejects.toThrow(new NoObjectGeneratedError({}));
+    });
 
     it('should throw NoObjectGeneratedError when no text is available in json model', async () => {
       expect(
