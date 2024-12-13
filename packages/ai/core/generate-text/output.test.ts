@@ -1,3 +1,4 @@
+import { fail } from 'assert';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors';
 import { object } from './output';
@@ -18,6 +19,17 @@ const context = {
 describe('Output.object', () => {
   const output = object({ schema: z.object({ content: z.string() }) });
 
+  function verifyNoObjectGeneratedError(
+    error: unknown,
+    { message }: { message: string },
+  ) {
+    expect(NoObjectGeneratedError.isInstance(error)).toBeTruthy();
+    const noObjectGeneratedError = error as NoObjectGeneratedError;
+    expect(noObjectGeneratedError.message).toStrictEqual(message);
+    expect(noObjectGeneratedError.response).toStrictEqual(context.response);
+    expect(noObjectGeneratedError.usage).toStrictEqual(context.usage);
+  }
+
   it('should parse the output of the model', () => {
     const result = output.parseOutput(
       { text: `{ "content": "test" }` },
@@ -28,28 +40,24 @@ describe('Output.object', () => {
   });
 
   it('should throw NoObjectGeneratedError when parsing fails', async () => {
-    expect(() =>
-      output.parseOutput({ text: '{ broken json' }, context),
-    ).toThrow(
-      new NoObjectGeneratedError({
+    try {
+      output.parseOutput({ text: '{ broken json' }, context);
+      fail('must throw error');
+    } catch (error) {
+      verifyNoObjectGeneratedError(error, {
         message: 'No object generated: could not parse the response.',
-        text: '{ broken json',
-        response: context.response,
-        usage: context.usage,
-      }),
-    );
+      });
+    }
   });
 
   it('should throw NoObjectGeneratedError when schema validation fails', async () => {
-    expect(() =>
-      output.parseOutput({ text: `{ "content": 123 }` }, context),
-    ).toThrow(
-      new NoObjectGeneratedError({
+    try {
+      output.parseOutput({ text: `{ "content": 123 }` }, context);
+      fail('must throw error');
+    } catch (error) {
+      verifyNoObjectGeneratedError(error, {
         message: 'No object generated: response did not match schema.',
-        text: `{ "content": 123 }`,
-        response: context.response,
-        usage: context.usage,
-      }),
-    );
+      });
+    }
   });
 });
