@@ -2,6 +2,7 @@ import { JSONValue } from '@ai-sdk/provider';
 import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
+import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -27,7 +28,6 @@ import { calculateLanguageModelUsage } from '../types/usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
-import { NoObjectGeneratedError } from './no-object-generated-error';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
@@ -478,15 +478,20 @@ export async function generateObject<SCHEMA, RESULT>({
                   headers,
                 });
 
-                if (result.text === undefined) {
-                  throw new NoObjectGeneratedError();
-                }
-
                 const responseData = {
                   id: result.response?.id ?? generateId(),
                   timestamp: result.response?.timestamp ?? currentDate(),
                   modelId: result.response?.modelId ?? model.modelId,
                 };
+
+                if (result.text === undefined) {
+                  throw new NoObjectGeneratedError({
+                    message:
+                      'No object generated: the model did not return a response.',
+                    response: responseData,
+                    usage: calculateLanguageModelUsage(result.usage),
+                  });
+                }
 
                 // Add response information to the span:
                 span.setAttributes(
@@ -599,15 +604,19 @@ export async function generateObject<SCHEMA, RESULT>({
 
                 const objectText = result.toolCalls?.[0]?.args;
 
-                if (objectText === undefined) {
-                  throw new NoObjectGeneratedError();
-                }
-
                 const responseData = {
                   id: result.response?.id ?? generateId(),
                   timestamp: result.response?.timestamp ?? currentDate(),
                   modelId: result.response?.modelId ?? model.modelId,
                 };
+
+                if (objectText === undefined) {
+                  throw new NoObjectGeneratedError({
+                    message: 'No object generated: the tool was not called.',
+                    response: responseData,
+                    usage: calculateLanguageModelUsage(result.usage),
+                  });
+                }
 
                 // Add response information to the span:
                 span.setAttributes(
@@ -669,15 +678,32 @@ export async function generateObject<SCHEMA, RESULT>({
       const parseResult = safeParseJSON({ text: result });
 
       if (!parseResult.success) {
-        throw parseResult.error;
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: could not parse the response.',
+          cause: parseResult.error,
+          text: result,
+          response,
+          usage: calculateLanguageModelUsage(usage),
+        });
       }
 
       const validationResult = outputStrategy.validateFinalResult(
         parseResult.value,
+        {
+          text: result,
+          response,
+          usage: calculateLanguageModelUsage(usage),
+        },
       );
 
       if (!validationResult.success) {
-        throw validationResult.error;
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+          cause: validationResult.error,
+          text: result,
+          response,
+          usage: calculateLanguageModelUsage(usage),
+        });
       }
 
       // Add response information to the span:
