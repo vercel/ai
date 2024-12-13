@@ -471,9 +471,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_transform',
-      type: 'TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>',
+      type: '({ tools: TOOLS }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>',
       isOptional: true,
-      description: 'Optional transformation that is applied to the stream.',
+      description:
+        'Optional transformation that is applied to the stream. Tools are passed in for type inference.',
     },
     {
       name: 'experimental_providerMetadata',
