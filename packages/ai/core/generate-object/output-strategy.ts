@@ -10,11 +10,11 @@ import {
 import { safeValidateTypes, ValidationResult } from '@ai-sdk/provider-utils';
 import { asSchema, DeepPartial, Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
+import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
-import { NoObjectGeneratedError } from './no-object-generated-error';
 import { ObjectStreamPart } from './stream-object-result';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
