@@ -11,7 +11,7 @@
   "dependencies": {
     "@ai-sdk/react": "1.0.6",
     "@langchain/openai": "0.0.28",
-    "@langchain/core": "0.1.63",
+    "@langchain/core": "0.3.23",
     "ai": "4.0.18",
     "langchain": "0.1.36",
     "next": "latest",
