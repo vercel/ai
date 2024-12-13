@@ -5,7 +5,11 @@ import {
   withTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createGoogleGenerativeAI } from './google-provider';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
+import {
+  GoogleGenerativeAILanguageModel,
+  groundingMetadataSchema,
+} from './google-generative-ai-language-model';
+import { GoogleGenerativeAIGroundingMetadata } from './google-generative-ai-prompt';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -54,6 +58,111 @@ describe('supportsUrl', () => {
   });
 });
 
+describe('groundingMetadataSchema', () => {
+  it('validates complete grounding metadata with web search results', () => {
+    const metadata = {
+      webSearchQueries: ["What's the weather in Chicago this weekend?"],
+      searchEntryPoint: {
+        renderedContent: 'Sample rendered content for search results',
+      },
+      groundingChunks: [
+        {
+          web: {
+            uri: 'https://example.com/weather',
+            title: 'Chicago Weather Forecast',
+          },
+        },
+      ],
+      groundingSupports: [
+        {
+          segment: {
+            startIndex: 0,
+            endIndex: 65,
+            text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+          },
+          groundingChunkIndices: [0],
+          confidenceScores: [0.99],
+        },
+      ],
+      retrievalMetadata: {
+        webDynamicRetrievalScore: 0.96879,
+      },
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates complete grounding metadata with Vertex AI Search results', () => {
+    const metadata = {
+      retrievalQueries: ['How to make appointment to renew driving license?'],
+      groundingChunks: [
+        {
+          retrievedContext: {
+            uri: 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/AXiHM.....QTN92V5ePQ==',
+            title: 'dmv',
+          },
+        },
+      ],
+      groundingSupports: [
+        {
+          segment: {
+            startIndex: 25,
+            endIndex: 147,
+          },
+          segment_text: 'ipsum lorem ...',
+          supportChunkIndices: [1, 2],
+          confidenceScore: [0.9541752, 0.97726375],
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates partial grounding metadata', () => {
+    const metadata = {
+      webSearchQueries: ['sample query'],
+      // Missing other optional fields
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates empty grounding metadata', () => {
+    const metadata = {};
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates metadata with empty retrievalMetadata', () => {
+    const metadata = {
+      webSearchQueries: ['sample query'],
+      retrievalMetadata: {},
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid data types', () => {
+    const metadata = {
+      webSearchQueries: 'not an array', // Should be an array
+      groundingSupports: [
+        {
+          confidenceScores: 'not an array', // Should be an array of numbers
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(false);
+  });
+});
+
 describe('doGenerate', () => {
   const prepareJsonResponse = ({
     content = '',
@@ -63,6 +172,8 @@ describe('doGenerate', () => {
       totalTokenCount: 3,
     },
     headers,
+    groundingMetadata,
+    url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
   }: {
     content?: string;
     usage?: {
@@ -71,8 +182,10 @@ describe('doGenerate', () => {
       totalTokenCount: number;
     };
     headers?: Record<string, string>;
+    groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
+    url?: string;
   }): TestServerResponse => ({
-    url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+    url,
     type: 'json-value',
     content: {
       candidates: [
@@ -84,6 +197,7 @@ describe('doGenerate', () => {
           finishReason: 'STOP',
           index: 0,
           safetyRatings: SAFETY_RATINGS,
+          ...(groundingMetadata && { groundingMetadata }),
         },
       ],
       promptFeedback: { safetyRatings: SAFETY_RATINGS },
@@ -632,30 +746,324 @@ describe('doGenerate', () => {
       }),
     );
   });
+
+  it(
+    'should expose safety ratings in provider metadata',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'test response' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: [
+                {
+                  category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                  probability: 'NEGLIGIBLE',
+                  probabilityScore: 0.1,
+                  severity: 'LOW',
+                  severityScore: 0.2,
+                  blocked: false,
+                },
+              ],
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        },
+      },
+      async () => {
+        const { providerMetadata } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(providerMetadata?.google.safetyRatings).toStrictEqual([
+          {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            probability: 'NEGLIGIBLE',
+            probabilityScore: 0.1,
+            severity: 'LOW',
+            severityScore: 0.2,
+            blocked: false,
+          },
+        ]);
+      },
+    ),
+  );
+
+  it(
+    'should expose grounding metadata in provider metadata',
+    withTestServer(
+      prepareJsonResponse({
+        content: 'test response',
+        groundingMetadata: {
+          webSearchQueries: ["What's the weather in Chicago this weekend?"],
+          searchEntryPoint: {
+            renderedContent: 'Sample rendered content for search results',
+          },
+          groundingChunks: [
+            {
+              web: {
+                uri: 'https://example.com/weather',
+                title: 'Chicago Weather Forecast',
+              },
+            },
+          ],
+          groundingSupports: [
+            {
+              segment: {
+                startIndex: 0,
+                endIndex: 65,
+                text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+              },
+              groundingChunkIndices: [0],
+              confidenceScores: [0.99],
+            },
+          ],
+          retrievalMetadata: {
+            webDynamicRetrievalScore: 0.96879,
+          },
+        },
+      }),
+      async () => {
+        const { providerMetadata } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(providerMetadata?.google.groundingMetadata).toStrictEqual({
+          webSearchQueries: ["What's the weather in Chicago this weekend?"],
+          searchEntryPoint: {
+            renderedContent: 'Sample rendered content for search results',
+          },
+          groundingChunks: [
+            {
+              web: {
+                uri: 'https://example.com/weather',
+                title: 'Chicago Weather Forecast',
+              },
+            },
+          ],
+          groundingSupports: [
+            {
+              segment: {
+                startIndex: 0,
+                endIndex: 65,
+                text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+              },
+              groundingChunkIndices: [0],
+              confidenceScores: [0.99],
+            },
+          ],
+          retrievalMetadata: {
+            webDynamicRetrievalScore: 0.96879,
+          },
+        });
+      },
+    ),
+  );
+  describe('search tool selection', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+
+    it(
+      'should use googleSearch for gemini-2.0-pro',
+      withTestServer(
+        prepareJsonResponse({
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:generateContent',
+        }),
+        async ({ call }) => {
+          const gemini2Pro = provider.languageModel('gemini-2.0-pro', {
+            useSearchGrounding: true,
+          });
+          await gemini2Pro.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearch: {} },
+          });
+        },
+      ),
+    );
+
+    it(
+      'should use googleSearch for gemini-2.0-flash-exp',
+      withTestServer(
+        prepareJsonResponse({
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
+        }),
+        async ({ call }) => {
+          const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp', {
+            useSearchGrounding: true,
+          });
+          await gemini2Flash.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearch: {} },
+          });
+        },
+      ),
+    );
+
+    it(
+      'should use googleSearchRetrieval for non-gemini-2 models',
+      withTestServer(
+        prepareJsonResponse({
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent',
+        }),
+        async ({ call }) => {
+          const geminiPro = provider.languageModel('gemini-1.0-pro', {
+            useSearchGrounding: true,
+          });
+          await geminiPro.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearchRetrieval: {} },
+          });
+        },
+      ),
+    );
+  });
 });
 
 describe('doStream', () => {
   const prepareStreamResponse = ({
     content,
     headers,
+    groundingMetadata,
+    url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
   }: {
     content: string[];
     headers?: Record<string, string>;
+    groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
+    url?: string;
   }): TestServerResponse => ({
-    url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
+    url,
     type: 'stream-values',
     content: content.map(
-      text =>
-        `data: {"candidates": [{"content": {"parts": [{"text": "${text}"}],"role": "model"},` +
-        `"finishReason": "STOP","index": 0,"safetyRatings": [` +
-        `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
-        `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
-        `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
-        `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}],` +
-        `"usageMetadata": {"promptTokenCount": 294,"candidatesTokenCount": 233,"totalTokenCount": 527}}\n\n`,
+      (text, index) =>
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              ...(groundingMetadata && { groundingMetadata }),
+            },
+          ],
+          // Include usage metadata only in the last chunk
+          ...(index === content.length - 1 && {
+            usageMetadata: {
+              promptTokenCount: 294,
+              candidatesTokenCount: 233,
+              totalTokenCount: 527,
+            },
+          }),
+        })}\n\n`,
     ),
     headers,
   });
+
+  it(
+    'should expose grounding metadata in provider metadata on finish',
+    withTestServer(
+      prepareStreamResponse({
+        content: ['test'],
+        groundingMetadata: {
+          webSearchQueries: ["What's the weather in Chicago this weekend?"],
+          searchEntryPoint: {
+            renderedContent: 'Sample rendered content for search results',
+          },
+          groundingChunks: [
+            {
+              web: {
+                uri: 'https://example.com/weather',
+                title: 'Chicago Weather Forecast',
+              },
+            },
+          ],
+          groundingSupports: [
+            {
+              segment: {
+                startIndex: 0,
+                endIndex: 65,
+                text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+              },
+              groundingChunkIndices: [0],
+              confidenceScores: [0.99],
+            },
+          ],
+          retrievalMetadata: {
+            webDynamicRetrievalScore: 0.96879,
+          },
+        },
+      }),
+      async () => {
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const finishEvent = events.find(event => event.type === 'finish');
+
+        expect(
+          finishEvent?.type === 'finish' &&
+            finishEvent.providerMetadata?.google.groundingMetadata,
+        ).toStrictEqual({
+          webSearchQueries: ["What's the weather in Chicago this weekend?"],
+          searchEntryPoint: {
+            renderedContent: 'Sample rendered content for search results',
+          },
+          groundingChunks: [
+            {
+              web: {
+                uri: 'https://example.com/weather',
+                title: 'Chicago Weather Forecast',
+              },
+            },
+          ],
+          groundingSupports: [
+            {
+              segment: {
+                startIndex: 0,
+                endIndex: 65,
+                text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+              },
+              groundingChunkIndices: [0],
+              confidenceScores: [0.99],
+            },
+          ],
+          retrievalMetadata: {
+            webDynamicRetrievalScore: 0.96879,
+          },
+        });
+      },
+    ),
+  );
 
   it(
     'should stream text deltas',
@@ -678,6 +1086,24 @@ describe('doStream', () => {
             providerMetadata: {
               google: {
                 groundingMetadata: null,
+                safetyRatings: [
+                  {
+                    category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_HATE_SPEECH',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_HARASSMENT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                ],
               },
             },
             usage: { promptTokens: 294, completionTokens: 233 },
@@ -834,6 +1260,24 @@ describe('doStream', () => {
             providerMetadata: {
               google: {
                 groundingMetadata: null,
+                safetyRatings: [
+                  {
+                    category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_HATE_SPEECH',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_HARASSMENT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                    probability: 'NEGLIGIBLE',
+                  },
+                ],
               },
             },
             usage: { promptTokens: 294, completionTokens: 233 },
@@ -842,4 +1286,122 @@ describe('doStream', () => {
       },
     ),
   );
+
+  it(
+    'should expose safety ratings in provider metadata on finish',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
+        type: 'stream-values',
+        content: [
+          `data: {"candidates": [{"content": {"parts": [{"text": "test"}],"role": "model"},` +
+            `"finishReason": "STOP","index": 0,"safetyRatings": [` +
+            `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE",` +
+            `"probabilityScore": 0.1,"severity": "LOW","severityScore": 0.2,"blocked": false}]}]}\n\n`,
+        ],
+      },
+      async () => {
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const finishEvent = events.find(event => event.type === 'finish');
+
+        expect(
+          finishEvent?.type === 'finish' &&
+            finishEvent.providerMetadata?.google.safetyRatings,
+        ).toStrictEqual([
+          {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            probability: 'NEGLIGIBLE',
+            probabilityScore: 0.1,
+            severity: 'LOW',
+            severityScore: 0.2,
+            blocked: false,
+          },
+        ]);
+      },
+    ),
+  );
+  describe('search tool selection', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+
+    it(
+      'should use googleSearch for gemini-2.0-pro',
+      withTestServer(
+        prepareStreamResponse({
+          content: [''],
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:streamGenerateContent',
+        }),
+        async ({ call }) => {
+          const gemini2Pro = provider.languageModel('gemini-2.0-pro', {
+            useSearchGrounding: true,
+          });
+          await gemini2Pro.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearch: {} },
+          });
+        },
+      ),
+    );
+
+    it(
+      'should use googleSearch for gemini-2.0-flash-exp',
+      withTestServer(
+        prepareStreamResponse({
+          content: [''],
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:streamGenerateContent',
+        }),
+        async ({ call }) => {
+          const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp', {
+            useSearchGrounding: true,
+          });
+          await gemini2Flash.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearch: {} },
+          });
+        },
+      ),
+    );
+
+    it(
+      'should use googleSearchRetrieval for non-gemini-2 models',
+      withTestServer(
+        prepareStreamResponse({
+          content: [''],
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:streamGenerateContent',
+        }),
+        async ({ call }) => {
+          const geminiPro = provider.languageModel('gemini-1.0-pro', {
+            useSearchGrounding: true,
+          });
+          await geminiPro.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: { googleSearchRetrieval: {} },
+          });
+        },
+      ),
+    );
+  });
 });

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "1.0.5",
-    "@ai-sdk/google": "1.0.9",
+    "@ai-sdk/google": "1.0.10",
     "@ai-sdk/provider": "1.0.2",
     "@ai-sdk/provider-utils": "2.0.4",
     "google-auth-library": "^9.15.0"

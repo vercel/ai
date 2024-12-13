@@ -64,14 +64,14 @@ Optional. A list of unique safety settings for blocking unsafe content.
    * - gemini-1.5-flash-002
    */
   audioTimestamp?: boolean;
-}
 
-export interface InternalGoogleGenerativeAISettings
-  extends GoogleGenerativeAISettings {
   /**
-Optional. When enabled, the model will use Google search to ground the response.
+  Optional. When enabled, the model will use Google search to ground the response.
 
-@see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview
+  @see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview
    */
   useSearchGrounding?: boolean;
 }
+
+export interface InternalGoogleGenerativeAISettings
+  extends GoogleGenerativeAISettings {}

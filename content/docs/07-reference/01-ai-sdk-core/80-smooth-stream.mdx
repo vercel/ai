@@ -1,0 +1,52 @@
+---
+title: smoothStream
+description: Helper function for smoothing text streaming output
+---
+
+# `smoothStream()`
+
+`smoothStream` is a utility function that creates a TransformStream
+for the `streamText` `transform` option
+to smooth out text streaming by buffering and releasing complete words with configurable delays.
+This creates a more natural reading experience when streaming text responses.
+
+```ts highlight={"6-8"}
+import { smoothStream, streamText } from 'ai';
+
+const result = streamText({
+  model,
+  prompt,
+  experimental_transform: smoothStream({
+    delayInMs: 20, // optional: defaults to 10ms
+  }),
+});
+```
+
+## Import
+
+<Snippet text={`import { smoothStream } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'delayInMs',
+      type: 'number',
+      isOptional: true,
+      description:
+        'The delay in milliseconds between outputting each word. Defaults to 10ms. Set to 0 to disable delays.',
+    },
+  ]}
+/>
+
+### Returns
+
+Returns a `TransformStream` that:
+
+- Buffers incoming text chunks
+- Releases complete words when whitespace is encountered
+- Adds configurable delays between words for smooth output
+- Passes through non-text chunks (like step-finish events) immediately

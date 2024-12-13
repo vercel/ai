@@ -234,7 +234,5 @@ describe('tool call repair', () => {
       originalError: expect.any(InvalidToolArgumentsError),
     });
     expect(repairToolCall).toHaveBeenCalledTimes(1);
-
-    console.log('xxx');
   });
 });

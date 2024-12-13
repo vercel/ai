@@ -1,5 +1,31 @@
 # ai
 
+## 4.0.18
+
+### Patch Changes
+
+- 304e6d3: feat (ai/core): standardize generateObject, streamObject, and output errors to NoObjectGeneratedError
+- 304e6d3: feat (ai/core): add additional information to NoObjectGeneratedError
+
+## 4.0.17
+
+### Patch Changes
+
+- 54bbf21: fix (ai/core): change streamText.experimental_transform signature to support tool type inference
+
+## 4.0.16
+
+### Patch Changes
+
+- e3fac3f: fix (ai/core): change smoothStream default delay to 10ms
+
+## 4.0.15
+
+### Patch Changes
+
+- cc16a83: feat (ai/core): add smoothStream helper
+- cc16a83: feat (ai/core): add experimental transform option to streamText
+
 ## 4.0.14
 
 ### Patch Changes

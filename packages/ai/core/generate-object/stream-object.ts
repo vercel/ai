@@ -13,6 +13,7 @@ import {
 } from '@ai-sdk/ui-utils';
 import { ServerResponse } from 'http';
 import { z } from 'zod';
+import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -798,14 +799,27 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     });
 
                     // resolve the object promise with the latest object:
-                    const validationResult =
-                      outputStrategy.validateFinalResult(latestObjectJson);
+                    const validationResult = outputStrategy.validateFinalResult(
+                      latestObjectJson,
+                      {
+                        text: accumulatedText,
+                        response,
+                        usage,
+                      },
+                    );
 
                     if (validationResult.success) {
                       object = validationResult.value;
                       self.objectPromise.resolve(object);
                     } else {
-                      error = validationResult.error;
+                      error = new NoObjectGeneratedError({
+                        message:
+                          'No object generated: response did not match schema.',
+                        cause: validationResult.error,
+                        text: accumulatedText,
+                        response,
+                        usage,
+                      });
                       self.objectPromise.reject(error);
                     }
 

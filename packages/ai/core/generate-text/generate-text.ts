@@ -28,8 +28,8 @@ import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
-import { ToolResultArray } from './tool-result';
 import { ToolCallRepairFunction } from './tool-call-repair';
+import { ToolResultArray } from './tool-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -509,7 +509,15 @@ A function that attempts to repair a tool call that failed to parse.
       return new DefaultGenerateTextResult({
         text,
         output:
-          output == null ? (undefined as never) : output.parseOutput({ text }),
+          output == null
+            ? (undefined as never)
+            : output.parseOutput(
+                { text },
+                {
+                  response: currentModelResponse.response,
+                  usage,
+                },
+              ),
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,

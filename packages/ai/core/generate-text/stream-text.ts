@@ -116,6 +116,7 @@ export function streamText<TOOLS extends Record<string, CoreTool>>({
   experimental_toolCallStreaming: toolCallStreaming = false,
   experimental_activeTools: activeTools,
   experimental_repairToolCall: repairToolCall,
+  experimental_transform: transform,
   onChunk,
   onFinish,
   onStepFinish,
@@ -187,6 +188,13 @@ Enable streaming of tool call deltas as they are generated. Disabled by default.
     experimental_toolCallStreaming?: boolean;
 
     /**
+Optional transformation that is applied to the stream.
+     */
+    experimental_transform?: (options: {
+      tools: TOOLS; // for type inference
+    }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>;
+
+    /**
 Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
      */
     onChunk?: (event: {
@@ -245,6 +253,7 @@ Details for all steps.
     tools,
     toolChoice,
     toolCallStreaming,
+    transform: transform?.({ tools: tools as TOOLS }),
     activeTools,
     repairToolCall,
     maxSteps,
@@ -293,8 +302,13 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     Awaited<StreamTextResult<TOOLS>['steps']>
   >();
 
-  private readonly stitchableStream =
-    createStitchableStream<TextStreamPart<TOOLS>>();
+  private readonly addStream: (
+    stream: ReadableStream<TextStreamPart<TOOLS>>,
+  ) => void;
+
+  private readonly closeStream: () => void;
+
+  private baseStream: ReadableStream<TextStreamPart<TOOLS>>;
 
   constructor({
     model,
@@ -309,6 +323,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     tools,
     toolChoice,
     toolCallStreaming,
+    transform,
     activeTools,
     repairToolCall,
     maxSteps,
@@ -333,6 +348,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     tools: TOOLS | undefined;
     toolChoice: CoreToolChoice<TOOLS> | undefined;
     toolCallStreaming: boolean;
+    transform:
+      | TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>
+      | undefined;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
@@ -374,6 +392,14 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         message: 'maxSteps must be at least 1',
       });
     }
+
+    // initialize the stitchable stream and the transformed stream:
+    const stitchableStream = createStitchableStream<TextStreamPart<TOOLS>>();
+    this.addStream = stitchableStream.addStream;
+    this.closeStream = stitchableStream.close;
+    this.baseStream = transform
+      ? stitchableStream.stream.pipeThrough(transform)
+      : stitchableStream.stream;
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
@@ -571,7 +597,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             await onChunk?.({ chunk });
           }
 
-          self.stitchableStream.addStream(
+          self.addStream(
             transformedStream.pipeThrough(
               new TransformStream<
                 SingleRequestTextStreamPart<TOOLS>,
@@ -892,7 +918,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     });
 
                     // close the stitchable stream
-                    self.stitchableStream.close();
+                    self.closeStream();
 
                     // Add response information to the root span:
                     rootSpan.setAttributes(
@@ -977,7 +1003,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       },
     }).catch(error => {
       // add an error stream part and close the streams:
-      self.stitchableStream.addStream(
+      self.addStream(
         new ReadableStream({
           start(controller) {
             controller.enqueue({ type: 'error', error });
@@ -985,7 +1011,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           },
         }),
       );
-      self.stitchableStream.close();
+      self.closeStream();
     });
   }
 
@@ -1038,8 +1064,8 @@ Note: this leads to buffering the stream content on the server.
 However, the LLM results are expected to be small enough to not cause issues.
    */
   private teeStream() {
-    const [stream1, stream2] = this.stitchableStream.stream.tee();
-    this.stitchableStream.stream = stream2;
+    const [stream1, stream2] = this.baseStream.tee();
+    this.baseStream = stream2;
     return stream1;
   }
 
