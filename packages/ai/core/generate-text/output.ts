@@ -1,6 +1,7 @@
-import { parseJSON } from '@ai-sdk/provider-utils';
+import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
 import { asSchema, Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
+import { NoObjectGeneratedError } from '../../errors';
 import { injectJsonInstruction } from '../generate-object/inject-json-instruction';
 import {
   LanguageModel,
@@ -54,7 +55,28 @@ export const object = <OUTPUT>({
           });
     },
     parseOutput({ text }: { text: string }) {
-      return parseJSON({ text, schema });
+      const parseResult = safeParseJSON({ text });
+
+      if (!parseResult.success) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: could not parse the response.',
+          cause: parseResult.error,
+        });
+      }
+
+      const validationResult = safeValidateTypes({
+        value: parseResult.value,
+        schema,
+      });
+
+      if (!validationResult.success) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+          cause: validationResult.error,
+        });
+      }
+
+      return validationResult.value;
     },
   };
 };
