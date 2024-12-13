@@ -28,8 +28,8 @@ import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
-import { ToolResultArray } from './tool-result';
 import { ToolCallRepairFunction } from './tool-call-repair';
+import { ToolResultArray } from './tool-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
