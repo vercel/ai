@@ -294,6 +294,13 @@ The following optional settings are available for Google Vertex models:
 
   Optional. When enabled, the model will [use Google search to ground the response](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview).
 
+- **audioTimestamp** _boolean_
+
+  Optional. Enables timestamp understanding for audio files. Defaults to false.
+
+  This is useful for generating transcripts with accurate timestamps.
+  Only available for `gemini-1.5-pro-002` and `gemini-1.5-flash-002`.
+
 You can use Google Vertex language models to generate text with the `generateText` function:
 
 ```ts highlight="1,4"

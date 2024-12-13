@@ -66,9 +66,9 @@ Optional. A list of unique safety settings for blocking unsafe content.
   audioTimestamp?: boolean;
 
   /**
-  Optional. When enabled, the model will use Google search to ground the response.
+Optional. When enabled, the model will use Google search to ground the response.
 
-  @see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview
+@see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview
    */
   useSearchGrounding?: boolean;
 }

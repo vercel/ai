@@ -392,6 +392,25 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         expect(result.text.toLowerCase()).toContain('cat');
         expect(result.usage?.totalTokens).toBeGreaterThan(0);
       });
+
+      it('should generate text from audio input', { timeout: LONG_TEST_MILLIS }, async () => {
+        const model = vertex(modelId);
+        const result = await generateText({
+          model,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Output a transcript of spoken words. Break up transcript lines when there are pauses. Include timestamps in the format of HH:MM:SS.SSS.' },
+                { type: 'file', data: Buffer.from(fs.readFileSync('./data/galileo.mp3')), mimeType: 'audio/mpeg' },
+              ],
+            },
+          ],
+        });
+        expect(result.text).toBeTruthy();
+        expect(result.text.toLowerCase()).toContain('galileo');
+        expect(result.usage?.totalTokens).toBeGreaterThan(0);
+      });
     });
 
     describe.each(MODEL_VARIANTS.embedding)('Embedding Model: %s', modelId => {
