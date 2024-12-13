@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
+import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -693,6 +694,28 @@ describe('output = "object"', () => {
       expect(result.object).toStrictEqual({
         content: 'provider metadata test',
       });
+    });
+  });
+
+  describe('error handling', () => {
+    // TODO when parsing fails in json mode
+    // TODO when parsing fails in tool mode
+    // TODO when no object is generated in tool mode (no such tool call)
+
+    it('should throw NoObjectGeneratedError when no text is available in json model', async () => {
+      expect(
+        generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              text: undefined,
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+        }),
+      ).rejects.toThrow(new NoObjectGeneratedError({}));
     });
   });
 });
