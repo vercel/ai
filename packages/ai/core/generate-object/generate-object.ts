@@ -482,6 +482,8 @@ export async function generateObject<SCHEMA, RESULT>({
                   throw new NoObjectGeneratedError({
                     message:
                       'No object generated: the model did not return a response.',
+                    response,
+                    usage: calculateLanguageModelUsage(result.usage),
                   });
                 }
 
@@ -605,6 +607,8 @@ export async function generateObject<SCHEMA, RESULT>({
                 if (objectText === undefined) {
                   throw new NoObjectGeneratedError({
                     message: 'No object generated: the tool was not called.',
+                    response,
+                    usage: calculateLanguageModelUsage(result.usage),
                   });
                 }
 
@@ -677,6 +681,9 @@ export async function generateObject<SCHEMA, RESULT>({
         throw new NoObjectGeneratedError({
           message: 'No object generated: could not parse the response.',
           cause: parseResult.error,
+          text: result,
+          response,
+          usage: calculateLanguageModelUsage(usage),
         });
       }
 
@@ -688,6 +695,9 @@ export async function generateObject<SCHEMA, RESULT>({
         throw new NoObjectGeneratedError({
           message: 'No object generated: response did not match schema.',
           cause: validationResult.error,
+          text: result,
+          response,
+          usage: calculateLanguageModelUsage(usage),
         });
       }
 

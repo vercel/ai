@@ -7,6 +7,8 @@ import {
   LanguageModel,
   LanguageModelV1CallOptions,
 } from '../types/language-model';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import { LanguageModelUsage } from '../types/usage';
 
 export interface Output<OUTPUT> {
   readonly type: 'object' | 'text';
@@ -17,7 +19,13 @@ export interface Output<OUTPUT> {
   responseFormat: (options: {
     model: LanguageModel;
   }) => LanguageModelV1CallOptions['responseFormat'];
-  parseOutput(options: { text: string }): OUTPUT;
+  parseOutput(
+    options: { text: string },
+    context: {
+      response: LanguageModelResponseMetadata;
+      usage: LanguageModelUsage;
+    },
+  ): OUTPUT;
 }
 
 export const text = (): Output<string> => ({
@@ -54,13 +62,22 @@ export const object = <OUTPUT>({
             schema: schema.jsonSchema,
           });
     },
-    parseOutput({ text }: { text: string }) {
+    parseOutput(
+      { text }: { text: string },
+      context: {
+        response: LanguageModelResponseMetadata;
+        usage: LanguageModelUsage;
+      },
+    ) {
       const parseResult = safeParseJSON({ text });
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
           message: 'No object generated: could not parse the response.',
           cause: parseResult.error,
+          text,
+          response: context.response,
+          usage: context.usage,
         });
       }
 
@@ -73,6 +90,9 @@ export const object = <OUTPUT>({
         throw new NoObjectGeneratedError({
           message: 'No object generated: response did not match schema.',
           cause: validationResult.error,
+          text,
+          response: context.response,
+          usage: context.usage,
         });
       }
 

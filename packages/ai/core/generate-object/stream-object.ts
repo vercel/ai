@@ -810,6 +810,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                         message:
                           'No object generated: response did not match schema.',
                         cause: validationResult.error,
+                        text: accumulatedText,
+                        response,
+                        usage,
                       });
                       self.objectPromise.reject(error);
                     }

@@ -1339,6 +1339,9 @@ describe('streamObject', () => {
         }).rejects.toThrow(
           new NoObjectGeneratedError({
             message: 'No object generated: response did not match schema.',
+            text: '{ broken json',
+            response: undefined,
+            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
           }),
         );
       });
