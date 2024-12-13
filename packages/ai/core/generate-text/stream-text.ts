@@ -190,10 +190,9 @@ Enable streaming of tool call deltas as they are generated. Disabled by default.
     /**
 Optional transformation that is applied to the stream.
      */
-    experimental_transform?: TransformStream<
-      TextStreamPart<TOOLS>,
-      TextStreamPart<TOOLS>
-    >;
+    experimental_transform?: (options: {
+      tools: TOOLS; // for type inference
+    }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>;
 
     /**
 Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
@@ -254,7 +253,7 @@ Details for all steps.
     tools,
     toolChoice,
     toolCallStreaming,
-    transform,
+    transform: transform?.({ tools: tools as TOOLS }),
     activeTools,
     repairToolCall,
     maxSteps,
