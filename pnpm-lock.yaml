@@ -1797,6 +1797,9 @@ importers:
 
   packages/xai:
     dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: 0.0.6
+        version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.2
         version: link:../provider
