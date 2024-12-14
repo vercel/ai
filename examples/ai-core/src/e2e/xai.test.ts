@@ -9,8 +9,8 @@ const LONG_TEST_MILLIS = 10000;
 
 // Model variants to test against
 const MODEL_VARIANTS = {
-  chat: ['grok-beta'],
-  vision: ['grok-vision-beta'],
+  chat: ['grok-beta', 'grok-2-1212'],
+  vision: ['grok-vision-beta', 'grok-2-vision-1212'],
 } as const;
 
 describe('xAI E2E Tests', () => {
