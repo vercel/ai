@@ -3277,14 +3277,15 @@ describe('streamText', () => {
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           }),
         }),
-        experimental_transform: new TransformStream({
-          transform(chunk, controller) {
-            if (chunk.type === 'text-delta') {
-              chunk.textDelta = chunk.textDelta.toUpperCase();
-            }
-            controller.enqueue(chunk);
-          },
-        }),
+        experimental_transform: () =>
+          new TransformStream({
+            transform(chunk, controller) {
+              if (chunk.type === 'text-delta') {
+                chunk.textDelta = chunk.textDelta.toUpperCase();
+              }
+              controller.enqueue(chunk);
+            },
+          }),
         prompt: 'test-input',
       });
 

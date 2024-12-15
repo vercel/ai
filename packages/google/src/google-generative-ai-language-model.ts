@@ -119,6 +119,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         const { tools, toolConfig, toolWarnings } = prepareTools(
           mode,
           this.settings.useSearchGrounding ?? false,
+          this.modelId.includes('gemini-2'),
         );
 
         return {
@@ -444,13 +445,33 @@ const contentSchema = z.object({
   ),
 });
 
+// https://ai.google.dev/gemini-api/docs/grounding
 // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search
 export const groundingMetadataSchema = z.object({
   webSearchQueries: z.array(z.string()).nullish(),
+  retrievalQueries: z.array(z.string()).nullish(),
   searchEntryPoint: z
     .object({
       renderedContent: z.string(),
     })
+    .nullish(),
+  groundingChunks: z
+    .array(
+      z.object({
+        web: z
+          .object({
+            uri: z.string(),
+            title: z.string(),
+          })
+          .nullish(),
+        retrievedContext: z
+          .object({
+            uri: z.string(),
+            title: z.string(),
+          })
+          .nullish(),
+      }),
+    )
     .nullish(),
   groundingSupports: z
     .array(
@@ -460,8 +481,11 @@ export const groundingMetadataSchema = z.object({
           endIndex: z.number().nullish(),
           text: z.string().nullish(),
         }),
-        groundingChunkIndices: z.array(z.number()),
-        confidenceScores: z.array(z.number()),
+        segment_text: z.string().nullish(),
+        groundingChunkIndices: z.array(z.number()).nullish(),
+        supportChunkIndices: z.array(z.number()).nullish(),
+        confidenceScores: z.array(z.number()).nullish(),
+        confidenceScore: z.array(z.number()).nullish(),
       }),
     )
     .nullish(),

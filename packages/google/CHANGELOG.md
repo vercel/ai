@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 1.0.10
+
+### Patch Changes
+
+- e07439a: feat (provider/google): Include safety ratings response detail.
+- 4017b0f: feat (provider/google-vertex): Enhance grounding metadata response detail.
+- a9df182: feat (provider/google): Add support for search grounding.
+
 ## 1.0.9
 
 ### Patch Changes
