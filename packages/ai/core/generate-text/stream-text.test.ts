@@ -3310,5 +3310,9 @@ describe('streamText', () => {
 
       expect(await result.text).toStrictEqual('HELLO, WORLD!');
     });
+
+    // TODO response.messages should be transformed
+    // TODO onFinish should be transformed
+    // TODO telemetry should be transformed
   });
 });
