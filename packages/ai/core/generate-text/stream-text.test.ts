@@ -3260,11 +3260,26 @@ describe('streamText', () => {
 
   describe('options.transform', () => {
     const upperCaseTransform = () =>
-      new TransformStream({
+      new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
         transform(chunk, controller) {
           if (chunk.type === 'text-delta') {
             chunk.textDelta = chunk.textDelta.toUpperCase();
           }
+          if (chunk.type === 'tool-call-delta') {
+            chunk.argsTextDelta = chunk.argsTextDelta.toUpperCase();
+          }
+
+          // assuming test arg structure:
+          if (chunk.type === 'tool-call') {
+            chunk.args = {
+              ...chunk.args,
+              value: chunk.args.value.toUpperCase(),
+            };
+          }
+          if (chunk.type === 'tool-result') {
+            chunk.result = chunk.result.toUpperCase();
+          }
+
           controller.enqueue(chunk);
         },
       });
@@ -3311,8 +3326,36 @@ describe('streamText', () => {
       expect(await result.text).toStrictEqual('HELLO, WORLD!');
     });
 
-    // TODO response.messages should be transformed
+    it('result.response.messages should be transformed', async () => {
+      const result = streamText({
+        model: helloWorldModel,
+        experimental_transform: upperCaseTransform,
+        prompt: 'test-input',
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.fullStream);
+
+      expect(await result.response).toStrictEqual({
+        id: expect.any(String),
+        timestamp: expect.any(Date),
+        modelId: expect.any(String),
+        messages: [
+          {
+            content: [
+              {
+                text: 'HELLO, WORLD!',
+                type: 'text',
+              },
+            ],
+            role: 'assistant',
+          },
+        ],
+      });
+    });
+
     // TODO onFinish should be transformed
     // TODO telemetry should be transformed
+    // TODO step behavior?
   });
 });
