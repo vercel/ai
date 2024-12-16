@@ -20,7 +20,7 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
-import { tool } from '../tool/tool';
+import { CoreTool, tool } from '../tool/tool';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
@@ -1918,26 +1918,23 @@ describe('streamText', () => {
 
     it('should contain assistant response message and tool message when there are tool calls with results', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello, ' },
-              { type: 'text-delta', textDelta: 'world!' },
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
-              },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: { promptTokens: 3, completionTokens: 10 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
         }),
         tools: {
           tool1: {
@@ -3092,35 +3089,37 @@ describe('streamText', () => {
   });
 
   describe('options.transform', () => {
-    const upperCaseTransform = () =>
-      new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
-        transform(chunk, controller) {
-          if (chunk.type === 'text-delta') {
-            chunk.textDelta = chunk.textDelta.toUpperCase();
-          }
-          if (chunk.type === 'tool-call-delta') {
-            chunk.argsTextDelta = chunk.argsTextDelta.toUpperCase();
-          }
+    const upperCaseTransform =
+      <TOOLS extends Record<string, CoreTool>>() =>
+      (options: { tools: TOOLS }) =>
+        new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+          transform(chunk, controller) {
+            if (chunk.type === 'text-delta') {
+              chunk.textDelta = chunk.textDelta.toUpperCase();
+            }
+            if (chunk.type === 'tool-call-delta') {
+              chunk.argsTextDelta = chunk.argsTextDelta.toUpperCase();
+            }
 
-          // assuming test arg structure:
-          if (chunk.type === 'tool-call') {
-            chunk.args = {
-              ...chunk.args,
-              value: chunk.args.value.toUpperCase(),
-            };
-          }
-          if (chunk.type === 'tool-result') {
-            chunk.result = chunk.result.toUpperCase();
-          }
+            // assuming test arg structure:
+            if (chunk.type === 'tool-call') {
+              chunk.args = {
+                ...chunk.args,
+                value: chunk.args.value.toUpperCase(),
+              };
+            }
+            if (chunk.type === 'tool-result') {
+              chunk.result = chunk.result.toUpperCase();
+            }
 
-          controller.enqueue(chunk);
-        },
-      });
+            controller.enqueue(chunk);
+          },
+        });
 
     it('should transform the stream', async () => {
       const result = streamText({
         model: createTestModel(),
-        experimental_transform: upperCaseTransform,
+        experimental_transform: upperCaseTransform(),
         prompt: 'test-input',
       });
 
@@ -3132,7 +3131,7 @@ describe('streamText', () => {
     it('result.text should be transformed', async () => {
       const result = streamText({
         model: createTestModel(),
-        experimental_transform: upperCaseTransform,
+        experimental_transform: upperCaseTransform(),
         prompt: 'test-input',
       });
 
@@ -3145,7 +3144,7 @@ describe('streamText', () => {
     it('result.response.messages should be transformed', async () => {
       const result = streamText({
         model: createTestModel(),
-        experimental_transform: upperCaseTransform,
+        experimental_transform: upperCaseTransform(),
         prompt: 'test-input',
       });
 
@@ -3245,31 +3244,43 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: 'Hello, ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
             {
               type: 'finish',
-              finishReason: 'length',
-              logprobs: undefined,
-              usage: { completionTokens: 20, promptTokens: 5 },
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
             },
           ]),
         }),
-        experimental_transform: () =>
-          new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
-            transform(chunk, controller) {
-              if (chunk.type === 'finish') {
-                chunk.finishReason = 'stop';
-              }
-              controller.enqueue(chunk);
-            },
-          }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        experimental_transform: upperCaseTransform(),
         prompt: 'test-input',
       });
 
       // consume stream
       await convertAsyncIterableToArray(result.fullStream);
 
-      expect(await result.finishReason).toStrictEqual('stop');
+      expect(await result.toolCalls).toStrictEqual([
+        {
+          args: { value: 'VALUE' },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-call',
+        },
+      ]);
     });
 
     // TODO onFinish should be transformed

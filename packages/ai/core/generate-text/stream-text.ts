@@ -416,6 +416,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedUsage: LanguageModelUsage | undefined = undefined;
+    const steps: Partial<StepResult<TOOLS>>[] = [{}];
 
     const eventProcessor = new TransformStream<
       TextStreamPart<TOOLS>,
@@ -438,6 +439,12 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
         if (chunk.type === 'step-finish') {
           if (!chunk.isContinued) {
+            steps.push({
+              text: recordedText, // TODO slice to step
+              toolCalls: recordedToolCalls,
+              toolResults: recordedToolResults,
+            });
+
             recordedResponse.messages.push(
               ...toResponseMessages({
                 text: recordedText,
@@ -464,10 +471,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       },
 
       flush() {
+        self.warningsPromise.resolve(recordedWarnings ?? []);
         self.finishReasonPromise.resolve(recordedFinishReason ?? 'unknown');
         self.textPromise.resolve(recordedText);
         self.responsePromise.resolve(recordedResponse);
-        self.warningsPromise.resolve(recordedWarnings ?? []);
+        self.toolCallsPromise.resolve(steps.at(-1)?.toolCalls ?? []);
         self.usagePromise.resolve(
           recordedUsage ?? {
             completionTokens: NaN,
@@ -1031,7 +1039,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     recordedWarnings = warnings;
 
                     // resolve promises:
-                    self.toolCallsPromise.resolve(stepToolCalls);
                     self.providerMetadataPromise.resolve(stepProviderMetadata);
                     self.toolResultsPromise.resolve(stepToolResults);
                     self.requestPromise.resolve(stepRequest);
