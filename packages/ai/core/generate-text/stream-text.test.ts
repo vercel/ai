@@ -964,39 +964,36 @@ describe('streamText', () => {
 
     it('should send tool call and tool result stream parts', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'tool-call-delta',
-                toolCallId: 'call-1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: '{ "value":',
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallId: 'call-1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: ' "value" }',
-              },
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
-              },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call-1',
+              toolCallType: 'function',
+              toolName: 'tool1',
+              argsTextDelta: '{ "value":',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call-1',
+              toolCallType: 'function',
+              toolName: 'tool1',
+              argsTextDelta: ' "value" }',
+            },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
         }),
         tools: {
           tool1: {
@@ -1106,18 +1103,15 @@ describe('streamText', () => {
 
     it('should suppress usage information when sendUsage is false', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello, World!' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: { promptTokens: 3, completionTokens: 10 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
         }),
         prompt: 'test-input',
       });
@@ -1135,58 +1129,26 @@ describe('streamText', () => {
   describe('result.toDataStreamResponse', () => {
     it('should create a Response with a data stream', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: 'world!' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: { promptTokens: 3, completionTokens: 10 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
+        model: createTestModel(),
         prompt: 'test-input',
       });
 
       const response = result.toDataStreamResponse();
 
-      assert.strictEqual(response.status, 200);
-
-      assert.deepStrictEqual(Object.fromEntries(response.headers.entries()), {
+      expect(response.status).toStrictEqual(200);
+      expect(Object.fromEntries(response.headers.entries())).toStrictEqual({
         'content-type': 'text/plain; charset=utf-8',
         'x-vercel-ai-data-stream': 'v1',
       });
-
-      assert.strictEqual(
-        response.headers.get('Content-Type'),
+      expect(response.headers.get('Content-Type')).toStrictEqual(
         'text/plain; charset=utf-8',
       );
-
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
     });
 
     it('should create a Response with a data stream and custom headers', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: 'world!' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: { promptTokens: 3, completionTokens: 10 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
+        model: createTestModel(),
         prompt: 'test-input',
       });
 
@@ -1198,35 +1160,19 @@ describe('streamText', () => {
         },
       });
 
-      assert.strictEqual(response.status, 201);
-      assert.strictEqual(response.statusText, 'foo');
-
-      assert.deepStrictEqual(Object.fromEntries(response.headers.entries()), {
+      expect(response.status).toStrictEqual(201);
+      expect(response.statusText).toStrictEqual('foo');
+      expect(Object.fromEntries(response.headers.entries())).toStrictEqual({
         'content-type': 'text/plain; charset=utf-8',
         'x-vercel-ai-data-stream': 'v1',
         'custom-header': 'custom-value',
       });
-
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
     });
 
     it('should support merging with existing stream data', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: 'world!' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: { promptTokens: 3, completionTokens: 10 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
+        model: createTestModel(),
         prompt: 'test-input',
       });
 
@@ -1236,24 +1182,19 @@ describe('streamText', () => {
 
       const response = result.toDataStreamResponse({ data: streamData });
 
-      assert.strictEqual(response.status, 200);
-      assert.strictEqual(
-        response.headers.get('Content-Type'),
+      expect(response.status).toStrictEqual(200);
+      expect(response.headers.get('Content-Type')).toStrictEqual(
         'text/plain; charset=utf-8',
       );
-
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
     });
 
     it('should mask error messages by default', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'error', error: 'error' },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
         }),
         prompt: 'test-input',
       });
@@ -1265,13 +1206,10 @@ describe('streamText', () => {
 
     it('should support custom error messages', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'error', error: 'error' },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
         }),
         prompt: 'test-input',
       });
@@ -1285,18 +1223,15 @@ describe('streamText', () => {
 
     it('should suppress usage information when sendUsage is false', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello, World!' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: { promptTokens: 3, completionTokens: 10 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
         }),
         prompt: 'test-input',
       });
@@ -1310,21 +1245,7 @@ describe('streamText', () => {
   describe('result.mergeIntoDataStream', () => {
     it('should merge the result into a data stream', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: 'world!' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: { promptTokens: 3, completionTokens: 10 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
+        model: createTestModel(),
         prompt: 'test-input',
       });
 
@@ -1339,13 +1260,10 @@ describe('streamText', () => {
 
     it('should use the onError handler from the data stream', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'error', error: 'error' },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
         }),
         prompt: 'test-input',
       });
@@ -1364,29 +1282,17 @@ describe('streamText', () => {
   describe('result.toTextStreamResponse', () => {
     it('should create a Response with a text stream', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => {
-            return {
-              stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: 'Hello' },
-                { type: 'text-delta', textDelta: ', ' },
-                { type: 'text-delta', textDelta: 'world!' },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            };
-          },
-        }),
+        model: createTestModel(),
         prompt: 'test-input',
       });
 
       const response = result.toTextStreamResponse();
 
-      assert.strictEqual(response.status, 200);
-      assert.deepStrictEqual(Object.fromEntries(response.headers.entries()), {
+      expect(response.status).toStrictEqual(200);
+      expect(Object.fromEntries(response.headers.entries())).toStrictEqual({
         'content-type': 'text/plain; charset=utf-8',
       });
-
-      assert.deepStrictEqual(await convertResponseStreamToArray(response), [
+      expect(await convertResponseStreamToArray(response)).toStrictEqual([
         'Hello',
         ', ',
         'world!',
@@ -1397,29 +1303,24 @@ describe('streamText', () => {
   describe('multiple stream consumption', () => {
     it('should support text stream, ai stream, full stream on single result object', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => {
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                { type: 'text-delta', textDelta: 'Hello' },
-                { type: 'text-delta', textDelta: ', ' },
-                { type: 'text-delta', textDelta: 'world!' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  logprobs: undefined,
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            };
-          },
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
         }),
         prompt: 'test-input',
       });
