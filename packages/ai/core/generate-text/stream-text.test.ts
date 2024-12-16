@@ -45,11 +45,13 @@ function createTestModel({
   ]),
   rawCall = { rawPrompt: 'prompt', rawSettings: {} },
   rawResponse = undefined,
+  request = undefined,
   warnings,
 }: {
   stream?: ReadableStream<LanguageModelV1StreamPart>;
   rawResponse?: { headers: Record<string, string> };
   rawCall?: { rawPrompt: string; rawSettings: Record<string, unknown> };
+  request?: { body: string };
   warnings?: LanguageModelV1CallWarning[];
 } = {}): LanguageModelV1 {
   return new MockLanguageModelV1({
@@ -57,6 +59,7 @@ function createTestModel({
       stream,
       rawCall,
       rawResponse,
+      request,
       warnings,
     }),
   });
@@ -1420,22 +1423,19 @@ describe('streamText', () => {
   describe('result.providerMetadata', () => {
     it('should resolve with provider metadata', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-                providerMetadata: {
-                  testProvider: { testKey: 'testValue' },
-                },
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+              providerMetadata: {
+                testProvider: { testKey: 'testValue' },
               },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+            },
+          ]),
         }),
         prompt: 'test-input',
       });
@@ -1452,26 +1452,23 @@ describe('streamText', () => {
   describe('result.request', () => {
     it('should resolve with response information', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text-delta', textDelta: 'Hello' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            request: { body: 'test body' },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          request: { body: 'test body' },
         }),
         prompt: 'test-input',
       });
