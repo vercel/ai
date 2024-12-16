@@ -401,6 +401,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       undefined;
 
     // event processor for telemetry, invoking callbacks, etc.
+    // The event processor reads the transformed stream to enable correct
+    // recording of the final transformed outputs.
     let recordedText = '';
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<CoreAssistantMessage | CoreToolMessage>;
