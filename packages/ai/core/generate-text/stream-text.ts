@@ -1,5 +1,6 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { StreamData } from '../../streams/stream-data';
@@ -417,6 +418,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     let recordedProviderMetadata: ProviderMetadata | undefined = undefined;
     let stepType: 'initial' | 'continue' | 'tool-result' = 'initial';
     const recordedSteps: StepResult<TOOLS>[] = [];
+    let rootSpan!: Span;
 
     const eventProcessor = new TransformStream<
       TextStreamPart<TOOLS>,
@@ -532,15 +534,17 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             );
           }
 
+          // derived:
+          const finishReason = recordedFinishReason ?? 'unknown';
+          const usage = recordedUsage ?? {
+            completionTokens: NaN,
+            promptTokens: NaN,
+            totalTokens: NaN,
+          };
+
           // from finish:
-          self.finishReasonPromise.resolve(recordedFinishReason ?? 'unknown');
-          self.usagePromise.resolve(
-            recordedUsage ?? {
-              completionTokens: NaN,
-              promptTokens: NaN,
-              totalTokens: NaN,
-            },
-          );
+          self.finishReasonPromise.resolve(finishReason);
+          self.usagePromise.resolve(usage);
 
           // aggregate results:
           self.textPromise.resolve(recordedFullText);
@@ -548,13 +552,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
           // call onFinish callback:
           await onFinish?.({
-            finishReason: recordedFinishReason ?? 'unknown',
+            finishReason,
             logprobs: undefined,
-            usage: recordedUsage ?? {
-              completionTokens: NaN,
-              promptTokens: NaN,
-              totalTokens: NaN,
-            },
+            usage,
             text: recordedFullText,
             toolCalls: lastStep.toolCalls,
             toolResults: lastStep.toolResults,
@@ -565,8 +565,30 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
               lastStep.experimental_providerMetadata,
             steps: recordedSteps,
           });
+
+          // Add response information to the root span:
+          rootSpan.setAttributes(
+            selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                'ai.response.finishReason': finishReason,
+                'ai.response.text': { output: () => recordedFullText },
+                'ai.response.toolCalls': {
+                  output: () =>
+                    lastStep.toolCalls?.length
+                      ? JSON.stringify(lastStep.toolCalls)
+                      : undefined,
+                },
+
+                'ai.usage.promptTokens': usage.promptTokens,
+                'ai.usage.completionTokens': usage.completionTokens,
+              },
+            }),
+          );
         } catch (error) {
           controller.error(error);
+        } finally {
+          rootSpan.end();
         }
       },
     });
@@ -617,7 +639,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       }),
       tracer,
       endWhenDone: false,
-      fn: async rootSpan => {
+      fn: async rootSpanArg => {
+        rootSpan = rootSpanArg;
+
         async function streamStep({
           currentStep,
           responseMessages,
@@ -1053,45 +1077,21 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     return;
                   }
 
-                  try {
-                    // enqueue the finish chunk:
-                    controller.enqueue({
-                      type: 'finish',
-                      finishReason: stepFinishReason,
-                      usage: combinedUsage,
-                      experimental_providerMetadata: stepProviderMetadata,
-                      logprobs: stepLogProbs,
-                      response: {
-                        ...stepResponse,
-                        headers: rawResponse?.headers,
-                      },
-                    });
+                  // enqueue the finish chunk:
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: stepFinishReason,
+                    usage: combinedUsage,
+                    experimental_providerMetadata: stepProviderMetadata,
+                    logprobs: stepLogProbs,
+                    response: {
+                      ...stepResponse,
+                      headers: rawResponse?.headers,
+                    },
+                  });
 
-                    // close the stitchable stream
-                    self.closeStream();
-
-                    // Add response information to the root span:
-                    rootSpan.setAttributes(
-                      selectTelemetryAttributes({
-                        telemetry,
-                        attributes: {
-                          'ai.response.finishReason': stepFinishReason,
-                          'ai.response.text': { output: () => fullStepText },
-                          'ai.response.toolCalls': {
-                            output: () => stepToolCallsJson,
-                          },
-
-                          'ai.usage.promptTokens': combinedUsage.promptTokens,
-                          'ai.usage.completionTokens':
-                            combinedUsage.completionTokens,
-                        },
-                      }),
-                    );
-                  } catch (error) {
-                    controller.error(error);
-                  } finally {
-                    rootSpan.end();
-                  }
+                  // close the stitchable stream
+                  self.closeStream();
                 },
               }),
             ),

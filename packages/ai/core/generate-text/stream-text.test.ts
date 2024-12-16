@@ -3368,10 +3368,10 @@ describe('streamText', () => {
           rawResponse: { headers: { call: '2' } },
         }),
         tools: {
-          tool1: {
+          tool1: tool({
             parameters: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
-          },
+          }),
         },
         prompt: 'test-input',
         onStepFinish: async event => {
@@ -3386,5 +3386,61 @@ describe('streamText', () => {
     });
 
     // TODO telemetry should be transformed
+    describe('telemetry', () => {
+      let tracer: MockTracer;
+
+      beforeEach(() => {
+        tracer = new MockTracer();
+      });
+
+      it('should record transformed telemetry data when enabled', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+              { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+                providerMetadata: {
+                  testProvider: { testKey: 'testValue' },
+                },
+              },
+            ]),
+          }),
+          tools: {
+            tool1: tool({
+              parameters: z.object({ value: z.string() }),
+              execute: async ({ value }) => `${value}-result`,
+            }),
+          },
+          prompt: 'test-input',
+          experimental_transform: upperCaseTransform(),
+          experimental_telemetry: { isEnabled: true, tracer },
+          _internal: { now: mockValues(0, 100, 500) },
+        });
+
+        // consume stream
+        await convertAsyncIterableToArray(result.textStream);
+
+        expect(tracer.jsonSpans).toMatchSnapshot();
+      });
+    });
   });
 });
