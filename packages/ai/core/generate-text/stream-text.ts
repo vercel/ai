@@ -614,9 +614,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       tracer,
       endWhenDone: false,
       fn: async rootSpan => {
-        // collect step results
-        const stepResults: StepResult<TOOLS>[] = [];
-
         async function streamStep({
           currentStep,
           responseMessages,
@@ -1057,8 +1054,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     experimental_providerMetadata: stepProviderMetadata,
                     isContinued: nextStepType === 'continue',
                   };
-
-                  stepResults.push(currentStepResult);
 
                   await onStepFinish?.(currentStepResult);
 
