@@ -1473,54 +1473,22 @@ describe('streamText', () => {
   describe('result.toolResults', () => {
     it('should resolve with tool results', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'regular',
-              tools: [
-                {
-                  type: 'function',
-                  name: 'tool1',
-                  description: undefined,
-                  parameters: {
-                    $schema: 'http://json-schema.org/draft-07/schema#',
-                    additionalProperties: false,
-                    properties: { value: { type: 'string' } },
-                    required: ['value'],
-                    type: 'object',
-                  },
-                },
-              ],
-              toolChoice: { type: 'auto' },
-            });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'test-input' }],
-                providerMetadata: undefined,
-              },
-            ]);
-
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'call-1',
-                  toolName: 'tool1',
-                  args: `{ "value": "value" }`,
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  logprobs: undefined,
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            };
-          },
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
         }),
         tools: {
           tool1: {
@@ -2342,7 +2310,7 @@ describe('streamText', () => {
       const result = streamText({
         model: new MockLanguageModelV1({
           doStream: async ({ headers }) => {
-            assert.deepStrictEqual(headers, {
+            expect(headers).toStrictEqual({
               'custom-request-header': 'request-header-value',
             });
 
@@ -2512,31 +2480,28 @@ describe('streamText', () => {
 
     it('should record successful tool call', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async ({}) => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
-              },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 20, promptTokens: 10 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 20, promptTokens: 10 },
+            },
+          ]),
         }),
         tools: {
           tool1: {
@@ -2557,31 +2522,28 @@ describe('streamText', () => {
 
     it('should not record telemetry inputs / outputs when disabled', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async ({}) => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
-              },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 20, promptTokens: 10 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 20, promptTokens: 10 },
+            },
+          ]),
         }),
         tools: {
           tool1: {
@@ -2611,7 +2573,7 @@ describe('streamText', () => {
       const result = streamText({
         model: new MockLanguageModelV1({
           doStream: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
+            expect(mode).toStrictEqual({
               type: 'regular',
               tools: [
                 {
