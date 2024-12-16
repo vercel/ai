@@ -1,4 +1,3 @@
-import { LanguageModelV1CallWarning } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { ServerResponse } from 'node:http';
