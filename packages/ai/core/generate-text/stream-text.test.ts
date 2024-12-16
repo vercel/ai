@@ -25,8 +25,8 @@ import { StepResult } from './step-result';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 
-function createHelloWorldStream(): ReadableStream<LanguageModelV1StreamPart> {
-  return convertArrayToReadableStream([
+function createTestModel({
+  stream = convertArrayToReadableStream([
     { type: 'text-delta', textDelta: 'Hello' },
     { type: 'text-delta', textDelta: ', ' },
     { type: 'text-delta', textDelta: `world!` },
@@ -36,19 +36,17 @@ function createHelloWorldStream(): ReadableStream<LanguageModelV1StreamPart> {
       logprobs: undefined,
       usage: { completionTokens: 10, promptTokens: 3 },
     },
-  ]);
-}
-
-function createHelloWorldModel({
+  ]),
   rawCall = { rawPrompt: 'prompt', rawSettings: {} },
   warnings,
 }: {
+  stream?: ReadableStream<LanguageModelV1StreamPart>;
   rawCall?: { rawPrompt: string; rawSettings: Record<string, unknown> };
   warnings?: LanguageModelV1CallWarning[];
 } = {}): LanguageModelV1 {
   return new MockLanguageModelV1({
     doStream: async () => ({
-      stream: createHelloWorldStream(),
+      stream,
       rawCall,
       warnings,
     }),
@@ -1543,7 +1541,7 @@ describe('streamText', () => {
   describe('result.warnings', () => {
     it('should resolve with warnings', async () => {
       const result = streamText({
-        model: createHelloWorldModel({
+        model: createTestModel({
           warnings: [{ type: 'other', message: 'test-warning' }],
         }),
         prompt: 'test-input',
@@ -1561,21 +1559,16 @@ describe('streamText', () => {
   describe('result.usage', () => {
     it('should resolve with token usage', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: `world!` },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
         }),
         prompt: 'test-input',
       });
@@ -3329,7 +3322,7 @@ describe('streamText', () => {
 
     it('should transform the stream', async () => {
       const result = streamText({
-        model: createHelloWorldModel(),
+        model: createTestModel(),
         experimental_transform: upperCaseTransform,
         prompt: 'test-input',
       });
@@ -3341,7 +3334,7 @@ describe('streamText', () => {
 
     it('result.text should be transformed', async () => {
       const result = streamText({
-        model: createHelloWorldModel(),
+        model: createTestModel(),
         experimental_transform: upperCaseTransform,
         prompt: 'test-input',
       });
@@ -3354,7 +3347,7 @@ describe('streamText', () => {
 
     it('result.response.messages should be transformed', async () => {
       const result = streamText({
-        model: createHelloWorldModel(),
+        model: createTestModel(),
         experimental_transform: upperCaseTransform,
         prompt: 'test-input',
       });
