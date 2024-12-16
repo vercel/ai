@@ -412,11 +412,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     };
     let recordedToolCalls: ToolCallUnion<TOOLS>[] = [];
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
-    let recordedUsage: LanguageModelUsage = {
-      completionTokens: NaN,
-      promptTokens: NaN,
-      totalTokens: NaN,
-    };
+    let recordedFinishReason: FinishReason | undefined = undefined;
+    let recordedUsage: LanguageModelUsage | undefined = undefined;
 
     const eventProcessor = new TransformStream<
       TextStreamPart<TOOLS>,
@@ -438,11 +435,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         }
 
         if (chunk.type === 'step-finish') {
-          recordedResponse.id = chunk.response.id;
-          recordedResponse.timestamp = chunk.response.timestamp;
-          recordedResponse.modelId = chunk.response.modelId;
-          recordedResponse.headers = chunk.response.headers;
-
           if (!chunk.isContinued) {
             recordedResponse.messages.push(
               ...toResponseMessages({
@@ -465,14 +457,22 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           recordedResponse.modelId = chunk.response.modelId;
           recordedResponse.headers = chunk.response.headers;
           recordedUsage = chunk.usage;
+          recordedFinishReason = chunk.finishReason;
         }
       },
 
-      flush(controller) {
+      flush() {
+        self.finishReasonPromise.resolve(recordedFinishReason ?? 'unknown');
         self.textPromise.resolve(recordedText);
         self.responsePromise.resolve(recordedResponse);
         self.warningsPromise.resolve(recordedWarnings ?? []);
-        self.usagePromise.resolve(recordedUsage);
+        self.usagePromise.resolve(
+          recordedUsage ?? {
+            completionTokens: NaN,
+            promptTokens: NaN,
+            totalTokens: NaN,
+          },
+        );
       },
     });
 
@@ -1029,7 +1029,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     recordedWarnings = warnings;
 
                     // resolve promises:
-                    self.finishReasonPromise.resolve(stepFinishReason!);
                     self.toolCallsPromise.resolve(stepToolCalls);
                     self.providerMetadataPromise.resolve(stepProviderMetadata);
                     self.toolResultsPromise.resolve(stepToolResults);

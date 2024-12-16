@@ -3408,6 +3408,37 @@ describe('streamText', () => {
       });
     });
 
+    it('result.finishReason should be transformed', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'length',
+              logprobs: undefined,
+              usage: { completionTokens: 20, promptTokens: 5 },
+            },
+          ]),
+        }),
+        experimental_transform: () =>
+          new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
+            transform(chunk, controller) {
+              if (chunk.type === 'finish') {
+                chunk.finishReason = 'stop';
+              }
+              controller.enqueue(chunk);
+            },
+          }),
+        prompt: 'test-input',
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.fullStream);
+
+      expect(await result.finishReason).toStrictEqual('stop');
+    });
+
     // TODO onFinish should be transformed
     // TODO telemetry should be transformed
     // TODO step behavior?
