@@ -26,8 +26,8 @@
     "@google/generative-ai": "0.21.0"
   },
   "scripts": {
-    "test:e2e:all": "vitest run src/e2e/*.test.ts --config vitest.node.config.js",
-    "test:file": "vitest run --config vitest.node.config.js",
+    "test:e2e:all": "vitest run src/e2e/*.test.ts",
+    "test:file": "vitest run",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
