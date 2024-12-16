@@ -27,6 +27,12 @@ import { StreamTextResult, TextStreamPart } from './stream-text-result';
 
 function createTestModel({
   stream = convertArrayToReadableStream([
+    {
+      type: 'response-metadata',
+      id: 'id-0',
+      modelId: 'mock-model-id',
+      timestamp: new Date(0),
+    },
     { type: 'text-delta', textDelta: 'Hello' },
     { type: 'text-delta', textDelta: ', ' },
     { type: 'text-delta', textDelta: `world!` },
@@ -2635,25 +2641,7 @@ describe('streamText', () => {
 
     it('should not record any telemetry data when not explicitly enabled', async () => {
       const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            { type: 'text-delta', textDelta: 'Hello' },
-            { type: 'text-delta', textDelta: ', ' },
-            { type: 'text-delta', textDelta: `world!` },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              logprobs: undefined,
-              usage: { completionTokens: 20, promptTokens: 10 },
-            },
-          ]),
-        }),
+        model: createTestModel(),
         prompt: 'test-input',
         _internal: {
           now: mockValues(0, 100, 500),
@@ -2668,25 +2656,7 @@ describe('streamText', () => {
 
     it('should record telemetry data when enabled', async () => {
       const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            { type: 'text-delta', textDelta: 'Hello' },
-            { type: 'text-delta', textDelta: ', ' },
-            { type: 'text-delta', textDelta: `world!` },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              logprobs: undefined,
-              usage: { completionTokens: 20, promptTokens: 10 },
-            },
-          ]),
-        }),
+        model: createTestModel(),
         prompt: 'test-input',
         topK: 0.1,
         topP: 0.2,
