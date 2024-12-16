@@ -412,6 +412,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     };
     let recordedToolCalls: ToolCallUnion<TOOLS>[] = [];
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
+    let recordedUsage: LanguageModelUsage = {
+      completionTokens: NaN,
+      promptTokens: NaN,
+      totalTokens: NaN,
+    };
 
     const eventProcessor = new TransformStream<
       TextStreamPart<TOOLS>,
@@ -459,6 +464,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           recordedResponse.timestamp = chunk.response.timestamp;
           recordedResponse.modelId = chunk.response.modelId;
           recordedResponse.headers = chunk.response.headers;
+          recordedUsage = chunk.usage;
         }
       },
 
@@ -466,6 +472,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         self.textPromise.resolve(recordedText);
         self.responsePromise.resolve(recordedResponse);
         self.warningsPromise.resolve(recordedWarnings ?? []);
+        self.usagePromise.resolve(recordedUsage);
       },
     });
 
@@ -1022,7 +1029,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     recordedWarnings = warnings;
 
                     // resolve promises:
-                    self.usagePromise.resolve(combinedUsage);
                     self.finishReasonPromise.resolve(stepFinishReason!);
                     self.toolCallsPromise.resolve(stepToolCalls);
                     self.providerMetadataPromise.resolve(stepProviderMetadata);
