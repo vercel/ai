@@ -420,7 +420,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedUsage: LanguageModelUsage | undefined = undefined;
-    let isContinuation = false;
     let stepType: 'initial' | 'continue' | 'tool-result' = 'initial';
     const recordedSteps: StepResult<TOOLS>[] = [];
 
@@ -494,7 +493,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
           recordedToolCalls = [];
           recordedToolResults = [];
-          isContinuation = chunk.isContinued;
           recordedStepText = '';
           recordedRequest = chunk.request;
 
