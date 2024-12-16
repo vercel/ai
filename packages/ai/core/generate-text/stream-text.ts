@@ -403,7 +403,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     // event processor for telemetry, invoking callbacks, etc.
     // The event processor reads the transformed stream to enable correct
     // recording of the final transformed outputs.
-    let recordedText = '';
+    let recordedStepText = '';
+    let recordedContinuationText = '';
+    let recordedFullText = '';
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<CoreAssistantMessage | CoreToolMessage>;
     } = {
@@ -416,7 +418,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedUsage: LanguageModelUsage | undefined = undefined;
-    const steps: Partial<StepResult<TOOLS>>[] = [{}];
+    let isContinuation = false;
+    let stepType: 'initial' | 'continue' | 'tool-result' = 'initial';
+    const recordedSteps: StepResult<TOOLS>[] = [];
 
     const eventProcessor = new TransformStream<
       TextStreamPart<TOOLS>,
@@ -426,7 +430,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         controller.enqueue(chunk); // forward the chunk to the next stream
 
         if (chunk.type === 'text-delta') {
-          recordedText += chunk.textDelta;
+          recordedStepText += chunk.textDelta;
+          recordedContinuationText += chunk.textDelta;
+          recordedFullText += chunk.textDelta;
         }
 
         if (chunk.type === 'tool-call') {
@@ -438,25 +444,64 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         }
 
         if (chunk.type === 'step-finish') {
-          if (!chunk.isContinued) {
-            steps.push({
-              text: recordedText, // TODO slice to step
-              toolCalls: recordedToolCalls,
-              toolResults: recordedToolResults,
-            });
+          const stepMessages = toResponseMessages({
+            text: recordedContinuationText,
+            tools: tools ?? ({} as TOOLS),
+            toolCalls: recordedToolCalls,
+            toolResults: recordedToolResults,
+          });
 
-            recordedResponse.messages.push(
-              ...toResponseMessages({
-                text: recordedText,
-                tools: tools ?? ({} as TOOLS),
-                toolCalls: recordedToolCalls,
-                toolResults: recordedToolResults,
-              }),
-            );
+          // determine the next step type
+          const currentStep = recordedSteps.length;
+          let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
+          if (currentStep + 1 < maxSteps) {
+            if (
+              continueSteps &&
+              chunk.finishReason === 'length' &&
+              // only use continue when there are no tool calls:
+              recordedToolCalls.length === 0
+            ) {
+              nextStepType = 'continue';
+            } else if (
+              // there are tool calls:
+              recordedToolCalls.length > 0 &&
+              // all current tool calls have results:
+              recordedToolResults.length === recordedToolCalls.length
+            ) {
+              nextStepType = 'tool-result';
+            }
+          }
 
-            // tool calls and results are reported per step:
-            recordedToolCalls = [];
-            recordedToolResults = [];
+          recordedSteps.push({
+            stepType,
+            text: recordedStepText,
+            toolCalls: recordedToolCalls,
+            toolResults: recordedToolResults,
+            finishReason: chunk.finishReason,
+            usage: chunk.usage,
+            warnings: recordedWarnings, // TODO buggy
+            logprobs: chunk.logprobs,
+            request: {}, // TODO
+            response: {
+              ...chunk.response,
+              messages: [...recordedResponse.messages, ...stepMessages],
+            },
+            experimental_providerMetadata: chunk.experimental_providerMetadata,
+            isContinued: chunk.isContinued,
+          });
+
+          recordedToolCalls = [];
+          recordedToolResults = [];
+          isContinuation = chunk.isContinued;
+          recordedStepText = '';
+
+          if (nextStepType !== 'done') {
+            stepType = nextStepType;
+          }
+
+          if (nextStepType !== 'continue') {
+            recordedResponse.messages.push(...stepMessages);
+            recordedContinuationText = '';
           }
         }
 
@@ -473,10 +518,12 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       flush() {
         self.warningsPromise.resolve(recordedWarnings ?? []);
         self.finishReasonPromise.resolve(recordedFinishReason ?? 'unknown');
-        self.textPromise.resolve(recordedText);
+        self.textPromise.resolve(recordedFullText);
         self.responsePromise.resolve(recordedResponse);
-        self.toolCallsPromise.resolve(steps.at(-1)?.toolCalls ?? []);
-        self.toolResultsPromise.resolve(steps.at(-1)?.toolResults ?? []);
+        self.toolCallsPromise.resolve(recordedSteps.at(-1)?.toolCalls ?? []);
+        self.toolResultsPromise.resolve(
+          recordedSteps.at(-1)?.toolResults ?? [],
+        );
         self.usagePromise.resolve(
           recordedUsage ?? {
             completionTokens: NaN,
@@ -484,6 +531,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             totalTokens: NaN,
           },
         );
+        self.stepsPromise.resolve(recordedSteps);
       },
     });
 
@@ -1042,7 +1090,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     // resolve promises:
                     self.providerMetadataPromise.resolve(stepProviderMetadata);
                     self.requestPromise.resolve(stepRequest);
-                    self.stepsPromise.resolve(stepResults);
 
                     // call onFinish callback:
                     await onFinish?.({

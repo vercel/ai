@@ -1645,11 +1645,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           "content": [
             {
               "text": "part 1 
- ",
-              "type": "text",
-            },
-            {
-              "text": "no-whitespace",
+ no-whitespace",
               "type": "text",
             },
           ],
@@ -1686,15 +1682,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           "content": [
             {
               "text": "part 1 
- ",
-              "type": "text",
-            },
-            {
-              "text": "no-whitespace",
-              "type": "text",
-            },
-            {
-              "text": "immediatefollow  ",
+ no-whitespaceimmediatefollow  ",
               "type": "text",
             },
           ],
@@ -1731,19 +1719,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           "content": [
             {
               "text": "part 1 
- ",
-              "type": "text",
-            },
-            {
-              "text": "no-whitespace",
-              "type": "text",
-            },
-            {
-              "text": "immediatefollow  ",
-              "type": "text",
-            },
-            {
-              "text": "final value keep all whitespace
+ no-whitespaceimmediatefollow  final value keep all whitespace
  end",
               "type": "text",
             },

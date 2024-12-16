@@ -3246,6 +3246,121 @@ describe('streamText', () => {
       ]);
     });
 
+    it('result.steps should be transformed', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', textDelta: 'Hello, ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        experimental_transform: upperCaseTransform(),
+        prompt: 'test-input',
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.fullStream);
+
+      expect(await result.steps).toStrictEqual([
+        {
+          stepType: 'initial',
+          text: 'HELLO, WORLD!',
+          experimental_providerMetadata: undefined,
+          finishReason: 'stop',
+          isContinued: false,
+          logprobs: undefined,
+          request: {},
+          response: {
+            headers: undefined,
+            id: 'id-0',
+            messages: [
+              {
+                content: [
+                  {
+                    text: 'HELLO, WORLD!',
+                    type: 'text',
+                  },
+                  {
+                    args: {
+                      value: 'VALUE',
+                    },
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    type: 'tool-call',
+                  },
+                ],
+                role: 'assistant',
+              },
+              {
+                content: [
+                  {
+                    result: 'RESULT1',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    type: 'tool-result',
+                  },
+                ],
+                role: 'tool',
+              },
+            ],
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          toolCalls: [
+            {
+              args: {
+                value: 'VALUE',
+              },
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              type: 'tool-call',
+            },
+          ],
+          toolResults: [
+            {
+              args: {
+                value: 'VALUE',
+              },
+              result: 'RESULT1',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              type: 'tool-result',
+            },
+          ],
+          usage: {
+            completionTokens: 10,
+            promptTokens: 3,
+            totalTokens: 13,
+          },
+          warnings: undefined,
+        },
+      ]);
+    });
+
     // TODO onFinish should be transformed
     // TODO telemetry should be transformed
     // TODO step behavior?
