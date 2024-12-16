@@ -3035,6 +3035,14 @@ describe('streamText', () => {
               }
             }
 
+            if (chunk.type === 'finish') {
+              if (chunk.experimental_providerMetadata?.testProvider != null) {
+                chunk.experimental_providerMetadata.testProvider = {
+                  testKey: 'TEST VALUE',
+                };
+              }
+            }
+
             controller.enqueue(chunk);
           },
         });
@@ -3395,6 +3403,49 @@ describe('streamText', () => {
       expect(await result.request).toStrictEqual({
         body: 'TEST BODY',
       });
+    });
+
+    it('result.providerMetadata should be transformed', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+              providerMetadata: {
+                testProvider: {
+                  testKey: 'testValue',
+                },
+              },
+            },
+          ]),
+          request: { body: 'test body' },
+        }),
+        prompt: 'test-input',
+        experimental_transform: upperCaseTransform(),
+      });
+
+      // consume stream (runs in parallel)
+      convertAsyncIterableToArray(result.textStream);
+
+      expect(
+        JSON.stringify(await result.experimental_providerMetadata),
+      ).toStrictEqual(
+        JSON.stringify({
+          testProvider: {
+            testKey: 'TEST VALUE',
+          },
+        }),
+      );
     });
 
     // TODO onFinish should be transformed

@@ -420,6 +420,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedUsage: LanguageModelUsage | undefined = undefined;
+    let recordedProviderMetadata: ProviderMetadata | undefined = undefined;
     let stepType: 'initial' | 'continue' | 'tool-result' = 'initial';
     const recordedSteps: StepResult<TOOLS>[] = [];
 
@@ -513,6 +514,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           recordedResponse.headers = chunk.response.headers;
           recordedUsage = chunk.usage;
           recordedFinishReason = chunk.finishReason;
+          recordedProviderMetadata = chunk.experimental_providerMetadata;
         }
       },
 
@@ -526,6 +528,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         self.toolResultsPromise.resolve(
           recordedSteps.at(-1)?.toolResults ?? [],
         );
+        self.providerMetadataPromise.resolve(recordedProviderMetadata);
         self.usagePromise.resolve(
           recordedUsage ?? {
             completionTokens: NaN,
@@ -1089,9 +1092,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                     // update warnings
                     recordedWarnings = warnings;
-
-                    // resolve promises:
-                    self.providerMetadataPromise.resolve(stepProviderMetadata);
 
                     // call onFinish callback:
                     await onFinish?.({
