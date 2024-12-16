@@ -963,17 +963,12 @@ describe('streamText', () => {
       const mockResponse = createMockServerResponse();
 
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => {
-            return {
-              stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: 'Hello' },
-                { type: 'text-delta', textDelta: ', ' },
-                { type: 'text-delta', textDelta: 'world!' },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            };
-          },
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: 'world!' },
+          ]),
         }),
         prompt: 'test-input',
       });
