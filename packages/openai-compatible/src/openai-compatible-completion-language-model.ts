@@ -1,4 +1,5 @@
 import {
+  APICallError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
@@ -8,8 +9,10 @@ import {
 import {
   FetchFunction,
   ParseResult,
+  ResponseHandler,
   combineHeaders,
   createEventSourceResponseHandler,
+  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -23,6 +26,7 @@ import {
 import {
   openaiCompatibleErrorDataSchema,
   openaiCompatibleFailedResponseHandler,
+  ErrorHandlerConfig,
 } from './openai-compatible-error';
 import { getResponseMetadata } from './get-response-metadata';
 
@@ -31,6 +35,7 @@ type OpenAICompatibleCompletionConfig = {
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  errorHandler?: ErrorHandlerConfig;
 };
 
 export class OpenAICompatibleCompletionLanguageModel
@@ -43,6 +48,8 @@ export class OpenAICompatibleCompletionLanguageModel
   readonly settings: OpenAICompatibleCompletionSettings;
 
   private readonly config: OpenAICompatibleCompletionConfig;
+  private readonly failedResponseHandler: ResponseHandler<APICallError>;
+  private readonly chunkSchema: z.ZodType;
 
   constructor(
     modelId: OpenAICompatibleCompletionModelId,
@@ -52,6 +59,21 @@ export class OpenAICompatibleCompletionLanguageModel
     this.modelId = modelId;
     this.settings = settings;
     this.config = config;
+
+    if (config.errorHandler) {
+      const errorSchema = config.errorHandler.errorSchema;
+      this.chunkSchema =
+        createOpenAICompatibleCompletionChunkSchema(errorSchema);
+      this.failedResponseHandler = createJsonErrorResponseHandler({
+        errorSchema,
+        errorToMessage: config.errorHandler.errorToMessage,
+      });
+    } else {
+      this.chunkSchema = createOpenAICompatibleCompletionChunkSchema(
+        openaiCompatibleErrorDataSchema,
+      );
+      this.failedResponseHandler = openaiCompatibleFailedResponseHandler;
+    }
   }
 
   get provider(): string {
@@ -169,7 +191,7 @@ export class OpenAICompatibleCompletionLanguageModel
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
-      failedResponseHandler: openaiCompatibleFailedResponseHandler,
+      failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiCompatibleCompletionResponseSchema,
       ),
@@ -212,9 +234,9 @@ export class OpenAICompatibleCompletionLanguageModel
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
-      failedResponseHandler: openaiCompatibleFailedResponseHandler,
+      failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
-        openaiCompatibleCompletionChunkSchema,
+        this.chunkSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -232,7 +254,7 @@ export class OpenAICompatibleCompletionLanguageModel
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof openaiCompatibleCompletionChunkSchema>>,
+          ParseResult<z.infer<typeof this.chunkSchema>>,
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
@@ -323,24 +345,29 @@ const openaiCompatibleCompletionResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiCompatibleCompletionChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        text: z.string(),
-        finish_reason: z.string().nullish(),
-        index: z.number(),
-      }),
-    ),
-    usage: z
-      .object({
-        prompt_tokens: z.number(),
-        completion_tokens: z.number(),
-      })
-      .nullish(),
-  }),
-  openaiCompatibleErrorDataSchema,
-]);
+const createOpenAICompatibleCompletionChunkSchema = <
+  ERROR_SCHEMA extends z.ZodType,
+>(
+  errorSchema: ERROR_SCHEMA,
+) =>
+  z.union([
+    z.object({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          text: z.string(),
+          finish_reason: z.string().nullish(),
+          index: z.number(),
+        }),
+      ),
+      usage: z
+        .object({
+          prompt_tokens: z.number(),
+          completion_tokens: z.number(),
+        })
+        .nullish(),
+    }),
+    errorSchema,
+  ]);

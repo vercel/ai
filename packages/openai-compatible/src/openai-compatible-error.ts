@@ -23,3 +23,8 @@ export const openaiCompatibleFailedResponseHandler =
     errorSchema: openaiCompatibleErrorDataSchema,
     errorToMessage: data => data.error.message,
   });
+
+export type ErrorHandlerConfig = {
+  errorSchema: z.ZodType;
+  errorToMessage: (data: any) => string;
+};
