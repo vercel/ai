@@ -3194,10 +3194,54 @@ describe('streamText', () => {
 
       expect(await result.toolCalls).toStrictEqual([
         {
-          args: { value: 'VALUE' },
+          type: 'tool-call',
           toolCallId: 'call-1',
           toolName: 'tool1',
-          type: 'tool-call',
+          args: { value: 'VALUE' },
+        },
+      ]);
+    });
+
+    it('result.toolResults should be transformed', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        experimental_transform: upperCaseTransform(),
+        prompt: 'test-input',
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.fullStream);
+
+      expect(await result.toolResults).toStrictEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          args: { value: 'VALUE' },
+          result: 'RESULT1',
         },
       ]);
     });

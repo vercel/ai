@@ -476,6 +476,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         self.textPromise.resolve(recordedText);
         self.responsePromise.resolve(recordedResponse);
         self.toolCallsPromise.resolve(steps.at(-1)?.toolCalls ?? []);
+        self.toolResultsPromise.resolve(steps.at(-1)?.toolResults ?? []);
         self.usagePromise.resolve(
           recordedUsage ?? {
             completionTokens: NaN,
@@ -1040,7 +1041,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                     // resolve promises:
                     self.providerMetadataPromise.resolve(stepProviderMetadata);
-                    self.toolResultsPromise.resolve(stepToolResults);
                     self.requestPromise.resolve(stepRequest);
                     self.stepsPromise.resolve(stepResults);
 
