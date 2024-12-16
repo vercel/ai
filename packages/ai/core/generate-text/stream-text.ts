@@ -393,13 +393,34 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       });
     }
 
+    // event processor for telemetry, invoking callbacks, etc.
+    let recordedText = '';
+    const eventProcessor = new TransformStream<
+      TextStreamPart<TOOLS>,
+      TextStreamPart<TOOLS>
+    >({
+      transform(chunk, controller) {
+        controller.enqueue(chunk); // forward the chunk to the next stream
+
+        if (chunk.type === 'text-delta') {
+          recordedText += chunk.textDelta;
+        }
+      },
+
+      flush(controller) {
+        self.textPromise.resolve(recordedText);
+      },
+    });
+
     // initialize the stitchable stream and the transformed stream:
     const stitchableStream = createStitchableStream<TextStreamPart<TOOLS>>();
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
-    this.baseStream = transform
-      ? stitchableStream.stream.pipeThrough(transform)
-      : stitchableStream.stream;
+    this.baseStream = (
+      transform
+        ? stitchableStream.stream.pipeThrough(transform)
+        : stitchableStream.stream
+    ).pipeThrough(eventProcessor);
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
@@ -941,7 +962,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     // resolve promises:
                     self.usagePromise.resolve(combinedUsage);
                     self.finishReasonPromise.resolve(stepFinishReason!);
-                    self.textPromise.resolve(fullStepText);
+
                     self.toolCallsPromise.resolve(stepToolCalls);
                     self.providerMetadataPromise.resolve(stepProviderMetadata);
                     self.toolResultsPromise.resolve(stepToolResults);
