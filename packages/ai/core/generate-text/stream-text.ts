@@ -513,7 +513,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         }
       },
 
-      flush(controller) {
+      async flush(controller) {
         try {
           // from last step (when there are errors there may be no last step)
           const lastStep = recordedSteps[recordedSteps.length - 1];
@@ -541,6 +541,26 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           // aggregate results:
           self.textPromise.resolve(recordedFullText);
           self.stepsPromise.resolve(recordedSteps);
+
+          // call onFinish callback:
+          await onFinish?.({
+            finishReason: recordedFinishReason ?? 'unknown',
+            logprobs: undefined,
+            usage: recordedUsage ?? {
+              completionTokens: NaN,
+              promptTokens: NaN,
+              totalTokens: NaN,
+            },
+            text: recordedFullText,
+            toolCalls: lastStep.toolCalls,
+            toolResults: lastStep.toolResults,
+            request: lastStep.request ?? {},
+            response: lastStep.response,
+            warnings: lastStep.warnings,
+            experimental_providerMetadata:
+              lastStep.experimental_providerMetadata,
+            steps: recordedSteps,
+          });
         } catch (error) {
           controller.error(error);
         }
@@ -1097,29 +1117,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                         },
                       }),
                     );
-
-                    // call onFinish callback:
-                    await onFinish?.({
-                      finishReason: stepFinishReason,
-                      logprobs: stepLogProbs,
-                      usage: combinedUsage,
-                      text: fullStepText,
-                      toolCalls: stepToolCalls,
-                      // The tool results are inferred as a never[] type, because they are
-                      // optional and the execute method with an inferred result type is
-                      // optional as well. Therefore we need to cast the toolResults to any.
-                      // The type exposed to the users will be correctly inferred.
-                      toolResults: stepToolResults as any,
-                      request: stepRequest,
-                      response: {
-                        ...stepResponse,
-                        headers: rawResponse?.headers,
-                        messages: responseMessages,
-                      },
-                      warnings,
-                      experimental_providerMetadata: stepProviderMetadata,
-                      steps: stepResults,
-                    });
                   } catch (error) {
                     controller.error(error);
                   } finally {

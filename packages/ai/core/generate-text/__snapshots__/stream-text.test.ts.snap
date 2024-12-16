@@ -844,19 +844,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "content": [
           {
             "text": "part 1 
- ",
-            "type": "text",
-          },
-          {
-            "text": "no-whitespace",
-            "type": "text",
-          },
-          {
-            "text": "immediatefollow  ",
-            "type": "text",
-          },
-          {
-            "text": "final value keep all whitespace
+ no-whitespaceimmediatefollow  final value keep all whitespace
  end",
             "type": "text",
           },
@@ -918,11 +906,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
             "content": [
               {
                 "text": "part 1 
- ",
-                "type": "text",
-              },
-              {
-                "text": "no-whitespace",
+ no-whitespace",
                 "type": "text",
               },
             ],
@@ -959,15 +943,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
             "content": [
               {
                 "text": "part 1 
- ",
-                "type": "text",
-              },
-              {
-                "text": "no-whitespace",
-                "type": "text",
-              },
-              {
-                "text": "immediatefollow  ",
+ no-whitespaceimmediatefollow  ",
                 "type": "text",
               },
             ],
@@ -1004,19 +980,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
             "content": [
               {
                 "text": "part 1 
- ",
-                "type": "text",
-              },
-              {
-                "text": "no-whitespace",
-                "type": "text",
-              },
-              {
-                "text": "immediatefollow  ",
-                "type": "text",
-              },
-              {
-                "text": "final value keep all whitespace
+ no-whitespaceimmediatefollow  final value keep all whitespace
  end",
                 "type": "text",
               },
@@ -1904,6 +1868,165 @@ exports[`streamText > options.onFinish > options.onFinish should send correct in
         "value": "value",
       },
       "result": "value-result",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+  ],
+  "usage": {
+    "completionTokens": 10,
+    "promptTokens": 3,
+    "totalTokens": 13,
+  },
+  "warnings": undefined,
+}
+`;
+
+exports[`streamText > options.transform > options.onFinish should send correct information 1`] = `
+{
+  "experimental_providerMetadata": {
+    "testProvider": {
+      "testKey": "TEST VALUE",
+    },
+  },
+  "finishReason": "stop",
+  "logprobs": undefined,
+  "request": {},
+  "response": {
+    "headers": {
+      "call": "2",
+    },
+    "id": "id-0",
+    "messages": [
+      {
+        "content": [
+          {
+            "text": "HELLO, WORLD!",
+            "type": "text",
+          },
+          {
+            "args": {
+              "value": "VALUE",
+            },
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+        ],
+        "role": "assistant",
+      },
+      {
+        "content": [
+          {
+            "result": "VALUE-RESULT",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+        ],
+        "role": "tool",
+      },
+    ],
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "steps": [
+    {
+      "experimental_providerMetadata": {
+        "testProvider": {
+          "testKey": "TEST VALUE",
+        },
+      },
+      "finishReason": "stop",
+      "isContinued": false,
+      "logprobs": undefined,
+      "request": {},
+      "response": {
+        "headers": {
+          "call": "2",
+        },
+        "id": "id-0",
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "HELLO, WORLD!",
+                "type": "text",
+              },
+              {
+                "args": {
+                  "value": "VALUE",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "result": "VALUE-RESULT",
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ],
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "stepType": "initial",
+      "text": "HELLO, WORLD!",
+      "toolCalls": [
+        {
+          "args": {
+            "value": "VALUE",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "toolResults": [
+        {
+          "args": {
+            "value": "VALUE",
+          },
+          "result": "VALUE-RESULT",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
+      "warnings": undefined,
+    },
+  ],
+  "text": "HELLO, WORLD!",
+  "toolCalls": [
+    {
+      "args": {
+        "value": "VALUE",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+  ],
+  "toolResults": [
+    {
+      "args": {
+        "value": "VALUE",
+      },
+      "result": "VALUE-RESULT",
       "toolCallId": "call-1",
       "toolName": "tool1",
       "type": "tool-result",
