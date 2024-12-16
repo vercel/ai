@@ -1413,7 +1413,7 @@ describe('streamText', () => {
       // consume stream (runs in parallel)
       convertAsyncIterableToArray(result.textStream);
 
-      assert.strictEqual(await result.finishReason, 'stop');
+      expect(await result.finishReason).toStrictEqual('stop');
     });
   });
 
@@ -1440,7 +1440,7 @@ describe('streamText', () => {
       // consume stream (runs in parallel)
       convertAsyncIterableToArray(result.textStream);
 
-      assert.deepStrictEqual(await result.experimental_providerMetadata, {
+      expect(await result.experimental_providerMetadata).toStrictEqual({
         testProvider: { testKey: 'testValue' },
       });
     });
