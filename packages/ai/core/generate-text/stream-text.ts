@@ -1063,8 +1063,21 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
 
-                  if (nextStepType !== 'done') {
-                    // needs to add to stitchable stream
+                  if (nextStepType === 'done') {
+                    controller.enqueue({
+                      type: 'finish',
+                      finishReason: stepFinishReason,
+                      usage: combinedUsage,
+                      experimental_providerMetadata: stepProviderMetadata,
+                      logprobs: stepLogProbs,
+                      response: {
+                        ...stepResponse,
+                        headers: rawResponse?.headers,
+                      },
+                    });
+
+                    self.closeStream(); // close the stitchable stream
+                  } else {
                     await streamStep({
                       currentStep: currentStep + 1,
                       responseMessages,
@@ -1073,25 +1086,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       previousStepText: fullStepText,
                       hasLeadingWhitespace: hasWhitespaceSuffix,
                     });
-
-                    return;
                   }
-
-                  // enqueue the finish chunk:
-                  controller.enqueue({
-                    type: 'finish',
-                    finishReason: stepFinishReason,
-                    usage: combinedUsage,
-                    experimental_providerMetadata: stepProviderMetadata,
-                    logprobs: stepLogProbs,
-                    response: {
-                      ...stepResponse,
-                      headers: rawResponse?.headers,
-                    },
-                  });
-
-                  // close the stitchable stream
-                  self.closeStream();
                 },
               }),
             ),
