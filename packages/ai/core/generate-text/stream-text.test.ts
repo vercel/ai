@@ -1,4 +1,9 @@
 import {
+  LanguageModelV1,
+  LanguageModelV1CallWarning,
+  LanguageModelV1StreamPart,
+} from '@ai-sdk/provider';
+import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
   convertReadableStreamToArray,
@@ -19,6 +24,36 @@ import { tool } from '../tool/tool';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
+
+function createHelloWorldStream(): ReadableStream<LanguageModelV1StreamPart> {
+  return convertArrayToReadableStream([
+    { type: 'text-delta', textDelta: 'Hello' },
+    { type: 'text-delta', textDelta: ', ' },
+    { type: 'text-delta', textDelta: `world!` },
+    {
+      type: 'finish',
+      finishReason: 'stop',
+      logprobs: undefined,
+      usage: { completionTokens: 10, promptTokens: 3 },
+    },
+  ]);
+}
+
+function createHelloWorldModel({
+  rawCall = { rawPrompt: 'prompt', rawSettings: {} },
+  warnings,
+}: {
+  rawCall?: { rawPrompt: string; rawSettings: Record<string, unknown> };
+  warnings?: LanguageModelV1CallWarning[];
+} = {}): LanguageModelV1 {
+  return new MockLanguageModelV1({
+    doStream: async () => ({
+      stream: createHelloWorldStream(),
+      rawCall,
+      warnings,
+    }),
+  });
+}
 
 describe('streamText', () => {
   describe('result.textStream', () => {
@@ -1502,6 +1537,24 @@ describe('streamText', () => {
           result.toDataStream().pipeThrough(new TextDecoderStream()),
         ),
       }).toMatchSnapshot();
+    });
+  });
+
+  describe('result.warnings', () => {
+    it('should resolve with warnings', async () => {
+      const result = streamText({
+        model: createHelloWorldModel({
+          warnings: [{ type: 'other', message: 'test-warning' }],
+        }),
+        prompt: 'test-input',
+      });
+
+      // consume stream (runs in parallel)
+      convertAsyncIterableToArray(result.textStream);
+
+      expect(await result.warnings).toStrictEqual([
+        { type: 'other', message: 'test-warning' },
+      ]);
     });
   });
 
@@ -3274,26 +3327,9 @@ describe('streamText', () => {
         },
       });
 
-    const helloWorldModel = new MockLanguageModelV1({
-      doStream: async () => ({
-        stream: convertArrayToReadableStream([
-          { type: 'text-delta', textDelta: 'Hello' },
-          { type: 'text-delta', textDelta: ', ' },
-          { type: 'text-delta', textDelta: `world!` },
-          {
-            type: 'finish',
-            finishReason: 'stop',
-            logprobs: undefined,
-            usage: { completionTokens: 10, promptTokens: 3 },
-          },
-        ]),
-        rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-      }),
-    });
-
     it('should transform the stream', async () => {
       const result = streamText({
-        model: helloWorldModel,
+        model: createHelloWorldModel(),
         experimental_transform: upperCaseTransform,
         prompt: 'test-input',
       });
@@ -3305,7 +3341,7 @@ describe('streamText', () => {
 
     it('result.text should be transformed', async () => {
       const result = streamText({
-        model: helloWorldModel,
+        model: createHelloWorldModel(),
         experimental_transform: upperCaseTransform,
         prompt: 'test-input',
       });
@@ -3318,7 +3354,7 @@ describe('streamText', () => {
 
     it('result.response.messages should be transformed', async () => {
       const result = streamText({
-        model: helloWorldModel,
+        model: createHelloWorldModel(),
         experimental_transform: upperCaseTransform,
         prompt: 'test-input',
       });

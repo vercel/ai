@@ -50,6 +50,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { LanguageModelResponseMetadata } from '../types';
+import { LanguageModelV1CallWarning } from '@ai-sdk/provider';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -394,6 +395,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       });
     }
 
+    // warnings from last invoked step. should ideally be part of stream chunks
+    // e.g. step-finish, finish
+    let recordedWarnings: Array<LanguageModelV1CallWarning> | undefined =
+      undefined;
+
     // event processor for telemetry, invoking callbacks, etc.
     let recordedText = '';
     const recordedResponse: LanguageModelResponseMetadata & {
@@ -459,6 +465,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       flush(controller) {
         self.textPromise.resolve(recordedText);
         self.responsePromise.resolve(recordedResponse);
+        self.warningsPromise.resolve(recordedWarnings ?? []);
       },
     });
 
@@ -1011,17 +1018,17 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       }),
                     );
 
+                    // update warnings
+                    recordedWarnings = warnings;
+
                     // resolve promises:
                     self.usagePromise.resolve(combinedUsage);
                     self.finishReasonPromise.resolve(stepFinishReason!);
-
                     self.toolCallsPromise.resolve(stepToolCalls);
                     self.providerMetadataPromise.resolve(stepProviderMetadata);
                     self.toolResultsPromise.resolve(stepToolResults);
                     self.requestPromise.resolve(stepRequest);
-
                     self.stepsPromise.resolve(stepResults);
-                    self.warningsPromise.resolve(warnings ?? []);
 
                     // call onFinish callback:
                     await onFinish?.({
