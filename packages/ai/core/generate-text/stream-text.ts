@@ -49,6 +49,7 @@ import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
+import { LanguageModelResponseMetadata } from '../types';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -395,6 +396,17 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
     // event processor for telemetry, invoking callbacks, etc.
     let recordedText = '';
+    const recordedResponse: LanguageModelResponseMetadata & {
+      messages: Array<CoreAssistantMessage | CoreToolMessage>;
+    } = {
+      id: generateId(),
+      timestamp: currentDate(),
+      modelId: model.modelId,
+      messages: [],
+    };
+    let recordedToolCalls: ToolCallUnion<TOOLS>[] = [];
+    let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
+
     const eventProcessor = new TransformStream<
       TextStreamPart<TOOLS>,
       TextStreamPart<TOOLS>
@@ -405,10 +417,48 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         if (chunk.type === 'text-delta') {
           recordedText += chunk.textDelta;
         }
+
+        if (chunk.type === 'tool-call') {
+          recordedToolCalls.push(chunk);
+        }
+
+        if (chunk.type === 'tool-result') {
+          recordedToolResults.push(chunk);
+        }
+
+        if (chunk.type === 'step-finish') {
+          recordedResponse.id = chunk.response.id;
+          recordedResponse.timestamp = chunk.response.timestamp;
+          recordedResponse.modelId = chunk.response.modelId;
+          recordedResponse.headers = chunk.response.headers;
+
+          if (!chunk.isContinued) {
+            recordedResponse.messages.push(
+              ...toResponseMessages({
+                text: recordedText,
+                tools: tools ?? ({} as TOOLS),
+                toolCalls: recordedToolCalls,
+                toolResults: recordedToolResults,
+              }),
+            );
+
+            // tool calls and results are reported per step:
+            recordedToolCalls = [];
+            recordedToolResults = [];
+          }
+        }
+
+        if (chunk.type === 'finish') {
+          recordedResponse.id = chunk.response.id;
+          recordedResponse.timestamp = chunk.response.timestamp;
+          recordedResponse.modelId = chunk.response.modelId;
+          recordedResponse.headers = chunk.response.headers;
+        }
       },
 
       flush(controller) {
         self.textPromise.resolve(recordedText);
+        self.responsePromise.resolve(recordedResponse);
       },
     });
 
@@ -846,6 +896,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     logprobs: stepLogProbs,
                     response: {
                       ...stepResponse,
+                      headers: rawResponse?.headers,
                     },
                     isContinued: nextStepType === 'continue',
                   });
@@ -935,6 +986,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       logprobs: stepLogProbs,
                       response: {
                         ...stepResponse,
+                        headers: rawResponse?.headers,
                       },
                     });
 
@@ -967,11 +1019,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     self.providerMetadataPromise.resolve(stepProviderMetadata);
                     self.toolResultsPromise.resolve(stepToolResults);
                     self.requestPromise.resolve(stepRequest);
-                    self.responsePromise.resolve({
-                      ...stepResponse,
-                      headers: rawResponse?.headers,
-                      messages: responseMessages,
-                    });
+
                     self.stepsPromise.resolve(stepResults);
                     self.warningsPromise.resolve(warnings ?? []);
 

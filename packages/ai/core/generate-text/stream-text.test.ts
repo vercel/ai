@@ -2641,19 +2641,7 @@ describe('streamText', () => {
               content: [
                 {
                   type: 'text',
-                  text: 'part 1 \n ',
-                },
-                {
-                  type: 'text',
-                  text: 'no-whitespace',
-                },
-                {
-                  type: 'text',
-                  text: 'immediatefollow  ',
-                },
-                {
-                  type: 'text',
-                  text: 'final value keep all whitespace\n end',
+                  text: 'part 1 \n no-whitespaceimmediatefollow  final value keep all whitespace\n end',
                 },
               ],
               role: 'assistant',
@@ -3230,6 +3218,7 @@ describe('streamText', () => {
             id: 'id-0',
             modelId: 'mock-model-id',
             timestamp: new Date(0),
+            headers: undefined,
           },
           type: 'step-finish',
           usage: {
@@ -3246,6 +3235,7 @@ describe('streamText', () => {
             id: 'id-0',
             modelId: 'mock-model-id',
             timestamp: new Date(0),
+            headers: undefined,
           },
           type: 'finish',
           usage: {
@@ -3340,6 +3330,7 @@ describe('streamText', () => {
         id: expect.any(String),
         timestamp: expect.any(Date),
         modelId: expect.any(String),
+        headers: undefined,
         messages: [
           {
             content: [

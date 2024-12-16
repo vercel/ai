@@ -33,6 +33,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       "isContinued": false,
       "logprobs": undefined,
       "response": {
+        "headers": undefined,
         "id": "id-0",
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
@@ -49,6 +50,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       "finishReason": "stop",
       "logprobs": undefined,
       "response": {
+        "headers": undefined,
         "id": "id-0",
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
@@ -442,6 +444,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": {
+        "call": "1",
+      },
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -467,6 +472,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": {
+        "call": "2",
+      },
       "id": "id-1",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
@@ -483,6 +491,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "finishReason": "stop",
     "logprobs": undefined,
     "response": {
+      "headers": {
+        "call": "2",
+      },
       "id": "id-1",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
@@ -1234,6 +1245,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -1255,6 +1267,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-1",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
@@ -1276,6 +1289,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "response": {
+      "headers": {
+        "call": "3",
+      },
       "id": "id-2",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
@@ -1310,6 +1326,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": {
+        "call": "3",
+      },
       "id": "id-3",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
@@ -1326,6 +1345,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "logprobs": undefined,
     "response": {
+      "headers": {
+        "call": "3",
+      },
       "id": "id-3",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
@@ -1926,6 +1948,7 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -1942,6 +1965,7 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
     "finishReason": "stop",
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -1972,6 +1996,7 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -1988,6 +2013,7 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
     "finishReason": "tool-calls",
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -2027,6 +2053,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -2043,6 +2070,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "finishReason": "stop",
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -2077,6 +2105,7 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "response-id",
       "modelId": "response-model-id",
       "timestamp": 1970-01-01T00:00:05.000Z,
@@ -2093,6 +2122,7 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
     "finishReason": "stop",
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "response-id",
       "modelId": "response-model-id",
       "timestamp": 1970-01-01T00:00:05.000Z,
@@ -2170,6 +2200,7 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -2186,6 +2217,7 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
     "finishReason": "tool-calls",
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -2216,6 +2248,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -2232,6 +2265,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "finishReason": "stop",
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -2271,6 +2305,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -2287,6 +2322,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "finishReason": "stop",
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -2321,6 +2357,7 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-2000",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:02.000Z,
@@ -2337,6 +2374,7 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
     "finishReason": "stop",
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-2000",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:02.000Z,
@@ -2975,6 +3013,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
@@ -2991,6 +3030,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "finishReason": "stop",
     "logprobs": undefined,
     "response": {
+      "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
