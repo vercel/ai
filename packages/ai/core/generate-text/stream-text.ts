@@ -29,7 +29,7 @@ import {
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
-import { LanguageModelUsage } from '../types/usage';
+import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -1056,12 +1056,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                   await onStepFinish?.(currentStepResult);
 
-                  const combinedUsage = {
-                    promptTokens: usage.promptTokens + stepUsage.promptTokens,
-                    completionTokens:
-                      usage.completionTokens + stepUsage.completionTokens,
-                    totalTokens: usage.totalTokens + stepUsage.totalTokens,
-                  };
+                  const combinedUsage = addLanguageModelUsage(usage, stepUsage);
 
                   if (nextStepType !== 'done') {
                     // needs to add to stitchable stream

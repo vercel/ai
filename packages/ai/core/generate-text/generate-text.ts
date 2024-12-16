@@ -19,6 +19,7 @@ import { CoreTool } from '../tool/tool';
 import { CoreToolChoice, LanguageModel, ProviderMetadata } from '../types';
 import {
   LanguageModelUsage,
+  addLanguageModelUsage,
   calculateLanguageModelUsage,
 } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
@@ -240,7 +241,7 @@ A function that attempts to repair a tool call that failed to parse.
         [];
       let text = '';
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
-      const usage: LanguageModelUsage = {
+      let usage: LanguageModelUsage = {
         completionTokens: 0,
         promptTokens: 0,
         totalTokens: 0,
@@ -390,9 +391,7 @@ A function that attempts to repair a tool call that failed to parse.
         const currentUsage = calculateLanguageModelUsage(
           currentModelResponse.usage,
         );
-        usage.completionTokens += currentUsage.completionTokens;
-        usage.promptTokens += currentUsage.promptTokens;
-        usage.totalTokens += currentUsage.totalTokens;
+        usage = addLanguageModelUsage(usage, currentUsage);
 
         // check if another step is needed:
         let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
