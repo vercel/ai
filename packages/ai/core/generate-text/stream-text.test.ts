@@ -3259,39 +3259,56 @@ describe('streamText', () => {
   });
 
   describe('options.transform', () => {
+    const upperCaseTransform = () =>
+      new TransformStream({
+        transform(chunk, controller) {
+          if (chunk.type === 'text-delta') {
+            chunk.textDelta = chunk.textDelta.toUpperCase();
+          }
+          controller.enqueue(chunk);
+        },
+      });
+
+    const helloWorldModel = new MockLanguageModelV1({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'text-delta', textDelta: 'Hello' },
+          { type: 'text-delta', textDelta: ', ' },
+          { type: 'text-delta', textDelta: `world!` },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            logprobs: undefined,
+            usage: { completionTokens: 10, promptTokens: 3 },
+          },
+        ]),
+        rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+      }),
+    });
+
     it('should transform the stream', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: `world!` },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
-        experimental_transform: () =>
-          new TransformStream({
-            transform(chunk, controller) {
-              if (chunk.type === 'text-delta') {
-                chunk.textDelta = chunk.textDelta.toUpperCase();
-              }
-              controller.enqueue(chunk);
-            },
-          }),
+        model: helloWorldModel,
+        experimental_transform: upperCaseTransform,
         prompt: 'test-input',
       });
 
       expect(
         await convertAsyncIterableToArray(result.textStream),
       ).toStrictEqual(['HELLO', ', ', 'WORLD!']);
+    });
+
+    it('result.text should be transformed', async () => {
+      const result = streamText({
+        model: helloWorldModel,
+        experimental_transform: upperCaseTransform,
+        prompt: 'test-input',
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.fullStream);
+
+      expect(await result.text).toStrictEqual('HELLO, WORLD!');
     });
   });
 });
