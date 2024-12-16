@@ -468,24 +468,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             }
           }
 
-          recordedSteps.push({
-            stepType,
-            text: recordedStepText,
-            toolCalls: recordedToolCalls,
-            toolResults: recordedToolResults,
-            finishReason: chunk.finishReason,
-            usage: chunk.usage,
-            warnings: chunk.warnings,
-            logprobs: chunk.logprobs,
-            request: chunk.request,
-            response: {
-              ...chunk.response,
-              messages: [...recordedResponse.messages, ...stepMessages],
-            },
-            experimental_providerMetadata: chunk.experimental_providerMetadata,
-            isContinued: chunk.isContinued,
-          });
-
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = {
             stepType,
@@ -506,6 +488,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           };
 
           await onStepFinish?.(currentStepResult);
+
+          recordedSteps.push(currentStepResult);
 
           recordedToolCalls = [];
           recordedToolResults = [];
