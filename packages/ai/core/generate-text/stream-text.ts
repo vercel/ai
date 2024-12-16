@@ -422,7 +422,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       TextStreamPart<TOOLS>,
       TextStreamPart<TOOLS>
     >({
-      transform(chunk, controller) {
+      async transform(chunk, controller) {
         controller.enqueue(chunk); // forward the chunk to the next stream
 
         if (chunk.type === 'text-delta') {
@@ -485,6 +485,27 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             experimental_providerMetadata: chunk.experimental_providerMetadata,
             isContinued: chunk.isContinued,
           });
+
+          // Add step information (after response messages are updated):
+          const currentStepResult: StepResult<TOOLS> = {
+            stepType,
+            text: recordedStepText,
+            toolCalls: recordedToolCalls,
+            toolResults: recordedToolResults,
+            finishReason: chunk.finishReason,
+            usage: chunk.usage,
+            warnings: chunk.warnings,
+            logprobs: chunk.logprobs,
+            request: chunk.request,
+            response: {
+              ...chunk.response,
+              messages: [...recordedResponse.messages, ...stepMessages],
+            },
+            experimental_providerMetadata: chunk.experimental_providerMetadata,
+            isContinued: chunk.isContinued,
+          };
+
+          await onStepFinish?.(currentStepResult);
 
           recordedToolCalls = [];
           recordedToolResults = [];
@@ -1031,30 +1052,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       }),
                     );
                   }
-
-                  // Add step information (after response messages are updated):
-                  const currentStepResult: StepResult<TOOLS> = {
-                    stepType,
-                    text: stepText,
-                    toolCalls: stepToolCalls,
-                    toolResults: stepToolResults,
-                    finishReason: stepFinishReason,
-                    usage: stepUsage,
-                    warnings,
-                    logprobs: stepLogProbs,
-                    request: stepRequest,
-                    response: {
-                      ...stepResponse,
-                      headers: rawResponse?.headers,
-
-                      // deep clone msgs to avoid mutating past messages in multi-step:
-                      messages: JSON.parse(JSON.stringify(responseMessages)),
-                    },
-                    experimental_providerMetadata: stepProviderMetadata,
-                    isContinued: nextStepType === 'continue',
-                  };
-
-                  await onStepFinish?.(currentStepResult);
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
 

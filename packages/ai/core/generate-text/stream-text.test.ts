@@ -3331,7 +3331,60 @@ describe('streamText', () => {
       expect(result).toMatchSnapshot();
     });
 
+    it('options.onStepFinish should send correct information', async () => {
+      let result!: Parameters<
+        Required<Parameters<typeof streamText>[0]>['onStepFinish']
+      >[0];
+
+      const { textStream } = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            { type: 'text-delta', textDelta: `world!` },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+              providerMetadata: {
+                testProvider: { testKey: 'testValue' },
+              },
+            },
+          ]),
+          rawResponse: { headers: { call: '2' } },
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          },
+        },
+        prompt: 'test-input',
+        onStepFinish: async event => {
+          result = event as unknown as typeof result;
+        },
+        experimental_transform: upperCaseTransform(),
+      });
+
+      await convertAsyncIterableToArray(textStream); // consume stream
+
+      expect(result).toMatchSnapshot();
+    });
+
     // TODO telemetry should be transformed
-    // TODO onStepFinish should be transformed
   });
 });
