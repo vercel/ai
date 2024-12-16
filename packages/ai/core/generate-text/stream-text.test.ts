@@ -442,109 +442,77 @@ describe('streamText', () => {
     it('should send tool call deltas when toolCallStreaming is enabled', async () => {
       const result = streamText({
         experimental_toolCallStreaming: true,
-        model: new MockLanguageModelV1({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'regular',
-              tools: [
-                {
-                  type: 'function',
-                  name: 'test-tool',
-                  description: undefined,
-                  parameters: {
-                    $schema: 'http://json-schema.org/draft-07/schema#',
-                    additionalProperties: false,
-                    properties: { value: { type: 'string' } },
-                    required: ['value'],
-                    type: 'object',
-                  },
-                },
-              ],
-              toolChoice: { type: 'required' },
-            });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'test-input' }],
-                providerMetadata: undefined,
-              },
-            ]);
-
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '{"',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'value',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '":"',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'Spark',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'le',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: ' Day',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '"}',
-                },
-                {
-                  type: 'tool-call',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  args: '{"value":"Sparkle Day"}',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'tool-calls',
-                  logprobs: undefined,
-                  usage: { promptTokens: 53, completionTokens: 17 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            };
-          },
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '{"',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'value',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '":"',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'Spark',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'le',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: ' Day',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '"}',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              args: '{"value":"Sparkle Day"}',
+            },
+            {
+              type: 'finish',
+              finishReason: 'tool-calls',
+              logprobs: undefined,
+              usage: { promptTokens: 53, completionTokens: 17 },
+            },
+          ]),
         }),
         tools: {
           'test-tool': {
@@ -562,60 +530,28 @@ describe('streamText', () => {
 
     it('should send tool results', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'regular',
-              tools: [
-                {
-                  type: 'function',
-                  name: 'tool1',
-                  description: undefined,
-                  parameters: {
-                    $schema: 'http://json-schema.org/draft-07/schema#',
-                    additionalProperties: false,
-                    properties: { value: { type: 'string' } },
-                    required: ['value'],
-                    type: 'object',
-                  },
-                },
-              ],
-              toolChoice: { type: 'auto' },
-            });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'test-input' }],
-                providerMetadata: undefined,
-              },
-            ]);
-
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'call-1',
-                  toolName: 'tool1',
-                  args: `{ "value": "value" }`,
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  logprobs: undefined,
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            };
-          },
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
         }),
         tools: {
           tool1: tool({
@@ -639,60 +575,28 @@ describe('streamText', () => {
 
     it('should send delayed asynchronous tool results', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'regular',
-              tools: [
-                {
-                  type: 'function',
-                  name: 'tool1',
-                  description: undefined,
-                  parameters: {
-                    $schema: 'http://json-schema.org/draft-07/schema#',
-                    additionalProperties: false,
-                    properties: { value: { type: 'string' } },
-                    required: ['value'],
-                    type: 'object',
-                  },
-                },
-              ],
-              toolChoice: { type: 'auto' },
-            });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'test-input' }],
-                providerMetadata: undefined,
-              },
-            ]);
-
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'call-1',
-                  toolName: 'tool1',
-                  args: `{ "value": "value" }`,
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  logprobs: undefined,
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            };
-          },
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
         }),
         tools: {
           tool1: {
@@ -1527,54 +1431,22 @@ describe('streamText', () => {
   describe('result.toolCalls', () => {
     it('should resolve with tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'regular',
-              tools: [
-                {
-                  type: 'function',
-                  name: 'tool1',
-                  description: undefined,
-                  parameters: {
-                    $schema: 'http://json-schema.org/draft-07/schema#',
-                    additionalProperties: false,
-                    properties: { value: { type: 'string' } },
-                    required: ['value'],
-                    type: 'object',
-                  },
-                },
-              ],
-              toolChoice: { type: 'auto' },
-            });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'test-input' }],
-                providerMetadata: undefined,
-              },
-            ]);
-
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'call-1',
-                  toolName: 'tool1',
-                  args: `{ "value": "value" }`,
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  logprobs: undefined,
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            };
-          },
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
         }),
         tools: {
           tool1: {
@@ -1855,19 +1727,16 @@ describe('streamText', () => {
   describe('result.responseMessages', () => {
     it('should contain assistant response message when there are no tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello, ' },
-              { type: 'text-delta', textDelta: 'world!' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: { promptTokens: 3, completionTokens: 10 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
         }),
         prompt: 'test-input',
       });
