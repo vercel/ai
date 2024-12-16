@@ -1,3 +1,4 @@
+import { LanguageModelV1CallWarning } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { ServerResponse } from 'node:http';
@@ -26,6 +27,8 @@ import {
   LanguageModel,
   LogProbs,
 } from '../types/language-model';
+import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import {
@@ -49,8 +52,6 @@ import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
-import { LanguageModelResponseMetadata } from '../types';
-import { LanguageModelV1CallWarning } from '@ai-sdk/provider';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -406,6 +407,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     let recordedStepText = '';
     let recordedContinuationText = '';
     let recordedFullText = '';
+    let recordedRequest: LanguageModelRequestMetadata | undefined = undefined;
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<CoreAssistantMessage | CoreToolMessage>;
     } = {
@@ -481,7 +483,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             usage: chunk.usage,
             warnings: recordedWarnings, // TODO buggy
             logprobs: chunk.logprobs,
-            request: {}, // TODO
+            request: chunk.request,
             response: {
               ...chunk.response,
               messages: [...recordedResponse.messages, ...stepMessages],
@@ -494,6 +496,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           recordedToolResults = [];
           isContinuation = chunk.isContinued;
           recordedStepText = '';
+          recordedRequest = chunk.request;
 
           if (nextStepType !== 'done') {
             stepType = nextStepType;
@@ -519,6 +522,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         self.warningsPromise.resolve(recordedWarnings ?? []);
         self.finishReasonPromise.resolve(recordedFinishReason ?? 'unknown');
         self.textPromise.resolve(recordedFullText);
+        self.requestPromise.resolve(recordedRequest ?? {});
         self.responsePromise.resolve(recordedResponse);
         self.toolCallsPromise.resolve(recordedSteps.at(-1)?.toolCalls ?? []);
         self.toolResultsPromise.resolve(
@@ -967,6 +971,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     usage: stepUsage,
                     experimental_providerMetadata: stepProviderMetadata,
                     logprobs: stepLogProbs,
+                    request: stepRequest,
                     response: {
                       ...stepResponse,
                       headers: rawResponse?.headers,
@@ -1089,7 +1094,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                     // resolve promises:
                     self.providerMetadataPromise.resolve(stepProviderMetadata);
-                    self.requestPromise.resolve(stepRequest);
 
                     // call onFinish callback:
                     await onFinish?.({

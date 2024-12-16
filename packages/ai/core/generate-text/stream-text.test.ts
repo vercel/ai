@@ -2912,31 +2912,28 @@ describe('streamText', () => {
   describe('tool execution errors', () => {
     it('should send a ToolExecutionError when a tool execution throws an error', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
-              },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
         }),
         tools: {
           tool1: tool({
@@ -2973,6 +2970,7 @@ describe('streamText', () => {
           finishReason: 'stop',
           isContinued: false,
           logprobs: undefined,
+          request: {},
           response: {
             id: 'id-0',
             modelId: 'mock-model-id',
@@ -3029,6 +3027,12 @@ describe('streamText', () => {
             }
             if (chunk.type === 'tool-result') {
               chunk.result = chunk.result.toUpperCase();
+            }
+
+            if (chunk.type === 'step-finish') {
+              if (chunk.request.body != null) {
+                chunk.request.body = chunk.request.body.toUpperCase();
+              }
             }
 
             controller.enqueue(chunk);
@@ -3359,6 +3363,38 @@ describe('streamText', () => {
           warnings: undefined,
         },
       ]);
+    });
+
+    it('result.request should be transformed', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          request: { body: 'test body' },
+        }),
+        prompt: 'test-input',
+        experimental_transform: upperCaseTransform(),
+      });
+
+      // consume stream (runs in parallel)
+      convertAsyncIterableToArray(result.textStream);
+
+      expect(await result.request).toStrictEqual({
+        body: 'TEST BODY',
+      });
     });
 
     // TODO onFinish should be transformed

@@ -32,6 +32,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "request": {},
       "response": {
         "headers": undefined,
         "id": "id-0",
@@ -443,6 +444,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": {
         "call": "1",
@@ -471,6 +473,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": {
         "call": "2",
@@ -1244,6 +1247,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -1266,6 +1270,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-1",
@@ -1288,6 +1293,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": {
         "call": "3",
@@ -1325,6 +1331,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": {
         "call": "3",
@@ -1923,6 +1930,7 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -1971,6 +1979,7 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -2028,6 +2037,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -2080,6 +2090,7 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "response-id",
@@ -2175,6 +2186,7 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -2223,6 +2235,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -2280,6 +2293,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -2332,6 +2346,7 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-2000",
@@ -2988,6 +3003,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
