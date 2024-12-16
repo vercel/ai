@@ -1033,34 +1033,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     isContinued: nextStepType === 'continue',
                   });
 
-                  // append to messages for the next step:
-                  if (stepType === 'continue') {
-                    // continue step: update the last assistant message
-                    // continue is only possible when there are no tool calls,
-                    // so we can assume that there is a single last assistant message:
-                    const lastMessage = responseMessages[
-                      responseMessages.length - 1
-                    ] as CoreAssistantMessage;
-
-                    if (typeof lastMessage.content === 'string') {
-                      lastMessage.content += stepText;
-                    } else {
-                      lastMessage.content.push({
-                        text: stepText,
-                        type: 'text',
-                      });
-                    }
-                  } else {
-                    responseMessages.push(
-                      ...toResponseMessages({
-                        text: stepText,
-                        tools: tools ?? ({} as TOOLS),
-                        toolCalls: stepToolCalls,
-                        toolResults: stepToolResults,
-                      }),
-                    );
-                  }
-
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
 
                   if (nextStepType === 'done') {
@@ -1078,6 +1050,34 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                     self.closeStream(); // close the stitchable stream
                   } else {
+                    // append to messages for the next step:
+                    if (stepType === 'continue') {
+                      // continue step: update the last assistant message
+                      // continue is only possible when there are no tool calls,
+                      // so we can assume that there is a single last assistant message:
+                      const lastMessage = responseMessages[
+                        responseMessages.length - 1
+                      ] as CoreAssistantMessage;
+
+                      if (typeof lastMessage.content === 'string') {
+                        lastMessage.content += stepText;
+                      } else {
+                        lastMessage.content.push({
+                          text: stepText,
+                          type: 'text',
+                        });
+                      }
+                    } else {
+                      responseMessages.push(
+                        ...toResponseMessages({
+                          text: stepText,
+                          tools: tools ?? ({} as TOOLS),
+                          toolCalls: stepToolCalls,
+                          toolResults: stepToolResults,
+                        }),
+                      );
+                    }
+
                     await streamStep({
                       currentStep: currentStep + 1,
                       responseMessages,
