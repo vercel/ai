@@ -225,7 +225,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       usage: LanguageModelUsage;
       request: LanguageModelRequestMetadata;
       response: LanguageModelResponseMetadata;
-      // TODO warnings
+      warnings: CallWarning[] | undefined;
       experimental_providerMetadata?: ProviderMetadata;
       isContinued: boolean;
     }

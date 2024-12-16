@@ -45,6 +45,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
         "promptTokens": 3,
         "totalTokens": 13,
       },
+      "warnings": undefined,
     },
     {
       "experimental_providerMetadata": undefined,
@@ -459,6 +460,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "promptTokens": 3,
       "totalTokens": 13,
     },
+    "warnings": undefined,
   },
   {
     "textDelta": "Hello, ",
@@ -488,6 +490,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "promptTokens": 1,
       "totalTokens": 6,
     },
+    "warnings": undefined,
   },
   {
     "experimental_providerMetadata": undefined,
@@ -1260,6 +1263,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "promptTokens": 10,
       "totalTokens": 30,
     },
+    "warnings": undefined,
   },
   {
     "textDelta": "no-whitespace",
@@ -1283,6 +1287,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "promptTokens": 30,
       "totalTokens": 35,
     },
+    "warnings": undefined,
   },
   {
     "textDelta": "immediatefollow  ",
@@ -1308,6 +1313,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "promptTokens": 3,
       "totalTokens": 5,
     },
+    "warnings": undefined,
   },
   {
     "textDelta": "final ",
@@ -1346,6 +1352,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "promptTokens": 3,
       "totalTokens": 5,
     },
+    "warnings": undefined,
   },
   {
     "experimental_providerMetadata": undefined,
@@ -1943,6 +1950,7 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
       "promptTokens": 3,
       "totalTokens": 13,
     },
+    "warnings": undefined,
   },
   {
     "experimental_providerMetadata": undefined,
@@ -1992,6 +2000,7 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
       "promptTokens": 53,
       "totalTokens": 70,
     },
+    "warnings": undefined,
   },
   {
     "experimental_providerMetadata": undefined,
@@ -2050,6 +2059,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
       "promptTokens": 3,
       "totalTokens": 13,
     },
+    "warnings": undefined,
   },
   {
     "experimental_providerMetadata": undefined,
@@ -2103,6 +2113,7 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
       "promptTokens": 3,
       "totalTokens": 13,
     },
+    "warnings": undefined,
   },
   {
     "experimental_providerMetadata": undefined,
@@ -2199,6 +2210,7 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
       "promptTokens": 53,
       "totalTokens": 70,
     },
+    "warnings": undefined,
   },
   {
     "experimental_providerMetadata": undefined,
@@ -2248,6 +2260,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
       "promptTokens": 3,
       "totalTokens": 13,
     },
+    "warnings": undefined,
   },
   {
     "experimental_providerMetadata": undefined,
@@ -2306,6 +2319,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
       "promptTokens": 3,
       "totalTokens": 13,
     },
+    "warnings": undefined,
   },
   {
     "experimental_providerMetadata": undefined,
@@ -2359,6 +2373,7 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
       "promptTokens": 3,
       "totalTokens": 13,
     },
+    "warnings": undefined,
   },
   {
     "experimental_providerMetadata": undefined,
@@ -3016,6 +3031,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
       "promptTokens": 3,
       "totalTokens": 13,
     },
+    "warnings": undefined,
   },
   {
     "experimental_providerMetadata": undefined,

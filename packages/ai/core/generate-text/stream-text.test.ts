@@ -2950,22 +2950,23 @@ describe('streamText', () => {
         await convertAsyncIterableToArray(result.fullStream),
       ).toStrictEqual([
         {
+          type: 'tool-call',
           args: {
             value: 'value',
           },
           toolCallId: 'call-1',
           toolName: 'tool1',
-          type: 'tool-call',
         },
         {
+          type: 'error',
           error: new ToolExecutionError({
             toolName: 'tool1',
             toolArgs: { value: 'value' },
             cause: new Error('test error'),
           }),
-          type: 'error',
         },
         {
+          type: 'step-finish',
           experimental_providerMetadata: undefined,
           finishReason: 'stop',
           isContinued: false,
@@ -2977,7 +2978,7 @@ describe('streamText', () => {
             timestamp: new Date(0),
             headers: undefined,
           },
-          type: 'step-finish',
+          warnings: undefined,
           usage: {
             completionTokens: 10,
             promptTokens: 3,
@@ -2985,6 +2986,7 @@ describe('streamText', () => {
           },
         },
         {
+          type: 'finish',
           experimental_providerMetadata: undefined,
           finishReason: 'stop',
           logprobs: undefined,
@@ -2994,7 +2996,6 @@ describe('streamText', () => {
             timestamp: new Date(0),
             headers: undefined,
           },
-          type: 'finish',
           usage: {
             completionTokens: 10,
             promptTokens: 3,

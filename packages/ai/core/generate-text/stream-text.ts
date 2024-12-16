@@ -396,11 +396,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       });
     }
 
-    // warnings from last invoked step. should ideally be part of stream chunks
-    // e.g. step-finish, finish
-    let recordedWarnings: Array<LanguageModelV1CallWarning> | undefined =
-      undefined;
-
     // event processor for telemetry, invoking callbacks, etc.
     // The event processor reads the transformed stream to enable correct
     // recording of the final transformed outputs.
@@ -481,7 +476,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             toolResults: recordedToolResults,
             finishReason: chunk.finishReason,
             usage: chunk.usage,
-            warnings: recordedWarnings, // TODO buggy
+            warnings: chunk.warnings,
             logprobs: chunk.logprobs,
             request: chunk.request,
             response: {
@@ -518,25 +513,37 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
         }
       },
 
-      flush() {
-        self.warningsPromise.resolve(recordedWarnings ?? []);
-        self.finishReasonPromise.resolve(recordedFinishReason ?? 'unknown');
-        self.textPromise.resolve(recordedFullText);
-        self.requestPromise.resolve(recordedRequest ?? {});
-        self.responsePromise.resolve(recordedResponse);
-        self.toolCallsPromise.resolve(recordedSteps.at(-1)?.toolCalls ?? []);
-        self.toolResultsPromise.resolve(
-          recordedSteps.at(-1)?.toolResults ?? [],
-        );
-        self.providerMetadataPromise.resolve(recordedProviderMetadata);
-        self.usagePromise.resolve(
-          recordedUsage ?? {
-            completionTokens: NaN,
-            promptTokens: NaN,
-            totalTokens: NaN,
-          },
-        );
-        self.stepsPromise.resolve(recordedSteps);
+      flush(controller) {
+        try {
+          // from last step (when there are errors there may be no last step)
+          const lastStep = recordedSteps[recordedSteps.length - 1];
+          if (lastStep) {
+            self.warningsPromise.resolve(lastStep.warnings);
+            self.requestPromise.resolve(lastStep.request);
+            self.responsePromise.resolve(lastStep.response);
+            self.toolCallsPromise.resolve(lastStep.toolCalls);
+            self.toolResultsPromise.resolve(lastStep.toolResults);
+            self.providerMetadataPromise.resolve(
+              lastStep.experimental_providerMetadata,
+            );
+          }
+
+          // from finish:
+          self.finishReasonPromise.resolve(recordedFinishReason ?? 'unknown');
+          self.usagePromise.resolve(
+            recordedUsage ?? {
+              completionTokens: NaN,
+              promptTokens: NaN,
+              totalTokens: NaN,
+            },
+          );
+
+          // aggregate results:
+          self.textPromise.resolve(recordedFullText);
+          self.stepsPromise.resolve(recordedSteps);
+        } catch (error) {
+          controller.error(error);
+        }
       },
     });
 
@@ -977,6 +984,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       ...stepResponse,
                       headers: rawResponse?.headers,
                     },
+                    warnings,
                     isContinued: nextStepType === 'continue',
                   });
 
@@ -1089,9 +1097,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                         },
                       }),
                     );
-
-                    // update warnings
-                    recordedWarnings = warnings;
 
                     // call onFinish callback:
                     await onFinish?.({
