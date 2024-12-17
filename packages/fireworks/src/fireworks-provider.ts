@@ -24,7 +24,7 @@ import {
   FireworksEmbeddingSettings,
 } from './fireworks-embedding-settings';
 
-type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
+export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
 const fireworksErrorSchema = z.object({
   error: z.string().optional(),
