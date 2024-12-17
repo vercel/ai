@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 1.0.8
+
+### Patch Changes
+
+- 50821de: feat (docs): Use new grok-2 model in xai example code.
+
 ## 1.0.7
 
 ### Patch Changes
