@@ -8,7 +8,7 @@ export function createDataStream({
   execute: (dataStream: DataStreamWriter) => Promise<void> | void;
   onError?: (error: unknown) => string;
 }): ReadableStream<DataStreamString> {
-  let controller: ReadableStreamDefaultController<string>;
+  let controller!: ReadableStreamDefaultController<string>;
 
   const ongoingStreamPromises: Promise<void>[] = [];
 
@@ -18,15 +18,21 @@ export function createDataStream({
     },
   });
 
+  function safeEnqueue(data: DataStreamString) {
+    try {
+      controller.enqueue(data);
+    } catch (error) {
+      // suppress errors when the stream has been closed
+    }
+  }
+
   try {
     const result = execute({
       writeData(data) {
-        controller.enqueue(formatDataStreamPart('data', [data]));
+        safeEnqueue(formatDataStreamPart('data', [data]));
       },
       writeMessageAnnotation(annotation) {
-        controller.enqueue(
-          formatDataStreamPart('message_annotations', [annotation]),
-        );
+        safeEnqueue(formatDataStreamPart('message_annotations', [annotation]));
       },
       merge(streamArg) {
         ongoingStreamPromises.push(
@@ -35,10 +41,10 @@ export function createDataStream({
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
-              controller.enqueue(value);
+              safeEnqueue(value);
             }
           })().catch(error => {
-            controller.enqueue(formatDataStreamPart('error', onError(error)));
+            safeEnqueue(formatDataStreamPart('error', onError(error)));
           }),
         );
       },
@@ -48,12 +54,12 @@ export function createDataStream({
     if (result) {
       ongoingStreamPromises.push(
         result.catch(error => {
-          controller.enqueue(formatDataStreamPart('error', onError(error)));
+          safeEnqueue(formatDataStreamPart('error', onError(error)));
         }),
       );
     }
   } catch (error) {
-    controller!.enqueue(formatDataStreamPart('error', onError(error)));
+    safeEnqueue(formatDataStreamPart('error', onError(error)));
   }
 
   // Wait until all ongoing streams are done. This approach enables merging
@@ -68,7 +74,11 @@ export function createDataStream({
   });
 
   waitForStreams.finally(() => {
-    controller!.close();
+    try {
+      controller.close();
+    } catch (error) {
+      // suppress errors when the stream has been closed
+    }
   });
 
   return stream;
