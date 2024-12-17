@@ -26,7 +26,7 @@ import { generateText } from 'ai';
 
 const { text } = await generateText({
 model: fireworks('accounts/fireworks/models/llama-v2-13b-chat'),
-prompt: 'Write a Python function that sorts a list:',
+prompt: 'Write a JavaScript function that sorts a list:',
 });
 \```
 

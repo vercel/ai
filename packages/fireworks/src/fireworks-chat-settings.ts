@@ -1,6 +1,7 @@
 import { OpenAICompatibleChatSettings } from '@ai-sdk/openai-compatible';
 
 // https://docs.fireworks.ai/docs/serverless-models#chat-models
+// Below is just a subset of the available models.
 export type FireworksChatModelId =
   | 'accounts/fireworks/models/llama-v3p3-70b-instruct'
   | 'accounts/fireworks/models/llama-v3p3-70b-instruct'

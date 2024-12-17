@@ -27,12 +27,12 @@ import {
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
 const fireworksErrorSchema = z.object({
-  error: z.string().optional(),
+  error: z.string(),
 });
 
 const fireworksErrorStructure: ProviderErrorStructure<FireworksErrorData> = {
   errorSchema: fireworksErrorSchema,
-  errorToMessage: data => data.error ?? 'unknown error',
+  errorToMessage: data => data.error,
 };
 
 export interface FireworksProviderSettings {
@@ -105,7 +105,7 @@ export function createFireworks(
   });
 
   interface CommonModelConfig {
-    provider: string;
+    provider: `fireworks.${string}`;
     url: ({ path }: { path: string }) => string;
     headers: () => Record<string, string>;
     fetch?: FetchFunction;
