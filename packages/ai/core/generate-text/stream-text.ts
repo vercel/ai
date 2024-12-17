@@ -427,6 +427,16 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       async transform(chunk, controller) {
         controller.enqueue(chunk); // forward the chunk to the next stream
 
+        if (
+          chunk.type === 'text-delta' ||
+          chunk.type === 'tool-call' ||
+          chunk.type === 'tool-result' ||
+          chunk.type === 'tool-call-streaming-start' ||
+          chunk.type === 'tool-call-delta'
+        ) {
+          await onChunk?.({ chunk });
+        }
+
         if (chunk.type === 'text-delta') {
           recordedStepText += chunk.textDelta;
           recordedContinuationText += chunk.textDelta;
@@ -794,8 +804,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             fullStepText += chunk.textDelta;
             chunkTextPublished = true;
             hasWhitespaceSuffix = chunk.textDelta.trimEnd() !== chunk.textDelta;
-
-            await onChunk?.({ chunk });
           }
 
           self.addStream(
@@ -871,7 +879,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       controller.enqueue(chunk);
                       // store tool calls for onFinish callback and toolCalls promise:
                       stepToolCalls.push(chunk);
-                      await onChunk?.({ chunk });
                       break;
                     }
 
@@ -879,8 +886,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       controller.enqueue(chunk);
                       // store tool results for onFinish callback and toolResults promise:
                       stepToolResults.push(chunk);
-                      // as any needed, bc type inferences mixed up tool-result with tool-call
-                      await onChunk?.({ chunk: chunk as any });
                       break;
                     }
 
@@ -918,7 +923,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     case 'tool-call-streaming-start':
                     case 'tool-call-delta': {
                       controller.enqueue(chunk);
-                      await onChunk?.({ chunk });
                       break;
                     }
 

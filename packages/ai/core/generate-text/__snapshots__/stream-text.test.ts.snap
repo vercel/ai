@@ -1858,7 +1858,7 @@ exports[`streamText > options.onFinish > options.onFinish should send correct in
 }
 `;
 
-exports[`streamText > options.transform > options.onFinish should send correct information 1`] = `
+exports[`streamText > options.transform > options.onFinish should receive transformed data 1`] = `
 {
   "experimental_providerMetadata": {
     "testProvider": {
@@ -2017,7 +2017,7 @@ exports[`streamText > options.transform > options.onFinish should send correct i
 }
 `;
 
-exports[`streamText > options.transform > options.onStepFinish should send correct information 1`] = `
+exports[`streamText > options.transform > options.onStepFinish should receive transformed data 1`] = `
 {
   "experimental_providerMetadata": {
     "testProvider": {
@@ -2098,7 +2098,7 @@ exports[`streamText > options.transform > options.onStepFinish should send corre
 }
 `;
 
-exports[`streamText > options.transform > telemetry > should record transformed telemetry data when enabled 1`] = `
+exports[`streamText > options.transform > telemetry should record transformed data when enabled 1`] = `
 [
   {
     "attributes": {

@@ -3277,7 +3277,7 @@ describe('streamText', () => {
       );
     });
 
-    it('options.onFinish should send correct information', async () => {
+    it('options.onFinish should receive transformed data', async () => {
       let result!: Parameters<
         Required<Parameters<typeof streamText>[0]>['onFinish']
       >[0];
@@ -3331,7 +3331,7 @@ describe('streamText', () => {
       expect(result).toMatchSnapshot();
     });
 
-    it('options.onStepFinish should send correct information', async () => {
+    it('options.onStepFinish should receive transformed data', async () => {
       let result!: Parameters<
         Required<Parameters<typeof streamText>[0]>['onStepFinish']
       >[0];
@@ -3385,62 +3385,173 @@ describe('streamText', () => {
       expect(result).toMatchSnapshot();
     });
 
-    // TODO telemetry should be transformed
-    describe('telemetry', () => {
-      let tracer: MockTracer;
+    it('telemetry should record transformed data when enabled', async () => {
+      const tracer = new MockTracer();
 
-      beforeEach(() => {
-        tracer = new MockTracer();
-      });
-
-      it('should record transformed telemetry data when enabled', async () => {
-        const result = streamText({
-          model: createTestModel({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            { type: 'text-delta', textDelta: `world!` },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+              providerMetadata: {
+                testProvider: { testKey: 'testValue' },
               },
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
-              },
-              { type: 'text-delta', textDelta: `world!` },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-                providerMetadata: {
-                  testProvider: { testKey: 'testValue' },
-                },
-              },
-            ]),
+            },
+          ]),
+        }),
+        tools: {
+          tool1: tool({
+            parameters: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
           }),
-          tools: {
-            tool1: tool({
-              parameters: z.object({ value: z.string() }),
-              execute: async ({ value }) => `${value}-result`,
-            }),
-          },
-          prompt: 'test-input',
-          experimental_transform: upperCaseTransform(),
-          experimental_telemetry: { isEnabled: true, tracer },
-          _internal: { now: mockValues(0, 100, 500) },
-        });
-
-        // consume stream
-        await convertAsyncIterableToArray(result.textStream);
-
-        expect(tracer.jsonSpans).toMatchSnapshot();
+        },
+        prompt: 'test-input',
+        experimental_transform: upperCaseTransform(),
+        experimental_telemetry: { isEnabled: true, tracer },
+        _internal: { now: mockValues(0, 100, 500) },
       });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.textStream);
+
+      expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+
+    it('it should send transform chunks to onChunk', async () => {
+      const result: Array<
+        Extract<
+          TextStreamPart<any>,
+          {
+            type:
+              | 'text-delta'
+              | 'tool-call'
+              | 'tool-call-streaming-start'
+              | 'tool-call-delta'
+              | 'tool-result';
+          }
+        >
+      > = [];
+
+      const { textStream } = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'tool-call-delta',
+              toolCallId: '1',
+              toolCallType: 'function',
+              toolName: 'tool1',
+              argsTextDelta: '{"value": "',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: '1',
+              toolCallType: 'function',
+              toolName: 'tool1',
+              argsTextDelta: 'test',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: '1',
+              toolCallType: 'function',
+              toolName: 'tool1',
+              argsTextDelta: '"}',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: '1',
+              toolCallType: 'function',
+              toolName: 'tool1',
+              args: `{ "value": "test" }`,
+            },
+            { type: 'text-delta', textDelta: ' World' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: {
+                promptTokens: 10,
+                completionTokens: 20,
+                totalTokens: 30,
+              },
+            },
+          ]),
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          },
+        },
+        prompt: 'test-input',
+        experimental_toolCallStreaming: true,
+        onChunk(event) {
+          result.push(event.chunk);
+        },
+        experimental_transform: upperCaseTransform(),
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(textStream);
+
+      assert.deepStrictEqual(result, [
+        { type: 'text-delta', textDelta: 'HELLO' },
+        {
+          type: 'tool-call-streaming-start',
+          toolCallId: '1',
+          toolName: 'tool1',
+        },
+        {
+          type: 'tool-call-delta',
+          argsTextDelta: '{"VALUE": "',
+          toolCallId: '1',
+          toolName: 'tool1',
+        },
+        {
+          type: 'tool-call-delta',
+          argsTextDelta: 'TEST',
+          toolCallId: '1',
+          toolName: 'tool1',
+        },
+        {
+          type: 'tool-call-delta',
+          argsTextDelta: '"}',
+          toolCallId: '1',
+          toolName: 'tool1',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: '1',
+          toolName: 'tool1',
+          args: { value: 'TEST' },
+        },
+        {
+          type: 'tool-result',
+          toolCallId: '1',
+          toolName: 'tool1',
+          args: { value: 'TEST' },
+          result: 'TEST-RESULT',
+        },
+        { type: 'text-delta', textDelta: ' WORLD' },
+      ]);
     });
   });
 });
