@@ -3560,17 +3560,53 @@ describe('streamText', () => {
 
 describe('options.output', () => {
   describe('object output', () => {
-    it('should send object deltas with json mode', async () => {
-      let callOptions: LanguageModelV1CallOptions;
+    it('should send valid partial text fragments', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: '{ ' },
+            { type: 'text-delta', textDelta: '"value": ' },
+            { type: 'text-delta', textDelta: `"Hello, ` },
+            { type: 'text-delta', textDelta: `world` },
+            { type: 'text-delta', textDelta: `!"` },
+            { type: 'text-delta', textDelta: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+        }),
+        experimental_output: object({
+          schema: z.object({ value: z.string() }),
+        }),
+        prompt: 'prompt',
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.textStream),
+      ).toStrictEqual([
+        `{ `,
+        // key difference: need to combine after `:`
+        `"value": "Hello, "`,
+        `world`,
+        `!"`,
+        ` }`,
+      ]);
+    });
+
+    it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
+      let callOptions!: LanguageModelV1CallOptions;
 
       const result = streamText({
         model: new MockLanguageModelV1({
+          supportsStructuredOutputs: false,
           doStream: async args => {
             callOptions = args;
             return {
               stream: convertArrayToReadableStream([
                 { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
+                { type: 'text-delta', textDelta: '"value": ' },
                 { type: 'text-delta', textDelta: `"Hello, ` },
                 { type: 'text-delta', textDelta: `world` },
                 { type: 'text-delta', textDelta: `!"` },
@@ -3586,37 +3622,27 @@ describe('options.output', () => {
           },
         }),
         experimental_output: object({
-          schema: z.object({ content: z.string() }),
+          schema: z.object({ value: z.string() }),
         }),
         prompt: 'prompt',
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.textStream),
-      ).toStrictEqual([
-        `{ `,
-        // key difference: need to combine after `:`
-        `"content": "Hello, "`,
-        `world`,
-        `!"`,
-        ` }`,
-      ]);
+      // consume stream
+      await convertAsyncIterableToArray(result.textStream);
 
-      expect(callOptions!).toEqual({
+      expect(callOptions).toEqual({
         temperature: 0,
         mode: { type: 'regular' },
         inputFormat: 'prompt',
-        responseFormat: {
-          type: 'json',
-          schema: {
-            $schema: 'http://json-schema.org/draft-07/schema#',
-            additionalProperties: false,
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            type: 'object',
-          },
-        },
+        responseFormat: { type: 'json', schema: undefined },
         prompt: [
+          {
+            content:
+              'JSON schema:\n' +
+              '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
+              'You MUST answer with a JSON object that matches the JSON schema above.',
+            role: 'system',
+          },
           {
             content: [{ text: 'prompt', type: 'text' }],
             providerMetadata: undefined,

@@ -762,6 +762,7 @@ class DefaultStreamTextResult<
                   mode,
                   ...prepareCallSettings(settings),
                   inputFormat: promptFormat,
+                  responseFormat: output?.responseFormat({ model }),
                   prompt: promptMessages,
                   providerMetadata,
                   abortSignal,
