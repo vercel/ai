@@ -1,28 +1,39 @@
-import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
-import { z } from 'zod';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
-  ErrorHandlerConfig,
+  ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
+import { EmbeddingModelV1, LanguageModelV1 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod';
 import {
   FireworksChatModelId,
   FireworksChatSettings,
 } from './fireworks-chat-settings';
 import {
-  FireworksEmbeddingModelId,
-  FireworksEmbeddingSettings,
-} from './fireworks-embedding-settings';
-import {
   FireworksCompletionModelId,
   FireworksCompletionSettings,
 } from './fireworks-completion-settings';
+import {
+  FireworksEmbeddingModelId,
+  FireworksEmbeddingSettings,
+} from './fireworks-embedding-settings';
+
+type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
+
+const fireworksErrorSchema = z.object({
+  error: z.string().optional(),
+});
+
+const fireworksErrorStructure: ProviderErrorStructure<FireworksErrorData> = {
+  errorSchema: fireworksErrorSchema,
+  errorToMessage: data => data.error ?? 'unknown error',
+};
 
 export interface FireworksProviderSettings {
   /**
@@ -98,7 +109,7 @@ export function createFireworks(
     url: ({ path }: { path: string }) => string;
     headers: () => Record<string, string>;
     fetch?: FetchFunction;
-    errorHandler?: ErrorHandlerConfig;
+    errorStructure?: ProviderErrorStructure<FireworksErrorData>;
   }
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
@@ -106,10 +117,7 @@ export function createFireworks(
     url: ({ path }) => `${baseURL}${path}`,
     headers: getHeaders,
     fetch: options.fetch,
-    errorHandler: {
-      errorSchema: fireworksErrorSchema,
-      errorToMessage: data => data.error,
-    },
+    errorStructure: fireworksErrorStructure,
   });
 
   const createChatModel = (
@@ -155,9 +163,3 @@ export function createFireworks(
 }
 
 export const fireworks = createFireworks();
-
-export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
-
-const fireworksErrorSchema = z.object({
-  error: z.string().optional(),
-});

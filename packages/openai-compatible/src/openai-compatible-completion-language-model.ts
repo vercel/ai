@@ -7,35 +7,34 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
-  ResponseHandler,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
+  ParseResult,
   postJsonToApi,
+  ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAICompatibleCompletionPrompt } from './convert-to-openai-compatible-completion-prompt';
+import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
   OpenAICompatibleCompletionModelId,
   OpenAICompatibleCompletionSettings,
 } from './openai-compatible-completion-settings';
 import {
-  openaiCompatibleErrorDataSchema,
-  openaiCompatibleFailedResponseHandler,
-  ErrorHandlerConfig,
+  defaultOpenAICompatibleErrorStructure,
+  ProviderErrorStructure,
 } from './openai-compatible-error';
-import { getResponseMetadata } from './get-response-metadata';
 
 type OpenAICompatibleCompletionConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
-  errorHandler?: ErrorHandlerConfig;
+  errorStructure?: ProviderErrorStructure<any>;
 };
 
 export class OpenAICompatibleCompletionLanguageModel
@@ -49,7 +48,7 @@ export class OpenAICompatibleCompletionLanguageModel
 
   private readonly config: OpenAICompatibleCompletionConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
-  private readonly chunkSchema: z.ZodType;
+  private readonly chunkSchema; // type inferred via constructor
 
   constructor(
     modelId: OpenAICompatibleCompletionModelId,
@@ -60,20 +59,13 @@ export class OpenAICompatibleCompletionLanguageModel
     this.settings = settings;
     this.config = config;
 
-    if (config.errorHandler) {
-      const errorSchema = config.errorHandler.errorSchema;
-      this.chunkSchema =
-        createOpenAICompatibleCompletionChunkSchema(errorSchema);
-      this.failedResponseHandler = createJsonErrorResponseHandler({
-        errorSchema,
-        errorToMessage: config.errorHandler.errorToMessage,
-      });
-    } else {
-      this.chunkSchema = createOpenAICompatibleCompletionChunkSchema(
-        openaiCompatibleErrorDataSchema,
-      );
-      this.failedResponseHandler = openaiCompatibleFailedResponseHandler;
-    }
+    // initialize error handling:
+    const errorStructure =
+      config.errorStructure ?? defaultOpenAICompatibleErrorStructure;
+    this.chunkSchema = createOpenAICompatibleCompletionChunkSchema(
+      errorStructure.errorSchema,
+    );
+    this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure);
   }
 
   get provider(): string {

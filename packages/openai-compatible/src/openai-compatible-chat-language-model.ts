@@ -3,44 +3,43 @@ import {
   InvalidResponseDataError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
-  LanguageModelV1ObjectGenerationMode,
   LanguageModelV1FinishReason,
+  LanguageModelV1ObjectGenerationMode,
   LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
-  ResponseHandler,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
   generateId,
   isParsableJson,
+  ParseResult,
   postJsonToApi,
+  ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
+import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
   OpenAICompatibleChatModelId,
   OpenAICompatibleChatSettings,
 } from './openai-compatible-chat-settings';
 import {
-  openaiCompatibleErrorDataSchema,
-  openaiCompatibleFailedResponseHandler,
-  ErrorHandlerConfig,
+  defaultOpenAICompatibleErrorStructure,
+  ProviderErrorStructure,
 } from './openai-compatible-error';
 import { prepareTools } from './openai-compatible-prepare-tools';
-import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
-  errorHandler?: ErrorHandlerConfig;
+  errorStructure?: ProviderErrorStructure<any>;
 
   /**
 Default object generation mode that should be used with this model when
@@ -65,7 +64,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
   private readonly config: OpenAICompatibleChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
-  private readonly chunkSchema: z.ZodType;
+  private readonly chunkSchema; // type inferred via constructor
 
   constructor(
     modelId: OpenAICompatibleChatModelId,
@@ -76,19 +75,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     this.settings = settings;
     this.config = config;
 
-    if (config.errorHandler) {
-      const errorSchema = config.errorHandler.errorSchema;
-      this.chunkSchema = createOpenAICompatibleChatChunkSchema(errorSchema);
-      this.failedResponseHandler = createJsonErrorResponseHandler({
-        errorSchema,
-        errorToMessage: config.errorHandler.errorToMessage,
-      });
-    } else {
-      this.chunkSchema = createOpenAICompatibleChatChunkSchema(
-        openaiCompatibleErrorDataSchema,
-      );
-      this.failedResponseHandler = openaiCompatibleFailedResponseHandler;
-    }
+    // initialize error handling:
+    const errorStructure =
+      config.errorStructure ?? defaultOpenAICompatibleErrorStructure;
+    this.chunkSchema = createOpenAICompatibleChatChunkSchema(
+      errorStructure.errorSchema,
+    );
+    this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure);
 
     this.supportsStructuredOutputs = config.supportsStructuredOutputs ?? false;
   }
