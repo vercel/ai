@@ -96,7 +96,7 @@ importers:
         specifier: 0.0.8
         version: link:../../packages/togetherai
       '@ai-sdk/xai':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
