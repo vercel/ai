@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "2.0.8",
-    "ai": "4.0.18",
+    "ai": "4.0.19",
     "geist": "^1.3.1",
     "next": "latest",
     "react": "^18",
