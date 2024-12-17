@@ -10,6 +10,21 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { XaiChatModelId, XaiChatSettings } from './xai-chat-settings';
+import { z } from 'zod';
+import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
+
+// Add error schema and structure
+const xaiErrorSchema = z.object({
+  code: z.string(),
+  error: z.string(),
+});
+
+export type XaiErrorData = z.infer<typeof xaiErrorSchema>;
+
+const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
+  errorSchema: xaiErrorSchema,
+  errorToMessage: data => data.error,
+};
 
 export interface XaiProvider extends ProviderV1 {
   /**
@@ -80,6 +95,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       headers: getHeaders,
       fetch: options.fetch,
       defaultObjectGenerationMode: 'tool',
+      errorStructure: xaiErrorStructure,
     });
   };
 

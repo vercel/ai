@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import { describe, it, expect, vi } from 'vitest';
-import { createXai } from '@ai-sdk/xai';
+import { createXai, XaiErrorData } from '@ai-sdk/xai';
 import { z } from 'zod';
 import { generateText, generateObject, streamText, streamObject } from 'ai';
 import fs from 'fs';
+import { APICallError } from '@ai-sdk/provider';
 
 const LONG_TEST_MILLIS = 10000;
 
@@ -126,6 +127,54 @@ describe('xAI E2E Tests', () => {
       }
 
       expect(parts.length).toBeGreaterThan(0);
+    });
+
+    it('should throw error on generate text attempt with invalid model ID', async () => {
+      const invalidModel = provider('no-such-model');
+
+      try {
+        await generateText({
+          model: invalidModel,
+          prompt: 'This should fail',
+        });
+        // If we reach here, the test should fail
+        expect(true).toBe(false); // Force test to fail if no error is thrown
+      } catch (error) {
+        expect(error).toBeInstanceOf(APICallError);
+        expect(((error as APICallError).data as XaiErrorData).code).toBe(
+          'Some requested entity was not found',
+        );
+        expect(((error as APICallError).data as XaiErrorData).error).toContain(
+          'does not exist or your team',
+        );
+      }
+    });
+
+    it('should throw error on stream text attempt with invalid model ID', async () => {
+      const invalidModel = provider('no-such-model');
+
+      try {
+        const result = streamText({
+          model: invalidModel,
+          prompt: 'This should fail',
+        });
+
+        // Try to consume the stream to trigger the error
+        for await (const _ of result.textStream) {
+          // Do nothing with the chunks
+        }
+
+        // If we reach here, the test should fail
+        expect(true).toBe(false); // Force test to fail if no error is thrown
+      } catch (error) {
+        expect(error).toBeInstanceOf(APICallError);
+        expect(((error as APICallError).data as XaiErrorData).code).toBe(
+          'Some requested entity was not found',
+        );
+        expect(((error as APICallError).data as XaiErrorData).error).toContain(
+          'does not exist or your team',
+        );
+      }
     });
   });
 
