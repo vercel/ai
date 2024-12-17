@@ -16,7 +16,7 @@
     "next": "latest",
     "react": "^18",
     "react-dom": "^18",
-    "sonner": "^1.7.0"
+    "sonner": "^1.7.1"
   },
   "devDependencies": {
     "@types/node": "^17.0.12",
