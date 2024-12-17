@@ -109,7 +109,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         this.supportsStructuredOutputs
           ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
           : undefined,
-      audioTimestamp: this.settings.audioTimestamp,
+      ...(this.settings.audioTimestamp && {
+        audioTimestamp: this.settings.audioTimestamp,
+      }),
     };
 
     const { contents, systemInstruction } =

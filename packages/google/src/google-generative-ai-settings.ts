@@ -57,11 +57,8 @@ Optional. A list of unique safety settings for blocking unsafe content.
   }>;
   /**
    * Optional. Enables timestamp understanding for audio-only files.
-   * This is a preview feature.
-   *
-   * Available for the following models:
-   * - gemini-1.5-pro-002
-   * - gemini-1.5-flash-002
+   * 
+   * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding
    */
   audioTimestamp?: boolean;
 
