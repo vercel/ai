@@ -1,10 +1,10 @@
 ---
-title: Chatbot with Memoization
+title: Markdown Chatbot with Memoization
 description: Learn how to build a performant chatbot that renders Markdown responses and uses memoization for optimal performance with Next.js and the AI SDK.
-tags: ['next', 'streaming', 'chatbot']
+tags: ['next', 'streaming', 'chatbot', 'markdown']
 ---
 
-# Chatbot With Memoization
+# Markdown Chatbot with Memoization
 
 When building a chatbot with Next.js and the AI SDK, you'll likely want to render the model's responses in Markdown format using a library like `react-markdown`. However, this can have negative performance implications as the Markdown is re-rendered on each new token received from the streaming response.
 
@@ -104,13 +104,12 @@ export default function Page() {
           </div>
         ))}
       </div>
-
-      <Chat />
+      <MessageInput />
     </div>
   );
 }
 
-const Chat = () => {
+const MessageInput = () => {
   const { input, handleSubmit, handleInputChange } = useChat({ id: 'chat' });
   return (
     <form onSubmit={handleSubmit}>
@@ -124,3 +123,7 @@ const Chat = () => {
   );
 };
 ```
+
+<Note>
+    The chat state is shared between both components by using the same `id` value. This allows you to split the form and chat messages into separate components while maintaining synchronized state.
+</Note>
