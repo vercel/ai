@@ -69,7 +69,7 @@ importers:
         specifier: 1.0.5
         version: link:../../packages/cohere
       '@ai-sdk/fireworks':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 1.0.11
@@ -87,13 +87,13 @@ importers:
         specifier: 1.0.8
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.6
+        specifier: 0.0.7
         version: link:../../packages/openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.2
         version: link:../../packages/provider
       '@ai-sdk/togetherai':
-        specifier: 0.0.7
+        specifier: 0.0.8
         version: link:../../packages/togetherai
       '@ai-sdk/xai':
         specifier: 1.0.6
@@ -1294,7 +1294,7 @@ importers:
   packages/fireworks:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.6
+        specifier: 0.0.7
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.2
@@ -1715,7 +1715,7 @@ importers:
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.6
+        specifier: 0.0.7
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.2

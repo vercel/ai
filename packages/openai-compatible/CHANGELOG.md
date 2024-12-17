@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.0.7
+
+### Patch Changes
+
+- ad2bf11: feat (provider/fireworks): Add Fireworks provider.
+
 ## 0.0.6
 
 ### Patch Changes
