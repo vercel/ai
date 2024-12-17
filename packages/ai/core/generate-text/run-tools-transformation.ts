@@ -2,7 +2,6 @@ import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
 import { Tracer } from '@opentelemetry/api';
 import { ToolExecutionError } from '../../errors';
-import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { CoreMessage } from '../prompt/message';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordSpan } from '../telemetry/record-span';
@@ -168,30 +167,6 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
 
         // process tool call:
         case 'tool-call': {
-          const toolName = chunk.toolName as keyof TOOLS & string;
-
-          if (tools == null) {
-            toolResultsStreamController!.enqueue({
-              type: 'error',
-              error: new NoSuchToolError({ toolName: chunk.toolName }),
-            });
-            break;
-          }
-
-          const tool = tools[toolName];
-
-          if (tool == null) {
-            toolResultsStreamController!.enqueue({
-              type: 'error',
-              error: new NoSuchToolError({
-                toolName: chunk.toolName,
-                availableTools: Object.keys(tools),
-              }),
-            });
-
-            break;
-          }
-
           try {
             const toolCall = await parseToolCall({
               toolCall: chunk,
@@ -202,6 +177,8 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
             });
 
             controller.enqueue(toolCall);
+
+            const tool = tools![toolCall.toolName];
 
             if (tool.execute != null) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
