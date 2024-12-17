@@ -20,7 +20,10 @@ import { ToolResultUnion } from './tool-result';
 /**
 A result object for accessing different stream types and additional information.
  */
-export interface StreamTextResult<TOOLS extends Record<string, CoreTool>> {
+export interface StreamTextResult<
+  TOOLS extends Record<string, CoreTool>,
+  OUTPUT_PARTIAL,
+> {
   /**
 Warnings from the model provider (e.g. unsupported settings) for the first step.
      */
@@ -112,6 +115,8 @@ need to be added separately.
   Only errors that stop the stream, such as network errors, are thrown.
      */
   readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
+
+  readonly experimental_partialOutputStream: AsyncIterableStream<OUTPUT_PARTIAL>;
 
   /**
   Converts the result to a data stream.

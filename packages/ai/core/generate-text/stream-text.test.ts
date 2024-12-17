@@ -24,6 +24,7 @@ import { CoreTool, tool } from '../tool/tool';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
+import { object } from './output';
 
 function createTestModel({
   stream = convertArrayToReadableStream([
@@ -1750,7 +1751,7 @@ describe('streamText', () => {
   });
 
   describe('options.maxSteps', () => {
-    let result: StreamTextResult<any>;
+    let result: StreamTextResult<any, any>;
     let onFinishResult: Parameters<
       Required<Parameters<typeof streamText>[0]>['onFinish']
     >[0];
@@ -3552,6 +3553,79 @@ describe('streamText', () => {
         },
         { type: 'text-delta', textDelta: ' WORLD' },
       ]);
+    });
+  });
+});
+
+describe('options.output', () => {
+  describe('object output', () => {
+    it('should send object deltas with json mode', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async ({ prompt, mode }) => {
+            expect(mode).toStrictEqual({
+              type: 'object-json',
+              name: undefined,
+              description: undefined,
+              schema: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                additionalProperties: false,
+                properties: { content: { type: 'string' } },
+                required: ['content'],
+                type: 'object',
+              },
+            });
+
+            expect(prompt).toStrictEqual([
+              {
+                role: 'system',
+                content:
+                  'JSON schema:\n' +
+                  '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
+                  'You MUST answer with a JSON object that matches the JSON schema above.',
+              },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'prompt' }],
+                providerMetadata: undefined,
+              },
+            ]);
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-delta', textDelta: '{ ' },
+                { type: 'text-delta', textDelta: '"content": ' },
+                { type: 'text-delta', textDelta: `"Hello, ` },
+                { type: 'text-delta', textDelta: `world` },
+                { type: 'text-delta', textDelta: `!"` },
+                { type: 'text-delta', textDelta: ' }' },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          },
+        }),
+        experimental_output: object({
+          schema: z.object({ content: z.string() }),
+        }),
+        prompt: 'prompt',
+      });
+
+      assert.deepStrictEqual(
+        await convertAsyncIterableToArray(
+          result.experimental_partialOutputStream,
+        ),
+        [
+          {},
+          { content: 'Hello, ' },
+          { content: 'Hello, world' },
+          { content: 'Hello, world!' },
+        ],
+      );
     });
   });
 });

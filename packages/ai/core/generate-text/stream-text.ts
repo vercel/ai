@@ -52,6 +52,7 @@ import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
+import { Output } from './output';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -102,7 +103,11 @@ If set and supported by the model, calls will generate deterministic results.
 @return
 A result object for accessing different stream types and additional information.
  */
-export function streamText<TOOLS extends Record<string, CoreTool>>({
+export function streamText<
+  TOOLS extends Record<string, CoreTool>,
+  OUTPUT = never,
+  OUTPUT_PARTIAL = never,
+>({
   model,
   tools,
   toolChoice,
@@ -113,6 +118,7 @@ export function streamText<TOOLS extends Record<string, CoreTool>>({
   abortSignal,
   headers,
   maxSteps = 1,
+  experimental_output: output,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
@@ -180,6 +186,8 @@ changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
 
+    experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
+
     /**
 A function that attempts to repair a tool call that failed to parse.
      */
@@ -242,7 +250,7 @@ Details for all steps.
       generateId?: () => string;
       currentDate?: () => Date;
     };
-  }): StreamTextResult<TOOLS> {
+  }): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
   return new DefaultStreamTextResult({
     model,
     telemetry,
@@ -271,39 +279,46 @@ Details for all steps.
   });
 }
 
-class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
-  implements StreamTextResult<TOOLS>
+class DefaultStreamTextResult<
+  TOOLS extends Record<string, CoreTool>,
+  OUTPUT_PARTIAL,
+> implements StreamTextResult<TOOLS, OUTPUT_PARTIAL>
 {
   private readonly warningsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['warnings']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['warnings']>
   >();
   private readonly usagePromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['usage']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['usage']>
   >();
   private readonly finishReasonPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['finishReason']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['finishReason']>
   >();
   private readonly providerMetadataPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['experimental_providerMetadata']>
+    Awaited<
+      StreamTextResult<TOOLS, OUTPUT_PARTIAL>['experimental_providerMetadata']
+    >
   >();
   private readonly textPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['text']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['text']>
   >();
   private readonly toolCallsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['toolCalls']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['toolCalls']>
   >();
   private readonly toolResultsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['toolResults']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['toolResults']>
   >();
   private readonly requestPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['request']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['request']>
   >();
   private readonly responsePromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['response']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['response']>
   >();
   private readonly stepsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['steps']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['steps']>
   >();
+
+  readonly experimental_partialOutputStream: AsyncIterableStream<OUTPUT_PARTIAL> =
+    undefined as any;
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
