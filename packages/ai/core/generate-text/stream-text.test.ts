@@ -1,5 +1,6 @@
 import {
   LanguageModelV1,
+  LanguageModelV1CallOptions,
   LanguageModelV1CallWarning,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
@@ -21,10 +22,10 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
 import { CoreTool, tool } from '../tool/tool';
+import { object } from './output';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
-import { object } from './output';
 
 function createTestModel({
   stream = convertArrayToReadableStream([
@@ -3560,37 +3561,12 @@ describe('streamText', () => {
 describe('options.output', () => {
   describe('object output', () => {
     it('should send object deltas with json mode', async () => {
+      let callOptions: LanguageModelV1CallOptions;
+
       const result = streamText({
         model: new MockLanguageModelV1({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'object-json',
-              name: undefined,
-              description: undefined,
-              schema: {
-                $schema: 'http://json-schema.org/draft-07/schema#',
-                additionalProperties: false,
-                properties: { content: { type: 'string' } },
-                required: ['content'],
-                type: 'object',
-              },
-            });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'system',
-                content:
-                  'JSON schema:\n' +
-                  '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                  'You MUST answer with a JSON object that matches the JSON schema above.',
-              },
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
-              },
-            ]);
-
+          doStream: async args => {
+            callOptions = args;
             return {
               stream: convertArrayToReadableStream([
                 { type: 'text-delta', textDelta: '{ ' },
@@ -3615,17 +3591,39 @@ describe('options.output', () => {
         prompt: 'prompt',
       });
 
-      assert.deepStrictEqual(
-        await convertAsyncIterableToArray(
-          result.experimental_partialOutputStream,
-        ),
-        [
-          {},
-          { content: 'Hello, ' },
-          { content: 'Hello, world' },
-          { content: 'Hello, world!' },
+      expect(
+        await convertAsyncIterableToArray(result.textStream),
+      ).toStrictEqual([
+        `{ `,
+        // key difference: need to combine after `:`
+        `"content": "Hello, "`,
+        `world`,
+        `!"`,
+        ` }`,
+      ]);
+
+      expect(callOptions!).toEqual({
+        temperature: 0,
+        mode: { type: 'regular' },
+        inputFormat: 'prompt',
+        responseFormat: {
+          type: 'json',
+          schema: {
+            $schema: 'http://json-schema.org/draft-07/schema#',
+            additionalProperties: false,
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            type: 'object',
+          },
+        },
+        prompt: [
+          {
+            content: [{ text: 'prompt', type: 'text' }],
+            providerMetadata: undefined,
+            role: 'user',
+          },
         ],
-      );
+      });
     });
   });
 });

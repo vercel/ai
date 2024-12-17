@@ -27,7 +27,6 @@ import {
   LanguageModel,
   LogProbs,
 } from '../types/language-model';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
@@ -42,6 +41,7 @@ import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-header
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
 import { writeToServerResponse } from '../util/write-to-server-response';
+import { Output } from './output';
 import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
@@ -52,7 +52,6 @@ import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
-import { Output } from './output';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -251,7 +250,7 @@ Details for all steps.
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
-  return new DefaultStreamTextResult({
+  return new DefaultStreamTextResult<TOOLS, OUTPUT, OUTPUT_PARTIAL>({
     model,
     telemetry,
     headers,
@@ -268,6 +267,7 @@ Details for all steps.
     activeTools,
     repairToolCall,
     maxSteps,
+    output,
     continueSteps,
     providerMetadata,
     onChunk,
@@ -281,6 +281,7 @@ Details for all steps.
 
 class DefaultStreamTextResult<
   TOOLS extends Record<string, CoreTool>,
+  OUTPUT,
   OUTPUT_PARTIAL,
 > implements StreamTextResult<TOOLS, OUTPUT_PARTIAL>
 {
@@ -317,9 +318,6 @@ class DefaultStreamTextResult<
     Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['steps']>
   >();
 
-  readonly experimental_partialOutputStream: AsyncIterableStream<OUTPUT_PARTIAL> =
-    undefined as any;
-
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
   ) => void;
@@ -345,6 +343,7 @@ class DefaultStreamTextResult<
     activeTools,
     repairToolCall,
     maxSteps,
+    output,
     continueSteps,
     providerMetadata,
     onChunk,
@@ -372,6 +371,7 @@ class DefaultStreamTextResult<
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
+    output: Output<OUTPUT, OUTPUT_PARTIAL> | undefined;
     continueSteps: boolean;
     providerMetadata: ProviderMetadata | undefined;
     onChunk:
@@ -417,7 +417,6 @@ class DefaultStreamTextResult<
     let recordedStepText = '';
     let recordedContinuationText = '';
     let recordedFullText = '';
-    let recordedRequest: LanguageModelRequestMetadata | undefined = undefined;
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<CoreAssistantMessage | CoreToolMessage>;
     } = {
@@ -430,7 +429,6 @@ class DefaultStreamTextResult<
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedUsage: LanguageModelUsage | undefined = undefined;
-    let recordedProviderMetadata: ProviderMetadata | undefined = undefined;
     let stepType: 'initial' | 'continue' | 'tool-result' = 'initial';
     const recordedSteps: StepResult<TOOLS>[] = [];
     let rootSpan!: Span;
@@ -521,7 +519,6 @@ class DefaultStreamTextResult<
           recordedToolCalls = [];
           recordedToolResults = [];
           recordedStepText = '';
-          recordedRequest = chunk.request;
 
           if (nextStepType !== 'done') {
             stepType = nextStepType;
@@ -540,7 +537,6 @@ class DefaultStreamTextResult<
           recordedResponse.headers = chunk.response.headers;
           recordedUsage = chunk.usage;
           recordedFinishReason = chunk.finishReason;
-          recordedProviderMetadata = chunk.experimental_providerMetadata;
         }
       },
 
@@ -622,11 +618,14 @@ class DefaultStreamTextResult<
     const stitchableStream = createStitchableStream<TextStreamPart<TOOLS>>();
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
-    this.baseStream = (
-      transform
-        ? stitchableStream.stream.pipeThrough(transform)
-        : stitchableStream.stream
-    ).pipeThrough(eventProcessor);
+
+    let stream = stitchableStream.stream;
+
+    if (transform) {
+      stream = stream.pipeThrough(transform);
+    }
+
+    this.baseStream = stream.pipeThrough(eventProcessor);
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
@@ -642,7 +641,11 @@ class DefaultStreamTextResult<
     });
 
     const initialPrompt = standardizePrompt({
-      prompt: { system, prompt, messages },
+      prompt: {
+        system: output?.injectIntoSystemPrompt({ system, model }) ?? system,
+        prompt,
+        messages,
+      },
       tools,
     });
 

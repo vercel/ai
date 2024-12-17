@@ -116,8 +116,6 @@ need to be added separately.
      */
   readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
 
-  readonly experimental_partialOutputStream: AsyncIterableStream<OUTPUT_PARTIAL>;
-
   /**
   Converts the result to a data stream.
 
