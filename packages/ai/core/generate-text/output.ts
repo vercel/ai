@@ -21,12 +21,7 @@ export interface Output<OUTPUT, PARTIAL> {
     model: LanguageModel;
   }) => LanguageModelV1CallOptions['responseFormat'];
 
-  parsePartial(options: { text: string }):
-    | {
-        partial: PARTIAL;
-        textDelta: string;
-      }
-    | undefined;
+  parsePartial(options: { text: string }): { partial: PARTIAL } | undefined;
 
   parseOutput(
     options: { text: string },
@@ -37,7 +32,7 @@ export interface Output<OUTPUT, PARTIAL> {
   ): OUTPUT;
 }
 
-export const text = (): Output<string, never> => ({
+export const text = (): Output<string, string> => ({
   type: 'text',
 
   responseFormat: () => ({ type: 'text' }),
@@ -46,8 +41,8 @@ export const text = (): Output<string, never> => ({
     return system;
   },
 
-  parsePartial() {
-    return undefined;
+  parsePartial({ text }: { text: string }) {
+    return { partial: text };
   },
 
   parseOutput({ text }: { text: string }) {
