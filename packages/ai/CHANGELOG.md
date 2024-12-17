@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.19
+
+### Patch Changes
+
+- c3a6065: fix (ai/core): apply transform before callbacks and resolvables
+
 ## 4.0.18
 
 ### Patch Changes

@@ -19,7 +19,7 @@
     "@solidjs/meta": "0.29.4",
     "@solidjs/router": "^0.15.1",
     "@solidjs/start": "^1.0.10",
-    "ai": "4.0.18",
+    "ai": "4.0.19",
     "solid-js": "^1.9.3",
     "zod": "^3.23.8"
   },
