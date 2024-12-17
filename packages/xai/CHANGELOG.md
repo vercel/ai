@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 1.0.7
+
+### Patch Changes
+
+- 4e9032c: feat (provider/xai): Add grok-2 models, use openai-compatible base impl.
+
 ## 1.0.6
 
 ### Patch Changes

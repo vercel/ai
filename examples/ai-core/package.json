@@ -16,7 +16,7 @@
     "@ai-sdk/openai-compatible": "0.0.7",
     "@ai-sdk/provider": "1.0.2",
     "@ai-sdk/togetherai": "0.0.8",
-    "@ai-sdk/xai": "1.0.6",
+    "@ai-sdk/xai": "1.0.7",
     "@opentelemetry/sdk-node": "0.54.2",
     "@opentelemetry/auto-instrumentations-node": "0.54.0",
     "@opentelemetry/sdk-trace-node": "1.28.0",
