@@ -411,6 +411,66 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass reasoningEffort setting from provider metadata', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('o1-mini');
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: { reasoningEffort: 'low' },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'low',
+    });
+  });
+
+  it('should pass reasoningEffort setting from settings', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('o1-mini', { reasoningEffort: 'high' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'high',
+    });
+  });
+
+  it('should prioritize reasoningEffort from provider metadata over settings', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('o1-mini', { reasoningEffort: 'high' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: { reasoningEffort: 'low' },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'low',
+    });
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonResponse({ content: '' });
 

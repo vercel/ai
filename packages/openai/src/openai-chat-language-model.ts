@@ -176,11 +176,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       seed,
 
       // openai specific settings:
-      max_completion_tokens:
-        providerMetadata?.openai?.maxCompletionTokens ?? undefined,
-      store: providerMetadata?.openai?.store ?? undefined,
-      metadata: providerMetadata?.openai?.metadata ?? undefined,
-      prediction: providerMetadata?.openai?.prediction ?? undefined,
+      max_completion_tokens: providerMetadata?.openai?.maxCompletionTokens,
+      store: providerMetadata?.openai?.store,
+      metadata: providerMetadata?.openai?.metadata,
+      prediction: providerMetadata?.openai?.prediction,
+      reasoning_effort:
+        providerMetadata?.openai?.reasoningEffort ??
+        this.settings.reasoningEffort,
 
       // messages:
       messages: convertToOpenAIChatMessages({

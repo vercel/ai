@@ -104,4 +104,9 @@ Enable this if the model that you are using does not support streaming.
 Defaults to `false`.
    */
   simulateStreaming?: boolean;
+
+  /**
+Reasoning effort for reasoning models. Defaults to `medium`.
+   */
+  reasoningEffort?: 'low' | 'medium' | 'high';
 }
