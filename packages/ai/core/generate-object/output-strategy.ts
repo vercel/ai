@@ -233,35 +233,45 @@ const arrayOutputStrategy = <ELEMENT>(
     ) {
       let publishedElements = 0;
 
-      return createAsyncIterableStream(originalStream, {
-        transform(chunk, controller) {
-          switch (chunk.type) {
-            case 'object': {
-              const array = chunk.object;
+      return createAsyncIterableStream(
+        originalStream.pipeThrough(
+          new TransformStream<ObjectStreamPart<ELEMENT[]>, ELEMENT>({
+            transform(chunk, controller) {
+              switch (chunk.type) {
+                case 'object': {
+                  const array = chunk.object;
 
-              // publish new elements one by one:
-              for (; publishedElements < array.length; publishedElements++) {
-                controller.enqueue(array[publishedElements]);
+                  // publish new elements one by one:
+                  for (
+                    ;
+                    publishedElements < array.length;
+                    publishedElements++
+                  ) {
+                    controller.enqueue(array[publishedElements]);
+                  }
+
+                  break;
+                }
+
+                case 'text-delta':
+                case 'finish':
+                  break;
+
+                case 'error':
+                  controller.error(chunk.error);
+                  break;
+
+                default: {
+                  const _exhaustiveCheck: never = chunk;
+                  throw new Error(
+                    `Unsupported chunk type: ${_exhaustiveCheck}`,
+                  );
+                }
               }
-
-              break;
-            }
-
-            case 'text-delta':
-            case 'finish':
-              break;
-
-            case 'error':
-              controller.error(chunk.error);
-              break;
-
-            default: {
-              const _exhaustiveCheck: never = chunk;
-              throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
-            }
-          }
-        },
-      });
+            },
+          }),
+        ),
+      );
     },
   };
 };
