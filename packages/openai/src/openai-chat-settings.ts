@@ -91,4 +91,12 @@ private models or when the images are not publicly accessible.
 Defaults to `false`.
    */
   downloadImages?: boolean;
+
+  /**
+Simulates streaming by using a normal generate call and returning it as a stream.
+Enable this if the model that you are using does not support streaming.
+
+Defaults to `false`.
+   */
+  simulateStreaming?: boolean;
 }
