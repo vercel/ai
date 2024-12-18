@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 2.0.10
+
+### Patch Changes
+
+- d32abbd: feat (provider/google-vertex): Add gemini 2 models.
+
 ## 2.0.9
 
 ### Patch Changes
