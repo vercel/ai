@@ -226,6 +226,127 @@ const { text: meatLasangaRecipe } = await generateText({
 });
 ```
 
+### Search Grounding
+
+With [search grounding](https://ai.google.dev/gemini-api/docs/grounding),
+the model has access to the latest information using Google search.
+Search grounding can be used to provide answers around current events:
+
+```ts highlight="7,14-20"
+import { google } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, experimental_providerMetadata } = await generateText({
+  model: google('gemini-1.5-pro', {
+    useSearchGrounding: true,
+  }),
+  prompt:
+    'List the top 5 San Francisco news from the past week.' +
+    'You must include the date of each article.',
+});
+
+// access the grounding metadata. Casting to the provider metadata type
+// is optional but provides autocomplete and type safety.
+const metadata = experimental_providerMetadata?.google as
+  | GoogleGenerativeAIProviderMetadata
+  | undefined;
+const groundingMetadata = metadata?.groundingMetadata;
+const safetyRatings = metadata?.safetyRatings;
+```
+
+The grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
+
+- **`webSearchQueries`** (`string[] | null`)
+
+  - Array of search queries used to retrieve information
+  - Example: `["What's the weather in Chicago this weekend?"]`
+
+- **`searchEntryPoint`** (`{ renderedContent: string } | null`)
+
+  - Contains the main search result content used as an entry point
+  - The `renderedContent` field contains the formatted content
+
+- **`groundingSupports`** (Array of support objects | null)
+  - Contains details about how specific response parts are supported by search results
+  - Each support object includes:
+    - **`segment`**: Information about the grounded text segment
+      - `text`: The actual text segment
+      - `startIndex`: Starting position in the response
+      - `endIndex`: Ending position in the response
+    - **`groundingChunkIndices`**: References to supporting search result chunks
+    - **`confidenceScores`**: Confidence scores (0-1) for each supporting chunk
+
+Example response:
+
+```json
+{
+  "groundingMetadata": {
+    "webSearchQueries": ["What's the weather in Chicago this weekend?"],
+    "searchEntryPoint": {
+      "renderedContent": "..."
+    },
+    "groundingSupports": [
+      {
+        "segment": {
+          "startIndex": 0,
+          "endIndex": 65,
+          "text": "Chicago weather changes rapidly, so layers let you adjust easily."
+        },
+        "groundingChunkIndices": [0],
+        "confidenceScores": [0.99]
+      }
+    ]
+  }
+}
+```
+
+The safety ratings provide insight into how the model's response was grounded to search results. See [Google AI documentation on safety settings](https://ai.google.dev/gemini-api/docs/safety-settings).
+
+Example response excerpt:
+
+```json
+{
+  "safetyRatings": [
+    {
+      "category": "HARM_CATEGORY_HATE_SPEECH",
+      "probability": "NEGLIGIBLE",
+      "probabilityScore": 0.11027937,
+      "severity": "HARM_SEVERITY_LOW",
+      "severityScore": 0.28487435
+    },
+    {
+      "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+      "probability": "HIGH",
+      "blocked": true,
+      "probabilityScore": 0.95422274,
+      "severity": "HARM_SEVERITY_MEDIUM",
+      "severityScore": 0.43398145
+    },
+    {
+      "category": "HARM_CATEGORY_HARASSMENT",
+      "probability": "NEGLIGIBLE",
+      "probabilityScore": 0.11085559,
+      "severity": "HARM_SEVERITY_NEGLIGIBLE",
+      "severityScore": 0.19027223
+    },
+    {
+      "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+      "probability": "NEGLIGIBLE",
+      "probabilityScore": 0.22901751,
+      "severity": "HARM_SEVERITY_NEGLIGIBLE",
+      "severityScore": 0.09089675
+    }
+  ]
+}
+```
+
+<Note>
+  The Google Generative AI provider does not yet support [dynamic retrieval mode
+  and
+  threshold](https://ai.google.dev/gemini-api/docs/grounding?lang=rest#dynamic-retrieval).
+</Note>
+
 ### Troubleshooting
 
 #### Schema Limitations
@@ -266,14 +387,17 @@ const result = await generateObject({
 
 | Model                     | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-2.0-flash-exp`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-pro-latest`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-pro`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-flash-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-flash`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
-  The table above lists popular models. You can also pass any available provider
-  model ID as a string if needed.
+  The table above lists popular models. Please see the [Google Generative AI
+  docs](https://ai.google.dev/gemini-api/docs/models/gemini) for a full list of
+  available models. The table above lists popular models. You can also pass any
+  available provider model ID as a string if needed.
 </Note>
 
 ## Embedding Models

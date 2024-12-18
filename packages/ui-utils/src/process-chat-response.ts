@@ -77,6 +77,8 @@ export async function processChatResponse({
       // is updated with SWR (without it, the changes get stuck in SWR and are not
       // forwarded to rendering):
       revisionId: generateId(),
+      // Fill in createdAt to retain Date object (lost in JSON.parse):
+      createdAt: currentMessage.createdAt,
     } as Message;
 
     update([...previousMessages, copiedMessage], copiedData);

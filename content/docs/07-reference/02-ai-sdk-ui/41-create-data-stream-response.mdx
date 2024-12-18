@@ -1,0 +1,110 @@
+---
+title: createDataStreamResponse
+description: Learn to use createDataStreamResponse helper function to create a Response object with streaming data.
+---
+
+# `createDataStreamResponse`
+
+The `createDataStreamResponse` function creates a Response object that streams data to the client (see [Streaming Data](/docs/ai-sdk-ui/streaming-data)).
+
+## Import
+
+<Snippet
+  text={`import { createDataStreamResponse } from "ai"`}
+  prompt={false}
+/>
+
+## Example
+
+```tsx
+const response = createDataStreamResponse({
+  status: 200,
+  statusText: 'OK',
+  headers: {
+    'Custom-Header': 'value',
+  },
+  async execute(dataStream) {
+    // Write data
+    dataStream.writeData({ value: 'Hello' });
+
+    // Write annotation
+    dataStream.writeMessageAnnotation({ type: 'status', value: 'processing' });
+
+    // Merge another stream
+    const otherStream = getAnotherStream();
+    dataStream.merge(otherStream);
+  },
+  onError: error => `Custom error: ${error.message}`,
+});
+```
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'status',
+      type: 'number',
+      description: 'The status code for the response.',
+    },
+    {
+      name: 'statusText',
+      type: 'string',
+      description: 'The status text for the response.',
+    },
+    {
+      name: 'headers',
+      type: 'Headers | Record<string, string>',
+      description: 'Additional headers for the response.',
+    },
+    {
+      name: 'execute',
+      type: '(dataStream: DataStreamWriter) => Promise<void> | void',
+      description:
+        'A function that receives a DataStreamWriter instance and can use it to write data to the stream.',
+      properties: [
+        {
+          type: 'DataStreamWriter',
+          parameters: [
+            {
+              name: 'writeData',
+              type: '(value: JSONValue) => void',
+              description: 'Appends a data part to the stream.',
+            },
+            {
+              name: 'writeMessageAnnotation',
+              type: '(value: JSONValue) => void',
+              description: 'Appends a message annotation to the stream.',
+            },
+            {
+              name: 'merge',
+              type: '(stream: ReadableStream<DataStreamString>) => void',
+              description:
+                'Merges the contents of another stream to this stream.',
+            },
+            {
+              name: 'onError',
+              type: '((error: unknown) => string) | undefined',
+              description:
+                'Error handler that is used by the data stream writer. This is intended for forwarding when merging streams to prevent duplicated error masking.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'onError',
+      type: '(error: unknown) => string',
+      description:
+        'A function that handles errors and returns an error message string. By default, it returns "An error occurred."',
+    },
+  ]}
+/>
+
+### Returns
+
+`Response`
+
+A Response object that streams formatted data stream parts with the specified status, headers, and content.

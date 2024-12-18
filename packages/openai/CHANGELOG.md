@@ -1,5 +1,27 @@
 # @ai-sdk/openai
 
+## 1.0.8
+
+### Patch Changes
+
+- 09a9cab: feat (ai/core): add experimental generateImage function
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/provider-utils@2.0.4
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+
+## 1.0.6
+
+### Patch Changes
+
+- a9a19cb: fix (provider/openai,groq): prevent sending duplicate tool calls
+
 ## 1.0.5
 
 ### Patch Changes

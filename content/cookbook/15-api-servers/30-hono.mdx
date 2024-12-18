@@ -52,30 +52,36 @@ app.post('/', async c => {
 serve({ fetch: app.fetch, port: 8080 });
 ```
 
-### Data Stream With Stream Data
+### Sending Custom Data
 
-`toDataStream` can be used with `StreamData` to send additional data to the client.
+`createDataStream` can be used to send custom data to the client.
 
-```ts filename='index.ts' highlight="11-13,18-21,28"
+```ts filename='index.ts' highlight="10-13,20"
 import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
-import { StreamData, streamText } from 'ai';
+import { createDataStream, streamText } from 'ai';
 import { Hono } from 'hono';
 import { stream } from 'hono/streaming';
 
 const app = new Hono();
 
-app.post('/', async c => {
-  // use stream data (optional):
-  const data = new StreamData();
-  data.append('initialized call');
+app.post('/stream-data', async c => {
+  // immediately start streaming the response
+  const dataStream = createDataStream({
+    execute: async dataStreamWriter => {
+      dataStreamWriter.writeData('initialized call');
 
-  const result = streamText({
-    model: openai('gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
-    onFinish() {
-      data.append('call completed');
-      data.close();
+      const result = streamText({
+        model: openai('gpt-4o'),
+        prompt: 'Invent a new holiday and describe its traditions.',
+      });
+
+      result.mergeIntoDataStream(dataStreamWriter);
+    },
+    onError: error => {
+      // Error messages are masked by default for security reasons.
+      // If you want to expose the error message to the client, you can do so here:
+      return error instanceof Error ? error.message : String(error);
     },
   });
 
@@ -83,7 +89,9 @@ app.post('/', async c => {
   c.header('X-Vercel-AI-Data-Stream', 'v1');
   c.header('Content-Type', 'text/plain; charset=utf-8');
 
-  return stream(c, stream => stream.pipe(result.toDataStream({ data })));
+  return stream(c, stream =>
+    stream.pipe(dataStream.pipeThrough(new TextEncoderStream())),
+  );
 });
 
 serve({ fetch: app.fetch, port: 8080 });
@@ -93,7 +101,7 @@ serve({ fetch: app.fetch, port: 8080 });
 
 You can use the `textStream` property to get a text stream from the result and then pipe it to the response.
 
-```ts filename='index.ts' highlight="18"
+```ts filename='index.ts' highlight="17"
 import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
 import { streamText } from 'ai';

@@ -1,11 +1,11 @@
+import { LanguageModelV1, ProviderV1 } from '@ai-sdk/provider';
 import {
-  LanguageModelV1,
-  NoSuchModelError,
-  ProviderV1,
-} from '@ai-sdk/provider';
-import { generateId, loadSetting } from '@ai-sdk/provider-utils';
-import { VertexAI, VertexInit } from '@google-cloud/vertexai';
-import { GoogleVertexLanguageModel } from './google-vertex-language-model';
+  FetchFunction,
+  generateId,
+  loadSetting,
+  Resolvable,
+  withoutTrailingSlash,
+} from '@ai-sdk/provider-utils';
 import {
   GoogleVertexModelId,
   GoogleVertexSettings,
@@ -15,6 +15,7 @@ import {
   GoogleVertexEmbeddingSettings,
 } from './google-vertex-embedding-settings';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
+import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 
 export interface GoogleVertexProvider extends ProviderV1 {
   /**
@@ -43,24 +44,27 @@ Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_
   project?: string;
 
   /**
- Optional. The Authentication options provided by google-auth-library.
-Complete list of authentication options is documented in the
-GoogleAuthOptions interface:
-https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts.
+   * Headers to use for requests. Can be:
+   * - A headers object
+   * - A Promise that resolves to a headers object
+   * - A function that returns a headers object
+   * - A function that returns a Promise of a headers object
    */
-  googleAuthOptions?: VertexInit['googleAuthOptions'];
+  headers?: Resolvable<Record<string, string | undefined>>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
 
   // for testing
   generateId?: () => string;
 
-  // for testing
-  createVertexAI?: ({
-    project,
-    location,
-  }: {
-    project: string;
-    location: string;
-  }) => VertexAI;
+  /**
+Base URL for the Google Vertex API calls.
+     */
+  baseURL?: string;
 }
 
 /**
@@ -85,38 +89,39 @@ export function createVertex(
       description: 'Google Vertex location',
     });
 
-  const createVertexAI = () => {
-    const config = {
-      project: loadVertexProject(),
-      location: loadVertexLocation(),
-      googleAuthOptions: options.googleAuthOptions,
-    };
-
-    return options.createVertexAI?.(config) ?? new VertexAI(config);
+  const loadBaseURL = () => {
+    const region = loadVertexLocation();
+    const project = loadVertexProject();
+    return (
+      withoutTrailingSlash(options.baseURL) ??
+      `https://${region}-aiplatform.googleapis.com/v1/projects/${project}/locations/${region}/publishers/google`
+    );
   };
 
   const createChatModel = (
     modelId: GoogleVertexModelId,
     settings: GoogleVertexSettings = {},
-  ) =>
-    new GoogleVertexLanguageModel(modelId, settings, {
-      vertexAI: createVertexAI(),
+  ) => {
+    return new GoogleGenerativeAILanguageModel(modelId, settings, {
+      provider: `google.vertex.chat`,
+      headers: options.headers ?? {},
       generateId: options.generateId ?? generateId,
+      fetch: options.fetch,
+      baseURL: loadBaseURL(),
     });
+  };
 
   const createEmbeddingModel = (
     modelId: GoogleVertexEmbeddingModelId,
     settings: GoogleVertexEmbeddingSettings = {},
-  ) => {
-    const vertexAI = createVertexAI();
-
-    return new GoogleVertexEmbeddingModel(modelId, settings, {
-      provider: 'google.vertex',
+  ) =>
+    new GoogleVertexEmbeddingModel(modelId, settings, {
+      provider: `google.vertex.embedding`,
       region: loadVertexLocation(),
       project: loadVertexProject(),
-      generateAuthToken: () => (vertexAI as any).googleAuth.getAccessToken(),
+      headers: options.headers ?? {},
+      baseURL: loadBaseURL(),
     });
-  };
 
   const provider = function (
     modelId: GoogleVertexModelId,
@@ -136,8 +141,3 @@ export function createVertex(
 
   return provider as GoogleVertexProvider;
 }
-
-/**
-Default Google Vertex AI provider instance.
- */
-export const vertex = createVertex();

@@ -1,7 +1,7 @@
 import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
 import { Tracer } from '@opentelemetry/api';
-import { NoSuchToolError } from '../../errors/no-such-tool-error';
+import { ToolExecutionError } from '../../errors';
 import { CoreMessage } from '../prompt/message';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordSpan } from '../telemetry/record-span';
@@ -17,6 +17,7 @@ import {
 import { calculateLanguageModelUsage } from '../types/usage';
 import { parseToolCall } from './parse-tool-call';
 import { ToolCallUnion } from './tool-call';
+import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 
 export type SingleRequestTextStreamPart<
@@ -67,16 +68,20 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   toolCallStreaming,
   tracer,
   telemetry,
+  system,
   messages,
   abortSignal,
+  repairToolCall,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV1StreamPart>;
   toolCallStreaming: boolean;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  system: string | undefined;
   messages: CoreMessage[];
   abortSignal: AbortSignal | undefined;
+  repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -120,7 +125,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
     LanguageModelV1StreamPart,
     SingleRequestTextStreamPart<TOOLS>
   >({
-    transform(
+    async transform(
       chunk: LanguageModelV1StreamPart,
       controller: TransformStreamDefaultController<
         SingleRequestTextStreamPart<TOOLS>
@@ -162,37 +167,18 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
 
         // process tool call:
         case 'tool-call': {
-          const toolName = chunk.toolName as keyof TOOLS & string;
-
-          if (tools == null) {
-            toolResultsStreamController!.enqueue({
-              type: 'error',
-              error: new NoSuchToolError({ toolName: chunk.toolName }),
-            });
-            break;
-          }
-
-          const tool = tools[toolName];
-
-          if (tool == null) {
-            toolResultsStreamController!.enqueue({
-              type: 'error',
-              error: new NoSuchToolError({
-                toolName: chunk.toolName,
-                availableTools: Object.keys(tools),
-              }),
-            });
-
-            break;
-          }
-
           try {
-            const toolCall = parseToolCall({
+            const toolCall = await parseToolCall({
               toolCall: chunk,
               tools,
+              repairToolCall,
+              system,
+              messages,
             });
 
             controller.enqueue(toolCall);
+
+            const tool = tools![toolCall.toolName];
 
             if (tool.execute != null) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
@@ -257,7 +243,11 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                     (error: any) => {
                       toolResultsStreamController!.enqueue({
                         type: 'error',
-                        error,
+                        error: new ToolExecutionError({
+                          toolName: toolCall.toolName,
+                          toolArgs: toolCall.args,
+                          cause: error,
+                        }),
                       });
 
                       outstandingToolResults.delete(toolExecutionId);

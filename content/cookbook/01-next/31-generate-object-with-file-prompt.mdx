@@ -1,0 +1,103 @@
+---
+title: Generate Object with File Prompt through Form Submission
+description: Learn how to generate object with file prompt through form submission using the AI SDK and Next.js
+tags: ['next', 'multi-modal']
+---
+
+# Generate Object with File Prompt through Form Submission
+
+<Note>
+  This feature is limited to models/providers that support PDF inputs
+  ([Anthropic](/providers/ai-sdk-providers/anthropic#pdf-support), [Google
+  Gemini](/providers/ai-sdk-providers/google-generative-ai#file-inputs), and
+  [Google Vertex](/providers/ai-sdk-providers/google-vertex#file-inputs)).
+</Note>
+
+With select models, you can send PDFs (files) as part of your prompt. Let's create a simple Next.js application that allows a user to upload a PDF send it to an LLM for summarization.
+
+## Client
+
+On the frontend, create a form that allows the user to upload a PDF. When the form is submitted, send the PDF to the `/api/analyze` route.
+
+```tsx file="app/page.tsx"
+'use client';
+
+import { useState } from 'react';
+
+export default function Page() {
+  const [description, setDescription] = useState<string>();
+  const [loading, setLoading] = useState(false);
+
+  return (
+    <div>
+      <form
+        action={async formData => {
+          try {
+            setLoading(true);
+            const response = await fetch('/api/analyze', {
+              method: 'POST',
+              body: formData,
+            });
+            setLoading(false);
+
+            if (response.ok) {
+              setDescription(await response.text());
+            }
+          } catch (error) {
+            console.error('Analysis failed:', error);
+          }
+        }}
+      >
+        <div>
+          <label>Upload Image</label>
+          <input name="pdf" type="file" accept="application/pdf" />
+        </div>
+        <button type="submit" disabled={loading}>
+          Submit{loading && 'ing...'}
+        </button>
+      </form>
+      {description && <pre>{description}</pre>}
+    </div>
+  );
+}
+```
+
+## Server
+
+On the server, create an API route that receives the PDF, sends it to the LLM, and returns the result. This example uses the [ `generateObject` ](/docs/reference/ai-sdk-core/generate-object) function to generate the summary as part of a structured output.
+
+```typescript file="app/api/analyze/route.ts"
+import { generateObject } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { z } from 'zod';
+
+export async function POST(request: Request) {
+  const formData = await request.formData();
+  const file = formData.get('pdf') as File;
+
+  const result = await generateObject({
+    model: anthropic('claude-3-5-sonnet-latest'),
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Analyze the following PDF and generate a summary.',
+          },
+          {
+            type: 'file',
+            data: await file.arrayBuffer(),
+            mimeType: 'application/pdf',
+          },
+        ],
+      },
+    ],
+    schema: z.object({
+      summary: z.string().describe('A 50 word sumamry of the PDF.'),
+    }),
+  });
+
+  return new Response(result.object.summary);
+}
+```

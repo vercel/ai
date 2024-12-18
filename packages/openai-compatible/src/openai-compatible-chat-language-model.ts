@@ -1,41 +1,45 @@
 import {
+  APICallError,
   InvalidResponseDataError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
-  LanguageModelV1ObjectGenerationMode,
   LanguageModelV1FinishReason,
+  LanguageModelV1ObjectGenerationMode,
   LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
+  createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
   generateId,
   isParsableJson,
+  ParseResult,
   postJsonToApi,
+  ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
+import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
   OpenAICompatibleChatModelId,
   OpenAICompatibleChatSettings,
 } from './openai-compatible-chat-settings';
 import {
-  openaiCompatibleErrorDataSchema,
-  openaiCompatibleFailedResponseHandler,
+  defaultOpenAICompatibleErrorStructure,
+  ProviderErrorStructure,
 } from './openai-compatible-error';
 import { prepareTools } from './openai-compatible-prepare-tools';
-import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  errorStructure?: ProviderErrorStructure<any>;
 
   /**
 Default object generation mode that should be used with this model when
@@ -59,6 +63,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   readonly settings: OpenAICompatibleChatSettings;
 
   private readonly config: OpenAICompatibleChatConfig;
+  private readonly failedResponseHandler: ResponseHandler<APICallError>;
+  private readonly chunkSchema; // type inferred via constructor
 
   constructor(
     modelId: OpenAICompatibleChatModelId,
@@ -68,6 +74,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     this.modelId = modelId;
     this.settings = settings;
     this.config = config;
+
+    // initialize error handling:
+    const errorStructure =
+      config.errorStructure ?? defaultOpenAICompatibleErrorStructure;
+    this.chunkSchema = createOpenAICompatibleChatChunkSchema(
+      errorStructure.errorSchema,
+    );
+    this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure);
 
     this.supportsStructuredOutputs = config.supportsStructuredOutputs ?? false;
   }
@@ -232,7 +246,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
-      failedResponseHandler: openaiCompatibleFailedResponseHandler,
+      failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         OpenAICompatibleChatResponseSchema,
       ),
@@ -281,9 +295,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         ...args,
         stream: true,
       },
-      failedResponseHandler: openaiCompatibleFailedResponseHandler,
+      failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
-        OpenAICompatibleChatChunkSchema,
+        this.chunkSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -298,6 +312,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         name: string;
         arguments: string;
       };
+      hasFinished: boolean;
     }> = [];
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
@@ -314,7 +329,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof OpenAICompatibleChatChunkSchema>>,
+          ParseResult<z.infer<typeof this.chunkSchema>>,
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
@@ -404,6 +419,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                       name: toolCallDelta.function.name,
                       arguments: toolCallDelta.function.arguments ?? '',
                     },
+                    hasFinished: false,
                   };
 
                   const toolCall = toolCalls[index];
@@ -433,14 +449,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                         toolName: toolCall.function.name,
                         args: toolCall.function.arguments,
                       });
+                      toolCall.hasFinished = true;
                     }
                   }
 
                   continue;
                 }
 
-                // existing tool call, merge
+                // existing tool call, merge if not finished
                 const toolCall = toolCalls[index];
+
+                if (toolCall.hasFinished) {
+                  continue;
+                }
 
                 if (toolCallDelta.function?.arguments != null) {
                   toolCall.function!.arguments +=
@@ -469,6 +490,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                     toolName: toolCall.function.name,
                     args: toolCall.function.arguments,
                   });
+                  toolCall.hasFinished = true;
                 }
               }
             }
@@ -519,7 +541,6 @@ const OpenAICompatibleChatResponseSchema = z.object({
           )
           .nullish(),
       }),
-      index: z.number(),
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -533,42 +554,44 @@ const OpenAICompatibleChatResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const OpenAICompatibleChatChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        delta: z
-          .object({
-            role: z.enum(['assistant']).nullish(),
-            content: z.string().nullish(),
-            tool_calls: z
-              .array(
-                z.object({
-                  index: z.number(),
-                  id: z.string().nullish(),
-                  type: z.literal('function').optional(),
-                  function: z.object({
-                    name: z.string().nullish(),
-                    arguments: z.string().nullish(),
+const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
+  errorSchema: ERROR_SCHEMA,
+) =>
+  z.union([
+    z.object({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          delta: z
+            .object({
+              role: z.enum(['assistant']).nullish(),
+              content: z.string().nullish(),
+              tool_calls: z
+                .array(
+                  z.object({
+                    index: z.number(),
+                    id: z.string().nullish(),
+                    type: z.literal('function').optional(),
+                    function: z.object({
+                      name: z.string().nullish(),
+                      arguments: z.string().nullish(),
+                    }),
                   }),
-                }),
-              )
-              .nullish(),
-          })
-          .nullish(),
-        finish_reason: z.string().nullable().optional(),
-        index: z.number(),
-      }),
-    ),
-    usage: z
-      .object({
-        prompt_tokens: z.number().nullish(),
-        completion_tokens: z.number().nullish(),
-      })
-      .nullish(),
-  }),
-  openaiCompatibleErrorDataSchema,
-]);
+                )
+                .nullish(),
+            })
+            .nullish(),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      usage: z
+        .object({
+          prompt_tokens: z.number().nullish(),
+          completion_tokens: z.number().nullish(),
+        })
+        .nullish(),
+    }),
+    errorSchema,
+  ]);

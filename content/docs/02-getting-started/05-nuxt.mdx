@@ -207,7 +207,7 @@ export default defineLazyEventHandler(async () => {
       messages,
       tools: {
         weather: tool({
-          description: 'Get the weather in a location (farenheit)',
+          description: 'Get the weather in a location (fahrenheit)',
           parameters: z.object({
             location: z
               .string()
@@ -330,7 +330,7 @@ export default defineLazyEventHandler(async () => {
       messages,
       tools: {
         weather: tool({
-          description: 'Get the weather in a location (farenheit)',
+          description: 'Get the weather in a location (fahrenheit)',
           parameters: z.object({
             location: z
               .string()
@@ -344,12 +344,12 @@ export default defineLazyEventHandler(async () => {
             };
           },
         }),
-        convertFarenheitToCelsius: tool({
-          description: 'Convert a temperature in farenheit to celsius',
+        convertFahrenheitToCelsius: tool({
+          description: 'Convert a temperature in fahrenheit to celsius',
           parameters: z.object({
             temperature: z
               .number()
-              .describe('The temperature in farenheit to convert'),
+              .describe('The temperature in fahrenheit to convert'),
           }),
           execute: async ({ temperature }) => {
             const celsius = Math.round((temperature - 32) * (5 / 9));

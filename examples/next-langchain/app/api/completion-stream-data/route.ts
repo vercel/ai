@@ -1,5 +1,5 @@
 import { ChatOpenAI } from '@langchain/openai';
-import { LangChainAdapter, StreamData } from 'ai';
+import { LangChainAdapter } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -14,16 +14,5 @@ export async function POST(req: Request) {
 
   const stream = await model.stream(prompt);
 
-  const data = new StreamData();
-
-  data.append({ test: 'value' });
-
-  return LangChainAdapter.toDataStreamResponse(stream, {
-    data,
-    callbacks: {
-      onFinal() {
-        data.close();
-      },
-    },
-  });
+  return LangChainAdapter.toDataStreamResponse(stream);
 }

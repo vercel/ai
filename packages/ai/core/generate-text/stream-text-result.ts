@@ -1,5 +1,6 @@
 import { ServerResponse } from 'node:http';
 import { StreamData } from '../../streams/stream-data';
+import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { CoreTool } from '../tool';
 import {
@@ -128,6 +129,13 @@ need to be added separately.
   }): ReadableStream<Uint8Array>;
 
   /**
+   * Merges the result as a data stream into another data stream.
+   *
+   * @param dataStream A data stream writer.
+   */
+  mergeIntoDataStream(dataStream: DataStreamWriter): void;
+
+  /**
   Writes data stream output to a Node.js response-like object.
 
   @param response A Node.js response-like object (ServerResponse).
@@ -215,7 +223,9 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       finishReason: FinishReason;
       logprobs?: LogProbs;
       usage: LanguageModelUsage;
+      request: LanguageModelRequestMetadata;
       response: LanguageModelResponseMetadata;
+      warnings: CallWarning[] | undefined;
       experimental_providerMetadata?: ProviderMetadata;
       isContinued: boolean;
     }
@@ -224,6 +234,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       finishReason: FinishReason;
       logprobs?: LogProbs;
       usage: LanguageModelUsage;
+      // TODO 4.0 breaking change: remove response (on step instead)
       response: LanguageModelResponseMetadata;
       experimental_providerMetadata?: ProviderMetadata;
     }

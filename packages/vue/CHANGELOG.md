@@ -1,5 +1,30 @@
 # @ai-sdk/vue
 
+## 1.0.6
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@2.0.4
+- @ai-sdk/ui-utils@1.0.5
+
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+  - @ai-sdk/ui-utils@1.0.4
+
+## 1.0.4
+
+### Patch Changes
+
+- 953469c: feat (ui/vue): add support for attachments in useChat
+- 953469c: chore (ui): extract prepareAttachmentsForRequest
+- Updated dependencies [953469c]
+- Updated dependencies [a3dd2ed]
+  - @ai-sdk/ui-utils@1.0.3
+
 ## 1.0.3
 
 ### Patch Changes

@@ -470,6 +470,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Enable streaming of tool call deltas as they are generated. Disabled by default.',
     },
     {
+      name: 'experimental_transform',
+      type: '({ tools: TOOLS }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>',
+      isOptional: true,
+      description:
+        'Optional transformation that is applied to the stream. Tools are passed in for type inference.',
+    },
+    {
       name: 'experimental_providerMetadata',
       type: 'Record<string,Record<string,JSONValue>> | undefined',
       isOptional: true,
@@ -482,6 +489,52 @@ To see `streamText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'The tools that are currently active. All tools are active by default.',
+    },
+    {
+      name: 'experimental_repairToolCall',
+      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV1FunctionToolCall | null>',
+      isOptional: true,
+      description:
+        'A function that attempts to repair a tool call that failed to parse. Return either a repaired tool call or null if the tool call cannot be repaired.',
+      properties: [
+        {
+          type: 'ToolCallRepairOptions',
+          parameters: [
+            {
+              name: 'system',
+              type: 'string | undefined',
+              description: 'The system prompt.',
+            },
+            {
+              name: 'messages',
+              type: 'CoreMessage[]',
+              description: 'The messages in the current generation step.',
+            },
+            {
+              name: 'toolCall',
+              type: 'LanguageModelV1FunctionToolCall',
+              description: 'The tool call that failed to parse.',
+            },
+            {
+              name: 'tools',
+              type: 'TOOLS',
+              description: 'The tools that are available.',
+            },
+            {
+              name: 'parameterSchema',
+              type: '(options: { toolName: string }) => JSONSchema7',
+              description:
+                'A function that returns the JSON Schema for a tool.',
+            },
+            {
+              name: 'error',
+              type: 'NoSuchToolError | InvalidToolArgumentsError',
+              description:
+                'The error that occurred while parsing the tool call.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'onChunk',
@@ -1362,19 +1415,32 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
-              name: 'isContinued',
-              type: 'boolean',
-              description:
-                'True when there will be a continuation step with a continuation text.',
+              name: 'request',
+              type: 'RequestMetadata',
+              isOptional: true,
+              description: 'Request metadata.',
+              properties: [
+                {
+                  type: 'RequestMetadata',
+                  parameters: [
+                    {
+                      name: 'body',
+                      type: 'string',
+                      description:
+                        'Raw request HTTP body that was sent to the provider API as a string.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'response',
-              type: 'Response',
+              type: 'ResponseMetadata',
               isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
-                  type: 'Response',
+                  type: 'ResponseMetadata',
                   parameters: [
                     {
                       name: 'id',
@@ -1394,9 +1460,33 @@ To see `streamText` in action, check out [these examples](#examples).
                       description:
                         'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
                     },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      description: 'The response headers.',
+                    },
                   ],
                 },
               ],
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
+              name: 'experimental_providerMetadata',
+              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              isOptional: true,
+              description:
+                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+            },
+            {
+              name: 'isContinued',
+              type: 'boolean',
+              description:
+                'True when there will be a continuation step with a continuation text.',
             },
           ],
         },
@@ -1468,9 +1558,21 @@ To see `streamText` in action, check out [these examples](#examples).
                       description:
                         'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
                     },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      description: 'The response headers.',
+                    },
                   ],
                 },
               ],
+            },
+            {
+              name: 'experimental_providerMetadata',
+              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              isOptional: true,
+              description:
+                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
             },
           ],
         },

@@ -1,5 +1,93 @@
 # ai
 
+## 4.0.20
+
+### Patch Changes
+
+- da9d240: fix (ai/core): suppress errors caused by writing to closed stream
+- 6f1bfde: fix (ai/core): invoke streamText tool call repair when tool cannot be found
+
+## 4.0.19
+
+### Patch Changes
+
+- c3a6065: fix (ai/core): apply transform before callbacks and resolvables
+
+## 4.0.18
+
+### Patch Changes
+
+- 304e6d3: feat (ai/core): standardize generateObject, streamObject, and output errors to NoObjectGeneratedError
+- 304e6d3: feat (ai/core): add additional information to NoObjectGeneratedError
+
+## 4.0.17
+
+### Patch Changes
+
+- 54bbf21: fix (ai/core): change streamText.experimental_transform signature to support tool type inference
+
+## 4.0.16
+
+### Patch Changes
+
+- e3fac3f: fix (ai/core): change smoothStream default delay to 10ms
+
+## 4.0.15
+
+### Patch Changes
+
+- cc16a83: feat (ai/core): add smoothStream helper
+- cc16a83: feat (ai/core): add experimental transform option to streamText
+
+## 4.0.14
+
+### Patch Changes
+
+- 09a9cab: feat (ai/core): add experimental generateImage function
+- Updated dependencies [09a9cab]
+  - @ai-sdk/provider@1.0.2
+  - @ai-sdk/provider-utils@2.0.4
+  - @ai-sdk/ui-utils@1.0.5
+  - @ai-sdk/react@1.0.6
+
+## 4.0.13
+
+### Patch Changes
+
+- 9f32213: feat (ai/core): add experimental tool call repair
+
+## 4.0.12
+
+### Patch Changes
+
+- 5167bec: fix (ai/core): forward streamText errors as error parts
+- 0984f0b: feat (ai/core): add ToolExecutionError type
+- Updated dependencies [0984f0b]
+  - @ai-sdk/provider-utils@2.0.3
+  - @ai-sdk/react@1.0.5
+  - @ai-sdk/ui-utils@1.0.4
+
+## 4.0.11
+
+### Patch Changes
+
+- Updated dependencies [953469c]
+- Updated dependencies [a3dd2ed]
+  - @ai-sdk/ui-utils@1.0.3
+  - @ai-sdk/react@1.0.4
+
+## 4.0.10
+
+### Patch Changes
+
+- 913872d: fix (ai/core): track promise from async createDataStream.execute
+
+## 4.0.9
+
+### Patch Changes
+
+- fda9695: feat (ai/core): reworked data stream management
+
 ## 4.0.8
 
 ### Patch Changes

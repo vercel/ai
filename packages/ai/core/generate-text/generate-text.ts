@@ -1,6 +1,6 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { InvalidArgumentError } from '../../errors';
+import { InvalidArgumentError, ToolExecutionError } from '../../errors';
 import { CoreAssistantMessage, CoreMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -19,6 +19,7 @@ import { CoreTool } from '../tool/tool';
 import { CoreToolChoice, LanguageModel, ProviderMetadata } from '../types';
 import {
   LanguageModelUsage,
+  addLanguageModelUsage,
   calculateLanguageModelUsage,
 } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
@@ -28,6 +29,7 @@ import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
+import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
@@ -97,6 +99,7 @@ export async function generateText<
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
   experimental_activeTools: activeTools,
+  experimental_repairToolCall: repairToolCall,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -155,6 +158,11 @@ changing the tool call and result types in the result.
     experimental_activeTools?: Array<keyof TOOLS>;
 
     experimental_output?: Output<OUTPUT>;
+
+    /**
+A function that attempts to repair a tool call that failed to parse.
+     */
+    experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 
     /**
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -233,7 +241,7 @@ changing the tool call and result types in the result.
         [];
       let text = '';
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
-      const usage: LanguageModelUsage = {
+      let usage: LanguageModelUsage = {
         completionTokens: 0,
         promptTokens: 0,
         totalTokens: 0,
@@ -354,8 +362,16 @@ changing the tool call and result types in the result.
         );
 
         // parse tool calls:
-        currentToolCalls = (currentModelResponse.toolCalls ?? []).map(
-          modelToolCall => parseToolCall({ toolCall: modelToolCall, tools }),
+        currentToolCalls = await Promise.all(
+          (currentModelResponse.toolCalls ?? []).map(toolCall =>
+            parseToolCall({
+              toolCall,
+              tools,
+              repairToolCall,
+              system,
+              messages: stepInputMessages,
+            }),
+          ),
         );
 
         // execute tools:
@@ -375,9 +391,7 @@ changing the tool call and result types in the result.
         const currentUsage = calculateLanguageModelUsage(
           currentModelResponse.usage,
         );
-        usage.completionTokens += currentUsage.completionTokens;
-        usage.promptTokens += currentUsage.promptTokens;
-        usage.totalTokens += currentUsage.totalTokens;
+        usage = addLanguageModelUsage(usage, currentUsage);
 
         // check if another step is needed:
         let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
@@ -494,7 +508,15 @@ changing the tool call and result types in the result.
       return new DefaultGenerateTextResult({
         text,
         output:
-          output == null ? (undefined as never) : output.parseOutput({ text }),
+          output == null
+            ? (undefined as never)
+            : output.parseOutput(
+                { text },
+                {
+                  response: currentModelResponse.response,
+                  usage,
+                },
+              ),
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
@@ -555,31 +577,39 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         }),
         tracer,
         fn: async span => {
-          const result = await tool.execute!(args, {
-            toolCallId,
-            messages,
-            abortSignal,
-          });
-
           try {
-            span.setAttributes(
-              selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.toolCall.result': {
-                    output: () => JSON.stringify(result),
-                  },
-                },
-              }),
-            );
-          } catch (ignored) {
-            // JSON stringify might fail if the result is not serializable,
-            // in which case we just ignore it. In the future we might want to
-            // add an optional serialize method to the tool interface and warn
-            // if the result is not serializable.
-          }
+            const result = await tool.execute!(args, {
+              toolCallId,
+              messages,
+              abortSignal,
+            });
 
-          return result;
+            try {
+              span.setAttributes(
+                selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    'ai.toolCall.result': {
+                      output: () => JSON.stringify(result),
+                    },
+                  },
+                }),
+              );
+            } catch (ignored) {
+              // JSON stringify might fail if the result is not serializable,
+              // in which case we just ignore it. In the future we might want to
+              // add an optional serialize method to the tool interface and warn
+              // if the result is not serializable.
+            }
+
+            return result;
+          } catch (error) {
+            throw new ToolExecutionError({
+              toolName,
+              toolArgs: args,
+              cause: error,
+            });
+          }
         },
       });
 

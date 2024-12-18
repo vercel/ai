@@ -3,14 +3,17 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
+  LanguageModelV1ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   ParseResult,
+  Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
+  resolve,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -20,7 +23,7 @@ import { googleFailedResponseHandler } from './google-error';
 import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   GoogleGenerativeAIModelId,
-  GoogleGenerativeAISettings,
+  InternalGoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
@@ -28,7 +31,7 @@ import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-fi
 type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -43,13 +46,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   }
 
   readonly modelId: GoogleGenerativeAIModelId;
-  readonly settings: GoogleGenerativeAISettings;
+  readonly settings: InternalGoogleGenerativeAISettings;
 
   private readonly config: GoogleGenerativeAIConfig;
 
   constructor(
     modelId: GoogleGenerativeAIModelId,
-    settings: GoogleGenerativeAISettings,
+    settings: InternalGoogleGenerativeAISettings,
     config: GoogleGenerativeAIConfig,
   ) {
     this.modelId = modelId;
@@ -106,6 +109,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         this.supportsStructuredOutputs
           ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
           : undefined,
+      ...(this.settings.audioTimestamp && {
+        audioTimestamp: this.settings.audioTimestamp,
+      }),
     };
 
     const { contents, systemInstruction } =
@@ -113,7 +119,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { tools, toolConfig, toolWarnings } = prepareTools(mode);
+        const { tools, toolConfig, toolWarnings } = prepareTools(
+          mode,
+          this.settings.useSearchGrounding ?? false,
+          this.modelId.includes('gemini-2'),
+        );
 
         return {
           args: {
@@ -193,14 +203,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
-
     const body = JSON.stringify(args);
+
+    const mergedHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${getModelPath(
         this.modelId,
       )}:generateContent`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: mergedHeaders,
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(responseSchema),
@@ -212,14 +226,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const candidate = response.candidates[0];
 
     const toolCalls = getToolCallsFromParts({
-      parts: candidate.content.parts,
+      parts: candidate.content?.parts ?? [],
       generateId: this.config.generateId,
     });
 
     const usageMetadata = response.usageMetadata;
 
     return {
-      text: getTextFromParts(candidate.content.parts),
+      text: getTextFromParts(candidate.content?.parts ?? []),
       toolCalls,
       finishReason: mapGoogleGenerativeAIFinishReason({
         finishReason: candidate.finishReason,
@@ -232,6 +246,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
+      providerMetadata: {
+        google: {
+          groundingMetadata: candidate.groundingMetadata ?? null,
+          safetyRatings: candidate.safetyRatings ?? null,
+        },
+      },
       request: { body },
     };
   }
@@ -242,12 +262,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = await this.getArgs(options);
 
     const body = JSON.stringify(args);
+    const headers = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${getModelPath(
         this.modelId,
       )}:streamGenerateContent?alt=sse`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers,
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
@@ -262,6 +286,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
+    let providerMetadata: LanguageModelV1ProviderMetadata | undefined =
+      undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -301,6 +327,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 finishReason: candidate.finishReason,
                 hasToolCalls,
               });
+
+              providerMetadata = {
+                google: {
+                  groundingMetadata: candidate.groundingMetadata ?? null,
+                  safetyRatings: candidate.safetyRatings ?? null,
+                },
+              };
             }
 
             const content = candidate.content;
@@ -346,7 +379,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              usage,
+              providerMetadata,
+            });
           },
         }),
       ),
@@ -410,22 +448,86 @@ const contentSchema = z.object({
   ),
 });
 
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
+// https://ai.google.dev/gemini-api/docs/grounding
+// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search
+export const groundingMetadataSchema = z.object({
+  webSearchQueries: z.array(z.string()).nullish(),
+  retrievalQueries: z.array(z.string()).nullish(),
+  searchEntryPoint: z
+    .object({
+      renderedContent: z.string(),
+    })
+    .nullish(),
+  groundingChunks: z
+    .array(
+      z.object({
+        web: z
+          .object({
+            uri: z.string(),
+            title: z.string(),
+          })
+          .nullish(),
+        retrievedContext: z
+          .object({
+            uri: z.string(),
+            title: z.string(),
+          })
+          .nullish(),
+      }),
+    )
+    .nullish(),
+  groundingSupports: z
+    .array(
+      z.object({
+        segment: z.object({
+          startIndex: z.number().nullish(),
+          endIndex: z.number().nullish(),
+          text: z.string().nullish(),
+        }),
+        segment_text: z.string().nullish(),
+        groundingChunkIndices: z.array(z.number()).nullish(),
+        supportChunkIndices: z.array(z.number()).nullish(),
+        confidenceScores: z.array(z.number()).nullish(),
+        confidenceScore: z.array(z.number()).nullish(),
+      }),
+    )
+    .nullish(),
+  retrievalMetadata: z
+    .union([
+      z.object({
+        webDynamicRetrievalScore: z.number(),
+      }),
+      z.object({}),
+    ])
+    .nullish(),
+});
+
+// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
+export const safetyRatingSchema = z.object({
+  category: z.string(),
+  probability: z.string(),
+  probabilityScore: z.number().nullish(),
+  severity: z.string().nullish(),
+  severityScore: z.number().nullish(),
+  blocked: z.boolean().nullish(),
+});
+
 const responseSchema = z.object({
   candidates: z.array(
     z.object({
-      content: contentSchema,
-      finishReason: z.string().optional(),
+      content: contentSchema.nullish(),
+      finishReason: z.string().nullish(),
+      safetyRatings: z.array(safetyRatingSchema).nullish(),
+      groundingMetadata: groundingMetadataSchema.nullish(),
     }),
   ),
   usageMetadata: z
     .object({
-      promptTokenCount: z.number(),
+      promptTokenCount: z.number().nullish(),
       candidatesTokenCount: z.number().nullish(),
-      totalTokenCount: z.number(),
+      totalTokenCount: z.number().nullish(),
     })
-    .optional(),
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -434,16 +536,18 @@ const chunkSchema = z.object({
   candidates: z
     .array(
       z.object({
-        content: contentSchema.optional(),
-        finishReason: z.string().optional(),
+        content: contentSchema.nullish(),
+        finishReason: z.string().nullish(),
+        safetyRatings: z.array(safetyRatingSchema).nullish(),
+        groundingMetadata: groundingMetadataSchema.nullish(),
       }),
     )
     .nullish(),
   usageMetadata: z
     .object({
-      promptTokenCount: z.number(),
+      promptTokenCount: z.number().nullish(),
       candidatesTokenCount: z.number().nullish(),
-      totalTokenCount: z.number(),
+      totalTokenCount: z.number().nullish(),
     })
     .nullish(),
 });

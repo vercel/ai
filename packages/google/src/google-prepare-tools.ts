@@ -9,6 +9,8 @@ export function prepareTools(
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
   },
+  useSearchGrounding: boolean,
+  isGemini2: boolean,
 ): {
   tools:
     | undefined
@@ -18,7 +20,9 @@ export function prepareTools(
           description: string | undefined;
           parameters: unknown;
         }>;
-      };
+      }
+    | { googleSearchRetrieval: Record<string, never> }
+    | { googleSearch: Record<string, never> };
   toolConfig:
     | undefined
     | {
@@ -31,6 +35,14 @@ export function prepareTools(
 } {
   const tools = mode.tools?.length ? mode.tools : undefined;
   const toolWarnings: LanguageModelV1CallWarning[] = [];
+
+  if (useSearchGrounding) {
+    return {
+      tools: isGemini2 ? { googleSearch: {} } : { googleSearchRetrieval: {} },
+      toolConfig: undefined,
+      toolWarnings,
+    };
+  }
 
   if (tools == null) {
     return { tools: undefined, toolConfig: undefined, toolWarnings };
