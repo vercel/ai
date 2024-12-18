@@ -206,6 +206,12 @@ The following optional settings are available for OpenAI chat models:
   private models or when the images are not publicly accessible.
   Defaults to `false`.
 
+- **simulateStreaming** _boolean_
+
+  Simulates streaming by using a normal generate call and returning it as a stream.
+  Enable this if the model that you are using does not support streaming.
+  Defaults to `false`.
+
 #### Structured Outputs
 
 You can enable [OpenAI structured outputs](https://openai.com/index/introducing-structured-outputs-in-the-api/) by setting the `structuredOutputs` option to `true`.
