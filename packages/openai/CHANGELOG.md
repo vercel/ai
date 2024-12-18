@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.0.10
+
+### Patch Changes
+
+- d4fad4e: fix (provider/openai): fix reasoning model detection
+
 ## 1.0.9
 
 ### Patch Changes
