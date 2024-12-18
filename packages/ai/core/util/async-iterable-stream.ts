@@ -5,7 +5,7 @@ export function createAsyncIterableStream<T>(
 ): AsyncIterableStream<T> {
   const stream = source.pipeThrough(new TransformStream<T, T>());
 
-  (stream as any)[Symbol.asyncIterator] = () => {
+  (stream as AsyncIterableStream<T>)[Symbol.asyncIterator] = () => {
     const reader = stream.getReader();
     return {
       async next(): Promise<IteratorResult<T>> {
