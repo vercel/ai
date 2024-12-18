@@ -154,7 +154,7 @@ on the [next-openai](https://github.com/vercel/ai/tree/main/examples/next-openai
 
 ### Group multiple executions in one trace
 
-You can open a Langfuse trace and pass the trace ID to AI SDK calls to group multiple execution spans under one trace. The passed name in functionId will be the root span name of the respective execution.
+You can open a Langfuse trace and pass the trace ID to AI SDK calls to group multiple execution spans under one trace. The passed name in `functionId` will be the root span name of the respective execution.
 
 ```ts
 import { randomUUID } from 'crypto';
