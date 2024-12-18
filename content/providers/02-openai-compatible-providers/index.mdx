@@ -1,44 +1,46 @@
 ---
-title: OpenAI compatible Providers
+title: OpenAI Compatible Providers
 description: Use OpenAI compatible providers with the AI SDK.
 ---
 
-# OpenAI compatible Providers
+# OpenAI Compatible Providers
 
-You can use the [OpenAI Provider](/providers/ai-sdk-providers/openai) to use language model providers that implement the OpenAI API.
+You can use the [OpenAI Compatible Provider](https://www.npmjs.com/package/@ai-sdk/openai-compatible) package to use language model providers that implement the OpenAI API.
+
+Below we focus on the general setup and provider instance creation. You can also [write a custom provider package leveraging the OpenAI Compatible package](/providers/openai-compatible-providers/custom-providers).
+
 We provide detailed documentation for the following OpenAI compatible providers:
 
 - [Perplexity](/providers/openai-compatible-providers/perplexity)
-- [Fireworks](/providers/openai-compatible-providers/fireworks)
 - [LM Studio](/providers/openai-compatible-providers/lmstudio)
 - [Baseten](/providers/openai-compatible-providers/baseten)
 
-The general setup and provider instance creation is the same for all OpenAI compatible providers.
+The general setup and provider instance creation is the same for all of these providers.
 
 ## Setup
 
-The OpenAI provider is available via the `@ai-sdk/openai` module. You can install it with:
+The OpenAI Compatible provider is available via the `@ai-sdk/openai-compatible` module. You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
-    <Snippet text="pnpm add @ai-sdk/openai" dark />
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install @ai-sdk/openai" dark />
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @ai-sdk/openai" dark />
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
   </Tab>
 </Tabs>
 
 ## Provider Instance
 
-To use an OpenAI compatible provider, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
+To use an OpenAI compatible provider, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
-const provider = createOpenAI({
+const provider = createOpenAICompatible({
   name: 'provider-name',
   apiKey: process.env.PROVIDER_API_KEY ?? '',
   baseURL: 'https://api.provider.com/v1',
@@ -59,10 +61,10 @@ const model = provider('model-id');
 You can use provider language models to generate text with the `generateText` function:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { generateText } from 'ai'
 
-const provider = createOpenAI({
+const provider = createOpenAICompatible({
   name: 'provider-name',
   apiKey: process.env.PROVIDER_API_KEY ?? '',
   baseURL: 'https://api.provider.com/v1'
@@ -72,4 +74,47 @@ const { text } = await generateText({
   model: provider('model-id')
   prompt: 'Write a vegetarian lasagna recipe for 4 people.'
 })
+```
+
+### Including model ids for auto-completion
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+type ExampleChatModelIds =
+  | 'meta-llama/Llama-3-70b-chat-hf'
+  | 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'
+  | (string & {});
+
+type ExampleCompletionModelIds =
+  | 'codellama/CodeLlama-34b-Instruct-hf'
+  | 'Qwen/Qwen2.5-Coder-32B-Instruct'
+  | (string & {});
+
+type ExampleEmbeddingModelIds =
+  | 'BAAI/bge-large-en-v1.5'
+  | 'bert-base-uncased'
+  | (string & {});
+
+const model = createOpenAICompatible<
+  ExampleChatModelIds,
+  ExampleCompletionModelIds,
+  ExampleEmbeddingModelIds
+>({
+  baseURL: 'https://api.example.com/v1',
+  name: 'example',
+  headers: {
+    Authorization: `Bearer ${process.env.MY_API_KEY}`,
+  },
+});
+
+// Subsequent calls to e.g. `model.chatModel` will auto-complete the model id
+// from the list of `ExampleChatModelIds` while still allowing free-form
+// strings as well.
+
+const { text } = await generateText({
+  model: model.chatModel('meta-llama/Llama-3-70b-chat-hf'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 ```
