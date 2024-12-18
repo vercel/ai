@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.0.8
+
+### Patch Changes
+
+- 6faab13: feat (provider/openai-compatible): simulated streaming setting
+
 ## 0.0.7
 
 ### Patch Changes

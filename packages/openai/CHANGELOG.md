@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 1.0.9
+
+### Patch Changes
+
+- 3fab0fb: feat (provider/openai): support reasoning_effort setting
+- e956eed: feat (provider/openai): update model list and add o1
+- 6faab13: feat (provider/openai): simulated streaming setting
+
 ## 1.0.8
 
 ### Patch Changes
