@@ -16,6 +16,7 @@
         "AWS_ACCESS_KEY_ID",
         "AWS_SECRET_ACCESS_KEY",
         "COHERE_API_KEY",
+        "DEEPINFRA_API_KEY",
         "DEEPSEEK_API_KEY",
         "FIREWORKS_API_KEY",
         "GOOGLE_API_KEY",

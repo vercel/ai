@@ -68,6 +68,9 @@ importers:
       '@ai-sdk/cohere':
         specifier: 1.0.5
         version: link:../../packages/cohere
+      '@ai-sdk/deepinfra':
+        specifier: 0.0.0
+        version: link:../../packages/deepinfra
       '@ai-sdk/fireworks':
         specifier: 0.0.2
         version: link:../../packages/fireworks
@@ -1284,6 +1287,34 @@ importers:
       tsup:
         specifier: ^8
         version: 8.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@18.18.9)(typescript@5.6.3))(typescript@5.6.3)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+
+  packages/deepinfra:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: 0.0.8
+        version: link:../openai-compatible
+      '@ai-sdk/provider':
+        specifier: 1.0.2
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: 2.0.4
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: ^18
+        version: 18.19.54
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.4.49)(tsx@4.19.2)(typescript@5.6.3)(yaml@2.5.0)
       typescript:
         specifier: 5.6.3
         version: 5.6.3
