@@ -188,6 +188,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       messages: convertToOpenAIChatMessages({
         prompt,
         useLegacyFunctionCalling,
+        useDeveloperRole: isReasoningModel(this.modelId),
       }),
     };
 

@@ -8,16 +8,21 @@ import { OpenAIChatPrompt } from './openai-chat-prompt';
 export function convertToOpenAIChatMessages({
   prompt,
   useLegacyFunctionCalling = false,
+  useDeveloperRole = false,
 }: {
   prompt: LanguageModelV1Prompt;
   useLegacyFunctionCalling?: boolean;
+  useDeveloperRole?: boolean;
 }): OpenAIChatPrompt {
   const messages: OpenAIChatPrompt = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        messages.push({
+          role: useDeveloperRole ? 'developer' : 'system',
+          content,
+        });
         break;
       }
 
