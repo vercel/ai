@@ -83,6 +83,7 @@ A result object that contains the generated text, the results of the tool calls,
 export async function generateText<
   TOOLS extends Record<string, CoreTool>,
   OUTPUT = never,
+  OUTPUT_PARTIAL = never,
 >({
   model,
   tools,
@@ -157,7 +158,7 @@ changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
 
-    experimental_output?: Output<OUTPUT>;
+    experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
 
     /**
 A function that attempts to repair a tool call that failed to parse.
