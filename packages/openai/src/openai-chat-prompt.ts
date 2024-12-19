@@ -1,12 +1,21 @@
 export type OpenAIChatPrompt = Array<ChatCompletionMessage>;
 
 export type ChatCompletionMessage =
+  | ChatCompletionDeveloperMessage
   | ChatCompletionSystemMessage
   | ChatCompletionUserMessage
   | ChatCompletionAssistantMessage
   | ChatCompletionToolMessage
   | ChatCompletionFunctionMessage;
 
+export interface ChatCompletionDeveloperMessage {
+  role: 'developer';
+  content: string;
+}
+
+/**
+ * @deprecated With o1 models and newer, use `ChatCompletionDeveloperMessage` messages for this purpose instead.
+ */
 export interface ChatCompletionSystemMessage {
   role: 'system';
   content: string;
