@@ -4,6 +4,7 @@ import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
 import { vertex as vertexNode } from '@ai-sdk/google-vertex';
 import { z } from 'zod';
 import {
+  detectImageMimeType,
   generateText,
   generateObject,
   streamText,
@@ -461,7 +462,11 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         const { image } = await generateImage({
           model,
           prompt: 'A burrito launched through a tunnel',
-          size: '1024x1024',
+          providerOptions: {
+            vertex: {
+              aspectRatio: '3:4',
+            },
+          },
         });
 
         // Verify we got a Uint8Array back
@@ -471,10 +476,9 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         expect(image.uint8Array.length).toBeGreaterThan(10 * 1024);
         expect(image.uint8Array.length).toBeLessThan(10 * 1024 * 1024);
 
-        // Verify PNG format by checking magic numbers
-        const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
-        const actualSignature = Array.from(image.uint8Array.slice(0, 8));
-        expect(actualSignature).toEqual(pngSignature);
+        // Verify PNG format
+        const mimeType = detectImageMimeType(image.uint8Array);
+        expect(mimeType).toBe('image/png');
 
         // Create a temporary buffer to verify image dimensions
         const tempBuffer = Buffer.from(image.uint8Array);
@@ -483,8 +487,9 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         const width = tempBuffer.readUInt32BE(16);
         const height = tempBuffer.readUInt32BE(20);
 
-        expect(width).toBe(1024);
-        expect(height).toBe(1024);
+        // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#performance-limits
+        expect(width).toBe(896);
+        expect(height).toBe(1280);
       });
     });
   },

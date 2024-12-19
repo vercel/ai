@@ -7,10 +7,9 @@ async function main() {
   const { image } = await generateImage({
     model: vertex.image('imagen-3.0-generate-001'),
     prompt: 'A burrito launched through a tunnel',
-    size: '1024x1024',
     providerOptions: {
       vertex: {
-        // Vertex AI specific options if needed
+        aspectRatio: '16:9',
       },
     },
   });
