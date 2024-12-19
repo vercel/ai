@@ -10,18 +10,18 @@ It offers an OpenAI compatible API that you can use with the AI SDK.
 
 ## Setup
 
-The Perplexity provider is available via the `@ai-sdk/openai` module as it is compatible with the OpenAI API.
+The Perplexity provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
 You can install it with
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
-    <Snippet text="pnpm add @ai-sdk/openai" dark />
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install @ai-sdk/openai" dark />
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @ai-sdk/openai" dark />
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
   </Tab>
 </Tabs>
 
@@ -30,11 +30,13 @@ You can install it with
 To use Perplexity, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
-const perplexity = createOpenAI({
+const perplexity = createOpenAICompatible({
   name: 'perplexity',
-  apiKey: process.env.PERPLEXITY_API_KEY ?? '',
+  headers: {
+    Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+  },
   baseURL: 'https://api.perplexity.ai/',
 });
 ```
@@ -53,12 +55,14 @@ const model = perplexity('llama-3.1-sonar-large-32k-online');
 You can use Perplexity language models to generate text with the `generateText` function:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText } from 'ai';
 
-const perplexity = createOpenAI({
+const perplexity = createOpenAICompatible({
   name: 'perplexity',
-  apiKey: process.env.PERPLEXITY_API_KEY ?? '',
+  headers: {
+    Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+  },
   baseURL: 'https://api.perplexity.ai/',
 });
 

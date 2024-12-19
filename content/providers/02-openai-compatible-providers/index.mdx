@@ -42,7 +42,9 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 const provider = createOpenAICompatible({
   name: 'provider-name',
-  apiKey: process.env.PROVIDER_API_KEY ?? '',
+  headers: {
+    Authorization: `Bearer ${process.env.PROVIDER_API_KEY}`,
+  },
   baseURL: 'https://api.provider.com/v1',
 });
 ```
@@ -66,7 +68,9 @@ import { generateText } from 'ai'
 
 const provider = createOpenAICompatible({
   name: 'provider-name',
-  apiKey: process.env.PROVIDER_API_KEY ?? '',
+  headers: {
+    Authorization: `Bearer ${process.env.PROVIDER_API_KEY}`,
+  },
   baseURL: 'https://api.provider.com/v1'
 })
 
@@ -102,11 +106,11 @@ const model = createOpenAICompatible<
   ExampleCompletionModelIds,
   ExampleEmbeddingModelIds
 >({
-  baseURL: 'https://api.example.com/v1',
   name: 'example',
   headers: {
     Authorization: `Bearer ${process.env.MY_API_KEY}`,
   },
+  baseURL: 'https://api.example.com/v1',
 });
 
 // Subsequent calls to e.g. `model.chatModel` will auto-complete the model id
