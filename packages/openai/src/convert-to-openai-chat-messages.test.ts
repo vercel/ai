@@ -308,3 +308,52 @@ describe('tool calls', () => {
     ]);
   });
 });
+
+describe('system messages', () => {
+  it('should convert system messages to developer role when useDeveloperRole is true', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+        },
+      ],
+      useDeveloperRole: true,
+    });
+
+    expect(result).toEqual([
+      { role: 'developer', content: 'You are a helpful assistant.' },
+    ]);
+  });
+
+  it('should keep system messages as system role when useDeveloperRole is false', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+        },
+      ],
+      useDeveloperRole: false,
+    });
+
+    expect(result).toEqual([
+      { role: 'system', content: 'You are a helpful assistant.' },
+    ]);
+  });
+
+  it('should default to system role when useDeveloperRole is not specified', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+        },
+      ],
+    });
+
+    expect(result).toEqual([
+      { role: 'system', content: 'You are a helpful assistant.' },
+    ]);
+  });
+});
