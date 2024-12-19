@@ -4,7 +4,6 @@ import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
 import { vertex as vertexNode } from '@ai-sdk/google-vertex';
 import { z } from 'zod';
 import {
-  detectImageMimeType,
   generateText,
   generateObject,
   streamText,
@@ -17,6 +16,28 @@ import fs from 'fs';
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 
 const LONG_TEST_MILLIS = 20000;
+
+const mimeTypeSignatures = [
+  { mimeType: 'image/gif' as const, bytes: [0x47, 0x49, 0x46] },
+  { mimeType: 'image/png' as const, bytes: [0x89, 0x50, 0x4e, 0x47] },
+  { mimeType: 'image/jpeg' as const, bytes: [0xff, 0xd8] },
+  { mimeType: 'image/webp' as const, bytes: [0x52, 0x49, 0x46, 0x46] },
+];
+
+function detectImageMimeType(
+  image: Uint8Array,
+): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' | undefined {
+  for (const { bytes, mimeType } of mimeTypeSignatures) {
+    if (
+      image.length >= bytes.length &&
+      bytes.every((byte, index) => image[index] === byte)
+    ) {
+      return mimeType;
+    }
+  }
+
+  return undefined;
+}
 
 // Model variants to test against
 const MODEL_VARIANTS = {
