@@ -1,11 +1,19 @@
 import { ImageModelV1, JSONValue } from '@ai-sdk/provider';
-import { Resolvable, resolve } from '@ai-sdk/provider-utils';
+import {
+  Resolvable,
+  postJsonToApi,
+  combineHeaders,
+  createJsonResponseHandler,
+  resolve,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod';
+import { googleVertexFailedResponseHandler } from './google-vertex-error';
 
 export type GoogleVertexImageModelId =
   | 'imagen-3.0-generate-001'
   | 'imagen-3.0-fast-generate-001';
 
-interface GoogleVertexImageModelOptions {
+interface GoogleVertexImageModelConfig {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -17,68 +25,62 @@ export class GoogleVertexImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
   get provider(): string {
-    return this.options.provider;
+    return this.config.provider;
   }
 
   constructor(
     readonly modelId: GoogleVertexImageModelId,
-    private options: GoogleVertexImageModelOptions,
+    private config: GoogleVertexImageModelConfig,
   ) {}
 
-  async doGenerate(options: {
-    prompt: string;
-    n: number;
-    size: `${number}x${number}` | undefined;
-    providerOptions: Record<string, Record<string, JSONValue>>;
-    abortSignal?: AbortSignal;
-    headers?: Record<string, string>;
-  }): Promise<{ images: string[] }> {
-    const [width, height] = (options.size ?? '1024x1024')
-      .split('x')
-      .map(Number);
-
-    const response = await (this.options.fetch ?? fetch)(
-      `${this.options.baseURL}/models/${this.modelId}:predict`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(await resolve(this.options.headers)),
-          ...options.headers,
-        },
-        signal: options.abortSignal,
-        body: JSON.stringify({
-          instances: [{ prompt: options.prompt }],
-          parameters: {
-            sampleCount: options.n,
-            aspectRatio: this.getAspectRatio(width, height),
-            ...options.providerOptions,
-          },
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  async doGenerate({
+    prompt,
+    n,
+    size,
+    providerOptions,
+    headers,
+    abortSignal,
+  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  > {
+    if (size) {
+      throw new Error(
+        'Google Vertex does not support the `size` option. Use ' +
+          '`providerOptions.vertex.aspectRatio` instead. See ' +
+          'https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio',
+      );
     }
 
-    const data = await response.json();
+    const body = {
+      instances: [{ prompt }],
+      parameters: {
+        sampleCount: n,
+        ...(providerOptions.vertex ?? {}),
+      },
+    };
+
+    const { value: response } = await postJsonToApi({
+      url: `${this.config.baseURL}/models/${this.modelId}:predict`,
+      headers: combineHeaders(await resolve(this.config.headers), headers),
+      body,
+      failedResponseHandler: googleVertexFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        vertexImageResponseSchema,
+      ),
+      abortSignal: abortSignal,
+      fetch: this.config.fetch,
+    });
+
     return {
-      images: data.predictions.map(
+      images: response.predictions.map(
         (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
       ),
     };
   }
-
-  private getAspectRatio(width: number, height: number): string {
-    // Map common dimensions to Imagen's supported aspect ratios
-    if (width === height) return '1:1';
-    if (width === 896 && height === 1280) return '3:4';
-    if (width === 1280 && height === 896) return '4:3';
-    if (width === 768 && height === 1408) return '9:16';
-    if (width === 1408 && height === 768) return '16:9';
-
-    // Default to 1:1 if no match
-    return '1:1';
-  }
 }
+
+// minimal version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const vertexImageResponseSchema = z.object({
+  predictions: z.array(z.object({ bytesBase64Encoded: z.string() })),
+});
