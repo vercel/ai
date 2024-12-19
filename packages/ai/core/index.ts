@@ -11,3 +11,4 @@ export * from './registry';
 export * from './tool';
 export * from './types';
 export { cosineSimilarity } from './util/cosine-similarity';
+export { detectImageMimeType } from './util/detect-image-mimetype';

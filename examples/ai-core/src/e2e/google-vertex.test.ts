@@ -4,17 +4,19 @@ import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
 import { vertex as vertexNode } from '@ai-sdk/google-vertex';
 import { z } from 'zod';
 import {
+  detectImageMimeType,
   generateText,
   generateObject,
   streamText,
   streamObject,
   embed,
   embedMany,
+  experimental_generateImage as generateImage,
 } from 'ai';
 import fs from 'fs';
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 
-const LONG_TEST_MILLIS = 10000;
+const LONG_TEST_MILLIS = 20000;
 
 // Model variants to test against
 const MODEL_VARIANTS = {
@@ -26,6 +28,7 @@ const MODEL_VARIANTS = {
     // 'gemini-1.0-pro-001',
   ],
   embedding: ['textembedding-gecko', 'textembedding-gecko-multilingual'],
+  image: ['imagen-3.0-generate-001', 'imagen-3.0-fast-generate-001'],
 } as const;
 
 // Define runtime variants
@@ -450,6 +453,43 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         expect(Array.isArray(result.embeddings)).toBe(true);
         expect(result.embeddings.length).toBe(3);
         expect(result.usage?.tokens).toBeGreaterThan(0);
+      });
+    });
+
+    describe.each(MODEL_VARIANTS.image)('Image Model: %s', modelId => {
+      it('should generate an image with correct dimensions and format', async () => {
+        const model = vertex.image(modelId);
+        const { image } = await generateImage({
+          model,
+          prompt: 'A burrito launched through a tunnel',
+          providerOptions: {
+            vertex: {
+              aspectRatio: '3:4',
+            },
+          },
+        });
+
+        // Verify we got a Uint8Array back
+        expect(image.uint8Array).toBeInstanceOf(Uint8Array);
+
+        // Check the file size is reasonable (at least 10KB, less than 10MB)
+        expect(image.uint8Array.length).toBeGreaterThan(10 * 1024);
+        expect(image.uint8Array.length).toBeLessThan(10 * 1024 * 1024);
+
+        // Verify PNG format
+        const mimeType = detectImageMimeType(image.uint8Array);
+        expect(mimeType).toBe('image/png');
+
+        // Create a temporary buffer to verify image dimensions
+        const tempBuffer = Buffer.from(image.uint8Array);
+
+        // PNG dimensions are stored at bytes 16-24
+        const width = tempBuffer.readUInt32BE(16);
+        const height = tempBuffer.readUInt32BE(20);
+
+        // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#performance-limits
+        expect(width).toBe(896);
+        expect(height).toBe(1280);
       });
     });
   },
