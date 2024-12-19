@@ -410,6 +410,7 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
   try {
     const result = await generateObject({
       model: openai('gpt-4o'),
+      schema: explanationSchema,
       system: `You are a SQL (postgres) expert. ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Explain the SQL query you generated to retrieve the data the user wanted. Assume the user is not an expert in SQL. Break down the query into steps. Be concise.
 
@@ -418,8 +419,6 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
 
       Generated SQL Query:
       ${sqlQuery}`,
-      schema: explanationSchema,
-      output: 'array',
     });
     return result.object;
   } catch (e) {
