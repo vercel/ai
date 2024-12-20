@@ -72,9 +72,7 @@ const { text } = await generateText({
 });
 ```
 
-<Note>
-  Streaming is currently supported in a simulated capacity.
-</Note>
+<Note>Streaming is currently supported in a simulated capacity.</Note>
 
 ### Generating Structured Data
 
@@ -191,10 +189,10 @@ export default function Page() {
 The useChat hook on your root page (`app/page.tsx`) will make a request to your AI provider endpoint (`app/api/chat/route.ts`) whenever the user submits a message. The messages are then displayed in the chat UI.
 
 <Note>
-  Due to o1's current limitations, real-time streaming is not supported. With the
-  `simulateStreaming` option, the response will be sent once the model completes
-  its reasoning and generates the full output. The latest version of `o1-mini`
-  supports streaming.
+  Due to o1's current limitations, real-time streaming is not supported. With
+  the `simulateStreaming` option, the response will be sent once the model
+  completes its reasoning and generates the full output. The latest version of
+  `o1-mini` supports streaming.
 </Note>
 
 ## Get Started
