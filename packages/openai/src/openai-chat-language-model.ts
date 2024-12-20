@@ -176,11 +176,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       seed,
 
       // openai specific settings:
-      max_completion_tokens:
-        providerMetadata?.openai?.maxCompletionTokens ?? undefined,
-      store: providerMetadata?.openai?.store ?? undefined,
-      metadata: providerMetadata?.openai?.metadata ?? undefined,
-      prediction: providerMetadata?.openai?.prediction ?? undefined,
+      max_completion_tokens: providerMetadata?.openai?.maxCompletionTokens,
+      store: providerMetadata?.openai?.store,
+      metadata: providerMetadata?.openai?.metadata,
+      prediction: providerMetadata?.openai?.prediction,
+      reasoning_effort:
+        providerMetadata?.openai?.reasoningEffort ??
+        this.settings.reasoningEffort,
 
       // messages:
       messages: convertToOpenAIChatMessages({
@@ -359,6 +361,43 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    if (this.settings.simulateStreaming) {
+      const result = await this.doGenerate(options);
+      const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
+        start(controller) {
+          controller.enqueue({ type: 'response-metadata', ...result.response });
+          if (result.text) {
+            controller.enqueue({
+              type: 'text-delta',
+              textDelta: result.text,
+            });
+          }
+          if (result.toolCalls) {
+            for (const toolCall of result.toolCalls) {
+              controller.enqueue({
+                type: 'tool-call',
+                ...toolCall,
+              });
+            }
+          }
+          controller.enqueue({
+            type: 'finish',
+            finishReason: result.finishReason,
+            usage: result.usage,
+            logprobs: result.logprobs,
+            providerMetadata: result.providerMetadata,
+          });
+          controller.close();
+        },
+      });
+      return {
+        stream: simulatedStream,
+        rawCall: result.rawCall,
+        rawResponse: result.rawResponse,
+        warnings: result.warnings,
+      };
+    }
+
     const { args, warnings } = this.getArgs(options);
 
     const body = {
@@ -778,7 +817,7 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return modelId.startsWith('o1-');
+  return modelId === 'o1' || modelId.startsWith('o1-');
 }
 
 function isAudioModel(modelId: string) {

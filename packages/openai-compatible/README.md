@@ -80,3 +80,5 @@ const { text } = await generateText({
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
+
+For more examples, see the [OpenAI Compatible Provider](/providers/ai-sdk-providers/openai-compatible) documentation.

@@ -1,22 +1,19 @@
 export type AsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
 
-export function createAsyncIterableStream<S, T>(
-  source: ReadableStream<S>,
-  transformer: Transformer<S, T>,
+export function createAsyncIterableStream<T>(
+  source: ReadableStream<T>,
 ): AsyncIterableStream<T> {
-  const transformedStream: any = source.pipeThrough(
-    new TransformStream(transformer),
-  );
+  const stream = source.pipeThrough(new TransformStream<T, T>());
 
-  transformedStream[Symbol.asyncIterator] = () => {
-    const reader = transformedStream.getReader();
+  (stream as AsyncIterableStream<T>)[Symbol.asyncIterator] = () => {
+    const reader = stream.getReader();
     return {
-      async next(): Promise<IteratorResult<string>> {
+      async next(): Promise<IteratorResult<T>> {
         const { done, value } = await reader.read();
         return done ? { done: true, value: undefined } : { done: false, value };
       },
     };
   };
 
-  return transformedStream;
+  return stream as AsyncIterableStream<T>;
 }

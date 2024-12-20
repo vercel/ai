@@ -1,0 +1,125 @@
+---
+title: Fireworks
+description: Learn how to use Fireworks models with the AI SDK.
+---
+
+# Fireworks Provider
+
+[Fireworks](https://fireworks.ai/) is a platform for running and testing LLMs through their [API](https://readme.fireworks.ai/).
+
+## Setup
+
+The Fireworks provider is available via the `@ai-sdk/fireworks` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/fireworks" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/fireworks" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/fireworks" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `fireworks` from `@ai-sdk/fireworks`:
+
+```ts
+import { fireworks } from '@ai-sdk/fireworks';
+```
+
+If you need a customized setup, you can import `createFireworks` from `@ai-sdk/fireworks`
+and create a provider instance with your settings:
+
+```ts
+import { createFireworks } from '@ai-sdk/fireworks';
+
+const fireworks = createFireworks({
+  apiKey: process.env.FIREWORKS_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the Fireworks provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.fireworks.ai/inference/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header. It defaults to
+  the `FIREWORKS_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+You can create [Fireworks models](https://fireworks.ai/models) using a provider instance.
+The first argument is the model id, e.g. `accounts/fireworks/models/firefunction-v1`:
+
+```ts
+const model = fireworks('accounts/fireworks/models/firefunction-v1');
+```
+
+### Example
+
+You can use Fireworks language models to generate text with the `generateText` function:
+
+```ts
+import { fireworks } from '@ai-sdk/fireworks';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: fireworks('accounts/fireworks/models/firefunction-v1'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Fireworks language models can also be used in the `streamText` and `streamUI` functions (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
+## Completion Models
+
+You can create models that call the Fireworks completions API using the `.completion()` factory method:
+
+```ts
+const model = fireworks.completion('accounts/fireworks/models/firefunction-v1');
+```
+
+## Embedding Models
+
+You can create models that call the Fireworks embeddings API using the `.textEmbeddingModel()` factory method:
+
+```ts
+const model = fireworks.textEmbeddingModel(
+  'accounts/fireworks/models/nomic-embed-text-v1',
+);
+```
+
+## Model Capabilities
+
+| Model                                                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `accounts/fireworks/models/firefunction-v2`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `accounts/fireworks/models/llama-v3p3-70b-instruct`    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `accounts/fireworks/models/llama-v3p1-405b-instruct`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `accounts/fireworks/models/mixtral-8x7b-instruct`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `accounts/fireworks/models/mixtral-8x22b-instruct`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `accounts/fireworks/models/mixtral-8x7b-instruct-hf`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `accounts/fireworks/models/qwen2p5-coder-32b-instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `accounts/fireworks/models/qwen2p5-72b-instruct`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `accounts/fireworks/models/qwen2-vl-72b-instruct`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  The table above lists popular models. Please see the [Fireworks models
+  page](https://fireworks.ai/models) for a full list of available models.
+</Note>

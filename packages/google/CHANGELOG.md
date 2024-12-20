@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.0.11
+
+### Patch Changes
+
+- db31e74: feat: adding audioTimestamp support to GoogleGenerativeAISettings
+
 ## 1.0.10
 
 ### Patch Changes

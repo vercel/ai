@@ -223,7 +223,9 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       finishReason: FinishReason;
       logprobs?: LogProbs;
       usage: LanguageModelUsage;
+      request: LanguageModelRequestMetadata;
       response: LanguageModelResponseMetadata;
+      warnings: CallWarning[] | undefined;
       experimental_providerMetadata?: ProviderMetadata;
       isContinued: boolean;
     }
@@ -232,6 +234,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       finishReason: FinishReason;
       logprobs?: LogProbs;
       usage: LanguageModelUsage;
+      // TODO 4.0 breaking change: remove response (on step instead)
       response: LanguageModelResponseMetadata;
       experimental_providerMetadata?: ProviderMetadata;
     }

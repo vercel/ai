@@ -205,6 +205,11 @@ for await (const part of result.fullStream) {
 You can use the `experimental_transform` option to transform the stream.
 This is useful for e.g. filtering, changing, or smoothing the text stream.
 
+The transformations are applied before the callbacks are invoked and the promises are resolved.
+If you e.g. have a transformation that changes all text to uppercase, the `onFinish` callback will receive the transformed text.
+
+#### Smoothing streams
+
 The AI SDK Core provides a [`smoothStream` function](/docs/reference/ai-sdk-core/smooth-stream) that
 can be used to smooth out text streaming.
 

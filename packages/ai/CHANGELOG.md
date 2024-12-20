@@ -1,5 +1,18 @@
 # ai
 
+## 4.0.20
+
+### Patch Changes
+
+- da9d240: fix (ai/core): suppress errors caused by writing to closed stream
+- 6f1bfde: fix (ai/core): invoke streamText tool call repair when tool cannot be found
+
+## 4.0.19
+
+### Patch Changes
+
+- c3a6065: fix (ai/core): apply transform before callbacks and resolvables
+
 ## 4.0.18
 
 ### Patch Changes

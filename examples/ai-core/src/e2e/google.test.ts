@@ -19,15 +19,43 @@ const LONG_TEST_MILLIS = 10000;
 
 const MODEL_VARIANTS = {
   chat: [
-    'gemini-2.0-flash-exp',
     'gemini-1.5-flash-latest',
-    // Pro models have low quota limits and can only be used if you have a
-    // Google Cloud account with appropriate billing enabled.
+    // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
+    // 'gemini-2.0-flash-exp',
     // 'gemini-1.5-pro-latest',
     // 'gemini-1.0-pro',
   ],
   embedding: ['text-embedding-004'],
 } as const;
+
+const verifyGroundingMetadata = (groundingMetadata: any) => {
+  expect(Array.isArray(groundingMetadata?.webSearchQueries)).toBe(true);
+  expect(groundingMetadata?.webSearchQueries?.length).toBeGreaterThan(0);
+
+  // Verify search entry point exists
+  expect(groundingMetadata?.searchEntryPoint?.renderedContent).toBeDefined();
+
+  // Verify grounding supports
+  expect(Array.isArray(groundingMetadata?.groundingSupports)).toBe(true);
+  const support = groundingMetadata?.groundingSupports?.[0];
+  expect(support?.segment).toBeDefined();
+  expect(Array.isArray(support?.groundingChunkIndices)).toBe(true);
+  expect(Array.isArray(support?.confidenceScores)).toBe(true);
+};
+
+const verifySafetyRatings = (safetyRatings: any[]) => {
+  expect(Array.isArray(safetyRatings)).toBe(true);
+  expect(safetyRatings?.length).toBeGreaterThan(0);
+
+  // Verify each safety rating has required properties
+  safetyRatings?.forEach(rating => {
+    expect(rating.category).toBeDefined();
+    expect(rating.probability).toBeDefined();
+    expect(typeof rating.probabilityScore).toBe('number');
+    expect(rating.severity).toBeDefined();
+    expect(typeof rating.severityScore).toBe('number');
+  });
+};
 
 describe('Google E2E Tests', () => {
   vi.setConfig({ testTimeout: LONG_TEST_MILLIS });
@@ -70,7 +98,7 @@ describe('Google E2E Tests', () => {
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     });
 
-    it('should generate text with search grounding metadata in response when search grounding is enabled', async () => {
+    it('should include search grounding metadata in response when search grounding is enabled', async () => {
       const model = provider(modelId, {
         useSearchGrounding: true,
       });
@@ -84,30 +112,12 @@ describe('Google E2E Tests', () => {
       expect(result.text.toLowerCase()).toContain('tokyo');
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
 
-      // Verify specific grounding metadata fields
       const metadata = result.experimental_providerMetadata?.google as
         | GoogleGenerativeAIProviderMetadata
         | undefined;
-      const groundingMetadata = metadata?.groundingMetadata;
-      expect(Array.isArray(groundingMetadata?.webSearchQueries)).toBe(true);
-      expect(groundingMetadata?.webSearchQueries?.length).toBeGreaterThan(0);
-
-      // Verify search entry point exists
-      expect(
-        groundingMetadata?.searchEntryPoint?.renderedContent,
-      ).toBeDefined();
-
-      // Verify grounding supports
-      expect(Array.isArray(groundingMetadata?.groundingSupports)).toBe(true);
-      const support = groundingMetadata?.groundingSupports?.[0];
-      expect(support?.segment).toBeDefined();
-      expect(Array.isArray(support?.groundingChunkIndices)).toBe(true);
-      expect(Array.isArray(support?.confidenceScores)).toBe(true);
-
-      // Basic response checks
-      expect(result.text).toBeTruthy();
-      expect(result.usage?.totalTokens).toBeGreaterThan(0);
+      verifyGroundingMetadata(metadata?.groundingMetadata);
     });
+
     it('should generate text with PDF input', async () => {
       const model = provider(modelId);
       const result = await generateText({
@@ -207,7 +217,7 @@ describe('Google E2E Tests', () => {
       expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
     });
 
-    it('should stream text with search grounding metadata when search grounding is enabled', async () => {
+    it('should include search grounding metadata when streaming with search grounding enabled', async () => {
       const model = provider(modelId, {
         useSearchGrounding: true,
       });
@@ -222,36 +232,16 @@ describe('Google E2E Tests', () => {
         chunks.push(chunk);
       }
 
-      // Get the complete response metadata
       const metadata = (await result.experimental_providerMetadata)?.google as
         | GoogleGenerativeAIProviderMetadata
         | undefined;
-      const groundingMetadata = metadata?.groundingMetadata;
 
       const completeText = chunks.join('');
       expect(completeText).toBeTruthy();
       expect(completeText.toLowerCase()).toContain('tokyo');
       expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
 
-      // Verify specific grounding metadata fields
-      expect(Array.isArray(groundingMetadata?.webSearchQueries)).toBe(true);
-      expect(groundingMetadata?.webSearchQueries?.length).toBeGreaterThan(0);
-
-      // Verify search entry point exists
-      expect(
-        groundingMetadata?.searchEntryPoint?.renderedContent,
-      ).toBeDefined();
-
-      // Verify grounding supports
-      expect(Array.isArray(groundingMetadata?.groundingSupports)).toBe(true);
-      const support = groundingMetadata?.groundingSupports?.[0];
-      expect(support?.segment).toBeDefined();
-      expect(Array.isArray(support?.groundingChunkIndices)).toBe(true);
-      expect(Array.isArray(support?.confidenceScores)).toBe(true);
-
-      // Basic response checks
-      expect(chunks.join('')).toBeTruthy();
-      expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+      verifyGroundingMetadata(metadata?.groundingMetadata);
     });
 
     it('should stream object', async () => {
@@ -351,6 +341,43 @@ describe('Google E2E Tests', () => {
       expect(result.text).toBeTruthy();
       expect(result.text.toLowerCase()).toContain('cat');
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
+    });
+
+    it('should include safety ratings in response when search grounding is enabled', async () => {
+      const model = provider(modelId, {
+        useSearchGrounding: true,
+      });
+
+      const result = await generateText({
+        model,
+        prompt: 'What is the current population of Tokyo?',
+      });
+
+      const metadata = result.experimental_providerMetadata?.google as
+        | GoogleGenerativeAIProviderMetadata
+        | undefined;
+      verifySafetyRatings(metadata?.safetyRatings ?? []);
+    });
+
+    it('should include safety ratings when streaming with search grounding enabled', async () => {
+      const model = provider(modelId, {
+        useSearchGrounding: true,
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'What is the current population of Tokyo?',
+      });
+
+      for await (const _ of result.textStream) {
+        // consume the stream
+      }
+
+      const metadata = (await result.experimental_providerMetadata)?.google as
+        | GoogleGenerativeAIProviderMetadata
+        | undefined;
+
+      verifySafetyRatings(metadata?.safetyRatings ?? []);
     });
   });
 

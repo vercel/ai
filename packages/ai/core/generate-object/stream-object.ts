@@ -954,28 +954,32 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get partialObjectStream(): AsyncIterableStream<PARTIAL> {
-    return createAsyncIterableStream(this.stitchableStream.stream, {
-      transform(chunk, controller) {
-        switch (chunk.type) {
-          case 'object':
-            controller.enqueue(chunk.object);
-            break;
+    return createAsyncIterableStream(
+      this.stitchableStream.stream.pipeThrough(
+        new TransformStream<ObjectStreamPart<PARTIAL>, PARTIAL>({
+          transform(chunk, controller) {
+            switch (chunk.type) {
+              case 'object':
+                controller.enqueue(chunk.object);
+                break;
 
-          case 'text-delta':
-          case 'finish':
-            break;
+              case 'text-delta':
+              case 'finish':
+                break;
 
-          case 'error':
-            controller.error(chunk.error);
-            break;
+              case 'error':
+                controller.error(chunk.error);
+                break;
 
-          default: {
-            const _exhaustiveCheck: never = chunk;
-            throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
-          }
-        }
-      },
-    });
+              default: {
+                const _exhaustiveCheck: never = chunk;
+                throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
+              }
+            }
+          },
+        }),
+      ),
+    );
   }
 
   get elementStream(): ELEMENT_STREAM {
@@ -985,36 +989,36 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get textStream(): AsyncIterableStream<string> {
-    return createAsyncIterableStream(this.stitchableStream.stream, {
-      transform(chunk, controller) {
-        switch (chunk.type) {
-          case 'text-delta':
-            controller.enqueue(chunk.textDelta);
-            break;
+    return createAsyncIterableStream(
+      this.stitchableStream.stream.pipeThrough(
+        new TransformStream<ObjectStreamPart<PARTIAL>, string>({
+          transform(chunk, controller) {
+            switch (chunk.type) {
+              case 'text-delta':
+                controller.enqueue(chunk.textDelta);
+                break;
 
-          case 'object':
-          case 'finish':
-            break;
+              case 'object':
+              case 'finish':
+                break;
 
-          case 'error':
-            controller.error(chunk.error);
-            break;
+              case 'error':
+                controller.error(chunk.error);
+                break;
 
-          default: {
-            const _exhaustiveCheck: never = chunk;
-            throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
-          }
-        }
-      },
-    });
+              default: {
+                const _exhaustiveCheck: never = chunk;
+                throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
+              }
+            }
+          },
+        }),
+      ),
+    );
   }
 
   get fullStream(): AsyncIterableStream<ObjectStreamPart<PARTIAL>> {
-    return createAsyncIterableStream(this.stitchableStream.stream, {
-      transform(chunk, controller) {
-        controller.enqueue(chunk);
-      },
-    });
+    return createAsyncIterableStream(this.stitchableStream.stream);
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {

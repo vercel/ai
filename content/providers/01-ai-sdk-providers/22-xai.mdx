@@ -84,7 +84,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-beta'),
+  model: xai('grok-2-1212'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -99,7 +99,7 @@ the [standard call settings](/docs/ai-sdk-core/settings). You can pass them as
 an options argument:
 
 ```ts
-const model = xai('grok-beta', {
+const model = xai('grok-2-1212', {
   user: 'test-user', // optional unique user identifier
 });
 ```
@@ -113,10 +113,12 @@ The following optional settings are available for xAI chat models:
 
 ## Model Capabilities
 
-| Model              | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `grok-beta`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-vision-beta` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| -------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `grok-2-1212`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-2-vision-1212` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-beta`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-vision-beta`   | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [xAI

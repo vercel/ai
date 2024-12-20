@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
   postJsonToApi,
@@ -13,7 +14,10 @@ import {
   OpenAICompatibleEmbeddingModelId,
   OpenAICompatibleEmbeddingSettings,
 } from './openai-compatible-embedding-settings';
-import { openaiCompatibleFailedResponseHandler } from './openai-compatible-error';
+import {
+  defaultOpenAICompatibleErrorStructure,
+  ProviderErrorStructure,
+} from './openai-compatible-error';
 
 type OpenAICompatibleEmbeddingConfig = {
   /**
@@ -30,6 +34,7 @@ Override the parallelism of embedding calls.
   url: (options: { modelId: string; path: string }) => string;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
+  errorStructure?: ProviderErrorStructure<any>;
 };
 
 export class OpenAICompatibleEmbeddingModel
@@ -92,7 +97,9 @@ export class OpenAICompatibleEmbeddingModel
         dimensions: this.settings.dimensions,
         user: this.settings.user,
       },
-      failedResponseHandler: openaiCompatibleFailedResponseHandler,
+      failedResponseHandler: createJsonErrorResponseHandler(
+        this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
+      ),
       successfulResponseHandler: createJsonResponseHandler(
         openaiTextEmbeddingResponseSchema,
       ),
