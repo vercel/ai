@@ -17,7 +17,13 @@ There are three reasoning models available in the API:
 
 1. [**o1**](https://platform.openai.com/docs/models#o1): Designed to reason about hard problems using broad general knowledge about the world.
 1. [**o1-preview**](https://platform.openai.com/docs/models#o1): The original preview version of o1 - slower than o1 but supports streaming.
-1. [**o1-mini**](https://platform.openai.com/docs/models#o1): A faster and cheaper version of o1, particularly adept at coding, math, and science tasks where extensive general knowledge isn't required. `o1-mini` supports streaming.
+1. [**o1-mini**](https://platform.openai.com/docs/models#o1): A faster and cheaper version of o1, particularly adept at coding, math, and science tasks where extensive general knowledge isn't required. o1-mini supports streaming.
+
+| Model      | Streaming           | Tools               | Object Generation   | Reasoning Effort    |
+| ---------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| o1         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| o1-preview | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| o1-mini    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 ### Benchmarks
 
@@ -73,11 +79,11 @@ const { text } = await generateText({
 });
 ```
 
-<Note>`o1` only supports streaming in a simulated capacity.</Note>
+<Note>o1 only supports streaming in a simulated capacity.</Note>
 
-## Refining Reasoning Effort
+### Refining Reasoning Effort
 
-You can control the amount of reasoning effort expended by o1 models through the `reasoningEffort` parameter. This parameter can be set to `'low'`, `'medium'`, or `'high'` to adjust how much time and computation the model spends on internal reasoning before producing a response.
+You can control the amount of reasoning effort expended by o1 through the `reasoningEffort` parameter. This parameter can be set to `'low'`, `'medium'`, or `'high'` to adjust how much time and computation the model spends on internal reasoning before producing a response.
 
 ```tsx
 import { generateText } from 'ai';
@@ -96,7 +102,7 @@ const { text } = await generateText({
 ```
 
 <Note>
-  The `reasoningEffort` parameter is only supported by `o1` and has no effect on
+  The `reasoningEffort` parameter is only supported by o1 and has no effect on
   other models.
 </Note>
 
@@ -124,6 +130,11 @@ const { object } = await generateObject({
 
 This code snippet will generate a type-safe recipe that conforms to the specified zod schema.
 
+<Note>
+  Structured object generation is only supported with o1, not o1-preview or
+  o1-mini.
+</Note>
+
 ### Tools
 
 While LLMs have incredible generation capabilities, they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather). The solution: [tools](/docs/foundations/tools), which are like programs that you provide to the model, which it can choose to call as necessary.
@@ -132,7 +143,7 @@ While LLMs have incredible generation capabilities, they struggle with discrete 
 
 The AI SDK supports tool usage across several of its functions, like [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`streamText`](/docs/reference/ai-sdk-core/stream-text). By passing one or more tools to the `tools` parameter, you can extend the capabilities of LLMs, allowing them to perform discrete tasks and interact with external systems.
 
-Here's an example of how you can use a tool with the AI SDK and `o1`:
+Here's an example of how you can use a tool with the AI SDK and o1:
 
 ```tsx
 import { generateText, tool } from 'ai';
@@ -158,7 +169,7 @@ const { text } = await generateText({
 
 In this example, the `getWeather` tool allows the model to fetch real-time weather data (simulated for simplicity), enhancing its ability to provide accurate and up-to-date information.
 
-<Note>Tools are only compatible with `o1`, not `o1-preview` or `o1-mini`.</Note>
+<Note>Tools are only compatible with o1, not o1-preview or o1-mini.</Note>
 
 ### Building Interactive Interfaces
 
@@ -217,10 +228,10 @@ export default function Page() {
 The useChat hook on your root page (`app/page.tsx`) will make a request to your AI provider endpoint (`app/api/chat/route.ts`) whenever the user submits a message. The messages are then displayed in the chat UI.
 
 <Note>
-  `o1` does not support streaming. To use `o1` with `streamText`, enable the
+  o1 does not support streaming. To use o1 with `streamText`, enable the
   [`simulateStreaming`](/providers/ai-sdk-providers/openai#chat-models) option,
   which will 'stream' the response once the model completes its reasoning and
-  generates the full output. The latest version of `o1-mini` supports streaming.
+  generates the full output. The latest version of o1-mini supports streaming.
 </Note>
 
 ## Get Started
