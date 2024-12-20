@@ -560,7 +560,7 @@ describe('convertToLanguageModelMessage', () => {
             content: [
               {
                 type: 'image',
-                image: 'data:image/jpg;base64,dGVzdA==',
+                image: 'data:image/jpg;base64,/9j/3Q==',
               },
             ],
           },
@@ -572,8 +572,35 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'image',
-              image: new Uint8Array([116, 101, 115, 116]),
-              mimeType: 'image/jpg',
+              image: new Uint8Array([255, 216, 255, 221]),
+              mimeType: 'image/jpeg',
+            },
+          ],
+        });
+      });
+
+      it('should prefer detected mimetype', async () => {
+        const result = convertToLanguageModelMessage(
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                // incorrect mimetype:
+                image: 'data:image/png;base64,/9j/3Q==',
+              },
+            ],
+          },
+          {},
+        );
+
+        expect(result).toEqual({
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: new Uint8Array([255, 216, 255, 221]),
+              mimeType: 'image/jpeg',
             },
           ],
         });
