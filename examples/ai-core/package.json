@@ -17,6 +17,7 @@
     "@ai-sdk/provider": "1.0.2",
     "@ai-sdk/togetherai": "0.0.10",
     "@ai-sdk/xai": "1.0.10",
+    "@ai-sdk/friendli": "0.0.1",
     "@opentelemetry/sdk-node": "0.54.2",
     "@opentelemetry/auto-instrumentations-node": "0.54.0",
     "@opentelemetry/sdk-trace-node": "1.28.0",

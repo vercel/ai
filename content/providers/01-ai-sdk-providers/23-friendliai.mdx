@@ -11,18 +11,18 @@ It creates language model objects that can be used with the `generateText`, `str
 
 ## Setup
 
-The Friendli provider is available via the `@friendliai/ai-provider` module.
+The Friendli provider is available via the `@ai-sdk/friendli` module.
 You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
-    <Snippet text="pnpm add @friendliai/ai-provider" dark />
+    <Snippet text="pnpm add @ai-sdk/friendli" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install @friendliai/ai-provider" dark />
+    <Snippet text="npm install @ai-sdk/friendli" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @friendliai/ai-provider" dark />
+    <Snippet text="yarn add @ai-sdk/friendli" dark />
   </Tab>
 </Tabs>
 
@@ -40,16 +40,16 @@ Check the [FriendliAI documentation](https://friendli.ai/docs/guides/personal_ac
 
 ## Provider Instance
 
-You can import the default provider instance `friendliai` from `@friendliai/ai-provider`:
+You can import the default provider instance `friendli` from `@ai-sdk/friendli`:
 
 ```ts
-import { friendli } from '@friendliai/ai-provider';
+import { friendli } from '@ai-sdk/friendli';
 ```
 
 ## Language Models
 
-You can create [FriendliAI models](https://friendli.ai/docs/guides/serverless_endpoints/text_generation#model-supports) using a provider instance.
-The first argument is the model id, e.g. `meta-llama-3.1-8b-instruct`.
+You can create [FriendliAI models](https://friendli.ai/docs/guides/serverless_endpoints/text-generation#model-supports) using a provider instance.
+The first argument is the model id, e.g. `meta-llama-3.1-70b-instruct`.
 
 ```ts
 const model = friendli('meta-llama-3.1-70b-instruct');
@@ -60,7 +60,7 @@ const model = friendli('meta-llama-3.1-70b-instruct');
 You can use FriendliAI language models to generate text with the `generateText` function:
 
 ```ts
-import { friendli } from '@friendliai/ai-provider';
+import { friendli } from '@ai-sdk/friendli';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -83,7 +83,7 @@ This feature is available with both `generateText` and `streamText` functions.
 For a deeper understanding of how to effectively use regex patterns with LLMs, check out our detailed guide in the [Structured Output LLM Agents](https://friendli.ai/blog/structured-output-llm-agents) blog post.
 
 ```ts highlight="1,6"
-import { friendli } from '@friendliai/ai-provider';
+import { friendli } from '@ai-sdk/friendli';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -101,7 +101,7 @@ console.log(text);
 Structured outputs are a form of guided generation. The JSON schema is used as a grammar and the outputs will always conform to the schema.
 
 ```ts
-import { friendli } from '@friendliai/ai-provider';
+import { friendli } from '@ai-sdk/friendli';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
@@ -123,12 +123,12 @@ console.log(JSON.stringify(object, null, 2));
 
 <Note type="warning">Built-in tools are currently in beta.</Note>
 
-If you use `@friendliai/ai-provider`, you can use the [built-in tools](https://friendli.ai/docs/guides/serverless_endpoints/tools/built_in_tools) via the `tools` option.
+If you use `@ai-sdk/friendli`, you can use the [built-in tools](https://friendli.ai/docs/guides/serverless_endpoints/tool-assisted-api#built-in-tools) via the `tools` option.
 
 Built-in tools allow models to use tools to generate better answers. For example, a `web:search` tool can provide up-to-date answers to current questions.
 
 ```ts highlight="1,5,6,7"
-import { friendli } from '@friendliai/ai-provider';
+import { friendli } from '@ai-sdk/friendli';
 import { streamText } from 'ai';
 
 const result = streamText({
@@ -149,11 +149,13 @@ for await (const textPart of result.textStream) {
 To use a custom model via a dedicated endpoint, you can use the `friendli.dedicated` instance with the endpoint id, e.g. `zbimjgovmlcb`
 
 ```ts
-import { friendli } from '@friendliai/ai-provider';
+import { friendli } from '@ai-sdk/friendli';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: friendli.dedicated('YOUR_ENDPOINT_ID'),
+  model: friendli('YOUR_ENDPOINT_ID', {
+    dedicated: true,
+  }),
   prompt: 'What is the meaning of life?',
 });
 ```
@@ -178,24 +180,30 @@ FriendliAI language models can also be used in the `streamText`, `generateObject
 
 ### OpenAI Compatibility
 
-You can also use `@ai-sdk/openai` as the APIs are OpenAI-compatible.
+You can also use `@ai-sdk/openai-compatible` as the APIs are OpenAI-compatible.
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
-const friendli = createOpenAI({
+const friendli = createOpenAICompatible({
+  name: 'friendliai',
+  headers: {
+    Authorization: `Bearer ${process.env.FRIENDLI_TOKEN}`,
+  },
   baseURL: 'https://api.friendli.ai/serverless/v1',
-  apiKey: process.env.FRIENDLI_TOKEN,
 });
 ```
 
 If you are using dedicated endpoints
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
-const friendli = createOpenAI({
+const friendli = createOpenAICompatible({
+  name: 'friendliai',
+  headers: {
+    Authorization: `Bearer ${process.env.FRIENDLI_TOKEN}`,
+  },
   baseURL: 'https://api.friendli.ai/dedicated/v1',
-  apiKey: process.env.FRIENDLI_TOKEN,
 });
 ```

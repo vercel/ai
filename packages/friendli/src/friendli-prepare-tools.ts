@@ -2,19 +2,19 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   UnsupportedFunctionalityError,
-} from "@ai-sdk/provider";
+} from '@ai-sdk/provider';
 
-import { FriendliAIChatSettings } from "./friendliai-chat-settings";
+import { FriendliAIChatSettings } from './friendli-settings';
 
 export function prepareTools({
   mode,
   tools: hostedTools,
 }: {
-  mode: Parameters<LanguageModelV1["doGenerate"]>[0]["mode"] & {
-    type: "regular";
+  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+    type: 'regular';
   };
 
-  tools?: FriendliAIChatSettings["tools"];
+  tools?: FriendliAIChatSettings['tools'];
 }): {
   tools:
     | undefined
@@ -23,7 +23,7 @@ export function prepareTools({
         files?: string[];
       }>
     | Array<{
-        type: "function";
+        type: 'function';
         function: {
           name: string;
           description: string | undefined;
@@ -31,10 +31,10 @@ export function prepareTools({
         };
       }>;
   tool_choice:
-    | { type: "function"; function: { name: string } }
-    | "auto"
-    | "none"
-    | "required"
+    | { type: 'function'; function: { name: string } }
+    | 'auto'
+    | 'none'
+    | 'required'
     | undefined;
   toolWarnings: LanguageModelV1CallWarning[];
 } {
@@ -49,7 +49,7 @@ export function prepareTools({
   const toolChoice = mode.toolChoice;
 
   const mappedTools: Array<{
-    type: "function";
+    type: 'function';
     function: {
       name: string;
       description: string | undefined;
@@ -59,11 +59,11 @@ export function prepareTools({
 
   if (tools) {
     for (const tool of tools) {
-      if (tool.type === "provider-defined") {
-        toolWarnings.push({ type: "unsupported-tool", tool });
+      if (tool.type === 'provider-defined') {
+        toolWarnings.push({ type: 'unsupported-tool', tool });
       } else {
         mappedTools.push({
-          type: "function",
+          type: 'function',
           function: {
             name: tool.name,
             description: tool.description,
@@ -74,14 +74,7 @@ export function prepareTools({
     }
   }
 
-  const mappedHostedTools = hostedTools?.map((tool) => {
-    if (tool.type === "file:text") {
-      return {
-        type: "file:text",
-        files: tool.files,
-      };
-    }
-
+  const mappedHostedTools = hostedTools?.map(tool => {
     return {
       type: tool.type,
     };
@@ -98,19 +91,19 @@ export function prepareTools({
   const type = toolChoice.type;
 
   switch (type) {
-    case "auto":
-    case "none":
-    case "required":
+    case 'auto':
+    case 'none':
+    case 'required':
       return {
         tools: [...(mappedTools ?? []), ...(mappedHostedTools ?? [])],
         tool_choice: type,
         toolWarnings,
       };
-    case "tool":
+    case 'tool':
       return {
         tools: [...(mappedTools ?? []), ...(mappedHostedTools ?? [])],
         tool_choice: {
-          type: "function",
+          type: 'function',
           function: {
             name: toolChoice.toolName,
           },

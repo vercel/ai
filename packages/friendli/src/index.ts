@@ -1,11 +1,6 @@
-export {
-  createFriendliAI,
-  createFriendli,
-  friendliai,
-  friendli,
-} from "./friendliai-provider";
-
+export { createFriendli, friendli } from './friendli-provider';
+export type { FriendliAIErrorData } from './friendli-error';
 export type {
   FriendliAIProvider,
   FriendliAIProviderSettings,
-} from "./friendliai-provider";
+} from './friendli-provider';
