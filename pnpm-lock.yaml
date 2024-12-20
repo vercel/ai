@@ -1297,7 +1297,7 @@ importers:
   packages/deepinfra:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.8
+        specifier: 0.0.9
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.2
