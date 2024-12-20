@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 2.0.11
+
+### Patch Changes
+
+- 5feec50: feat (provider/google-vertex): Add imagen support.
+
 ## 2.0.10
 
 ### Patch Changes
