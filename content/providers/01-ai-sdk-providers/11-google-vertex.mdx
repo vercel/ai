@@ -559,6 +559,33 @@ The following optional settings are available for Google Vertex AI embedding mod
   model ID as a string if needed.
 </Note>
 
+### Image Models
+
+You can create [Imagen](https://cloud.google.com/vertex-ai/generative-ai/docs/image/overview) models that call the [Imagen on Vertex AI API](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images)
+using the `.image()` factory method. For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+Note that Imagen does not support an explicit size parameter. Instead, size is driven by the [aspect ratio](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) of the input image.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: vertex.image('imagen-3.0-generate-001'),
+  prompt: 'A futuristic cityscape at sunset',
+  providerOptions: {
+    vertex: { aspectRatio: '16:9' },
+  },
+});
+```
+
+#### Model Capabilities
+
+| Model                          | Supported Sizes                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `imagen-3.0-generate-001`      | See [aspect ratios](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) |
+| `imagen-3.0-fast-generate-001` | See [aspect ratios](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) |
+
 ## Google Vertex Anthropic Provider Usage
 
 The Google Vertex Anthropic provider for the [AI SDK](https://sdk.vercel.ai/docs) offers support for Anthropic's Claude models through the Google Vertex AI APIs. This section provides details on how to set up and use the Google Vertex Anthropic provider.
