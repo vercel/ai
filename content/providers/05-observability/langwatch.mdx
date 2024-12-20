@@ -14,7 +14,7 @@ description: LangWatch allows you to track, monitor, guardrail and evaluate your
 - Custom dashboards and alerts
 
 
-LangWatch library is the easiest way to integrate your TypeScript application with LangWatch, the messages are synced on the background so it doesn't intercept or block your LLM calls.
+## Setup
 
 #### Prerequisites
 
@@ -25,9 +25,6 @@ LangWatch library is the easiest way to integrate your TypeScript application wi
 ```sh
 npm install langwatch
 ```
-
-#### Configuration
-
 Ensure `LANGWATCH_API_KEY` is set:
 
 <Tabs items={["Environment variables", "Client parameters"]} >
@@ -52,7 +49,8 @@ const langwatch = new LangWatch({
 
 </Tabs>
 
-## Basic Concepts
+
+#### Basic Concepts
 
 - Each message triggering your LLM pipeline as a whole is captured with a [Trace](/concepts#traces).
 - A [Trace](/concepts#traces) contains multiple [Spans](/concepts#spans), which are the steps inside your pipeline.
@@ -62,10 +60,9 @@ const langwatch = new LangWatch({
 - [Traces](/concepts#traces) can be grouped together on LangWatch Dashboard by having the same [`thread_id`](/concepts#threads) in their metadata, making the individual messages become part of a conversation.
   - It is also recommended to provide the [`user_id`](/concepts#user-id) metadata to track user analytics.
 
-## Vercel integration
+## Configuration
 
-
-The Vercel AI SDK supports tracing via Next.js OpenTelemetry integration. By using the `LangWatchExporter`, you can automatically collect those traces to LangWatch.
+The AI SDK supports tracing via Next.js OpenTelemetry integration. By using the `LangWatchExporter`, you can automatically collect those traces to LangWatch.
 
 First, you need to install the necessary dependencies:
 
@@ -121,15 +118,15 @@ const result = await generateText({
 
 That's it! Your messages will now be visible on LangWatch:
 
-![Vercel AI SDK](https://mintlify.s3.us-west-1.amazonaws.com/langwatch/images/integration/vercel-ai-sdk.png)
+![AI SDK](https://mintlify.s3.us-west-1.amazonaws.com/langwatch/images/integration/vercel-ai-sdk.png)
 
-## Example Project
+#### Example Project
 
-You can find a full example project with a more complex pipeline and Vercel AI SDK and LangWatch integration [on our GitHub](https://github.com/langwatch/langwatch/blob/main/typescript-sdk/example/lib/chat/vercel-ai.tsx).
+You can find a full example project with a more complex pipeline and AI SDK and LangWatch integration [on our GitHub](https://github.com/langwatch/langwatch/blob/main/typescript-sdk/example/lib/chat/vercel-ai.tsx).
 
-## Manual Integration
+#### Manual Integration
 
-The docs from here below are for manual integration, in case you are not using the Vercel AI SDK OpenTelemetry integration,
+The docs from here below are for manual integration, in case you are not using the AI SDK OpenTelemetry integration,
 you can manually start a trace to capture your messages:
 
 ```typescript
