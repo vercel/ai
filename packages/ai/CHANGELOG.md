@@ -1,5 +1,12 @@
 # ai
 
+## 4.0.21
+
+### Patch Changes
+
+- a8669a2: fix (ai/core): prefer auto-detected image mimetype
+- 6fb3e91: fix (ai/core): include type in generateText toolResults result property.
+
 ## 4.0.20
 
 ### Patch Changes
