@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.0.9
+
+### Patch Changes
+
+- 9c7653b: feat (docs): Update OpenAI Compatible docs for new package.
+
 ## 0.0.8
 
 ### Patch Changes
