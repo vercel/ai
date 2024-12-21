@@ -13,7 +13,7 @@
     "@langchain/openai": "0.0.28",
     "@langchain/core": "0.1.63",
     "ai": "4.0.22",
-    "langchain": "0.1.36",
+    "langchain": "0.3.7",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18"
