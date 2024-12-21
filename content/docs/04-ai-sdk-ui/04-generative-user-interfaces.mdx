@@ -40,8 +40,8 @@ export default function Page() {
     <div>
       {messages.map(message => (
         <div key={message.id}>
-          {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.content}
+          <div>{message.role === 'user' ? 'User: ' : 'AI: '}</div>
+          <div>{message.content}</div>
         </div>
       ))}
 
@@ -93,7 +93,7 @@ import { z } from 'zod';
 export const weatherTool = createTool({
   description: 'Display the weather for a location',
   parameters: z.object({
-    location: z.string(),
+    location: z.string().describe('The location to get the weather for'),
   }),
   execute: async function ({ location }) {
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -244,7 +244,7 @@ To add more tools, simply define them in your `ai/tools.ts` file:
 export const stockTool = createTool({
   description: 'Get price for a stock',
   parameters: z.object({
-    symbol: z.string(),
+    symbol: z.string().describe('The stock symbol to get the price for'),
   }),
   execute: async function ({ symbol }) {
     // Simulated API call
@@ -312,7 +312,7 @@ export default function Page() {
                   );
                 } else if (toolName === 'getStockPrice') {
                   const { result } = toolInvocation;
-                  return <Stock {...result} />;
+                  return <Stock key={toolCallId} {...result} />;
                 }
               } else {
                 return (
