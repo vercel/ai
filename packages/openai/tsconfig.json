@@ -1,9 +1,5 @@
 {
-  "extends": "./node_modules/@vercel/ai-tsconfig/react-library.json",
-  "compilerOptions": {
-    "target": "ES2018",
-    "stripInternal": true
-  },
+  "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
   "include": ["."],
-  "exclude": ["dist", "build", "node_modules"]
+  "exclude": ["*/dist", "dist", "build", "node_modules"]
 }
