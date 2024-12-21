@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.0.10
+
+### Patch Changes
+
+- baae8f4: feat (provider/deepinfra): Add DeepInfra provider.
+
 ## 0.0.9
 
 ### Patch Changes

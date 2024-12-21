@@ -140,7 +140,7 @@ describe('result.toolResults', () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
+          expect(mode).toStrictEqual({
             type: 'regular',
             toolChoice: { type: 'auto' },
             tools: [
@@ -184,7 +184,7 @@ describe('result.toolResults', () => {
         tool1: {
           parameters: z.object({ value: z.string() }),
           execute: async args => {
-            assert.deepStrictEqual(args, { value: 'value' });
+            expect(args).toStrictEqual({ value: 'value' });
             return 'result1';
           },
         },
@@ -197,8 +197,9 @@ describe('result.toolResults', () => {
       assertType<string>(result.toolResults[0].result);
     }
 
-    assert.deepStrictEqual(result.toolResults, [
+    expect(result.toolResults).toStrictEqual([
       {
+        type: 'tool-result',
         toolCallId: 'call-1',
         toolName: 'tool1',
         args: { value: 'value' },
