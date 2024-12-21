@@ -27,7 +27,6 @@ import {
   LanguageModel,
   LogProbs,
 } from '../types/language-model';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
@@ -42,6 +41,7 @@ import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-header
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
 import { writeToServerResponse } from '../util/write-to-server-response';
+import { Output } from './output';
 import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
@@ -102,7 +102,11 @@ If set and supported by the model, calls will generate deterministic results.
 @return
 A result object for accessing different stream types and additional information.
  */
-export function streamText<TOOLS extends Record<string, CoreTool>>({
+export function streamText<
+  TOOLS extends Record<string, CoreTool>,
+  OUTPUT = never,
+  OUTPUT_PARTIAL = never,
+>({
   model,
   tools,
   toolChoice,
@@ -113,6 +117,7 @@ export function streamText<TOOLS extends Record<string, CoreTool>>({
   abortSignal,
   headers,
   maxSteps = 1,
+  experimental_output: output,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
@@ -180,6 +185,8 @@ changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
 
+    experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
+
     /**
 A function that attempts to repair a tool call that failed to parse.
      */
@@ -242,8 +249,8 @@ Details for all steps.
       generateId?: () => string;
       currentDate?: () => Date;
     };
-  }): StreamTextResult<TOOLS> {
-  return new DefaultStreamTextResult({
+  }): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
+  return new DefaultStreamTextResult<TOOLS, OUTPUT, OUTPUT_PARTIAL>({
     model,
     telemetry,
     headers,
@@ -260,6 +267,7 @@ Details for all steps.
     activeTools,
     repairToolCall,
     maxSteps,
+    output,
     continueSteps,
     providerMetadata,
     onChunk,
@@ -271,38 +279,43 @@ Details for all steps.
   });
 }
 
-class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
-  implements StreamTextResult<TOOLS>
+class DefaultStreamTextResult<
+  TOOLS extends Record<string, CoreTool>,
+  OUTPUT,
+  OUTPUT_PARTIAL,
+> implements StreamTextResult<TOOLS, OUTPUT_PARTIAL>
 {
   private readonly warningsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['warnings']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['warnings']>
   >();
   private readonly usagePromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['usage']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['usage']>
   >();
   private readonly finishReasonPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['finishReason']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['finishReason']>
   >();
   private readonly providerMetadataPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['experimental_providerMetadata']>
+    Awaited<
+      StreamTextResult<TOOLS, OUTPUT_PARTIAL>['experimental_providerMetadata']
+    >
   >();
   private readonly textPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['text']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['text']>
   >();
   private readonly toolCallsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['toolCalls']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['toolCalls']>
   >();
   private readonly toolResultsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['toolResults']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['toolResults']>
   >();
   private readonly requestPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['request']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['request']>
   >();
   private readonly responsePromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['response']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['response']>
   >();
   private readonly stepsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS>['steps']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['steps']>
   >();
 
   private readonly addStream: (
@@ -330,6 +343,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     activeTools,
     repairToolCall,
     maxSteps,
+    output,
     continueSteps,
     providerMetadata,
     onChunk,
@@ -357,6 +371,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
+    output: Output<OUTPUT, OUTPUT_PARTIAL> | undefined;
     continueSteps: boolean;
     providerMetadata: ProviderMetadata | undefined;
     onChunk:
@@ -402,7 +417,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     let recordedStepText = '';
     let recordedContinuationText = '';
     let recordedFullText = '';
-    let recordedRequest: LanguageModelRequestMetadata | undefined = undefined;
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<CoreAssistantMessage | CoreToolMessage>;
     } = {
@@ -415,7 +429,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedUsage: LanguageModelUsage | undefined = undefined;
-    let recordedProviderMetadata: ProviderMetadata | undefined = undefined;
     let stepType: 'initial' | 'continue' | 'tool-result' = 'initial';
     const recordedSteps: StepResult<TOOLS>[] = [];
     let rootSpan!: Span;
@@ -506,7 +519,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           recordedToolCalls = [];
           recordedToolResults = [];
           recordedStepText = '';
-          recordedRequest = chunk.request;
 
           if (nextStepType !== 'done') {
             stepType = nextStepType;
@@ -525,7 +537,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
           recordedResponse.headers = chunk.response.headers;
           recordedUsage = chunk.usage;
           recordedFinishReason = chunk.finishReason;
-          recordedProviderMetadata = chunk.experimental_providerMetadata;
         }
       },
 
@@ -607,11 +618,14 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     const stitchableStream = createStitchableStream<TextStreamPart<TOOLS>>();
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
-    this.baseStream = (
-      transform
-        ? stitchableStream.stream.pipeThrough(transform)
-        : stitchableStream.stream
-    ).pipeThrough(eventProcessor);
+
+    let stream = stitchableStream.stream;
+
+    if (transform) {
+      stream = stream.pipeThrough(transform);
+    }
+
+    this.baseStream = stream.pipeThrough(eventProcessor);
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
@@ -627,7 +641,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     });
 
     const initialPrompt = standardizePrompt({
-      prompt: { system, prompt, messages },
+      prompt: {
+        system: output?.injectIntoSystemPrompt({ system, model }) ?? system,
+        prompt,
+        messages,
+      },
       tools,
     });
 
@@ -744,6 +762,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   mode,
                   ...prepareCallSettings(settings),
                   inputFormat: promptFormat,
+                  responseFormat: output?.responseFormat({ model }),
                   prompt: promptMessages,
                   providerMetadata,
                   abortSignal,
