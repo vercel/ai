@@ -1,5 +1,14 @@
 # @ai-sdk/mistral
 
+## 1.0.6
+
+### Patch Changes
+
+- 5ed5e45: chore (config): Use ts-library.json tsconfig for no-UI libs.
+- Updated dependencies [5ed5e45]
+  - @ai-sdk/provider-utils@2.0.5
+  - @ai-sdk/provider@1.0.3
+
 ## 1.0.5
 
 ### Patch Changes

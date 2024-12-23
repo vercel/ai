@@ -614,6 +614,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
       });
 
       return {
+        type: 'tool-result',
         toolCallId,
         toolName,
         args,

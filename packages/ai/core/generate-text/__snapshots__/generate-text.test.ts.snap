@@ -64,6 +64,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
         "result": "result1",
         "toolCallId": "call-1",
         "toolName": "tool1",
+        "type": "tool-result",
       },
     ],
     "usage": {
@@ -246,6 +247,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
         "result": "result1",
         "toolCallId": "call-1",
         "toolName": "tool1",
+        "type": "tool-result",
       },
     ],
     "usage": {

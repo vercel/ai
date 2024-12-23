@@ -93,7 +93,9 @@ const { image } = await generateImage({
 
 ## Image Models
 
-| Provider                                                  | Model      | Supported Sizes                 |
-| --------------------------------------------------------- | ---------- | ------------------------------- |
-| [OpenAI](/providers/ai-sdk-providers/openai#image-models) | `dall-e-3` | 1024x1024, 1792x1024, 1024x1792 |
-| [OpenAI](/providers/ai-sdk-providers/openai#image-models) | `dall-e-2` | 256x256, 512x512, 1024x1024     |
+| Provider                                                                | Model                          | Supported Sizes                                                                                               |
+| ----------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models) | `imagen-3.0-generate-001`      | See [aspect ratios](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models) | `imagen-3.0-fast-generate-001` | See [aspect ratios](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models)               | `dall-e-3`                     | 1024x1024, 1792x1024, 1024x1792                                                                               |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models)               | `dall-e-2`                     | 256x256, 512x512, 1024x1024                                                                                   |

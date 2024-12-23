@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/fireworks",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,9 +30,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "0.0.8",
-    "@ai-sdk/provider": "1.0.2",
-    "@ai-sdk/provider-utils": "2.0.4"
+    "@ai-sdk/openai-compatible": "0.0.11",
+    "@ai-sdk/provider": "1.0.3",
+    "@ai-sdk/provider-utils": "2.0.5"
   },
   "devDependencies": {
     "@types/node": "^18",

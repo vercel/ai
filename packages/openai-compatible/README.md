@@ -81,4 +81,4 @@ const { text } = await generateText({
 });
 ```
 
-For more examples, see the [OpenAI Compatible Provider](/providers/ai-sdk-providers/openai-compatible) documentation.
+For more examples, see the [OpenAI Compatible Providers](https://sdk.vercel.ai/providers/openai-compatible-providers) documentation.

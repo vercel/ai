@@ -1,5 +1,20 @@
 # @ai-sdk/swarm
 
+## 0.0.31
+
+### Patch Changes
+
+- 5ed5e45: chore (config): Use ts-library.json tsconfig for no-UI libs.
+  - ai@4.0.22
+
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [a8669a2]
+- Updated dependencies [6fb3e91]
+  - ai@4.0.21
+
 ## 0.0.29
 
 ### Patch Changes

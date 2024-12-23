@@ -1,0 +1,137 @@
+---
+title: 'Mem0'
+description: 'Learn how to use the Mem0 AI SDK provider for the Vercel AI SDK.'
+---
+
+# Mem0 Provider
+
+The [Mem0 Provider](https://github.com/mem0ai/mem0/tree/main/vercel-ai-sdk) is a library developed by [**Mem0**](https://mem0.ai)
+to integrate with the Vercel AI SDK.
+This library brings enhanced AI interaction capabilities to your applications by introducing persistent memory functionality.
+
+## Setup
+
+The Mem0 provider is available in the `@mem0/vercel-ai-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @mem0/vercel-ai-provider" dark />
+  </Tab>
+
+{' '}
+
+<Tab>
+  <Snippet text="npm install @mem0/vercel-ai-provider" dark />
+</Tab>
+
+  <Tab>
+    <Snippet text="yarn add @mem0/vercel-ai-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+First, get your **Mem0 API Key** from the [Mem0 Dashboard](https://app.mem0.ai/dashboard/api-keys).
+
+Then initialize the `Mem0 Client` in your application:
+
+```ts
+import { createMem0 } from '@mem0/vercel-ai-provider';
+
+const mem0 = createMem0({
+  provider: 'openai',
+  mem0ApiKey: 'm0-xxx',
+  apiKey: 'provider-api-key',
+  config: {
+    compatibility: 'strict',
+  },
+});
+```
+
+<Note>
+  The `openai` provider is set as default. Consider using `MEM0_API_KEY` and
+  `OPENAI_API_KEY` as environment variables for security.
+</Note>
+
+- Add Memories to Enhance Context:
+
+```ts
+import { LanguageModelV1Prompt } from 'ai';
+import { addMemories } from '@mem0/vercel-ai-provider';
+
+const messages: LanguageModelV1Prompt = [
+  { role: 'user', content: [{ type: 'text', text: 'I love red cars.' }] },
+];
+
+await addMemories(messages, { user_id: 'borat' });
+```
+
+## Features
+
+### Adding and Retrieving Memories
+
+- `retrieveMemories()`: Retrieves memory context for prompts.
+- `addMemories()`: Adds user memories to enhance contextual responses.
+
+```ts
+await addMemories(messages, { user_id: 'borat', mem0ApiKey: 'm0-xxx' });
+await retrieveMemories(prompt, { user_id: 'borat', mem0ApiKey: 'm0-xxx' });
+```
+
+<Note>
+  For standalone features, such as `addMemories` and `retrieveMemories`, you
+  must either set `MEM0_API_KEY` as an environment variable or pass it directly
+  in the function call.
+</Note>
+
+### Generate Text with Memory Context
+
+You can use language models from **OpenAI**, **Anthropic**, **Cohere**, and **Groq** to generate text with the `generateText` function:
+
+```ts
+import { generateText } from 'ai';
+import { createMem0 } from '@mem0/vercel-ai-provider';
+
+const mem0 = createMem0({ provider: 'openai' });
+
+const { text } = await generateText({
+  model: mem0('gpt-4-turbo', { user_id: 'borat' }),
+  prompt: 'Suggest me a good car to buy!',
+});
+```
+
+The same can also be used in the `streamText`, `generateObject`, and `streamObject` functions.
+
+### Combining OpenAI Provider with Memory Utils
+
+You can use language models from **OpenAI**, **Anthropic**, **Cohere**, and **Groq** to generate text with the `generateText` function:
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { retrieveMemories } from '@mem0/vercel-ai-provider';
+
+const prompt = 'Suggest me a good car to buy.';
+const memories = await retrieveMemories(prompt, { user_id: 'borat' });
+
+const { text } = await generateText({
+  model: openai('gpt-4-turbo'),
+  prompt: prompt,
+  system: memories,
+});
+```
+
+## Best Practices
+
+- **User Identification**: Use a unique `user_id` for consistent memory retrieval.
+- **Memory Cleanup**: Regularly clean up unused memory data.
+
+<Note>
+  We also have support for `agent_id`, `app_id`, and `run_id`. Refer
+  [Docs](https://docs.mem0.ai/api-reference/memory/add-memories).
+</Note>
+
+## References
+
+- [Mem0 Vercel AI SDK Docs](https://docs.mem0.ai/integrations/vercel-ai-sdk#getting-started)
+- [Mem0 documentation](https://docs.mem0.ai)
