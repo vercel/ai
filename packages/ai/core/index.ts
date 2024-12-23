@@ -4,6 +4,7 @@ export * from './data-stream';
 export * from './embed';
 export * from './generate-image';
 export * from './generate-object';
+export * from './generate-code';
 export * from './generate-text';
 export * from './middleware';
 export * from './prompt';
