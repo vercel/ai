@@ -1,3 +1,5 @@
+import { JSONValue } from '@ai-sdk/provider';
+
 export type OpenAICompatibleChatPrompt = Array<OpenAICompatibleMessage>;
 
 export type OpenAICompatibleMessage =
@@ -6,42 +8,46 @@ export type OpenAICompatibleMessage =
   | OpenAICompatibleAssistantMessage
   | OpenAICompatibleToolMessage;
 
-export interface OpenAICompatibleSystemMessage {
+// Allow for arbitrary additional properties for general purpose
+// provider-metadata-specific extensibility.
+type JsonRecord<T = never> = Record<
+  string,
+  JSONValue | JSONValue[] | T | T[] | undefined
+>;
+
+export interface OpenAICompatibleSystemMessage extends JsonRecord {
   role: 'system';
   content: string;
-  [key: string]: unknown;
 }
 
-export interface OpenAICompatibleUserMessage {
+export interface OpenAICompatibleUserMessage
+  extends JsonRecord<OpenAICompatibleContentPart> {
   role: 'user';
   content: string | Array<OpenAICompatibleContentPart>;
-  [key: string]: unknown;
 }
 
 export type OpenAICompatibleContentPart =
   | OpenAICompatibleContentPartText
   | OpenAICompatibleContentPartImage;
 
-export interface OpenAICompatibleContentPartImage {
+export interface OpenAICompatibleContentPartImage extends JsonRecord {
   type: 'image_url';
   image_url: { url: string };
-  [key: string]: unknown;
 }
 
-export interface OpenAICompatibleContentPartText {
+export interface OpenAICompatibleContentPartText extends JsonRecord {
   type: 'text';
   text: string;
-  [key: string]: unknown;
 }
 
-export interface OpenAICompatibleAssistantMessage {
+export interface OpenAICompatibleAssistantMessage
+  extends JsonRecord<OpenAICompatibleMessageToolCall> {
   role: 'assistant';
   content?: string | null;
   tool_calls?: Array<OpenAICompatibleMessageToolCall>;
-  [key: string]: unknown;
 }
 
-export interface OpenAICompatibleMessageToolCall {
+export interface OpenAICompatibleMessageToolCall extends JsonRecord {
   type: 'function';
   id: string;
   function: {
@@ -49,12 +55,10 @@ export interface OpenAICompatibleMessageToolCall {
     name: string;
     strict?: boolean;
   };
-  [key: string]: unknown;
 }
 
-export interface OpenAICompatibleToolMessage {
+export interface OpenAICompatibleToolMessage extends JsonRecord {
   role: 'tool';
   content: string;
   tool_call_id: string;
-  [key: string]: unknown;
 }
