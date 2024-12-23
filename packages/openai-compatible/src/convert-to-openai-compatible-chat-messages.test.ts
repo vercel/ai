@@ -120,7 +120,7 @@ describe('tool calls', () => {
   });
 });
 
-describe('metadata merging', () => {
+describe('provider-specific metadata merging', () => {
   it('should merge system message metadata', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
@@ -170,7 +170,7 @@ describe('metadata merging', () => {
     ]);
   });
 
-  it('should merge metadata at multiple levels', async () => {
+  it('should prioritize content-level metadata when merging', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
@@ -196,7 +196,6 @@ describe('metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'user',
-        messageLevel: true,
         content: 'Hello',
         contentLevel: true,
       },
@@ -276,7 +275,7 @@ describe('metadata merging', () => {
     ]);
   });
 
-  it('should preserve non-openaiCompatible metadata', async () => {
+  it('should omit non-openaiCompatible metadata', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'system',
@@ -293,17 +292,10 @@ describe('metadata merging', () => {
       {
         role: 'system',
         content: 'Hello',
-        providerMetadata: {
-          someOtherProvider: {
-            shouldBeIgnored: true,
-          },
-        },
       },
     ]);
   });
-});
 
-describe('complex part-level transformations', () => {
   it('should handle a user message with multiple content parts (text + image)', () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
@@ -341,9 +333,6 @@ describe('complex part-level transformations', () => {
             type: 'text',
             text: 'Hello from part 1',
             sentiment: 'positive', // hoisted from part-level openaiCompatible
-            providerMetadata: {
-              leftoverKey: { foo: 'some leftover data' },
-            },
           },
           {
             type: 'image_url',
@@ -438,6 +427,7 @@ describe('complex part-level transformations', () => {
       {
         role: 'tool',
         providerMetadata: {
+          // this just gets omitted as we prioritize content-level metadata
           openaiCompatible: { responseTier: 'detailed' },
         },
         content: [
@@ -465,20 +455,16 @@ describe('complex part-level transformations', () => {
         role: 'tool',
         tool_call_id: 'call123',
         content: JSON.stringify({ stepOne: 'data chunk 1' }),
-        responseTier: 'detailed',
       },
       {
         role: 'tool',
         tool_call_id: 'call123',
         content: JSON.stringify({ stepTwo: 'data chunk 2' }),
         partial: true,
-        responseTier: 'detailed',
       },
     ]);
   });
-});
 
-describe('additional permutations tests', () => {
   it('should handle multiple content parts with multiple metadata layers', () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
@@ -517,9 +503,6 @@ describe('additional permutations tests', () => {
             type: 'text',
             text: 'Part A',
             textPartLevel: 'localized',
-            providerMetadata: {
-              leftoverForText: { info: 'text leftover' },
-            },
           },
           {
             type: 'image_url',
@@ -529,9 +512,6 @@ describe('additional permutations tests', () => {
             imagePartLevel: 'image-data',
           },
         ],
-        providerMetadata: {
-          leftoverForMessage: { x: 123 },
-        },
       },
     ]);
   });
