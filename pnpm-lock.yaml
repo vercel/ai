@@ -69,10 +69,10 @@ importers:
         specifier: 1.0.6
         version: link:../../packages/cohere
       '@ai-sdk/deepinfra':
-        specifier: 0.0.3
+        specifier: 0.0.4
         version: link:../../packages/deepinfra
       '@ai-sdk/fireworks':
-        specifier: 0.0.6
+        specifier: 0.0.7
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 1.0.12
@@ -90,16 +90,16 @@ importers:
         specifier: 1.0.11
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.12
+        specifier: 0.0.13
         version: link:../../packages/openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.3
         version: link:../../packages/provider
       '@ai-sdk/togetherai':
-        specifier: 0.0.13
+        specifier: 0.0.14
         version: link:../../packages/togetherai
       '@ai-sdk/xai':
-        specifier: 1.0.13
+        specifier: 1.0.14
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
@@ -1297,7 +1297,7 @@ importers:
   packages/deepinfra:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.12
+        specifier: 0.0.13
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.3
@@ -1325,7 +1325,7 @@ importers:
   packages/fireworks:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.12
+        specifier: 0.0.13
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.3
@@ -1746,7 +1746,7 @@ importers:
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.12
+        specifier: 0.0.13
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.3
@@ -1863,7 +1863,7 @@ importers:
   packages/xai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.12
+        specifier: 0.0.13
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.3

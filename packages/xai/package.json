@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/xai",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,7 +30,7 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "0.0.12",
+    "@ai-sdk/openai-compatible": "0.0.13",
     "@ai-sdk/provider": "1.0.3",
     "@ai-sdk/provider-utils": "2.0.5"
   },
