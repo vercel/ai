@@ -2,7 +2,7 @@
 
 This example explores using the AI SDK with an OpenAI compatible provider interfacing with LiteLLM.
 
-Customers using LiteLLM with Anthropic, for example, may wish to use LiteLLM's support for forwarding cache control instructions along. See [LiteLLM Anthropic documentation](https://docs.litellm.ai/docs/providers/anthropic#prompt-caching) for more details.
+Developers using LiteLLM with Anthropic, for example, may wish to use LiteLLM's support for forwarding cache control instructions along. See [LiteLLM Anthropic documentation](https://docs.litellm.ai/docs/providers/anthropic#prompt-caching) for more details.
 
 ## Local LiteLLM Proxy Setup
 
