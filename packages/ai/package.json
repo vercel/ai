@@ -65,7 +65,8 @@
     "@ai-sdk/ui-utils": "1.0.6",
     "@opentelemetry/api": "1.9.0",
     "jsondiffpatch": "0.6.0",
-    "zod-to-json-schema": "^3.23.5"
+    "zod-to-json-schema": "^3.23.5",
+    "zod-to-ts": "^1.2.0"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",

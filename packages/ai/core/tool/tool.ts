@@ -36,13 +36,20 @@ This enables the language model to generate the input.
 
 The tool can also contain an optional execute function for the actual execution function of the tool.
  */
-export type CoreTool<PARAMETERS extends Parameters = any, RESULT = any> = {
+export type CoreTool<PARAMETERS extends Parameters = any, RESULT extends Parameters = any> = {
   /**
 The schema of the input that the tool expects. The language model will use this to generate the input.
 It is also used to validate the output of the language model.
 Use descriptions to make the input understandable for the language model.
    */
   parameters: PARAMETERS;
+
+  returns: RESULT;
+
+  /**
+An optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
+   */
+description?: string;
 
   /**
 Optional conversion function that maps the tool result to multi-part tool content for LLMs.
@@ -56,21 +63,16 @@ If not provided, the tool will not be executed automatically.
 @args is the input of the tool call.
 @options.abortSignal is a signal that can be used to abort the tool call.
    */
-  execute?: (
+  execute: (
     args: inferParameters<PARAMETERS>,
     options: ToolExecutionOptions,
-  ) => PromiseLike<RESULT>;
+  ) => PromiseLike<inferParameters<RESULT>>;
 } & (
   | {
       /**
 Function tool.
        */
       type?: undefined | 'function';
-
-      /**
-An optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
-   */
-      description?: string;
     }
   | {
       /**
@@ -94,27 +96,27 @@ The arguments for configuring the tool. Must match the expected arguments define
 Helper function for inferring the execute args of a tool.
  */
 // Note: special type inference is needed for the execute function args to make sure they are inferred correctly.
-export function tool<PARAMETERS extends Parameters, RESULT>(
+export function tool<PARAMETERS extends Parameters, RESULT extends Parameters>(
   tool: CoreTool<PARAMETERS, RESULT> & {
     execute: (
       args: inferParameters<PARAMETERS>,
       options: ToolExecutionOptions,
-    ) => PromiseLike<RESULT>;
+    ) => PromiseLike<inferParameters<RESULT>>;
   },
 ): CoreTool<PARAMETERS, RESULT> & {
   execute: (
     args: inferParameters<PARAMETERS>,
     options: ToolExecutionOptions,
-  ) => PromiseLike<RESULT>;
+  ) => PromiseLike<inferParameters<RESULT>>;
 };
-export function tool<PARAMETERS extends Parameters, RESULT>(
+export function tool<PARAMETERS extends Parameters, RESULT extends Parameters>(
   tool: CoreTool<PARAMETERS, RESULT> & {
     execute?: undefined;
   },
 ): CoreTool<PARAMETERS, RESULT> & {
   execute: undefined;
 };
-export function tool<PARAMETERS extends Parameters, RESULT = any>(
+export function tool<PARAMETERS extends Parameters, RESULT extends Parameters = any>(
   tool: CoreTool<PARAMETERS, RESULT>,
 ): CoreTool<PARAMETERS, RESULT> {
   return tool;
