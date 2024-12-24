@@ -1,6 +1,0 @@
-# https://docs.litellm.ai/docs/providers/anthropic
-model_list:
-  - model_name: claude-3
-    litellm_params:
-      model: claude-3-5-sonnet-20240620
-      api_key: "os.environ/ANTHROPIC_API_KEY"
