@@ -31,7 +31,7 @@
     "lint-staged": "15.2.10",
     "next": "15.0.0-canary.23",
     "playwright": "^1.44.1",
-    "prettier": "2.8.8",
+    "prettier": "3.4.2",
     "publint": "0.2.12",
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
