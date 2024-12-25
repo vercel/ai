@@ -6,21 +6,17 @@ import { APICallError } from '@ai-sdk/provider';
 
 createFeatureTestSuite({
   name: 'xAI',
-  createChatModelFn: provider.chat,
-  createCompletionModelFn: provider.languageModel,
-  createEmbeddingModelFn: provider.textEmbeddingModel,
   models: {
-    chat: [
-      'grok-beta',
-      'grok-2-1212',
-      'grok-vision-beta',
-      'grok-2-vision-1212',
-    ],
-    completion: [
-      'grok-beta',
-      'grok-2-1212',
-      'grok-vision-beta',
-      'grok-2-vision-1212',
+    invalidModel: provider.chat('no-such-model'),
+    languageModels: [
+      provider.chat('grok-beta'),
+      provider.chat('grok-2-1212'),
+      provider.chat('grok-vision-beta'),
+      provider.chat('grok-2-vision-1212'),
+      provider.languageModel('grok-beta'),
+      provider.languageModel('grok-2-1212'),
+      provider.languageModel('grok-vision-beta'),
+      provider.languageModel('grok-2-vision-1212'),
     ],
   },
   timeout: 30000,

@@ -9,23 +9,21 @@ import { createFeatureTestSuite } from './feature-test-suite';
 
 createFeatureTestSuite({
   name: 'TogetherAI',
-  createChatModelFn: provider.chatModel,
-  createCompletionModelFn: provider.completionModel,
-  createEmbeddingModelFn: provider.textEmbeddingModel,
   models: {
-    chat: [
-      'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
-      'mistralai/Mistral-7B-Instruct-v0.1',
-      'google/gemma-2b-it',
-      'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
-      'mistralai/Mixtral-8x7B-Instruct-v0.1',
-      'Qwen/Qwen2.5-72B-Instruct-Turbo',
-      'databricks/dbrx-instruct',
+    invalidModel: provider.chatModel('no-such-model'),
+    languageModels: [
+      provider.chatModel('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'),
+      provider.chatModel('mistralai/Mistral-7B-Instruct-v0.1'),
+      provider.chatModel('google/gemma-2b-it'),
+      provider.chatModel('meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'),
+      provider.chatModel('mistralai/Mixtral-8x7B-Instruct-v0.1'),
+      provider.chatModel('Qwen/Qwen2.5-72B-Instruct-Turbo'),
+      provider.chatModel('databricks/dbrx-instruct'),
+      provider.completionModel('Qwen/Qwen2.5-Coder-32B-Instruct'),
     ],
-    completion: ['Qwen/Qwen2.5-Coder-32B-Instruct'],
-    embedding: [
-      'togethercomputer/m2-bert-80M-8k-retrieval',
-      'BAAI/bge-base-en-v1.5',
+    embeddingModels: [
+      provider.textEmbeddingModel('togethercomputer/m2-bert-80M-8k-retrieval'),
+      provider.textEmbeddingModel('BAAI/bge-base-en-v1.5'),
     ],
   },
   timeout: 10000,

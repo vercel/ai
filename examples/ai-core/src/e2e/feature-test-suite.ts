@@ -9,20 +9,17 @@ import {
   APICallError,
 } from 'ai';
 import fs from 'fs';
-import { describe, it, expect, vi } from 'vitest';
-import type { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
+import { describe, expect, it, vi } from 'vitest';
+import type { EmbeddingModelV1, LanguageModelV1 } from '@ai-sdk/provider';
 
 export interface ModelVariants {
-  chat?: string[];
-  completion?: string[];
-  embedding?: string[];
+  invalidModel?: LanguageModelV1;
+  languageModels?: LanguageModelV1[];
+  embeddingModels?: EmbeddingModelV1<string>[];
 }
 
 export interface TestSuiteOptions {
   name: string;
-  createChatModelFn: (modelId: string) => LanguageModelV1;
-  createCompletionModelFn: (modelId: string) => LanguageModelV1;
-  createEmbeddingModelFn: (modelId: string) => EmbeddingModelV1<string>;
   models: ModelVariants;
   timeout?: number;
   customAssertions?: {
@@ -31,11 +28,16 @@ export interface TestSuiteOptions {
   };
 }
 
+const createModelObjects = <T extends { modelId: string }>(
+  models: T[] | undefined,
+) =>
+  models?.map(model => ({
+    modelId: model.modelId,
+    model,
+  })) || [];
+
 export function createFeatureTestSuite({
   name,
-  createChatModelFn,
-  createCompletionModelFn,
-  createEmbeddingModelFn,
   models,
   timeout = 10000,
   customAssertions = { skipUsage: false },
@@ -46,14 +48,13 @@ export function createFeatureTestSuite({
       ((error: APICallError) => {
         throw new Error('errorValidator not implemented');
       });
+
     describe(`${name} Feature Test Suite`, () => {
       vi.setConfig({ testTimeout: timeout });
 
-      // Chat Model Tests
-      if (models.chat?.length) {
-        describe.each(models.chat)('Chat Model: %s', modelId => {
-          const model = createChatModelFn(modelId);
-
+      describe.each(createModelObjects(models.languageModels))(
+        'Language Model: $modelId',
+        ({ model }) => {
           it('should generate text', async () => {
             const result = await generateText({
               model,
@@ -292,130 +293,19 @@ export function createFeatureTestSuite({
               expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
             }
           });
-        });
-      }
+        },
+      );
 
-      describe('Chat Model Error Handling:', () => {
-        it('should throw error on generate text attempt with invalid model ID', async () => {
-          const invalidModel = createChatModelFn('no-such-model');
+      if (models.invalidModel) {
+        describe('Chat Model Error Handling:', () => {
+          const invalidModel = models.invalidModel!;
 
-          try {
-            await generateText({
-              model: invalidModel,
-              prompt: 'This should fail',
-            });
-            // If we reach here, the test should fail
-            expect(true).toBe(false); // Force test to fail if no error is thrown
-          } catch (error) {
-            expect(error).toBeInstanceOf(APICallError);
-            errorValidator(error as APICallError);
-          }
-        });
-
-        it('should throw error on stream text attempt with invalid model ID', async () => {
-          const invalidModel = createChatModelFn('no-such-model');
-
-          try {
-            const result = streamText({
-              model: invalidModel,
-              prompt: 'This should fail',
-            });
-
-            // Try to consume the stream to trigger the error
-            for await (const _ of result.textStream) {
-              // Do nothing with the chunks
-            }
-
-            // If we reach here, the test should fail
-            expect(true).toBe(false); // Force test to fail if no error is thrown
-          } catch (error) {
-            expect(error).toBeInstanceOf(APICallError);
-            errorValidator(error as APICallError);
-          }
-        });
-      });
-
-      // Embedding Model Tests
-      if (models.embedding?.length) {
-        describe.each(models.embedding)('Embedding Model: %s', modelId => {
-          const model = createEmbeddingModelFn(modelId);
-
-          it('should generate single embedding', async () => {
-            const result = await embed({
-              model,
-              value: 'This is a test sentence for embedding.',
-            });
-
-            expect(Array.isArray(result.embedding)).toBe(true);
-            expect(result.embedding.length).toBeGreaterThan(0);
-            if (!customAssertions.skipUsage) {
-              expect(result.usage?.tokens).toBeGreaterThan(0);
-            }
-          });
-
-          it('should generate multiple embeddings', async () => {
-            const result = await embedMany({
-              model,
-              values: [
-                'First test sentence.',
-                'Second test sentence.',
-                'Third test sentence.',
-              ],
-            });
-
-            expect(Array.isArray(result.embeddings)).toBe(true);
-            expect(result.embeddings.length).toBe(3);
-            if (!customAssertions.skipUsage) {
-              expect(result.usage?.tokens).toBeGreaterThan(0);
-            }
-          });
-        });
-      }
-
-      if (models.completion?.length) {
-        describe.each(models.completion)('Completion Model: %s', modelId => {
-          const model = createCompletionModelFn(modelId);
-
-          it('should generate text', async () => {
-            const result = await generateText({
-              model,
-              prompt: 'Complete this code: function fibonacci(n) {',
-            });
-
-            expect(result.text).toBeTruthy();
-            expect(result.usage?.totalTokens).toBeGreaterThan(0);
-          });
-
-          it('should stream text', async () => {
-            const result = streamText({
-              model,
-              prompt: 'Write a Python function that sorts a list:',
-            });
-
-            const chunks: string[] = [];
-            for await (const chunk of result.textStream) {
-              chunks.push(chunk);
-            }
-
-            expect(chunks.length).toBeGreaterThan(0);
-            if (!customAssertions.skipUsage) {
-              expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
-            }
-          });
-        });
-
-        // New separate error handling describe block
-        describe('Completion Model Error Handling:', () => {
           it('should throw error on generate text attempt with invalid model ID', async () => {
-            const invalidModel = createCompletionModelFn('no-such-model');
-
             try {
               await generateText({
                 model: invalidModel,
                 prompt: 'This should fail',
               });
-              // If we reach here, the test should fail
-              expect(true).toBe(false); // Force test to fail if no error is thrown
             } catch (error) {
               expect(error).toBeInstanceOf(APICallError);
               errorValidator(error as APICallError);
@@ -423,8 +313,6 @@ export function createFeatureTestSuite({
           });
 
           it('should throw error on stream text attempt with invalid model ID', async () => {
-            const invalidModel = createCompletionModelFn('no-such-model');
-
             try {
               const result = streamText({
                 model: invalidModel,
@@ -444,6 +332,41 @@ export function createFeatureTestSuite({
             }
           });
         });
+
+        describe.each(createModelObjects(models.embeddingModels))(
+          'Embedding Model: $modelId',
+          ({ model }) => {
+            it('should generate single embedding', async () => {
+              const result = await embed({
+                model,
+                value: 'This is a test sentence for embedding.',
+              });
+
+              expect(Array.isArray(result.embedding)).toBe(true);
+              expect(result.embedding.length).toBeGreaterThan(0);
+              if (!customAssertions.skipUsage) {
+                expect(result.usage?.tokens).toBeGreaterThan(0);
+              }
+            });
+
+            it('should generate multiple embeddings', async () => {
+              const result = await embedMany({
+                model,
+                values: [
+                  'First test sentence.',
+                  'Second test sentence.',
+                  'Third test sentence.',
+                ],
+              });
+
+              expect(Array.isArray(result.embeddings)).toBe(true);
+              expect(result.embeddings.length).toBe(3);
+              if (!customAssertions.skipUsage) {
+                expect(result.usage?.tokens).toBeGreaterThan(0);
+              }
+            });
+          },
+        );
       }
     });
   };
