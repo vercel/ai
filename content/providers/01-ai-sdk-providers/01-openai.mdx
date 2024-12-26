@@ -269,7 +269,7 @@ Predicted outputs help you reduce latency by allowing you to specify a base text
 You can enable predicted outputs by adding the `prediction` option to the `experimental_providerMetadata.openai` object:
 
 ```ts highlight="15-18"
-const result = streamText({
+const { text, usage, experimental_providerMetadata } = streamText({
   model: openai('gpt-4o'),
   messages: [
     {
@@ -290,7 +290,23 @@ const result = streamText({
     },
   },
 });
+
+console.log('usage:', {
+  ...usage,
+  accepted_prediction_tokens:
+    experimental_providerMetadata?.openai?.acceptedPredictionTokens,
+  rejected_prediction_tokens:
+    experimental_providerMetadata?.openai?.rejectedPredictionTokens,
+});
 ```
+
+<Note type="warning">
+  OpenAI Predicted Outputs have several
+  [limitations](https://platform.openai.com/docs/guides/predicted-outputs#limitations),
+  as some [API
+  parameters](https://platform.openai.com/docs/api-reference/chat/create) are
+  not supported.
+</Note>
 
 #### Image Detail
 
