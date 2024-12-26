@@ -312,12 +312,30 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
     if (
       response.usage?.completion_tokens_details?.reasoning_tokens != null ||
+      response.usage?.completion_tokens_details?.accepted_prediction_tokens !=
+        null ||
+      response.usage?.completion_tokens_details?.rejected_prediction_tokens !=
+        null ||
       response.usage?.prompt_tokens_details?.cached_tokens != null
     ) {
       providerMetadata = { openai: {} };
       if (response.usage?.completion_tokens_details?.reasoning_tokens != null) {
         providerMetadata.openai.reasoningTokens =
           response.usage?.completion_tokens_details?.reasoning_tokens;
+      }
+      if (
+        response.usage?.completion_tokens_details?.accepted_prediction_tokens !=
+        null
+      ) {
+        providerMetadata.openai.acceptedPredictionTokens =
+          response.usage.completion_tokens_details?.accepted_prediction_tokens;
+      }
+      if (
+        response.usage?.completion_tokens_details?.rejected_prediction_tokens !=
+        null
+      ) {
+        providerMetadata.openai.rejectedPredictionTokens =
+          response.usage.completion_tokens_details?.rejected_prediction_tokens;
       }
       if (response.usage?.prompt_tokens_details?.cached_tokens != null) {
         providerMetadata.openai.cachedPromptTokens =
@@ -497,12 +515,26 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
               if (
                 completionTokenDetails?.reasoning_tokens != null ||
+                completionTokenDetails?.accepted_prediction_tokens != null ||
+                completionTokenDetails?.rejected_prediction_tokens != null ||
                 promptTokenDetails?.cached_tokens != null
               ) {
                 providerMetadata = { openai: {} };
                 if (completionTokenDetails?.reasoning_tokens != null) {
                   providerMetadata.openai.reasoningTokens =
                     completionTokenDetails?.reasoning_tokens;
+                }
+                if (
+                  completionTokenDetails?.accepted_prediction_tokens != null
+                ) {
+                  providerMetadata.openai.acceptedPredictionTokens =
+                    completionTokenDetails?.accepted_prediction_tokens;
+                }
+                if (
+                  completionTokenDetails?.rejected_prediction_tokens != null
+                ) {
+                  providerMetadata.openai.rejectedPredictionTokens =
+                    completionTokenDetails?.rejected_prediction_tokens;
                 }
                 if (promptTokenDetails?.cached_tokens != null) {
                   providerMetadata.openai.cachedPromptTokens =
@@ -695,6 +727,8 @@ const openaiTokenUsageSchema = z
     completion_tokens_details: z
       .object({
         reasoning_tokens: z.number().nullish(),
+        accepted_prediction_tokens: z.number().nullish(),
+        rejected_prediction_tokens: z.number().nullish(),
       })
       .nullish(),
   })
