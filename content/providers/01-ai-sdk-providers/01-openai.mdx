@@ -292,11 +292,11 @@ const { text, usage, experimental_providerMetadata } = streamText({
 });
 
 console.log('usage:', {
-  ...usage,
-  accepted_prediction_tokens:
-    experimental_providerMetadata?.openai?.acceptedPredictionTokens,
-  rejected_prediction_tokens:
-    experimental_providerMetadata?.openai?.rejectedPredictionTokens,
+  ...(await usage),
+  acceptedPredictionTokens: (await experimental_providerMetadata)?.openai
+    ?.acceptedPredictionTokens,
+  rejectedPredictionTokens: (await experimental_providerMetadata)?.openai
+    ?.rejectedPredictionTokens,
 });
 ```
 

@@ -54,7 +54,13 @@ async function main() {
   }
 
   console.log();
-  console.log('Token usage:', await result.usage);
+  console.log('Token usage:', {
+    ...(await result.usage),
+    acceptedPredictionTokens: (await result.experimental_providerMetadata)
+      ?.openai?.acceptedPredictionTokens,
+    rejectedPredictionTokens: (await result.experimental_providerMetadata)
+      ?.openai?.rejectedPredictionTokens,
+  });
   console.log('Finish reason:', await result.finishReason);
 }
 
