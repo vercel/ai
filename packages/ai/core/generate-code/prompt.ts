@@ -3,34 +3,41 @@ import { generateZodTypeString } from "./type-zod";
 
 type AnyFunction = (...args: any[]) => any;
 
-function isAsync(fn: AnyFunction): boolean {
+function checkAsync(fn: AnyFunction): boolean {
   return fn.constructor.name === 'AsyncFunction';
 }
 
 type TOOLS = Record<string, CoreTool>
 
-const displayToolsToType = (tools: TOOLS) =>
-  Object.entries(tools)
-    .map(([key, value]) => {
-      const async = isAsync(value.execute)
-      return `type ${key} = (data:${generateZodTypeString(value.parameters, "data")}) => ${async ? "Promise<" : ""}${generateZodTypeString(value.returns, "returns")}${async ? ">" : ""}`
-    }
-    ).join("\n")
+const functionDefinition = (tool: TOOLS[string], isAsync:boolean) => {
+  const type = generateZodTypeString(tool.returns, "returns")
+
+  const returnType = isAsync ? `Promise<${type}>` : type
+  const paramType = generateZodTypeString(tool.parameters, "data")
+
+  return `${isAsync ? "async" : ""} (data:${paramType}): ${returnType} => {\n\t// ${tool?.description ?? "Does something"}\n\treturn // something\n}`
+}
 
 const displayToolsToCode = (tools: TOOLS) =>
   Object.entries(tools)
-    .map(([key, value]) => `const ${key} = ${isAsync(value.execute) ? "async" : ""}(data:${generateZodTypeString(value.parameters, "data")}):${generateZodTypeString(value.returns, "returns")} => {\n    // ${value?.description ?? "Does something"}\n    return // something\n}`)
+    .map(([toolName, toolObject]) => {
+      if (!toolObject.execute)
+        throw new Error(`Execute function is required for tool ${toolName}`);
+
+      const isAsync = checkAsync(toolObject.execute)
+
+      return `const ${toolName} = ${functionDefinition(toolObject, isAsync)}`
+    })
     .join("\n\n")
 
 export const newSystemPrompt = (text: string, tools: TOOLS, thisKeyWord: string) => `Your Persona: ${text}
 
 Instructions:
 - write pure javascript code
-- only use functions from the "Tools" list
+- only use functions from the ${thisKeyWord} object
 - functions are already defined
-- don't imported or redifined
+- don't imported any external libraries
 - nested functions are allowed
-- don't use any external libraries
 - don't use console.log
 - don't wrap code in a function
 - use let to declare variables
@@ -38,7 +45,7 @@ Instructions:
 - wrap the entire Javascript code in \`\`\`js ... \`\`\` code block
 - also write the JSON schema for the return value of the code in \`\`\`json ... \`\`\` code block
 
-if function name is build(), then use it as ${thisKeyWord}.build()
+eg: if function name is build(), then use it as ${thisKeyWord}.build()
 
 
 Tools:

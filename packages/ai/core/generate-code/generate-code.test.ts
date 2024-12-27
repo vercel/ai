@@ -59,7 +59,7 @@ describe('result.code', () => {
 
           return {
             ...dummyResponseValues,
-            text: `\`\`\`ts
+            text: `\`\`\`js
 let balance = listOfFunctions.getBalance({});
 return balance
 \`\`\`
