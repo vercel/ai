@@ -1,5 +1,17 @@
 # @ai-sdk/openai-compatible
 
+## 0.0.13
+
+### Patch Changes
+
+- 6564812: feat (provider/openai-compatible): Add'l exports for customization.
+
+## 0.0.12
+
+### Patch Changes
+
+- 70003b8: feat (provider/openai-compatible): Allow extending messages via metadata.
+
 ## 0.0.11
 
 ### Patch Changes
