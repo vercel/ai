@@ -1,5 +1,5 @@
-import type { CoreTool } from "../tool";
-import { generateZodTypeString } from "./type-zod";
+import type { CoreTool } from '../tool';
+import { generateZodTypeString } from './type-zod';
 
 type AnyFunction = (...args: any[]) => any;
 
@@ -7,30 +7,45 @@ function checkAsync(fn: AnyFunction): boolean {
   return fn.constructor.name === 'AsyncFunction';
 }
 
-type TOOLS = Record<string, CoreTool>
+type TOOLS = Record<string, CoreTool>;
 
-const functionDefinition = (tool: TOOLS[string], isAsync:boolean) => {
-  const type = generateZodTypeString(tool.returns, "returns")
+const functionDefinition = (tool: TOOLS[string], isAsync: boolean) => {
+  const type = generateZodTypeString(tool.returns, 'returns');
 
-  const returnType = isAsync ? `Promise<${type}>` : type
-  const paramType = generateZodTypeString(tool.parameters, "data")
+  const returnType = isAsync ? `Promise<${type}>` : type;
+  const paramType = generateZodTypeString(tool.parameters, 'data');
 
-  return `${isAsync ? "async" : ""} (data:${paramType}): ${returnType} => {\n\t// ${tool?.description ?? "Does something"}\n\treturn // something\n}`
-}
+  return `${
+    isAsync ? 'async' : ''
+  } (data:${paramType}): ${returnType} => {\n\t// ${
+    tool?.description ?? 'Does something'
+  }\n\treturn // something\n}`;
+};
 
 const displayToolsToCode = (tools: TOOLS) =>
   Object.entries(tools)
     .map(([toolName, toolObject]) => {
       if (!toolObject.execute)
-        throw new Error(`Execute function is required for tool ${toolName}`);
+        throw new Error(
+          `Execute function of tool "${toolName}" is not specified`,
+        );
 
-      const isAsync = checkAsync(toolObject.execute)
+      if (!toolObject.returns)
+        throw new Error(
+          `Return Zod schema of tool "${toolName}" is not specified`,
+        );
 
-      return `const ${toolName} = ${functionDefinition(toolObject, isAsync)}`
+      const isAsync = checkAsync(toolObject.execute);
+
+      return `const ${toolName} = ${functionDefinition(toolObject, isAsync)}`;
     })
-    .join("\n\n")
+    .join('\n\n');
 
-export const newSystemPrompt = (text: string, tools: TOOLS, thisKeyWord: string) => `Your Persona: ${text}
+export const newSystemPrompt = (
+  text: string,
+  tools: TOOLS,
+  thisKeyWord: string,
+) => `Your Persona: ${text}
 
 Instructions:
 - write pure javascript code
@@ -52,8 +67,8 @@ Tools:
 ${displayToolsToCode(tools)}
 
 const ${thisKeyWord} = {
-    ${Object.keys(tools).join(", ")}
+    ${Object.keys(tools).join(', ')}
 }
 
 Using above functions, write code to solve the user prompt
-`
+`;
