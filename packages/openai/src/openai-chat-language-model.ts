@@ -817,7 +817,7 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return modelId === 'o1' || modelId.startsWith('o1-');
+  return modelId === 'o1' || modelId.startsWith('o1-') || modelId === 'o3' || modelId.startsWith('o3-');
 }
 
 function isAudioModel(modelId: string) {
