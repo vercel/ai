@@ -157,6 +157,8 @@ const { text } = await generateText({
   model: friendli('YOUR_ENDPOINT_ID'),
   prompt: 'What is the meaning of life?',
 });
+
+console.log(text);
 ```
 
 You can use the code below to force requests to dedicated endpoints. By default, they are auto-detected.
@@ -171,6 +173,8 @@ const { text } = await generateText({
   });
   prompt: 'What is the meaning of life?',
 });
+
+console.log(text);
 ```
 
 FriendliAI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions.
