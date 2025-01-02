@@ -3,6 +3,7 @@ import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
+import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { StreamData } from '../../streams/stream-data';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
@@ -1338,7 +1339,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
     if (this.output == null) {
-      throw new Error('No output specified');
+      throw new NoOutputSpecifiedError();
     }
 
     return createAsyncIterableStream(
