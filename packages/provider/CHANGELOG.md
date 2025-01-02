@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.0.3
+
+### Patch Changes
+
+- 5ed5e45: chore (config): Use ts-library.json tsconfig for no-UI libs.
+
 ## 1.0.2
 
 ### Patch Changes
