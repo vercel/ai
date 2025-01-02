@@ -2,6 +2,7 @@ import {
   EmbeddingModelV1,
   ImageModelV1,
   LanguageModelV1,
+  NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
 import {
@@ -237,6 +238,9 @@ export function createOpenAI(
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
+  provider.rerankingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+  };
 
   return provider as OpenAIProvider;
 }

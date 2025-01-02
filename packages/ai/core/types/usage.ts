@@ -42,6 +42,16 @@ export function calculateLanguageModelUsage({
   };
 }
 
+/**
+Represents the number of tokens used in a reranking model.
+ */
+export type RerankingModelUsage = {
+  /**
+The number of tokens used for reranking.
+   */
+  tokens: number;
+};
+
 export function addLanguageModelUsage(
   usage1: LanguageModelUsage,
   usage2: LanguageModelUsage,
