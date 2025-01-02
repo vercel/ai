@@ -288,6 +288,84 @@ type EnrichedStreamPart<
   partialOutput: PARTIAL_OUTPUT | undefined;
 };
 
+function createOutputTransformStream<
+  TOOLS extends Record<string, CoreTool>,
+  OUTPUT,
+  PARTIAL_OUTPUT,
+>(
+  output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined,
+): TransformStream<
+  TextStreamPart<TOOLS>,
+  EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+> {
+  if (!output) {
+    return new TransformStream<
+      TextStreamPart<TOOLS>,
+      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+    >({
+      transform(chunk, controller) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+      },
+    });
+  }
+
+  let text = '';
+  let textChunk = '';
+  let lastPublishedJson = '';
+
+  return new TransformStream<
+    TextStreamPart<TOOLS>,
+    EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+  >({
+    transform(chunk, controller) {
+      if (chunk.type !== 'text-delta') {
+        controller.enqueue({
+          part: chunk,
+          partialOutput: undefined,
+        });
+        return;
+      }
+
+      text += chunk.textDelta;
+      textChunk += chunk.textDelta;
+
+      // only publish if partial json can be parsed:
+      const result = output.parsePartial({ text });
+      if (result != null) {
+        // only send new json if it has changed:
+        const currentJson = JSON.stringify(result.partial);
+        if (currentJson !== lastPublishedJson) {
+          controller.enqueue({
+            part: {
+              type: 'text-delta',
+              textDelta: textChunk,
+            },
+            partialOutput: result.partial,
+          });
+
+          lastPublishedJson = currentJson;
+          textChunk = '';
+        }
+      }
+    },
+
+    flush(controller) {
+      // publish remaining text:
+      if (textChunk.length > 0) {
+        // TODO parsing final partial output
+
+        controller.enqueue({
+          part: {
+            type: 'text-delta',
+            textDelta: textChunk,
+          },
+          partialOutput: undefined,
+        });
+      }
+    },
+  });
+}
+
 class DefaultStreamTextResult<
   TOOLS extends Record<string, CoreTool>,
   OUTPUT,
@@ -642,88 +720,9 @@ class DefaultStreamTextResult<
       stream = stream.pipeThrough(transform);
     }
 
-    let combinedStream: ReadableStream<{
-      part: TextStreamPart<TOOLS>;
-      partialOutput: PARTIAL_OUTPUT | undefined;
-    }>;
-    if (output) {
-      let text = '';
-      let textChunk = '';
-      let lastPublishedJson = '';
-
-      combinedStream = stream.pipeThrough(
-        new TransformStream<
-          TextStreamPart<TOOLS>,
-          {
-            part: TextStreamPart<TOOLS>;
-            partialOutput: PARTIAL_OUTPUT | undefined;
-          }
-        >({
-          transform(chunk, controller) {
-            if (chunk.type !== 'text-delta') {
-              controller.enqueue({
-                part: chunk,
-                partialOutput: undefined,
-              });
-              return;
-            }
-
-            text += chunk.textDelta;
-            textChunk += chunk.textDelta;
-
-            // only publish if partial json can be parsed:
-            const result = output.parsePartial({ text });
-            if (result != null) {
-              // only send new json if it has changed:
-              const currentJson = JSON.stringify(result.partial);
-              if (currentJson !== lastPublishedJson) {
-                controller.enqueue({
-                  part: {
-                    type: 'text-delta',
-                    textDelta: textChunk,
-                  },
-                  partialOutput: result.partial,
-                });
-
-                lastPublishedJson = currentJson;
-                textChunk = '';
-              }
-            }
-          },
-
-          flush(controller) {
-            // publish remaining text:
-            if (textChunk.length > 0) {
-              // TODO parsing final partial output
-
-              controller.enqueue({
-                part: {
-                  type: 'text-delta',
-                  textDelta: textChunk,
-                },
-                partialOutput: undefined,
-              });
-            }
-          },
-        }),
-      );
-    } else {
-      combinedStream = stream.pipeThrough(
-        new TransformStream<
-          TextStreamPart<TOOLS>,
-          {
-            part: TextStreamPart<TOOLS>;
-            partialOutput: PARTIAL_OUTPUT | undefined;
-          }
-        >({
-          transform(chunk, controller) {
-            controller.enqueue({ part: chunk, partialOutput: undefined });
-          },
-        }),
-      );
-    }
-
-    this.baseStream = combinedStream.pipeThrough(eventProcessor);
+    this.baseStream = stream
+      .pipeThrough(createOutputTransformStream(output))
+      .pipeThrough(eventProcessor);
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
