@@ -1,16 +1,18 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText } from 'ai';
 import 'dotenv/config';
 
-const perplexity = createOpenAI({
+const perplexity = createOpenAICompatible({
   name: 'perplexity',
-  apiKey: process.env.PERPLEXITY_API_KEY ?? '',
+  headers: {
+    Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY ?? ''}`,
+  },
   baseURL: 'https://api.perplexity.ai/',
 });
 
 async function main() {
   const result = streamText({
-    model: perplexity('llama-3.1-sonar-large-32k-online'),
+    model: perplexity('llama-3.1-sonar-small-128k-online'),
     prompt:
       'List the top 5 San Francisco news from the past week.' +
       'You must include the date of each article.',
