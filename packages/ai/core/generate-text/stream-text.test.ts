@@ -3559,6 +3559,35 @@ describe('streamText', () => {
 });
 
 describe('options.output', () => {
+  describe('no output', () => {
+    it('should throw error when accessing partial output stream', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: '{ ' },
+            { type: 'text-delta', textDelta: '"value": ' },
+            { type: 'text-delta', textDelta: `"Hello, ` },
+            { type: 'text-delta', textDelta: `world` },
+            { type: 'text-delta', textDelta: `!"` },
+            { type: 'text-delta', textDelta: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+        }),
+        prompt: 'prompt',
+      });
+
+      await expect(async () => {
+        await convertAsyncIterableToArray(
+          result.experimental_partialOutputStream,
+        );
+      }).rejects.toThrow('No output specified');
+    });
+  });
+
   describe('object output', () => {
     it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
       let callOptions!: LanguageModelV1CallOptions;

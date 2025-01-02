@@ -329,6 +329,8 @@ class DefaultStreamTextResult<
     partialOutput: PARTIAL_OUTPUT | undefined;
   }>;
 
+  private output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
+
   constructor({
     model,
     telemetry,
@@ -413,6 +415,8 @@ class DefaultStreamTextResult<
         message: 'maxSteps must be at least 1',
       });
     }
+
+    this.output = output;
 
     // event processor for telemetry, invoking callbacks, etc.
     // The event processor reads the transformed stream to enable correct
@@ -1333,6 +1337,10 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
+    if (this.output == null) {
+      throw new Error('No output specified');
+    }
+
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
