@@ -3681,9 +3681,9 @@ describe('options.output', () => {
         ),
       ).toStrictEqual([
         {},
-        { content: 'Hello, ' },
-        { content: 'Hello, world' },
-        { content: 'Hello, world!' },
+        { value: 'Hello, ' },
+        { value: 'Hello, world' },
+        { value: 'Hello, world!' },
       ]);
     });
   });

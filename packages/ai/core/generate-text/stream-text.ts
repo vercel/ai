@@ -324,7 +324,10 @@ class DefaultStreamTextResult<
 
   private readonly closeStream: () => void;
 
-  private baseStream: ReadableStream<TextStreamPart<TOOLS>>;
+  private baseStream: ReadableStream<{
+    part: TextStreamPart<TOOLS>;
+    partialOutput: PARTIAL_OUTPUT | undefined;
+  }>;
 
   constructor({
     model,
@@ -434,37 +437,45 @@ class DefaultStreamTextResult<
     let rootSpan!: Span;
 
     const eventProcessor = new TransformStream<
-      TextStreamPart<TOOLS>,
-      TextStreamPart<TOOLS>
+      {
+        part: TextStreamPart<TOOLS>;
+        partialOutput: PARTIAL_OUTPUT | undefined;
+      },
+      {
+        part: TextStreamPart<TOOLS>;
+        partialOutput: PARTIAL_OUTPUT | undefined;
+      }
     >({
       async transform(chunk, controller) {
         controller.enqueue(chunk); // forward the chunk to the next stream
 
+        const { part } = chunk;
+
         if (
-          chunk.type === 'text-delta' ||
-          chunk.type === 'tool-call' ||
-          chunk.type === 'tool-result' ||
-          chunk.type === 'tool-call-streaming-start' ||
-          chunk.type === 'tool-call-delta'
+          part.type === 'text-delta' ||
+          part.type === 'tool-call' ||
+          part.type === 'tool-result' ||
+          part.type === 'tool-call-streaming-start' ||
+          part.type === 'tool-call-delta'
         ) {
-          await onChunk?.({ chunk });
+          await onChunk?.({ chunk: part });
         }
 
-        if (chunk.type === 'text-delta') {
-          recordedStepText += chunk.textDelta;
-          recordedContinuationText += chunk.textDelta;
-          recordedFullText += chunk.textDelta;
+        if (part.type === 'text-delta') {
+          recordedStepText += part.textDelta;
+          recordedContinuationText += part.textDelta;
+          recordedFullText += part.textDelta;
         }
 
-        if (chunk.type === 'tool-call') {
-          recordedToolCalls.push(chunk);
+        if (part.type === 'tool-call') {
+          recordedToolCalls.push(part);
         }
 
-        if (chunk.type === 'tool-result') {
-          recordedToolResults.push(chunk);
+        if (part.type === 'tool-result') {
+          recordedToolResults.push(part);
         }
 
-        if (chunk.type === 'step-finish') {
+        if (part.type === 'step-finish') {
           const stepMessages = toResponseMessages({
             text: recordedContinuationText,
             tools: tools ?? ({} as TOOLS),
@@ -478,7 +489,7 @@ class DefaultStreamTextResult<
           if (currentStep + 1 < maxSteps) {
             if (
               continueSteps &&
-              chunk.finishReason === 'length' &&
+              part.finishReason === 'length' &&
               // only use continue when there are no tool calls:
               recordedToolCalls.length === 0
             ) {
@@ -499,17 +510,17 @@ class DefaultStreamTextResult<
             text: recordedStepText,
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
-            finishReason: chunk.finishReason,
-            usage: chunk.usage,
-            warnings: chunk.warnings,
-            logprobs: chunk.logprobs,
-            request: chunk.request,
+            finishReason: part.finishReason,
+            usage: part.usage,
+            warnings: part.warnings,
+            logprobs: part.logprobs,
+            request: part.request,
             response: {
-              ...chunk.response,
+              ...part.response,
               messages: [...recordedResponse.messages, ...stepMessages],
             },
-            experimental_providerMetadata: chunk.experimental_providerMetadata,
-            isContinued: chunk.isContinued,
+            experimental_providerMetadata: part.experimental_providerMetadata,
+            isContinued: part.isContinued,
           };
 
           await onStepFinish?.(currentStepResult);
@@ -530,13 +541,13 @@ class DefaultStreamTextResult<
           }
         }
 
-        if (chunk.type === 'finish') {
-          recordedResponse.id = chunk.response.id;
-          recordedResponse.timestamp = chunk.response.timestamp;
-          recordedResponse.modelId = chunk.response.modelId;
-          recordedResponse.headers = chunk.response.headers;
-          recordedUsage = chunk.usage;
-          recordedFinishReason = chunk.finishReason;
+        if (part.type === 'finish') {
+          recordedResponse.id = part.response.id;
+          recordedResponse.timestamp = part.response.timestamp;
+          recordedResponse.modelId = part.response.modelId;
+          recordedResponse.headers = part.response.headers;
+          recordedUsage = part.usage;
+          recordedFinishReason = part.finishReason;
         }
       },
 
@@ -621,16 +632,35 @@ class DefaultStreamTextResult<
 
     let stream = stitchableStream.stream;
 
+    // transform the stream before output parsing
+    // to enable replacement of stream segments:
+    if (transform) {
+      stream = stream.pipeThrough(transform);
+    }
+
+    let combinedStream: ReadableStream<{
+      part: TextStreamPart<TOOLS>;
+      partialOutput: PARTIAL_OUTPUT | undefined;
+    }>;
     if (output) {
       let text = '';
       let textChunk = '';
       let lastPublishedJson = '';
 
-      stream = stream.pipeThrough(
-        new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+      combinedStream = stream.pipeThrough(
+        new TransformStream<
+          TextStreamPart<TOOLS>,
+          {
+            part: TextStreamPart<TOOLS>;
+            partialOutput: PARTIAL_OUTPUT | undefined;
+          }
+        >({
           transform(chunk, controller) {
             if (chunk.type !== 'text-delta') {
-              controller.enqueue(chunk);
+              controller.enqueue({
+                part: chunk,
+                partialOutput: undefined,
+              });
               return;
             }
 
@@ -644,8 +674,11 @@ class DefaultStreamTextResult<
               const currentJson = JSON.stringify(result.partial);
               if (currentJson !== lastPublishedJson) {
                 controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: textChunk,
+                  part: {
+                    type: 'text-delta',
+                    textDelta: textChunk,
+                  },
+                  partialOutput: result.partial,
                 });
 
                 lastPublishedJson = currentJson;
@@ -657,21 +690,36 @@ class DefaultStreamTextResult<
           flush(controller) {
             // publish remaining text:
             if (textChunk.length > 0) {
+              // TODO parsing final partial output
+
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: textChunk,
+                part: {
+                  type: 'text-delta',
+                  textDelta: textChunk,
+                },
+                partialOutput: undefined,
               });
             }
           },
         }),
       );
+    } else {
+      combinedStream = stream.pipeThrough(
+        new TransformStream<
+          TextStreamPart<TOOLS>,
+          {
+            part: TextStreamPart<TOOLS>;
+            partialOutput: PARTIAL_OUTPUT | undefined;
+          }
+        >({
+          transform(chunk, controller) {
+            controller.enqueue({ part: chunk, partialOutput: undefined });
+          },
+        }),
+      );
     }
 
-    if (transform) {
-      stream = stream.pipeThrough(transform);
-    }
-
-    this.baseStream = stream.pipeThrough(eventProcessor);
+    this.baseStream = combinedStream.pipeThrough(eventProcessor);
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
@@ -1247,12 +1295,18 @@ However, the LLM results are expected to be small enough to not cause issues.
   get textStream(): AsyncIterableStream<string> {
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
-        new TransformStream<TextStreamPart<TOOLS>, string>({
-          transform(chunk, controller) {
-            if (chunk.type === 'text-delta') {
-              controller.enqueue(chunk.textDelta);
-            } else if (chunk.type === 'error') {
-              controller.error(chunk.error);
+        new TransformStream<
+          {
+            part: TextStreamPart<TOOLS>;
+            partialOutput: PARTIAL_OUTPUT | undefined;
+          },
+          string
+        >({
+          transform({ part }, controller) {
+            if (part.type === 'text-delta') {
+              controller.enqueue(part.textDelta);
+            } else if (part.type === 'error') {
+              controller.error(part.error);
             }
           },
         }),
@@ -1261,12 +1315,41 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
-    return createAsyncIterableStream(this.teeStream());
+    return createAsyncIterableStream(
+      this.teeStream().pipeThrough(
+        new TransformStream<
+          {
+            part: TextStreamPart<TOOLS>;
+            partialOutput: PARTIAL_OUTPUT | undefined;
+          },
+          TextStreamPart<TOOLS>
+        >({
+          transform({ part }, controller) {
+            controller.enqueue(part);
+          },
+        }),
+      ),
+    );
   }
 
   get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
-    // TODO implement
-    return createAsyncIterableStream(new ReadableStream());
+    return createAsyncIterableStream(
+      this.teeStream().pipeThrough(
+        new TransformStream<
+          {
+            part: TextStreamPart<TOOLS>;
+            partialOutput: PARTIAL_OUTPUT | undefined;
+          },
+          PARTIAL_OUTPUT
+        >({
+          transform({ partialOutput }, controller) {
+            if (partialOutput != null) {
+              controller.enqueue(partialOutput);
+            }
+          },
+        }),
+      ),
+    );
   }
 
   private toDataStreamInternal({
