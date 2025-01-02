@@ -30,11 +30,11 @@ const uint8Array = image.uint8Array; // Uint8Array image data
 
 ### Generating Multiple Images
 
-`generateImage` also supports generating multiple images at once:
+`generateImage` also supports generating multiple images at once for models that support it:
 
 ```tsx highlight={"4"}
 const { images } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: openai.image('dall-e-2'),
   prompt: 'Santa Claus driving a Cadillac',
   n: 4, // number of images to generate
 });
