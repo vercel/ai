@@ -102,13 +102,49 @@ export async function POST(req: Request) {
 ### Loading State
 
 The `isLoading` state returned by the `useObject` hook can be used for several
-purposes
+purposes:
 
 - To show a loading spinner while the object is generated.
-- To show a "Stop" button to abort the current message.
 - To disable the submit button.
 
 ```tsx filename='app/page.tsx' highlight="6,13-20,24"
+'use client';
+
+import { useObject } from 'ai/react';
+
+export default function Page() {
+  const { isLoading, object, submit } = useObject({
+    api: '/api/notifications',
+    schema: notificationSchema,
+  });
+
+  return (
+    <>
+      {isLoading && <Spinner />}
+
+      <button
+        onClick={() => submit('Messages during finals week.')}
+        disabled={isLoading}
+      >
+        Generate notifications
+      </button>
+
+      {object?.notifications?.map((notification, index) => (
+        <div key={index}>
+          <p>{notification?.name}</p>
+          <p>{notification?.message}</p>
+        </div>
+      ))}
+    </>
+  );
+}
+```
+
+### Stop Handler
+
+The `stop` function can be used to stop the object generation process. This can be useful if the user wants to cancel the request or if the server is taking too long to respond.
+
+```tsx filename='app/page.tsx' highlight="6,14-16"
 'use client';
 
 import { useObject } from 'ai/react';
@@ -122,18 +158,12 @@ export default function Page() {
   return (
     <>
       {isLoading && (
-        <div>
-          <Spinner />
-          <button type="button" onClick={() => stop()}>
-            Stop
-          </button>
-        </div>
+        <button type="button" onClick={() => stop()}>
+          Stop
+        </button>
       )}
 
-      <button
-        onClick={() => submit('Messages during finals week.')}
-        disabled={isLoading}
-      >
+      <button onClick={() => submit('Messages during finals week.')}>
         Generate notifications
       </button>
 
