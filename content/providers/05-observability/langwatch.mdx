@@ -1,39 +1,38 @@
 ---
 title: LangWatch
-description: LangWatch allows you to track, monitor, guardrail and evaluate your LLMs apps for measuring quality and alert on issues.
+description: Track, monitor, guardrail and evaluate your AI SDK applications with LangWatch.
 ---
 
 # LangWatch Observability
 
 [LangWatch](https://langwatch.ai/) ([GitHub](https://github.com/langwatch/langwatch)) is an LLM Ops platform for monitoring, experimenting, measuring and improving LLM pipelines, with a fair-code distribution model.
 
-#### Monitoring & Analytics
-- Cost and performance tracking
-- Real-time debugging and tracing details
-- User analytics and custom business metrics
-- Custom dashboards and alerts
-
-
 ## Setup
 
-#### Prerequisites
+Obtain your `LANGWATCH_API_KEY` from the [LangWatch dashboard](https://app.langwatch.com/).
 
-- Obtain your `LANGWATCH_API_KEY` from the [LangWatch dashboard](https://app.langwatch.com/).
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai langwatch" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai langwatch" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai langwatch" dark />
+  </Tab>
+</Tabs>
 
-#### Installation
-
-```sh
-npm install langwatch
-```
 Ensure `LANGWATCH_API_KEY` is set:
 
 <Tabs items={["Environment variables", "Client parameters"]} >
 
 <Tab title="Environment variable">
 
-```bash .env
+```bash filename=".env"
 LANGWATCH_API_KEY='your_api_key_here'
 ```
+
 </Tab>
 
 <Tab title="Client parameters">
@@ -45,12 +44,12 @@ const langwatch = new LangWatch({
   apiKey: 'your_api_key_here',
 });
 ```
+
 </Tab>
 
 </Tabs>
 
-
-#### Basic Concepts
+## Basic Concepts
 
 - Each message triggering your LLM pipeline as a whole is captured with a [Trace](/concepts#traces).
 - A [Trace](/concepts#traces) contains multiple [Spans](/concepts#spans), which are the steps inside your pipeline.
@@ -83,17 +82,17 @@ const nextConfig = {
 module.exports = nextConfig;
 ```
 
-Next, you need to create a file named `instrumentation.ts` (or `.js`) in the __root directory__ of the project (or inside `src` folder if using one), with `LangWatchExporter` as the traceExporter:
+Next, you need to create a file named `instrumentation.ts` (or `.js`) in the **root directory** of the project (or inside `src` folder if using one), with `LangWatchExporter` as the traceExporter:
 
 ```typescript
-import { registerOTel } from '@vercel/otel'
-import { LangWatchExporter } from 'langwatch'
+import { registerOTel } from '@vercel/otel';
+import { LangWatchExporter } from 'langwatch';
 
 export function register() {
   registerOTel({
     serviceName: 'next-app',
-    traceExporter: new LangWatchExporter()
-  })
+    traceExporter: new LangWatchExporter(),
+  });
 }
 ```
 
@@ -104,13 +103,14 @@ Finally, enable `experimental_telemetry` tracking on the AI SDK calls you want t
 ```typescript
 const result = await generateText({
   model: openai('gpt-4o-mini'),
-  prompt: 'Explain why a chicken would make a terrible astronaut, be creative and humorous about it.',
+  prompt:
+    'Explain why a chicken would make a terrible astronaut, be creative and humorous about it.',
   experimental_telemetry: {
     isEnabled: true,
     // optional metadata
     metadata: {
-      userId: "myuser-123",
-      threadId: "mythread-123",
+      userId: 'myuser-123',
+      threadId: 'mythread-123',
     },
   },
 });
@@ -120,11 +120,11 @@ That's it! Your messages will now be visible on LangWatch:
 
 ![AI SDK](https://mintlify.s3.us-west-1.amazonaws.com/langwatch/images/integration/vercel-ai-sdk.png)
 
-#### Example Project
+### Example Project
 
 You can find a full example project with a more complex pipeline and AI SDK and LangWatch integration [on our GitHub](https://github.com/langwatch/langwatch/blob/main/typescript-sdk/example/lib/chat/vercel-ai.tsx).
 
-#### Manual Integration
+### Manual Integration
 
 The docs from here below are for manual integration, in case you are not using the AI SDK OpenTelemetry integration,
 you can manually start a trace to capture your messages:
@@ -135,7 +135,7 @@ import { LangWatch } from 'langwatch';
 const langwatch = new LangWatch();
 
 const trace = langwatch.getTrace({
-  metadata: { threadId: "mythread-123", userId: "myuser-123" },
+  metadata: { threadId: 'mythread-123', userId: 'myuser-123' },
 });
 ```
 
@@ -143,11 +143,11 @@ Then, you can start an LLM span inside the trace with the input about to be sent
 
 ```typescript
 const span = trace.startLLMSpan({
-  name: "llm",
+  name: 'llm',
   model: model,
   input: {
-    type: "chat_messages",
-    value: messages
+    type: 'chat_messages',
+    value: messages,
   },
 });
 ```
@@ -157,7 +157,7 @@ This will capture the LLM input and register the time the call started. Once the
 ```typescript
 span.end({
   output: {
-    type: "chat_messages",
+    type: 'chat_messages',
     value: [chatCompletion.choices[0]!.message],
   },
   metrics: {
@@ -171,7 +171,7 @@ span.end({
 
 For more information and examples, you can read more below:
 
-- [LangWatch docs](https://langwatch.ai/docs)
+- [LangWatch documentation](https://langwatch.ai/docs)
 - [LangWatch GitHub](https://github.com/langwatch/langwatch)
 
 ## Support
@@ -180,4 +180,3 @@ If you have questions or need help, join our community:
 
 - [LangWatch Discord](https://discord.gg/kT4PhDS2gH)
 - [Email support](mailto:support@langwatch.ai)
-
