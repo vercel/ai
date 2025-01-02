@@ -3560,41 +3560,6 @@ describe('streamText', () => {
 
 describe('options.output', () => {
   describe('object output', () => {
-    it('should send valid partial text fragments', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: '{ ' },
-            { type: 'text-delta', textDelta: '"value": ' },
-            { type: 'text-delta', textDelta: `"Hello, ` },
-            { type: 'text-delta', textDelta: `world` },
-            { type: 'text-delta', textDelta: `!"` },
-            { type: 'text-delta', textDelta: ' }' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: { completionTokens: 10, promptTokens: 3 },
-            },
-          ]),
-        }),
-        experimental_output: object({
-          schema: z.object({ value: z.string() }),
-        }),
-        prompt: 'prompt',
-      });
-
-      expect(
-        await convertAsyncIterableToArray(result.textStream),
-      ).toStrictEqual([
-        `{ `,
-        // key difference: need to combine after `:`
-        `"value": "Hello, `,
-        `world`,
-        `!"`,
-        ` }`,
-      ]);
-    });
-
     it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
       let callOptions!: LanguageModelV1CallOptions;
 
@@ -3650,6 +3615,76 @@ describe('options.output', () => {
           },
         ],
       });
+    });
+
+    it('should send valid partial text fragments', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: '{ ' },
+            { type: 'text-delta', textDelta: '"value": ' },
+            { type: 'text-delta', textDelta: `"Hello, ` },
+            { type: 'text-delta', textDelta: `world` },
+            { type: 'text-delta', textDelta: `!"` },
+            { type: 'text-delta', textDelta: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+        }),
+        experimental_output: object({
+          schema: z.object({ value: z.string() }),
+        }),
+        prompt: 'prompt',
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.textStream),
+      ).toStrictEqual([
+        `{ `,
+        // key difference: need to combine after `:`
+        `"value": "Hello, `,
+        `world`,
+        `!"`,
+        ` }`,
+      ]);
+    });
+
+    it('should send partial output stream', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: '{ ' },
+            { type: 'text-delta', textDelta: '"value": ' },
+            { type: 'text-delta', textDelta: `"Hello, ` },
+            { type: 'text-delta', textDelta: `world` },
+            { type: 'text-delta', textDelta: `!"` },
+            { type: 'text-delta', textDelta: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+        }),
+        experimental_output: object({
+          schema: z.object({ value: z.string() }),
+        }),
+        prompt: 'prompt',
+      });
+
+      expect(
+        await convertAsyncIterableToArray(
+          result.experimental_partialOutputStream,
+        ),
+      ).toStrictEqual([
+        {},
+        { content: 'Hello, ' },
+        { content: 'Hello, world' },
+        { content: 'Hello, world!' },
+      ]);
     });
   });
 });
