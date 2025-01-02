@@ -158,6 +158,9 @@ changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
 
+    /**
+Optional specification for parsing structured outputs from the LLM response.
+     */
     experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
 
     /**

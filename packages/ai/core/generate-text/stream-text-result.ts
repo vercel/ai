@@ -116,6 +116,9 @@ need to be added separately.
      */
   readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
 
+  /**
+A stream of partial outputs. It uses the `experimental_output` specification.
+   */
   readonly experimental_partialOutputStream: AsyncIterableStream<PARTIAL_OUTPUT>;
 
   /**
