@@ -622,10 +622,6 @@ class DefaultStreamTextResult<
 
     let stream = stitchableStream.stream;
 
-    if (transform) {
-      stream = stream.pipeThrough(transform);
-    }
-
     if (output) {
       let text = '';
       let textChunk = '';
@@ -670,6 +666,10 @@ class DefaultStreamTextResult<
           },
         }),
       );
+    }
+
+    if (transform) {
+      stream = stream.pipeThrough(transform);
     }
 
     this.baseStream = stream.pipeThrough(eventProcessor);
