@@ -25,6 +25,7 @@ import {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
+  LanguageModelV1StreamPart,
   LogProbs,
 } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
@@ -623,6 +624,52 @@ class DefaultStreamTextResult<
 
     if (transform) {
       stream = stream.pipeThrough(transform);
+    }
+
+    if (output) {
+      let text = '';
+      let textChunk = '';
+      let lastPublishedJson = '';
+
+      stream = stream.pipeThrough(
+        new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+          transform(chunk, controller) {
+            if (chunk.type !== 'text-delta') {
+              controller.enqueue(chunk);
+              return;
+            }
+
+            text += chunk.textDelta;
+            textChunk += chunk.textDelta;
+
+            // only publish if partial json can be parsed:
+            const result = output.parsePartial({ text });
+            if (result != null) {
+              // only send new json if it has changed:
+              const currentJson = JSON.stringify(result.partial);
+              if (currentJson !== lastPublishedJson) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: textChunk,
+                });
+
+                lastPublishedJson = currentJson;
+                textChunk = '';
+              }
+            }
+          },
+
+          flush(controller) {
+            // publish remaining text:
+            if (textChunk.length > 0) {
+              controller.enqueue({
+                type: 'text-delta',
+                textDelta: textChunk,
+              });
+            }
+          },
+        }),
+      );
     }
 
     this.baseStream = stream.pipeThrough(eventProcessor);

@@ -3588,7 +3588,7 @@ describe('options.output', () => {
       ).toStrictEqual([
         `{ `,
         // key difference: need to combine after `:`
-        `"value": "Hello, "`,
+        `"value": "Hello, `,
         `world`,
         `!"`,
         ` }`,

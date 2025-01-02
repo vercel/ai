@@ -1,5 +1,10 @@
 import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
-import { asSchema, DeepPartial, Schema } from '@ai-sdk/ui-utils';
+import {
+  asSchema,
+  DeepPartial,
+  parsePartialJson,
+  Schema,
+} from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors';
 import { injectJsonInstruction } from '../generate-object/inject-json-instruction';
@@ -77,9 +82,25 @@ export const object = <OUTPUT>({
     },
 
     parsePartial({ text }: { text: string }) {
-      // TODO -- fix partial json etc
+      const result = parsePartialJson(text);
 
-      return undefined;
+      switch (result.state) {
+        case 'failed-parse':
+        case 'undefined-input':
+          return undefined;
+
+        case 'repaired-parse':
+        case 'successful-parse':
+          return {
+            // Note: currently no validation of partial results:
+            partial: result.value as DeepPartial<OUTPUT>,
+          };
+
+        default: {
+          const _exhaustiveCheck: never = result.state;
+          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
+        }
+      }
     },
 
     parseOutput(
