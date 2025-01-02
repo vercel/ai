@@ -1,5 +1,3 @@
-import { OpenAICompatibleErrorData } from '@ai-sdk/openai-compatible';
-
 export { createDeepInfra, deepinfra } from './deepinfra-provider';
 export type {
   DeepInfraProvider,

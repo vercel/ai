@@ -10,9 +10,9 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.10",
-    "@ai-sdk/svelte": "1.0.6",
-    "ai": "4.0.21",
+    "@ai-sdk/openai": "1.0.12",
+    "@ai-sdk/svelte": "1.0.7",
+    "ai": "4.0.22",
     "openai": "4.52.6",
     "zod": "^3.23.8"
   },

@@ -65,25 +65,12 @@ Now you need to register this exporter via the OpenTelemetry SDK.
 <Tabs items={["Next.js","Node.js"]}>
 <Tab>
 
-Next.js has experimental support for OpenTelemetry instrumentation on the framework level. Learn more about it in the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry).
+Next.js has support for OpenTelemetry instrumentation on the framework level. Learn more about it in the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry).
 
 Install dependencies:
 
 ```bash
 npm install @vercel/otel langfuse-vercel @opentelemetry/api-logs @opentelemetry/instrumentation @opentelemetry/sdk-logs
-```
-
-Enable the `instrumentationHook` in your `next.config.js`:
-
-```ts filename="next.config.js" highlight="4"
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    instrumentationHook: true,
-  },
-};
-
-module.exports = nextConfig;
 ```
 
 Add `LangfuseExporter` to your instrumentation:

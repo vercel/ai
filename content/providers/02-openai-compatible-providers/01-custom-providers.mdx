@@ -229,3 +229,13 @@ const { text } = await generateText({
 ```
 
 This structure provides a clean, type-safe implementation that leverages the OpenAI Compatible package while maintaining consistency with the usage of other AI SDK providers.
+
+### Internal API
+
+As you work on your provider you may need to use some of the internal API of the OpenAI Compatible package. You can import these from the `@ai-sdk/openai-compatible/internal` package, for example:
+
+```ts
+import { convertToOpenAICompatibleChatMessages } from '@ai-sdk/openai-compatible/internal';
+```
+
+You can see the latest available exports in the AI SDK [GitHub repository](https://github.com/vercel/ai/blob/main/packages/openai-compatible/src/internal/index.ts).
