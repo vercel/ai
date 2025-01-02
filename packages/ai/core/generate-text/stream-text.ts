@@ -25,7 +25,6 @@ import {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
-  LanguageModelV1StreamPart,
   LogProbs,
 } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
@@ -106,7 +105,7 @@ A result object for accessing different stream types and additional information.
 export function streamText<
   TOOLS extends Record<string, CoreTool>,
   OUTPUT = never,
-  OUTPUT_PARTIAL = never,
+  PARTIAL_OUTPUT = never,
 >({
   model,
   tools,
@@ -186,7 +185,7 @@ changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
 
-    experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
+    experimental_output?: Output<OUTPUT, PARTIAL_OUTPUT>;
 
     /**
 A function that attempts to repair a tool call that failed to parse.
@@ -250,8 +249,8 @@ Details for all steps.
       generateId?: () => string;
       currentDate?: () => Date;
     };
-  }): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
-  return new DefaultStreamTextResult<TOOLS, OUTPUT, OUTPUT_PARTIAL>({
+  }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
+  return new DefaultStreamTextResult<TOOLS, OUTPUT, PARTIAL_OUTPUT>({
     model,
     telemetry,
     headers,
@@ -283,40 +282,40 @@ Details for all steps.
 class DefaultStreamTextResult<
   TOOLS extends Record<string, CoreTool>,
   OUTPUT,
-  OUTPUT_PARTIAL,
-> implements StreamTextResult<TOOLS, OUTPUT_PARTIAL>
+  PARTIAL_OUTPUT,
+> implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
 {
   private readonly warningsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['warnings']>
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['warnings']>
   >();
   private readonly usagePromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['usage']>
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['usage']>
   >();
   private readonly finishReasonPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['finishReason']>
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['finishReason']>
   >();
   private readonly providerMetadataPromise = new DelayedPromise<
     Awaited<
-      StreamTextResult<TOOLS, OUTPUT_PARTIAL>['experimental_providerMetadata']
+      StreamTextResult<TOOLS, PARTIAL_OUTPUT>['experimental_providerMetadata']
     >
   >();
   private readonly textPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['text']>
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['text']>
   >();
   private readonly toolCallsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['toolCalls']>
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['toolCalls']>
   >();
   private readonly toolResultsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['toolResults']>
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['toolResults']>
   >();
   private readonly requestPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['request']>
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['request']>
   >();
   private readonly responsePromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['response']>
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['response']>
   >();
   private readonly stepsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT_PARTIAL>['steps']>
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['steps']>
   >();
 
   private readonly addStream: (
@@ -372,7 +371,7 @@ class DefaultStreamTextResult<
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
-    output: Output<OUTPUT, OUTPUT_PARTIAL> | undefined;
+    output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     continueSteps: boolean;
     providerMetadata: ProviderMetadata | undefined;
     onChunk:
@@ -1263,6 +1262,11 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
     return createAsyncIterableStream(this.teeStream());
+  }
+
+  get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
+    // TODO implement
+    return createAsyncIterableStream(new ReadableStream());
   }
 
   private toDataStreamInternal({
