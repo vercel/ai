@@ -34,12 +34,13 @@ The AI SDK comes with several providers that you can use to interact with differ
 - [xAI Grok Provider](/providers/ai-sdk-providers/xai) (`@ai-sdk/xai`)
 - [Together.ai Provider](/providers/ai-sdk-providers/togetherai) (`@ai-sdk/togetherai`)
 - [Cohere Provider](/providers/ai-sdk-providers/cohere) (`@ai-sdk/cohere`)
-- [Groq](/providers/ai-sdk-providers/groq) (`@ai-sdk/groq`)
+- [Fireworks Provider](/providers/ai-sdk-providers/fireworks) (`@ai-sdk/fireworks`)
+- [DeepInfra Provider](/providers/ai-sdk-providers/deepinfra) (`@ai-sdk/deepinfra`)
+- [Groq Provider](/providers/ai-sdk-providers/groq) (`@ai-sdk/groq`)
 
 You can also use the OpenAI provider with OpenAI-compatible APIs:
 
 - [Perplexity](/providers/ai-sdk-providers/perplexity)
-- [Fireworks](/providers/ai-sdk-providers/fireworks)
 - [LM Studio](/providers/openai-compatible-providers/lmstudio)
 - [Baseten](/providers/openai-compatible-providers/baseten)
 
@@ -49,14 +50,16 @@ The open-source community has created the following providers:
 
 - [Ollama Provider](/providers/community-providers/ollama) (`ollama-ai-provider`)
 - [ChromeAI Provider](/providers/community-providers/chrome-ai) (`chrome-ai`)
-- [AnthropicVertex Provider](/providers/community-providers/anthropic-vertex-ai) (`anthropic-vertex-ai`)
 - [FriendliAI Provider](/providers/community-providers/friendliai) (`@friendliai/ai-provider`)
 - [Portkey Provider](/providers/community-providers/portkey) (`@portkey-ai/vercel-provider`)
 - [Cloudflare Workers AI Provider](/providers/community-providers/cloudflare-workers-ai) (`workers-ai-provider`)
+- [OpenRouter Provider](/providers/community-providers/openrouter) (`@openrouter/ai-sdk-provider`)
 - [Crosshatch Provider](/providers/community-providers/crosshatch) (`@crosshatch/ai-provider`)
 - [Mixedbread Provider](/providers/community-providers/mixedbread) (`mixedbread-ai-provider`)
 - [Voyage AI Provider](/providers/community-providers/voyage-ai) (`voyage-ai-provider`)
+- [Mem0 Provider](/providers/community-providers/mem0)(`@mem0/vercel-ai-provider`)
 - [LLamaCpp Provider](/providers/community-providers/llama-cpp) (`llamacpp-ai-provider`)
+- [AnthropicVertex Provider](/providers/community-providers/anthropic-vertex-ai) (`anthropic-vertex-ai`)
 
 ## Model Capabilities
 
@@ -69,8 +72,9 @@ Here are the capabilities of popular models:
 | [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4o-mini`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4-turbo`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `o1`                         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `o1-mini`                    | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [OpenAI](/providers/ai-sdk-providers/openai)                             | `o1-preview`                 | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| [OpenAI](/providers/ai-sdk-providers/openai)                             | `o1-mini`                    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-5-sonnet-20241022` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-5-sonnet-20240620` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-5-haiku-20241022`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -81,10 +85,13 @@ Here are the capabilities of popular models:
 | [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai) | `gemini-2.0-flash-exp`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai) | `gemini-1.5-flash`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai) | `gemini-1.5-pro`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex)               | `gemini-2.0-flash-exp`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex)               | `gemini-1.5-flash`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex)               | `gemini-1.5-pro`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-2-1212`                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-2-vision-1212`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-beta`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-vision-beta`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-vision-beta`           | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | [Groq](/providers/ai-sdk-providers/groq)                                 | `llama-3.3-70b-versatile`    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Groq](/providers/ai-sdk-providers/groq)                                 | `llama-3.1-8b-instant`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | [Groq](/providers/ai-sdk-providers/groq)                                 | `mixtral-8x7b-32768`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

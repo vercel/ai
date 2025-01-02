@@ -1,5 +1,34 @@
 # @ai-sdk/openai
 
+## 1.0.12
+
+### Patch Changes
+
+- a4241ff: feat (provider/openai): add o3 reasoning model support
+
+## 1.0.11
+
+### Patch Changes
+
+- 5ed5e45: chore (config): Use ts-library.json tsconfig for no-UI libs.
+- Updated dependencies [5ed5e45]
+  - @ai-sdk/provider-utils@2.0.5
+  - @ai-sdk/provider@1.0.3
+
+## 1.0.10
+
+### Patch Changes
+
+- d4fad4e: fix (provider/openai): fix reasoning model detection
+
+## 1.0.9
+
+### Patch Changes
+
+- 3fab0fb: feat (provider/openai): support reasoning_effort setting
+- e956eed: feat (provider/openai): update model list and add o1
+- 6faab13: feat (provider/openai): simulated streaming setting
+
 ## 1.0.8
 
 ### Patch Changes

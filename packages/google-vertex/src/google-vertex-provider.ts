@@ -1,7 +1,8 @@
 import {
   LanguageModelV1,
-  NoSuchModelError,
   ProviderV1,
+  ImageModelV1,
+  NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -20,6 +21,10 @@ import {
 } from './google-vertex-embedding-settings';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import {
+  GoogleVertexImageModel,
+  GoogleVertexImageModelId,
+} from './google-vertex-image-model';
 
 export interface GoogleVertexProvider extends ProviderV1 {
   /**
@@ -34,6 +39,11 @@ Creates a model for text generation.
     modelId: GoogleVertexModelId,
     settings?: GoogleVertexSettings,
   ) => LanguageModelV1;
+
+  /**
+   * Creates a model for image generation.
+   */
+  image(modelId: GoogleVertexImageModelId): ImageModelV1;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -127,6 +137,14 @@ export function createVertex(
       baseURL: loadBaseURL(),
     });
 
+  const createImageModel = (modelId: GoogleVertexImageModelId) =>
+    new GoogleVertexImageModel(modelId, {
+      provider: `google.vertex.image`,
+      baseURL: loadBaseURL(),
+      headers: options.headers ?? {},
+      fetch: options.fetch,
+    });
+
   const provider = function (
     modelId: GoogleVertexModelId,
     settings?: GoogleVertexSettings,
@@ -145,6 +163,7 @@ export function createVertex(
   provider.rerankingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
   };
+  provider.image = createImageModel;
 
   return provider as GoogleVertexProvider;
 }

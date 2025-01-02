@@ -1,13 +1,18 @@
 // https://platform.openai.com/docs/models
 export type OpenAIChatModelId =
-  | 'o1-preview'
+  | 'o1'
+  | 'o1-2024-12-17'
   | 'o1-mini'
+  | 'o1-mini-2024-09-12'
+  | 'o1-preview'
+  | 'o1-preview-2024-09-12'
   | 'gpt-4o'
   | 'gpt-4o-2024-05-13'
   | 'gpt-4o-2024-08-06'
   | 'gpt-4o-2024-11-20'
   | 'gpt-4o-audio-preview'
   | 'gpt-4o-audio-preview-2024-10-01'
+  | 'gpt-4o-audio-preview-2024-12-17'
   | 'gpt-4o-mini'
   | 'gpt-4o-mini-2024-07-18'
   | 'gpt-4-turbo'
@@ -91,4 +96,17 @@ private models or when the images are not publicly accessible.
 Defaults to `false`.
    */
   downloadImages?: boolean;
+
+  /**
+Simulates streaming by using a normal generate call and returning it as a stream.
+Enable this if the model that you are using does not support streaming.
+
+Defaults to `false`.
+   */
+  simulateStreaming?: boolean;
+
+  /**
+Reasoning effort for reasoning models. Defaults to `medium`.
+   */
+  reasoningEffort?: 'low' | 'medium' | 'high';
 }

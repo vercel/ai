@@ -1,7 +1,8 @@
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { jsonSchema } from '@ai-sdk/ui-utils';
-import assert from 'node:assert';
+import assert, { fail } from 'node:assert';
 import { z } from 'zod';
+import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
@@ -10,6 +11,7 @@ const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
   finishReason: 'stop' as const,
   usage: { promptTokens: 10, completionTokens: 20 },
+  response: { id: 'id-1', timestamp: new Date(123), modelId: 'm-1' },
 };
 
 describe('output = "object"', () => {
@@ -693,6 +695,173 @@ describe('output = "object"', () => {
       expect(result.object).toStrictEqual({
         content: 'provider metadata test',
       });
+    });
+  });
+
+  describe('error handling', () => {
+    function verifyNoObjectGeneratedError(
+      error: unknown,
+      { message }: { message: string },
+    ) {
+      originalVerifyNoObjectGeneratedError(error, {
+        message,
+        response: {
+          id: 'id-1',
+          timestamp: new Date(123),
+          modelId: 'm-1',
+        },
+        usage: {
+          completionTokens: 20,
+          promptTokens: 10,
+          totalTokens: 30,
+        },
+      });
+    }
+
+    it('should throw NoObjectGeneratedError when schema validation fails in tool model', async () => {
+      try {
+        await generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              toolCalls: [
+                {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  args: `{ "content": 123 }`,
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'tool',
+          prompt: 'prompt',
+        });
+
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: response did not match schema.',
+        });
+      }
+    });
+
+    it('should throw NoObjectGeneratedError when schema validation fails in json model', async () => {
+      try {
+        await generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              text: `{ "content": 123 }`,
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+        });
+
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: response did not match schema.',
+        });
+      }
+    });
+
+    it('should throw NoObjectGeneratedError when parsing fails in tool model', async () => {
+      try {
+        await generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              toolCalls: [
+                {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  args: `{ broken json`,
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'tool',
+          prompt: 'prompt',
+        });
+
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: could not parse the response.',
+        });
+      }
+    });
+
+    it('should throw NoObjectGeneratedError when parsing fails in json model', async () => {
+      try {
+        await generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              text: '{ broken json',
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+        });
+
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: could not parse the response.',
+        });
+      }
+    });
+
+    it('should throw NoObjectGeneratedError when the tool was not called in tool mode', async () => {
+      try {
+        await generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              text: undefined,
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'tool',
+          prompt: 'prompt',
+        });
+
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: the tool was not called.',
+        });
+      }
+    });
+
+    it('should throw NoObjectGeneratedError when no text is available in json model', async () => {
+      try {
+        await generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              text: undefined,
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+        });
+
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: the model did not return a response.',
+        });
+      }
     });
   });
 });

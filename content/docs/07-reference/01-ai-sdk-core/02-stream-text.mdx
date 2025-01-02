@@ -471,9 +471,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_transform',
-      type: 'TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>',
+      type: '({ tools: TOOLS }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>',
       isOptional: true,
-      description: 'Optional transformation that is applied to the stream.',
+      description:
+        'Optional transformation that is applied to the stream. Tools are passed in for type inference.',
     },
     {
       name: 'experimental_providerMetadata',
@@ -1414,19 +1415,32 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
-              name: 'isContinued',
-              type: 'boolean',
-              description:
-                'True when there will be a continuation step with a continuation text.',
+              name: 'request',
+              type: 'RequestMetadata',
+              isOptional: true,
+              description: 'Request metadata.',
+              properties: [
+                {
+                  type: 'RequestMetadata',
+                  parameters: [
+                    {
+                      name: 'body',
+                      type: 'string',
+                      description:
+                        'Raw request HTTP body that was sent to the provider API as a string.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'response',
-              type: 'Response',
+              type: 'ResponseMetadata',
               isOptional: true,
               description: 'Response metadata.',
               properties: [
                 {
-                  type: 'Response',
+                  type: 'ResponseMetadata',
                   parameters: [
                     {
                       name: 'id',
@@ -1446,9 +1460,33 @@ To see `streamText` in action, check out [these examples](#examples).
                       description:
                         'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
                     },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      description: 'The response headers.',
+                    },
                   ],
                 },
               ],
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
+              name: 'experimental_providerMetadata',
+              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              isOptional: true,
+              description:
+                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+            },
+            {
+              name: 'isContinued',
+              type: 'boolean',
+              description:
+                'True when there will be a continuation step with a continuation text.',
             },
           ],
         },
@@ -1520,9 +1558,21 @@ To see `streamText` in action, check out [these examples](#examples).
                       description:
                         'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
                     },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      description: 'The response headers.',
+                    },
                   ],
                 },
               ],
+            },
+            {
+              name: 'experimental_providerMetadata',
+              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              isOptional: true,
+              description:
+                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
             },
           ],
         },

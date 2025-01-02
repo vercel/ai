@@ -10,12 +10,13 @@ import {
 import { safeValidateTypes, ValidationResult } from '@ai-sdk/provider-utils';
 import { asSchema, DeepPartial, Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
+import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
-import { NoObjectGeneratedError } from './no-object-generated-error';
 import { ObjectStreamPart } from './stream-object-result';
+import { LanguageModelResponseMetadata, LanguageModelUsage } from '../types';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'enum' | 'no-schema';
@@ -35,7 +36,14 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
     partial: PARTIAL;
     textDelta: string;
   }>;
-  validateFinalResult(value: JSONValue | undefined): ValidationResult<RESULT>;
+  validateFinalResult(
+    value: JSONValue | undefined,
+    context: {
+      text: string;
+      response: LanguageModelResponseMetadata;
+      usage: LanguageModelUsage;
+    },
+  ): ValidationResult<RESULT>;
 
   createElementStream(
     originalStream: ReadableStream<ObjectStreamPart<PARTIAL>>,
@@ -52,9 +60,22 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
 
   validateFinalResult(
     value: JSONValue | undefined,
+    context: {
+      text: string;
+      response: LanguageModelResponseMetadata;
+      usage: LanguageModelUsage;
+    },
   ): ValidationResult<JSONValue> {
     return value === undefined
-      ? { success: false, error: new NoObjectGeneratedError() }
+      ? {
+          success: false,
+          error: new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+            text: context.text,
+            response: context.response,
+            usage: context.usage,
+          }),
+        }
       : { success: true, value };
   },
 
@@ -212,35 +233,45 @@ const arrayOutputStrategy = <ELEMENT>(
     ) {
       let publishedElements = 0;
 
-      return createAsyncIterableStream(originalStream, {
-        transform(chunk, controller) {
-          switch (chunk.type) {
-            case 'object': {
-              const array = chunk.object;
+      return createAsyncIterableStream(
+        originalStream.pipeThrough(
+          new TransformStream<ObjectStreamPart<ELEMENT[]>, ELEMENT>({
+            transform(chunk, controller) {
+              switch (chunk.type) {
+                case 'object': {
+                  const array = chunk.object;
 
-              // publish new elements one by one:
-              for (; publishedElements < array.length; publishedElements++) {
-                controller.enqueue(array[publishedElements]);
+                  // publish new elements one by one:
+                  for (
+                    ;
+                    publishedElements < array.length;
+                    publishedElements++
+                  ) {
+                    controller.enqueue(array[publishedElements]);
+                  }
+
+                  break;
+                }
+
+                case 'text-delta':
+                case 'finish':
+                  break;
+
+                case 'error':
+                  controller.error(chunk.error);
+                  break;
+
+                default: {
+                  const _exhaustiveCheck: never = chunk;
+                  throw new Error(
+                    `Unsupported chunk type: ${_exhaustiveCheck}`,
+                  );
+                }
               }
-
-              break;
-            }
-
-            case 'text-delta':
-            case 'finish':
-              break;
-
-            case 'error':
-              controller.error(chunk.error);
-              break;
-
-            default: {
-              const _exhaustiveCheck: never = chunk;
-              throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
-            }
-          }
-        },
-      });
+            },
+          }),
+        ),
+      );
     },
   };
 };

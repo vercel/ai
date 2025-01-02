@@ -13,6 +13,7 @@ import {
 } from '@ai-sdk/ui-utils';
 import { ServerResponse } from 'http';
 import { z } from 'zod';
+import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -798,14 +799,27 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     });
 
                     // resolve the object promise with the latest object:
-                    const validationResult =
-                      outputStrategy.validateFinalResult(latestObjectJson);
+                    const validationResult = outputStrategy.validateFinalResult(
+                      latestObjectJson,
+                      {
+                        text: accumulatedText,
+                        response,
+                        usage,
+                      },
+                    );
 
                     if (validationResult.success) {
                       object = validationResult.value;
                       self.objectPromise.resolve(object);
                     } else {
-                      error = validationResult.error;
+                      error = new NoObjectGeneratedError({
+                        message:
+                          'No object generated: response did not match schema.',
+                        cause: validationResult.error,
+                        text: accumulatedText,
+                        response,
+                        usage,
+                      });
                       self.objectPromise.reject(error);
                     }
 
@@ -940,28 +954,32 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get partialObjectStream(): AsyncIterableStream<PARTIAL> {
-    return createAsyncIterableStream(this.stitchableStream.stream, {
-      transform(chunk, controller) {
-        switch (chunk.type) {
-          case 'object':
-            controller.enqueue(chunk.object);
-            break;
+    return createAsyncIterableStream(
+      this.stitchableStream.stream.pipeThrough(
+        new TransformStream<ObjectStreamPart<PARTIAL>, PARTIAL>({
+          transform(chunk, controller) {
+            switch (chunk.type) {
+              case 'object':
+                controller.enqueue(chunk.object);
+                break;
 
-          case 'text-delta':
-          case 'finish':
-            break;
+              case 'text-delta':
+              case 'finish':
+                break;
 
-          case 'error':
-            controller.error(chunk.error);
-            break;
+              case 'error':
+                controller.error(chunk.error);
+                break;
 
-          default: {
-            const _exhaustiveCheck: never = chunk;
-            throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
-          }
-        }
-      },
-    });
+              default: {
+                const _exhaustiveCheck: never = chunk;
+                throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
+              }
+            }
+          },
+        }),
+      ),
+    );
   }
 
   get elementStream(): ELEMENT_STREAM {
@@ -971,36 +989,36 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get textStream(): AsyncIterableStream<string> {
-    return createAsyncIterableStream(this.stitchableStream.stream, {
-      transform(chunk, controller) {
-        switch (chunk.type) {
-          case 'text-delta':
-            controller.enqueue(chunk.textDelta);
-            break;
+    return createAsyncIterableStream(
+      this.stitchableStream.stream.pipeThrough(
+        new TransformStream<ObjectStreamPart<PARTIAL>, string>({
+          transform(chunk, controller) {
+            switch (chunk.type) {
+              case 'text-delta':
+                controller.enqueue(chunk.textDelta);
+                break;
 
-          case 'object':
-          case 'finish':
-            break;
+              case 'object':
+              case 'finish':
+                break;
 
-          case 'error':
-            controller.error(chunk.error);
-            break;
+              case 'error':
+                controller.error(chunk.error);
+                break;
 
-          default: {
-            const _exhaustiveCheck: never = chunk;
-            throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
-          }
-        }
-      },
-    });
+              default: {
+                const _exhaustiveCheck: never = chunk;
+                throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
+              }
+            }
+          },
+        }),
+      ),
+    );
   }
 
   get fullStream(): AsyncIterableStream<ObjectStreamPart<PARTIAL>> {
-    return createAsyncIterableStream(this.stitchableStream.stream, {
-      transform(chunk, controller) {
-        controller.enqueue(chunk);
-      },
-    });
+    return createAsyncIterableStream(this.stitchableStream.stream);
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {

@@ -34,8 +34,6 @@ There are a set of end-to-end provider integration tests under `src/e2e`. These 
 
 The intent is to allow an easy way for an AI SDK developer to smoke-test provider support for a set of common features. Test filtering can allow slicing to a subset of tests. Most of the test cases in these end-to-end tests are also represented in some form as basic example scripts in the appropriate sub-directory of the `src` directory.
 
-The tests run with the `vitest.node.config.js` configuration.
-
 ```sh
 pnpm run test:e2e:all
 ```

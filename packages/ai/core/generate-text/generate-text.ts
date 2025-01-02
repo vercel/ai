@@ -19,6 +19,7 @@ import { CoreTool } from '../tool/tool';
 import { CoreToolChoice, LanguageModel, ProviderMetadata } from '../types';
 import {
   LanguageModelUsage,
+  addLanguageModelUsage,
   calculateLanguageModelUsage,
 } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
@@ -28,8 +29,8 @@ import { parseToolCall } from './parse-tool-call';
 import { StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
-import { ToolResultArray } from './tool-result';
 import { ToolCallRepairFunction } from './tool-call-repair';
+import { ToolResultArray } from './tool-result';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
@@ -240,7 +241,7 @@ A function that attempts to repair a tool call that failed to parse.
         [];
       let text = '';
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
-      const usage: LanguageModelUsage = {
+      let usage: LanguageModelUsage = {
         completionTokens: 0,
         promptTokens: 0,
         totalTokens: 0,
@@ -390,9 +391,7 @@ A function that attempts to repair a tool call that failed to parse.
         const currentUsage = calculateLanguageModelUsage(
           currentModelResponse.usage,
         );
-        usage.completionTokens += currentUsage.completionTokens;
-        usage.promptTokens += currentUsage.promptTokens;
-        usage.totalTokens += currentUsage.totalTokens;
+        usage = addLanguageModelUsage(usage, currentUsage);
 
         // check if another step is needed:
         let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
@@ -509,7 +508,15 @@ A function that attempts to repair a tool call that failed to parse.
       return new DefaultGenerateTextResult({
         text,
         output:
-          output == null ? (undefined as never) : output.parseOutput({ text }),
+          output == null
+            ? (undefined as never)
+            : output.parseOutput(
+                { text },
+                {
+                  response: currentModelResponse.response,
+                  usage,
+                },
+              ),
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
@@ -607,6 +614,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
       });
 
       return {
+        type: 'tool-result',
         toolCallId,
         toolName,
         args,
