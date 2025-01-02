@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.23
+
+### Patch Changes
+
+- bc4cd19: feat (ai/core): consolidate whitespace in smooth stream
+
 ## 4.0.22
 
 ### Patch Changes
