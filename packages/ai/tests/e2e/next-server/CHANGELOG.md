@@ -4,6 +4,20 @@
 
 ### Patch Changes
 
+- ai@4.0.22
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [a8669a2]
+- Updated dependencies [6fb3e91]
+  - ai@4.0.21
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [da9d240]
 - Updated dependencies [6f1bfde]
   - ai@4.0.20
