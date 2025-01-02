@@ -1,5 +1,11 @@
 # @ai-sdk/fireworks
 
+## 0.0.8
+
+### Patch Changes
+
+- 546a458: feat (provider/fireworks): update common models
+
 ## 0.0.7
 
 ### Patch Changes
