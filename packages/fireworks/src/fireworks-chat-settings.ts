@@ -3,7 +3,7 @@ import { OpenAICompatibleChatSettings } from '@ai-sdk/openai-compatible';
 // https://docs.fireworks.ai/docs/serverless-models#chat-models
 // Below is just a subset of the available models.
 export type FireworksChatModelId =
-  | 'accounts/fireworks/models/llama-v3p3-70b-instruct'
+  | 'accounts/fireworks/models/deepseek-v3'
   | 'accounts/fireworks/models/llama-v3p3-70b-instruct'
   | 'accounts/fireworks/models/llama-v3p2-3b-instruct'
   | 'accounts/fireworks/models/llama-v3p1-405b-instruct'
@@ -15,6 +15,8 @@ export type FireworksChatModelId =
   | 'accounts/fireworks/models/qwen2p5-72b-instruct'
   | 'accounts/fireworks/models/qwen-qwq-32b-preview'
   | 'accounts/fireworks/models/qwen2-vl-72b-instruct'
+  | 'accounts/fireworks/models/llama-v3p2-11b-vision-instruct'
+  | 'accounts/fireworks/models/yi-large'
   | (string & {});
 
 export interface FireworksChatSettings extends OpenAICompatibleChatSettings {}
