@@ -45,12 +45,13 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
 
         buffer += chunk.textDelta;
 
-        // Stream out complete words when whitespace is found
-        while (buffer.match(/\s/)) {
-          const whitespaceIndex = buffer.search(/\s/);
-          const word = buffer.slice(0, whitespaceIndex + 1);
-          controller.enqueue({ type: 'text-delta', textDelta: word });
-          buffer = buffer.slice(whitespaceIndex + 1);
+        // Stream out complete words including their optional leading
+        // and required trailing whitespace sequences
+        const regexp = /\s*\S+\s+/m;
+        while (regexp.test(buffer)) {
+          const chunk = buffer.match(regexp)![0];
+          controller.enqueue({ type: 'text-delta', textDelta: chunk });
+          buffer = buffer.slice(chunk.length);
 
           if (delayInMs > 0) {
             await delay(delayInMs);
