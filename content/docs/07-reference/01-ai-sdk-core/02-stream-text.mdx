@@ -686,6 +686,41 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'experimental_output',
+      type: 'Output',
+      isOptional: true,
+      description: 'Experimental setting for generating structured outputs.',
+      properties: [
+        {
+          type: 'Output',
+          parameters: [
+            {
+              name: 'Output.text()',
+              type: 'Output',
+              description: 'Forward text output.',
+            },
+            {
+              name: 'Output.object()',
+              type: 'Output',
+              description: 'Generate a JSON object of type OBJECT.',
+              properties: [
+                {
+                  type: 'Options',
+                  parameters: [
+                    {
+                      name: 'schema',
+                      type: 'Schema<OBJECT>',
+                      description: 'The schema of the JSON object to generate.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'onStepFinish',
       type: '(result: onStepFinishResult) => Promise<void> | void',
       isOptional: true,
@@ -1577,6 +1612,12 @@ To see `streamText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'experimental_partialOutputStream',
+      type: 'AsyncIterableStream<PARTIAL_OUTPUT>',
+      description:
+        'A stream of partial outputs. It uses the `experimental_output` specification.',
     },
     {
       name: 'pipeDataStreamToResponse',
