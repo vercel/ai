@@ -10,22 +10,46 @@ import {
   streamObject,
   embed,
   embedMany,
+  experimental_generateImage as generateImage,
 } from 'ai';
 import fs from 'fs';
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 
-const LONG_TEST_MILLIS = 10000;
+const LONG_TEST_MILLIS = 20000;
+
+const mimeTypeSignatures = [
+  { mimeType: 'image/gif' as const, bytes: [0x47, 0x49, 0x46] },
+  { mimeType: 'image/png' as const, bytes: [0x89, 0x50, 0x4e, 0x47] },
+  { mimeType: 'image/jpeg' as const, bytes: [0xff, 0xd8] },
+  { mimeType: 'image/webp' as const, bytes: [0x52, 0x49, 0x46, 0x46] },
+];
+
+function detectImageMimeType(
+  image: Uint8Array,
+): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' | undefined {
+  for (const { bytes, mimeType } of mimeTypeSignatures) {
+    if (
+      image.length >= bytes.length &&
+      bytes.every((byte, index) => image[index] === byte)
+    ) {
+      return mimeType;
+    }
+  }
+
+  return undefined;
+}
 
 // Model variants to test against
 const MODEL_VARIANTS = {
   chat: [
     'gemini-1.5-flash',
-    // Pro models have low quota limits and can only be used if you have a
-    // Google Cloud account with appropriate billing enabled.
+    // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
+    // 'gemini-2.0-flash-exp',
     // 'gemini-1.5-pro-001',
     // 'gemini-1.0-pro-001',
   ],
   embedding: ['textembedding-gecko', 'textembedding-gecko-multilingual'],
+  image: ['imagen-3.0-generate-001', 'imagen-3.0-fast-generate-001'],
 } as const;
 
 // Define runtime variants
@@ -39,6 +63,36 @@ const RUNTIME_VARIANTS = {
     vertex: vertexNode,
   },
 } as const;
+
+// Add these helper functions near the top of the file
+const verifyGroundingMetadata = (groundingMetadata: any) => {
+  expect(Array.isArray(groundingMetadata?.webSearchQueries)).toBe(true);
+  expect(groundingMetadata?.webSearchQueries?.length).toBeGreaterThan(0);
+
+  // Verify search entry point exists
+  expect(groundingMetadata?.searchEntryPoint?.renderedContent).toBeDefined();
+
+  // Verify grounding supports
+  expect(Array.isArray(groundingMetadata?.groundingSupports)).toBe(true);
+  const support = groundingMetadata?.groundingSupports?.[0];
+  expect(support?.segment).toBeDefined();
+  expect(Array.isArray(support?.groundingChunkIndices)).toBe(true);
+  expect(Array.isArray(support?.confidenceScores)).toBe(true);
+};
+
+const verifySafetyRatings = (safetyRatings: any[]) => {
+  expect(Array.isArray(safetyRatings)).toBe(true);
+  expect(safetyRatings?.length).toBeGreaterThan(0);
+
+  // Verify each safety rating has required properties
+  safetyRatings?.forEach(rating => {
+    expect(rating.category).toBeDefined();
+    expect(rating.probability).toBeDefined();
+    expect(typeof rating.probabilityScore).toBe('number');
+    expect(rating.severity).toBeDefined();
+    expect(typeof rating.severityScore).toBe('number');
+  });
+};
 
 describe.each(Object.values(RUNTIME_VARIANTS))(
   'Google Vertex E2E Tests - $name',
@@ -82,7 +136,7 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         expect(result.usage?.totalTokens).toBeGreaterThan(0);
       });
 
-      it('should generate text with search grounding metadata in response when search grounding is enabled', async () => {
+      it('should include search grounding metadata in response when search grounding is enabled', async () => {
         const model = vertex(modelId, {
           useSearchGrounding: true,
         });
@@ -96,43 +150,26 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         expect(result.text.toLowerCase()).toContain('tokyo');
         expect(result.usage?.totalTokens).toBeGreaterThan(0);
 
-        // Verify specific grounding metadata fields
         const metadata = result.experimental_providerMetadata?.google as
           | GoogleGenerativeAIProviderMetadata
           | undefined;
-        const groundingMetadata = metadata?.groundingMetadata;
-        expect(Array.isArray(groundingMetadata?.webSearchQueries)).toBe(true);
-        expect(groundingMetadata?.webSearchQueries?.length).toBeGreaterThan(0);
+        verifyGroundingMetadata(metadata?.groundingMetadata);
+      });
 
-        // Verify search entry point exists
-        expect(
-          groundingMetadata?.searchEntryPoint?.renderedContent,
-        ).toBeDefined();
-
-        // Verify grounding supports
-        expect(Array.isArray(groundingMetadata?.groundingSupports)).toBe(true);
-        const support = groundingMetadata?.groundingSupports?.[0];
-        expect(support?.segment).toBeDefined();
-        expect(Array.isArray(support?.groundingChunkIndices)).toBe(true);
-        expect(Array.isArray(support?.confidenceScores)).toBe(true);
-
-        // Verify safety ratings
-        const safetyRatings = metadata?.safetyRatings;
-        expect(Array.isArray(safetyRatings)).toBe(true);
-        expect(safetyRatings?.length).toBeGreaterThan(0);
-
-        // Verify each safety rating has required properties
-        safetyRatings?.forEach(rating => {
-          expect(rating.category).toBeDefined();
-          expect(rating.probability).toBeDefined();
-          expect(typeof rating.probabilityScore).toBe('number');
-          expect(rating.severity).toBeDefined();
-          expect(typeof rating.severityScore).toBe('number');
+      it('should include safety ratings in response when search grounding is enabled', async () => {
+        const model = vertex(modelId, {
+          useSearchGrounding: true,
         });
 
-        // Basic response checks
-        expect(result.text).toBeTruthy();
-        expect(result.usage?.totalTokens).toBeGreaterThan(0);
+        const result = await generateText({
+          model,
+          prompt: 'What is the current population of Tokyo?',
+        });
+
+        const metadata = result.experimental_providerMetadata?.google as
+          | GoogleGenerativeAIProviderMetadata
+          | undefined;
+        verifySafetyRatings(metadata?.safetyRatings ?? []);
       });
 
       it('should generate text with PDF input', async () => {
@@ -234,7 +271,7 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
       });
 
-      it('should stream text with search grounding metadata when search grounding is enabled', async () => {
+      it('should include search grounding metadata when streaming with search grounding enabled', async () => {
         const model = vertex(modelId, {
           useSearchGrounding: true,
         });
@@ -249,49 +286,35 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
           chunks.push(chunk);
         }
 
-        // Get the complete response metadata
         const metadata = (await result.experimental_providerMetadata)
           ?.google as GoogleGenerativeAIProviderMetadata | undefined;
-        const groundingMetadata = metadata?.groundingMetadata;
 
         const completeText = chunks.join('');
         expect(completeText).toBeTruthy();
         expect(completeText.toLowerCase()).toContain('tokyo');
         expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
 
-        // Verify specific grounding metadata fields
-        expect(Array.isArray(groundingMetadata?.webSearchQueries)).toBe(true);
-        expect(groundingMetadata?.webSearchQueries?.length).toBeGreaterThan(0);
+        verifyGroundingMetadata(metadata?.groundingMetadata);
+      });
 
-        // Verify search entry point exists
-        expect(
-          groundingMetadata?.searchEntryPoint?.renderedContent,
-        ).toBeDefined();
-
-        // Verify grounding supports
-        expect(Array.isArray(groundingMetadata?.groundingSupports)).toBe(true);
-        const support = groundingMetadata?.groundingSupports?.[0];
-        expect(support?.segment).toBeDefined();
-        expect(Array.isArray(support?.groundingChunkIndices)).toBe(true);
-        expect(Array.isArray(support?.confidenceScores)).toBe(true);
-
-        // Verify safety ratings
-        const safetyRatings = metadata?.safetyRatings;
-        expect(Array.isArray(safetyRatings)).toBe(true);
-        expect(safetyRatings?.length).toBeGreaterThan(0);
-
-        // Verify each safety rating has required properties
-        safetyRatings?.forEach(rating => {
-          expect(rating.category).toBeDefined();
-          expect(rating.probability).toBeDefined();
-          expect(typeof rating.probabilityScore).toBe('number');
-          expect(rating.severity).toBeDefined();
-          expect(typeof rating.severityScore).toBe('number');
+      it('should include safety ratings when streaming with search grounding enabled', async () => {
+        const model = vertex(modelId, {
+          useSearchGrounding: true,
         });
 
-        // Basic response checks
-        expect(chunks.join('')).toBeTruthy();
-        expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+        const result = streamText({
+          model,
+          prompt: 'What is the current population of Tokyo?',
+        });
+
+        for await (const _ of result.textStream) {
+          // consume the stream
+        }
+
+        const metadata = (await result.experimental_providerMetadata)
+          ?.google as GoogleGenerativeAIProviderMetadata | undefined;
+
+        verifySafetyRatings(metadata?.safetyRatings ?? []);
       });
 
       it('should stream object', async () => {
@@ -392,6 +415,36 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         expect(result.text.toLowerCase()).toContain('cat');
         expect(result.usage?.totalTokens).toBeGreaterThan(0);
       });
+
+      it(
+        'should generate text from audio input',
+        { timeout: LONG_TEST_MILLIS },
+        async () => {
+          const model = vertex(modelId);
+          const result = await generateText({
+            model,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Output a transcript of spoken words. Break up transcript lines when there are pauses. Include timestamps in the format of HH:MM:SS.SSS.',
+                  },
+                  {
+                    type: 'file',
+                    data: Buffer.from(fs.readFileSync('./data/galileo.mp3')),
+                    mimeType: 'audio/mpeg',
+                  },
+                ],
+              },
+            ],
+          });
+          expect(result.text).toBeTruthy();
+          expect(result.text.toLowerCase()).toContain('galileo');
+          expect(result.usage?.totalTokens).toBeGreaterThan(0);
+        },
+      );
     });
 
     describe.each(MODEL_VARIANTS.embedding)('Embedding Model: %s', modelId => {
@@ -421,6 +474,43 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
         expect(Array.isArray(result.embeddings)).toBe(true);
         expect(result.embeddings.length).toBe(3);
         expect(result.usage?.tokens).toBeGreaterThan(0);
+      });
+    });
+
+    describe.each(MODEL_VARIANTS.image)('Image Model: %s', modelId => {
+      it('should generate an image with correct dimensions and format', async () => {
+        const model = vertex.image(modelId);
+        const { image } = await generateImage({
+          model,
+          prompt: 'A burrito launched through a tunnel',
+          providerOptions: {
+            vertex: {
+              aspectRatio: '3:4',
+            },
+          },
+        });
+
+        // Verify we got a Uint8Array back
+        expect(image.uint8Array).toBeInstanceOf(Uint8Array);
+
+        // Check the file size is reasonable (at least 10KB, less than 10MB)
+        expect(image.uint8Array.length).toBeGreaterThan(10 * 1024);
+        expect(image.uint8Array.length).toBeLessThan(10 * 1024 * 1024);
+
+        // Verify PNG format
+        const mimeType = detectImageMimeType(image.uint8Array);
+        expect(mimeType).toBe('image/png');
+
+        // Create a temporary buffer to verify image dimensions
+        const tempBuffer = Buffer.from(image.uint8Array);
+
+        // PNG dimensions are stored at bytes 16-24
+        const width = tempBuffer.readUInt32BE(16);
+        const height = tempBuffer.readUInt32BE(20);
+
+        // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#performance-limits
+        expect(width).toBe(896);
+        expect(height).toBe(1280);
       });
     });
   },

@@ -1199,23 +1199,23 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   get textStream(): AsyncIterableStream<string> {
-    return createAsyncIterableStream(this.teeStream(), {
-      transform(chunk, controller) {
-        if (chunk.type === 'text-delta') {
-          controller.enqueue(chunk.textDelta);
-        } else if (chunk.type === 'error') {
-          controller.error(chunk.error);
-        }
-      },
-    });
+    return createAsyncIterableStream(
+      this.teeStream().pipeThrough(
+        new TransformStream<TextStreamPart<TOOLS>, string>({
+          transform(chunk, controller) {
+            if (chunk.type === 'text-delta') {
+              controller.enqueue(chunk.textDelta);
+            } else if (chunk.type === 'error') {
+              controller.error(chunk.error);
+            }
+          },
+        }),
+      ),
+    );
   }
 
   get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
-    return createAsyncIterableStream(this.teeStream(), {
-      transform(chunk, controller) {
-        controller.enqueue(chunk);
-      },
-    });
+    return createAsyncIterableStream(this.teeStream());
   }
 
   private toDataStreamInternal({

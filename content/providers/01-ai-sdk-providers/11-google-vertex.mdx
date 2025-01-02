@@ -294,6 +294,13 @@ The following optional settings are available for Google Vertex models:
 
   Optional. When enabled, the model will [use Google search to ground the response](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview).
 
+- **audioTimestamp** _boolean_
+
+  Optional. Enables timestamp understanding for audio files. Defaults to false.
+
+  This is useful for generating transcripts with accurate timestamps.
+  Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding) for usage details.
+
 You can use Google Vertex language models to generate text with the `generateText` function:
 
 ```ts highlight="1,4"
@@ -506,10 +513,11 @@ const result = await generateObject({
 
 ### Model Capabilities
 
-| Model              | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gemini-1.5-flash` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-pro`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-2.0-flash-exp` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Google Vertex AI
@@ -550,6 +558,33 @@ The following optional settings are available for Google Vertex AI embedding mod
   The table above lists popular models. You can also pass any available provider
   model ID as a string if needed.
 </Note>
+
+### Image Models
+
+You can create [Imagen](https://cloud.google.com/vertex-ai/generative-ai/docs/image/overview) models that call the [Imagen on Vertex AI API](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images)
+using the `.image()` factory method. For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+Note that Imagen does not support an explicit size parameter. Instead, size is driven by the [aspect ratio](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) of the input image.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: vertex.image('imagen-3.0-generate-001'),
+  prompt: 'A futuristic cityscape at sunset',
+  providerOptions: {
+    vertex: { aspectRatio: '16:9' },
+  },
+});
+```
+
+#### Model Capabilities
+
+| Model                          | Supported Sizes                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `imagen-3.0-generate-001`      | See [aspect ratios](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) |
+| `imagen-3.0-fast-generate-001` | See [aspect ratios](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) |
 
 ## Google Vertex Anthropic Provider Usage
 

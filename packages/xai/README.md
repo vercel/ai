@@ -26,7 +26,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-beta'),
+  model: xai('grok-2-1212'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```

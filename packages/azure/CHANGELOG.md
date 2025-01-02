@@ -1,5 +1,38 @@
 # @ai-sdk/azure
 
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [a4241ff]
+  - @ai-sdk/openai@1.0.12
+
+## 1.0.13
+
+### Patch Changes
+
+- 5ed5e45: chore (config): Use ts-library.json tsconfig for no-UI libs.
+- Updated dependencies [5ed5e45]
+  - @ai-sdk/provider-utils@2.0.5
+  - @ai-sdk/provider@1.0.3
+  - @ai-sdk/openai@1.0.11
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [d4fad4e]
+  - @ai-sdk/openai@1.0.10
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [3fab0fb]
+- Updated dependencies [e956eed]
+- Updated dependencies [6faab13]
+  - @ai-sdk/openai@1.0.9
+
 ## 1.0.10
 
 ### Patch Changes

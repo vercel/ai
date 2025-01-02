@@ -411,6 +411,66 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass reasoningEffort setting from provider metadata', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('o1-mini');
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: { reasoningEffort: 'low' },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'low',
+    });
+  });
+
+  it('should pass reasoningEffort setting from settings', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('o1-mini', { reasoningEffort: 'high' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'high',
+    });
+  });
+
+  it('should prioritize reasoningEffort from provider metadata over settings', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('o1-mini', { reasoningEffort: 'high' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: { reasoningEffort: 'low' },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'low',
+    });
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -2121,5 +2181,229 @@ describe('doStream', () => {
         },
       ]);
     });
+  });
+});
+
+describe('doStream simulated streaming', () => {
+  const server = new JsonTestServer(
+    'https://api.openai.com/v1/chat/completions',
+  );
+
+  server.setupTestEnvironment();
+
+  function prepareJsonResponse({
+    content = '',
+    tool_calls,
+    function_call,
+    usage = {
+      prompt_tokens: 4,
+      total_tokens: 34,
+      completion_tokens: 30,
+    },
+    logprobs = null,
+    finish_reason = 'stop',
+    id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+    created = 1711115037,
+    model = 'gpt-3.5-turbo-0125',
+  }: {
+    content?: string;
+    tool_calls?: Array<{
+      id: string;
+      type: 'function';
+      function: {
+        name: string;
+        arguments: string;
+      };
+    }>;
+    function_call?: {
+      name: string;
+      arguments: string;
+    };
+    usage?: {
+      prompt_tokens?: number;
+      total_tokens?: number;
+      completion_tokens?: number;
+      completion_tokens_details?: {
+        reasoning_tokens?: number;
+      };
+      prompt_tokens_details?: {
+        cached_tokens?: number;
+      };
+    };
+    logprobs?: {
+      content:
+        | {
+            token: string;
+            logprob: number;
+            top_logprobs: { token: string; logprob: number }[];
+          }[]
+        | null;
+    } | null;
+    finish_reason?: string;
+    created?: number;
+    id?: string;
+    model?: string;
+  } = {}) {
+    server.responseBodyJson = {
+      id,
+      object: 'chat.completion',
+      created,
+      model,
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content,
+            tool_calls,
+            function_call,
+          },
+          logprobs,
+          finish_reason,
+        },
+      ],
+      usage,
+      system_fingerprint: 'fp_3bc1b5746c',
+    };
+  }
+
+  it('should stream text delta', async () => {
+    prepareJsonResponse({ content: 'Hello, World!', model: 'o1-preview' });
+    const model = provider.chat('o1', {
+      simulateStreaming: true,
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        modelId: 'o1-preview',
+        timestamp: expect.any(Date),
+      },
+      { type: 'text-delta', textDelta: 'Hello, World!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 30 },
+        logprobs: undefined,
+        providerMetadata: undefined,
+      },
+    ]);
+  });
+
+  it('should stream tool calls', async () => {
+    prepareJsonResponse({
+      model: 'o1-preview',
+      tool_calls: [
+        {
+          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            arguments: '{"value":"Sparkle Day"}',
+          },
+        },
+      ],
+    });
+
+    const model = provider.chat('o1', {
+      simulateStreaming: true,
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        modelId: 'o1-preview',
+        timestamp: expect.any(Date),
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        args: '{"value":"Sparkle Day"}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 30 },
+        logprobs: undefined,
+        providerMetadata: undefined,
+      },
+    ]);
+  });
+
+  it('should send reasoning tokens', async () => {
+    prepareJsonResponse({
+      content: 'Hello, World!',
+      model: 'o1-preview',
+      usage: {
+        prompt_tokens: 15,
+        completion_tokens: 20,
+        total_tokens: 35,
+        completion_tokens_details: {
+          reasoning_tokens: 10,
+        },
+      },
+    });
+
+    const model = provider.chat('o1', {
+      simulateStreaming: true,
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        modelId: 'o1-preview',
+        timestamp: expect.any(Date),
+      },
+      { type: 'text-delta', textDelta: 'Hello, World!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 15, completionTokens: 20 },
+        logprobs: undefined,
+        providerMetadata: {
+          openai: {
+            reasoningTokens: 10,
+          },
+        },
+      },
+    ]);
   });
 });

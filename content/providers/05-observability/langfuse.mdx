@@ -1,6 +1,6 @@
 ---
 title: Langfuse
-description: Monitor, evaluate and your AI SDK application with Langfuse
+description: Monitor, evaluate and debug your AI SDK application with Langfuse
 ---
 
 # Langfuse Observability
@@ -65,25 +65,12 @@ Now you need to register this exporter via the OpenTelemetry SDK.
 <Tabs items={["Next.js","Node.js"]}>
 <Tab>
 
-Next.js has experimental support for OpenTelemetry instrumentation on the framework level. Learn more about it in the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry).
+Next.js has support for OpenTelemetry instrumentation on the framework level. Learn more about it in the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry).
 
 Install dependencies:
 
 ```bash
 npm install @vercel/otel langfuse-vercel @opentelemetry/api-logs @opentelemetry/instrumentation @opentelemetry/sdk-logs
-```
-
-Enable the `instrumentationHook` in your `next.config.js`:
-
-```ts filename="next.config.js" highlight="4"
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    instrumentationHook: true,
-  },
-};
-
-module.exports = nextConfig;
 ```
 
 Add `LangfuseExporter` to your instrumentation:
@@ -151,6 +138,48 @@ Check out the sample repository ([langfuse/langfuse-vercel-ai-nextjs-example](ht
 on the [next-openai](https://github.com/vercel/ai/tree/main/examples/next-openai) template to showcase the integration of Langfuse with Next.js and AI SDK.
 
 ## Configuration
+
+### Group multiple executions in one trace
+
+You can open a Langfuse trace and pass the trace ID to AI SDK calls to group multiple execution spans under one trace. The passed name in `functionId` will be the root span name of the respective execution.
+
+```ts
+import { randomUUID } from 'crypto';
+import { Langfuse } from 'langfuse';
+
+const langfuse = new Langfuse();
+const parentTraceId = randomUUID();
+
+langfuse.trace({
+  id: parentTraceId,
+  name: 'holiday-traditions',
+});
+
+for (let i = 0; i < 3; i++) {
+  const result = await generateText({
+    model: openai('gpt-3.5-turbo'),
+    maxTokens: 50,
+    prompt: 'Invent a new holiday and describe its traditions.',
+    experimental_telemetry: {
+      isEnabled: true,
+      functionId: `holiday-tradition-${i}`,
+      metadata: {
+        langfuseTraceId: parentTraceId,
+        langfuseUpdateParent: false, // Do not update the parent trace with execution results
+      },
+    },
+  });
+
+  console.log(result.text);
+}
+
+await langfuse.flushAsync();
+await sdk.shutdown();
+```
+
+The resulting trace hierarchy will be:
+
+![Vercel nested trace in Langfuse UI](https://langfuse.com/images/docs/vercel-nested-trace.png)
 
 ### Disable Tracking of Input/Output
 

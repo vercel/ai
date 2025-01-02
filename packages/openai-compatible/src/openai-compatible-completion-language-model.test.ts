@@ -310,8 +310,7 @@ describe('doStream', () => {
     ]);
   });
 
-  // TODO(shaper): Look into type validation failure in the below.
-  it.skip('should handle error stream parts', async () => {
+  it('should handle error stream parts', async () => {
     server.responseChunks = [
       `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
         `help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,

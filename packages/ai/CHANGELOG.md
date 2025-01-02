@@ -1,5 +1,28 @@
 # ai
 
+## 4.0.23
+
+### Patch Changes
+
+- bc4cd19: feat (ai/core): consolidate whitespace in smooth stream
+
+## 4.0.22
+
+### Patch Changes
+
+- Updated dependencies [5ed5e45]
+  - @ai-sdk/provider-utils@2.0.5
+  - @ai-sdk/provider@1.0.3
+  - @ai-sdk/react@1.0.7
+  - @ai-sdk/ui-utils@1.0.6
+
+## 4.0.21
+
+### Patch Changes
+
+- a8669a2: fix (ai/core): prefer auto-detected image mimetype
+- 6fb3e91: fix (ai/core): include type in generateText toolResults result property.
+
 ## 4.0.20
 
 ### Patch Changes

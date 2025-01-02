@@ -18,6 +18,10 @@ vi.mock('./google-vertex-embedding-model', () => ({
   GoogleVertexEmbeddingModel: vi.fn(),
 }));
 
+vi.mock('./google-vertex-image-model', () => ({
+  GoogleVertexImageModel: vi.fn(),
+}));
+
 describe('google-vertex-provider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
