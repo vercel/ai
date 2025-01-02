@@ -82,13 +82,13 @@ This feature is available with both `generateText` and `streamText` functions.
 
 For a deeper understanding of how to effectively use regex patterns with LLMs, check out our detailed guide in the [Structured Output LLM Agents](https://friendli.ai/blog/structured-output-llm-agents) blog post.
 
-```ts highlight="1,6"
+```ts highlight="6"
 import { friendli } from '@friendliai/ai-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: friendli('meta-llama-3.1-8b-instruct', {
-    regex: '[\n ,.?!0-9\uac00-\ud7af]*',
+    regex: new RegExp('[\n ,.?!0-9\uac00-\ud7af]*'),
   }),
   prompt: 'Who is the first king of the Joseon Dynasty?',
 });
@@ -106,17 +106,18 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: friendli('meta-llama-3.1-8b-instruct'),
+  model: friendli('meta-llama-3.1-70b-instruct'),
+  schemaName: 'CalendarEvent',
   schema: z.object({
-    brand: z.string(),
-    model: z.string(),
-    car_type: z.enum(['sedan', 'suv', 'truck', 'coupe']),
+    name: z.string(),
+    date: z.string(),
+    participants: z.array(z.string()),
   }),
-  prompt:
-    'Generate a JSON with the brand, model and car_type of the most iconic car from the 90s',
+  system: 'Extract the event information.',
+  prompt: 'Alice and Bob are going to a science fair on Friday.',
 });
 
-console.log(JSON.stringify(object, null, 2));
+console.log(object);
 ```
 
 ### Example: Using built-in tools
@@ -146,16 +147,34 @@ for await (const textPart of result.textStream) {
 
 ### Example: Generating text with Dedicated Endpoints
 
-To use a custom model via a dedicated endpoint, you can use the `friendli.dedicated` instance with the endpoint id, e.g. `zbimjgovmlcb`
+To use a custom model via a dedicated endpoint, you can use the `friendli` instance with the endpoint id, e.g. `zbimjgovmlcb`
 
 ```ts
 import { friendli } from '@friendliai/ai-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: friendli.dedicated('YOUR_ENDPOINT_ID'),
+  model: friendli('YOUR_ENDPOINT_ID'),
   prompt: 'What is the meaning of life?',
 });
+
+console.log(text);
+```
+
+You can use the code below to force requests to dedicated endpoints. By default, they are auto-detected.
+
+```ts highlight="5,6,7"
+import { friendli } from '@friendliai/ai-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: friendli("YOUR_ENDPOINT_ID", {
+    endpoint: "dedicated",
+  });
+  prompt: 'What is the meaning of life?',
+});
+
+console.log(text);
 ```
 
 FriendliAI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions.
