@@ -280,7 +280,7 @@ Details for all steps.
   });
 }
 
-type CombinedStreamPart<
+type EnrichedStreamPart<
   TOOLS extends Record<string, CoreTool>,
   PARTIAL_OUTPUT,
 > = {
@@ -333,7 +333,7 @@ class DefaultStreamTextResult<
 
   private readonly closeStream: () => void;
 
-  private baseStream: ReadableStream<CombinedStreamPart<TOOLS, PARTIAL_OUTPUT>>;
+  private baseStream: ReadableStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>>;
 
   private output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
 
@@ -447,8 +447,8 @@ class DefaultStreamTextResult<
     let rootSpan!: Span;
 
     const eventProcessor = new TransformStream<
-      CombinedStreamPart<TOOLS, PARTIAL_OUTPUT>,
-      CombinedStreamPart<TOOLS, PARTIAL_OUTPUT>
+      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
+      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
     >({
       async transform(chunk, controller) {
         controller.enqueue(chunk); // forward the chunk to the next stream
@@ -1299,7 +1299,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   get textStream(): AsyncIterableStream<string> {
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
-        new TransformStream<CombinedStreamPart<TOOLS, PARTIAL_OUTPUT>, string>({
+        new TransformStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>, string>({
           transform({ part }, controller) {
             if (part.type === 'text-delta') {
               controller.enqueue(part.textDelta);
@@ -1316,7 +1316,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
-          CombinedStreamPart<TOOLS, PARTIAL_OUTPUT>,
+          EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
           TextStreamPart<TOOLS>
         >({
           transform({ part }, controller) {
@@ -1335,7 +1335,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
-          CombinedStreamPart<TOOLS, PARTIAL_OUTPUT>,
+          EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
           PARTIAL_OUTPUT
         >({
           transform({ partialOutput }, controller) {
