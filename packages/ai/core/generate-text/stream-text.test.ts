@@ -22,7 +22,7 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
 import { CoreTool, tool } from '../tool/tool';
-import { object } from './output';
+import { object, text } from './output';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
@@ -3585,6 +3585,33 @@ describe('options.output', () => {
           result.experimental_partialOutputStream,
         );
       }).rejects.toThrow('No output specified');
+    });
+  });
+
+  describe('text output', () => {
+    it('should send partial output stream', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, ' },
+            { type: 'text-delta', textDelta: ',' },
+            { type: 'text-delta', textDelta: ' world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+        }),
+        experimental_output: text(),
+        prompt: 'prompt',
+      });
+
+      expect(
+        await convertAsyncIterableToArray(
+          result.experimental_partialOutputStream,
+        ),
+      ).toStrictEqual(['Hello, ', 'Hello, ,', 'Hello, , world!']);
     });
   });
 

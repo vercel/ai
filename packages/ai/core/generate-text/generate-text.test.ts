@@ -1177,7 +1177,7 @@ describe('options.messages', () => {
 
 describe('options.output', () => {
   describe('no output', () => {
-    it('should have undefined output', async () => {
+    it('should throw error when accessing output', async () => {
       const result = await generateText({
         model: new MockLanguageModelV1({
           doGenerate: async () => ({
@@ -1188,7 +1188,9 @@ describe('options.output', () => {
         prompt: 'prompt',
       });
 
-      expect(result.experimental_output).toBeUndefined();
+      expect(() => {
+        result.experimental_output;
+      }).toThrow('No output specified');
     });
   });
 
