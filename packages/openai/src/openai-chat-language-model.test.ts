@@ -1335,6 +1335,7 @@ describe('doStream', () => {
         finishReason: 'stop',
         logprobs: mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
         usage: { promptTokens: 17, completionTokens: 227 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1462,6 +1463,7 @@ describe('doStream', () => {
         finishReason: 'tool-calls',
         logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1596,6 +1598,7 @@ describe('doStream', () => {
         finishReason: 'tool-calls',
         logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1719,6 +1722,7 @@ describe('doStream', () => {
         finishReason: 'tool-calls',
         logprobs: undefined,
         usage: { promptTokens: 226, completionTokens: 20 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1783,6 +1787,7 @@ describe('doStream', () => {
         finishReason: 'tool-calls',
         logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1859,6 +1864,7 @@ describe('doStream', () => {
         finishReason: 'stop',
         logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1897,6 +1903,7 @@ describe('doStream', () => {
           completionTokens: NaN,
           promptTokens: NaN,
         },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1922,6 +1929,7 @@ describe('doStream', () => {
         completionTokens: NaN,
         promptTokens: NaN,
       },
+      providerMetadata: { openai: {} },
     });
   });
 
@@ -2135,6 +2143,7 @@ describe('doStream', () => {
           finishReason: 'stop',
           usage: { promptTokens: 17, completionTokens: 227 },
           logprobs: undefined,
+          providerMetadata: { openai: {} },
         },
       ]);
     });
@@ -2294,7 +2303,7 @@ describe('doStream simulated streaming', () => {
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 30 },
         logprobs: undefined,
-        providerMetadata: undefined,
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -2358,7 +2367,7 @@ describe('doStream simulated streaming', () => {
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 30 },
         logprobs: undefined,
-        providerMetadata: undefined,
+        providerMetadata: { openai: {} },
       },
     ]);
   });
