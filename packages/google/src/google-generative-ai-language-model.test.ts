@@ -799,6 +799,42 @@ describe('doGenerate', () => {
   );
 
   it(
+    'should expose PromptFeedback in provider metadata',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: { parts: [{ text: 'No' }], role: 'model' },
+              finishReason: 'SAFETY',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: {
+            blockReason: 'SAFETY',
+            safetyRatings: SAFETY_RATINGS,
+          },
+        },
+      },
+      async () => {
+        const { providerMetadata } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(providerMetadata?.google.promptFeedback).toStrictEqual({
+          blockReason: 'SAFETY',
+          safetyRatings: SAFETY_RATINGS,
+        });
+      },
+    ),
+  );
+
+  it(
     'should expose grounding metadata in provider metadata',
     withTestServer(
       prepareJsonResponse({
@@ -1086,6 +1122,7 @@ describe('doStream', () => {
             providerMetadata: {
               google: {
                 groundingMetadata: null,
+                promptFeedback: null,
                 safetyRatings: [
                   {
                     category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
@@ -1260,6 +1297,7 @@ describe('doStream', () => {
             providerMetadata: {
               google: {
                 groundingMetadata: null,
+                promptFeedback: null,
                 safetyRatings: [
                   {
                     category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
@@ -1323,6 +1361,43 @@ describe('doStream', () => {
             blocked: false,
           },
         ]);
+      },
+    ),
+  );
+
+  it(
+    'should expose PromptFeedback in provider metadata on finish',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
+        type: 'stream-values',
+        content: [
+          `data: {"candidates": [{"content": {"parts": [{"text": "No"}],"role": "model"},` +
+            `"finishReason": "PROHIBITED_CONTENT","index": 0}],` +
+            `"promptFeedback": {"blockReason": "PROHIBITED_CONTENT","safetyRatings": [` +
+            `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}}\n\n`,
+        ],
+      },
+      async () => {
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const finishEvent = events.find(event => event.type === 'finish');
+
+        expect(
+          finishEvent?.type === 'finish' &&
+            finishEvent.providerMetadata?.google.promptFeedback,
+        ).toStrictEqual({
+          blockReason: 'PROHIBITED_CONTENT',
+          safetyRatings: SAFETY_RATINGS,
+        });
       },
     ),
   );

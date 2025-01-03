@@ -8,9 +8,15 @@ async function main() {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
+  const googleMetadata = result.experimental_providerMetadata?.google;
+
   console.log(result.text);
   console.log();
   console.log('Token usage:', result.usage);
+  console.log('Safety info:', {
+    promptFeedback: googleMetadata?.promptFeedback,
+    safetyRatings: googleMetadata?.safetyRatings,
+  });
   console.log('Finish reason:', result.finishReason);
 }
 
