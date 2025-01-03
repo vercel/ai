@@ -3715,5 +3715,33 @@ describe('options.output', () => {
         { value: 'Hello, world!' },
       ]);
     });
+
+    it('should send partial output stream when last chunk contains content', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: '{ ' },
+            { type: 'text-delta', textDelta: '"value": ' },
+            { type: 'text-delta', textDelta: `"Hello, ` },
+            { type: 'text-delta', textDelta: `world!" }` },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+        }),
+        experimental_output: object({
+          schema: z.object({ value: z.string() }),
+        }),
+        prompt: 'prompt',
+      });
+
+      expect(
+        await convertAsyncIterableToArray(
+          result.experimental_partialOutputStream,
+        ),
+      ).toStrictEqual([{}, { value: 'Hello, ' }, { value: 'Hello, world!' }]);
+    });
   });
 });

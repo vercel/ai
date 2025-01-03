@@ -353,10 +353,9 @@ function createOutputTransformStream<
     },
 
     flush(controller) {
-      // publish remaining text:
+      // publish remaining text
+      // (there should be none if the content was correctly formatted):
       if (textChunk.length > 0) {
-        // TODO parsing final partial output
-
         controller.enqueue({
           part: {
             type: 'text-delta',
