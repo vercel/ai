@@ -9,3 +9,7 @@ export type XaiChatModelId =
   | (string & {});
 
 export interface XaiChatSettings extends OpenAICompatibleChatSettings {}
+
+export function supportsStructuredOutputs(modelId: XaiChatModelId) {
+  return ['grok-2-1212', 'grok-2-vision-1212'].includes(modelId);
+}

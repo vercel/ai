@@ -6,7 +6,7 @@ import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = await generateText({
-    model: xai('grok-beta'),
+    model: xai('grok-2-1212'),
     maxTokens: 512,
     tools: {
       weather: weatherTool,
