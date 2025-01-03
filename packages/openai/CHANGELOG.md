@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.0.13
+
+### Patch Changes
+
+- b19aa82: feat (provider/openai): add predicted outputs token usage
+
 ## 1.0.12
 
 ### Patch Changes

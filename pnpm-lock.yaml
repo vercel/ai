@@ -63,7 +63,7 @@ importers:
         specifier: 1.0.6
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 1.0.14
+        specifier: 1.0.15
         version: link:../../packages/azure
       '@ai-sdk/cohere':
         specifier: 1.0.6
@@ -87,7 +87,7 @@ importers:
         specifier: 1.0.6
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
         specifier: 0.0.13
@@ -142,7 +142,7 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       ai:
         specifier: 4.0.24
@@ -170,7 +170,7 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       ai:
         specifier: 4.0.24
@@ -195,7 +195,7 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
@@ -223,7 +223,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -464,7 +464,7 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.0.7
@@ -528,7 +528,7 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@vercel/functions':
         specifier: latest
@@ -580,7 +580,7 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.0.7
@@ -635,7 +635,7 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.0.7
@@ -702,7 +702,7 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.0.7
@@ -775,7 +775,7 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -830,7 +830,7 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       ai:
         specifier: 4.0.24
@@ -858,7 +858,7 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@ai-sdk/vue':
         specifier: 1.0.7
@@ -913,7 +913,7 @@ importers:
   examples/solidstart-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@ai-sdk/solid':
         specifier: 1.0.7
@@ -953,7 +953,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@ai-sdk/svelte':
         specifier: 1.0.7
@@ -1020,7 +1020,7 @@ importers:
         specifier: 1.0.6
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../../packages/openai
       '@ai-sdk/swarm':
         specifier: 0.0.33
@@ -1195,7 +1195,7 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../openai
       '@ai-sdk/provider':
         specifier: 1.0.3
