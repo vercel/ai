@@ -49,7 +49,7 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
         const regexp =
           chunking === 'line'
             ? /[^\n]*\n/m // Match full lines ending with newline
-            : /\s*\S+\s+/m; // Match words with whitespace (existing behavior)
+            : /\s*\S+\s+/m; // Match words with whitespace
 
         while (regexp.test(buffer)) {
           const chunk = buffer.match(regexp)![0];
