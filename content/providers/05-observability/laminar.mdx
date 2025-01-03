@@ -24,9 +24,17 @@ Laminar's tracing is based on OpenTelemetry. It supports AI SDK [telemetry](http
 
 To start with Laminar's tracing, first [install](https://docs.lmnr.ai/installation) the `@lmnr-ai/lmnr` package.
 
-```sh
-npm install @lmnr-ai/lmnr
-```
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @lmnr-ai/lmnr" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @lmnr-ai/lmnr" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @lmnr-ai/lmnr" dark />
+  </Tab>
+</Tabs>
 
 Then, either sign up on [Laminar](https://www.lmnr.ai) or self-host an instance ([github](https://github.com/lmnr-ai/lmnr)) and create a new project. In the project settings, create and copy the API key.
 
@@ -90,7 +98,7 @@ module.exports = {
 
 For more information, see Laminar's [Next.js guide](https://docs.lmnr.ai/tracing/nextjs) and Next.js [instrumentation docs](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation). You can also learn how to enable all traces for Next.js in the docs.
 
-## Tracing
+## Configuration
 
 Now enable `experimentalTelemetry` in your `generateText` call:
 
