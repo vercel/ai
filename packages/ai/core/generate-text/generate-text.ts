@@ -1,10 +1,8 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import {
-  InvalidArgumentError,
-  NoOutputSpecifiedError,
-  ToolExecutionError,
-} from '../../errors';
+import { InvalidArgumentError } from '../../errors/invalid-argument-error';
+import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
+import { ToolExecutionError } from '../../errors/tool-execution-error';
 import { CoreAssistantMessage, CoreMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -654,7 +652,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>, OUTPUT>
   readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
 
-  readonly outputResolver: () => GenerateTextResult<
+  private readonly outputResolver: () => GenerateTextResult<
     TOOLS,
     OUTPUT
   >['experimental_output'];
