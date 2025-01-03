@@ -53,13 +53,14 @@ async function main() {
     process.stdout.write(textPart);
   }
 
+  const usage = await result.usage;
+  const openaiMetadata = (await result.experimental_providerMetadata)?.openai;
+
   console.log();
   console.log('Token usage:', {
-    ...(await result.usage),
-    acceptedPredictionTokens: (await result.experimental_providerMetadata)
-      ?.openai?.acceptedPredictionTokens,
-    rejectedPredictionTokens: (await result.experimental_providerMetadata)
-      ?.openai?.rejectedPredictionTokens,
+    ...usage,
+    acceptedPredictionTokens: openaiMetadata?.acceptedPredictionTokens,
+    rejectedPredictionTokens: openaiMetadata?.rejectedPredictionTokens,
   });
   console.log('Finish reason:', await result.finishReason);
 }
