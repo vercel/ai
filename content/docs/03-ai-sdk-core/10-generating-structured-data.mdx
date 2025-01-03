@@ -207,18 +207,50 @@ try {
 }
 ```
 
-## Structured output with `generateText`
+## Structured outputs with `generateText` and `streamText`
 
-<Note type="warning">
-  Structured output with `generateText` is experimental and may change in the
-  future.
+You can generate structured data with `generateText` and `streamText` by using the `experimental_output` setting.
+
+<Note>
+  Some models, e.g. those by OpenAI, support structured outputs and tool calling
+  at the same time. This is only possible with `generateText` and `streamText`.
 </Note>
 
-You can also generate structured data with `generateText` by using the `experimental_output` setting.
-This enables you to use structured outputs together with tool calling (for models that support it - currently only OpenAI).
+<Note type="warning">
+  Structured output generation with `generateText` and `streamText` is
+  experimental and may change in the future.
+</Note>
 
-```ts highlight="1,3,4"
+### `generateText`
+
+```ts highlight="2,4-18"
+// experimental_output is a structured object that matches the schema:
 const { experimental_output } = await generateText({
+  // ...
+  experimental_output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number().nullable().describe('Age of the person.'),
+      contact: z.object({
+        type: z.literal('email'),
+        value: z.string(),
+      }),
+      occupation: z.object({
+        type: z.literal('employed'),
+        company: z.string(),
+        position: z.string(),
+      }),
+    }),
+  }),
+  prompt: 'Generate an example person for testing.',
+});
+```
+
+### `streamText`
+
+```ts highlight="2,4-18"
+// experimental_partialOutputStream contains generated partial objects:
+const { experimental_partialOutputStream } = await streamText({
   // ...
   experimental_output: Output.object({
     schema: z.object({

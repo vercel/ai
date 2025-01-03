@@ -15,6 +15,7 @@ export {
 export { InvalidArgumentError } from './invalid-argument-error';
 export { InvalidToolArgumentsError } from './invalid-tool-arguments-error';
 export { NoObjectGeneratedError } from './no-object-generated-error';
+export { NoOutputSpecifiedError } from './no-output-specified-error';
 export { NoSuchToolError } from './no-such-tool-error';
 export { ToolCallRepairError } from './tool-call-repair-error';
 export { ToolExecutionError } from './tool-execution-error';
