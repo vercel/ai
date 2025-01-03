@@ -2078,10 +2078,7 @@ describe('doStream', () => {
       messages: [{ role: 'user', content: 'Hello' }],
     });
 
-    const chunksArr = await convertReadableStreamToArray(stream);
-    expect(chunksArr[chunksArr.length - 1]).toHaveProperty('providerMetadata');
-    expect(chunksArr[chunksArr.length - 1].type).toEqual('finish');
-    expect(chunksArr[chunksArr.length - 1]).toStrictEqual({
+    expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual({
       type: 'finish',
       finishReason: 'stop',
       logprobs: undefined,
@@ -2122,10 +2119,7 @@ describe('doStream', () => {
       messages: [{ role: 'user', content: 'Hello' }],
     });
 
-    const chunksArr = await convertReadableStreamToArray(stream);
-    expect(chunksArr[chunksArr.length - 1]).toHaveProperty('providerMetadata');
-    expect(chunksArr[chunksArr.length - 1].type).toEqual('finish');
-    expect(chunksArr[chunksArr.length - 1]).toStrictEqual({
+    expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual({
       type: 'finish',
       finishReason: 'stop',
       logprobs: undefined,
