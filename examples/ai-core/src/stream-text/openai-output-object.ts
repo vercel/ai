@@ -19,23 +19,23 @@ async function main() {
         }),
       }),
     },
-    // experimental_output: Output.object({
-    //   schema: z.object({
-    //     elements: z.array(
-    //       z.object({
-    //         location: z.string(),
-    //         temperature: z.number(),
-    //         touristAttraction: z.string(),
-    //       }),
-    //     ),
-    //   }),
-    // }),
+    experimental_output: Output.object({
+      schema: z.object({
+        elements: z.array(
+          z.object({
+            location: z.string(),
+            temperature: z.number(),
+            touristAttraction: z.string(),
+          }),
+        ),
+      }),
+    }),
     maxSteps: 2,
     prompt:
       'What is the weather and the main tourist attraction in San Francisco, London Paris, and Berlin?',
   });
 
-  // { location: 'San Francisco', temperature: 81 }
+  // [{ location: 'San Francisco', temperature: 81 }, ...]
   for await (const partialOutput of partialOutputStream) {
     console.clear();
     console.log(partialOutput);
