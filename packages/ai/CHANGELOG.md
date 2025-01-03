@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.25
+
+### Patch Changes
+
+- 0823899: fix (ai/core): throw error when accessing output when no output is defined in generateText (breaking/experimental)
+
 ## 4.0.24
 
 ### Patch Changes
