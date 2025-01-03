@@ -102,8 +102,8 @@ It receives the following chunk types:
 - `text-delta`
 - `tool-call`
 - `tool-result`
-- `tool-call-streaming-start` (when `experimental_streamToolCalls` is enabled)
-- `tool-call-delta` (when `experimental_streamToolCalls` is enabled)
+- `tool-call-streaming-start` (when `experimental_toolCallStreaming` is enabled)
+- `tool-call-delta` (when `experimental_toolCallStreaming` is enabled)
 
 ```tsx highlight="6-11"
 import { streamText } from 'ai';

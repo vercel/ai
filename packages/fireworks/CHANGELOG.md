@@ -1,5 +1,18 @@
 # @ai-sdk/fireworks
 
+## 0.0.8
+
+### Patch Changes
+
+- 546a458: feat (provider/fireworks): update common models
+
+## 0.0.7
+
+### Patch Changes
+
+- Updated dependencies [6564812]
+  - @ai-sdk/openai-compatible@0.0.13
+
 ## 0.0.6
 
 ### Patch Changes
