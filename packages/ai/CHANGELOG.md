@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.24
+
+### Patch Changes
+
+- ae0485b: feat (ai/core): add experimental output setting to streamText
+
 ## 4.0.23
 
 ### Patch Changes
