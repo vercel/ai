@@ -1090,6 +1090,35 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should return accepted_prediction_tokens and rejected_prediction_tokens in completion_details_tokens', async () => {
+    prepareJsonResponse({
+      usage: {
+        prompt_tokens: 15,
+        completion_tokens: 20,
+        total_tokens: 35,
+        completion_tokens_details: {
+          accepted_prediction_tokens: 123,
+          rejected_prediction_tokens: 456,
+        },
+      },
+    });
+
+    const model = provider.chat('gpt-4o-mini');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      openai: {
+        acceptedPredictionTokens: 123,
+        rejectedPredictionTokens: 456,
+      },
+    });
+  });
+
   describe('reasoning models', () => {
     it('should clear out temperature, top_p, frequency_penalty, presence_penalty', async () => {
       prepareJsonResponse();
@@ -1264,7 +1293,9 @@ describe('doStream', () => {
         cached_tokens?: number;
       };
       completion_tokens_details?: {
-        reasoning_tokens: number;
+        reasoning_tokens?: number;
+        accepted_prediction_tokens?: number;
+        rejected_prediction_tokens?: number;
       };
     };
     logprobs?: {
@@ -2021,7 +2052,7 @@ describe('doStream', () => {
     });
   });
 
-  it('should handle cached tokens in experimental_providerMetadata', async () => {
+  it('should return cached tokens in providerMetadata', async () => {
     prepareStreamResponse({
       content: [],
       usage: {
@@ -2060,6 +2091,53 @@ describe('doStream', () => {
       },
       providerMetadata: {
         openai: { cachedPromptTokens: 1152 },
+      },
+    });
+  });
+
+  it('should return accepted_prediction_tokens and rejected_prediction_tokens in providerMetadata', async () => {
+    prepareStreamResponse({
+      content: [],
+      usage: {
+        prompt_tokens: 15,
+        completion_tokens: 20,
+        total_tokens: 35,
+        completion_tokens_details: {
+          accepted_prediction_tokens: 123,
+          rejected_prediction_tokens: 456,
+        },
+      },
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      stream: true,
+      stream_options: { include_usage: true },
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+
+    const chunksArr = await convertReadableStreamToArray(stream);
+    expect(chunksArr[chunksArr.length - 1]).toHaveProperty('providerMetadata');
+    expect(chunksArr[chunksArr.length - 1].type).toEqual('finish');
+    expect(chunksArr[chunksArr.length - 1]).toStrictEqual({
+      type: 'finish',
+      finishReason: 'stop',
+      logprobs: undefined,
+      usage: {
+        promptTokens: 15,
+        completionTokens: 20,
+      },
+      providerMetadata: {
+        openai: {
+          acceptedPredictionTokens: 123,
+          rejectedPredictionTokens: 456,
+        },
       },
     });
   });
