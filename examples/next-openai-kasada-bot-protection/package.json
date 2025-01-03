@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.12",
+    "@ai-sdk/openai": "1.0.13",
     "@vercel/functions": "latest",
     "ai": "4.0.24",
     "next": "latest",
