@@ -6,6 +6,8 @@ import { TextStreamPart } from './stream-text-result';
  * Smooths text streaming output.
  *
  * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms.
+ * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), or "line" to stream line by line.
+ *
  * @returns A transform stream that smooths text streaming output.
  */
 export function smoothStream<TOOLS extends Record<string, CoreTool>>({
