@@ -10,10 +10,11 @@ import { TextStreamPart } from './stream-text-result';
  */
 export function smoothStream<TOOLS extends Record<string, CoreTool>>({
   delayInMs = 10,
+  chunking = 'word',
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number;
-
+  chunking?: 'word' | 'line';
   /**
    * Internal. For test use only. May change without notice.
    */
@@ -45,9 +46,11 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
 
         buffer += chunk.textDelta;
 
-        // Stream out complete words including their optional leading
-        // and required trailing whitespace sequences
-        const regexp = /\s*\S+\s+/m;
+        const regexp =
+          chunking === 'line'
+            ? /[^\n]*\n/m // Match full lines ending with newline
+            : /\s*\S+\s+/m; // Match words with whitespace (existing behavior)
+
         while (regexp.test(buffer)) {
           const chunk = buffer.match(regexp)![0];
           controller.enqueue({ type: 'text-delta', textDelta: chunk });
