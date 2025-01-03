@@ -4,6 +4,7 @@ import { ToolResultContent } from '../prompt/tool-result-content';
 import { CoreMessage } from '../prompt/message';
 
 type Parameters = z.ZodTypeAny | Schema<any>;
+type Returns = Parameters;
 
 export type inferParameters<PARAMETERS extends Parameters> =
   PARAMETERS extends Schema<any>
@@ -36,13 +37,24 @@ This enables the language model to generate the input.
 
 The tool can also contain an optional execute function for the actual execution function of the tool.
  */
-export type CoreTool<PARAMETERS extends Parameters = any, RESULT = any> = {
+export type CoreTool<
+  PARAMETERS extends Parameters = any,
+  RETURNS extends Returns = any,
+  RESULT = any,
+> = {
   /**
 The schema of the input that the tool expects. The language model will use this to generate the input.
 It is also used to validate the output of the language model.
 Use descriptions to make the input understandable for the language model.
    */
   parameters: PARAMETERS;
+
+  returns?: RETURNS;
+
+  /**
+An optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
+   */
+  description?: string;
 
   /**
 Optional conversion function that maps the tool result to multi-part tool content for LLMs.
@@ -59,18 +71,13 @@ If not provided, the tool will not be executed automatically.
   execute?: (
     args: inferParameters<PARAMETERS>,
     options: ToolExecutionOptions,
-  ) => PromiseLike<RESULT>;
+  ) => PromiseLike<inferParameters<RETURNS>>;
 } & (
   | {
       /**
 Function tool.
        */
       type?: undefined | 'function';
-
-      /**
-An optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
-   */
-      description?: string;
     }
   | {
       /**
@@ -94,28 +101,28 @@ The arguments for configuring the tool. Must match the expected arguments define
 Helper function for inferring the execute args of a tool.
  */
 // Note: special type inference is needed for the execute function args to make sure they are inferred correctly.
-export function tool<PARAMETERS extends Parameters, RESULT>(
-  tool: CoreTool<PARAMETERS, RESULT> & {
+export function tool<PARAMETERS extends Parameters, RETURNS extends Returns>(
+  tool: CoreTool<PARAMETERS, RETURNS> & {
     execute: (
       args: inferParameters<PARAMETERS>,
       options: ToolExecutionOptions,
-    ) => PromiseLike<RESULT>;
+    ) => PromiseLike<inferParameters<RETURNS>>;
   },
-): CoreTool<PARAMETERS, RESULT> & {
+): CoreTool<PARAMETERS, RETURNS> & {
   execute: (
     args: inferParameters<PARAMETERS>,
     options: ToolExecutionOptions,
-  ) => PromiseLike<RESULT>;
+  ) => PromiseLike<inferParameters<RETURNS>>;
 };
-export function tool<PARAMETERS extends Parameters, RESULT>(
-  tool: CoreTool<PARAMETERS, RESULT> & {
+export function tool<PARAMETERS extends Parameters>(
+  tool: CoreTool<PARAMETERS> & {
     execute?: undefined;
   },
-): CoreTool<PARAMETERS, RESULT> & {
+): CoreTool<PARAMETERS> & {
   execute: undefined;
 };
-export function tool<PARAMETERS extends Parameters, RESULT = any>(
-  tool: CoreTool<PARAMETERS, RESULT>,
-): CoreTool<PARAMETERS, RESULT> {
+export function tool<PARAMETERS extends Parameters, RETURNS extends Returns>(
+  tool: CoreTool<PARAMETERS, RETURNS>,
+): CoreTool<PARAMETERS, RETURNS> {
   return tool;
 }
