@@ -1,16 +1,18 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
-const deepSeek = createOpenAI({
+const deepSeek = createOpenAICompatible({
   name: 'deepseek',
   baseURL: 'https://api.deepseek.com',
-  apiKey: process.env.DEEPSEEK_API_KEY!,
+  headers: {
+    Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY ?? ''}`,
+  },
 });
 
 async function main() {
   const { text, usage } = await generateText({
-    model: deepSeek('deepseek-coder'),
+    model: deepSeek('deepseek-chat'),
     prompt: 'Write a "Hello, World!" program in TypeScript.',
   });
 

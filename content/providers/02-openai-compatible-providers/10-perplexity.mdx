@@ -67,7 +67,7 @@ const perplexity = createOpenAICompatible({
 });
 
 const { text } = await generateText({
-  model: perplexity('llama-3.1-sonar-large-32k-online'),
+  model: perplexity('llama-3.1-sonar-small-128k-online'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
