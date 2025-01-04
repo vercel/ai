@@ -7,6 +7,7 @@ import {
   extractResponseHeaders,
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 // https://fireworks.ai/models?type=image
 export type FireworksImageModelId =
@@ -115,16 +116,8 @@ export class FireworksImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
 
-    // Preserve serverless runtime compatibility by avoiding the use of Buffer.
-    const bytes = new Uint8Array(response);
-    const binaryString = bytes.reduce(
-      (str, byte) => str + String.fromCharCode(byte),
-      '',
-    );
-    const base64String = btoa(binaryString);
-
     return {
-      images: [base64String],
+      images: [convertUint8ArrayToBase64(new Uint8Array(response))],
     };
   }
 }
