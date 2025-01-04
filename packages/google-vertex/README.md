@@ -78,6 +78,60 @@ const { text } = await generateText({
 });
 ```
 
+## Prompt Caching Support for Anthropic Claude Models
+
+The Google Vertex Anthropic provider now supports prompt caching for Anthropic Claude models. Prompt caching can help reduce latency and costs by reusing cached results for identical requests. Caches are unique to Google Cloud projects and have a five-minute lifetime. Prompt caching can be enabled via the Anthropic Claude SDK or the Vertex AI REST API.
+
+### Enabling Prompt Caching
+
+To enable prompt caching, you can use the `cacheControl` property in the settings. Here is an example demonstrating how to enable prompt caching:
+
+```ts
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { generateText } from 'ai';
+import fs from 'node:fs';
+
+const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
+
+async function main() {
+  const result = await generateText({
+    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022', {
+      cacheControl: true,
+    }),
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'You are a JavaScript expert.',
+          },
+          {
+            type: 'text',
+            text: `Error message: ${errorMessage}`,
+            experimental_providerMetadata: {
+              anthropic: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+          {
+            type: 'text',
+            text: 'Explain the error message.',
+          },
+        ],
+      },
+    ],
+  });
+
+  console.log(result.text);
+  console.log(result.experimental_providerMetadata?.anthropic);
+  // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
+}
+
+main().catch(console.error);
+```
+
 ## Custom Provider Configuration
 
 You can create a custom provider instance using the `createVertex` function. This allows you to specify additional configuration options. Below is an example with the default Node.js provider which includes a `googleAuthOptions` object.
