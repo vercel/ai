@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.26
+
+### Patch Changes
+
+- a8f3242: feat (ai/core): add line chunking mode to smoothStream
+
 ## 4.0.25
 
 ### Patch Changes
