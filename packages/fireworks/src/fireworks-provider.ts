@@ -4,7 +4,11 @@ import {
   OpenAICompatibleEmbeddingModel,
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
-import { EmbeddingModelV1, LanguageModelV1 } from '@ai-sdk/provider';
+import {
+  EmbeddingModelV1,
+  ImageModelV1,
+  LanguageModelV1,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -23,6 +27,11 @@ import {
   FireworksEmbeddingModelId,
   FireworksEmbeddingSettings,
 } from './fireworks-embedding-settings';
+import {
+  FireworksImageModel,
+  FireworksImageModelId,
+} from './fireworks-image-model';
+import { FireworksConfig } from './fireworks-config';
 
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
@@ -87,14 +96,19 @@ Creates a text embedding model for text generation.
     modelId: FireworksEmbeddingModelId,
     settings?: FireworksEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  /**
+   * Creates a model for image generation.
+   */
+  image(modelId: FireworksImageModelId): ImageModelV1;
 }
+
+const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';
 
 export function createFireworks(
   options: FireworksProviderSettings = {},
 ): FireworksProvider {
-  const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.fireworks.ai/inference/v1',
-  );
+  const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
@@ -104,20 +118,11 @@ export function createFireworks(
     ...options.headers,
   });
 
-  interface CommonModelConfig {
-    provider: `fireworks.${string}`;
-    url: ({ path }: { path: string }) => string;
-    headers: () => Record<string, string>;
-    fetch?: FetchFunction;
-    errorStructure?: ProviderErrorStructure<FireworksErrorData>;
-  }
-
-  const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
+  const createCommonModelConfig = (modelType: string): FireworksConfig => ({
     provider: `fireworks.${modelType}`,
     url: ({ path }) => `${baseURL}${path}`,
     headers: getHeaders,
     fetch: options.fetch,
-    errorStructure: fireworksErrorStructure,
   });
 
   const createChatModel = (
@@ -125,7 +130,8 @@ export function createFireworks(
     settings: FireworksChatSettings = {},
   ) => {
     return new OpenAICompatibleChatLanguageModel(modelId, settings, {
-      ...getCommonModelConfig('chat'),
+      ...createCommonModelConfig('chat'),
+      errorStructure: fireworksErrorStructure,
       defaultObjectGenerationMode: 'json',
     });
   };
@@ -134,21 +140,27 @@ export function createFireworks(
     modelId: FireworksCompletionModelId,
     settings: FireworksCompletionSettings = {},
   ) =>
-    new OpenAICompatibleCompletionLanguageModel(
-      modelId,
-      settings,
-      getCommonModelConfig('completion'),
-    );
+    new OpenAICompatibleCompletionLanguageModel(modelId, settings, {
+      ...createCommonModelConfig('completion'),
+      errorStructure: fireworksErrorStructure,
+    });
 
   const createTextEmbeddingModel = (
     modelId: FireworksEmbeddingModelId,
     settings: FireworksEmbeddingSettings = {},
   ) =>
-    new OpenAICompatibleEmbeddingModel(
-      modelId,
-      settings,
-      getCommonModelConfig('embedding'),
-    );
+    new OpenAICompatibleEmbeddingModel(modelId, settings, {
+      ...createCommonModelConfig('embedding'),
+      errorStructure: fireworksErrorStructure,
+    });
+
+  const createImageModel = (modelId: FireworksImageModelId) =>
+    new FireworksImageModel(modelId, {
+      ...createCommonModelConfig('image'),
+      // Image model urls can vary in structure across model types, so we don't
+      // rely on the common config url function.
+      baseURL: baseURL ?? defaultBaseURL,
+    });
 
   const provider = (
     modelId: FireworksChatModelId,
@@ -158,6 +170,7 @@ export function createFireworks(
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.image = createImageModel;
 
   return provider as FireworksProvider;
 }

@@ -1,3 +1,4 @@
+export * from './binary-test-server';
 export * from './convert-array-to-async-iterable';
 export * from './convert-array-to-readable-stream';
 export * from './convert-async-iterable-to-array';

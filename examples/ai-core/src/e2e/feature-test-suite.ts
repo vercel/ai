@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  experimental_generateImage as generateImage,
   generateText,
   generateObject,
   streamText,
@@ -10,12 +11,17 @@ import {
 } from 'ai';
 import fs from 'fs';
 import { describe, expect, it, vi } from 'vitest';
-import type { EmbeddingModelV1, LanguageModelV1 } from '@ai-sdk/provider';
+import type {
+  EmbeddingModelV1,
+  ImageModelV1,
+  LanguageModelV1,
+} from '@ai-sdk/provider';
 
 export interface ModelVariants {
   invalidModel?: LanguageModelV1;
   languageModels?: LanguageModelV1[];
   embeddingModels?: EmbeddingModelV1<string>[];
+  imageModels?: ImageModelV1[];
 }
 
 export interface TestSuiteOptions {
@@ -369,5 +375,25 @@ export function createFeatureTestSuite({
         );
       }
     });
+
+    describe.each(createModelObjects(models.imageModels))(
+      'Image Model: $modelId',
+      ({ model }) => {
+        it('should generate an image', async () => {
+          const result = await generateImage({
+            model,
+            prompt: 'A cute cartoon cat',
+          });
+
+          // Verify we got a base64 string back
+          expect(result.image.base64).toBeTruthy();
+          expect(typeof result.image.base64).toBe('string');
+
+          // Check the decoded length is reasonable (at least 10KB)
+          const decoded = Buffer.from(result.image.base64, 'base64');
+          expect(decoded.length).toBeGreaterThan(10 * 1024);
+        });
+      },
+    );
   };
 }
