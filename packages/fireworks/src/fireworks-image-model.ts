@@ -1,4 +1,8 @@
-import { APICallError, ImageModelV1 } from '@ai-sdk/provider';
+import {
+  APICallError,
+  ImageModelV1,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
 import {
   Resolvable,
   postJsonToApi,
@@ -100,6 +104,18 @@ export class FireworksImageModel implements ImageModelV1 {
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
+    if (n > 1) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'multiple images',
+      });
+    }
+
+    if (size) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'image size',
+      });
+    }
+
     const url = `${this.config.baseURL}/workflows/${this.modelId}/text_to_image`;
     const body = {
       prompt,

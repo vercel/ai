@@ -2,6 +2,7 @@ import { APICallError } from '@ai-sdk/provider';
 import { BinaryTestServer } from '@ai-sdk/provider-utils/test';
 import { FireworksImageModel } from './fireworks-image-model';
 import { describe, it, expect } from 'vitest';
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 
 const prompt = 'A cute baby sea otter';
 
@@ -149,6 +150,36 @@ describe('FireworksImageModel', () => {
         },
         responseBody: 'Bad Request',
       });
+    });
+
+    it('should throw error when requesting multiple images', async () => {
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 2,
+          size: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrowError(
+        new UnsupportedFunctionalityError({
+          functionality: 'multiple images',
+        }),
+      );
+    });
+
+    it('should throw error when specifying image size', async () => {
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          size: '512x512',
+          providerOptions: {},
+        }),
+      ).rejects.toThrowError(
+        new UnsupportedFunctionalityError({
+          functionality: 'image size',
+        }),
+      );
     });
   });
 });
