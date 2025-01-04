@@ -11,7 +11,8 @@ import { googleVertexFailedResponseHandler } from './google-vertex-error';
 
 export type GoogleVertexImageModelId =
   | 'imagen-3.0-generate-001'
-  | 'imagen-3.0-fast-generate-001';
+  | 'imagen-3.0-fast-generate-001'
+  | (string & {});
 
 interface GoogleVertexImageModelConfig {
   provider: string;
