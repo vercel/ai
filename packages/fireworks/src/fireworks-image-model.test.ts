@@ -11,7 +11,7 @@ const model = new FireworksImageModel(
   {
     provider: 'fireworks',
     baseURL: 'https://api.example.com',
-    headers: { 'api-key': 'test-key' },
+    headers: () => ({ 'api-key': 'test-key' }),
   },
 );
 
@@ -52,9 +52,9 @@ describe('FireworksImageModel', () => {
         {
           provider: 'fireworks',
           baseURL: 'https://api.example.com',
-          headers: {
+          headers: () => ({
             'Custom-Provider-Header': 'provider-header-value',
-          },
+          }),
         },
       );
 

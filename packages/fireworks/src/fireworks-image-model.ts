@@ -4,12 +4,11 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
-  Resolvable,
   postJsonToApi,
   combineHeaders,
-  resolve,
   extractResponseHeaders,
   ResponseHandler,
+  FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
@@ -22,8 +21,8 @@ export type FireworksImageModelId =
 interface FireworksImageModelConfig {
   provider: string;
   baseURL: string;
-  headers?: Resolvable<Record<string, string | undefined>>;
-  fetch?: typeof fetch;
+  headers: () => Record<string, string>;
+  fetch?: FetchFunction;
 }
 
 const createBinaryResponseHandler =
@@ -124,7 +123,7 @@ export class FireworksImageModel implements ImageModelV1 {
 
     const { value: response } = await postJsonToApi({
       url,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
+      headers: combineHeaders(this.config.headers(), headers),
       body,
       failedResponseHandler: statusCodeErrorResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

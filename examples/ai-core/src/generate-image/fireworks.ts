@@ -7,6 +7,15 @@ async function main() {
   const { image } = await generateImage({
     model: fireworks.image('accounts/fireworks/models/flux-1-dev-fp8'),
     prompt: 'A burrito launched through a tunnel',
+    providerOptions: {
+      fireworks: {
+        // https://fireworks.ai/models/fireworks/flux-1-dev-fp8/playground
+        aspect_ratio: '1:1',
+        guidance_scale: 10,
+        num_inference_steps: 10,
+        seed: 123,
+      },
+    },
   });
 
   const filename = `image-${Date.now()}.png`;
