@@ -31,7 +31,6 @@ import {
   FireworksImageModel,
   FireworksImageModelId,
 } from './fireworks-image-model';
-import { FireworksConfig } from './fireworks-config';
 
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
@@ -98,8 +97,8 @@ Creates a text embedding model for text generation.
   ): EmbeddingModelV1<string>;
 
   /**
-   * Creates a model for image generation.
-   */
+Creates a model for image generation.
+*/
   image(modelId: FireworksImageModelId): ImageModelV1;
 }
 
@@ -118,7 +117,14 @@ export function createFireworks(
     ...options.headers,
   });
 
-  const createCommonModelConfig = (modelType: string): FireworksConfig => ({
+  interface CommonModelConfig {
+    provider: string;
+    url: ({ path }: { path: string }) => string;
+    headers: () => Record<string, string>;
+    fetch?: FetchFunction;
+  }
+
+  const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `fireworks.${modelType}`,
     url: ({ path }) => `${baseURL}${path}`,
     headers: getHeaders,
@@ -130,7 +136,7 @@ export function createFireworks(
     settings: FireworksChatSettings = {},
   ) => {
     return new OpenAICompatibleChatLanguageModel(modelId, settings, {
-      ...createCommonModelConfig('chat'),
+      ...getCommonModelConfig('chat'),
       errorStructure: fireworksErrorStructure,
       defaultObjectGenerationMode: 'json',
     });
@@ -141,7 +147,7 @@ export function createFireworks(
     settings: FireworksCompletionSettings = {},
   ) =>
     new OpenAICompatibleCompletionLanguageModel(modelId, settings, {
-      ...createCommonModelConfig('completion'),
+      ...getCommonModelConfig('completion'),
       errorStructure: fireworksErrorStructure,
     });
 
@@ -150,15 +156,13 @@ export function createFireworks(
     settings: FireworksEmbeddingSettings = {},
   ) =>
     new OpenAICompatibleEmbeddingModel(modelId, settings, {
-      ...createCommonModelConfig('embedding'),
+      ...getCommonModelConfig('embedding'),
       errorStructure: fireworksErrorStructure,
     });
 
   const createImageModel = (modelId: FireworksImageModelId) =>
     new FireworksImageModel(modelId, {
-      ...createCommonModelConfig('image'),
-      // Image model urls can vary in structure across model types, so we don't
-      // rely on the common config url function.
+      ...getCommonModelConfig('image'),
       baseURL: baseURL ?? defaultBaseURL,
     });
 

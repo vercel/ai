@@ -13,7 +13,7 @@ async function main() {
         aspect_ratio: '1:1',
         guidance_scale: 10,
         num_inference_steps: 10,
-        seed: 123,
+        seed: 0,
       },
     },
   });
