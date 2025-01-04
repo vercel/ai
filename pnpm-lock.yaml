@@ -72,7 +72,7 @@ importers:
         specifier: 0.0.4
         version: link:../../packages/deepinfra
       '@ai-sdk/deepseek':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
         specifier: 0.0.8
