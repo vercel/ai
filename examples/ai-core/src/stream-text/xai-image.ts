@@ -5,7 +5,7 @@ import fs from 'node:fs';
 
 async function main() {
   const result = streamText({
-    model: xai('grok-vision-beta'),
+    model: xai('grok-2-vision-1212'),
     messages: [
       {
         role: 'user',
