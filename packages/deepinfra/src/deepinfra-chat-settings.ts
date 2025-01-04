@@ -39,6 +39,7 @@ export type DeepInfraChatModelId =
   | 'cognitivecomputations/dolphin-2.9.1-llama-3-70b'
   | 'databricks/dbrx-instruct'
   | 'deepinfra/airoboros-70b'
+  | 'deepseek-ai/DeepSeek-V3'
   | 'google/codegemma-7b-it'
   | 'google/gemma-1.1-7b-it'
   | 'google/gemma-2-27b-it'

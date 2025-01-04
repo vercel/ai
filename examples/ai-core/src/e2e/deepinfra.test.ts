@@ -9,6 +9,7 @@ createFeatureTestSuite({
   models: {
     invalidModel: provider.chatModel('no-such-model'),
     languageModels: [
+      provider.chatModel('deepseek-ai/DeepSeek-V3'), // no tools, streaming objects, or images
       provider.chatModel('google/codegemma-7b-it'), // no tools, objects, or images
       provider.chatModel('google/gemma-2-9b-it'), // no tools, objects, or images
       provider.chatModel('meta-llama/Llama-3.2-11B-Vision-Instruct'), // no tools, *does* support images

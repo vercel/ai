@@ -12,6 +12,7 @@ createFeatureTestSuite({
   models: {
     invalidModel: provider.chatModel('no-such-model'),
     languageModels: [
+      provider.chatModel('deepseek-ai/DeepSeek-V3'), // no tools, objects, or images
       provider.chatModel('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'),
       provider.chatModel('mistralai/Mistral-7B-Instruct-v0.1'),
       provider.chatModel('google/gemma-2b-it'),
