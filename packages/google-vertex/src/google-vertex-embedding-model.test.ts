@@ -161,8 +161,7 @@ describe('GoogleVertexEmbeddingModel', () => {
         headers: () => ({}),
         baseURL: customBaseURL,
         provider: 'google-vertex',
-        region: 'us-central1',
-        project: 'test-project',
+        fetch: global.fetch,
       },
     );
 
@@ -180,6 +179,42 @@ describe('GoogleVertexEmbeddingModel', () => {
     const requestUrl = await server.getRequestUrl();
     expect(requestUrl).toBe(
       'https://custom-endpoint.com/models/textembedding-gecko@001:predict',
+    );
+  });
+
+  it('should use custom fetch when provided', async () => {
+    const customFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          predictions: dummyEmbeddings.map(values => ({
+            embeddings: {
+              values,
+              statistics: { token_count: 1 },
+            },
+          })),
+        }),
+      ),
+    );
+
+    const modelWithCustomFetch = new GoogleVertexEmbeddingModel(
+      'textembedding-gecko@001',
+      { outputDimensionality: 768 },
+      {
+        headers: () => ({}),
+        baseURL: customBaseURL,
+        provider: 'google-vertex',
+        fetch: customFetch,
+      },
+    );
+
+    const response = await modelWithCustomFetch.doEmbed({
+      values: testValues,
+    });
+
+    expect(response.embeddings).toStrictEqual(dummyEmbeddings);
+    expect(customFetch).toHaveBeenCalledWith(
+      `${customBaseURL}/models/textembedding-gecko@001:predict`,
+      expect.any(Object),
     );
   });
 });

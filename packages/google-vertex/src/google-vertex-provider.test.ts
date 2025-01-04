@@ -67,8 +67,6 @@ describe('google-vertex-provider', () => {
       {},
       expect.objectContaining({
         provider: 'google.vertex.embedding',
-        project: 'test-project',
-        region: 'test-location',
         headers: expect.any(Object),
         baseURL:
           'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
