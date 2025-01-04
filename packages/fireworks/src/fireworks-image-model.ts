@@ -115,8 +115,16 @@ export class FireworksImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
 
+    // Preserve serverless runtime compatibility by avoiding the use of Buffer.
+    const bytes = new Uint8Array(response);
+    const binaryString = bytes.reduce(
+      (str, byte) => str + String.fromCharCode(byte),
+      '',
+    );
+    const base64String = btoa(binaryString);
+
     return {
-      images: [Buffer.from(response).toString('base64')],
+      images: [base64String],
     };
   }
 }
