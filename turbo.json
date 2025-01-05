@@ -15,6 +15,7 @@
         "AWS_REGION",
         "AWS_ACCESS_KEY_ID",
         "AWS_SECRET_ACCESS_KEY",
+        "BASETEN_API_KEY",
         "COHERE_API_KEY",
         "DEEPINFRA_API_KEY",
         "DEEPSEEK_API_KEY",

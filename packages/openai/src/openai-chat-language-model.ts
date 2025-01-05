@@ -309,20 +309,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = body;
     const choice = response.choices[0];
 
-    let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
-    if (
-      response.usage?.completion_tokens_details?.reasoning_tokens != null ||
-      response.usage?.prompt_tokens_details?.cached_tokens != null
-    ) {
-      providerMetadata = { openai: {} };
-      if (response.usage?.completion_tokens_details?.reasoning_tokens != null) {
-        providerMetadata.openai.reasoningTokens =
-          response.usage?.completion_tokens_details?.reasoning_tokens;
-      }
-      if (response.usage?.prompt_tokens_details?.cached_tokens != null) {
-        providerMetadata.openai.cachedPromptTokens =
-          response.usage?.prompt_tokens_details?.cached_tokens;
-      }
+    // provider metadata:
+    const completionTokenDetails = response.usage?.completion_tokens_details;
+    const promptTokenDetails = response.usage?.prompt_tokens_details;
+    const providerMetadata: LanguageModelV1ProviderMetadata = { openai: {} };
+    if (completionTokenDetails?.reasoning_tokens != null) {
+      providerMetadata.openai.reasoningTokens =
+        completionTokenDetails?.reasoning_tokens;
+    }
+    if (completionTokenDetails?.accepted_prediction_tokens != null) {
+      providerMetadata.openai.acceptedPredictionTokens =
+        completionTokenDetails?.accepted_prediction_tokens;
+    }
+    if (completionTokenDetails?.rejected_prediction_tokens != null) {
+      providerMetadata.openai.rejectedPredictionTokens =
+        completionTokenDetails?.rejected_prediction_tokens;
+    }
+    if (promptTokenDetails?.cached_tokens != null) {
+      providerMetadata.openai.cachedPromptTokens =
+        promptTokenDetails?.cached_tokens;
     }
 
     return {
@@ -451,7 +456,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     const { useLegacyFunctionCalling } = this.settings;
 
-    let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
+    const providerMetadata: LanguageModelV1ProviderMetadata = { openai: {} };
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -485,29 +491,37 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
             }
 
             if (value.usage != null) {
-              usage = {
-                promptTokens: value.usage.prompt_tokens ?? undefined,
-                completionTokens: value.usage.completion_tokens ?? undefined,
-              };
-
               const {
-                completion_tokens_details: completionTokenDetails,
-                prompt_tokens_details: promptTokenDetails,
+                prompt_tokens,
+                completion_tokens,
+                prompt_tokens_details,
+                completion_tokens_details,
               } = value.usage;
 
+              usage = {
+                promptTokens: prompt_tokens ?? undefined,
+                completionTokens: completion_tokens ?? undefined,
+              };
+
+              if (completion_tokens_details?.reasoning_tokens != null) {
+                providerMetadata.openai.reasoningTokens =
+                  completion_tokens_details?.reasoning_tokens;
+              }
               if (
-                completionTokenDetails?.reasoning_tokens != null ||
-                promptTokenDetails?.cached_tokens != null
+                completion_tokens_details?.accepted_prediction_tokens != null
               ) {
-                providerMetadata = { openai: {} };
-                if (completionTokenDetails?.reasoning_tokens != null) {
-                  providerMetadata.openai.reasoningTokens =
-                    completionTokenDetails?.reasoning_tokens;
-                }
-                if (promptTokenDetails?.cached_tokens != null) {
-                  providerMetadata.openai.cachedPromptTokens =
-                    promptTokenDetails?.cached_tokens;
-                }
+                providerMetadata.openai.acceptedPredictionTokens =
+                  completion_tokens_details?.accepted_prediction_tokens;
+              }
+              if (
+                completion_tokens_details?.rejected_prediction_tokens != null
+              ) {
+                providerMetadata.openai.rejectedPredictionTokens =
+                  completion_tokens_details?.rejected_prediction_tokens;
+              }
+              if (prompt_tokens_details?.cached_tokens != null) {
+                providerMetadata.openai.cachedPromptTokens =
+                  prompt_tokens_details?.cached_tokens;
               }
             }
 
@@ -695,6 +709,8 @@ const openaiTokenUsageSchema = z
     completion_tokens_details: z
       .object({
         reasoning_tokens: z.number().nullish(),
+        accepted_prediction_tokens: z.number().nullish(),
+        rejected_prediction_tokens: z.number().nullish(),
       })
       .nullish(),
   })

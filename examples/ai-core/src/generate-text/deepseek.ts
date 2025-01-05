@@ -1,22 +1,17 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { deepseek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
-const deepSeek = createOpenAI({
-  name: 'deepseek',
-  baseURL: 'https://api.deepseek.com',
-  apiKey: process.env.DEEPSEEK_API_KEY!,
-});
-
 async function main() {
-  const { text, usage } = await generateText({
-    model: deepSeek('deepseek-coder'),
-    prompt: 'Write a "Hello, World!" program in TypeScript.',
+  const result = await generateText({
+    model: deepseek('deepseek-chat'),
+    prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  console.log(text);
+  console.log(result.text);
   console.log();
-  console.log('Usage:', usage);
+  console.log('Token usage:', result.usage);
+  console.log('Finish reason:', result.finishReason);
 }
 
 main().catch(console.error);

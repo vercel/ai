@@ -292,6 +292,22 @@ const result = streamText({
 });
 ```
 
+OpenAI provides usage information for predicted outputs (`acceptedPredictionTokens` and `rejectedPredictionTokens`).
+You can access it in the `experimental_providerMetadata` object.
+
+```ts highlight="11"
+const openaiMetadata = (await result.experimental_providerMetadata)?.openai;
+
+const acceptedPredictionTokens = openaiMetadata?.acceptedPredictionTokens;
+const rejectedPredictionTokens = openaiMetadata?.rejectedPredictionTokens;
+```
+
+<Note type="warning">
+  OpenAI Predicted Outputs have several
+  [limitations](https://platform.openai.com/docs/guides/predicted-outputs#limitations),
+  e.g. unsupported API parameters and no tool calling support.
+</Note>
+
 #### Image Detail
 
 You can use the `openai` provider metadata to set the [image generation detail](https://platform.openai.com/docs/guides/vision/low-or-high-fidelity-image-understanding) to `high`, `low`, or `auto`:

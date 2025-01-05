@@ -1,6 +1,8 @@
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { InvalidArgumentError, ToolExecutionError } from '../../errors';
+import { InvalidArgumentError } from '../../errors/invalid-argument-error';
+import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
+import { ToolExecutionError } from '../../errors/tool-execution-error';
 import { CoreAssistantMessage, CoreMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -83,6 +85,7 @@ A result object that contains the generated text, the results of the tool calls,
 export async function generateText<
   TOOLS extends Record<string, CoreTool>,
   OUTPUT = never,
+  OUTPUT_PARTIAL = never,
 >({
   model,
   tools,
@@ -157,7 +160,10 @@ changing the tool call and result types in the result.
      */
     experimental_activeTools?: Array<keyof TOOLS>;
 
-    experimental_output?: Output<OUTPUT>;
+    /**
+Optional specification for parsing structured outputs from the LLM response.
+     */
+    experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
 
     /**
 A function that attempts to repair a tool call that failed to parse.
@@ -507,16 +513,16 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
-        output:
-          output == null
-            ? (undefined as never)
-            : output.parseOutput(
-                { text },
-                {
-                  response: currentModelResponse.response,
-                  usage,
-                },
-              ),
+        outputResolver: () => {
+          if (output == null) {
+            throw new NoOutputSpecifiedError();
+          }
+
+          return output.parseOutput(
+            { text },
+            { response: currentModelResponse.response, usage },
+          );
+        },
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
@@ -645,7 +651,8 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>, OUTPUT>
   >['experimental_providerMetadata'];
   readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
-  readonly experimental_output: GenerateTextResult<
+
+  private readonly outputResolver: () => GenerateTextResult<
     TOOLS,
     OUTPUT
   >['experimental_output'];
@@ -665,7 +672,10 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>, OUTPUT>
     >['experimental_providerMetadata'];
     response: GenerateTextResult<TOOLS, OUTPUT>['response'];
     request: GenerateTextResult<TOOLS, OUTPUT>['request'];
-    output: GenerateTextResult<TOOLS, OUTPUT>['experimental_output'];
+    outputResolver: () => GenerateTextResult<
+      TOOLS,
+      OUTPUT
+    >['experimental_output'];
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -678,6 +688,10 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>, OUTPUT>
     this.steps = options.steps;
     this.experimental_providerMetadata = options.providerMetadata;
     this.logprobs = options.logprobs;
-    this.experimental_output = options.output;
+    this.outputResolver = options.outputResolver;
+  }
+
+  get experimental_output() {
+    return this.outputResolver();
   }
 }

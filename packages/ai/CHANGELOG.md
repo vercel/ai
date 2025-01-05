@@ -1,5 +1,23 @@
 # ai
 
+## 4.0.26
+
+### Patch Changes
+
+- a8f3242: feat (ai/core): add line chunking mode to smoothStream
+
+## 4.0.25
+
+### Patch Changes
+
+- 0823899: fix (ai/core): throw error when accessing output when no output is defined in generateText (breaking/experimental)
+
+## 4.0.24
+
+### Patch Changes
+
+- ae0485b: feat (ai/core): add experimental output setting to streamText
+
 ## 4.0.23
 
 ### Patch Changes

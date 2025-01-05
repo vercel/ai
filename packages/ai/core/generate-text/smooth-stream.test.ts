@@ -190,4 +190,114 @@ describe('smoothStream', () => {
       },
     ]);
   });
+
+  it('should split text by lines when using line chunking mode', async () => {
+    const events: any[] = [];
+
+    const stream = convertArrayToReadableStream([
+      {
+        textDelta: 'First line\nSecond line\nThird line with more text\n',
+        type: 'text-delta',
+      },
+      { textDelta: 'Partial line', type: 'text-delta' },
+      { textDelta: ' continues\nFinal line\n', type: 'text-delta' },
+      { type: 'step-finish' },
+      { type: 'finish' },
+    ]).pipeThrough(
+      smoothStream({
+        delayInMs: 10,
+        chunking: 'line',
+        _internal: {
+          delay: () => {
+            events.push('delay');
+            return Promise.resolve();
+          },
+        },
+      })({ tools: {} }),
+    );
+
+    const reader = stream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      events.push(value);
+    }
+
+    expect(events).toEqual([
+      'delay',
+      {
+        textDelta: 'First line\n',
+        type: 'text-delta',
+      },
+      'delay',
+      {
+        textDelta: 'Second line\n',
+        type: 'text-delta',
+      },
+      'delay',
+      {
+        textDelta: 'Third line with more text\n',
+        type: 'text-delta',
+      },
+      'delay',
+      {
+        textDelta: 'Partial line continues\n',
+        type: 'text-delta',
+      },
+      'delay',
+      {
+        textDelta: 'Final line\n',
+        type: 'text-delta',
+      },
+      {
+        type: 'step-finish',
+      },
+      {
+        type: 'finish',
+      },
+    ]);
+  });
+
+  it('should handle text without line endings in line chunking mode', async () => {
+    const events: any[] = [];
+
+    const stream = convertArrayToReadableStream([
+      { textDelta: 'Text without', type: 'text-delta' },
+      { textDelta: ' any line', type: 'text-delta' },
+      { textDelta: ' breaks', type: 'text-delta' },
+      { type: 'step-finish' },
+      { type: 'finish' },
+    ]).pipeThrough(
+      smoothStream({
+        delayInMs: 10,
+        chunking: 'line',
+        _internal: {
+          delay: () => {
+            events.push('delay');
+            return Promise.resolve();
+          },
+        },
+      })({ tools: {} }),
+    );
+
+    const reader = stream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      events.push(value);
+    }
+
+    expect(events).toEqual([
+      {
+        textDelta: 'Text without any line breaks',
+        type: 'text-delta',
+      },
+      {
+        type: 'step-finish',
+      },
+      {
+        type: 'finish',
+      },
+    ]);
+  });
 });
