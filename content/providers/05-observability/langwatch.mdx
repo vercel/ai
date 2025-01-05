@@ -130,15 +130,16 @@ For Node.js, start by following the official OpenTelemetry guide:
 Once you have set up OpenTelemetry, you can use the `LangWatchExporter` to automatically send your traces to LangWatch:
 
 ```typescript
-import { LangWatchExporter } from 'langwatch'
+import { LangWatchExporter } from 'langwatch';
 
 const sdk = new NodeSDK({
   traceExporter: new LangWatchExporter({
-    apiKey: process.env.LANGWATCH_API_KEY
+    apiKey: process.env.LANGWATCH_API_KEY,
   }),
   // ...
 });
 ```
+
 </Tab>
 </Tabs>
 
