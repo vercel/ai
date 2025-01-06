@@ -51,17 +51,23 @@ export class ReplicateImageModel implements ImageModelV1 {
 
     const [owner, model] = this.modelId.split('/');
     
+    const url = `${this.config.baseURL}/models/${owner}/${model}/predictions`;
+    
     const body = {
       input: {
         prompt,
         num_outputs: n,
-        ...(providerOptions.replicate?.input ?? {}),
+        ...(providerOptions.replicate?.input as Record<string, unknown> ?? {}),
       },
     };
 
+    const combinedHeaders = combineHeaders(await resolve(this.config.headers), headers);
+
+    // console.log({url, body, combinedHeaders});
+
     const { value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${owner}/${model}/predictions`,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
+      url,
+      headers: combinedHeaders,
       body,
       failedResponseHandler: replicateFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
