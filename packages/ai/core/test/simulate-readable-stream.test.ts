@@ -51,4 +51,61 @@ describe('simulateReadableStream', () => {
       { id: 2, text: 'world' },
     ]);
   });
+
+  it('should skip delays when initialDelayInMs and chunkDelayInMs are null', async () => {
+    const delayValues: number[] = [];
+    const mockDelay = (ms: number) => {
+      delayValues.push(ms);
+      return Promise.resolve();
+    };
+
+    const stream = simulateReadableStream({
+      chunks: [1, 2, 3],
+      initialDelayInMs: null,
+      chunkDelayInMs: null,
+      _internal: { delay: mockDelay },
+    });
+
+    await convertReadableStreamToArray(stream); // consume stream
+
+    expect(delayValues).toEqual([]);
+  });
+
+  it('should skip initial delay but apply chunk delays when only initialDelayInMs is null', async () => {
+    const delayValues: number[] = [];
+    const mockDelay = (ms: number) => {
+      delayValues.push(ms);
+      return Promise.resolve();
+    };
+
+    const stream = simulateReadableStream({
+      chunks: [1, 2, 3],
+      initialDelayInMs: null,
+      chunkDelayInMs: 100,
+      _internal: { delay: mockDelay },
+    });
+
+    await convertReadableStreamToArray(stream); // consume stream
+
+    expect(delayValues).toEqual([100, 100]);
+  });
+
+  it('should apply initial delay but skip chunk delays when only chunkDelayInMs is null', async () => {
+    const delayValues: number[] = [];
+    const mockDelay = (ms: number) => {
+      delayValues.push(ms);
+      return Promise.resolve();
+    };
+
+    const stream = simulateReadableStream({
+      chunks: [1, 2, 3],
+      initialDelayInMs: 500,
+      chunkDelayInMs: null,
+      _internal: { delay: mockDelay },
+    });
+
+    await convertReadableStreamToArray(stream); // consume stream
+
+    expect(delayValues).toEqual([500]);
+  });
 });
