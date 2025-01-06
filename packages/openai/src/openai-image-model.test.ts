@@ -36,6 +36,8 @@ describe('doGenerate', () => {
       prompt,
       n: 2,
       size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
       providerOptions: { openai: { style: 'vivid' } },
     });
 
@@ -65,6 +67,8 @@ describe('doGenerate', () => {
       prompt,
       n: 2,
       size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
       providerOptions: { openai: { style: 'vivid' } },
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -90,6 +94,8 @@ describe('doGenerate', () => {
       prompt,
       n: 2,
       size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
       providerOptions: {},
     });
 
