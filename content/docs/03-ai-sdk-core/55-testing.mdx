@@ -15,7 +15,7 @@ includes mock providers and test helpers. You can import the following helpers f
 - `MockLanguageModelV1`: A mock language model using the [language model v1 specification](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v1/language-model-v1.ts).
 - `mockId`: Provides an incrementing integer ID.
 - `mockValues`: Iterates over an array of values with each call. Returns the last value when the array is exhausted.
-- `simulateReadableStream`: Simulates a readable stream with delays.
+- [`simulateReadableStream`](/docs/reference/ai-sdk-core/simulate-readable-stream): Simulates a readable stream with delays.
 
 With mock providers and test helpers, you can control the output of the AI SDK
 and test your code in a repeatable and deterministic way without actually calling
@@ -47,8 +47,8 @@ const result = await generateText({
 ### streamText
 
 ```ts
-import { streamText } from 'ai';
-import { simulateReadableStream, MockLanguageModelV1 } from 'ai/test';
+import { streamText, simulateReadableStream } from 'ai';
+import { MockLanguageModelV1 } from 'ai/test';
 
 const result = streamText({
   model: new MockLanguageModelV1({
@@ -98,8 +98,8 @@ const result = await generateObject({
 ### streamObject
 
 ```ts
-import { streamObject } from 'ai';
-import { simulateReadableStream, MockLanguageModelV1 } from 'ai/test';
+import { streamObject, simulateReadableStream } from 'ai';
+import { MockLanguageModelV1 } from 'ai/test';
 import { z } from 'zod';
 
 const result = streamObject({
@@ -138,7 +138,7 @@ debugging, or demonstration purposes.
 Here is a Next example:
 
 ```ts filename="route.ts"
-import { simulateReadableStream } from 'ai/test';
+import { simulateReadableStream } from 'ai';
 
 export async function POST(req: Request) {
   return new Response(

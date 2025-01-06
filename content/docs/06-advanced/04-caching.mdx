@@ -9,7 +9,11 @@ Depending on the type of application you're building, you may want to cache the 
 
 ## Using Language Model Middleware (Recommended)
 
-The recommended approach to caching responses is using [language model middleware](/docs/ai-sdk-core/middleware). Language model middleware is a way to enhance the behavior of language models by intercepting and modifying the calls to the language model. Let's see how you can use language model middleware to cache responses.
+The recommended approach to caching responses is using [language model middleware](/docs/ai-sdk-core/middleware)
+and the [`simulateReadableStream`](/docs/reference/ai-sdk-core/simulate-readable-stream) function.
+
+Language model middleware is a way to enhance the behavior of language models by intercepting and modifying the calls to the language model.
+Let's see how you can use language model middleware to cache responses.
 
 ```ts filename="ai/middleware.ts"
 import { Redis } from '@upstash/redis';
@@ -17,8 +21,8 @@ import type {
   LanguageModelV1,
   Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware,
   LanguageModelV1StreamPart,
+  simulateReadableStream,
 } from 'ai';
-import { simulateReadableStream } from 'ai/test';
 
 const redis = new Redis({
   url: process.env.KV_URL,
