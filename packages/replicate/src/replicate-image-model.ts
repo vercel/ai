@@ -31,7 +31,18 @@ export class ReplicateImageModel implements ImageModelV1 {
   constructor(
     readonly modelId: ReplicateImageModelId,
     private config: ReplicateImageModelConfig,
-  ) {}
+  ) {
+    if (!SUPPORTED_MODEL_IDS.includes(modelId as SupportedModelId)) {
+      throw new Error(
+        `Unsupported model: ${modelId}. ` + 
+        `Supported models are: ${SUPPORTED_MODEL_IDS.join(', ')}`
+      );
+    }
+    this.config.headers = {
+      ...this.config.headers,
+      'Prefer': 'wait',
+    };
+  }
 
   async doGenerate({
     prompt,
