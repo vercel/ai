@@ -10,6 +10,13 @@ The Replicate provider is available in the `@ai-sdk/replicate` module, which is 
 npm i @ai-sdk/replicate
 ```
 
+## Supported Models
+
+The Replicate provider currently supports the following models:
+
+- [black-forest-labs/flux-schnell](https://replicate.com/black-forest-labs/flux-schnell)
+- [black-forest-labs/flux-dev](https://replicate.com/black-forest-labs/flux-dev)
+
 ## Usage
 
 ```ts

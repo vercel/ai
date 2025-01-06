@@ -18,7 +18,7 @@ describe('createReplicate', () => {
 
   it('creates an image model instance', () => {
     const provider = createReplicate({ apiToken: 'test-token' });
-    const model = provider.image('stability-ai/sdxl:abc123');
+    const model = provider.image('black-forest-labs/flux-schnell');
     expect(model).toBeInstanceOf(ReplicateImageModel);
   });
 
@@ -28,7 +28,7 @@ describe('createReplicate', () => {
       baseURL: 'https://custom.replicate.com',
     };
     const provider = createReplicate(customConfig);
-    const model = provider.image('stability-ai/sdxl:abc123');
+    const model = provider.image('black-forest-labs/flux-schnell');
     
     // Access internal config to verify it was passed correctly
     const modelConfig = (model as { config: typeof customConfig & { provider: string } }).config;

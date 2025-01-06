@@ -9,10 +9,12 @@ import {
 import { z } from 'zod';
 import { replicateFailedResponseHandler } from './replicate-error';
 
-export type ReplicateImageModelId = 
-  | 'black-forest-labs/flux-schnell'
-  | 'black-forest-labs/flux-dev'
-  | (string & {});
+const SUPPORTED_MODEL_IDS = [
+  'black-forest-labs/flux-schnell',
+  'black-forest-labs/flux-dev'
+] as const;
+
+type SupportedModelId = typeof SUPPORTED_MODEL_IDS[number];
 
 interface ReplicateImageModelConfig {
   provider: string;
@@ -29,7 +31,7 @@ export class ReplicateImageModel implements ImageModelV1 {
   }
 
   constructor(
-    readonly modelId: ReplicateImageModelId,
+    readonly modelId: SupportedModelId,
     private config: ReplicateImageModelConfig,
   ) {
     if (!SUPPORTED_MODEL_IDS.includes(modelId as SupportedModelId)) {
@@ -74,8 +76,6 @@ export class ReplicateImageModel implements ImageModelV1 {
 
     const combinedHeaders = combineHeaders(await resolve(this.config.headers), headers);
 
-    // console.log({url, body, combinedHeaders});
-
     const { value: response } = await postJsonToApi({
       url,
       headers: combinedHeaders,
@@ -88,8 +88,11 @@ export class ReplicateImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
 
+    // Some models return a single image URL, others return an array of image URLs
+    const images = Array.isArray(response.output) ? response.output : [response.output];
+
     return {
-      images: response.output,
+      images,
     };
   }
 }
