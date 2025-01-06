@@ -12,7 +12,7 @@ const CHUNKING_REGEXPS = {
  * Smooths text streaming output.
  *
  * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay.
- * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), or "line" to stream line by line.
+ * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom RegExp pattern for custom chunking.
  *
  * @returns A transform stream that smooths text streaming output.
  */
