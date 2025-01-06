@@ -1,5 +1,14 @@
 # ai
 
+## 4.0.27
+
+### Patch Changes
+
+- a56734f: feat (ai/core): export simulateReadableStream in ai package
+- 9589601: feat (ai/core): support null delay in smoothStream
+- e3cc23a: feat (ai/core): support regexp chunking pattern in smoothStream
+- e463e73: feat (ai/core): support skipping delays in simulateReadableStream
+
 ## 4.0.26
 
 ### Patch Changes
