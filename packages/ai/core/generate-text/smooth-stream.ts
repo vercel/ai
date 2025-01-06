@@ -5,7 +5,7 @@ import { TextStreamPart } from './stream-text-result';
 /**
  * Smooths text streaming output.
  *
- * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms.
+ * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay.
  * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), or "line" to stream line by line.
  *
  * @returns A transform stream that smooths text streaming output.
@@ -15,21 +15,20 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
   chunking = 'word',
   _internal: { delay = originalDelay } = {},
 }: {
-  delayInMs?: number;
+  delayInMs?: number | null;
   chunking?: 'word' | 'line';
   /**
    * Internal. For test use only. May change without notice.
    */
   _internal?: {
-    delay?: (delayInMs: number) => Promise<void>;
+    delay?: (delayInMs: number | null) => Promise<void>;
   };
 } = {}): (options: {
   tools: TOOLS;
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>> {
-  let buffer = '';
-
-  return () =>
-    new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+  return () => {
+    let buffer = '';
+    return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
         if (chunk.type === 'step-finish') {
           if (buffer.length > 0) {
@@ -58,10 +57,9 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
           controller.enqueue({ type: 'text-delta', textDelta: chunk });
           buffer = buffer.slice(chunk.length);
 
-          if (delayInMs > 0) {
-            await delay(delayInMs);
-          }
+          await delay(delayInMs);
         }
       },
     });
+  };
 }
