@@ -262,6 +262,55 @@ describe('smoothStream', () => {
     });
   });
 
+  describe('custom chunking', () => {
+    it('should support custom chunking regexps (character-level)', async () => {
+      const stream = convertArrayToReadableStream([
+        { textDelta: 'Hello, world!', type: 'text-delta' },
+        { type: 'step-finish' },
+        { type: 'finish' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: /./,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toEqual([
+        'delay 10',
+        { textDelta: 'H', type: 'text-delta' },
+        'delay 10',
+        { textDelta: 'e', type: 'text-delta' },
+        'delay 10',
+        { textDelta: 'l', type: 'text-delta' },
+        'delay 10',
+        { textDelta: 'l', type: 'text-delta' },
+        'delay 10',
+        { textDelta: 'o', type: 'text-delta' },
+        'delay 10',
+        { textDelta: ',', type: 'text-delta' },
+        'delay 10',
+        { textDelta: ' ', type: 'text-delta' },
+        'delay 10',
+        { textDelta: 'w', type: 'text-delta' },
+        'delay 10',
+        { textDelta: 'o', type: 'text-delta' },
+        'delay 10',
+        { textDelta: 'r', type: 'text-delta' },
+        'delay 10',
+        { textDelta: 'l', type: 'text-delta' },
+        'delay 10',
+        { textDelta: 'd', type: 'text-delta' },
+        'delay 10',
+        { textDelta: '!', type: 'text-delta' },
+        { type: 'step-finish' },
+        { type: 'finish' },
+      ]);
+    });
+  });
+
   describe('delay', () => {
     it('should default to 10ms', async () => {
       const stream = convertArrayToReadableStream([
