@@ -62,7 +62,8 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
 
     const provider = createVertexAnthropic({
       project: process.env.GOOGLE_VERTEX_PROJECT!,
-      location: process.env.GOOGLE_VERTEX_LOCATION ?? 'us-central1',
+      // Anthropic models are typically only available in us-east5 region.
+      location: process.env.GOOGLE_VERTEX_LOCATION ?? 'us-east5',
     });
 
     describe.each(MODEL_VARIANTS.chat)('Chat Model: %s', modelId => {
