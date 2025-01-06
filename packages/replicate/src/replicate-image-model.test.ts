@@ -13,7 +13,7 @@ const model = new ReplicateImageModel('black-forest-labs/flux-schnell', {
 describe('ReplicateImageModel', () => {
   describe('doGenerate', () => {
     const server = new JsonTestServer(
-      'https://api.replicate.com/v1/models/stability-ai/sdxl/predictions',
+      'https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions',
     );
 
     server.setupTestEnvironment();
@@ -36,24 +36,18 @@ describe('ReplicateImageModel', () => {
         size: undefined,
         providerOptions: { 
           replicate: { 
-            version: 'v1.0',
             input: { 
-              width: 1024,
-              height: 1024,
-              num_inference_steps: 50 
+              num_inference_steps: 10 
             } 
           } 
         },
       });
 
       expect(await server.getRequestBodyJson()).toStrictEqual({
-        version: 'v1.0',
         input: {
           prompt,
           num_outputs: 2,
-          width: 1024,
-          height: 1024,
-          num_inference_steps: 50,
+          num_inference_steps: 10,
         },
       });
     });
@@ -61,7 +55,7 @@ describe('ReplicateImageModel', () => {
     it('should pass headers', async () => {
       prepareJsonResponse();
 
-      const modelWithHeaders = new ReplicateImageModel('stability-ai/sdxl', {
+      const modelWithHeaders = new ReplicateImageModel('black-forest-labs/flux-schnell', {
         provider: 'replicate',
         baseURL: 'https://api.replicate.com/v1',
         headers: {
