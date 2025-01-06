@@ -182,7 +182,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     );
   });
 
-  it('should use custom fetch when provided', async () => {
+  it('should use custom fetch when provided and include proper request content', async () => {
     const customFetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -212,9 +212,20 @@ describe('GoogleVertexEmbeddingModel', () => {
     });
 
     expect(response.embeddings).toStrictEqual(dummyEmbeddings);
+
     expect(customFetch).toHaveBeenCalledWith(
       `${customBaseURL}/models/textembedding-gecko@001:predict`,
       expect.any(Object),
     );
+
+    const [_, secondArgument] = customFetch.mock.calls[0];
+    const requestBody = JSON.parse(secondArgument.body);
+
+    expect(requestBody).toStrictEqual({
+      instances: testValues.map(value => ({ content: value })),
+      parameters: {
+        outputDimensionality: 768,
+      },
+    });
   });
 });
