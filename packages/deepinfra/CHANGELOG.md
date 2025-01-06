@@ -1,5 +1,11 @@
 # @ai-sdk/deepinfra
 
+## 0.0.5
+
+### Patch Changes
+
+- 32742bb: feat (providers): Add DeepSeek-V3 model to deepinfra/togetherai.
+
 ## 0.0.4
 
 ### Patch Changes

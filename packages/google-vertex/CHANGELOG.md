@@ -1,5 +1,12 @@
 # @ai-sdk/google-vertex
 
+## 2.0.13
+
+### Patch Changes
+
+- e6ed588: feat (provider/google-vertex): Allow arbitrary image model ids.
+- 6612561: fix (provider/google-vertex): Use optional fetch in embed and streamline config.
+
 ## 2.0.12
 
 ### Patch Changes
