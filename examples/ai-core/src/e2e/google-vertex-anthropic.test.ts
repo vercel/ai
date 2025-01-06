@@ -55,23 +55,15 @@ type AnthropicProviderMetadata = {
   };
 };
 
-const EXPECTED_CLAUDE_LOCATION = 'us-east5';
-
 describe.each(Object.values(RUNTIME_VARIANTS))(
   'Vertex Anthropic E2E Tests - $name',
   ({ createVertexAnthropic, vertexAnthropic }) => {
     vi.setConfig({ testTimeout: LONG_TEST_MILLIS });
 
-    const location = process.env.GOOGLE_VERTEX_LOCATION;
-    if (location !== EXPECTED_CLAUDE_LOCATION) {
-      console.warn(
-        `⚠️ Warning: Check your vertex location settings -- Anthropic models are typically only available in '${EXPECTED_CLAUDE_LOCATION}' (found: '${location}')`,
-      );
-    }
-
     const provider = createVertexAnthropic({
       project: process.env.GOOGLE_VERTEX_PROJECT!,
-      location: process.env.GOOGLE_VERTEX_LOCATION ?? EXPECTED_CLAUDE_LOCATION,
+      // Anthropic models are typically only available in us-east5 region.
+      location: process.env.GOOGLE_VERTEX_LOCATION ?? 'us-east5',
     });
 
     describe.each(MODEL_VARIANTS.chat)('Chat Model: %s', modelId => {
