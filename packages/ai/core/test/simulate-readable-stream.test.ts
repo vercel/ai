@@ -2,6 +2,16 @@ import { simulateReadableStream } from './simulate-readable-stream';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 
 describe('simulateReadableStream', () => {
+  let delayValues: (number | null)[] = [];
+  const mockDelay = (ms: number | null) => {
+    delayValues.push(ms);
+    return Promise.resolve();
+  };
+
+  beforeEach(() => {
+    delayValues = [];
+  });
+
   it('should create a readable stream with provided values', async () => {
     const values = ['a', 'b', 'c'];
     const stream = simulateReadableStream({ chunks: values });
@@ -10,12 +20,6 @@ describe('simulateReadableStream', () => {
   });
 
   it('should respect the chunkDelayInMs setting', async () => {
-    const delayValues: number[] = [];
-    const mockDelay = (ms: number) => {
-      delayValues.push(ms);
-      return Promise.resolve();
-    };
-
     const stream = simulateReadableStream({
       chunks: [1, 2, 3],
       initialDelayInMs: 500,
@@ -50,5 +54,44 @@ describe('simulateReadableStream', () => {
       { id: 1, text: 'hello' },
       { id: 2, text: 'world' },
     ]);
+  });
+
+  it('should skip all delays when both delay settings are null', async () => {
+    const stream = simulateReadableStream({
+      chunks: [1, 2, 3],
+      initialDelayInMs: null,
+      chunkDelayInMs: null,
+      _internal: { delay: mockDelay },
+    });
+
+    await convertReadableStreamToArray(stream); // consume stream
+
+    expect(delayValues).toEqual([null, null, null]);
+  });
+
+  it('should apply chunk delays but skip initial delay when initialDelayInMs is null', async () => {
+    const stream = simulateReadableStream({
+      chunks: [1, 2, 3],
+      initialDelayInMs: null,
+      chunkDelayInMs: 100,
+      _internal: { delay: mockDelay },
+    });
+
+    await convertReadableStreamToArray(stream); // consume stream
+
+    expect(delayValues).toEqual([null, 100, 100]);
+  });
+
+  it('should apply initial delay but skip chunk delays when chunkDelayInMs is null', async () => {
+    const stream = simulateReadableStream({
+      chunks: [1, 2, 3],
+      initialDelayInMs: 500,
+      chunkDelayInMs: null,
+      _internal: { delay: mockDelay },
+    });
+
+    await convertReadableStreamToArray(stream); // consume stream
+
+    expect(delayValues).toEqual([500, null, null]);
   });
 });
