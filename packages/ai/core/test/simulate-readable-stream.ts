@@ -19,7 +19,7 @@ export function simulateReadableStream<T>({
   initialDelayInMs?: number | null;
   chunkDelayInMs?: number | null;
   _internal?: {
-    delay?: (ms: number) => Promise<void>;
+    delay?: (ms: number | null) => Promise<void>;
   };
 }): ReadableStream<T> {
   const delay = _internal?.delay ?? delayFunction;
@@ -29,13 +29,7 @@ export function simulateReadableStream<T>({
   return new ReadableStream({
     async pull(controller) {
       if (index < chunks.length) {
-        if (index === 0) {
-          if (initialDelayInMs !== null) {
-            await delay(initialDelayInMs);
-          }
-        } else if (chunkDelayInMs !== null) {
-          await delay(chunkDelayInMs);
-        }
+        await delay(index === 0 ? initialDelayInMs : chunkDelayInMs);
 
         controller.enqueue(chunks[index++]);
       } else {
