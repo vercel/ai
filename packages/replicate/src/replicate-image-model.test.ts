@@ -1,0 +1,120 @@
+import { JsonTestServer } from '@ai-sdk/provider-utils/test';
+import { ReplicateImageModel } from './replicate-image-model';
+import { describe, it, expect } from 'vitest';
+
+const prompt = 'The Loch Ness Monster getting a manicure';
+
+const model = new ReplicateImageModel('black-forest-labs/flux-schnell', {
+  provider: 'replicate',
+  baseURL: 'https://api.replicate.com/v1',
+  headers: { 'Authorization': 'Bearer test-token' },
+});
+
+describe('ReplicateImageModel', () => {
+  describe('doGenerate', () => {
+    const server = new JsonTestServer(
+      'https://api.replicate.com/v1/models/stability-ai/sdxl/predictions',
+    );
+
+    server.setupTestEnvironment();
+
+    function prepareJsonResponse() {
+      server.responseBodyJson = {
+        output: [
+          'https://replicate.delivery/image1.png',
+          'https://replicate.delivery/image2.png',
+        ],
+      };
+    }
+
+    it('should pass the correct parameters', async () => {
+      prepareJsonResponse();
+
+      await model.doGenerate({
+        prompt,
+        n: 2,
+        size: undefined,
+        providerOptions: { 
+          replicate: { 
+            version: 'v1.0',
+            input: { 
+              width: 1024,
+              height: 1024,
+              num_inference_steps: 50 
+            } 
+          } 
+        },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        version: 'v1.0',
+        input: {
+          prompt,
+          num_outputs: 2,
+          width: 1024,
+          height: 1024,
+          num_inference_steps: 50,
+        },
+      });
+    });
+
+    it('should pass headers', async () => {
+      prepareJsonResponse();
+
+      const modelWithHeaders = new ReplicateImageModel('stability-ai/sdxl', {
+        provider: 'replicate',
+        baseURL: 'https://api.replicate.com/v1',
+        headers: {
+          'Authorization': 'Bearer test-token',
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+      });
+
+      await modelWithHeaders.doGenerate({
+        prompt,
+        n: 2,
+        size: undefined,
+        providerOptions: {},
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      const requestHeaders = await server.getRequestHeaders();
+
+      expect(requestHeaders).toStrictEqual({
+        'authorization': 'Bearer test-token',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
+    });
+
+    it('should extract the generated images', async () => {
+      prepareJsonResponse();
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 2,
+        size: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toStrictEqual([
+        'https://replicate.delivery/image1.png',
+        'https://replicate.delivery/image2.png',
+      ]);
+    });
+
+    it('throws when size is specified', async () => {
+      await expect(
+        model.doGenerate({
+          prompt: 'test prompt',
+          n: 1,
+          size: '1024x1024',
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(/Replicate does not support the `size` option./);
+    });
+  });
+}); 
