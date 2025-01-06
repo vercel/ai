@@ -21,6 +21,7 @@ export type TogetherAIChatModelId =
   | 'google/gemma-2-9b-it'
   | 'databricks/dbrx-instruct'
   | 'deepseek-ai/deepseek-llm-67b-chat'
+  | 'deepseek-ai/DeepSeek-V3'
   | 'google/gemma-2b-it'
   | 'Gryphe/MythoMax-L2-13b'
   | 'meta-llama/Llama-2-13b-chat-hf'
