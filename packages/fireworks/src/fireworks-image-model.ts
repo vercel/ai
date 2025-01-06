@@ -10,7 +10,6 @@ import {
   ResponseHandler,
   FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 // https://fireworks.ai/models?type=image
 export type FireworksImageModelId =
@@ -88,6 +87,8 @@ export class FireworksImageModel implements ImageModelV1 {
     return this.config.provider;
   }
 
+  readonly maxImagesPerCall = 1;
+
   constructor(
     readonly modelId: FireworksImageModelId,
     private config: FireworksImageModelConfig,
@@ -97,18 +98,14 @@ export class FireworksImageModel implements ImageModelV1 {
     prompt,
     n,
     size,
+    aspectRatio,
+    seed,
     providerOptions,
     headers,
     abortSignal,
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
-    if (n > 1) {
-      throw new UnsupportedFunctionalityError({
-        functionality: 'multiple images',
-      });
-    }
-
     if (size) {
       throw new UnsupportedFunctionalityError({
         functionality: 'image size',
@@ -118,6 +115,8 @@ export class FireworksImageModel implements ImageModelV1 {
     const url = `${this.config.baseURL}/workflows/${this.modelId}/text_to_image`;
     const body = {
       prompt,
+      aspect_ratio: aspectRatio,
+      seed: seed === 'random' ? 0 : seed,
       ...(providerOptions.fireworks ?? {}),
     };
 
@@ -132,7 +131,7 @@ export class FireworksImageModel implements ImageModelV1 {
     });
 
     return {
-      images: [convertUint8ArrayToBase64(new Uint8Array(response))],
+      images: [new Uint8Array(response)],
     };
   }
 }

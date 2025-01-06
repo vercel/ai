@@ -28,19 +28,41 @@ describe('FireworksImageModel', () => {
       server.responseBody = mockImageBuffer;
     }
 
-    it('should pass the correct parameters', async () => {
+    it('should pass the correct parameters including aspect ratio and seed', async () => {
       prepareBinaryResponse();
 
       await model.doGenerate({
         prompt,
         n: 1,
         size: undefined,
+        aspectRatio: '16:9',
+        seed: 42,
         providerOptions: { fireworks: { additional_param: 'value' } },
       });
 
       expect(await server.getRequestBodyJson()).toStrictEqual({
         prompt,
+        aspect_ratio: '16:9',
+        seed: 42,
         additional_param: 'value',
+      });
+    });
+
+    it('should convert "random" seed to 0', async () => {
+      prepareBinaryResponse();
+
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: 'random',
+        providerOptions: {},
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        prompt,
+        seed: 0,
       });
     });
 
@@ -62,6 +84,8 @@ describe('FireworksImageModel', () => {
         prompt,
         n: 1,
         size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
         providerOptions: {},
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -77,7 +101,7 @@ describe('FireworksImageModel', () => {
       });
     });
 
-    it('should return base64 encoded image', async () => {
+    it('should return binary image data', async () => {
       const mockImageBuffer = Buffer.from('mock-image-data');
       server.responseBody = mockImageBuffer;
 
@@ -85,11 +109,14 @@ describe('FireworksImageModel', () => {
         prompt,
         n: 1,
         size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
         providerOptions: {},
       });
 
       expect(result.images).toHaveLength(1);
-      expect(result.images[0]).toBe(mockImageBuffer.toString('base64'));
+      expect(result.images[0]).toBeInstanceOf(Uint8Array);
+      expect(Buffer.from(result.images[0])).toEqual(mockImageBuffer);
     });
 
     it('should handle empty response body', async () => {
@@ -100,6 +127,8 @@ describe('FireworksImageModel', () => {
           prompt,
           n: 1,
           size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrow(APICallError);
@@ -109,6 +138,8 @@ describe('FireworksImageModel', () => {
           prompt,
           n: 1,
           size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
           providerOptions: {},
         }),
       ).rejects.toMatchObject({
@@ -130,6 +161,8 @@ describe('FireworksImageModel', () => {
           prompt,
           n: 1,
           size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrow(APICallError);
@@ -139,6 +172,8 @@ describe('FireworksImageModel', () => {
           prompt,
           n: 1,
           size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
           providerOptions: {},
         }),
       ).rejects.toMatchObject({
@@ -152,19 +187,27 @@ describe('FireworksImageModel', () => {
       });
     });
 
-    it('should throw error when requesting multiple images', async () => {
-      await expect(
-        model.doGenerate({
-          prompt,
-          n: 2,
-          size: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrowError(
-        new UnsupportedFunctionalityError({
-          functionality: 'multiple images',
-        }),
-      );
+    it('should allow requesting multiple images', async () => {
+      const mockImageBuffer = Buffer.from('mock-image-data');
+      server.responseBody = mockImageBuffer;
+      server.responseStatus = 200;
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 2,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        prompt,
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(result.images[0]).toBeInstanceOf(Uint8Array);
+      expect(Buffer.from(result.images[0])).toEqual(mockImageBuffer);
     });
 
     it('should throw error when specifying image size', async () => {
@@ -173,6 +216,8 @@ describe('FireworksImageModel', () => {
           prompt,
           n: 1,
           size: '512x512',
+          aspectRatio: undefined,
+          seed: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrowError(
