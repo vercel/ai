@@ -111,4 +111,34 @@ describe('ReplicateImageModel', () => {
       ).rejects.toThrow(/Replicate does not support the `size` option./);
     });
   });
+
+  describe('e2e integration with the real Replicate API', () => {
+    // Skip if no API token is provided
+    it.runIf(process.env.REPLICATE_API_TOKEN)('should generate an image', async () => {
+      const modelWithAuth = new ReplicateImageModel('black-forest-labs/flux-schnell', {
+        provider: 'replicate',
+        baseURL: 'https://api.replicate.com/v1',
+        headers: { 
+          Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}`, 
+          Prefer: 'wait'
+        },
+      });
+
+      const { images } = await modelWithAuth.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        providerOptions: {
+          replicate: {
+            input: {
+              num_inference_steps: 2
+            }
+          }
+        }
+      });
+      
+      expect(images).toHaveLength(1);
+      expect(images[0]).toMatch(/^https:\/\/replicate\.delivery\/.+/);
+    }, 30000);
+  });
 }); 
