@@ -120,6 +120,8 @@ describe('ReplicateImageModel', () => {
         baseURL: 'https://api.replicate.com/v1',
         headers: { 
           Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}`, 
+
+          // https://replicate.fyi/prefer-header
           Prefer: 'wait'
         },
       });
