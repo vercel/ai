@@ -43,9 +43,7 @@ const basetenExtraPayload = {
 
 const baseten = createOpenAICompatible({
   name: 'baseten',
-  headers: {
-    Authorization: `Bearer ${process.env.BASETEN_API_KEY}`,
-  },
+  apiKey: process.env.BASETEN_API_KEY,
   baseURL: 'https://bridge.baseten.co/v1/direct',
   fetch: async (url, request) => {
     const bodyWithBasetenPayload = JSON.stringify({
@@ -87,9 +85,7 @@ const basetenExtraPayload = {
 
 const baseten = createOpenAICompatible({
   name: 'baseten',
-  headers: {
-    Authorization: `Bearer ${process.env.BASETEN_API_KEY}`,
-  },
+  apiKey: process.env.BASETEN_API_KEY,
   baseURL: 'https://bridge.baseten.co/v1/direct',
   fetch: async (url, request) => {
     const bodyWithBasetenPayload = JSON.stringify({
@@ -125,9 +121,7 @@ const basetenExtraPayload = {
 
 const baseten = createOpenAICompatible({
   name: 'baseten',
-  headers: {
-    Authorization: `Bearer ${process.env.BASETEN_API_KEY}`,
-  },
+  apiKey: process.env.BASETEN_API_KEY,
   baseURL: 'https://bridge.baseten.co/v1/direct',
   fetch: async (url, request) => {
     const bodyWithBasetenPayload = JSON.stringify({
