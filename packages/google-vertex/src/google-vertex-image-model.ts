@@ -25,6 +25,9 @@ interface GoogleVertexImageModelConfig {
 export class GoogleVertexImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
+  // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
+  readonly maxImagesPerCall = 4;
+
   get provider(): string {
     return this.config.provider;
   }
@@ -38,6 +41,8 @@ export class GoogleVertexImageModel implements ImageModelV1 {
     prompt,
     n,
     size,
+    aspectRatio,
+    seed,
     providerOptions,
     headers,
     abortSignal,
@@ -47,7 +52,7 @@ export class GoogleVertexImageModel implements ImageModelV1 {
     if (size) {
       throw new Error(
         'Google Vertex does not support the `size` option. Use ' +
-          '`providerOptions.vertex.aspectRatio` instead. See ' +
+          '`aspectRatio` instead. See ' +
           'https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio',
       );
     }
@@ -56,6 +61,8 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       instances: [{ prompt }],
       parameters: {
         sampleCount: n,
+        ...(aspectRatio !== undefined ? { aspectRatio } : {}),
+        ...(seed !== undefined ? { seed } : {}),
         ...(providerOptions.vertex ?? {}),
       },
     };

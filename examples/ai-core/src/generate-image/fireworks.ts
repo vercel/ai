@@ -7,13 +7,11 @@ async function main() {
   const { image } = await generateImage({
     model: fireworks.image('accounts/fireworks/models/flux-1-dev-fp8'),
     prompt: 'A burrito launched through a tunnel',
-    aspectRatio: '1:1',
-    seed: 0,
+    aspectRatio: '4:3',
+    seed: 'random',
     providerOptions: {
       fireworks: {
         // https://fireworks.ai/models/fireworks/flux-1-dev-fp8/playground
-        // aspect_ratio: '1:1',
-        // seed: 0,
         guidance_scale: 10,
         num_inference_steps: 10,
       },

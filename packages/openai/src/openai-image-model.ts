@@ -16,6 +16,11 @@ export class OpenAIImageModel implements ImageModelV1 {
 
   private readonly config: OpenAIConfig;
 
+  // TODO: This must vary by model:
+  // https://platform.openai.com/docs/guides/images
+  // You can request 1 image at a time with DALL·E 3 (request more by making parallel requests) or up to 10 images at a time using DALL·E 2 with the n parameter.
+  readonly maxImagesPerCall = 10;
+
   get provider(): string {
     return this.config.provider;
   }
@@ -29,12 +34,21 @@ export class OpenAIImageModel implements ImageModelV1 {
     prompt,
     n,
     size,
+    aspectRatio,
+    seed,
     providerOptions,
     headers,
     abortSignal,
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
+    if (aspectRatio !== undefined || seed !== undefined) {
+      throw new Error(
+        'OpenAI does not support the `aspectRatio` or `seed` options. ' +
+          'See https://platform.openai.com/docs/guides/images',
+      );
+    }
+
     const { value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',
