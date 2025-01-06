@@ -63,8 +63,9 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
 
         buffer += chunk.textDelta;
 
-        while (chunkingRegexp.test(buffer)) {
-          const chunk = buffer.match(chunkingRegexp)![0];
+        let match;
+        while ((match = chunkingRegexp.exec(buffer)) != null) {
+          const chunk = match[0];
           controller.enqueue({ type: 'text-delta', textDelta: chunk });
           buffer = buffer.slice(chunk.length);
 
