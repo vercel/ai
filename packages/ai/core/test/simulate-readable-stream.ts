@@ -30,7 +30,6 @@ export function simulateReadableStream<T>({
     async pull(controller) {
       if (index < chunks.length) {
         await delay(index === 0 ? initialDelayInMs : chunkDelayInMs);
-
         controller.enqueue(chunks[index++]);
       } else {
         controller.close();
