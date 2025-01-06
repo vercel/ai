@@ -12,7 +12,7 @@
     "@ai-sdk/openai": "1.0.13",
     "@upstash/ratelimit": "^0.4.3",
     "@vercel/kv": "^0.2.2",
-    "ai": "4.0.26",
+    "ai": "4.0.27",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18",
