@@ -45,16 +45,13 @@ export class ReplicateImageModel implements ImageModelV1 {
   > {
     if (size) {
       throw new Error(
-        'Replicate does not support the `size` option. Use ' +
-          '`providerOptions.replicate.input.width` and ' +
-          '`providerOptions.replicate.input.height` instead.',
+        'Replicate does not support the `size` option. Some models support width and height, some support aspect ratio, etc. Use model-specific input parameters instead, setting them in `providerOptions.replicate.input`.',
       );
     }
 
     const [owner, model] = this.modelId.split('/');
     
     const body = {
-      version: providerOptions.replicate?.version,
       input: {
         prompt,
         num_outputs: n,
