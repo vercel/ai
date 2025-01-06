@@ -1,6 +1,12 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { delay as originalDelay } from '../../util/delay';
 import { CoreTool } from '../tool/tool';
 import { TextStreamPart } from './stream-text-result';
+
+const CHUNKING_REGEXPS = {
+  word: /\s*\S+\s+/m,
+  line: /[^\n]*\n/m,
+};
 
 /**
  * Smooths text streaming output.
@@ -16,7 +22,7 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number | null;
-  chunking?: 'word' | 'line';
+  chunking?: 'word' | 'line' | RegExp;
   /**
    * Internal. For test use only. May change without notice.
    */
@@ -26,6 +32,16 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
 } = {}): (options: {
   tools: TOOLS;
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>> {
+  const chunkingRegexp =
+    typeof chunking === 'string' ? CHUNKING_REGEXPS[chunking] : chunking;
+
+  if (chunkingRegexp == null) {
+    throw new InvalidArgumentError({
+      argument: 'chunking',
+      message: `Chunking must be "word" or "line" or a RegExp. Received: ${chunking}`,
+    });
+  }
+
   return () => {
     let buffer = '';
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
@@ -47,13 +63,8 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
 
         buffer += chunk.textDelta;
 
-        const regexp =
-          chunking === 'line'
-            ? /[^\n]*\n/m // Match full lines ending with newline
-            : /\s*\S+\s+/m; // Match words with whitespace
-
-        while (regexp.test(buffer)) {
-          const chunk = buffer.match(regexp)![0];
+        while (chunkingRegexp.test(buffer)) {
+          const chunk = buffer.match(chunkingRegexp)![0];
           controller.enqueue({ type: 'text-delta', textDelta: chunk });
           buffer = buffer.slice(chunk.length);
 
