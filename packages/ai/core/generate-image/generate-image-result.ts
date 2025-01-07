@@ -1,4 +1,4 @@
-import { ImageModelCallWarning } from '../types/image-model';
+import { ImageGenerationWarning } from '../types/image-model';
 
 /**
 The result of a `generateImage` call.
@@ -18,7 +18,7 @@ The images that were generated.
   /**
 Warnings for the call, e.g. unsupported settings.
      */
-  readonly warnings: Array<ImageModelCallWarning>;
+  readonly warnings: Array<ImageGenerationWarning>;
 }
 
 export interface GeneratedImage {

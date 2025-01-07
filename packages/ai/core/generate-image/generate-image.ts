@@ -4,7 +4,7 @@ import {
   convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../prompt/prepare-retries';
-import { ImageModelCallWarning } from '../types/image-model';
+import { ImageGenerationWarning } from '../types/image-model';
 import { GeneratedImage, GenerateImageResult } from './generate-image-result';
 
 /**
@@ -120,11 +120,11 @@ Only applicable for HTTP-based providers.
 
 class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedImage>;
-  readonly warnings: Array<ImageModelCallWarning>;
+  readonly warnings: Array<ImageGenerationWarning>;
 
   constructor(options: {
     images: Array<string> | Array<Uint8Array>;
-    warnings: Array<ImageModelCallWarning>;
+    warnings: Array<ImageGenerationWarning>;
   }) {
     this.images = options.images.map(
       image => new DefaultGeneratedImage({ imageData: image }),
