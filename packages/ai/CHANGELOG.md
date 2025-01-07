@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.29
+
+### Patch Changes
+
+- a92f5f6: feat (ai/core): generate many images with parallel model calls
+
 ## 4.0.28
 
 ### Patch Changes
