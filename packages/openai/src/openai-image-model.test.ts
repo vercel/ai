@@ -110,7 +110,7 @@ describe('doGenerate', () => {
       n: 1,
       size: '1024x1024',
       aspectRatio: '1:1',
-      seed: undefined,
+      seed: 123,
       providerOptions: {},
     });
 
@@ -120,6 +120,10 @@ describe('doGenerate', () => {
         setting: 'aspectRatio',
         details:
           'This model does not support aspect ratio. Use `size` instead.',
+      },
+      {
+        type: 'unsupported-setting',
+        setting: 'seed',
       },
     ]);
   });
