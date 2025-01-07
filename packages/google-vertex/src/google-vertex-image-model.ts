@@ -1,4 +1,4 @@
-import { ImageModelV1, ImageModelV1Warning } from '@ai-sdk/provider';
+import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
 import {
   Resolvable,
   combineHeaders,
@@ -49,7 +49,7 @@ export class GoogleVertexImageModel implements ImageModelV1 {
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1Warning> = [];
+    const warnings: Array<ImageModelV1CallWarning> = [];
 
     if (size != null) {
       warnings.push({

@@ -1,4 +1,4 @@
-import { ImageModelV1, ImageModelV1CallOptions } from '@ai-sdk/provider';
+import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -47,7 +47,7 @@ export class OpenAIImageModel implements ImageModelV1 {
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallOptions> = [];
+    const warnings: Array<ImageModelV1CallWarning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
