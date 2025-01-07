@@ -121,23 +121,40 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedImage>;
 
   constructor(options: { images: Array<string> | Array<Uint8Array> }) {
-    this.images = options.images.map(image => {
-      const isUint8Array = image instanceof Uint8Array;
-      return {
-        // lazy conversion to base64 inside get to avoid unnecessary conversion overhead:
-        get base64() {
-          return isUint8Array ? convertUint8ArrayToBase64(image) : image;
-        },
-
-        // lazy conversion to uint8array inside get to avoid unnecessary conversion overhead:
-        get uint8Array() {
-          return isUint8Array ? image : convertBase64ToUint8Array(image);
-        },
-      };
-    });
+    this.images = options.images.map(
+      image => new DefaultGeneratedImage({ imageData: image }),
+    );
   }
 
   get image() {
     return this.images[0];
+  }
+}
+
+class DefaultGeneratedImage implements GeneratedImage {
+  private base64Data: string | undefined;
+  private uint8ArrayData: Uint8Array | undefined;
+
+  constructor({ imageData }: { imageData: string | Uint8Array }) {
+    const isUint8Array = imageData instanceof Uint8Array;
+
+    this.base64Data = isUint8Array ? undefined : imageData;
+    this.uint8ArrayData = isUint8Array ? imageData : undefined;
+  }
+
+  // lazy conversion with caching to avoid unnecessary conversion overhead:
+  get base64() {
+    if (this.base64Data == null) {
+      this.base64Data = convertUint8ArrayToBase64(this.uint8ArrayData!);
+    }
+    return this.base64Data;
+  }
+
+  // lazy conversion with caching to avoid unnecessary conversion overhead:
+  get uint8Array() {
+    if (this.uint8ArrayData == null) {
+      this.uint8ArrayData = convertBase64ToUint8Array(this.base64Data!);
+    }
+    return this.uint8ArrayData;
   }
 }
