@@ -1,5 +1,16 @@
 # @ai-sdk/openai-compatible
 
+## 0.0.14
+
+### Patch Changes
+
+- 43b37f7: feat (provider/openai-compatible): Add 'apiKey' option for concise direct use.
+- Updated dependencies [19a2ce7]
+- Updated dependencies [19a2ce7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider@1.0.4
+  - @ai-sdk/provider-utils@2.0.6
+
 ## 0.0.13
 
 ### Patch Changes
