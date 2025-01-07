@@ -8,7 +8,7 @@ async function main() {
     model: fireworks.image('accounts/fireworks/models/flux-1-dev-fp8'),
     prompt: 'A burrito launched through a tunnel',
     aspectRatio: '4:3',
-    seed: 'random',
+    seed: 0, // 0 is random seed for this model
     providerOptions: {
       fireworks: {
         // https://fireworks.ai/models/fireworks/flux-1-dev-fp8/playground

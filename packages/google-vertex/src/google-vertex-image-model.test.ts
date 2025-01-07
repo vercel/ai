@@ -1,6 +1,6 @@
 import { JsonTestServer } from '@ai-sdk/provider-utils/test';
+import { describe, expect, it } from 'vitest';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
-import { describe, it, expect, vi } from 'vitest';
 
 const prompt = 'A cute baby sea otter';
 
@@ -179,26 +179,6 @@ describe('GoogleVertexImageModel', () => {
         parameters: {
           sampleCount: 1,
           seed: 42,
-        },
-      });
-    });
-
-    it('should omit seed when set to random', async () => {
-      prepareJsonResponse();
-
-      await model.doGenerate({
-        prompt: 'test prompt',
-        n: 1,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: 'random',
-        providerOptions: {},
-      });
-
-      expect(await server.getRequestBodyJson()).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
         },
       });
     });

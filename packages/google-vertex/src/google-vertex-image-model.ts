@@ -1,9 +1,9 @@
-import { ImageModelV1, JSONValue } from '@ai-sdk/provider';
+import { ImageModelV1, UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import {
   Resolvable,
-  postJsonToApi,
   combineHeaders,
   createJsonResponseHandler,
+  postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -49,22 +49,27 @@ export class GoogleVertexImageModel implements ImageModelV1 {
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
-    if (size) {
-      throw new Error(
-        'Google Vertex does not support the `size` option. Use ' +
-          '`aspectRatio` instead. See ' +
-          'https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio',
-      );
+    if (size != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'image size',
+        message:
+          'Google Vertex does not support the `size` option. Use `aspectRatio` instead.',
+      });
+    }
+
+    if (n > this.maxImagesPerCall) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'generate multiple images',
+        message: `Google Vertex does not support generating more than ${this.maxImagesPerCall} images at a time.`,
+      });
     }
 
     const body = {
       instances: [{ prompt }],
       parameters: {
         sampleCount: n,
-        ...(aspectRatio !== undefined ? { aspectRatio } : {}),
-        // For Vertex obtaining a random seed is not explicitly documented but
-        // experimentation shows omitting is sufficient.
-        ...(seed !== undefined && seed !== 'random' ? { seed } : {}),
+        ...(aspectRatio != null ? { aspectRatio } : {}),
+        ...(seed != null ? { seed } : {}),
         ...(providerOptions.vertex ?? {}),
       },
     };
@@ -77,7 +82,7 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       successfulResponseHandler: createJsonResponseHandler(
         vertexImageResponseSchema,
       ),
-      abortSignal: abortSignal,
+      abortSignal,
       fetch: this.config.fetch,
     });
 

@@ -59,10 +59,9 @@ Must have the format `{width}:{height}`.
 
     /**
 Seed for the image generation.
-Set to `'random'` to use a random seed.
 `undefined` will use the provider's default seed.
      */
-    seed: number | 'random' | undefined;
+    seed: number | undefined;
 
     /**
 Additional provider-specific options that are passed through to the provider

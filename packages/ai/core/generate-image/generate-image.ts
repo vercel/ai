@@ -12,7 +12,7 @@ Generates images using an image model.
 @param n - Number of images to generate. Default: 1.
 @param size - Size of the images to generate. Must have the format `{width}x{height}`.
 @param aspectRatio - Aspect ratio of the images to generate. Must have the format `{width}:{height}`.
-@param seed - Seed for the image generation. Set to `'random'` to use a random seed.
+@param seed - Seed for the image generation.
 @param providerOptions - Additional provider-specific options that are passed through to the provider
 as body parameters.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
@@ -59,9 +59,9 @@ Aspect ratio of the images to generate. Must have the format `{width}:{height}`.
   aspectRatio?: `${number}:${number}`;
 
   /**
-Seed for the image generation. Set to `'random'` to use a random seed. If not provided, the default seed will be used.
+Seed for the image generation. If not provided, the default seed will be used.
    */
-  seed?: number | 'random';
+  seed?: number;
 
   /**
 Additional provider-specific options that are passed through to the provider

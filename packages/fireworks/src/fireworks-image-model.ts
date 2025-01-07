@@ -4,11 +4,11 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
-  postJsonToApi,
   combineHeaders,
   extractResponseHeaders,
-  ResponseHandler,
   FetchFunction,
+  postJsonToApi,
+  ResponseHandler,
 } from '@ai-sdk/provider-utils';
 
 // https://fireworks.ai/models?type=image
@@ -106,9 +106,18 @@ export class FireworksImageModel implements ImageModelV1 {
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
-    if (size) {
+    if (size != null) {
       throw new UnsupportedFunctionalityError({
         functionality: 'image size',
+        message:
+          'Fireworks does not support the `size` option. Use `aspectRatio` instead.',
+      });
+    }
+
+    if (n > 1) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'generate multiple images',
+        message: `Fireworks does not support generating more than ${this.maxImagesPerCall} images at a time.`,
       });
     }
 
@@ -116,7 +125,7 @@ export class FireworksImageModel implements ImageModelV1 {
     const body = {
       prompt,
       aspect_ratio: aspectRatio,
-      seed: seed === 'random' ? 0 : seed,
+      seed,
       ...(providerOptions.fireworks ?? {}),
     };
 
@@ -126,12 +135,10 @@ export class FireworksImageModel implements ImageModelV1 {
       body,
       failedResponseHandler: statusCodeErrorResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),
-      abortSignal: abortSignal,
+      abortSignal,
       fetch: this.config.fetch,
     });
 
-    return {
-      images: [new Uint8Array(response)],
-    };
+    return { images: [new Uint8Array(response)] };
   }
 }

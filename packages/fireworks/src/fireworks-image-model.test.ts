@@ -48,24 +48,6 @@ describe('FireworksImageModel', () => {
       });
     });
 
-    it('should convert "random" seed to 0', async () => {
-      prepareBinaryResponse();
-
-      await model.doGenerate({
-        prompt,
-        n: 1,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: 'random',
-        providerOptions: {},
-      });
-
-      expect(await server.getRequestBodyJson()).toStrictEqual({
-        prompt,
-        seed: 0,
-      });
-    });
-
     it('should pass headers', async () => {
       prepareBinaryResponse();
 
@@ -187,27 +169,22 @@ describe('FireworksImageModel', () => {
       });
     });
 
-    it('should allow requesting multiple images', async () => {
-      const mockImageBuffer = Buffer.from('mock-image-data');
-      server.responseBody = mockImageBuffer;
-      server.responseStatus = 200;
-
-      const result = await model.doGenerate({
-        prompt,
-        n: 2,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      expect(await server.getRequestBodyJson()).toStrictEqual({
-        prompt,
-      });
-
-      expect(result.images).toHaveLength(1);
-      expect(result.images[0]).toBeInstanceOf(Uint8Array);
-      expect(Buffer.from(result.images[0])).toEqual(mockImageBuffer);
+    it('should throw error when requesting more than one image', async () => {
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 2,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrowError(
+        new UnsupportedFunctionalityError({
+          functionality: 'generate multiple images',
+          message: `Fireworks does not support generating more than 1 images at a time.`,
+        }),
+      );
     });
 
     it('should throw error when specifying image size', async () => {
@@ -223,6 +200,8 @@ describe('FireworksImageModel', () => {
       ).rejects.toThrowError(
         new UnsupportedFunctionalityError({
           functionality: 'image size',
+          message:
+            'Fireworks does not support the `size` option. Use `aspectRatio` instead.',
         }),
       );
     });
