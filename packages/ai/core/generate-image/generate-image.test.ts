@@ -57,7 +57,12 @@ describe('generateImage', () => {
         prompt,
       });
 
-      expect(result.images).toStrictEqual([
+      expect(
+        result.images.map(image => ({
+          base64: image.base64,
+          uint8Array: image.uint8Array,
+        })),
+      ).toStrictEqual([
         {
           base64: base64Images[0],
           uint8Array: convertBase64ToUint8Array(base64Images[0]),
@@ -79,7 +84,10 @@ describe('generateImage', () => {
         prompt,
       });
 
-      expect(result.image).toStrictEqual({
+      expect({
+        base64: result.image.base64,
+        uint8Array: result.image.uint8Array,
+      }).toStrictEqual({
         base64: base64Image,
         uint8Array: convertBase64ToUint8Array(base64Image),
       });
@@ -100,7 +108,12 @@ describe('generateImage', () => {
         prompt,
       });
 
-      expect(result.images).toStrictEqual([
+      expect(
+        result.images.map(image => ({
+          base64: image.base64,
+          uint8Array: image.uint8Array,
+        })),
+      ).toStrictEqual([
         {
           base64: convertUint8ArrayToBase64(uint8ArrayImages[0]),
           uint8Array: uint8ArrayImages[0],
