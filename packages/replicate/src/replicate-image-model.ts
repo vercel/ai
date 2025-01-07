@@ -1,4 +1,4 @@
-import type { ImageModelV1 } from '@ai-sdk/provider';
+import type { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   postJsonToApi,
@@ -9,12 +9,10 @@ import {
 import { z } from 'zod';
 import { replicateFailedResponseHandler } from './replicate-error';
 
-const SUPPORTED_MODEL_IDS = [
-  'black-forest-labs/flux-schnell',
-  'black-forest-labs/flux-dev'
-] as const;
-
-type SupportedModelId = typeof SUPPORTED_MODEL_IDS[number];
+export type ReplicateImageModelId =
+  | 'black-forest-labs/flux-schnell'
+  | 'black-forest-labs/flux-dev'
+  | (string & {});
 
 interface ReplicateImageModelConfig {
   provider: string;
@@ -25,24 +23,19 @@ interface ReplicateImageModelConfig {
 
 export class ReplicateImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
   }
 
   constructor(
-    readonly modelId: SupportedModelId,
+    readonly modelId: ReplicateImageModelId,
     private config: ReplicateImageModelConfig,
   ) {
-    if (!SUPPORTED_MODEL_IDS.includes(modelId as SupportedModelId)) {
-      throw new Error(
-        `Unsupported model: ${modelId}. ` + 
-        `Supported models are: ${SUPPORTED_MODEL_IDS.join(', ')}`
-      );
-    }
     this.config.headers = {
       ...this.config.headers,
-      'Prefer': 'wait',
+      Prefer: 'wait',
     };
   }
 
@@ -56,29 +49,28 @@ export class ReplicateImageModel implements ImageModelV1 {
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
+    const warnings: Array<ImageModelV1CallWarning> = [];
+
     if (size) {
       throw new Error(
         'Replicate does not support the `size` option. Some models support width and height, some support aspect ratio, etc. Use model-specific input parameters instead, setting them in `providerOptions.replicate.input`.',
       );
     }
 
-    const [owner, model] = this.modelId.split('/');
-    
-    const url = `${this.config.baseURL}/models/${owner}/${model}/predictions`;
-    
     const body = {
       input: {
         prompt,
         num_outputs: n,
-        ...(providerOptions.replicate?.input as Record<string, unknown> ?? {}),
+        ...((providerOptions.replicate?.input as Record<string, unknown>) ??
+          {}),
       },
     };
 
-    const combinedHeaders = combineHeaders(await resolve(this.config.headers), headers);
-
-    const { value: response } = await postJsonToApi({
-      url,
-      headers: combinedHeaders,
+    const {
+      value: { output },
+    } = await postJsonToApi({
+      url: `${this.config.baseURL}/models/${this.modelId}/predictions`,
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body,
       failedResponseHandler: replicateFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -88,15 +80,14 @@ export class ReplicateImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
 
-    // Some models return a single image URL, others return an array of image URLs
-    const images = Array.isArray(response.output) ? response.output : [response.output];
-
     return {
-      images,
+      // Some models return a single image URL, others return an array of image URLs:
+      images: Array.isArray(output) ? output : [output],
+      warnings,
     };
   }
 }
 
 const replicateImageResponseSchema = z.object({
   output: z.array(z.string()),
-}); 
+});
