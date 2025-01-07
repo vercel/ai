@@ -62,7 +62,9 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       parameters: {
         sampleCount: n,
         ...(aspectRatio !== undefined ? { aspectRatio } : {}),
-        ...(seed !== undefined ? { seed } : {}),
+        // For Vertex obtaining a random seed is not explicitly documented but
+        // experimentation shows omitting is sufficient.
+        ...(seed !== undefined && seed !== 'random' ? { seed } : {}),
         ...(providerOptions.vertex ?? {}),
       },
     };

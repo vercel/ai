@@ -11,8 +11,8 @@ async function main() {
     seed: 'random',
     providerOptions: {
       vertex: {
-        // More here as desired
         // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
+        addWatermark: false,
       },
     },
   });

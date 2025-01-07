@@ -183,6 +183,26 @@ describe('GoogleVertexImageModel', () => {
       });
     });
 
+    it('should omit seed when set to random', async () => {
+      prepareJsonResponse();
+
+      await model.doGenerate({
+        prompt: 'test prompt',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: 'random',
+        providerOptions: {},
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        instances: [{ prompt: 'test prompt' }],
+        parameters: {
+          sampleCount: 1,
+        },
+      });
+    });
+
     it('should combine aspectRatio, seed and provider options', async () => {
       prepareJsonResponse();
 
