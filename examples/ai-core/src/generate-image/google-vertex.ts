@@ -8,7 +8,6 @@ async function main() {
     model: vertex.image('imagen-3.0-generate-001'),
     prompt: 'A burrito launched through a tunnel',
     aspectRatio: '1:1',
-    seed: 'random',
     providerOptions: {
       vertex: {
         // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
