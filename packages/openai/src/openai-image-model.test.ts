@@ -101,4 +101,30 @@ describe('doGenerate', () => {
 
     expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
   });
+
+  it('should return warnings for unsupported settings', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: '1:1',
+      seed: 123,
+      providerOptions: {},
+    });
+
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported-setting',
+        setting: 'aspectRatio',
+        details:
+          'This model does not support aspect ratio. Use `size` instead.',
+      },
+      {
+        type: 'unsupported-setting',
+        setting: 'seed',
+      },
+    ]);
+  });
 });

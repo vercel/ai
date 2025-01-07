@@ -1,7 +1,6 @@
 import { JsonTestServer } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 
 const prompt = 'A cute baby sea otter';
 
@@ -99,30 +98,6 @@ describe('GoogleVertexImageModel', () => {
       expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
     });
 
-    it('throws when size is specified', async () => {
-      const model = new GoogleVertexImageModel('imagen-3.0-generate-001', {
-        provider: 'vertex',
-        baseURL: 'https://example.com',
-      });
-
-      await expect(
-        model.doGenerate({
-          prompt: 'test prompt',
-          n: 1,
-          size: '1024x1024',
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrow(
-        new UnsupportedFunctionalityError({
-          functionality: 'image size',
-          message:
-            'This model does not support the `size` option. Use `aspectRatio` instead.',
-        }),
-      );
-    });
-
     it('sends aspect ratio in the request', async () => {
       prepareJsonResponse();
 
@@ -215,6 +190,28 @@ describe('GoogleVertexImageModel', () => {
           temperature: 0.8,
         },
       });
+    });
+
+    it('should return warnings for unsupported settings', async () => {
+      prepareJsonResponse();
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: '1:1',
+        seed: 123,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported-setting',
+          setting: 'size',
+          details:
+            'This model does not support the `size` option. Use `aspectRatio` instead.',
+        },
+      ]);
     });
   });
 });

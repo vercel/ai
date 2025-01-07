@@ -60,6 +60,8 @@ export class BinaryTestServer {
     beforeEach(() => {
       this.responseBody = null;
       this.request = undefined;
+      this.responseHeaders = {};
+      this.responseStatus = 200;
     });
     afterEach(() => this.server.resetHandlers());
     afterAll(() => this.server.close());

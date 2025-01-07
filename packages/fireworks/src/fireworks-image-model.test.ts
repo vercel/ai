@@ -1,8 +1,7 @@
 import { APICallError } from '@ai-sdk/provider';
 import { BinaryTestServer } from '@ai-sdk/provider-utils/test';
+import { describe, expect, it } from 'vitest';
 import { FireworksImageModel } from './fireworks-image-model';
-import { describe, it, expect } from 'vitest';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 
 const prompt = 'A cute baby sea otter';
 
@@ -169,41 +168,27 @@ describe('FireworksImageModel', () => {
       });
     });
 
-    it('should throw error when requesting more than one image', async () => {
-      await expect(
-        model.doGenerate({
-          prompt,
-          n: 2,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrowError(
-        new UnsupportedFunctionalityError({
-          functionality: 'generate multiple images',
-          message: `This model does not support generating more than 1 images at a time.`,
-        }),
-      );
-    });
+    it('should return warnings for unsupported settings', async () => {
+      const mockImageBuffer = Buffer.from('mock-image-data');
+      server.responseBody = mockImageBuffer;
 
-    it('should throw error when specifying image size', async () => {
-      await expect(
-        model.doGenerate({
-          prompt,
-          n: 1,
-          size: '512x512',
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrowError(
-        new UnsupportedFunctionalityError({
-          functionality: 'image size',
-          message:
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: '1:1',
+        seed: 123,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported-setting',
+          setting: 'size',
+          details:
             'This model does not support the `size` option. Use `aspectRatio` instead.',
-        }),
-      );
+        },
+      ]);
     });
   });
 });

@@ -1,7 +1,7 @@
 import {
   APICallError,
   ImageModelV1,
-  UnsupportedFunctionalityError,
+  ImageModelV1CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -106,18 +106,14 @@ export class FireworksImageModel implements ImageModelV1 {
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
-    if (size != null) {
-      throw new UnsupportedFunctionalityError({
-        functionality: 'image size',
-        message:
-          'This model does not support the `size` option. Use `aspectRatio` instead.',
-      });
-    }
+    const warnings: Array<ImageModelV1CallWarning> = [];
 
-    if (n > this.maxImagesPerCall) {
-      throw new UnsupportedFunctionalityError({
-        functionality: `generate more than ${this.maxImagesPerCall} images`,
-        message: `This model does not support generating more than ${this.maxImagesPerCall} images at a time.`,
+    if (size != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'size',
+        details:
+          'This model does not support the `size` option. Use `aspectRatio` instead.',
       });
     }
 
@@ -139,6 +135,6 @@ export class FireworksImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
 
-    return { images: [new Uint8Array(response)] };
+    return { images: [new Uint8Array(response)], warnings };
   }
 }
