@@ -2,13 +2,14 @@
   "name": "@ai-sdk/replicate",
   "version": "1.0.0",
   "license": "Apache-2.0",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf edge/dist",
+    "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -30,8 +31,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.0.3",
-    "@ai-sdk/provider-utils": "2.0.5",
+    "@ai-sdk/provider": "1.0.4",
+    "@ai-sdk/provider-utils": "2.0.6",
     "replicate": "^1.0.1"
   },
   "devDependencies": {
