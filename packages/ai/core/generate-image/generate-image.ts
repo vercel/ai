@@ -132,23 +132,29 @@ class DefaultGenerateImageResult implements GenerateImageResult {
 }
 
 class DefaultGeneratedImage implements GeneratedImage {
-  private readonly imageData: string | Uint8Array;
+  private base64Data: string | undefined;
+  private uint8ArrayData: Uint8Array | undefined;
 
   constructor({ imageData }: { imageData: string | Uint8Array }) {
-    this.imageData = imageData;
+    const isUint8Array = imageData instanceof Uint8Array;
+
+    this.base64Data = isUint8Array ? undefined : imageData;
+    this.uint8ArrayData = isUint8Array ? imageData : undefined;
   }
 
-  // lazy conversion to base64 inside get to avoid unnecessary conversion overhead:
+  // lazy conversion with caching to avoid unnecessary conversion overhead:
   get base64() {
-    return this.imageData instanceof Uint8Array
-      ? convertUint8ArrayToBase64(this.imageData)
-      : this.imageData;
+    if (this.base64Data == null) {
+      this.base64Data = convertUint8ArrayToBase64(this.uint8ArrayData!);
+    }
+    return this.base64Data;
   }
 
-  // lazy conversion to uint8array inside get to avoid unnecessary conversion overhead:
+  // lazy conversion with caching to avoid unnecessary conversion overhead:
   get uint8Array() {
-    return this.imageData instanceof Uint8Array
-      ? this.imageData
-      : convertBase64ToUint8Array(this.imageData);
+    if (this.uint8ArrayData == null) {
+      this.uint8ArrayData = convertBase64ToUint8Array(this.base64Data!);
+    }
+    return this.uint8ArrayData;
   }
 }
