@@ -87,7 +87,7 @@ const { text } = await generateText({
 
 Fireworks language models can also be used in the `streamText` and `streamUI` functions (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
-## Completion Models
+### Completion Models
 
 You can create models that call the Fireworks completions API using the `.completion()` factory method:
 
@@ -95,17 +95,7 @@ You can create models that call the Fireworks completions API using the `.comple
 const model = fireworks.completion('accounts/fireworks/models/firefunction-v1');
 ```
 
-## Embedding Models
-
-You can create models that call the Fireworks embeddings API using the `.textEmbeddingModel()` factory method:
-
-```ts
-const model = fireworks.textEmbeddingModel(
-  'accounts/fireworks/models/nomic-embed-text-v1',
-);
-```
-
-## Model Capabilities
+### Model Capabilities
 
 | Model                                                      | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ---------------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
@@ -124,3 +114,41 @@ const model = fireworks.textEmbeddingModel(
   The table above lists popular models. Please see the [Fireworks models
   page](https://fireworks.ai/models) for a full list of available models.
 </Note>
+
+## Embedding Models
+
+You can create models that call the Fireworks embeddings API using the `.textEmbeddingModel()` factory method:
+
+```ts
+const model = fireworks.textEmbeddingModel(
+  'accounts/fireworks/models/nomic-embed-text-v1',
+);
+```
+
+## Image Models
+
+You can create Fireworks image models using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+```ts
+import { fireworks } from '@ai-sdk/fireworks';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: fireworks.image('accounts/fireworks/models/flux-1-dev-fp8'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
+});
+```
+
+<Note>
+  Fireworks models do not support the `size` parameter. Use the `aspectRatio`
+  parameter instead.
+</Note>
+
+### Model Capabilities
+
+| Model                                          | Aspect Ratios                                   |
+| ---------------------------------------------- | ----------------------------------------------- |
+| `accounts/fireworks/models/flux-1-dev-fp8`     | 1:1, 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9 |
+| `accounts/fireworks/models/flux-1-schnell-fp8` | 1:1, 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9 |

@@ -1,9 +1,9 @@
-import { ImageModelV1, JSONValue } from '@ai-sdk/provider';
+import { ImageModelV1, UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import {
   Resolvable,
-  postJsonToApi,
   combineHeaders,
   createJsonResponseHandler,
+  postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -25,6 +25,9 @@ interface GoogleVertexImageModelConfig {
 export class GoogleVertexImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
+  // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
+  readonly maxImagesPerCall = 4;
+
   get provider(): string {
     return this.config.provider;
   }
@@ -38,24 +41,35 @@ export class GoogleVertexImageModel implements ImageModelV1 {
     prompt,
     n,
     size,
+    aspectRatio,
+    seed,
     providerOptions,
     headers,
     abortSignal,
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
-    if (size) {
-      throw new Error(
-        'Google Vertex does not support the `size` option. Use ' +
-          '`providerOptions.vertex.aspectRatio` instead. See ' +
-          'https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio',
-      );
+    if (size != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'image size',
+        message:
+          'This model does not support the `size` option. Use `aspectRatio` instead.',
+      });
+    }
+
+    if (n > this.maxImagesPerCall) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `generate more than ${this.maxImagesPerCall} images`,
+        message: `This model does not support generating more than ${this.maxImagesPerCall} images at a time.`,
+      });
     }
 
     const body = {
       instances: [{ prompt }],
       parameters: {
         sampleCount: n,
+        ...(aspectRatio != null ? { aspectRatio } : {}),
+        ...(seed != null ? { seed } : {}),
         ...(providerOptions.vertex ?? {}),
       },
     };
@@ -68,7 +82,7 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       successfulResponseHandler: createJsonResponseHandler(
         vertexImageResponseSchema,
       ),
-      abortSignal: abortSignal,
+      abortSignal,
       fetch: this.config.fetch,
     });
 

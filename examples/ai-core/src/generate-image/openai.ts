@@ -7,10 +7,6 @@ async function main() {
   const { image } = await generateImage({
     model: openai.image('dall-e-3'),
     prompt: 'Santa Claus driving a Cadillac',
-    size: '1024x1024',
-    providerOptions: {
-      openai: { style: 'vivid', quality: 'hd' },
-    },
   });
 
   const filename = `image-${Date.now()}.png`;

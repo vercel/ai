@@ -34,15 +34,17 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
-      n: 2,
+      n: 1,
       size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
       providerOptions: { openai: { style: 'vivid' } },
     });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'dall-e-3',
       prompt,
-      n: 2,
+      n: 1,
       size: '1024x1024',
       style: 'vivid',
       response_format: 'b64_json',
@@ -63,8 +65,10 @@ describe('doGenerate', () => {
 
     await provider.image('dall-e-3').doGenerate({
       prompt,
-      n: 2,
+      n: 1,
       size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
       providerOptions: { openai: { style: 'vivid' } },
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -88,8 +92,10 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       prompt,
-      n: 2,
+      n: 1,
       size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
       providerOptions: {},
     });
 

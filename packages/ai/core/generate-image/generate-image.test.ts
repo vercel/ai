@@ -1,7 +1,10 @@
 import { ImageModelV1 } from '@ai-sdk/provider';
 import { MockImageModelV1 } from '../test/mock-image-model-v1';
 import { generateImage } from './generate-image';
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import {
+  convertBase64ToUint8Array,
+  convertUint8ArrayToBase64,
+} from '@ai-sdk/provider-utils';
 
 const prompt = 'sunny day at the beach';
 
@@ -21,6 +24,8 @@ describe('generateImage', () => {
       }),
       prompt,
       size: '1024x1024',
+      aspectRatio: '16:9',
+      seed: 12345,
       providerOptions: { openai: { style: 'vivid' } },
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
@@ -30,10 +35,44 @@ describe('generateImage', () => {
       n: 1,
       prompt,
       size: '1024x1024',
+      aspectRatio: '16:9',
+      seed: 12345,
       providerOptions: { openai: { style: 'vivid' } },
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
     });
+  });
+
+  it('should handle base64 strings', async () => {
+    const base64String = 'SGVsbG8gV29ybGQ=';
+    const result = await generateImage({
+      model: new MockImageModelV1({
+        doGenerate: async () => ({ images: [base64String] }),
+      }),
+      prompt,
+    });
+    expect(result.images).toStrictEqual([
+      {
+        base64: base64String,
+        uint8Array: convertBase64ToUint8Array(base64String),
+      },
+    ]);
+  });
+
+  it('should handle Uint8Arrays', async () => {
+    const uint8Array = new Uint8Array([72, 101, 108, 108, 111]);
+    const result = await generateImage({
+      model: new MockImageModelV1({
+        doGenerate: async () => ({ images: [uint8Array] }),
+      }),
+      prompt,
+    });
+    expect(result.images).toStrictEqual([
+      {
+        base64: convertUint8ArrayToBase64(uint8Array),
+        uint8Array: uint8Array,
+      },
+    ]);
   });
 
   it('should return generated images', async () => {

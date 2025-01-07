@@ -1,4 +1,4 @@
-import { ImageModelV1 } from '@ai-sdk/provider';
+import { ImageModelV1, UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -10,11 +10,21 @@ import { openaiFailedResponseHandler } from './openai-error';
 
 export type OpenAIImageModelId = 'dall-e-3' | 'dall-e-2' | (string & {});
 
+// https://platform.openai.com/docs/guides/images
+const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
+  'dall-e-3': 1,
+  'dall-e-2': 10,
+};
+
 export class OpenAIImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
   readonly modelId: OpenAIImageModelId;
 
   private readonly config: OpenAIConfig;
+
+  get maxImagesPerCall(): number {
+    return modelMaxImagesPerCall[this.modelId] ?? 1;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -29,12 +39,34 @@ export class OpenAIImageModel implements ImageModelV1 {
     prompt,
     n,
     size,
+    aspectRatio,
+    seed,
     providerOptions,
     headers,
     abortSignal,
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
+    if (aspectRatio != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'image aspect ratio',
+        message:
+          'This model does not support aspect ratio. Use `size` instead.',
+      });
+    }
+
+    if (seed != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'image seed',
+      });
+    }
+
+    if (n > this.maxImagesPerCall) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `generate more than ${this.maxImagesPerCall} images`,
+      });
+    }
+
     const { value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',

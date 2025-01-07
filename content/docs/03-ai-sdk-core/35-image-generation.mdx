@@ -17,7 +17,6 @@ import { openai } from '@ai-sdk/openai';
 const { image } = await generateImage({
   model: openai.image('dall-e-3'),
   prompt: 'Santa Claus driving a Cadillac',
-  size: '1024x1024',
 });
 ```
 
@@ -28,15 +27,70 @@ const base64 = image.base64; // base64 image data
 const uint8Array = image.uint8Array; // Uint8Array image data
 ```
 
+### Size and Aspect Ratio
+
+Depending on the model, you can either specify the size or the aspect ratio.
+
+##### Size
+
+The size is specified as a string in the format `{width}x{height}`.
+Models only support a few sizes, and the supported sizes are different for each model and provider.
+
+```tsx highlight={"7"}
+import { experimental_generateImage as generateImage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { image } = await generateImage({
+  model: openai.image('dall-e-3'),
+  prompt: 'Santa Claus driving a Cadillac',
+  size: '1024x1024',
+});
+```
+
+##### Aspect Ratio
+
+The aspect ratio is specified as a string in the format `{width}:{height}`.
+Models only support a few aspect ratios, and the supported aspect ratios are different for each model and provider.
+
+```tsx highlight={"7"}
+import { experimental_generateImage as generateImage } from 'ai';
+import { vertex } from '@ai-sdk/google-vertex';
+
+const { image } = await generateImage({
+  model: vertex.image('imagen-3.0-generate-001'),
+  prompt: 'Santa Claus driving a Cadillac',
+  aspectRatio: '16:9',
+});
+```
+
 ### Generating Multiple Images
 
 `generateImage` also supports generating multiple images at once for models that support it:
 
-```tsx highlight={"4"}
+```tsx highlight={"7"}
+import { experimental_generateImage as generateImage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
 const { images } = await generateImage({
   model: openai.image('dall-e-2'),
   prompt: 'Santa Claus driving a Cadillac',
   n: 4, // number of images to generate
+});
+```
+
+### Providing a Seed
+
+You can provide a seed to the `generateImage` function to control the output of the image generation process.
+If supported by the model, the same seed will always produce the same image.
+
+```tsx highlight={"7"}
+import { experimental_generateImage as generateImage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { image } = await generateImage({
+  model: openai.image('dall-e-3'),
+  prompt: 'Santa Claus driving a Cadillac',
+  seed: 1234567890,
 });
 ```
 
@@ -47,7 +101,10 @@ You can pass such settings to the `generateImage` function
 using the `providerOptions` parameter. The options for the provider
 (`openai` in the example below) become request body properties.
 
-```tsx highlight={"5-7"}
+```tsx highlight={"9"}
+import { experimental_generateImage as generateImage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
 const { image } = await generateImage({
   model: openai.image('dall-e-3'),
   prompt: 'Santa Claus driving a Cadillac',
@@ -93,9 +150,11 @@ const { image } = await generateImage({
 
 ## Image Models
 
-| Provider                                                                | Model                          | Supported Sizes                                                                                               |
-| ----------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models) | `imagen-3.0-generate-001`      | See [aspect ratios](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) |
-| [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models) | `imagen-3.0-fast-generate-001` | See [aspect ratios](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) |
-| [OpenAI](/providers/ai-sdk-providers/openai#image-models)               | `dall-e-3`                     | 1024x1024, 1792x1024, 1024x1792                                                                               |
-| [OpenAI](/providers/ai-sdk-providers/openai#image-models)               | `dall-e-2`                     | 256x256, 512x512, 1024x1024                                                                                   |
+| Provider                                                                | Model                                          | Sizes                           | Aspect Ratios                                   |
+| ----------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------- | ----------------------------------------------- |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models) | `imagen-3.0-generate-001`                      | Use aspect ratio                | 1:1, 3:4, 4:3, 9:16, 16:9                       |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models) | `imagen-3.0-fast-generate-001`                 | Use aspect ratio                | 1:1, 3:4, 4:3, 9:16, 16:9                       |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models)               | `dall-e-3`                                     | 1024x1024, 1792x1024, 1024x1792 | use size                                        |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models)               | `dall-e-2`                                     | 256x256, 512x512, 1024x1024     | use size                                        |
+| [Fireworks](/providers/ai-sdk-providers/fireworks#image-models)         | `accounts/fireworks/models/flux-1-dev-fp8`     | Use aspect ratio                | 1:1, 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9 |
+| [Fireworks](/providers/ai-sdk-providers/fireworks#image-models)         | `accounts/fireworks/models/flux-1-schnell-fp8` | Use aspect ratio                | 1:1, 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9 |

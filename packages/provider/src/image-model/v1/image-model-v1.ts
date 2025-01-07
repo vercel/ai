@@ -24,6 +24,12 @@ Provider-specific model ID for logging purposes.
   readonly modelId: string;
 
   /**
+Limit of how many images can be generated in a single API call.
+If undefined, we will max generate one image per call.
+   */
+  readonly maxImagesPerCall: number | undefined;
+
+  /**
 Generates an array of images.
    */
   doGenerate(options: {
@@ -38,9 +44,24 @@ Number of images to generate.
     n: number;
 
     /**
-Size of the images to generate. Must have the format `{width}x{height}`.
+Size of the images to generate.
+Must have the format `{width}x{height}`.
+`undefined` will use the provider's default size.
      */
     size: `${number}x${number}` | undefined;
+
+    /**
+Aspect ratio of the images to generate.
+Must have the format `{width}:{height}`.
+`undefined` will use the provider's default aspect ratio.
+     */
+    aspectRatio: `${number}:${number}` | undefined;
+
+    /**
+Seed for the image generation.
+`undefined` will use the provider's default seed.
+     */
+    seed: number | undefined;
 
     /**
 Additional provider-specific options that are passed through to the provider
@@ -70,8 +91,12 @@ Abort signal for cancelling the operation.
     headers?: Record<string, string | undefined>;
   }): PromiseLike<{
     /**
-Generated images as base64 encoded strings.
+Generated images as base64 encoded strings or binary data.
+The images should be returned without any unnecessary conversion.
+If the API returns base64 encoded strings, the images should be returned
+as base64 encoded strings. If the API returns binary data, the images should
+be returned as binary data.
      */
-    images: Array<string>;
+    images: Array<string> | Array<Uint8Array>;
   }>;
 };
