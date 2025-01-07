@@ -80,11 +80,17 @@ export class ReplicateImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
 
-    return {
-      // Some models return a single image URL, others return an array of image URLs:
-      images: Array.isArray(output) ? output : [output],
-      warnings,
-    };
+    // download the images:
+    const images = await Promise.all(
+      output.map(async url => {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        return new Uint8Array(arrayBuffer);
+      }),
+    );
+
+    return { images, warnings };
   }
 }
 
