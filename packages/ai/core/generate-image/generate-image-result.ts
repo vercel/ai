@@ -1,3 +1,5 @@
+import { ImageModelCallWarning } from '../types/image-model';
+
 /**
 The result of a `generateImage` call.
 It contains the images and additional information.
@@ -12,6 +14,11 @@ The first image that was generated.
 The images that were generated.
      */
   readonly images: Array<GeneratedImage>;
+
+  /**
+Warnings for the call, e.g. unsupported settings.
+     */
+  readonly warnings: Array<ImageModelCallWarning>;
 }
 
 export interface GeneratedImage {

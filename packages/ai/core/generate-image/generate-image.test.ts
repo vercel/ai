@@ -19,7 +19,7 @@ describe('generateImage', () => {
       model: new MockImageModelV1({
         doGenerate: async args => {
           capturedArgs = args;
-          return { images: [] };
+          return { images: [], warnings: [] };
         },
       }),
       prompt,
@@ -43,6 +43,30 @@ describe('generateImage', () => {
     });
   });
 
+  it('should return warnings', async () => {
+    const result = await generateImage({
+      model: new MockImageModelV1({
+        doGenerate: async () => ({
+          images: [],
+          warnings: [
+            {
+              type: 'other',
+              message: 'Setting is not supported',
+            },
+          ],
+        }),
+      }),
+      prompt,
+    });
+
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'other',
+        message: 'Setting is not supported',
+      },
+    ]);
+  });
+
   describe('base64 image data', () => {
     it('should return generated images', async () => {
       const base64Images = [
@@ -52,7 +76,7 @@ describe('generateImage', () => {
 
       const result = await generateImage({
         model: new MockImageModelV1({
-          doGenerate: async () => ({ images: base64Images }),
+          doGenerate: async () => ({ images: base64Images, warnings: [] }),
         }),
         prompt,
       });
@@ -79,7 +103,10 @@ describe('generateImage', () => {
 
       const result = await generateImage({
         model: new MockImageModelV1({
-          doGenerate: async () => ({ images: [base64Image, 'base64-image-2'] }),
+          doGenerate: async () => ({
+            images: [base64Image, 'base64-image-2'],
+            warnings: [],
+          }),
         }),
         prompt,
       });
@@ -103,7 +130,7 @@ describe('generateImage', () => {
 
       const result = await generateImage({
         model: new MockImageModelV1({
-          doGenerate: async () => ({ images: uint8ArrayImages }),
+          doGenerate: async () => ({ images: uint8ArrayImages, warnings: [] }),
         }),
         prompt,
       });
