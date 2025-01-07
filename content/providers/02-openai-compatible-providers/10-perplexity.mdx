@@ -34,9 +34,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 const perplexity = createOpenAICompatible({
   name: 'perplexity',
-  headers: {
-    Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-  },
+  apiKey: process.env.PERPLEXITY_API_KEY,
   baseURL: 'https://api.perplexity.ai/',
 });
 ```
@@ -60,9 +58,7 @@ import { generateText } from 'ai';
 
 const perplexity = createOpenAICompatible({
   name: 'perplexity',
-  headers: {
-    Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-  },
+  apiKey: process.env.PERPLEXITY_API_KEY,
   baseURL: 'https://api.perplexity.ai/',
 });
 
