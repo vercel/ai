@@ -39,7 +39,7 @@ const { image } = await generateImage({
   prompt: 'The Loch Ness Monster getting a manicure, wide shot',
   providerOptions: {
     replicate: {
-      input: { 
+      input: {
         aspect_ratio: '16:9',
         seed: 123456,
       },

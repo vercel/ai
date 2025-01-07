@@ -6,9 +6,8 @@ const replicateErrorSchema = z.object({
   error: z.string().optional(),
 });
 
-export const replicateFailedResponseHandler = createJsonErrorResponseHandler(
-  {
-    errorSchema: replicateErrorSchema,
-    errorToMessage: error => error.detail || error.error || 'Unknown Replicate error',
-  },
-); 
+export const replicateFailedResponseHandler = createJsonErrorResponseHandler({
+  errorSchema: replicateErrorSchema,
+  errorToMessage: error =>
+    error.detail || error.error || 'Unknown Replicate error',
+});

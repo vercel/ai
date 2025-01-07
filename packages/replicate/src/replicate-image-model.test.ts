@@ -7,7 +7,7 @@ const prompt = 'The Loch Ness Monster getting a manicure';
 const model = new ReplicateImageModel('black-forest-labs/flux-schnell', {
   provider: 'replicate',
   baseURL: 'https://api.replicate.com/v1',
-  headers: { 'Authorization': 'Bearer test-token' },
+  headers: { Authorization: 'Bearer test-token' },
 });
 
 describe('ReplicateImageModel', () => {
@@ -34,12 +34,12 @@ describe('ReplicateImageModel', () => {
         prompt,
         n: 2,
         size: undefined,
-        providerOptions: { 
-          replicate: { 
-            input: { 
-              num_inference_steps: 10 
-            } 
-          } 
+        providerOptions: {
+          replicate: {
+            input: {
+              num_inference_steps: 10,
+            },
+          },
         },
       });
 
@@ -55,14 +55,17 @@ describe('ReplicateImageModel', () => {
     it('should pass headers', async () => {
       prepareJsonResponse();
 
-      const modelWithHeaders = new ReplicateImageModel('black-forest-labs/flux-schnell', {
-        provider: 'replicate',
-        baseURL: 'https://api.replicate.com/v1',
-        headers: {
-          'Authorization': 'Bearer test-token',
-          'Custom-Provider-Header': 'provider-header-value',
+      const modelWithHeaders = new ReplicateImageModel(
+        'black-forest-labs/flux-schnell',
+        {
+          provider: 'replicate',
+          baseURL: 'https://api.replicate.com/v1',
+          headers: {
+            Authorization: 'Bearer test-token',
+            'Custom-Provider-Header': 'provider-header-value',
+          },
         },
-      });
+      );
 
       await modelWithHeaders.doGenerate({
         prompt,
@@ -77,11 +80,11 @@ describe('ReplicateImageModel', () => {
       const requestHeaders = await server.getRequestHeaders();
 
       expect(requestHeaders).toStrictEqual({
-        'authorization': 'Bearer test-token',
+        authorization: 'Bearer test-token',
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
-        'prefer': 'wait',
+        prefer: 'wait',
       });
     });
 
@@ -115,58 +118,77 @@ describe('ReplicateImageModel', () => {
 
   describe('e2e integration with the real Replicate API', () => {
     it('errors if an invalid model is provided', () => {
-      expect(() => new ReplicateImageModel('some/invalid-model', {
-        provider: 'replicate',
-        baseURL: 'https://api.replicate.com/v1',
-        headers: { Authorization: 'Bearer test-token' },
-      })).toThrow('Unsupported model: some/invalid-model. Supported models are: black-forest-labs/flux-schnell, black-forest-labs/flux-dev');
+      expect(
+        () =>
+          new ReplicateImageModel('some/invalid-model', {
+            provider: 'replicate',
+            baseURL: 'https://api.replicate.com/v1',
+            headers: { Authorization: 'Bearer test-token' },
+          }),
+      ).toThrow(
+        'Unsupported model: some/invalid-model. Supported models are: black-forest-labs/flux-schnell, black-forest-labs/flux-dev',
+      );
     });
 
     // Skip if no API token is provided
-    it.runIf(process.env.REPLICATE_API_TOKEN)('should generate an image', async () => {
-      const modelWithAuth = new ReplicateImageModel('black-forest-labs/flux-schnell', {
-        provider: 'replicate',
-        baseURL: 'https://api.replicate.com/v1',
-        headers: { 
-          Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}`,
-        },
-      });
+    it.runIf(process.env.REPLICATE_API_TOKEN)(
+      'should generate an image',
+      async () => {
+        const modelWithAuth = new ReplicateImageModel(
+          'black-forest-labs/flux-schnell',
+          {
+            provider: 'replicate',
+            baseURL: 'https://api.replicate.com/v1',
+            headers: {
+              Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+            },
+          },
+        );
 
-      const { images } = await modelWithAuth.doGenerate({
-        prompt,
-        n: 1,
-        size: undefined,
-        providerOptions: {
-          replicate: {
-            input: {
-              num_inference_steps: 2
-            }
-          }
-        }
-      });
-      
-      expect(images).toHaveLength(1);
-      expect(images[0]).toMatch(/^https:\/\/replicate\.delivery\/.+/);
-    }, 30000);
+        const { images } = await modelWithAuth.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          providerOptions: {
+            replicate: {
+              input: {
+                num_inference_steps: 2,
+              },
+            },
+          },
+        });
+
+        expect(images).toHaveLength(1);
+        expect(images[0]).toMatch(/^https:\/\/replicate\.delivery\/.+/);
+      },
+      30000,
+    );
   });
 
-  it.runIf(process.env.REPLICATE_API_TOKEN)('should generate an image with a different model', async () => {
-    const modelWithAuth = new ReplicateImageModel('black-forest-labs/flux-dev', {
-      provider: 'replicate',
-      baseURL: 'https://api.replicate.com/v1',
-      headers: { Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}` },
-    });
+  it.runIf(process.env.REPLICATE_API_TOKEN)(
+    'should generate an image with a different model',
+    async () => {
+      const modelWithAuth = new ReplicateImageModel(
+        'black-forest-labs/flux-dev',
+        {
+          provider: 'replicate',
+          baseURL: 'https://api.replicate.com/v1',
+          headers: {
+            Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+          },
+        },
+      );
 
-    const { images } = await modelWithAuth.doGenerate({
-      prompt: 'A cat in a hat',
-      n: 1,
-      size: undefined,
-      providerOptions: {},
-    });
+      const { images } = await modelWithAuth.doGenerate({
+        prompt: 'A cat in a hat',
+        n: 1,
+        size: undefined,
+        providerOptions: {},
+      });
 
-    expect(images).toHaveLength(1);
-    expect(images[0]).toMatch(/^https:\/\/replicate\.delivery\/.+/);
-  }, 30000);
-
-
-}); 
+      expect(images).toHaveLength(1);
+      expect(images[0]).toMatch(/^https:\/\/replicate\.delivery\/.+/);
+    },
+    30000,
+  );
+});
