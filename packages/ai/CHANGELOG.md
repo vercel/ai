@@ -1,5 +1,38 @@
 # ai
 
+## 4.0.27
+
+### Patch Changes
+
+- a56734f: feat (ai/core): export simulateReadableStream in ai package
+- 9589601: feat (ai/core): support null delay in smoothStream
+- e3cc23a: feat (ai/core): support regexp chunking pattern in smoothStream
+- e463e73: feat (ai/core): support skipping delays in simulateReadableStream
+
+## 4.0.26
+
+### Patch Changes
+
+- a8f3242: feat (ai/core): add line chunking mode to smoothStream
+
+## 4.0.25
+
+### Patch Changes
+
+- 0823899: fix (ai/core): throw error when accessing output when no output is defined in generateText (breaking/experimental)
+
+## 4.0.24
+
+### Patch Changes
+
+- ae0485b: feat (ai/core): add experimental output setting to streamText
+
+## 4.0.23
+
+### Patch Changes
+
+- bc4cd19: feat (ai/core): consolidate whitespace in smooth stream
+
 ## 4.0.22
 
 ### Patch Changes

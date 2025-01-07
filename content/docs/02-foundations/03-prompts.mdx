@@ -101,7 +101,7 @@ Text content is the most common type of content. It is a string that is passed t
 If you only need to send text content in a message, the `content` property can be a string,
 but you can also use the `parts` property to send multiple parts of content.
 
-```ts highlight="7"
+```ts highlight="7-10"
 const result = await generateText({
   model: yourModel,
   messages: [

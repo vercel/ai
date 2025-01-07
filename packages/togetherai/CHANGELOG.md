@@ -1,5 +1,17 @@
 # @ai-sdk/togetherai
 
+## 0.0.16
+
+### Patch Changes
+
+- 32742bb: feat (providers): Add DeepSeek-V3 model to deepinfra/togetherai.
+
+## 0.0.15
+
+### Patch Changes
+
+- ac101a2: feat (examples): Use shared base e2e feature test suite.
+
 ## 0.0.14
 
 ### Patch Changes

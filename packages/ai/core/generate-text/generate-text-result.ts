@@ -27,7 +27,7 @@ export interface GenerateTextResult<
   readonly text: string;
 
   /**
-  The generated output.
+The generated structured output. It uses the `experimental_output` specification.
    */
   readonly experimental_output: OUTPUT;
 

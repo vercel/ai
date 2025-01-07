@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 1.0.13
+
+### Patch Changes
+
+- b19aa82: feat (provider/openai): add predicted outputs token usage
+
+## 1.0.12
+
+### Patch Changes
+
+- a4241ff: feat (provider/openai): add o3 reasoning model support
+
 ## 1.0.11
 
 ### Patch Changes

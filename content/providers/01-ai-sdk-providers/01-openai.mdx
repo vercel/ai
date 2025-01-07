@@ -292,6 +292,22 @@ const result = streamText({
 });
 ```
 
+OpenAI provides usage information for predicted outputs (`acceptedPredictionTokens` and `rejectedPredictionTokens`).
+You can access it in the `experimental_providerMetadata` object.
+
+```ts highlight="11"
+const openaiMetadata = (await result.experimental_providerMetadata)?.openai;
+
+const acceptedPredictionTokens = openaiMetadata?.acceptedPredictionTokens;
+const rejectedPredictionTokens = openaiMetadata?.rejectedPredictionTokens;
+```
+
+<Note type="warning">
+  OpenAI Predicted Outputs have several
+  [limitations](https://platform.openai.com/docs/guides/predicted-outputs#limitations),
+  e.g. unsupported API parameters and no tool calling support.
+</Note>
+
 #### Image Detail
 
 You can use the `openai` provider metadata to set the [image generation detail](https://platform.openai.com/docs/guides/vision/low-or-high-fidelity-image-understanding) to `high`, `low`, or `auto`:
@@ -324,7 +340,7 @@ const result = await generateText({
 
 OpenAI supports model distillation for some models. If you want to store a generation for use in the distillation process, you can add the `store` option to the `experimental_providerMetadata.openai` object. This will save the generation to the OpenAI platform for later use in distillation.
 
-```typescript highlight="9-13"
+```typescript highlight="9-16"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import 'dotenv/config';
@@ -389,7 +405,7 @@ console.log('Usage:', {
 });
 ```
 
-<Note type="warning">
+<Note>
   Reasoning models like `o1-mini` and `o1-preview` require additional runtime
   inference to complete their reasoning phase before generating a response. This
   introduces longer latency compared to other models, with `o1-preview`
@@ -401,6 +417,11 @@ console.log('Usage:', {
   However, `system` messages are automatically converted to `developer` messages
   by OpenAI. You can pass `system` messages to reasoning models and set the
   `system` instruction as usual.
+</Note>
+
+<Note>
+  The `o1` reasoning model currently does not support streaming. You can use the
+  `simulateStreaming` option to simulate streaming.
 </Note>
 
 #### Prompt Caching

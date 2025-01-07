@@ -1,8 +1,8 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText } from 'ai';
 import 'dotenv/config';
 
-const lmstudio = createOpenAI({
+const lmstudio = createOpenAICompatible({
   name: 'lmstudio',
   baseURL: 'http://localhost:1234/v1',
 });
