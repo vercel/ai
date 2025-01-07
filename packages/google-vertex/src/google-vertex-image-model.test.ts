@@ -34,6 +34,8 @@ describe('GoogleVertexImageModel', () => {
         prompt,
         n: 2,
         size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
         providerOptions: { vertex: { aspectRatio: '1:1' } },
       });
 
@@ -64,6 +66,8 @@ describe('GoogleVertexImageModel', () => {
         prompt,
         n: 2,
         size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
         providerOptions: {},
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -86,6 +90,8 @@ describe('GoogleVertexImageModel', () => {
         prompt,
         n: 2,
         size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
         providerOptions: {},
       });
 
@@ -103,6 +109,8 @@ describe('GoogleVertexImageModel', () => {
           prompt: 'test prompt',
           n: 1,
           size: '1024x1024',
+          aspectRatio: undefined,
+          seed: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrow(/Google Vertex does not support the `size` option./);
@@ -115,6 +123,8 @@ describe('GoogleVertexImageModel', () => {
         prompt: 'test prompt',
         n: 1,
         size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
         providerOptions: {
           vertex: {
             aspectRatio: '16:9',
@@ -127,6 +137,75 @@ describe('GoogleVertexImageModel', () => {
         parameters: {
           sampleCount: 1,
           aspectRatio: '16:9',
+        },
+      });
+    });
+
+    it('should pass aspect ratio directly when specified', async () => {
+      prepareJsonResponse();
+
+      await model.doGenerate({
+        prompt: 'test prompt',
+        n: 1,
+        size: undefined,
+        aspectRatio: '16:9',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        instances: [{ prompt: 'test prompt' }],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: '16:9',
+        },
+      });
+    });
+
+    it('should pass seed directly when specified', async () => {
+      prepareJsonResponse();
+
+      await model.doGenerate({
+        prompt: 'test prompt',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: 42,
+        providerOptions: {},
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        instances: [{ prompt: 'test prompt' }],
+        parameters: {
+          sampleCount: 1,
+          seed: 42,
+        },
+      });
+    });
+
+    it('should combine aspectRatio, seed and provider options', async () => {
+      prepareJsonResponse();
+
+      await model.doGenerate({
+        prompt: 'test prompt',
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: 42,
+        providerOptions: {
+          vertex: {
+            temperature: 0.8,
+          },
+        },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        instances: [{ prompt: 'test prompt' }],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: '1:1',
+          seed: 42,
+          temperature: 0.8,
         },
       });
     });
