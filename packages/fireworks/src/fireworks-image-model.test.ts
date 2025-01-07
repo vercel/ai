@@ -1,8 +1,7 @@
 import { APICallError } from '@ai-sdk/provider';
 import { BinaryTestServer } from '@ai-sdk/provider-utils/test';
+import { describe, expect, it } from 'vitest';
 import { FireworksImageModel } from './fireworks-image-model';
-import { describe, it, expect } from 'vitest';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 
 const prompt = 'A cute baby sea otter';
 
