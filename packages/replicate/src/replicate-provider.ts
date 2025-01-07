@@ -2,10 +2,33 @@ import {
   ReplicateImageModel,
   ReplicateImageModelId,
 } from './replicate-image-model';
-import type { ReplicateConfig } from './replicate-config';
+import { loadApiKey } from '@ai-sdk/provider-utils';
+import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
 
-export interface ReplicateProviderSettings
-  extends Omit<ReplicateConfig, 'provider'> {}
+export interface ReplicateProviderSettings {
+  /**
+API token that is being send using the `Authorization` header.
+It defaults to the `REPLICATE_API_TOKEN` environment variable.
+   */
+  apiToken?: string;
+
+  /**
+Use a different URL prefix for API calls, e.g. to use proxy servers.
+The default prefix is `https://api.replicate.com/v1`.
+   */
+  baseURL?: string;
+
+  /**
+Custom headers to include in the requests.
+     */
+  headers?: Record<string, string>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
+}
 
 export interface ReplicateProvider {
   /**
@@ -18,33 +41,27 @@ export interface ReplicateProvider {
  * Create a Replicate provider instance.
  */
 export function createReplicate(
-  options: ReplicateProviderSettings,
+  options: ReplicateProviderSettings = {},
 ): ReplicateProvider {
-  const config = createReplicateConfig(options);
-
   return {
     image: (modelId: ReplicateImageModelId) =>
-      new ReplicateImageModel(modelId, config),
+      new ReplicateImageModel(modelId, {
+        provider: 'replicate',
+        baseURL: options.baseURL ?? 'https://api.replicate.com/v1',
+        headers: {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey: options.apiToken,
+            environmentVariableName: 'REPLICATE_API_TOKEN',
+            description: 'Replicate',
+          })}`,
+          ...options.headers,
+        },
+        fetch: options.fetch,
+      }),
   };
 }
 
 /**
- * Default Replicate provider instance
+ * Default Replicate provider instance.
  */
-export const replicate = createReplicate({
-  apiToken: process.env.REPLICATE_API_TOKEN ?? '',
-});
-
-export function createReplicateConfig(
-  config: Omit<ReplicateConfig, 'provider'>,
-) {
-  return {
-    ...config,
-    provider: 'replicate',
-    baseURL: config.baseURL ?? 'https://api.replicate.com/v1',
-    headers: {
-      ...config.headers,
-      Authorization: `Bearer ${config.apiToken}`,
-    },
-  };
-}
+export const replicate = createReplicate();
