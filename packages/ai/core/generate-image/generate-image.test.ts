@@ -43,6 +43,63 @@ describe('generateImage', () => {
     });
   });
 
+  it('should generate images when several calls are required', async () => {
+    const base64Images = [
+      'SGVsbG8gV29ybGQ=', // "Hello World" in base64
+      'VGVzdGluZw==', // "Testing" in base64
+      'MTIz', // "123" in base64
+    ];
+
+    let callCount = 0;
+
+    const result = await generateImage({
+      model: new MockImageModelV1({
+        maxImagesPerCall: 2,
+        doGenerate: async options => {
+          switch (callCount++) {
+            case 0:
+              expect(options).toStrictEqual({
+                prompt,
+                n: 2,
+                seed: 12345,
+                size: '1024x1024',
+                aspectRatio: '16:9',
+                providerOptions: { openai: { style: 'vivid' } },
+                headers: { 'custom-request-header': 'request-header-value' },
+                abortSignal: undefined,
+              });
+              return { images: base64Images.slice(0, 2), warnings: [] };
+            case 1:
+              expect(options).toStrictEqual({
+                prompt,
+                n: 1,
+                seed: 12345,
+                size: '1024x1024',
+                aspectRatio: '16:9',
+                providerOptions: { openai: { style: 'vivid' } },
+                headers: { 'custom-request-header': 'request-header-value' },
+                abortSignal: undefined,
+              });
+              return { images: base64Images.slice(2), warnings: [] };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      prompt,
+      n: 3,
+      size: '1024x1024',
+      aspectRatio: '16:9',
+      seed: 12345,
+      providerOptions: { openai: { style: 'vivid' } },
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    expect(result.images.map(image => image.base64)).toStrictEqual(
+      base64Images,
+    );
+  });
+
   it('should return warnings', async () => {
     const result = await generateImage({
       model: new MockImageModelV1({
