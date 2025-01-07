@@ -1,9 +1,9 @@
+import type { FetchFunction } from '@ai-sdk/provider-utils';
+import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
   ReplicateImageModel,
   ReplicateImageModelId,
 } from './replicate-image-model';
-import { loadApiKey } from '@ai-sdk/provider-utils';
-import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
 
 export interface ReplicateProviderSettings {
   /**
