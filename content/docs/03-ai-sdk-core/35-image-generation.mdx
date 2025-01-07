@@ -150,9 +150,11 @@ const { image } = await generateImage({
 
 ## Image Models
 
-| Provider                                                                | Model                          | Sizes                           | Aspect Ratios             |
-| ----------------------------------------------------------------------- | ------------------------------ | ------------------------------- | ------------------------- |
-| [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models) | `imagen-3.0-generate-001`      | Use aspect ratio                | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models) | `imagen-3.0-fast-generate-001` | Use aspect ratio                | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| [OpenAI](/providers/ai-sdk-providers/openai#image-models)               | `dall-e-3`                     | 1024x1024, 1792x1024, 1024x1792 | use size                  |
-| [OpenAI](/providers/ai-sdk-providers/openai#image-models)               | `dall-e-2`                     | 256x256, 512x512, 1024x1024     | use size                  |
+| Provider                                                                | Model                                          | Sizes                           | Aspect Ratios                                   |
+| ----------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------- | ----------------------------------------------- |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models) | `imagen-3.0-generate-001`                      | Use aspect ratio                | 1:1, 3:4, 4:3, 9:16, 16:9                       |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models) | `imagen-3.0-fast-generate-001`                 | Use aspect ratio                | 1:1, 3:4, 4:3, 9:16, 16:9                       |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models)               | `dall-e-3`                                     | 1024x1024, 1792x1024, 1024x1792 | use size                                        |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models)               | `dall-e-2`                                     | 256x256, 512x512, 1024x1024     | use size                                        |
+| [Fireworks](/providers/ai-sdk-providers/fireworks#image-models)         | `accounts/fireworks/models/flux-1-dev-fp8`     | Use aspect ratio                | 1:1, 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9 |
+| [Fireworks](/providers/ai-sdk-providers/fireworks#image-models)         | `accounts/fireworks/models/flux-1-schnell-fp8` | Use aspect ratio                | 1:1, 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9 |
