@@ -1,8 +1,10 @@
 import { ImageModelV1, JSONValue } from '@ai-sdk/provider';
+import {
+  convertBase64ToUint8Array,
+  convertUint8ArrayToBase64,
+} from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../prompt/prepare-retries';
 import { GeneratedImage, GenerateImageResult } from './generate-image-result';
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 /**
 Generates images using an image model.
@@ -122,8 +124,15 @@ class DefaultGenerateImageResult implements GenerateImageResult {
     this.images = options.images.map(image => {
       const isUint8Array = image instanceof Uint8Array;
       return {
-        base64: isUint8Array ? convertUint8ArrayToBase64(image) : image,
-        uint8Array: isUint8Array ? image : convertBase64ToUint8Array(image),
+        // lazy conversion to base64 inside get to avoid unnecessary conversion overhead:
+        get base64() {
+          return isUint8Array ? convertUint8ArrayToBase64(image) : image;
+        },
+
+        // lazy conversion to uint8array inside get to avoid unnecessary conversion overhead:
+        get uint8Array() {
+          return isUint8Array ? image : convertBase64ToUint8Array(image);
+        },
       };
     });
   }
