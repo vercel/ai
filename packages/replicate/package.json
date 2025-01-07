@@ -23,11 +23,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    },
-    "./edge": {
-      "types": "./edge/dist/index.d.ts",
-      "import": "./edge/dist/index.mjs",
-      "require": "./edge/dist/index.js"
     }
   },
   "dependencies": {

@@ -4,7 +4,6 @@ import 'dotenv/config';
 import fs from 'node:fs';
 
 async function main() {
-  console.log('Generating image...');
   const { image } = await generateImage({
     model: replicate.image('black-forest-labs/flux-schnell'),
     prompt: 'The Loch Ness Monster getting a manicure',
