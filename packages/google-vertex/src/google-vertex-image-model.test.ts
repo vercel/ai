@@ -1,6 +1,7 @@
 import { JsonTestServer } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 
 const prompt = 'A cute baby sea otter';
 
@@ -113,7 +114,13 @@ describe('GoogleVertexImageModel', () => {
           seed: undefined,
           providerOptions: {},
         }),
-      ).rejects.toThrow(/Google Vertex does not support the `size` option./);
+      ).rejects.toThrow(
+        new UnsupportedFunctionalityError({
+          functionality: 'image size',
+          message:
+            'This model does not support the `size` option. Use `aspectRatio` instead.',
+        }),
+      );
     });
 
     it('sends aspect ratio in the request', async () => {

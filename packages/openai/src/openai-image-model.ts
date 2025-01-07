@@ -1,4 +1,4 @@
-import { ImageModelV1 } from '@ai-sdk/provider';
+import { ImageModelV1, UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -47,11 +47,24 @@ export class OpenAIImageModel implements ImageModelV1 {
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
-    if (aspectRatio !== undefined || seed !== undefined) {
-      throw new Error(
-        'OpenAI does not support the `aspectRatio` or `seed` options. ' +
-          'See https://platform.openai.com/docs/guides/images',
-      );
+    if (aspectRatio != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'image aspect ratio',
+        message:
+          'This model does not support aspect ratio. Use `size` instead.',
+      });
+    }
+
+    if (seed != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'image seed',
+      });
+    }
+
+    if (n > this.maxImagesPerCall) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `generate more than ${this.maxImagesPerCall} images`,
+      });
     }
 
     const { value: response } = await postJsonToApi({

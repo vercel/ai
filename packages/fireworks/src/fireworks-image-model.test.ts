@@ -182,7 +182,7 @@ describe('FireworksImageModel', () => {
       ).rejects.toThrowError(
         new UnsupportedFunctionalityError({
           functionality: 'generate multiple images',
-          message: `Fireworks does not support generating more than 1 images at a time.`,
+          message: `This model does not support generating more than 1 images at a time.`,
         }),
       );
     });
@@ -201,7 +201,7 @@ describe('FireworksImageModel', () => {
         new UnsupportedFunctionalityError({
           functionality: 'image size',
           message:
-            'Fireworks does not support the `size` option. Use `aspectRatio` instead.',
+            'This model does not support the `size` option. Use `aspectRatio` instead.',
         }),
       );
     });

@@ -110,14 +110,14 @@ export class FireworksImageModel implements ImageModelV1 {
       throw new UnsupportedFunctionalityError({
         functionality: 'image size',
         message:
-          'Fireworks does not support the `size` option. Use `aspectRatio` instead.',
+          'This model does not support the `size` option. Use `aspectRatio` instead.',
       });
     }
 
-    if (n > 1) {
+    if (n > this.maxImagesPerCall) {
       throw new UnsupportedFunctionalityError({
-        functionality: 'generate multiple images',
-        message: `Fireworks does not support generating more than ${this.maxImagesPerCall} images at a time.`,
+        functionality: `generate more than ${this.maxImagesPerCall} images`,
+        message: `This model does not support generating more than ${this.maxImagesPerCall} images at a time.`,
       });
     }
 
