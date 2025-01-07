@@ -4,6 +4,7 @@ import {
   convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../prompt/prepare-retries';
+import { ImageModelCallWarning } from '../types/image-model';
 import { GeneratedImage, GenerateImageResult } from './generate-image-result';
 
 /**
@@ -101,29 +102,34 @@ Only applicable for HTTP-based providers.
 }): Promise<GenerateImageResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
-  const { images } = await retry(() =>
-    model.doGenerate({
-      prompt,
-      n: n ?? 1,
-      abortSignal,
-      headers,
-      size,
-      aspectRatio,
-      seed,
-      providerOptions: providerOptions ?? {},
-    }),
+  return new DefaultGenerateImageResult(
+    await retry(() =>
+      model.doGenerate({
+        prompt,
+        n: n ?? 1,
+        abortSignal,
+        headers,
+        size,
+        aspectRatio,
+        seed,
+        providerOptions: providerOptions ?? {},
+      }),
+    ),
   );
-
-  return new DefaultGenerateImageResult({ images });
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedImage>;
+  readonly warnings: Array<ImageModelCallWarning>;
 
-  constructor(options: { images: Array<string> | Array<Uint8Array> }) {
+  constructor(options: {
+    images: Array<string> | Array<Uint8Array>;
+    warnings: Array<ImageModelCallWarning>;
+  }) {
     this.images = options.images.map(
       image => new DefaultGeneratedImage({ imageData: image }),
     );
+    this.warnings = options.warnings;
   }
 
   get image() {

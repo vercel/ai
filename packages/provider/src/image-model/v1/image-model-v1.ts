@@ -1,5 +1,5 @@
 import { ImageModelV1CallOptions } from './image-model-v1-call-options';
-import { ImageModelV1Warning } from './image-model-v1-call-warning';
+import { ImageModelV1CallWarning } from './image-model-v1-call-warning';
 
 /**
 Image generation model specification version 1.
@@ -46,6 +46,6 @@ be returned as binary data.
     /**
 Warnings for the call, e.g. unsupported settings.
      */
-    warnings?: Array<ImageModelV1Warning>;
+    warnings: Array<ImageModelV1CallWarning>;
   }>;
 };
