@@ -10,16 +10,21 @@ import { openaiFailedResponseHandler } from './openai-error';
 
 export type OpenAIImageModelId = 'dall-e-3' | 'dall-e-2' | (string & {});
 
+// https://platform.openai.com/docs/guides/images
+const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
+  'dall-e-3': 1,
+  'dall-e-2': 10,
+};
+
 export class OpenAIImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
   readonly modelId: OpenAIImageModelId;
 
   private readonly config: OpenAIConfig;
 
-  // TODO: This must vary by model:
-  // https://platform.openai.com/docs/guides/images
-  // You can request 1 image at a time with DALL·E 3 (request more by making parallel requests) or up to 10 images at a time using DALL·E 2 with the n parameter.
-  readonly maxImagesPerCall = 10;
+  get maxImagesPerCall(): number {
+    return modelMaxImagesPerCall[this.modelId] ?? 1;
+  }
 
   get provider(): string {
     return this.config.provider;
