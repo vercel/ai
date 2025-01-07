@@ -494,11 +494,11 @@ export async function POST(request) {
     model: openai('gpt-4o'),
     system: 'you are a friendly assistant!',
     messages: coreMessages,
-    onFinish: async ({ responseMessages }) => {
+    onFinish: async ({ response }) => {
       try {
         await saveChat({
           id,
-          messages: [...coreMessages, ...responseMessages],
+          messages: [...coreMessages, ...response.messages],
         });
       } catch (error) {
         console.error('Failed to save chat');

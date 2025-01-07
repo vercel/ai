@@ -42,9 +42,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 const provider = createOpenAICompatible({
   name: 'provider-name',
-  headers: {
-    Authorization: `Bearer ${process.env.PROVIDER_API_KEY}`,
-  },
+  apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
 });
 ```
@@ -68,9 +66,7 @@ import { generateText } from 'ai'
 
 const provider = createOpenAICompatible({
   name: 'provider-name',
-  headers: {
-    Authorization: `Bearer ${process.env.PROVIDER_API_KEY}`,
-  },
+  apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1'
 })
 
@@ -107,9 +103,7 @@ const model = createOpenAICompatible<
   ExampleEmbeddingModelIds
 >({
   name: 'example',
-  headers: {
-    Authorization: `Bearer ${process.env.MY_API_KEY}`,
-  },
+  apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.example.com/v1',
 });
 

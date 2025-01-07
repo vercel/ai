@@ -1,5 +1,19 @@
 # @ai-sdk/google-vertex
 
+## 2.0.14
+
+### Patch Changes
+
+- 19a2ce7: feat (ai/core): add aspectRatio and seed options to generateImage
+- 6337688: feat: change image generation errors to warnings
+- Updated dependencies [19a2ce7]
+- Updated dependencies [19a2ce7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider@1.0.4
+  - @ai-sdk/provider-utils@2.0.6
+  - @ai-sdk/anthropic@1.0.7
+  - @ai-sdk/google@1.0.13
+
 ## 2.0.13
 
 ### Patch Changes

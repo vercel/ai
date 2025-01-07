@@ -21,6 +21,7 @@ createFeatureTestSuite({
     embeddingModels: [
       provider.textEmbeddingModel('nomic-ai/nomic-embed-text-v1.5'),
     ],
+    imageModels: [provider.image('accounts/fireworks/models/flux-1-dev-fp8')],
   },
   timeout: 10000,
   customAssertions: {

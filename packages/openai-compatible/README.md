@@ -30,6 +30,24 @@ const { text } = await generateText({
   model: createOpenAICompatible({
     baseURL: 'https://api.example.com/v1',
     name: 'example',
+    apiKey: process.env.MY_API_KEY,
+  }).chatModel('meta-llama/Llama-3-70b-chat-hf'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+### Customizing headers
+
+You can further customize headers if desired. For example, here is an alternate implementation to pass along api key authentication:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: createOpenAICompatible({
+    baseURL: 'https://api.example.com/v1',
+    name: 'example',
     headers: {
       Authorization: `Bearer ${process.env.MY_API_KEY}`,
     },
@@ -66,9 +84,7 @@ const model = createOpenAICompatible<
 >({
   baseURL: 'https://api.example.com/v1',
   name: 'example',
-  headers: {
-    Authorization: `Bearer ${process.env.MY_API_KEY}`,
-  },
+  apiKey: process.env.MY_API_KEY,
 });
 
 // Subsequent calls to e.g. `model.chatModel` will auto-complete the model id
