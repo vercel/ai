@@ -62,6 +62,19 @@ console.log(images);
         'Size of the images to generate. Format: `{width}x{height}`.',
     },
     {
+      name: 'aspectRatio',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Aspect ratio of the images to generate. Format: `{width}:{height}`.',
+    },
+    {
+      name: 'seed',
+      type: 'number',
+      isOptional: true,
+      description: 'Seed for the image generation.',
+    },
+    {
       name: 'providerOptions',
       type: 'Record<string, Record<string, JSONValue>>',
       isOptional: true,
