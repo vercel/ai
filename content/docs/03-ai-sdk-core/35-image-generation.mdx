@@ -65,7 +65,7 @@ const { image } = await generateImage({
 
 ### Generating Multiple Images
 
-`generateImage` also supports generating multiple images at once for models that support it:
+`generateImage` also supports generating multiple images at once:
 
 ```tsx highlight={"7"}
 import { experimental_generateImage as generateImage } from 'ai';
@@ -77,6 +77,11 @@ const { images } = await generateImage({
   n: 4, // number of images to generate
 });
 ```
+
+<Note>
+  `generateImage` will automatically call the model as often as needed (in
+  parallel) to generate the requested number of images.
+</Note>
 
 ### Providing a Seed
 
