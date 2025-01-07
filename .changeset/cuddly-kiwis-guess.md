@@ -4,4 +4,4 @@
 'ai': patch
 ---
 
-feat (ai/core): add aspectRatio and seed to generateImage
+feat (ai/core): add aspectRatio and seed options to generateImage
