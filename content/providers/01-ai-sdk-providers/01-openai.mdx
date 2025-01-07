@@ -618,9 +618,14 @@ using the `.image()` factory method.
 const model = openai.image('dall-e-3');
 ```
 
+<Note>
+  Dall-E models do not support the `aspectRatio` parameter. Use the `size`
+  parameter instead.
+</Note>
+
 ### Model Capabilities
 
-| Model      | Supported Sizes                 |
+| Model      | Sizes                           |
 | ---------- | ------------------------------- |
 | `dall-e-3` | 1024x1024, 1792x1024, 1024x1792 |
 | `dall-e-2` | 256x256, 512x512, 1024x1024     |

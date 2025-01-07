@@ -564,8 +564,6 @@ The following optional settings are available for Google Vertex AI embedding mod
 You can create [Imagen](https://cloud.google.com/vertex-ai/generative-ai/docs/image/overview) models that call the [Imagen on Vertex AI API](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images)
 using the `.image()` factory method. For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
-Note that Imagen does not support an explicit size parameter. Instead, size is driven by the [aspect ratio](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) of the input image.
-
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
@@ -573,18 +571,21 @@ import { experimental_generateImage as generateImage } from 'ai';
 const { image } = await generateImage({
   model: vertex.image('imagen-3.0-generate-001'),
   prompt: 'A futuristic cityscape at sunset',
-  providerOptions: {
-    vertex: { aspectRatio: '16:9' },
-  },
+  aspectRatio: '16:9',
 });
 ```
 
+<Note>
+  Imagen models do not support the `size` parameter. Use the `aspectRatio`
+  parameter instead.
+</Note>
+
 #### Model Capabilities
 
-| Model                          | Supported Sizes                                                                                               |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `imagen-3.0-generate-001`      | See [aspect ratios](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) |
-| `imagen-3.0-fast-generate-001` | See [aspect ratios](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio) |
+| Model                          | Aspect Ratios             |
+| ------------------------------ | ------------------------- |
+| `imagen-3.0-generate-001`      | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-3.0-fast-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
 
 ## Google Vertex Anthropic Provider Usage
 
