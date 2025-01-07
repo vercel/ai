@@ -1,5 +1,19 @@
 # @ai-sdk/fireworks
 
+## 0.0.9
+
+### Patch Changes
+
+- 19a2ce7: feat (provider/fireworks): Add image model support.
+- 6337688: feat: change image generation errors to warnings
+- Updated dependencies [19a2ce7]
+- Updated dependencies [19a2ce7]
+- Updated dependencies [43b37f7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider@1.0.4
+  - @ai-sdk/provider-utils@2.0.6
+  - @ai-sdk/openai-compatible@0.0.14
+
 ## 0.0.8
 
 ### Patch Changes

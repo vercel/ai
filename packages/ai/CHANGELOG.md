@@ -1,5 +1,20 @@
 # ai
 
+## 4.0.28
+
+### Patch Changes
+
+- 19a2ce7: feat (ai/core): add aspectRatio and seed options to generateImage
+- 6337688: feat: change image generation errors to warnings
+- 8b422ea: feat (ai/core): add caching to generated images
+- Updated dependencies [19a2ce7]
+- Updated dependencies [19a2ce7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider@1.0.4
+  - @ai-sdk/provider-utils@2.0.6
+  - @ai-sdk/ui-utils@1.0.7
+  - @ai-sdk/react@1.0.8
+
 ## 4.0.27
 
 ### Patch Changes
