@@ -2427,7 +2427,7 @@ describe('doStream simulated streaming', () => {
 
   it('should stream text delta', async () => {
     prepareJsonResponse({ content: 'Hello, World!', model: 'o1-preview' });
-    const model = provider.chat('o1', {
+    const model = provider.chat('some-model', {
       simulateStreaming: true,
     });
 
@@ -2470,7 +2470,7 @@ describe('doStream simulated streaming', () => {
       ],
     });
 
-    const model = provider.chat('o1', {
+    const model = provider.chat('some-model', {
       simulateStreaming: true,
     });
 
@@ -2533,7 +2533,7 @@ describe('doStream simulated streaming', () => {
       },
     });
 
-    const model = provider.chat('o1', {
+    const model = provider.chat('some-model', {
       simulateStreaming: true,
     });
 
@@ -2561,6 +2561,35 @@ describe('doStream simulated streaming', () => {
             reasoningTokens: 10,
           },
         },
+      },
+    ]);
+  });
+
+  it('should simulate streaming by default for reasoning models', async () => {
+    prepareJsonResponse({ content: 'Hello, World!', model: 'o1' });
+
+    const model = provider.chat('o1');
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        modelId: 'o1',
+        timestamp: expect.any(Date),
+      },
+      { type: 'text-delta', textDelta: 'Hello, World!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 30 },
+        logprobs: undefined,
+        providerMetadata: { openai: {} },
       },
     ]);
   });
