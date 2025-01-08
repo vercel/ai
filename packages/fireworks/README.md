@@ -25,8 +25,8 @@ import { fireworks } from '@ai-sdk/fireworks';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-model: fireworks('accounts/fireworks/models/deepseek-v3'),
-prompt: 'Write a JavaScript function that sorts a list:',
+  model: fireworks('accounts/fireworks/models/deepseek-v3'),
+  prompt: 'Write a JavaScript function that sorts a list:',
 });
 ```
 
