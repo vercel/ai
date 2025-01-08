@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.30
+
+### Patch Changes
+
+- e4ce80c: fix (ai/core): prevent onFinish from masking stream errors
+
 ## 4.0.29
 
 ### Patch Changes
