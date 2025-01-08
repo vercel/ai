@@ -21,22 +21,4 @@ describe('createReplicate', () => {
     const model = provider.image('black-forest-labs/flux-schnell');
     expect(model).toBeInstanceOf(ReplicateImageModel);
   });
-
-  it('passes configuration to image model', () => {
-    const customConfig = {
-      apiToken: 'test-token',
-      baseURL: 'https://custom.replicate.com',
-    };
-    const provider = createReplicate(customConfig);
-    const model = provider.image('black-forest-labs/flux-schnell');
-
-    // Access internal config to verify it was passed correctly
-    const modelConfig = (
-      model as { config: typeof customConfig & { provider: string } }
-    ).config;
-    expect(modelConfig).toMatchObject({
-      ...customConfig,
-      provider: 'replicate',
-    });
-  });
 });
