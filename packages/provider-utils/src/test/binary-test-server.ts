@@ -18,7 +18,8 @@ export class BinaryTestServer {
 
     // Initialize endpoints
     urlList.forEach(url => {
-      this.endpoints.set(this.normalizeUrl(url), {
+      const normalizedUrl = this.normalizeUrl(url);
+      this.endpoints.set(normalizedUrl, {
         responseBody: null,
         responseHeaders: {},
         responseStatus: 200,
@@ -29,7 +30,10 @@ export class BinaryTestServer {
     this.server = setupServer(
       ...urlList.map(url =>
         http.post(this.normalizeUrl(url), ({ request }) => {
-          const endpoint = this.endpoints.get(this.normalizeUrl(request.url))!;
+          const endpoint = this.endpoints.get(this.normalizeUrl(request.url));
+          if (!endpoint) {
+            return new HttpResponse(null, { status: 500 });
+          }
           endpoint.request = request;
 
           if (endpoint.responseBody === null) {
@@ -47,10 +51,14 @@ export class BinaryTestServer {
 
   private normalizeUrl(url: string): string {
     try {
-      return new URL(url).toString();
+      // Parse URL and remove search params for endpoint matching
+      const urlObj = new URL(url);
+      urlObj.search = ''; // Clear search params for matching
+      const normalized = urlObj.toString();
+      return normalized.endsWith('/') ? normalized.slice(0, -1) : normalized;
     } catch {
       // If not a valid URL, assume it's a path and return as-is
-      return url;
+      return url.endsWith('/') ? url.slice(0, -1) : url;
     }
   }
 
@@ -62,7 +70,9 @@ export class BinaryTestServer {
       status?: number;
     },
   ) {
-    const endpoint = this.endpoints.get(url);
+    // Normalize the URL before lookup
+    const normalizedUrl = this.normalizeUrl(url);
+    const endpoint = this.endpoints.get(normalizedUrl);
     if (!endpoint) {
       throw new Error(`No endpoint configured for URL: ${url}`);
     }
@@ -72,7 +82,9 @@ export class BinaryTestServer {
   }
 
   async getRequestDataFor(url: string) {
-    const endpoint = this.endpoints.get(this.normalizeUrl(url));
+    // Normalize the URL before lookup
+    const normalizedUrl = this.normalizeUrl(url);
+    const endpoint = this.endpoints.get(normalizedUrl);
     if (!endpoint) {
       throw new Error(`No endpoint configured for URL: ${url}`);
     }
