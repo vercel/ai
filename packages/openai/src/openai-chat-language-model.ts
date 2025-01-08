@@ -191,12 +191,62 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       }),
     };
 
-    // reasoning models have fixed params, remove them if they are set:
+    // reasoning models have fixed params, remove them if they are set
+    // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel(this.modelId)) {
-      baseArgs.temperature = undefined;
-      baseArgs.top_p = undefined;
-      baseArgs.frequency_penalty = undefined;
-      baseArgs.presence_penalty = undefined;
+      if (baseArgs.temperature != null) {
+        baseArgs.temperature = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.top_p != null) {
+        baseArgs.top_p = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'topP',
+          details: 'topP is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.frequency_penalty != null) {
+        baseArgs.frequency_penalty = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'frequencyPenalty',
+          details: 'frequencyPenalty is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.presence_penalty != null) {
+        baseArgs.presence_penalty = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'presencePenalty',
+          details: 'presencePenalty is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.logit_bias != null) {
+        baseArgs.logit_bias = undefined;
+        warnings.push({
+          type: 'other',
+          message: 'logitBias is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.logprobs != null) {
+        baseArgs.logprobs = undefined;
+        warnings.push({
+          type: 'other',
+          message: 'logprobs is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.top_logprobs != null) {
+        baseArgs.top_logprobs = undefined;
+        warnings.push({
+          type: 'other',
+          message: 'topLogprobs is not supported for reasoning models',
+        });
+      }
     }
 
     switch (type) {
