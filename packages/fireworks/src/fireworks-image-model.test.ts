@@ -1,14 +1,22 @@
 import { BinaryTestServer } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { FireworksImageModel } from './fireworks-image-model';
+import { FetchFunction } from '@ai-sdk/provider-utils';
 
 const prompt = 'A cute baby sea otter';
 
-function createBasicModel(headers?: () => Record<string, string>) {
+function createBasicModel({
+  headers,
+  fetch,
+}: {
+  headers?: () => Record<string, string>;
+  fetch?: FetchFunction;
+} = {}) {
   return new FireworksImageModel('accounts/fireworks/models/flux-1-dev-fp8', {
     provider: 'fireworks',
     baseURL: 'https://api.example.com',
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
+    fetch,
   });
 }
 
@@ -73,9 +81,11 @@ describe('FireworksImageModel', () => {
     it('should pass headers', async () => {
       prepareBinaryResponse(basicUrl);
 
-      const modelWithHeaders = createBasicModel(() => ({
-        'Custom-Provider-Header': 'provider-header-value',
-      }));
+      const modelWithHeaders = createBasicModel({
+        headers: () => ({
+          'Custom-Provider-Header': 'provider-header-value',
+        }),
+      });
 
       await modelWithHeaders.doGenerate({
         prompt,
@@ -249,6 +259,62 @@ describe('FireworksImageModel', () => {
         setting: 'aspectRatio',
         details: 'This model does not support the `aspectRatio` option.',
       });
+    });
+
+    it('should respect the abort signal', async () => {
+      prepareBinaryResponse(basicUrl);
+      const model = createBasicModel();
+      const controller = new AbortController();
+
+      const generatePromise = model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+        abortSignal: controller.signal,
+      });
+
+      controller.abort();
+
+      await expect(generatePromise).rejects.toThrow(
+        'This operation was aborted',
+      );
+    });
+
+    it('should use custom fetch function when provided', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        new Response(Buffer.from('mock-image-data'), {
+          status: 200,
+        }),
+      );
+
+      const model = createBasicModel({
+        fetch: mockFetch,
+      });
+
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(mockFetch).toHaveBeenCalled();
+    });
+  });
+
+  describe('constructor', () => {
+    it('should expose correct provider and model information', () => {
+      const model = createBasicModel();
+
+      expect(model.provider).toBe('fireworks');
+      expect(model.modelId).toBe('accounts/fireworks/models/flux-1-dev-fp8');
+      expect(model.specificationVersion).toBe('v1');
+      expect(model.maxImagesPerCall).toBe(1);
     });
   });
 });
