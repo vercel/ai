@@ -1,6 +1,7 @@
 import type { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
+  FetchFunction,
   combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
@@ -8,60 +9,42 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { replicateFailedResponseHandler } from './replicate-error';
-
-export type ReplicateImageModelId =
-  | 'black-forest-labs/flux-1.1-pro'
-  | 'black-forest-labs/flux-1.1-pro-ultra'
-  | 'black-forest-labs/flux-dev'
-  | 'black-forest-labs/flux-pro'
-  | 'black-forest-labs/flux-schnell'
-  | 'bytedance/sdxl-lightning-4step'
-  | 'fofr/aura-flow'
-  | 'fofr/latent-consistency-model'
-  | 'fofr/realvisxl-v3-multi-controlnet-lora'
-  | 'fofr/sdxl-emoji'
-  | 'fofr/sdxl-multi-controlnet-lora'
-  | 'ideogram-ai/ideogram-v2'
-  | 'ideogram-ai/ideogram-v2-turbo'
-  | 'lucataco/dreamshaper-xl-turbo'
-  | 'lucataco/open-dalle-v1.1'
-  | 'lucataco/realvisxl-v2.0'
-  | 'lucataco/realvisxl2-lcm'
-  | 'luma/photon'
-  | 'luma/photon-flash'
-  | 'nvidia/sana'
-  | 'playgroundai/playground-v2.5-1024px-aesthetic'
-  | 'recraft-ai/recraft-v3'
-  | 'recraft-ai/recraft-v3-svg'
-  | 'stability-ai/stable-diffusion-3.5-large'
-  | 'stability-ai/stable-diffusion-3.5-large-turbo'
-  | 'stability-ai/stable-diffusion-3.5-medium'
-  | 'tstramer/material-diffusion'
-  | (string & {});
+import {
+  ReplicateImageModelId,
+  ReplicateImageSettings,
+} from './replicate-image-settings';
 
 interface ReplicateImageModelConfig {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 }
 
 export class ReplicateImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly maxImagesPerCall = 1;
+
+  readonly modelId: ReplicateImageModelId;
+  readonly settings: ReplicateImageSettings;
+
+  private readonly config: ReplicateImageModelConfig;
 
   get provider(): string {
     return this.config.provider;
   }
 
+  get maxImagesPerCall(): number {
+    return this.settings.maxImagesPerCall ?? 1;
+  }
+
   constructor(
-    readonly modelId: ReplicateImageModelId,
-    private config: ReplicateImageModelConfig,
+    modelId: ReplicateImageModelId,
+    settings: ReplicateImageSettings,
+    config: ReplicateImageModelConfig,
   ) {
-    this.config.headers = {
-      ...this.config.headers,
-      Prefer: 'wait',
-    };
+    this.modelId = modelId;
+    this.settings = settings;
+    this.config = config;
   }
 
   async doGenerate({
@@ -95,7 +78,9 @@ export class ReplicateImageModel implements ImageModelV1 {
       value: { output },
     } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}/predictions`,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers, {
+        Prefer: 'wait',
+      }),
       body,
       failedResponseHandler: replicateFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

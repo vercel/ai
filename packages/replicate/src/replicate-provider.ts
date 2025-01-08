@@ -1,9 +1,10 @@
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { loadApiKey } from '@ai-sdk/provider-utils';
+import { ReplicateImageModel } from './replicate-image-model';
 import {
-  ReplicateImageModel,
   ReplicateImageModelId,
-} from './replicate-image-model';
+  ReplicateImageSettings,
+} from './replicate-image-settings';
 
 export interface ReplicateProviderSettings {
   /**
@@ -34,7 +35,10 @@ export interface ReplicateProvider {
   /**
    * Creates a Replicate image generation model.
    */
-  image(modelId: ReplicateImageModelId): ReplicateImageModel;
+  image(
+    modelId: ReplicateImageModelId,
+    settings?: ReplicateImageSettings,
+  ): ReplicateImageModel;
 }
 
 /**
@@ -44,8 +48,11 @@ export function createReplicate(
   options: ReplicateProviderSettings = {},
 ): ReplicateProvider {
   return {
-    image: (modelId: ReplicateImageModelId) =>
-      new ReplicateImageModel(modelId, {
+    image: (
+      modelId: ReplicateImageModelId,
+      settings?: ReplicateImageSettings,
+    ) =>
+      new ReplicateImageModel(modelId, settings ?? {}, {
         provider: 'replicate',
         baseURL: options.baseURL ?? 'https://api.replicate.com/v1',
         headers: {
