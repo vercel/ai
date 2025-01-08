@@ -4,13 +4,13 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: openai('o1-mini'),
+    model: openai('o1-preview'),
+    system: 'You are a helpful assistant.',
     prompt: 'Invent a new holiday and describe its traditions.',
     temperature: 0.5, // should get ignored (warning)
     experimental_providerMetadata: {
       openai: { maxCompletionTokens: 1000 },
     },
-    system: 'You are a helpful assistant.',
   });
 
   for await (const textPart of result.textStream) {

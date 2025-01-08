@@ -413,10 +413,9 @@ console.log('Usage:', {
 </Note>
 
 <Note>
-  OpenAI has introduced a new `developer` message type for reasoning models.
-  However, `system` messages are automatically converted to `developer` messages
-  by OpenAI. You can pass `system` messages to reasoning models and set the
-  `system` instruction as usual.
+  For some models such as `o1-preview`, system messages are removed and a
+  warning is added. For other reasoning models, system messages are converted to
+  `developer` messages.
 </Note>
 
 <Note>
