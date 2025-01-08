@@ -54,6 +54,11 @@ You can use the following optional settings to customize the Fireworks provider 
   API key that is being sent using the `Authorization` header. It defaults to
   the `FIREWORKS_API_KEY` environment variable.
 
+- **stabilityApiKey** _string_
+
+  Stability AI API key. Some models are backed by Stability AI systems and may require this key.
+  It defaults to the `STABILITY_API_KEY` environment variable.
+
 - **headers** _Record&lt;string,string&gt;_
 
   Custom headers to include in the requests.
@@ -142,13 +147,91 @@ const { image } = await generateImage({
 ```
 
 <Note>
-  Fireworks models do not support the `size` parameter. Use the `aspectRatio`
-  parameter instead.
+  Model support for `size` and `aspectRatio` parameters varies. See the [Model
+  Capabilities](#model-capabilities-1) section below for supported dimensions,
+  or check the model's documentation on [Fireworks models
+  page](https://fireworks.ai/models) for more details.
+</Note>
+
+### Stability AI Models
+
+Fireworks also provides access to some of Stability AI's models. These models
+require a Stability AI API key. You can get a Stability AI API key from
+[Stability AI](https://platform.stability.ai).
+
+The Stability api key defaults to the value of the `STABILITY_API_KEY`
+environment variable.
+
+<Note>
+  The Fireworks provider supports setting two different api keys: the `apiKey`
+  and the `stabilityApiKey`. The `apiKey` is used for most Fireworks models,
+  while the `stabilityApiKey` is only used for Stability AI models.
+</Note>
+
+```ts
+import { fireworks } from '@ai-sdk/fireworks';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: fireworks.image('accounts/stability/models/sd3-turbo'),
+  prompt: 'A sunrise over the Bahamas',
+});
+```
+
+The key can also be set through the provider options:
+
+```ts
+import { createFireworks } from '@ai-sdk/fireworks';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const fireworks = createFireworks({ stabilityApiKey: 'stability-api-key' });
+const { image } = await generateImage({
+  model: fireworks.image('accounts/stability/models/sd3-turbo'),
+  prompt: 'A sunrise over the Bahamas',
+});
+```
+
+The following Stability AI models are available:
+
+| Model ID                               | Description                        |
+| -------------------------------------- | ---------------------------------- |
+| `accounts/stability/models/sd3-turbo`  | Fast inference optimized for speed |
+| `accounts/stability/models/sd3-medium` | Balanced quality and speed         |
+| `accounts/stability/models/sd3`        | Highest quality model              |
+
+<Note>
+  Stability AI models require a `STABILITY_API_KEY` environment variable or
+  explicit `stabilityApiKey` in the provider options. You can get an API key
+  from [Stability AI](https://platform.stability.ai).
 </Note>
 
 ### Model Capabilities
 
-| Model                                          | Aspect Ratios                                   |
-| ---------------------------------------------- | ----------------------------------------------- |
-| `accounts/fireworks/models/flux-1-dev-fp8`     | 1:1, 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9 |
-| `accounts/fireworks/models/flux-1-schnell-fp8` | 1:1, 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9 |
+For all models supporting aspect ratios, the following aspect ratios are supported:
+
+`1:1 (default), 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9`
+
+For all models supporting size, the following sizes are supported:
+
+`640 x 1536, 768 x 1344, 832 x 1216, 896 x 1152, 1024x1024 (default), 1152 x 896, 1216 x 832, 1344 x 768, 1536 x 640`
+
+| Model                                                        | Dimensions Specification |
+| ------------------------------------------------------------ | ------------------------ |
+| `accounts/fireworks/models/flux-1-dev-fp8`                   | Aspect Ratio             |
+| `accounts/fireworks/models/flux-1-schnell-fp8`               | Aspect Ratio             |
+| `accounts/fireworks/models/playground-v2-5-1024px-aesthetic` | Size                     |
+| `accounts/fireworks/models/japanese-stable-diffusion-xl`     | Size                     |
+| `accounts/fireworks/models/playground-v2-1024px-aesthetic`   | Size                     |
+| `accounts/fireworks/models/SSD-1B`                           | Size                     |
+| `accounts/fireworks/models/stable-diffusion-xl-1024-v1-0`    | Size                     |
+| `accounts/stability/models/sd3-turbo`                        | Aspect Ratio             |
+| `accounts/stability/models/sd3-medium`                       | Aspect Ratio             |
+| `accounts/stability/models/sd3`                              | Aspect Ratio             |
+
+<Note>
+  Stability AI models require a `STABILITY_API_KEY` environment variable or
+  explicit `stabilityApiKey` in the provider options. You can get an API key
+  from [Stability AI](https://platform.stability.ai).
+</Note>
+
+For more details, see the [Fireworks models page](https://fireworks.ai/models).
