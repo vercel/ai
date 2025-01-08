@@ -228,7 +228,9 @@ async function postImageToStabilityApi(
   ) {
     for (const [key, value] of Object.entries(providerOptions.fireworks)) {
       if (value !== undefined && value !== null) {
-        formData.set(key, String(value));
+        const stringValue =
+          typeof value === 'object' ? JSON.stringify(value) : String(value);
+        formData.set(key, stringValue);
       }
     }
   }
@@ -298,8 +300,8 @@ export class FireworksImageModel implements ImageModelV1 {
       });
     }
 
-    // Use supportsSize as a proxy for whether the model supports aspectRatio.
-    // This invariant holds for the current set of models.
+    // Use supportsSize as a proxy for whether the model does not support
+    // aspectRatio. This invariant holds for the current set of models.
     if (backendConfig?.supportsSize && aspectRatio != null) {
       warnings.push({
         type: 'unsupported-setting',

@@ -351,6 +351,56 @@ describe('FireworksImageModel', () => {
 
       expect(mockFetch).toHaveBeenCalled();
     });
+
+    it('should properly handle object values in Stability AI model requests', async () => {
+      prepareBinaryResponse(stabilityUrl);
+
+      const stabilityModel = createStabilityModel();
+      await stabilityModel.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: 42,
+        providerOptions: {
+          fireworks: {
+            steps: 30,
+            // Add complex object values
+            metadata: { tag: 'test', version: 2 },
+            config: { quality: 'high', style: ['realistic', 'detailed'] },
+          },
+        },
+      });
+
+      const request = await server.getRequestDataFor(stabilityUrl);
+      const formData = await request.bodyFormData();
+
+      // Verify form data contents
+      const formDataEntries: [string, string][] = [];
+      (formData as FormData).forEach((value, key) => {
+        formDataEntries.push([key, String(value)]);
+      });
+
+      expect(formDataEntries).toEqual(
+        expect.arrayContaining([
+          ['mode', 'text-to-image'],
+          ['prompt', prompt],
+          ['aspect_ratio', '1:1'],
+          ['output_format', 'png'],
+          ['model', 'sd3'],
+          ['seed', '42'],
+          ['steps', '30'],
+          ['metadata', JSON.stringify({ tag: 'test', version: 2 })],
+          [
+            'config',
+            JSON.stringify({
+              quality: 'high',
+              style: ['realistic', 'detailed'],
+            }),
+          ],
+        ]),
+      );
+    });
   });
 
   describe('constructor', () => {
