@@ -15,7 +15,61 @@ import {
 export type FireworksImageModelId =
   | 'accounts/fireworks/models/flux-1-dev-fp8'
   | 'accounts/fireworks/models/flux-1-schnell-fp8'
+  | 'accounts/fireworks/models/playground-v2-5-1024px-aesthetic'
+  | 'accounts/fireworks/models/japanese-stable-diffusion-xl'
+  | 'accounts/fireworks/models/playground-v2-1024px-aesthetic'
+  | 'accounts/fireworks/models/SSD-1B'
+  | 'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0'
   | (string & {});
+
+interface FireworksImageModelBackendConfig {
+  urlFormat: 'workflows' | 'image_generation';
+  supportsSize?: boolean;
+}
+
+const modelToBackendConfig: Partial<
+  Record<FireworksImageModelId, FireworksImageModelBackendConfig>
+> = {
+  'accounts/fireworks/models/flux-1-dev-fp8': {
+    urlFormat: 'workflows',
+  },
+  'accounts/fireworks/models/flux-1-schnell-fp8': {
+    urlFormat: 'workflows',
+  },
+  'accounts/fireworks/models/playground-v2-5-1024px-aesthetic': {
+    urlFormat: 'image_generation',
+    supportsSize: true,
+  },
+  'accounts/fireworks/models/japanese-stable-diffusion-xl': {
+    urlFormat: 'image_generation',
+    supportsSize: true,
+  },
+  'accounts/fireworks/models/playground-v2-1024px-aesthetic': {
+    urlFormat: 'image_generation',
+    supportsSize: true,
+  },
+  'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0': {
+    urlFormat: 'image_generation',
+    supportsSize: true,
+  },
+  'accounts/fireworks/models/SSD-1B': {
+    urlFormat: 'image_generation',
+    supportsSize: true,
+  },
+};
+
+function getUrlForModel(
+  baseUrl: string,
+  modelId: FireworksImageModelId,
+): string {
+  switch (modelToBackendConfig[modelId]?.urlFormat) {
+    case 'image_generation':
+      return `${baseUrl}/image_generation/${modelId}`;
+    case 'workflows':
+    default:
+      return `${baseUrl}/workflows/${modelId}/text_to_image`;
+  }
+}
 
 interface FireworksImageModelConfig {
   provider: string;
@@ -80,6 +134,42 @@ const statusCodeErrorResponseHandler: ResponseHandler<APICallError> = async ({
   };
 };
 
+interface ImageRequestParams {
+  baseUrl: string;
+  modelId: FireworksImageModelId;
+  prompt: string;
+  aspectRatio?: string;
+  size?: string;
+  seed?: number;
+  providerOptions: Record<string, unknown>;
+  headers: Record<string, string | undefined>;
+  abortSignal?: AbortSignal;
+  fetch?: FetchFunction;
+}
+
+async function postImageToApi(
+  params: ImageRequestParams,
+): Promise<ArrayBuffer> {
+  const splitSize = params.size?.split('x');
+  const { value: response } = await postJsonToApi({
+    url: getUrlForModel(params.baseUrl, params.modelId),
+    headers: params.headers,
+    body: {
+      prompt: params.prompt,
+      aspect_ratio: params.aspectRatio,
+      seed: params.seed,
+      ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
+      ...(params.providerOptions.fireworks ?? {}),
+    },
+    failedResponseHandler: statusCodeErrorResponseHandler,
+    successfulResponseHandler: createBinaryResponseHandler(),
+    abortSignal: params.abortSignal,
+    fetch: params.fetch,
+  });
+
+  return response;
+}
+
 export class FireworksImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
@@ -108,7 +198,8 @@ export class FireworksImageModel implements ImageModelV1 {
   > {
     const warnings: Array<ImageModelV1CallWarning> = [];
 
-    if (size != null) {
+    const backendConfig = modelToBackendConfig[this.modelId];
+    if (!backendConfig?.supportsSize && size != null) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'size',
@@ -117,20 +208,25 @@ export class FireworksImageModel implements ImageModelV1 {
       });
     }
 
-    const url = `${this.config.baseURL}/workflows/${this.modelId}/text_to_image`;
-    const body = {
-      prompt,
-      aspect_ratio: aspectRatio,
-      seed,
-      ...(providerOptions.fireworks ?? {}),
-    };
+    // Use supportsSize as a proxy for whether the model does not support
+    // aspectRatio. This invariant holds for the current set of models.
+    if (backendConfig?.supportsSize && aspectRatio != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'aspectRatio',
+        details: 'This model does not support the `aspectRatio` option.',
+      });
+    }
 
-    const { value: response } = await postJsonToApi({
-      url,
+    const response = await postImageToApi({
+      baseUrl: this.config.baseURL,
+      prompt,
+      aspectRatio,
+      size,
+      seed,
+      modelId: this.modelId,
+      providerOptions,
       headers: combineHeaders(this.config.headers(), headers),
-      body,
-      failedResponseHandler: statusCodeErrorResponseHandler,
-      successfulResponseHandler: createBinaryResponseHandler(),
       abortSignal,
       fetch: this.config.fetch,
     });

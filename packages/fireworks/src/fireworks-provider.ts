@@ -45,7 +45,8 @@ const fireworksErrorStructure: ProviderErrorStructure<FireworksErrorData> = {
 
 export interface FireworksProviderSettings {
   /**
-Fireworks API key.
+Fireworks API key. Default value is taken from the `FIREWORKS_API_KEY`
+environment variable.
 */
   apiKey?: string;
   /**

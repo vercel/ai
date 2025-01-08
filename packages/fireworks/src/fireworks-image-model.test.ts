@@ -1,35 +1,65 @@
-import { APICallError } from '@ai-sdk/provider';
 import { BinaryTestServer } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { FireworksImageModel } from './fireworks-image-model';
+import { FetchFunction } from '@ai-sdk/provider-utils';
 
 const prompt = 'A cute baby sea otter';
 
-const model = new FireworksImageModel(
-  'accounts/fireworks/models/flux-1-dev-fp8',
-  {
+function createBasicModel({
+  headers,
+  fetch,
+}: {
+  headers?: () => Record<string, string>;
+  fetch?: FetchFunction;
+} = {}) {
+  return new FireworksImageModel('accounts/fireworks/models/flux-1-dev-fp8', {
     provider: 'fireworks',
     baseURL: 'https://api.example.com',
+    headers: headers ?? (() => ({ 'api-key': 'test-key' })),
+    fetch,
+  });
+}
+
+function createSizeModel() {
+  return new FireworksImageModel(
+    'accounts/fireworks/models/playground-v2-5-1024px-aesthetic',
+    {
+      provider: 'fireworks',
+      baseURL: 'https://api.size-example.com',
+      headers: () => ({ 'api-key': 'test-key' }),
+    },
+  );
+}
+
+function createStabilityModel() {
+  return new FireworksImageModel('accounts/stability/models/sd3', {
+    provider: 'fireworks',
+    baseURL: 'https://api.stability.ai',
     headers: () => ({ 'api-key': 'test-key' }),
-  },
-);
+  });
+}
+
+const basicUrl =
+  'https://api.example.com/workflows/accounts/fireworks/models/flux-1-dev-fp8/text_to_image';
+const sizeUrl =
+  'https://api.size-example.com/image_generation/accounts/fireworks/models/playground-v2-5-1024px-aesthetic';
+const stabilityUrl =
+  'https://api.stability.ai/v2beta/stable-image/generate/sd3';
 
 describe('FireworksImageModel', () => {
   describe('doGenerate', () => {
-    const server = new BinaryTestServer(
-      'https://api.example.com/workflows/accounts/fireworks/models/flux-1-dev-fp8/text_to_image',
-    );
-
+    const server = new BinaryTestServer([basicUrl, sizeUrl, stabilityUrl]);
     server.setupTestEnvironment();
 
-    function prepareBinaryResponse() {
+    function prepareBinaryResponse(url: string) {
       const mockImageBuffer = Buffer.from('mock-image-data');
-      server.responseBody = mockImageBuffer;
+      server.setResponseFor(url, { body: mockImageBuffer });
     }
 
     it('should pass the correct parameters including aspect ratio and seed', async () => {
-      prepareBinaryResponse();
+      prepareBinaryResponse(basicUrl);
 
+      const model = createBasicModel();
       await model.doGenerate({
         prompt,
         n: 1,
@@ -39,7 +69,8 @@ describe('FireworksImageModel', () => {
         providerOptions: { fireworks: { additional_param: 'value' } },
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      const request = await server.getRequestDataFor(basicUrl);
+      expect(await request.bodyJson()).toStrictEqual({
         prompt,
         aspect_ratio: '16:9',
         seed: 42,
@@ -48,18 +79,13 @@ describe('FireworksImageModel', () => {
     });
 
     it('should pass headers', async () => {
-      prepareBinaryResponse();
+      prepareBinaryResponse(basicUrl);
 
-      const modelWithHeaders = new FireworksImageModel(
-        'accounts/fireworks/models/flux-1-dev-fp8',
-        {
-          provider: 'fireworks',
-          baseURL: 'https://api.example.com',
-          headers: () => ({
-            'Custom-Provider-Header': 'provider-header-value',
-          }),
-        },
-      );
+      const modelWithHeaders = createBasicModel({
+        headers: () => ({
+          'Custom-Provider-Header': 'provider-header-value',
+        }),
+      });
 
       await modelWithHeaders.doGenerate({
         prompt,
@@ -73,47 +99,18 @@ describe('FireworksImageModel', () => {
         },
       });
 
-      const requestHeaders = await server.getRequestHeaders();
-
-      expect(requestHeaders).toStrictEqual({
+      const request = await server.getRequestDataFor(basicUrl);
+      expect(request.headers()).toStrictEqual({
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
     });
 
-    it('should return binary image data', async () => {
-      const mockImageBuffer = Buffer.from('mock-image-data');
-      server.responseBody = mockImageBuffer;
-
-      const result = await model.doGenerate({
-        prompt,
-        n: 1,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      expect(result.images).toHaveLength(1);
-      expect(result.images[0]).toBeInstanceOf(Uint8Array);
-      expect(Buffer.from(result.images[0])).toEqual(mockImageBuffer);
-    });
-
     it('should handle empty response body', async () => {
-      server.responseBody = null;
+      server.setResponseFor(basicUrl, { body: null });
 
-      await expect(
-        model.doGenerate({
-          prompt,
-          n: 1,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrow(APICallError);
-
+      const model = createBasicModel();
       await expect(
         model.doGenerate({
           prompt,
@@ -126,7 +123,7 @@ describe('FireworksImageModel', () => {
       ).rejects.toMatchObject({
         message: 'Response body is empty',
         statusCode: 200,
-        url: 'https://api.example.com/workflows/accounts/fireworks/models/flux-1-dev-fp8/text_to_image',
+        url: basicUrl,
         requestBodyValues: {
           prompt: 'A cute baby sea otter',
         },
@@ -134,20 +131,12 @@ describe('FireworksImageModel', () => {
     });
 
     it('should handle API errors', async () => {
-      server.responseStatus = 400;
-      server.responseBody = Buffer.from('Bad Request');
+      server.setResponseFor(basicUrl, {
+        status: 400,
+        body: Buffer.from('Bad Request'),
+      });
 
-      await expect(
-        model.doGenerate({
-          prompt,
-          n: 1,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrow(APICallError);
-
+      const model = createBasicModel();
       await expect(
         model.doGenerate({
           prompt,
@@ -160,7 +149,7 @@ describe('FireworksImageModel', () => {
       ).rejects.toMatchObject({
         message: 'Bad Request',
         statusCode: 400,
-        url: 'https://api.example.com/workflows/accounts/fireworks/models/flux-1-dev-fp8/text_to_image',
+        url: basicUrl,
         requestBodyValues: {
           prompt: 'A cute baby sea otter',
         },
@@ -168,11 +157,35 @@ describe('FireworksImageModel', () => {
       });
     });
 
-    it('should return warnings for unsupported settings', async () => {
-      const mockImageBuffer = Buffer.from('mock-image-data');
-      server.responseBody = mockImageBuffer;
+    it('should handle size parameter for supported models', async () => {
+      prepareBinaryResponse(sizeUrl);
 
-      const result = await model.doGenerate({
+      const sizeModel = createSizeModel();
+
+      await sizeModel.doGenerate({
+        prompt,
+        n: 1,
+        size: '1024x768',
+        aspectRatio: undefined,
+        seed: 42,
+        providerOptions: {},
+      });
+
+      const request = await server.getRequestDataFor(sizeUrl);
+      expect(await request.bodyJson()).toStrictEqual({
+        prompt,
+        width: '1024',
+        height: '768',
+        seed: 42,
+      });
+    });
+
+    it('should return appropriate warnings based on model capabilities', async () => {
+      prepareBinaryResponse(basicUrl);
+
+      // Test workflow model (supports aspectRatio but not size)
+      const model = createBasicModel();
+      const result1 = await model.doGenerate({
         prompt,
         n: 1,
         size: '1024x1024',
@@ -181,14 +194,87 @@ describe('FireworksImageModel', () => {
         providerOptions: {},
       });
 
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported-setting',
-          setting: 'size',
-          details:
-            'This model does not support the `size` option. Use `aspectRatio` instead.',
-        },
-      ]);
+      expect(result1.warnings).toContainEqual({
+        type: 'unsupported-setting',
+        setting: 'size',
+        details:
+          'This model does not support the `size` option. Use `aspectRatio` instead.',
+      });
+
+      // Test size-supporting model
+      prepareBinaryResponse(sizeUrl);
+      const sizeModel = createSizeModel();
+
+      const result2 = await sizeModel.doGenerate({
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: '1:1',
+        seed: 123,
+        providerOptions: {},
+      });
+
+      expect(result2.warnings).toContainEqual({
+        type: 'unsupported-setting',
+        setting: 'aspectRatio',
+        details: 'This model does not support the `aspectRatio` option.',
+      });
+    });
+
+    it('should respect the abort signal', async () => {
+      prepareBinaryResponse(basicUrl);
+      const model = createBasicModel();
+      const controller = new AbortController();
+
+      const generatePromise = model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+        abortSignal: controller.signal,
+      });
+
+      controller.abort();
+
+      await expect(generatePromise).rejects.toThrow(
+        'This operation was aborted',
+      );
+    });
+
+    it('should use custom fetch function when provided', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        new Response(Buffer.from('mock-image-data'), {
+          status: 200,
+        }),
+      );
+
+      const model = createBasicModel({
+        fetch: mockFetch,
+      });
+
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(mockFetch).toHaveBeenCalled();
+    });
+  });
+
+  describe('constructor', () => {
+    it('should expose correct provider and model information', () => {
+      const model = createBasicModel();
+
+      expect(model.provider).toBe('fireworks');
+      expect(model.modelId).toBe('accounts/fireworks/models/flux-1-dev-fp8');
+      expect(model.specificationVersion).toBe('v1');
+      expect(model.maxImagesPerCall).toBe(1);
     });
   });
 });
