@@ -637,18 +637,21 @@ class DefaultStreamTextResult<
 
       async flush(controller) {
         try {
+          if (recordedSteps.length === 0) {
+            return; // no steps recorded (e.g. in error scenario)
+          }
+
           // from last step (when there are errors there may be no last step)
           const lastStep = recordedSteps[recordedSteps.length - 1];
-          if (lastStep) {
-            self.warningsPromise.resolve(lastStep.warnings);
-            self.requestPromise.resolve(lastStep.request);
-            self.responsePromise.resolve(lastStep.response);
-            self.toolCallsPromise.resolve(lastStep.toolCalls);
-            self.toolResultsPromise.resolve(lastStep.toolResults);
-            self.providerMetadataPromise.resolve(
-              lastStep.experimental_providerMetadata,
-            );
-          }
+
+          self.warningsPromise.resolve(lastStep.warnings);
+          self.requestPromise.resolve(lastStep.request);
+          self.responsePromise.resolve(lastStep.response);
+          self.toolCallsPromise.resolve(lastStep.toolCalls);
+          self.toolResultsPromise.resolve(lastStep.toolResults);
+          self.providerMetadataPromise.resolve(
+            lastStep.experimental_providerMetadata,
+          );
 
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
