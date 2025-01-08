@@ -1693,7 +1693,7 @@ describe('streamText', () => {
       expect(result).toMatchSnapshot();
     });
 
-    it('should not prevent error from forwarded', async () => {
+    it('should not prevent error from being forwarded', async () => {
       const result = streamText({
         model: new MockLanguageModelV1({
           doStream: async () => {
