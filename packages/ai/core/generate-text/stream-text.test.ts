@@ -1640,7 +1640,7 @@ describe('streamText', () => {
   });
 
   describe('options.onFinish', () => {
-    it('options.onFinish should send correct information', async () => {
+    it('should send correct information', async () => {
       let result!: Parameters<
         Required<Parameters<typeof streamText>[0]>['onFinish']
       >[0];
@@ -1691,6 +1691,27 @@ describe('streamText', () => {
       await convertAsyncIterableToArray(textStream); // consume stream
 
       expect(result).toMatchSnapshot();
+    });
+
+    it('should not prevent error from forwarded', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => {
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        onFinish() {}, // just defined; do nothing
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.fullStream),
+      ).toStrictEqual([
+        {
+          type: 'error',
+          error: new Error('test error'),
+        },
+      ]);
     });
   });
 

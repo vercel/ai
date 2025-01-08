@@ -1699,7 +1699,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 ]
 `;
 
-exports[`streamText > options.onFinish > options.onFinish should send correct information 1`] = `
+exports[`streamText > options.onFinish > should send correct information 1`] = `
 {
   "experimental_providerMetadata": {
     "testProvider": {
