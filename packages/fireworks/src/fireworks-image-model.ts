@@ -228,7 +228,7 @@ async function postImageToStabilityApi(
   ) {
     for (const [key, value] of Object.entries(providerOptions.fireworks)) {
       if (value !== undefined && value !== null) {
-        formData.append(key, String(value));
+        formData.set(key, String(value));
       }
     }
   }

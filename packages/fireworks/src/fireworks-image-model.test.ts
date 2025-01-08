@@ -220,6 +220,52 @@ describe('FireworksImageModel', () => {
       );
     });
 
+    it('should override default options in Stability AI model requests', async () => {
+      prepareBinaryResponse(stabilityUrl);
+
+      const stabilityModel = createStabilityModel();
+      await stabilityModel.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: 42,
+        providerOptions: {
+          fireworks: {
+            output_format: 'jpeg',
+            steps: 30,
+          },
+        },
+      });
+
+      const request = await server.getRequestDataFor(stabilityUrl);
+      const formData = await request.bodyFormData();
+
+      // Verify form data contents
+      const formDataEntries: [string, string][] = [];
+      (formData as FormData).forEach((value, key) => {
+        formDataEntries.push([key, String(value)]);
+      });
+
+      expect(formDataEntries).toEqual(
+        expect.arrayContaining([
+          ['mode', 'text-to-image'],
+          ['prompt', prompt],
+          ['aspect_ratio', '1:1'],
+          ['output_format', 'jpeg'],
+          ['model', 'sd3'],
+          ['seed', '42'],
+          ['steps', '30'],
+        ]),
+      );
+
+      // Verify there's only one output_format entry
+      const outputFormatEntries = formDataEntries.filter(
+        ([key]) => key === 'output_format',
+      );
+      expect(outputFormatEntries).toHaveLength(1);
+    });
+
     it('should return appropriate warnings based on model capabilities', async () => {
       prepareBinaryResponse(basicUrl);
 

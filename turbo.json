@@ -38,6 +38,7 @@
         "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG",
         "SENTRY_PROJECT",
+        "STABILITY_API_KEY",
         "TOGETHER_AI_API_KEY",
         "VERCEL_URL",
         "XAI_API_KEY"
