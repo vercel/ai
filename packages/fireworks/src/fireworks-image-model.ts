@@ -169,11 +169,11 @@ const statusCodeErrorResponseHandler: ResponseHandler<APICallError> = async ({
 
 interface ImageRequestParams {
   baseUrl: string;
+  modelId: FireworksImageModelId;
   prompt: string;
   aspectRatio?: string;
   size?: string;
   seed?: number;
-  modelId: FireworksImageModelId;
   providerOptions: Record<string, unknown>;
   headers: Record<string, string | undefined>;
   abortSignal?: AbortSignal;
@@ -183,20 +183,17 @@ interface ImageRequestParams {
 async function postImageToFireworksApi(
   params: ImageRequestParams,
 ): Promise<ArrayBuffer> {
-  const url = getUrlForModel(params.baseUrl, params.modelId);
   const splitSize = params.size?.split('x');
-  const body = {
-    prompt: params.prompt,
-    aspect_ratio: params.aspectRatio,
-    seed: params.seed,
-    ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-    ...(params.providerOptions.fireworks ?? {}),
-  };
-
   const { value: response } = await postJsonToApi({
-    url,
+    url: getUrlForModel(params.baseUrl, params.modelId),
     headers: params.headers,
-    body,
+    body: {
+      prompt: params.prompt,
+      aspect_ratio: params.aspectRatio,
+      seed: params.seed,
+      ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
+      ...(params.providerOptions.fireworks ?? {}),
+    },
     failedResponseHandler: statusCodeErrorResponseHandler,
     successfulResponseHandler: createBinaryResponseHandler(),
     abortSignal: params.abortSignal,
@@ -224,7 +221,6 @@ async function postImageToStabilityApi(
     formData.append('seed', params.seed.toString());
   }
 
-  // Add any providerOptions.fireworks values.
   const providerOptions = params.providerOptions;
   if (
     providerOptions.fireworks &&
@@ -237,19 +233,16 @@ async function postImageToStabilityApi(
     }
   }
 
-  const url = getUrlForModel(params.baseUrl, params.modelId);
-  const requestBody = {
-    content: formData,
-    values: {},
-  };
-
   const { value: response } = await postToApi({
-    url,
+    url: getUrlForModel(params.baseUrl, params.modelId),
     headers: {
       ...params.headers,
       Accept: 'image/*',
     },
-    body: requestBody,
+    body: {
+      content: formData,
+      values: {},
+    },
     failedResponseHandler: statusCodeErrorResponseHandler,
     successfulResponseHandler: createBinaryResponseHandler(),
     abortSignal: params.abortSignal,
@@ -262,8 +255,7 @@ async function postImageToStabilityApi(
 async function postImageToApi(
   params: ImageRequestParams,
 ): Promise<ArrayBuffer> {
-  const { modelId } = params;
-  return modelToBackendConfig[modelId]?.api === 'stability'
+  return modelToBackendConfig[params.modelId]?.api === 'stability'
     ? postImageToStabilityApi(params)
     : postImageToFireworksApi(params);
 }
@@ -295,6 +287,7 @@ export class FireworksImageModel implements ImageModelV1 {
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
     const warnings: Array<ImageModelV1CallWarning> = [];
+
     const backendConfig = modelToBackendConfig[this.modelId];
     if (!backendConfig?.supportsSize && size != null) {
       warnings.push({
@@ -302,6 +295,16 @@ export class FireworksImageModel implements ImageModelV1 {
         setting: 'size',
         details:
           'This model does not support the `size` option. Use `aspectRatio` instead.',
+      });
+    }
+
+    // Use supportsSize as a proxy for whether the model supports aspectRatio.
+    // This invariant holds for the current set of models.
+    if (backendConfig?.supportsSize && aspectRatio != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'aspectRatio',
+        details: 'This model does not support the `aspectRatio` option.',
       });
     }
 
