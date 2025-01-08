@@ -1,5 +1,37 @@
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 
+describe('system messages', () => {
+  it('should forward system messages', async () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [{ role: 'system', content: 'You are a helpful assistant.' }],
+    });
+
+    expect(result).toEqual([
+      { role: 'system', content: 'You are a helpful assistant.' },
+    ]);
+  });
+
+  it('should convert system messages to developer messages when requested', async () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [{ role: 'system', content: 'You are a helpful assistant.' }],
+      systemMessageMode: 'developer',
+    });
+
+    expect(result).toEqual([
+      { role: 'developer', content: 'You are a helpful assistant.' },
+    ]);
+  });
+
+  it('should remove system messages when requested', async () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [{ role: 'system', content: 'You are a helpful assistant.' }],
+      systemMessageMode: 'remove',
+    });
+
+    expect(result).toEqual([]);
+  });
+});
+
 describe('user messages', () => {
   it('should convert messages with only a text part to a string content', async () => {
     const result = convertToOpenAIChatMessages({

@@ -130,6 +130,16 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (
+      getSystemMessageMode(this.modelId) === 'remove' &&
+      prompt.some(message => message.role === 'system')
+    ) {
+      warnings.push({
+        type: 'other',
+        message: 'system messages are removed for this model',
+      });
+    }
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -188,15 +198,66 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       messages: convertToOpenAIChatMessages({
         prompt,
         useLegacyFunctionCalling,
+        systemMessageMode: getSystemMessageMode(this.modelId),
       }),
     };
 
-    // reasoning models have fixed params, remove them if they are set:
+    // remove unsupported settings for reasoning models
+    // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel(this.modelId)) {
-      baseArgs.temperature = undefined;
-      baseArgs.top_p = undefined;
-      baseArgs.frequency_penalty = undefined;
-      baseArgs.presence_penalty = undefined;
+      if (baseArgs.temperature != null) {
+        baseArgs.temperature = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.top_p != null) {
+        baseArgs.top_p = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'topP',
+          details: 'topP is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.frequency_penalty != null) {
+        baseArgs.frequency_penalty = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'frequencyPenalty',
+          details: 'frequencyPenalty is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.presence_penalty != null) {
+        baseArgs.presence_penalty = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'presencePenalty',
+          details: 'presencePenalty is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.logit_bias != null) {
+        baseArgs.logit_bias = undefined;
+        warnings.push({
+          type: 'other',
+          message: 'logitBias is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.logprobs != null) {
+        baseArgs.logprobs = undefined;
+        warnings.push({
+          type: 'other',
+          message: 'logprobs is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.top_logprobs != null) {
+        baseArgs.top_logprobs = undefined;
+        warnings.push({
+          type: 'other',
+          message: 'topLogprobs is not supported for reasoning models',
+        });
+      }
     }
 
     switch (type) {
@@ -366,7 +427,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    if (this.settings.simulateStreaming) {
+    if (
+      this.settings.simulateStreaming ??
+      isStreamingSimulatedByDefault(this.modelId)
+    ) {
       const result = await this.doGenerate(options);
       const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
         start(controller) {
@@ -844,3 +908,36 @@ function isReasoningModel(modelId: string) {
 function isAudioModel(modelId: string) {
   return modelId.startsWith('gpt-4o-audio-preview');
 }
+
+function getSystemMessageMode(modelId: string) {
+  if (!isReasoningModel(modelId)) {
+    return 'system';
+  }
+
+  return (
+    reasoningModels[modelId as keyof typeof reasoningModels]
+      ?.systemMessageMode ?? 'developer'
+  );
+}
+
+function isStreamingSimulatedByDefault(modelId: string) {
+  if (!isReasoningModel(modelId)) {
+    return false;
+  }
+
+  return (
+    reasoningModels[modelId as keyof typeof reasoningModels]
+      ?.simulateStreamingByDefault ?? true
+  );
+}
+
+const reasoningModels = {
+  'o1-mini': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
+  'o1-preview': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
+} as const;
