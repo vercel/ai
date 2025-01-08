@@ -31,11 +31,16 @@ function createSizeModel() {
   );
 }
 
-function createStabilityModel() {
+function createStabilityModel({
+  stabilityApiKey,
+}: {
+  stabilityApiKey?: string;
+} = {}) {
   return new FireworksImageModel('accounts/stability/models/sd3', {
     provider: 'fireworks',
     baseURL: 'https://api.stability.ai',
     headers: () => ({ 'api-key': 'test-key' }),
+    stabilityApiKey,
   });
 }
 
@@ -183,7 +188,9 @@ describe('FireworksImageModel', () => {
     it('should handle Stability AI model requests', async () => {
       prepareBinaryResponse(stabilityUrl);
 
-      const stabilityModel = createStabilityModel();
+      const stabilityModel = createStabilityModel({
+        stabilityApiKey: 'test-stability-key',
+      });
       await stabilityModel.doGenerate({
         prompt,
         n: 1,
@@ -223,7 +230,9 @@ describe('FireworksImageModel', () => {
     it('should override default options in Stability AI model requests', async () => {
       prepareBinaryResponse(stabilityUrl);
 
-      const stabilityModel = createStabilityModel();
+      const stabilityModel = createStabilityModel({
+        stabilityApiKey: 'test-stability-key',
+      });
       await stabilityModel.doGenerate({
         prompt,
         n: 1,
@@ -355,7 +364,9 @@ describe('FireworksImageModel', () => {
     it('should properly handle object values in Stability AI model requests', async () => {
       prepareBinaryResponse(stabilityUrl);
 
-      const stabilityModel = createStabilityModel();
+      const stabilityModel = createStabilityModel({
+        stabilityApiKey: 'test-stability-key',
+      });
       await stabilityModel.doGenerate({
         prompt,
         n: 1,
@@ -400,6 +411,45 @@ describe('FireworksImageModel', () => {
           ],
         ]),
       );
+    });
+
+    it('uses provided stability API key in Authorization header', async () => {
+      prepareBinaryResponse(stabilityUrl);
+
+      const model = createStabilityModel({
+        stabilityApiKey: 'test-stability-key',
+      });
+
+      await model.doGenerate({
+        prompt: 'test prompt',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const request = await server.getRequestDataFor(stabilityUrl);
+      expect(request.headers()).toMatchObject({
+        authorization: 'Bearer test-stability-key',
+      });
+    });
+
+    it('throws error when stability API key is undefined', async () => {
+      const model = createStabilityModel({
+        stabilityApiKey: undefined,
+      });
+
+      await expect(
+        model.doGenerate({
+          prompt: 'test prompt',
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(/^Stability AI API key is missing/);
     });
   });
 

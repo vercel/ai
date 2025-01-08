@@ -1,12 +1,9 @@
 import 'dotenv/config';
-import { createFireworks } from '@ai-sdk/fireworks';
+import { fireworks } from '@ai-sdk/fireworks';
 import { experimental_generateImage as generateImage } from 'ai';
 import fs from 'fs';
 
 async function main() {
-  const fireworks = createFireworks({
-    apiKey: process.env.STABILITY_API_KEY,
-  });
   const { image } = await generateImage({
     model: fireworks.image('accounts/stability/models/sd3-turbo'),
     prompt: 'A burrito launched through a tunnel',

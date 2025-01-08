@@ -7,6 +7,7 @@ import {
   combineHeaders,
   extractResponseHeaders,
   FetchFunction,
+  loadApiKey,
   postJsonToApi,
   postToApi,
   ResponseHandler,
@@ -29,9 +30,8 @@ export type FireworksImageModelId =
 interface FireworksImageModelBackendConfig {
   urlFormat: 'workflows' | 'image_generation' | 'stability';
   // Fireworks models use Fireworks API keys and accept a JSON request body.
-  // Stability AI models require a Stable Diffusion API key, a
-  // multi-part/form-data request, and the model is specified as `model`:
-  // <model-id> in the form data.
+  // Stability AI models require a Stability API key, a multipart/form-data
+  // request, and the model specified as `model`: <model-id> in the form data.
   api: 'fireworks' | 'stability';
   supportsSize?: boolean;
 }
@@ -109,6 +109,7 @@ interface FireworksImageModelConfig {
   baseURL: string;
   headers: () => Record<string, string>;
   fetch?: FetchFunction;
+  stabilityApiKey?: string;
 }
 
 const createBinaryResponseHandler =
@@ -169,6 +170,7 @@ const statusCodeErrorResponseHandler: ResponseHandler<APICallError> = async ({
 
 interface ImageRequestParams {
   baseUrl: string;
+  stabilityApiKey?: string;
   modelId: FireworksImageModelId;
   prompt: string;
   aspectRatio?: string;
@@ -240,6 +242,11 @@ async function postImageToStabilityApi(
     headers: {
       ...params.headers,
       Accept: 'image/*',
+      Authorization: `Bearer ${loadApiKey({
+        apiKey: params.stabilityApiKey,
+        environmentVariableName: 'STABILITY_API_KEY',
+        description: 'Stability AI',
+      })}`,
     },
     body: {
       content: formData,
@@ -312,6 +319,7 @@ export class FireworksImageModel implements ImageModelV1 {
 
     const response = await postImageToApi({
       baseUrl: this.config.baseURL,
+      stabilityApiKey: this.config.stabilityApiKey,
       prompt,
       aspectRatio,
       size,
