@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 1.0.15
+
+### Patch Changes
+
+- f8c6acb: feat (provider/openai): automatically simulate streaming for reasoning models
+- d0041f7: feat (provider/openai): improved system message support for reasoning models
+- 4d2f97b: feat (provider/openai): improve automatic setting removal for reasoning models
+
 ## 1.0.14
 
 ### Patch Changes
