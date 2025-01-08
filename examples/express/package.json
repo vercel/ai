@@ -7,7 +7,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.0.14",
+    "@ai-sdk/openai": "1.0.15",
     "ai": "4.0.30",
     "dotenv": "16.4.5",
     "express": "5.0.1"
