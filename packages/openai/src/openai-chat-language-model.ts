@@ -130,6 +130,16 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (
+      getSystemMessageMode(this.modelId) === 'remove' &&
+      prompt.some(message => message.role === 'system')
+    ) {
+      warnings.push({
+        type: 'other',
+        message: 'system messages are removed for this model',
+      });
+    }
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -188,6 +198,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       messages: convertToOpenAIChatMessages({
         prompt,
         useLegacyFunctionCalling,
+        systemMessageMode: getSystemMessageMode(this.modelId),
       }),
     };
 
@@ -894,3 +905,19 @@ function isReasoningModel(modelId: string) {
 function isAudioModel(modelId: string) {
   return modelId.startsWith('gpt-4o-audio-preview');
 }
+
+function getSystemMessageMode(modelId: string) {
+  return isReasoningModel(modelId)
+    ? reasoningModels[modelId as keyof typeof reasoningModels]
+        ?.systemMessageMode ?? 'developer'
+    : 'system';
+}
+
+const reasoningModels = {
+  'o1-mini': {
+    systemMessageMode: 'remove',
+  },
+  'o1-preview': {
+    systemMessageMode: 'remove',
+  },
+} as const;
