@@ -8,6 +8,7 @@ import {
   extractResponseHeaders,
   FetchFunction,
   postJsonToApi,
+  postToApi,
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
 
@@ -15,7 +16,93 @@ import {
 export type FireworksImageModelId =
   | 'accounts/fireworks/models/flux-1-dev-fp8'
   | 'accounts/fireworks/models/flux-1-schnell-fp8'
+  | 'accounts/fireworks/models/playground-v2-5-1024px-aesthetic'
+  | 'accounts/fireworks/models/japanese-stable-diffusion-xl'
+  | 'accounts/fireworks/models/playground-v2-1024px-aesthetic'
+  | 'accounts/fireworks/models/SSD-1B'
+  | 'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0'
+  | 'accounts/stability/models/sd3-turbo'
+  | 'accounts/stability/models/sd3-medium'
+  | 'accounts/stability/models/sd3'
   | (string & {});
+
+interface FireworksImageModelBackendConfig {
+  urlFormat: 'workflows' | 'image_generation' | 'stability';
+  // Fireworks models use Fireworks API keys and accept a JSON request body.
+  // Stability AI models require a Stable Diffusion API key, a
+  // multi-part/form-data request, and the model is specified as `model`:
+  // <model-id> in the form data.
+  api: 'fireworks' | 'stability';
+  supportsSize?: boolean;
+}
+
+const modelToBackendConfig: Partial<
+  Record<FireworksImageModelId, FireworksImageModelBackendConfig>
+> = {
+  'accounts/fireworks/models/flux-1-dev-fp8': {
+    urlFormat: 'workflows',
+    api: 'fireworks',
+  },
+  'accounts/fireworks/models/flux-1-schnell-fp8': {
+    urlFormat: 'workflows',
+    api: 'fireworks',
+  },
+  'accounts/fireworks/models/playground-v2-5-1024px-aesthetic': {
+    urlFormat: 'image_generation',
+    api: 'fireworks',
+    supportsSize: true,
+  },
+  'accounts/fireworks/models/japanese-stable-diffusion-xl': {
+    urlFormat: 'image_generation',
+    api: 'fireworks',
+    supportsSize: true,
+  },
+  'accounts/fireworks/models/playground-v2-1024px-aesthetic': {
+    urlFormat: 'image_generation',
+    api: 'fireworks',
+    supportsSize: true,
+  },
+  'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0': {
+    urlFormat: 'image_generation',
+    api: 'fireworks',
+    supportsSize: true,
+  },
+  'accounts/fireworks/models/SSD-1B': {
+    urlFormat: 'image_generation',
+    api: 'fireworks',
+    supportsSize: true,
+  },
+  'accounts/stability/models/sd3-turbo': {
+    urlFormat: 'stability',
+    api: 'stability',
+  },
+  'accounts/stability/models/sd3-medium': {
+    urlFormat: 'stability',
+    api: 'stability',
+  },
+  'accounts/stability/models/sd3': {
+    urlFormat: 'stability',
+    api: 'stability',
+  },
+};
+
+function getUrlForModel(
+  baseUrl: string,
+  modelId: FireworksImageModelId,
+): string {
+  const workflowsUrl = `${baseUrl}/workflows/${modelId}/text_to_image`;
+  switch (modelToBackendConfig[modelId]?.urlFormat) {
+    case 'image_generation':
+      return `${baseUrl}/image_generation/${modelId}`;
+    case 'stability':
+      // For stability models the model id is passed in the form data of the
+      // request rather than as a part of the url.
+      return `https://api.stability.ai/v2beta/stable-image/generate/sd3`;
+    case 'workflows':
+      return workflowsUrl;
+  }
+  return workflowsUrl;
+}
 
 interface FireworksImageModelConfig {
   provider: string;
@@ -80,6 +167,107 @@ const statusCodeErrorResponseHandler: ResponseHandler<APICallError> = async ({
   };
 };
 
+interface ImageRequestParams {
+  baseUrl: string;
+  prompt: string;
+  aspectRatio?: string;
+  size?: string;
+  seed?: number;
+  modelId: FireworksImageModelId;
+  providerOptions: Record<string, unknown>;
+  headers: Record<string, string | undefined>;
+  abortSignal?: AbortSignal;
+  fetch?: FetchFunction;
+}
+
+async function postImageToFireworksApi(
+  params: ImageRequestParams,
+): Promise<ArrayBuffer> {
+  const url = getUrlForModel(params.baseUrl, params.modelId);
+  const splitSize = params.size?.split('x');
+  const body = {
+    prompt: params.prompt,
+    aspect_ratio: params.aspectRatio,
+    seed: params.seed,
+    ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
+    ...(params.providerOptions.fireworks ?? {}),
+  };
+
+  const { value: response } = await postJsonToApi({
+    url,
+    headers: params.headers,
+    body,
+    failedResponseHandler: statusCodeErrorResponseHandler,
+    successfulResponseHandler: createBinaryResponseHandler(),
+    abortSignal: params.abortSignal,
+    fetch: params.fetch,
+  });
+
+  return response;
+}
+
+function getModelNameForStability(modelId: FireworksImageModelId): string {
+  const parts = modelId.split('/');
+  return parts[parts.length - 1];
+}
+
+async function postImageToStabilityApi(
+  params: ImageRequestParams,
+): Promise<ArrayBuffer> {
+  const formData = new FormData();
+  formData.append('mode', 'text-to-image');
+  formData.append('prompt', params.prompt);
+  formData.append('aspect_ratio', params.aspectRatio ?? '1:1');
+  formData.append('output_format', 'png');
+  formData.append('model', getModelNameForStability(params.modelId));
+  if (params.seed != null) {
+    formData.append('seed', params.seed.toString());
+  }
+
+  // Add any providerOptions.fireworks values.
+  const providerOptions = params.providerOptions;
+  if (
+    providerOptions.fireworks &&
+    typeof providerOptions.fireworks === 'object'
+  ) {
+    for (const [key, value] of Object.entries(providerOptions.fireworks)) {
+      if (value !== undefined && value !== null) {
+        formData.append(key, String(value));
+      }
+    }
+  }
+
+  const url = getUrlForModel(params.baseUrl, params.modelId);
+  const requestBody = {
+    content: formData,
+    values: {},
+  };
+
+  const { value: response } = await postToApi({
+    url,
+    headers: {
+      ...params.headers,
+      Accept: 'image/*',
+    },
+    body: requestBody,
+    failedResponseHandler: statusCodeErrorResponseHandler,
+    successfulResponseHandler: createBinaryResponseHandler(),
+    abortSignal: params.abortSignal,
+    fetch: params.fetch,
+  });
+
+  return response;
+}
+
+async function postImageToApi(
+  params: ImageRequestParams,
+): Promise<ArrayBuffer> {
+  const { modelId } = params;
+  return modelToBackendConfig[modelId]?.api === 'stability'
+    ? postImageToStabilityApi(params)
+    : postImageToFireworksApi(params);
+}
+
 export class FireworksImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
@@ -107,8 +295,8 @@ export class FireworksImageModel implements ImageModelV1 {
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
     const warnings: Array<ImageModelV1CallWarning> = [];
-
-    if (size != null) {
+    const backendConfig = modelToBackendConfig[this.modelId];
+    if (!backendConfig?.supportsSize && size != null) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'size',
@@ -117,20 +305,15 @@ export class FireworksImageModel implements ImageModelV1 {
       });
     }
 
-    const url = `${this.config.baseURL}/workflows/${this.modelId}/text_to_image`;
-    const body = {
+    const response = await postImageToApi({
+      baseUrl: this.config.baseURL,
       prompt,
-      aspect_ratio: aspectRatio,
+      aspectRatio,
+      size,
       seed,
-      ...(providerOptions.fireworks ?? {}),
-    };
-
-    const { value: response } = await postJsonToApi({
-      url,
+      modelId: this.modelId,
+      providerOptions,
       headers: combineHeaders(this.config.headers(), headers),
-      body,
-      failedResponseHandler: statusCodeErrorResponseHandler,
-      successfulResponseHandler: createBinaryResponseHandler(),
       abortSignal,
       fetch: this.config.fetch,
     });
