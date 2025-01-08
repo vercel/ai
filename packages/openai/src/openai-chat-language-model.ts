@@ -191,7 +191,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       }),
     };
 
-    // reasoning models have fixed params, remove them if they are set
+    // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel(this.modelId)) {
       if (baseArgs.temperature != null) {
