@@ -79,7 +79,7 @@ export class ReplicateImageModel implements ImageModelV1 {
     } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}/predictions`,
       headers: combineHeaders(await resolve(this.config.headers), headers, {
-        Prefer: 'wait',
+        prefer: 'wait',
       }),
       body,
       failedResponseHandler: replicateFailedResponseHandler,

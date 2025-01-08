@@ -63,25 +63,23 @@ describe('doGenerate', () => {
     });
   });
 
-  it.skip('should pass headers and set the prefer header', async () => {
+  it('should pass headers and set the prefer header', async () => {
     prepareJsonResponse();
 
-    const provider = createOpenAI({
-      apiKey: 'test-api-key',
-      organization: 'test-organization',
-      project: 'test-project',
+    const provider = createReplicate({
+      apiToken: 'test-api-token',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
       },
     });
 
-    await provider.image('dall-e-3').doGenerate({
+    await provider.image('black-forest-labs/flux-schnell').doGenerate({
       prompt,
       n: 1,
-      size: '1024x1024',
+      size: undefined,
       aspectRatio: undefined,
       seed: undefined,
-      providerOptions: { openai: { style: 'vivid' } },
+      providerOptions: {},
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -90,12 +88,11 @@ describe('doGenerate', () => {
     const requestHeaders = await server.getRequestHeaders();
 
     expect(requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
+      authorization: 'Bearer test-api-token',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
-      'openai-organization': 'test-organization',
-      'openai-project': 'test-project',
+      prefer: 'wait',
     });
   });
 
