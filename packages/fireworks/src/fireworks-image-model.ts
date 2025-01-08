@@ -7,9 +7,7 @@ import {
   combineHeaders,
   extractResponseHeaders,
   FetchFunction,
-  loadApiKey,
   postJsonToApi,
-  postToApi,
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
 
@@ -22,17 +20,10 @@ export type FireworksImageModelId =
   | 'accounts/fireworks/models/playground-v2-1024px-aesthetic'
   | 'accounts/fireworks/models/SSD-1B'
   | 'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0'
-  | 'accounts/stability/models/sd3-turbo'
-  | 'accounts/stability/models/sd3-medium'
-  | 'accounts/stability/models/sd3'
   | (string & {});
 
 interface FireworksImageModelBackendConfig {
-  urlFormat: 'workflows' | 'image_generation' | 'stability';
-  // Fireworks models use Fireworks API keys and accept a JSON request body.
-  // Stability AI models require a Stability API key, a multipart/form-data
-  // request, and the model specified as `model`: <model-id> in the form data.
-  api: 'fireworks' | 'stability';
+  urlFormat: 'workflows' | 'image_generation';
   supportsSize?: boolean;
 }
 
@@ -41,48 +32,29 @@ const modelToBackendConfig: Partial<
 > = {
   'accounts/fireworks/models/flux-1-dev-fp8': {
     urlFormat: 'workflows',
-    api: 'fireworks',
   },
   'accounts/fireworks/models/flux-1-schnell-fp8': {
     urlFormat: 'workflows',
-    api: 'fireworks',
   },
   'accounts/fireworks/models/playground-v2-5-1024px-aesthetic': {
     urlFormat: 'image_generation',
-    api: 'fireworks',
     supportsSize: true,
   },
   'accounts/fireworks/models/japanese-stable-diffusion-xl': {
     urlFormat: 'image_generation',
-    api: 'fireworks',
     supportsSize: true,
   },
   'accounts/fireworks/models/playground-v2-1024px-aesthetic': {
     urlFormat: 'image_generation',
-    api: 'fireworks',
     supportsSize: true,
   },
   'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0': {
     urlFormat: 'image_generation',
-    api: 'fireworks',
     supportsSize: true,
   },
   'accounts/fireworks/models/SSD-1B': {
     urlFormat: 'image_generation',
-    api: 'fireworks',
     supportsSize: true,
-  },
-  'accounts/stability/models/sd3-turbo': {
-    urlFormat: 'stability',
-    api: 'stability',
-  },
-  'accounts/stability/models/sd3-medium': {
-    urlFormat: 'stability',
-    api: 'stability',
-  },
-  'accounts/stability/models/sd3': {
-    urlFormat: 'stability',
-    api: 'stability',
   },
 };
 
@@ -90,18 +62,13 @@ function getUrlForModel(
   baseUrl: string,
   modelId: FireworksImageModelId,
 ): string {
-  const workflowsUrl = `${baseUrl}/workflows/${modelId}/text_to_image`;
   switch (modelToBackendConfig[modelId]?.urlFormat) {
     case 'image_generation':
       return `${baseUrl}/image_generation/${modelId}`;
-    case 'stability':
-      // For stability models the model id is passed in the form data of the
-      // request rather than as a part of the url.
-      return `https://api.stability.ai/v2beta/stable-image/generate/sd3`;
     case 'workflows':
-      return workflowsUrl;
+    default:
+      return `${baseUrl}/workflows/${modelId}/text_to_image`;
   }
-  return workflowsUrl;
 }
 
 interface FireworksImageModelConfig {
@@ -109,7 +76,6 @@ interface FireworksImageModelConfig {
   baseURL: string;
   headers: () => Record<string, string>;
   fetch?: FetchFunction;
-  stabilityApiKey?: string;
 }
 
 const createBinaryResponseHandler =
@@ -170,7 +136,6 @@ const statusCodeErrorResponseHandler: ResponseHandler<APICallError> = async ({
 
 interface ImageRequestParams {
   baseUrl: string;
-  stabilityApiKey?: string;
   modelId: FireworksImageModelId;
   prompt: string;
   aspectRatio?: string;
@@ -182,7 +147,7 @@ interface ImageRequestParams {
   fetch?: FetchFunction;
 }
 
-async function postImageToFireworksApi(
+async function postImageToApi(
   params: ImageRequestParams,
 ): Promise<ArrayBuffer> {
   const splitSize = params.size?.split('x');
@@ -203,70 +168,6 @@ async function postImageToFireworksApi(
   });
 
   return response;
-}
-
-function getModelNameForStability(modelId: FireworksImageModelId): string {
-  const parts = modelId.split('/');
-  return parts[parts.length - 1];
-}
-
-async function postImageToStabilityApi(
-  params: ImageRequestParams,
-): Promise<ArrayBuffer> {
-  const formData = new FormData();
-  formData.append('mode', 'text-to-image');
-  formData.append('prompt', params.prompt);
-  formData.append('aspect_ratio', params.aspectRatio ?? '1:1');
-  formData.append('output_format', 'png');
-  formData.append('model', getModelNameForStability(params.modelId));
-  if (params.seed != null) {
-    formData.append('seed', params.seed.toString());
-  }
-
-  const providerOptions = params.providerOptions;
-  if (
-    providerOptions.fireworks &&
-    typeof providerOptions.fireworks === 'object'
-  ) {
-    for (const [key, value] of Object.entries(providerOptions.fireworks)) {
-      if (value !== undefined && value !== null) {
-        const stringValue =
-          typeof value === 'object' ? JSON.stringify(value) : String(value);
-        formData.set(key, stringValue);
-      }
-    }
-  }
-
-  const { value: response } = await postToApi({
-    url: getUrlForModel(params.baseUrl, params.modelId),
-    headers: {
-      ...params.headers,
-      Accept: 'image/*',
-      Authorization: `Bearer ${loadApiKey({
-        apiKey: params.stabilityApiKey,
-        environmentVariableName: 'STABILITY_API_KEY',
-        description: 'Stability AI',
-      })}`,
-    },
-    body: {
-      content: formData,
-      values: {},
-    },
-    failedResponseHandler: statusCodeErrorResponseHandler,
-    successfulResponseHandler: createBinaryResponseHandler(),
-    abortSignal: params.abortSignal,
-    fetch: params.fetch,
-  });
-
-  return response;
-}
-
-async function postImageToApi(
-  params: ImageRequestParams,
-): Promise<ArrayBuffer> {
-  return modelToBackendConfig[params.modelId]?.api === 'stability'
-    ? postImageToStabilityApi(params)
-    : postImageToFireworksApi(params);
 }
 
 export class FireworksImageModel implements ImageModelV1 {
@@ -319,7 +220,6 @@ export class FireworksImageModel implements ImageModelV1 {
 
     const response = await postImageToApi({
       baseUrl: this.config.baseURL,
-      stabilityApiKey: this.config.stabilityApiKey,
       prompt,
       aspectRatio,
       size,

@@ -31,16 +31,11 @@ function createSizeModel() {
   );
 }
 
-function createStabilityModel({
-  stabilityApiKey,
-}: {
-  stabilityApiKey?: string;
-} = {}) {
+function createStabilityModel() {
   return new FireworksImageModel('accounts/stability/models/sd3', {
     provider: 'fireworks',
     baseURL: 'https://api.stability.ai',
     headers: () => ({ 'api-key': 'test-key' }),
-    stabilityApiKey,
   });
 }
 
@@ -185,96 +180,6 @@ describe('FireworksImageModel', () => {
       });
     });
 
-    it('should handle Stability AI model requests', async () => {
-      prepareBinaryResponse(stabilityUrl);
-
-      const stabilityModel = createStabilityModel({
-        stabilityApiKey: 'test-stability-key',
-      });
-      await stabilityModel.doGenerate({
-        prompt,
-        n: 1,
-        size: undefined,
-        aspectRatio: '1:1',
-        seed: 42,
-        providerOptions: { fireworks: { steps: 30 } },
-      });
-
-      const request = await server.getRequestDataFor(stabilityUrl);
-      const formData = await request.bodyFormData();
-      expect(formData instanceof FormData).toBe(true);
-      expect(request.headers()).toMatchObject({
-        'api-key': 'test-key',
-        accept: 'image/*',
-      });
-
-      // Verify form data contents
-      const formDataEntries: [string, string][] = [];
-      (formData as FormData).forEach((value, key) => {
-        formDataEntries.push([key, String(value)]);
-      });
-
-      expect(formDataEntries).toEqual(
-        expect.arrayContaining([
-          ['mode', 'text-to-image'],
-          ['prompt', prompt],
-          ['aspect_ratio', '1:1'],
-          ['output_format', 'png'],
-          ['model', 'sd3'],
-          ['seed', '42'],
-          ['steps', '30'],
-        ]),
-      );
-    });
-
-    it('should override default options in Stability AI model requests', async () => {
-      prepareBinaryResponse(stabilityUrl);
-
-      const stabilityModel = createStabilityModel({
-        stabilityApiKey: 'test-stability-key',
-      });
-      await stabilityModel.doGenerate({
-        prompt,
-        n: 1,
-        size: undefined,
-        aspectRatio: '1:1',
-        seed: 42,
-        providerOptions: {
-          fireworks: {
-            output_format: 'jpeg',
-            steps: 30,
-          },
-        },
-      });
-
-      const request = await server.getRequestDataFor(stabilityUrl);
-      const formData = await request.bodyFormData();
-
-      // Verify form data contents
-      const formDataEntries: [string, string][] = [];
-      (formData as FormData).forEach((value, key) => {
-        formDataEntries.push([key, String(value)]);
-      });
-
-      expect(formDataEntries).toEqual(
-        expect.arrayContaining([
-          ['mode', 'text-to-image'],
-          ['prompt', prompt],
-          ['aspect_ratio', '1:1'],
-          ['output_format', 'jpeg'],
-          ['model', 'sd3'],
-          ['seed', '42'],
-          ['steps', '30'],
-        ]),
-      );
-
-      // Verify there's only one output_format entry
-      const outputFormatEntries = formDataEntries.filter(
-        ([key]) => key === 'output_format',
-      );
-      expect(outputFormatEntries).toHaveLength(1);
-    });
-
     it('should return appropriate warnings based on model capabilities', async () => {
       prepareBinaryResponse(basicUrl);
 
@@ -359,97 +264,6 @@ describe('FireworksImageModel', () => {
       });
 
       expect(mockFetch).toHaveBeenCalled();
-    });
-
-    it('should properly handle object values in Stability AI model requests', async () => {
-      prepareBinaryResponse(stabilityUrl);
-
-      const stabilityModel = createStabilityModel({
-        stabilityApiKey: 'test-stability-key',
-      });
-      await stabilityModel.doGenerate({
-        prompt,
-        n: 1,
-        size: undefined,
-        aspectRatio: '1:1',
-        seed: 42,
-        providerOptions: {
-          fireworks: {
-            steps: 30,
-            // Add complex object values
-            metadata: { tag: 'test', version: 2 },
-            config: { quality: 'high', style: ['realistic', 'detailed'] },
-          },
-        },
-      });
-
-      const request = await server.getRequestDataFor(stabilityUrl);
-      const formData = await request.bodyFormData();
-
-      // Verify form data contents
-      const formDataEntries: [string, string][] = [];
-      (formData as FormData).forEach((value, key) => {
-        formDataEntries.push([key, String(value)]);
-      });
-
-      expect(formDataEntries).toEqual(
-        expect.arrayContaining([
-          ['mode', 'text-to-image'],
-          ['prompt', prompt],
-          ['aspect_ratio', '1:1'],
-          ['output_format', 'png'],
-          ['model', 'sd3'],
-          ['seed', '42'],
-          ['steps', '30'],
-          ['metadata', JSON.stringify({ tag: 'test', version: 2 })],
-          [
-            'config',
-            JSON.stringify({
-              quality: 'high',
-              style: ['realistic', 'detailed'],
-            }),
-          ],
-        ]),
-      );
-    });
-
-    it('uses provided stability API key in Authorization header', async () => {
-      prepareBinaryResponse(stabilityUrl);
-
-      const model = createStabilityModel({
-        stabilityApiKey: 'test-stability-key',
-      });
-
-      await model.doGenerate({
-        prompt: 'test prompt',
-        n: 1,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      const request = await server.getRequestDataFor(stabilityUrl);
-      expect(request.headers()).toMatchObject({
-        authorization: 'Bearer test-stability-key',
-      });
-    });
-
-    it('throws error when stability API key is undefined', async () => {
-      const model = createStabilityModel({
-        stabilityApiKey: undefined,
-      });
-
-      await expect(
-        model.doGenerate({
-          prompt: 'test prompt',
-          n: 1,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrow(/^Stability AI API key is missing/);
     });
   });
 

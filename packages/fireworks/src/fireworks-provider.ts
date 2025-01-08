@@ -50,12 +50,6 @@ environment variable.
 */
   apiKey?: string;
   /**
-Stability AI API key. Some models are backed by Stability AI systems and may
-require this key. Default value is taken from the `STABILITY_API_KEY`
-environment variable.
-*/
-  stabilityApiKey?: string;
-  /**
 Base URL for the API calls.
 */
   baseURL?: string;
