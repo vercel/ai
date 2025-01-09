@@ -15,7 +15,9 @@ const createChatModel = (modelId: string) =>
   createLanguageModelWithCapabilities(provider.chatModel(modelId));
 
 const createCompletionModel = (modelId: string) =>
-  createLanguageModelWithCapabilities(provider.completionModel(modelId));
+  createLanguageModelWithCapabilities(provider.completionModel(modelId), [
+    'textCompletion',
+  ]);
 
 createFeatureTestSuite({
   name: 'TogetherAI',

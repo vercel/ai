@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   createVertexAnthropic as createVertexAnthropicNode,
   vertexAnthropic,
@@ -111,13 +111,6 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
     })();
   },
 );
-
-type AnthropicProviderMetadata = {
-  anthropic?: {
-    cacheCreationInputTokens?: number;
-    cacheReadInputTokens?: number;
-  };
-};
 
 const toolTests = (model: LanguageModelV1) => {
   it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(

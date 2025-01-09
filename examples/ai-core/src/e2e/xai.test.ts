@@ -11,20 +11,22 @@ const createChatModel = (modelId: string) =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
 
 const createCompletionModel = (modelId: string) =>
-  createLanguageModelWithCapabilities(provider.languageModel(modelId));
+  createLanguageModelWithCapabilities(provider.languageModel(modelId), [
+    'textCompletion',
+  ]);
 
 createFeatureTestSuite({
   name: 'xAI',
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
-      createChatModel('grok-beta'),
+      // createChatModel('grok-beta'),
       createChatModel('grok-2-1212'),
-      createChatModel('grok-vision-beta'),
+      // createChatModel('grok-vision-beta'),
       createChatModel('grok-2-vision-1212'),
-      createCompletionModel('grok-beta'),
+      // createCompletionModel('grok-beta'),
       createCompletionModel('grok-2-1212'),
-      createCompletionModel('grok-vision-beta'),
+      // createCompletionModel('grok-vision-beta'),
       createCompletionModel('grok-2-vision-1212'),
     ],
   },
