@@ -2,63 +2,59 @@ import { JSONValue } from '@ai-sdk/provider';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 
-export type UrlHandler =
-  | {
-      type: 'json-value';
-      response?: {
+export type UrlHandler = {
+  response?:
+    | {
+        type: 'json-value';
         headers?: Record<string, string>;
         body: JSONValue;
-      };
-    }
-  | {
-      type: 'binary';
-      response?: {
+      }
+    | {
+        type: 'binary';
         headers?: Record<string, string>;
         body: Buffer;
-      };
-    };
-
-export type FullUrlHandler =
-  | {
-      type: 'json-value';
-      response:
-        | {
-            headers: Record<string, string> | undefined;
-            body: JSONValue;
-          }
-        | undefined;
-    }
-  | {
-      type: 'binary';
-      response:
-        | {
-            headers: Record<string, string> | undefined;
-            body: Buffer;
-          }
-        | undefined;
-    };
-
-// Mapped type for URLS
-export type FullHandlers<URLS extends { [url: string]: UrlHandler }> = {
-  [url in keyof URLS]: URLS[url] extends { type: 'json-value' }
-    ? {
-        type: 'json-value';
-        response:
-          | {
-              headers?: Record<string, string>;
-              body: JSONValue;
-            }
-          | undefined;
       }
-    : {
-        type: 'binary';
-        response:
-          | {
-              headers?: Record<string, string>;
-              body: Buffer;
-            }
-          | undefined;
+    | {
+        type: 'empty';
+        headers?: Record<string, string>;
+        status?: number;
+      }
+    | {
+        type: 'error';
+        headers?: Record<string, string>;
+        status?: number;
+        body?: string;
       };
+};
+
+export type FullUrlHandler = {
+  response:
+    | {
+        type: 'json-value';
+        headers?: Record<string, string>;
+        body: JSONValue;
+      }
+    | {
+        type: 'binary';
+        headers?: Record<string, string>;
+        body: Buffer;
+      }
+    | {
+        type: 'error';
+        headers?: Record<string, string>;
+        status: number;
+        body?: string;
+      }
+    | {
+        type: 'empty';
+        headers?: Record<string, string>;
+        status?: number;
+      }
+    | undefined;
+};
+
+export type FullHandlers<URLS extends { [url: string]: UrlHandler }> = {
+  [url in keyof URLS]: FullUrlHandler;
 };
 
 class TestServerCall {
@@ -99,15 +95,24 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
   urls: FullHandlers<URLS>;
   calls: TestServerCall[];
 } {
+  const originalRoutes = structuredClone(routes); // deep copy
+
   const mswServer = setupServer(
     ...Object.entries(routes).map(([url, handler]) => {
       return http.all(url, ({ request, params }) => {
         calls.push(new TestServerCall(request));
 
-        const handlerType = handler.type;
+        const response = handler.response;
+
+        if (response === undefined) {
+          return HttpResponse.json({ error: 'Not Found' }, { status: 404 });
+        }
+
+        const handlerType = response.type;
+
         switch (handlerType) {
           case 'json-value':
-            return HttpResponse.json(handler.response?.body, {
+            return HttpResponse.json(response.body, {
               status: 200,
               headers: {
                 'Content-Type': 'application/json',
@@ -116,11 +121,22 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
             });
 
           case 'binary': {
-            return HttpResponse.arrayBuffer(handler.response?.body, {
+            return HttpResponse.arrayBuffer(response.body, {
               status: 200,
               headers: handler.response?.headers,
             });
           }
+
+          case 'error':
+            return HttpResponse.text(response.body ?? 'Error', {
+              status: response.status ?? 500,
+              headers: response.headers,
+            });
+
+          case 'empty':
+            return new HttpResponse(null, {
+              status: response.status ?? 200,
+            });
 
           default: {
             const _exhaustiveCheck: never = handlerType;
@@ -139,6 +155,12 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
 
   beforeEach(() => {
     mswServer.resetHandlers();
+
+    // set the responses back to the original values
+    Object.entries(originalRoutes).forEach(([url, handler]) => {
+      routes[url].response = handler.response;
+    });
+
     calls = [];
   });
 

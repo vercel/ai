@@ -1,7 +1,7 @@
-import { BinaryTestServer } from '@ai-sdk/provider-utils/test';
+import { FetchFunction } from '@ai-sdk/provider-utils';
+import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { FireworksImageModel } from './fireworks-image-model';
-import { FetchFunction } from '@ai-sdk/provider-utils';
 
 const prompt = 'A cute baby sea otter';
 
@@ -31,35 +31,26 @@ function createSizeModel() {
   );
 }
 
-function createStabilityModel() {
-  return new FireworksImageModel('accounts/stability/models/sd3', {
-    provider: 'fireworks',
-    baseURL: 'https://api.stability.ai',
-    headers: () => ({ 'api-key': 'test-key' }),
-  });
-}
-
-const basicUrl =
-  'https://api.example.com/workflows/accounts/fireworks/models/flux-1-dev-fp8/text_to_image';
-const sizeUrl =
-  'https://api.size-example.com/image_generation/accounts/fireworks/models/playground-v2-5-1024px-aesthetic';
-const stabilityUrl =
-  'https://api.stability.ai/v2beta/stable-image/generate/sd3';
-
 describe('FireworksImageModel', () => {
+  const server = createTestServer({
+    'https://api.example.com/*': {
+      response: {
+        type: 'binary',
+        body: Buffer.from('test-binary-content'),
+      },
+    },
+    'https://api.size-example.com/*': {
+      response: {
+        type: 'binary',
+        body: Buffer.from('test-binary-content'),
+      },
+    },
+  });
+
   describe('doGenerate', () => {
-    const server = new BinaryTestServer([basicUrl, sizeUrl, stabilityUrl]);
-    server.setupTestEnvironment();
-
-    function prepareBinaryResponse(url: string) {
-      const mockImageBuffer = Buffer.from('mock-image-data');
-      server.setResponseFor(url, { body: mockImageBuffer });
-    }
-
     it('should pass the correct parameters including aspect ratio and seed', async () => {
-      prepareBinaryResponse(basicUrl);
-
       const model = createBasicModel();
+
       await model.doGenerate({
         prompt,
         n: 1,
@@ -69,8 +60,7 @@ describe('FireworksImageModel', () => {
         providerOptions: { fireworks: { additional_param: 'value' } },
       });
 
-      const request = await server.getRequestDataFor(basicUrl);
-      expect(await request.bodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         prompt,
         aspect_ratio: '16:9',
         seed: 42,
@@ -78,9 +68,25 @@ describe('FireworksImageModel', () => {
       });
     });
 
-    it('should pass headers', async () => {
-      prepareBinaryResponse(basicUrl);
+    it('should call the correct url', async () => {
+      const model = createBasicModel();
 
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: '16:9',
+        seed: 42,
+        providerOptions: { fireworks: { additional_param: 'value' } },
+      });
+
+      expect(server.calls[0].requestMethod).toStrictEqual('POST');
+      expect(server.calls[0].requestUrl).toStrictEqual(
+        'https://api.example.com/workflows/accounts/fireworks/models/flux-1-dev-fp8/text_to_image',
+      );
+    });
+
+    it('should pass headers', async () => {
       const modelWithHeaders = createBasicModel({
         headers: () => ({
           'Custom-Provider-Header': 'provider-header-value',
@@ -99,8 +105,7 @@ describe('FireworksImageModel', () => {
         },
       });
 
-      const request = await server.getRequestDataFor(basicUrl);
-      expect(request.headers()).toStrictEqual({
+      expect(server.calls[0].requestHeaders).toStrictEqual({
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
@@ -108,7 +113,9 @@ describe('FireworksImageModel', () => {
     });
 
     it('should handle empty response body', async () => {
-      server.setResponseFor(basicUrl, { body: null });
+      server.urls['https://api.example.com/*'].response = {
+        type: 'empty',
+      };
 
       const model = createBasicModel();
       await expect(
@@ -123,7 +130,7 @@ describe('FireworksImageModel', () => {
       ).rejects.toMatchObject({
         message: 'Response body is empty',
         statusCode: 200,
-        url: basicUrl,
+        url: 'https://api.example.com/workflows/accounts/fireworks/models/flux-1-dev-fp8/text_to_image',
         requestBodyValues: {
           prompt: 'A cute baby sea otter',
         },
@@ -131,10 +138,11 @@ describe('FireworksImageModel', () => {
     });
 
     it('should handle API errors', async () => {
-      server.setResponseFor(basicUrl, {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'error',
         status: 400,
-        body: Buffer.from('Bad Request'),
-      });
+        body: 'Bad Request',
+      };
 
       const model = createBasicModel();
       await expect(
@@ -149,7 +157,7 @@ describe('FireworksImageModel', () => {
       ).rejects.toMatchObject({
         message: 'Bad Request',
         statusCode: 400,
-        url: basicUrl,
+        url: 'https://api.example.com/workflows/accounts/fireworks/models/flux-1-dev-fp8/text_to_image',
         requestBodyValues: {
           prompt: 'A cute baby sea otter',
         },
@@ -158,8 +166,6 @@ describe('FireworksImageModel', () => {
     });
 
     it('should handle size parameter for supported models', async () => {
-      prepareBinaryResponse(sizeUrl);
-
       const sizeModel = createSizeModel();
 
       await sizeModel.doGenerate({
@@ -171,8 +177,7 @@ describe('FireworksImageModel', () => {
         providerOptions: {},
       });
 
-      const request = await server.getRequestDataFor(sizeUrl);
-      expect(await request.bodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         prompt,
         width: '1024',
         height: '768',
@@ -180,49 +185,48 @@ describe('FireworksImageModel', () => {
       });
     });
 
-    it('should return appropriate warnings based on model capabilities', async () => {
-      prepareBinaryResponse(basicUrl);
+    describe('warnings', () => {
+      it('should return size warning on workflow model', async () => {
+        const model = createBasicModel();
 
-      // Test workflow model (supports aspectRatio but not size)
-      const model = createBasicModel();
-      const result1 = await model.doGenerate({
-        prompt,
-        n: 1,
-        size: '1024x1024',
-        aspectRatio: '1:1',
-        seed: 123,
-        providerOptions: {},
+        const result1 = await model.doGenerate({
+          prompt,
+          n: 1,
+          size: '1024x1024',
+          aspectRatio: '1:1',
+          seed: 123,
+          providerOptions: {},
+        });
+
+        expect(result1.warnings).toContainEqual({
+          type: 'unsupported-setting',
+          setting: 'size',
+          details:
+            'This model does not support the `size` option. Use `aspectRatio` instead.',
+        });
       });
 
-      expect(result1.warnings).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'size',
-        details:
-          'This model does not support the `size` option. Use `aspectRatio` instead.',
-      });
+      it('should return aspectRatio warning on size-supporting model', async () => {
+        const sizeModel = createSizeModel();
 
-      // Test size-supporting model
-      prepareBinaryResponse(sizeUrl);
-      const sizeModel = createSizeModel();
+        const result2 = await sizeModel.doGenerate({
+          prompt,
+          n: 1,
+          size: '1024x1024',
+          aspectRatio: '1:1',
+          seed: 123,
+          providerOptions: {},
+        });
 
-      const result2 = await sizeModel.doGenerate({
-        prompt,
-        n: 1,
-        size: '1024x1024',
-        aspectRatio: '1:1',
-        seed: 123,
-        providerOptions: {},
-      });
-
-      expect(result2.warnings).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'aspectRatio',
-        details: 'This model does not support the `aspectRatio` option.',
+        expect(result2.warnings).toContainEqual({
+          type: 'unsupported-setting',
+          setting: 'aspectRatio',
+          details: 'This model does not support the `aspectRatio` option.',
+        });
       });
     });
 
     it('should respect the abort signal', async () => {
-      prepareBinaryResponse(basicUrl);
       const model = createBasicModel();
       const controller = new AbortController();
 
