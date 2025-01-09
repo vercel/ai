@@ -145,6 +145,7 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
                 },
               },
             );
+
           case 'binary': {
             return HttpResponse.arrayBuffer(response.body, {
               status: 200,
