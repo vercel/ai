@@ -61,7 +61,6 @@ export class ReplicateImageModel implements ImageModelV1 {
   > {
     const warnings: Array<ImageModelV1CallWarning> = [];
 
-    const splitSize = size?.split('x');
     const {
       value: { output },
     } = await postJsonToApi({
@@ -73,11 +72,10 @@ export class ReplicateImageModel implements ImageModelV1 {
         input: {
           prompt,
           aspect_ratio: aspectRatio,
-          ...(splitSize && { width: +splitSize[0], height: +splitSize[1] }),
+          size,
           seed,
           num_outputs: n,
-          ...((providerOptions.replicate?.input as Record<string, unknown>) ??
-            {}),
+          ...(providerOptions.replicate ?? {}),
         },
       },
       failedResponseHandler: replicateFailedResponseHandler,

@@ -57,7 +57,14 @@ describe('doGenerate', () => {
       size: '1024x768',
       aspectRatio: '3:4',
       seed: 123,
-      providerOptions: {},
+      providerOptions: {
+        replicate: {
+          style: 'realistic_image',
+        },
+        other: {
+          something: 'else',
+        },
+      },
     });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
@@ -65,9 +72,9 @@ describe('doGenerate', () => {
         prompt,
         num_outputs: 1,
         aspect_ratio: '3:4',
-        width: 1024,
-        height: 768,
+        size: '1024x768',
         seed: 123,
+        style: 'realistic_image',
       },
     });
   });
