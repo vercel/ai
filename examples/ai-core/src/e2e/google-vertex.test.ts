@@ -1,15 +1,21 @@
 import 'dotenv/config';
-import { describe, expect } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
 import { vertex as vertexNode } from '@ai-sdk/google-vertex';
-import { APICallError, LanguageModelV1 } from 'ai';
+import {
+  APICallError,
+  LanguageModelV1,
+  experimental_generateImage as generateImage,
+} from 'ai';
 import {
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
+  createImageModelWithCapabilities,
   createLanguageModelWithCapabilities,
   defaultChatModelCapabilities,
   ModelWithCapabilities,
 } from './feature-test-suite';
+import { ImageModelV1 } from '@ai-sdk/provider';
 
 const RUNTIME_VARIANTS = {
   edge: {
@@ -26,7 +32,10 @@ const createBaseModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
 ): ModelWithCapabilities<LanguageModelV1> =>
-  createLanguageModelWithCapabilities(vertex(modelId));
+  createLanguageModelWithCapabilities(vertex(modelId), [
+    ...defaultChatModelCapabilities,
+    'audioInput',
+  ]);
 
 const createSearchGroundedModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
@@ -37,6 +46,31 @@ const createSearchGroundedModel = (
   }),
   capabilities: [...defaultChatModelCapabilities, 'searchGrounding'],
 });
+
+const createModelObject = (
+  imageModel: ImageModelV1,
+): { model: ImageModelV1; modelId: string } => ({
+  model: imageModel,
+  modelId: imageModel.modelId,
+});
+
+const createImageModel = (
+  vertex: typeof vertexNode | typeof vertexEdge,
+  modelId: string,
+  additionalTests: ((model: ImageModelV1) => void)[] = [],
+): ModelWithCapabilities<ImageModelV1> => {
+  const model = vertex.image(modelId);
+
+  if (additionalTests.length > 0) {
+    describe.each([createModelObject(model)])(
+      'Provider-specific tests: $modelId',
+      ({ model }) => {
+        additionalTests.forEach(test => test(model));
+      },
+    );
+  }
+  return createImageModelWithCapabilities(model);
+};
 
 const createModelVariants = (
   vertex: typeof vertexNode | typeof vertexEdge,
@@ -65,6 +99,10 @@ const createModelsForRuntime = (
       vertex.textEmbeddingModel('textembedding-gecko-multilingual'),
     ),
   ],
+  imageModels: [
+    createImageModel(vertex, 'imagen-3.0-fast-generate-001', [imageTest]),
+    createImageModel(vertex, 'imagen-3.0-generate-001', [imageTest]),
+  ],
 });
 
 describe.each(Object.values(RUNTIME_VARIANTS))(
@@ -84,83 +122,62 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
   },
 );
 
-// TODO: Restore imagen model testing.
-// image: ['imagen-3.0-generate-001', 'imagen-3.0-fast-generate-001'],
+const mimeTypeSignatures = [
+  { mimeType: 'image/gif' as const, bytes: [0x47, 0x49, 0x46] },
+  { mimeType: 'image/png' as const, bytes: [0x89, 0x50, 0x4e, 0x47] },
+  { mimeType: 'image/jpeg' as const, bytes: [0xff, 0xd8] },
+  { mimeType: 'image/webp' as const, bytes: [0x52, 0x49, 0x46, 0x46] },
+];
 
-// TODO: Figure out how to restore testing provider/model-specific features like below.
+function detectImageMimeType(
+  image: Uint8Array,
+): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' | undefined {
+  for (const { bytes, mimeType } of mimeTypeSignatures) {
+    if (
+      image.length >= bytes.length &&
+      bytes.every((byte, index) => image[index] === byte)
+    ) {
+      return mimeType;
+    }
+  }
 
-// describe.each(Object.values(RUNTIME_VARIANTS))(
-//   'Google Vertex E2E Tests - $name',
-//   ({ vertex }) => {
-//     vi.setConfig({ testTimeout: LONG_TEST_MILLIS });
+  return undefined;
+}
 
-//     describe.each(MODEL_VARIANTS.chat)('Chat Model: %s', modelId => {
-//       it(
-//         'should generate text from audio input',
-//         { timeout: LONG_TEST_MILLIS },
-//         async () => {
-//           const model = vertex(modelId);
-//           const result = await generateText({
-//             model,
-//             messages: [
-//               {
-//                 role: 'user',
-//                 content: [
-//                   {
-//                     type: 'text',
-//                     text: 'Output a transcript of spoken words. Break up transcript lines when there are pauses. Include timestamps in the format of HH:MM:SS.SSS.',
-//                   },
-//                   {
-//                     type: 'file',
-//                     data: Buffer.from(fs.readFileSync('./data/galileo.mp3')),
-//                     mimeType: 'audio/mpeg',
-//                   },
-//                 ],
-//               },
-//             ],
-//           });
-//           expect(result.text).toBeTruthy();
-//           expect(result.text.toLowerCase()).toContain('galileo');
-//           expect(result.usage?.totalTokens).toBeGreaterThan(0);
-//         },
-//       );
-//     });
+const imageTest = (model: ImageModelV1) => {
+  vi.setConfig({ testTimeout: 10000 });
 
-//     describe.each(MODEL_VARIANTS.image)('Image Model: %s', modelId => {
-//       it('should generate an image with correct dimensions and format', async () => {
-//         const model = vertex.image(modelId);
-//         const { image } = await generateImage({
-//           model,
-//           prompt: 'A burrito launched through a tunnel',
-//           providerOptions: {
-//             vertex: {
-//               aspectRatio: '3:4',
-//             },
-//           },
-//         });
+  it('should generate an image with correct dimensions and format', async () => {
+    const { image } = await generateImage({
+      model,
+      prompt: 'A burrito launched through a tunnel',
+      providerOptions: {
+        vertex: {
+          aspectRatio: '3:4',
+        },
+      },
+    });
 
-//         // Verify we got a Uint8Array back
-//         expect(image.uint8Array).toBeInstanceOf(Uint8Array);
+    // Verify we got a Uint8Array back
+    expect(image.uint8Array).toBeInstanceOf(Uint8Array);
 
-//         // Check the file size is reasonable (at least 10KB, less than 10MB)
-//         expect(image.uint8Array.length).toBeGreaterThan(10 * 1024);
-//         expect(image.uint8Array.length).toBeLessThan(10 * 1024 * 1024);
+    // Check the file size is reasonable (at least 10KB, less than 10MB)
+    expect(image.uint8Array.length).toBeGreaterThan(10 * 1024);
+    expect(image.uint8Array.length).toBeLessThan(10 * 1024 * 1024);
 
-//         // Verify PNG format
-//         const mimeType = detectImageMimeType(image.uint8Array);
-//         expect(mimeType).toBe('image/png');
+    // Verify PNG format
+    const mimeType = detectImageMimeType(image.uint8Array);
+    expect(mimeType).toBe('image/png');
 
-//         // Create a temporary buffer to verify image dimensions
-//         const tempBuffer = Buffer.from(image.uint8Array);
+    // Create a temporary buffer to verify image dimensions
+    const tempBuffer = Buffer.from(image.uint8Array);
 
-//         // PNG dimensions are stored at bytes 16-24
-//         const width = tempBuffer.readUInt32BE(16);
-//         const height = tempBuffer.readUInt32BE(20);
+    // PNG dimensions are stored at bytes 16-24
+    const width = tempBuffer.readUInt32BE(16);
+    const height = tempBuffer.readUInt32BE(20);
 
-//         // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#performance-limits
-//         expect(width).toBe(896);
-//         expect(height).toBe(1280);
-//       });
-//     });
-//   },
-// );
+    // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#performance-limits
+    expect(width).toBe(896);
+    expect(height).toBe(1280);
+  });
+};

@@ -33,10 +33,10 @@ createFeatureTestSuite({
       createSearchGroundedModel('gemini-1.5-flash-latest'),
       createChatModel('gemini-1.5-flash-latest'),
       // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
-      createChatModel('gemini-2.0-flash-exp'),
-      createSearchGroundedModel('gemini-2.0-flash-exp'),
-      createChatModel('gemini-1.5-pro-latest'),
-      createChatModel('gemini-1.0-pro'),
+      // createChatModel('gemini-2.0-flash-exp'),
+      // createSearchGroundedModel('gemini-2.0-flash-exp'),
+      // createChatModel('gemini-1.5-pro-latest'),
+      // createChatModel('gemini-1.0-pro'),
     ],
     embeddingModels: [
       createEmbeddingModelWithCapabilities(

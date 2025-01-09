@@ -22,8 +22,8 @@ createFeatureTestSuite({
   models: {
     invalidModel: provider.chatModel('no-such-model'),
     languageModels: [
-      createChatModel('accounts/fireworks/models/deepseek-v3'),
-      // createChatModel('accounts/fireworks/models/llama-v3p3-70b-instruct'),
+      // createChatModel('accounts/fireworks/models/deepseek-v3'),
+      createChatModel('accounts/fireworks/models/llama-v3p3-70b-instruct'),
       // createChatModel('accounts/fireworks/models/mixtral-8x7b-instruct'),
       // createChatModel('accounts/fireworks/models/qwen2p5-72b-instruct'),
       // createCompletionModel('accounts/fireworks/models/llama-v3-8b-instruct'),

@@ -19,7 +19,9 @@ import type {
 import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 
 export type Capability =
+  | 'audioInput'
   | 'embedding'
+  | 'imageGeneration'
   | 'imageInput'
   | 'objectGeneration'
   | 'pdfInput'
@@ -35,11 +37,13 @@ export interface ModelWithCapabilities<T> {
 }
 
 export const defaultChatModelCapabilities: ModelCapabilities = [
+  // audioInput is not supported by most language models.
   // embedding is not supported by language models.
-  // searchGrounding is not supported by most language models.
+  // imageGeneration is not supported by language models.
   'imageInput',
   'objectGeneration',
   'pdfInput',
+  // searchGrounding is not supported by most language models.
   'textCompletion',
   'toolCalls',
 ];
@@ -62,7 +66,7 @@ export const createEmbeddingModelWithCapabilities = (
 
 export const createImageModelWithCapabilities = (
   model: ImageModelV1,
-  capabilities: ModelCapabilities = ['imageInput'],
+  capabilities: ModelCapabilities = ['imageGeneration'],
 ): ModelWithCapabilities<ImageModelV1> => ({
   model,
   capabilities,
@@ -93,28 +97,6 @@ const createModelObjects = <T extends { modelId: string }>(
     model,
     capabilities,
   })) || [];
-
-const mimeTypeSignatures = [
-  { mimeType: 'image/gif' as const, bytes: [0x47, 0x49, 0x46] },
-  { mimeType: 'image/png' as const, bytes: [0x89, 0x50, 0x4e, 0x47] },
-  { mimeType: 'image/jpeg' as const, bytes: [0xff, 0xd8] },
-  { mimeType: 'image/webp' as const, bytes: [0x52, 0x49, 0x46, 0x46] },
-];
-
-function detectImageMimeType(
-  image: Uint8Array,
-): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' | undefined {
-  for (const { bytes, mimeType } of mimeTypeSignatures) {
-    if (
-      image.length >= bytes.length &&
-      bytes.every((byte, index) => image[index] === byte)
-    ) {
-      return mimeType;
-    }
-  }
-
-  return undefined;
-}
 
 const verifyGroundingMetadata = (groundingMetadata: any) => {
   expect(Array.isArray(groundingMetadata?.webSearchQueries)).toBe(true);
@@ -858,6 +840,40 @@ export function createFeatureTestSuite({
 
           describeIfCapability(
             capabilities,
+            ['audioInput'],
+            'Audio Input',
+            () => {
+              it('should generate text from audio input', async () => {
+                const result = await generateText({
+                  model,
+                  messages: [
+                    {
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'text',
+                          text: 'Output a transcript of spoken words. Break up transcript lines when there are pauses. Include timestamps in the format of HH:MM:SS.SSS.',
+                        },
+                        {
+                          type: 'file',
+                          data: Buffer.from(
+                            fs.readFileSync('./data/galileo.mp3'),
+                          ),
+                          mimeType: 'audio/mpeg',
+                        },
+                      ],
+                    },
+                  ],
+                });
+                expect(result.text).toBeTruthy();
+                expect(result.text.toLowerCase()).toContain('galileo');
+                expect(result.usage?.totalTokens).toBeGreaterThan(0);
+              });
+            },
+          );
+
+          describeIfCapability(
+            capabilities,
             ['searchGrounding'],
             'Search Grounding',
             () => {
@@ -1017,7 +1033,7 @@ export function createFeatureTestSuite({
           ({ model, capabilities }) => {
             describeIfCapability(
               capabilities,
-              ['imageInput'],
+              ['imageGeneration'],
               'Image Generation',
               () => {
                 it('should generate an image', async () => {
