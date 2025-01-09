@@ -18,12 +18,16 @@ import type {
 } from '@ai-sdk/provider';
 import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 
-export interface ModelCapabilities {
-  searchGrounding?: boolean;
-  // toolCalls?: boolean;
-  // imageInput?: boolean;
-  // pdfInput?: boolean;
-}
+export type Capability =
+  | 'embedding'
+  | 'imageInput'
+  | 'objectGeneration'
+  | 'pdfInput'
+  | 'searchGrounding'
+  | 'textCompletion'
+  | 'toolCalls';
+
+export type ModelCapabilities = Capability[];
 
 export interface ModelWithCapabilities<T> {
   model: T;
@@ -45,7 +49,6 @@ export interface TestSuiteOptions {
     skipUsage?: boolean;
     errorValidator?: (error: APICallError) => void;
   };
-  testTypes?: Array<'standard' | 'searchGrounding'>;
 }
 
 const createModelObjects = <T extends { modelId: string }>(
@@ -108,12 +111,20 @@ const verifySafetyRatings = (safetyRatings: any[]) => {
   });
 };
 
+const shouldRunTests = (
+  capabilities: ModelCapabilities | undefined,
+  requiredCapabilities: Capability[],
+) => {
+  return capabilities
+    ? requiredCapabilities.every(cap => capabilities.includes(cap))
+    : false;
+};
+
 export function createFeatureTestSuite({
   name,
   models,
   timeout = 10000,
   customAssertions = { skipUsage: false },
-  testTypes = ['standard'],
 }: TestSuiteOptions) {
   return () => {
     const errorValidator =
@@ -128,228 +139,65 @@ export function createFeatureTestSuite({
       describe.each(createModelObjects(models.languageModels))(
         'Language Model: $modelId',
         ({ model, capabilities }) => {
-          if (testTypes.includes('standard')) {
-            it('should generate text', async () => {
-              const result = await generateText({
-                model,
-                prompt: 'Write a haiku about programming.',
+          describe('Basic Text Generation', () => {
+            if (shouldRunTests(capabilities, ['textCompletion'])) {
+              it('should generate text', async () => {
+                const result = await generateText({
+                  model,
+                  prompt: 'Write a haiku about programming.',
+                });
+
+                expect(result.text).toBeTruthy();
+                if (!customAssertions.skipUsage) {
+                  expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                }
               });
 
-              expect(result.text).toBeTruthy();
-              if (!customAssertions.skipUsage) {
+              it('should generate text with system prompt', async () => {
+                const result = await generateText({
+                  model,
+                  messages: [
+                    {
+                      role: 'system',
+                      content: 'You are a helpful assistant.',
+                    },
+                    {
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'text',
+                          text: 'Write a haiku about programming.',
+                        },
+                      ],
+                    },
+                  ],
+                });
+
+                expect(result.text).toBeTruthy();
                 expect(result.usage?.totalTokens).toBeGreaterThan(0);
-              }
-            });
-
-            it('should generate text with tool calls', async () => {
-              const result = await generateText({
-                model,
-                prompt: 'What is 2+2? Use the calculator tool to compute this.',
-                tools: {
-                  calculator: {
-                    parameters: z.object({
-                      expression: z
-                        .string()
-                        .describe('The mathematical expression to evaluate'),
-                    }),
-                    execute: async ({ expression }) =>
-                      eval(expression).toString(),
-                  },
-                },
               });
 
-              expect(result.toolCalls?.[0]).toMatchObject({
-                toolName: 'calculator',
-                args: { expression: '2+2' },
+              it('should stream text', async () => {
+                const result = streamText({
+                  model,
+                  prompt: 'Count from 1 to 5 slowly.',
+                });
+
+                const chunks: string[] = [];
+                for await (const chunk of result.textStream) {
+                  chunks.push(chunk);
+                }
+
+                expect(chunks.length).toBeGreaterThan(0);
+                if (!customAssertions.skipUsage) {
+                  expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+                }
               });
-              expect(result.toolResults?.[0].result).toBe('4');
-              if (!customAssertions.skipUsage) {
-                expect(result.usage?.totalTokens).toBeGreaterThan(0);
-              }
-            });
+            }
+          });
 
-            it('should stream text', async () => {
-              const result = streamText({
-                model,
-                prompt: 'Count from 1 to 5 slowly.',
-              });
-
-              const chunks: string[] = [];
-              for await (const chunk of result.textStream) {
-                chunks.push(chunk);
-              }
-
-              expect(chunks.length).toBeGreaterThan(0);
-              if (!customAssertions.skipUsage) {
-                expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
-              }
-            });
-
-            it('should stream text with tool calls', async () => {
-              const result = streamText({
-                model,
-                prompt: 'Calculate 5+7 and 3*4 using the calculator tool.',
-                tools: {
-                  calculator: {
-                    parameters: z.object({
-                      expression: z.string(),
-                    }),
-                    execute: async ({ expression }) =>
-                      eval(expression).toString(),
-                  },
-                },
-              });
-
-              const parts = [];
-              for await (const part of result.fullStream) {
-                parts.push(part);
-              }
-
-              expect(parts.some(part => part.type === 'tool-call')).toBe(true);
-              if (!customAssertions.skipUsage) {
-                expect((await result.usage).totalTokens).toBeGreaterThan(0);
-              }
-            });
-
-            it('should generate text with image URL input', async () => {
-              const result = await generateText({
-                model,
-                messages: [
-                  {
-                    role: 'user',
-                    content: [
-                      { type: 'text', text: 'Describe the image in detail.' },
-                      {
-                        type: 'image',
-                        image:
-                          'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
-                      },
-                    ],
-                  },
-                ],
-              });
-
-              expect(result.text).toBeTruthy();
-              expect(result.text.toLowerCase()).toContain('cat');
-              if (!customAssertions.skipUsage) {
-                expect(result.usage?.totalTokens).toBeGreaterThan(0);
-              }
-            });
-
-            it('should generate text with image input', async () => {
-              const result = await generateText({
-                model,
-                messages: [
-                  {
-                    role: 'user',
-                    content: [
-                      { type: 'text', text: 'Describe the image in detail.' },
-                      {
-                        type: 'image',
-                        // TODO(shaper): Some tests omit the .toString() below.
-                        image: fs
-                          .readFileSync('./data/comic-cat.png')
-                          .toString('base64'),
-                      },
-                    ],
-                  },
-                ],
-              });
-
-              expect(result.text.toLowerCase()).toContain('cat');
-              if (!customAssertions.skipUsage) {
-                expect(result.usage?.totalTokens).toBeGreaterThan(0);
-              }
-            });
-
-            it('should stream text with image URL input', async () => {
-              const result = streamText({
-                model,
-                messages: [
-                  {
-                    role: 'user',
-                    content: [
-                      { type: 'text', text: 'Describe the image in detail.' },
-                      {
-                        type: 'image',
-                        image:
-                          'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
-                      },
-                    ],
-                  },
-                ],
-              });
-
-              const chunks: string[] = [];
-              for await (const chunk of result.textStream) {
-                chunks.push(chunk);
-              }
-
-              const fullText = chunks.join('');
-              expect(chunks.length).toBeGreaterThan(0);
-              expect(fullText.toLowerCase()).toContain('cat');
-              expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
-            });
-
-            it('should stream text with image input', async () => {
-              const result = streamText({
-                model,
-                messages: [
-                  {
-                    role: 'user',
-                    content: [
-                      { type: 'text', text: 'Describe the image in detail.' },
-                      {
-                        type: 'image',
-                        image: fs.readFileSync('./data/comic-cat.png'),
-                      },
-                    ],
-                  },
-                ],
-              });
-
-              const chunks: string[] = [];
-              for await (const chunk of result.textStream) {
-                chunks.push(chunk);
-              }
-
-              const fullText = chunks.join('');
-              expect(fullText.toLowerCase()).toContain('cat');
-              expect(chunks.length).toBeGreaterThan(0);
-              if (!customAssertions.skipUsage) {
-                expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
-              }
-            });
-
-            it('should generate text with PDF input', async () => {
-              const result = await generateText({
-                model,
-                messages: [
-                  {
-                    role: 'user',
-                    content: [
-                      {
-                        type: 'text',
-                        text: 'Summarize the contents of this PDF.',
-                      },
-                      {
-                        type: 'file',
-                        data: fs
-                          .readFileSync('./data/ai.pdf')
-                          .toString('base64'),
-                        mimeType: 'application/pdf',
-                      },
-                    ],
-                  },
-                ],
-              });
-
-              expect(result.text).toBeTruthy();
-              expect(result.text.toLowerCase()).toContain('embedding');
-              expect(result.usage?.totalTokens).toBeGreaterThan(0);
-            });
-
-            describe('Object Generation', () => {
+          describe('Object Generation', () => {
+            if (shouldRunTests(capabilities, ['objectGeneration'])) {
               it('should generate basic blog metadata', async () => {
                 const result = await generateObject({
                   model,
@@ -732,14 +580,228 @@ export function createFeatureTestSuite({
                   expect(result.object.price).toBeGreaterThan(0);
                 });
               });
-            });
-          }
+            }
+          });
 
-          // Only run search grounding tests if the model supports it
-          if (
-            testTypes.includes('searchGrounding') &&
-            capabilities?.searchGrounding
-          ) {
+          describe('Tool Calls', () => {
+            if (shouldRunTests(capabilities, ['toolCalls'])) {
+              it('should generate text with tool calls', async () => {
+                const result = await generateText({
+                  model,
+                  prompt:
+                    'What is 2+2? Use the calculator tool to compute this.',
+                  tools: {
+                    calculator: {
+                      parameters: z.object({
+                        expression: z
+                          .string()
+                          .describe('The mathematical expression to evaluate'),
+                      }),
+                      execute: async ({ expression }) =>
+                        eval(expression).toString(),
+                    },
+                  },
+                });
+
+                expect(result.toolCalls?.[0]).toMatchObject({
+                  toolName: 'calculator',
+                  args: { expression: '2+2' },
+                });
+                expect(result.toolResults?.[0].result).toBe('4');
+                if (!customAssertions.skipUsage) {
+                  expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                }
+              });
+
+              it('should stream text with tool calls', async () => {
+                const result = streamText({
+                  model,
+                  prompt: 'Calculate 5+7 and 3*4 using the calculator tool.',
+                  tools: {
+                    calculator: {
+                      parameters: z.object({
+                        expression: z.string(),
+                      }),
+                      execute: async ({ expression }) =>
+                        eval(expression).toString(),
+                    },
+                  },
+                });
+
+                const parts = [];
+                for await (const part of result.fullStream) {
+                  parts.push(part);
+                }
+
+                expect(parts.some(part => part.type === 'tool-call')).toBe(
+                  true,
+                );
+                if (!customAssertions.skipUsage) {
+                  expect((await result.usage).totalTokens).toBeGreaterThan(0);
+                }
+              });
+            }
+          });
+
+          describe('Image Input', () => {
+            if (shouldRunTests(capabilities, ['imageInput'])) {
+              it('should generate text with image URL input', async () => {
+                const result = await generateText({
+                  model,
+                  messages: [
+                    {
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'text',
+                          text: 'Describe the image in detail.',
+                        },
+                        {
+                          type: 'image',
+                          image:
+                            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+                        },
+                      ],
+                    },
+                  ],
+                });
+
+                expect(result.text).toBeTruthy();
+                expect(result.text.toLowerCase()).toContain('cat');
+                if (!customAssertions.skipUsage) {
+                  expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                }
+              });
+
+              it('should generate text with image input', async () => {
+                const result = await generateText({
+                  model,
+                  messages: [
+                    {
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'text',
+                          text: 'Describe the image in detail.',
+                        },
+                        {
+                          type: 'image',
+                          // TODO(shaper): Some tests omit the .toString() below.
+                          image: fs
+                            .readFileSync('./data/comic-cat.png')
+                            .toString('base64'),
+                        },
+                      ],
+                    },
+                  ],
+                });
+
+                expect(result.text.toLowerCase()).toContain('cat');
+                if (!customAssertions.skipUsage) {
+                  expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                }
+              });
+
+              it('should stream text with image URL input', async () => {
+                const result = streamText({
+                  model,
+                  messages: [
+                    {
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'text',
+                          text: 'Describe the image in detail.',
+                        },
+                        {
+                          type: 'image',
+                          image:
+                            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+                        },
+                      ],
+                    },
+                  ],
+                });
+
+                const chunks: string[] = [];
+                for await (const chunk of result.textStream) {
+                  chunks.push(chunk);
+                }
+
+                const fullText = chunks.join('');
+                expect(chunks.length).toBeGreaterThan(0);
+                expect(fullText.toLowerCase()).toContain('cat');
+                expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+              });
+
+              it('should stream text with image input', async () => {
+                const result = streamText({
+                  model,
+                  messages: [
+                    {
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'text',
+                          text: 'Describe the image in detail.',
+                        },
+                        {
+                          type: 'image',
+                          image: fs.readFileSync('./data/comic-cat.png'),
+                        },
+                      ],
+                    },
+                  ],
+                });
+
+                const chunks: string[] = [];
+                for await (const chunk of result.textStream) {
+                  chunks.push(chunk);
+                }
+
+                const fullText = chunks.join('');
+                expect(fullText.toLowerCase()).toContain('cat');
+                expect(chunks.length).toBeGreaterThan(0);
+                if (!customAssertions.skipUsage) {
+                  expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+                }
+              });
+            }
+          });
+
+          describe('PDF Input', () => {
+            if (shouldRunTests(capabilities, ['pdfInput'])) {
+              it('should generate text with PDF input', async () => {
+                const result = await generateText({
+                  model,
+                  messages: [
+                    {
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'text',
+                          text: 'Summarize the contents of this PDF.',
+                        },
+                        {
+                          type: 'file',
+                          data: fs
+                            .readFileSync('./data/ai.pdf')
+                            .toString('base64'),
+                          mimeType: 'application/pdf',
+                        },
+                      ],
+                    },
+                  ],
+                });
+
+                expect(result.text).toBeTruthy();
+                expect(result.text.toLowerCase()).toContain('embedding');
+                expect(result.usage?.totalTokens).toBeGreaterThan(0);
+              });
+            }
+          });
+
+          if (shouldRunTests(capabilities, ['searchGrounding'])) {
             describe('Search Grounding', () => {
               it('should include search grounding metadata in response when search grounding is enabled', async () => {
                 const result = await generateText({

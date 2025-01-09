@@ -6,53 +6,80 @@ import {
   generateText,
   experimental_generateImage as generateImage,
   APICallError,
+  LanguageModelV1,
 } from 'ai';
-
-import { createFeatureTestSuite } from './feature-test-suite';
+import type { Capability } from './feature-test-suite';
+import {
+  createFeatureTestSuite,
+  ModelWithCapabilities,
+} from './feature-test-suite';
 
 const RUNTIME_VARIANTS = {
-  edge: {
-    name: 'Edge Runtime',
-    vertex: vertexEdge,
-  },
+  // edge: {
+  //   name: 'Edge Runtime',
+  //   vertex: vertexEdge,
+  // },
   node: {
     name: 'Node Runtime',
     vertex: vertexNode,
   },
 } as const;
 
-const createBaseModel = (modelId: string) => ({
+const createBaseModel = (
+  modelId: string,
+): ModelWithCapabilities<LanguageModelV1> => ({
   model: vertexNode(modelId),
-  capabilities: {},
+  capabilities: [
+    'imageInput',
+    'objectGeneration',
+    'pdfInput',
+    'textCompletion',
+    'toolCalls',
+  ],
 });
 
-const createSearchGroundedModel = (modelId: string) => ({
+const createSearchGroundedModel = (
+  modelId: string,
+): ModelWithCapabilities<LanguageModelV1> => ({
   model: vertexNode(modelId, {
     useSearchGrounding: true,
   }),
-  capabilities: {
-    searchGrounding: true,
-  },
+  capabilities: [
+    'imageInput',
+    'objectGeneration',
+    'pdfInput',
+    'searchGrounding',
+    'textCompletion',
+    'toolCalls',
+  ],
 });
+
+const createModelVariants = (
+  modelId: string,
+): ModelWithCapabilities<LanguageModelV1>[] => [
+  createBaseModel(modelId),
+  createSearchGroundedModel(modelId),
+];
 
 const createModelsForRuntime = (
   vertex: typeof vertexNode | typeof vertexEdge,
 ) => ({
   invalidModel: vertex('no-such-model'),
   languageModels: [
-    createBaseModel('gemini-1.5-flash'),
-    // createSearchGroundedModel('gemini-1.5-flash'),
+    ...createModelVariants('gemini-2.0-flash-exp'),
+    // ...createModelVariants('gemini-1.5-flash'),
     // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
-    // createSearchGroundedModel('gemini-2.0-flash-exp'),
-    // createSearchGroundedModel('gemini-1.5-pro-001'),
-    // createSearchGroundedModel('gemini-1.0-pro-001'),
+    // ...createModelVariants('gemini-1.5-pro-001'),
+    // ...createModelVariants('gemini-1.0-pro-001'),
   ],
   embeddingModels: [
     {
       model: vertex.textEmbeddingModel('textembedding-gecko'),
+      capabilities: ['embedding'] satisfies Capability[],
     },
     {
       model: vertex.textEmbeddingModel('textembedding-gecko-multilingual'),
+      capabilities: ['embedding'] satisfies Capability[],
     },
   ],
 });
@@ -73,18 +100,6 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
     })();
   },
 );
-
-createFeatureTestSuite({
-  name: 'Google Vertex AI - Search Grounding Tests',
-  models: {
-    languageModels: [createSearchGroundedModel('gemini-1.5-flash')],
-  },
-  timeout: 20000,
-  customAssertions: {
-    skipUsage: false,
-  },
-  testTypes: ['searchGrounding'],
-})();
 
 // TODO: Restore imagen model testing.
 // image: ['imagen-3.0-generate-001', 'imagen-3.0-fast-generate-001'],

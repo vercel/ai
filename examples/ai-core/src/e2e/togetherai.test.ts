@@ -4,27 +4,65 @@ import {
   togetherai as provider,
   TogetherAIErrorData,
 } from '@ai-sdk/togetherai';
-import { APICallError } from 'ai';
-import { createFeatureTestSuite } from './feature-test-suite';
+import { APICallError, LanguageModelV1 } from 'ai';
+import type { Capability } from './feature-test-suite';
+import {
+  createFeatureTestSuite,
+  ModelWithCapabilities,
+} from './feature-test-suite';
+
+const createBaseChatModel = (
+  modelId: string,
+): ModelWithCapabilities<LanguageModelV1> => ({
+  model: provider.chatModel(modelId),
+  capabilities: [
+    'imageInput',
+    'objectGeneration',
+    'pdfInput',
+    'textCompletion',
+    'toolCalls',
+  ],
+});
+
+const createBaseLanguageModel = (
+  modelId: string,
+): ModelWithCapabilities<LanguageModelV1> => ({
+  model: provider.completionModel(modelId),
+  capabilities: [
+    'imageInput',
+    'objectGeneration',
+    'pdfInput',
+    'textCompletion',
+    'toolCalls',
+  ],
+});
 
 createFeatureTestSuite({
   name: 'TogetherAI',
   models: {
     invalidModel: provider.chatModel('no-such-model'),
     languageModels: [
-      provider.chatModel('deepseek-ai/DeepSeek-V3'), // no tools, objects, or images
-      provider.chatModel('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'),
-      provider.chatModel('mistralai/Mistral-7B-Instruct-v0.1'),
-      provider.chatModel('google/gemma-2b-it'),
-      provider.chatModel('meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'),
-      provider.chatModel('mistralai/Mixtral-8x7B-Instruct-v0.1'),
-      provider.chatModel('Qwen/Qwen2.5-72B-Instruct-Turbo'),
-      provider.chatModel('databricks/dbrx-instruct'),
-      provider.completionModel('Qwen/Qwen2.5-Coder-32B-Instruct'),
+      createBaseChatModel('deepseek-ai/DeepSeek-V3'), // no tools, objects, or images
+      createBaseChatModel('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'),
+      createBaseChatModel('mistralai/Mistral-7B-Instruct-v0.1'),
+      createBaseChatModel('google/gemma-2b-it'),
+      createBaseChatModel('meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'),
+      createBaseChatModel('mistralai/Mixtral-8x7B-Instruct-v0.1'),
+      createBaseChatModel('Qwen/Qwen2.5-72B-Instruct-Turbo'),
+      createBaseChatModel('databricks/dbrx-instruct'),
+      createBaseLanguageModel('Qwen/Qwen2.5-Coder-32B-Instruct'),
     ],
     embeddingModels: [
-      provider.textEmbeddingModel('togethercomputer/m2-bert-80M-8k-retrieval'),
-      provider.textEmbeddingModel('BAAI/bge-base-en-v1.5'),
+      {
+        model: provider.textEmbeddingModel(
+          'togethercomputer/m2-bert-80M-8k-retrieval',
+        ),
+        capabilities: ['embedding'] satisfies Capability[],
+      },
+      {
+        model: provider.textEmbeddingModel('BAAI/bge-base-en-v1.5'),
+        capabilities: ['embedding'] satisfies Capability[],
+      },
     ],
   },
   timeout: 10000,
