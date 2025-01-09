@@ -139,8 +139,8 @@ export function createFeatureTestSuite({
       describe.each(createModelObjects(models.languageModels))(
         'Language Model: $modelId',
         ({ model, capabilities }) => {
-          describe('Basic Text Generation', () => {
-            if (shouldRunTests(capabilities, ['textCompletion'])) {
+          if (shouldRunTests(capabilities, ['textCompletion'])) {
+            describe('Basic Text Generation', () => {
               it('should generate text', async () => {
                 const result = await generateText({
                   model,
@@ -193,11 +193,11 @@ export function createFeatureTestSuite({
                   expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
                 }
               });
-            }
-          });
+            });
+          }
 
-          describe('Object Generation', () => {
-            if (shouldRunTests(capabilities, ['objectGeneration'])) {
+          if (shouldRunTests(capabilities, ['objectGeneration'])) {
+            describe('Object Generation', () => {
               it('should generate basic blog metadata', async () => {
                 const result = await generateObject({
                   model,
@@ -580,11 +580,11 @@ export function createFeatureTestSuite({
                   expect(result.object.price).toBeGreaterThan(0);
                 });
               });
-            }
-          });
+            });
+          }
 
-          describe('Tool Calls', () => {
-            if (shouldRunTests(capabilities, ['toolCalls'])) {
+          if (shouldRunTests(capabilities, ['toolCalls'])) {
+            describe('Tool Calls', () => {
               it('should generate text with tool calls', async () => {
                 const result = await generateText({
                   model,
@@ -640,11 +640,11 @@ export function createFeatureTestSuite({
                   expect((await result.usage).totalTokens).toBeGreaterThan(0);
                 }
               });
-            }
-          });
+            });
+          }
 
-          describe('Image Input', () => {
-            if (shouldRunTests(capabilities, ['imageInput'])) {
+          if (shouldRunTests(capabilities, ['imageInput'])) {
+            describe('Image Input', () => {
               it('should generate text with image URL input', async () => {
                 const result = await generateText({
                   model,
@@ -766,11 +766,11 @@ export function createFeatureTestSuite({
                   expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
                 }
               });
-            }
-          });
+            });
+          }
 
-          describe('PDF Input', () => {
-            if (shouldRunTests(capabilities, ['pdfInput'])) {
+          if (shouldRunTests(capabilities, ['pdfInput'])) {
+            describe('PDF Input', () => {
               it('should generate text with PDF input', async () => {
                 const result = await generateText({
                   model,
@@ -798,8 +798,8 @@ export function createFeatureTestSuite({
                 expect(result.text.toLowerCase()).toContain('embedding');
                 expect(result.usage?.totalTokens).toBeGreaterThan(0);
               });
-            }
-          });
+            });
+          }
 
           if (shouldRunTests(capabilities, ['searchGrounding'])) {
             describe('Search Grounding', () => {
@@ -907,62 +907,70 @@ export function createFeatureTestSuite({
             }
           });
         });
+      }
 
+      if (models.embeddingModels && models.embeddingModels.length > 0) {
         describe.each(createModelObjects(models.embeddingModels))(
           'Embedding Model: $modelId',
-          ({ model }) => {
-            it('should generate single embedding', async () => {
-              const result = await embed({
-                model,
-                value: 'This is a test sentence for embedding.',
+          ({ model, capabilities }) => {
+            if (shouldRunTests(capabilities, ['embedding'])) {
+              it('should generate single embedding', async () => {
+                const result = await embed({
+                  model,
+                  value: 'This is a test sentence for embedding.',
+                });
+
+                expect(Array.isArray(result.embedding)).toBe(true);
+                expect(result.embedding.length).toBeGreaterThan(0);
+                if (!customAssertions.skipUsage) {
+                  expect(result.usage?.tokens).toBeGreaterThan(0);
+                }
               });
 
-              expect(Array.isArray(result.embedding)).toBe(true);
-              expect(result.embedding.length).toBeGreaterThan(0);
-              if (!customAssertions.skipUsage) {
-                expect(result.usage?.tokens).toBeGreaterThan(0);
-              }
-            });
+              it('should generate multiple embeddings', async () => {
+                const result = await embedMany({
+                  model,
+                  values: [
+                    'First test sentence.',
+                    'Second test sentence.',
+                    'Third test sentence.',
+                  ],
+                });
 
-            it('should generate multiple embeddings', async () => {
-              const result = await embedMany({
-                model,
-                values: [
-                  'First test sentence.',
-                  'Second test sentence.',
-                  'Third test sentence.',
-                ],
+                expect(Array.isArray(result.embeddings)).toBe(true);
+                expect(result.embeddings.length).toBe(3);
+                if (!customAssertions.skipUsage) {
+                  expect(result.usage?.tokens).toBeGreaterThan(0);
+                }
               });
+            }
+          },
+        );
+      }
 
-              expect(Array.isArray(result.embeddings)).toBe(true);
-              expect(result.embeddings.length).toBe(3);
-              if (!customAssertions.skipUsage) {
-                expect(result.usage?.tokens).toBeGreaterThan(0);
-              }
-            });
+      if (models.imageModels && models.imageModels.length > 0) {
+        describe.each(createModelObjects(models.imageModels))(
+          'Image Model: $modelId',
+          ({ model, capabilities }) => {
+            if (shouldRunTests(capabilities, ['imageInput'])) {
+              it('should generate an image', async () => {
+                const result = await generateImage({
+                  model,
+                  prompt: 'A cute cartoon cat',
+                });
+
+                // Verify we got a base64 string back
+                expect(result.image.base64).toBeTruthy();
+                expect(typeof result.image.base64).toBe('string');
+
+                // Check the decoded length is reasonable (at least 10KB)
+                const decoded = Buffer.from(result.image.base64, 'base64');
+                expect(decoded.length).toBeGreaterThan(10 * 1024);
+              });
+            }
           },
         );
       }
     });
-
-    describe.each(createModelObjects(models.imageModels))(
-      'Image Model: $modelId',
-      ({ model }) => {
-        it('should generate an image', async () => {
-          const result = await generateImage({
-            model,
-            prompt: 'A cute cartoon cat',
-          });
-
-          // Verify we got a base64 string back
-          expect(result.image.base64).toBeTruthy();
-          expect(typeof result.image.base64).toBe('string');
-
-          // Check the decoded length is reasonable (at least 10KB)
-          const decoded = Buffer.from(result.image.base64, 'base64');
-          expect(decoded.length).toBeGreaterThan(10 * 1024);
-        });
-      },
-    );
   };
 }
