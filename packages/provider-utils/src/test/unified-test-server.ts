@@ -1,5 +1,6 @@
 import { http, HttpResponse, JsonBodyType } from 'msw';
 import { setupServer } from 'msw/node';
+import { convertArrayToReadableStream } from './convert-array-to-readable-stream';
 
 export type UrlHandler = {
   response?:
@@ -7,6 +8,11 @@ export type UrlHandler = {
         type: 'json-value';
         headers?: Record<string, string>;
         body: JsonBodyType;
+      }
+    | {
+        type: 'stream-chunks';
+        headers?: Record<string, string>;
+        chunks: Array<string>;
       }
     | {
         type: 'binary';
@@ -32,6 +38,11 @@ export type FullUrlHandler = {
         type: 'json-value';
         headers?: Record<string, string>;
         body: JsonBodyType;
+      }
+    | {
+        type: 'stream-chunks';
+        headers?: Record<string, string>;
+        chunks: Array<string>;
       }
     | {
         type: 'binary';
@@ -119,6 +130,21 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
               },
             });
 
+          case 'stream-chunks':
+            return new HttpResponse(
+              convertArrayToReadableStream(response.chunks).pipeThrough(
+                new TextEncoderStream(),
+              ),
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'text/event-stream',
+                  'Cache-Control': 'no-cache',
+                  Connection: 'keep-alive',
+                  ...response.headers,
+                },
+              },
+            );
           case 'binary': {
             return HttpResponse.arrayBuffer(response.body, {
               status: 200,

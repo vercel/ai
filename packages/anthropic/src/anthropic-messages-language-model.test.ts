@@ -1,6 +1,5 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
-  StreamingTestServer,
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
@@ -436,24 +435,32 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
-  const server = new StreamingTestServer(
-    'https://api.anthropic.com/v1/messages',
-  );
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
 
-  server.setupTestEnvironment();
-
-  function prepareStreamResponse({ content }: { content: string[] }) {
-    server.responseChunks = [
-      `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}      }\n\n`,
-      `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
-      `data: {"type": "ping"}\n\n`,
-      ...content.map(text => {
-        return `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${text}"}              }\n\n`;
-      }),
-      `data: {"type":"content_block_stop","index":0             }\n\n`,
-      `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}          }\n\n`,
-      `data: {"type":"message_stop"           }\n\n`,
-    ];
+  function prepareStreamResponse({
+    content,
+    headers,
+  }: {
+    content: string[];
+    headers?: Record<string, string>;
+  }) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'stream-chunks',
+      headers,
+      chunks: [
+        `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}      }\n\n`,
+        `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
+        `data: {"type": "ping"}\n\n`,
+        ...content.map(text => {
+          return `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${text}"}              }\n\n`;
+        }),
+        `data: {"type":"content_block_stop","index":0             }\n\n`,
+        `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}          }\n\n`,
+        `data: {"type":"message_stop"           }\n\n`,
+      ],
+    };
   }
 
   it('should stream text deltas', async () => {
@@ -485,24 +492,27 @@ describe('doStream', () => {
   });
 
   it('should stream tool deltas', async () => {
-    server.responseChunks = [
-      `data: {"type":"message_start","message":{"id":"msg_01GouTqNCGXzrj5LQ5jEkw67","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":441,"output_tokens":2},"content":[],"stop_reason":null}            }\n\n`,
-      `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}      }\n\n`,
-      `data: {"type": "ping"}\n\n`,
-      `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Okay"}    }\n\n`,
-      `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}   }\n\n`,
-      `data: {"type":"content_block_stop","index":0    }\n\n`,
-      `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01DBsB4vvYLnBDzZ5rBSxSLs","name":"test-tool","input":{}}      }\n\n`,
-      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}           }\n\n`,
-      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value"}              }\n\n`,
-      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\":"}      }\n\n`,
-      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Spark"}          }\n\n`,
-      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"le"}          }\n\n`,
-      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":" Day\\"}"}               }\n\n`,
-      `data: {"type":"content_block_stop","index":1              }\n\n`,
-      `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}           }\n\n`,
-      `data: {"type":"message_stop"           }\n\n`,
-    ];
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"type":"message_start","message":{"id":"msg_01GouTqNCGXzrj5LQ5jEkw67","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":441,"output_tokens":2},"content":[],"stop_reason":null}            }\n\n`,
+        `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}      }\n\n`,
+        `data: {"type": "ping"}\n\n`,
+        `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Okay"}    }\n\n`,
+        `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}   }\n\n`,
+        `data: {"type":"content_block_stop","index":0    }\n\n`,
+        `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01DBsB4vvYLnBDzZ5rBSxSLs","name":"test-tool","input":{}}      }\n\n`,
+        `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}           }\n\n`,
+        `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value"}              }\n\n`,
+        `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\":"}      }\n\n`,
+        `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Spark"}          }\n\n`,
+        `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"le"}          }\n\n`,
+        `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":" Day\\"}"}               }\n\n`,
+        `data: {"type":"content_block_stop","index":1              }\n\n`,
+        `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}           }\n\n`,
+        `data: {"type":"message_stop"           }\n\n`,
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -598,12 +608,15 @@ describe('doStream', () => {
   });
 
   it('should forward error chunks', async () => {
-    server.responseChunks = [
-      `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}      }\n\n`,
-      `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
-      `data: {"type": "ping"}\n\n`,
-      `data: {"type":"error","error":{"type":"error","message":"test error"}}\n\n`,
-    ];
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}      }\n\n`,
+        `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
+        `data: {"type": "ping"}\n\n`,
+        `data: {"type":"error","error":{"type":"error","message":"test error"}}\n\n`,
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -622,11 +635,10 @@ describe('doStream', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareStreamResponse({ content: [] });
-
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+    prepareStreamResponse({
+      content: [],
+      headers: { 'test-header': 'test-value' },
+    });
 
     const { rawResponse } = await model.doStream({
       inputFormat: 'prompt',
@@ -654,7 +666,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       stream: true,
       model: 'claude-3-haiku-20240307',
       max_tokens: 4096, // default value
@@ -681,9 +693,7 @@ describe('doStream', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
-
-    expect(requestHeaders).toStrictEqual({
+    expect(server.calls[0].requestHeaders).toStrictEqual({
       'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
@@ -693,18 +703,21 @@ describe('doStream', () => {
   });
 
   it('should support cache control', async () => {
-    server.responseChunks = [
-      `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],` +
-        `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
-        // send cache output tokens:
-        `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}}      }\n\n`,
-      `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
-      `data: {"type": "ping"}\n\n`,
-      `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${'Hello'}"}              }\n\n`,
-      `data: {"type":"content_block_stop","index":0             }\n\n`,
-      `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}          }\n\n`,
-      `data: {"type":"message_stop"           }\n\n`,
-    ];
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],` +
+          `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
+          // send cache output tokens:
+          `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}}      }\n\n`,
+        `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
+        `data: {"type": "ping"}\n\n`,
+        `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${'Hello'}"}              }\n\n`,
+        `data: {"type":"content_block_stop","index":0             }\n\n`,
+        `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}          }\n\n`,
+        `data: {"type":"message_stop"           }\n\n`,
+      ],
+    };
 
     const model = provider('claude-3-haiku-20240307', {
       cacheControl: true,
