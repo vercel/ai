@@ -1,21 +1,14 @@
 # AI SDK - Replicate Provider
 
-Run models on [Replicate](https://replicate.com) using the [Vercel AI SDK](https://sdk.vercel.ai/docs).
+The **[Replicate provider](https://sdk.vercel.ai/providers/ai-sdk-providers/replicate)** for the [AI SDK](https://sdk.vercel.ai/docs) contains image model support for the Replicate API.
 
-## Installation
+## Setup
 
-The Replicate provider is available in the `@ai-sdk/replicate` module, which is published on npm. You can install it with:
+The Replicate provider is available in the `@ai-sdk/replicate` module. You can install it with
 
 ```bash
 npm i @ai-sdk/replicate
 ```
-
-## Supported Models
-
-The Replicate provider currently supports the following models:
-
-- [black-forest-labs/flux-schnell](https://replicate.com/black-forest-labs/flux-schnell)
-- [black-forest-labs/flux-dev](https://replicate.com/black-forest-labs/flux-dev)
 
 ## Usage
 
@@ -28,50 +21,26 @@ const { image } = await generateImage({
   prompt: 'The Loch Ness Monster getting a manicure',
 });
 
-console.log(image);
+const filename = `image-${Date.now()}.png`;
+fs.writeFileSync(filename, image.uint8Array);
+console.log(`Image saved to ${filename}`);
 ```
 
-If you want to pass additional inputs to the model besides the prompt, use the `providerOptions` property:
+If you want to pass additional inputs to the model besides the prompt, use the `providerOptions.replicate` property:
 
 ```ts
 const { image } = await generateImage({
-  model: replicate.image('black-forest-labs/flux-schnell'),
-  prompt: 'The Loch Ness Monster getting a manicure, wide shot',
+  model: replicate.image('recraft-ai/recraft-v3'),
+  prompt: 'The Loch Ness Monster getting a manicure',
+  size: '1365x1024',
   providerOptions: {
     replicate: {
-      input: {
-        aspect_ratio: '16:9',
-        seed: 123456,
-      },
+      style: 'realistic_image',
     },
   },
 });
 ```
 
-## Development
+## Documentation
 
-To contribute to the Replicate provider, do the following:
-
-Clone the repo:
-
-```
-git clone https://github.com/vercel/ai
-```
-
-Go into the `replicate` package:
-
-```
-cd packages/replicate
-```
-
-Install the dependencies (using [pnpm](https://pnpm.io/)):
-
-```bash
-pnpm install
-```
-
-Run the tests (again using pnpm):
-
-```bash
-pnpm test
-```
+Please check out the **[Replicate provider](https://sdk.vercel.ai/providers/ai-sdk-providers/replicate)** for more information.
