@@ -265,3 +265,53 @@ export function describeWithTestServer(
     });
   });
 }
+
+export function createTestServer(
+  responses: Array<TestServerResponse> | TestServerResponse,
+) {
+  let server: ReturnType<typeof setupServer>;
+  let calls: Array<TestServerCall> = [];
+  let controllers: Record<
+    string,
+    () => ReadableStreamDefaultController<string>
+  > = {};
+
+  beforeAll(() => {
+    server = createServer({
+      responses,
+      pushCall: call => calls.push(call),
+      pushController: (id, controller) => {
+        controllers[id] = controller;
+      },
+    });
+    server.listen();
+  });
+
+  beforeEach(() => {
+    calls = [];
+    controllers = {};
+    server.resetHandlers();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  return {
+    get server() {
+      return server;
+    },
+    get calls() {
+      return calls;
+    },
+    get call() {
+      return (index: number) => calls[index];
+    },
+    get streamControllers() {
+      return controllers;
+    },
+    get streamController() {
+      return controllers['']();
+    },
+  };
+}
