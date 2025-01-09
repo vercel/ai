@@ -244,6 +244,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                       toolResultsStreamController!.enqueue({
                         type: 'error',
                         error: new ToolExecutionError({
+                          toolCallId: toolCall.toolCallId,
                           toolName: toolCall.toolName,
                           toolArgs: toolCall.args,
                           cause: error,
