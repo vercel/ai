@@ -54,9 +54,9 @@ describe('doGenerate', () => {
     await model.doGenerate({
       prompt,
       n: 1,
-      size: undefined,
-      aspectRatio: undefined,
-      seed: undefined,
+      size: '1024x768',
+      aspectRatio: '3:4',
+      seed: 123,
       providerOptions: {},
     });
 
@@ -64,6 +64,10 @@ describe('doGenerate', () => {
       input: {
         prompt,
         num_outputs: 1,
+        aspect_ratio: '3:4',
+        width: 1024,
+        height: 768,
+        seed: 123,
       },
     });
   });
@@ -163,33 +167,5 @@ describe('doGenerate', () => {
     expect(server.calls[1].requestUrl).toStrictEqual(
       'https://replicate.delivery/xezq/abc/out-0.webp',
     );
-  });
-
-  // TODO multi-image test
-
-  it.skip('should return warnings for unsupported settings', async () => {
-    prepareResponse();
-
-    const result = await model.doGenerate({
-      prompt,
-      n: 1,
-      size: '1024x1024',
-      aspectRatio: '1:1',
-      seed: 123,
-      providerOptions: {},
-    });
-
-    expect(result.warnings).toStrictEqual([
-      {
-        type: 'unsupported-setting',
-        setting: 'aspectRatio',
-        details:
-          'This model does not support aspect ratio. Use `size` instead.',
-      },
-      {
-        type: 'unsupported-setting',
-        setting: 'seed',
-      },
-    ]);
   });
 });

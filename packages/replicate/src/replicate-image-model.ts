@@ -49,8 +49,10 @@ export class ReplicateImageModel implements ImageModelV1 {
 
   async doGenerate({
     prompt,
-    n = 1,
+    n,
+    aspectRatio,
     size,
+    seed,
     providerOptions,
     headers,
     abortSignal,
@@ -59,15 +61,7 @@ export class ReplicateImageModel implements ImageModelV1 {
   > {
     const warnings: Array<ImageModelV1CallWarning> = [];
 
-    const body = {
-      input: {
-        prompt,
-        num_outputs: n,
-        ...((providerOptions.replicate?.input as Record<string, unknown>) ??
-          {}),
-      },
-    };
-
+    const splitSize = size?.split('x');
     const {
       value: { output },
     } = await postJsonToApi({
@@ -75,7 +69,17 @@ export class ReplicateImageModel implements ImageModelV1 {
       headers: combineHeaders(await resolve(this.config.headers), headers, {
         prefer: 'wait',
       }),
-      body,
+      body: {
+        input: {
+          prompt,
+          aspect_ratio: aspectRatio,
+          ...(splitSize && { width: +splitSize[0], height: +splitSize[1] }),
+          seed,
+          num_outputs: n,
+          ...((providerOptions.replicate?.input as Record<string, unknown>) ??
+            {}),
+        },
+      },
       failedResponseHandler: replicateFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         replicateImageResponseSchema,
@@ -84,9 +88,8 @@ export class ReplicateImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
 
-    const outputArray = Array.isArray(output) ? output : [output];
-
     // download the images:
+    const outputArray = Array.isArray(output) ? output : [output];
     const images = await Promise.all(
       outputArray.map(async url => {
         const response = await fetch(url);
