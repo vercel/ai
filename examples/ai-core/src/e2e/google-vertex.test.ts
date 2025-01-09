@@ -1,24 +1,21 @@
 import 'dotenv/config';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect } from 'vitest';
 import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
 import { vertex as vertexNode } from '@ai-sdk/google-vertex';
+import { APICallError, LanguageModelV1 } from 'ai';
 import {
-  generateText,
-  experimental_generateImage as generateImage,
-  APICallError,
-  LanguageModelV1,
-} from 'ai';
-import type { Capability } from './feature-test-suite';
-import {
+  createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
+  createLanguageModelWithCapabilities,
+  defaultChatModelCapabilities,
   ModelWithCapabilities,
 } from './feature-test-suite';
 
 const RUNTIME_VARIANTS = {
-  // edge: {
-  //   name: 'Edge Runtime',
-  //   vertex: vertexEdge,
-  // },
+  edge: {
+    name: 'Edge Runtime',
+    vertex: vertexEdge,
+  },
   node: {
     name: 'Node Runtime',
     vertex: vertexNode,
@@ -26,39 +23,27 @@ const RUNTIME_VARIANTS = {
 } as const;
 
 const createBaseModel = (
+  vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> => ({
-  model: vertexNode(modelId),
-  capabilities: [
-    'imageInput',
-    'objectGeneration',
-    'pdfInput',
-    'textCompletion',
-    'toolCalls',
-  ],
-});
+): ModelWithCapabilities<LanguageModelV1> =>
+  createLanguageModelWithCapabilities(vertex(modelId));
 
 const createSearchGroundedModel = (
+  vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
 ): ModelWithCapabilities<LanguageModelV1> => ({
-  model: vertexNode(modelId, {
+  model: vertex(modelId, {
     useSearchGrounding: true,
   }),
-  capabilities: [
-    'imageInput',
-    'objectGeneration',
-    'pdfInput',
-    'searchGrounding',
-    'textCompletion',
-    'toolCalls',
-  ],
+  capabilities: [...defaultChatModelCapabilities, 'searchGrounding'],
 });
 
 const createModelVariants = (
+  vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
 ): ModelWithCapabilities<LanguageModelV1>[] => [
-  createBaseModel(modelId),
-  createSearchGroundedModel(modelId),
+  createBaseModel(vertex, modelId),
+  createSearchGroundedModel(vertex, modelId),
 ];
 
 const createModelsForRuntime = (
@@ -66,21 +51,19 @@ const createModelsForRuntime = (
 ) => ({
   invalidModel: vertex('no-such-model'),
   languageModels: [
-    ...createModelVariants('gemini-2.0-flash-exp'),
-    // ...createModelVariants('gemini-1.5-flash'),
+    ...createModelVariants(vertex, 'gemini-2.0-flash-exp'),
+    ...createModelVariants(vertex, 'gemini-1.5-flash'),
     // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
-    // ...createModelVariants('gemini-1.5-pro-001'),
-    // ...createModelVariants('gemini-1.0-pro-001'),
+    // ...createModelVariants(vertex, 'gemini-1.5-pro-001'),
+    // ...createModelVariants(vertex, 'gemini-1.0-pro-001'),
   ],
   embeddingModels: [
-    {
-      model: vertex.textEmbeddingModel('textembedding-gecko'),
-      capabilities: ['embedding'] satisfies Capability[],
-    },
-    {
-      model: vertex.textEmbeddingModel('textembedding-gecko-multilingual'),
-      capabilities: ['embedding'] satisfies Capability[],
-    },
+    createEmbeddingModelWithCapabilities(
+      vertex.textEmbeddingModel('textembedding-gecko'),
+    ),
+    createEmbeddingModelWithCapabilities(
+      vertex.textEmbeddingModel('textembedding-gecko-multilingual'),
+    ),
   ],
 });
 

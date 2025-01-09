@@ -3,55 +3,45 @@ import { expect } from 'vitest';
 import { GoogleErrorData, google as provider } from '@ai-sdk/google';
 import { APICallError, LanguageModelV1 } from 'ai';
 import {
-  createFeatureTestSuite,
   ModelWithCapabilities,
+  createEmbeddingModelWithCapabilities,
+  createFeatureTestSuite,
+  createLanguageModelWithCapabilities,
+  defaultChatModelCapabilities,
 } from './feature-test-suite';
 
-const createBaseModel = (
+const createChatModel = (
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> => ({
-  model: provider.chat(modelId),
-  capabilities: [
-    'imageInput',
-    'objectGeneration',
-    'pdfInput',
-    'textCompletion',
-    'toolCalls',
-  ],
-});
+): ModelWithCapabilities<LanguageModelV1> =>
+  createLanguageModelWithCapabilities(provider.chat(modelId));
 
 const createSearchGroundedModel = (
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> => ({
-  model: provider.chat(modelId, { useSearchGrounding: true }),
-  capabilities: [
-    'imageInput',
-    'objectGeneration',
-    'pdfInput',
-    'searchGrounding',
-    'textCompletion',
-    'toolCalls',
-  ],
-});
+): ModelWithCapabilities<LanguageModelV1> => {
+  const model = provider.chat(modelId, { useSearchGrounding: true });
+  return {
+    model,
+    capabilities: [...defaultChatModelCapabilities, 'searchGrounding'],
+  };
+};
 
 createFeatureTestSuite({
   name: 'Google Generative AI',
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
-      // createSearchGroundedModel('gemini-1.5-flash-latest'),
-      // createBaseModel('gemini-1.5-flash-latest'),
-      // // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
-      // createBaseModel('gemini-2.0-flash-exp'),
+      createSearchGroundedModel('gemini-1.5-flash-latest'),
+      createChatModel('gemini-1.5-flash-latest'),
+      // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
+      createChatModel('gemini-2.0-flash-exp'),
       createSearchGroundedModel('gemini-2.0-flash-exp'),
-      // createBaseModel('gemini-1.5-pro-latest'),
-      // createBaseModel('gemini-1.0-pro'),
+      createChatModel('gemini-1.5-pro-latest'),
+      createChatModel('gemini-1.0-pro'),
     ],
     embeddingModels: [
-      {
-        model: provider.textEmbeddingModel('text-embedding-004'),
-        capabilities: ['embedding'],
-      },
+      createEmbeddingModelWithCapabilities(
+        provider.textEmbeddingModel('text-embedding-004'),
+      ),
     ],
   },
   timeout: 10000,

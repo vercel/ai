@@ -34,6 +34,40 @@ export interface ModelWithCapabilities<T> {
   capabilities?: ModelCapabilities;
 }
 
+export const defaultChatModelCapabilities: ModelCapabilities = [
+  // embedding is not supported by language models.
+  // searchGrounding is not supported by most language models.
+  'imageInput',
+  'objectGeneration',
+  'pdfInput',
+  'textCompletion',
+  'toolCalls',
+];
+
+export const createLanguageModelWithCapabilities = (
+  model: LanguageModelV1,
+  capabilities: ModelCapabilities = defaultChatModelCapabilities,
+): ModelWithCapabilities<LanguageModelV1> => ({
+  model,
+  capabilities,
+});
+
+export const createEmbeddingModelWithCapabilities = (
+  model: EmbeddingModelV1<string>,
+  capabilities: ModelCapabilities = ['embedding'],
+): ModelWithCapabilities<EmbeddingModelV1<string>> => ({
+  model,
+  capabilities,
+});
+
+export const createImageModelWithCapabilities = (
+  model: ImageModelV1,
+  capabilities: ModelCapabilities = ['imageInput'],
+): ModelWithCapabilities<ImageModelV1> => ({
+  model,
+  capabilities,
+});
+
 export interface ModelVariants {
   invalidModel?: LanguageModelV1;
   languageModels?: ModelWithCapabilities<LanguageModelV1>[];
@@ -120,6 +154,17 @@ const shouldRunTests = (
     : false;
 };
 
+function describeIfCapability(
+  capabilities: ModelCapabilities | undefined,
+  requiredCapabilities: Capability[],
+  description: string,
+  callback: () => void,
+) {
+  if (shouldRunTests(capabilities, requiredCapabilities)) {
+    describe(description, callback);
+  }
+}
+
 export function createFeatureTestSuite({
   name,
   models,
@@ -139,8 +184,11 @@ export function createFeatureTestSuite({
       describe.each(createModelObjects(models.languageModels))(
         'Language Model: $modelId',
         ({ model, capabilities }) => {
-          if (shouldRunTests(capabilities, ['textCompletion'])) {
-            describe('Basic Text Generation', () => {
+          describeIfCapability(
+            capabilities,
+            ['textCompletion'],
+            'Basic Text Generation',
+            () => {
               it('should generate text', async () => {
                 const result = await generateText({
                   model,
@@ -193,11 +241,14 @@ export function createFeatureTestSuite({
                   expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
                 }
               });
-            });
-          }
+            },
+          );
 
-          if (shouldRunTests(capabilities, ['objectGeneration'])) {
-            describe('Object Generation', () => {
+          describeIfCapability(
+            capabilities,
+            ['objectGeneration'],
+            'Object Generation',
+            () => {
               it('should generate basic blog metadata', async () => {
                 const result = await generateObject({
                   model,
@@ -580,11 +631,14 @@ export function createFeatureTestSuite({
                   expect(result.object.price).toBeGreaterThan(0);
                 });
               });
-            });
-          }
+            },
+          );
 
-          if (shouldRunTests(capabilities, ['toolCalls'])) {
-            describe('Tool Calls', () => {
+          describeIfCapability(
+            capabilities,
+            ['toolCalls'],
+            'Tool Calls',
+            () => {
               it('should generate text with tool calls', async () => {
                 const result = await generateText({
                   model,
@@ -640,11 +694,14 @@ export function createFeatureTestSuite({
                   expect((await result.usage).totalTokens).toBeGreaterThan(0);
                 }
               });
-            });
-          }
+            },
+          );
 
-          if (shouldRunTests(capabilities, ['imageInput'])) {
-            describe('Image Input', () => {
+          describeIfCapability(
+            capabilities,
+            ['imageInput'],
+            'Image Input',
+            () => {
               it('should generate text with image URL input', async () => {
                 const result = await generateText({
                   model,
@@ -766,43 +823,44 @@ export function createFeatureTestSuite({
                   expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
                 }
               });
-            });
-          }
+            },
+          );
 
-          if (shouldRunTests(capabilities, ['pdfInput'])) {
-            describe('PDF Input', () => {
-              it('should generate text with PDF input', async () => {
-                const result = await generateText({
-                  model,
-                  messages: [
-                    {
-                      role: 'user',
-                      content: [
-                        {
-                          type: 'text',
-                          text: 'Summarize the contents of this PDF.',
-                        },
-                        {
-                          type: 'file',
-                          data: fs
-                            .readFileSync('./data/ai.pdf')
-                            .toString('base64'),
-                          mimeType: 'application/pdf',
-                        },
-                      ],
-                    },
-                  ],
-                });
-
-                expect(result.text).toBeTruthy();
-                expect(result.text.toLowerCase()).toContain('embedding');
-                expect(result.usage?.totalTokens).toBeGreaterThan(0);
+          describeIfCapability(capabilities, ['pdfInput'], 'PDF Input', () => {
+            it('should generate text with PDF input', async () => {
+              const result = await generateText({
+                model,
+                messages: [
+                  {
+                    role: 'user',
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'Summarize the contents of this PDF.',
+                      },
+                      {
+                        type: 'file',
+                        data: fs
+                          .readFileSync('./data/ai.pdf')
+                          .toString('base64'),
+                        mimeType: 'application/pdf',
+                      },
+                    ],
+                  },
+                ],
               });
-            });
-          }
 
-          if (shouldRunTests(capabilities, ['searchGrounding'])) {
-            describe('Search Grounding', () => {
+              expect(result.text).toBeTruthy();
+              expect(result.text.toLowerCase()).toContain('embedding');
+              expect(result.usage?.totalTokens).toBeGreaterThan(0);
+            });
+          });
+
+          describeIfCapability(
+            capabilities,
+            ['searchGrounding'],
+            'Search Grounding',
+            () => {
               it('should include search grounding metadata in response when search grounding is enabled', async () => {
                 const result = await generateText({
                   model,
@@ -866,8 +924,8 @@ export function createFeatureTestSuite({
 
                 verifySafetyRatings(metadata?.safetyRatings ?? []);
               });
-            });
-          }
+            },
+          );
         },
       );
 
@@ -913,37 +971,42 @@ export function createFeatureTestSuite({
         describe.each(createModelObjects(models.embeddingModels))(
           'Embedding Model: $modelId',
           ({ model, capabilities }) => {
-            if (shouldRunTests(capabilities, ['embedding'])) {
-              it('should generate single embedding', async () => {
-                const result = await embed({
-                  model,
-                  value: 'This is a test sentence for embedding.',
+            describeIfCapability(
+              capabilities,
+              ['embedding'],
+              'Embedding Generation',
+              () => {
+                it('should generate single embedding', async () => {
+                  const result = await embed({
+                    model,
+                    value: 'This is a test sentence for embedding.',
+                  });
+
+                  expect(Array.isArray(result.embedding)).toBe(true);
+                  expect(result.embedding.length).toBeGreaterThan(0);
+                  if (!customAssertions.skipUsage) {
+                    expect(result.usage?.tokens).toBeGreaterThan(0);
+                  }
                 });
 
-                expect(Array.isArray(result.embedding)).toBe(true);
-                expect(result.embedding.length).toBeGreaterThan(0);
-                if (!customAssertions.skipUsage) {
-                  expect(result.usage?.tokens).toBeGreaterThan(0);
-                }
-              });
+                it('should generate multiple embeddings', async () => {
+                  const result = await embedMany({
+                    model,
+                    values: [
+                      'First test sentence.',
+                      'Second test sentence.',
+                      'Third test sentence.',
+                    ],
+                  });
 
-              it('should generate multiple embeddings', async () => {
-                const result = await embedMany({
-                  model,
-                  values: [
-                    'First test sentence.',
-                    'Second test sentence.',
-                    'Third test sentence.',
-                  ],
+                  expect(Array.isArray(result.embeddings)).toBe(true);
+                  expect(result.embeddings.length).toBe(3);
+                  if (!customAssertions.skipUsage) {
+                    expect(result.usage?.tokens).toBeGreaterThan(0);
+                  }
                 });
-
-                expect(Array.isArray(result.embeddings)).toBe(true);
-                expect(result.embeddings.length).toBe(3);
-                if (!customAssertions.skipUsage) {
-                  expect(result.usage?.tokens).toBeGreaterThan(0);
-                }
-              });
-            }
+              },
+            );
           },
         );
       }
@@ -952,22 +1015,27 @@ export function createFeatureTestSuite({
         describe.each(createModelObjects(models.imageModels))(
           'Image Model: $modelId',
           ({ model, capabilities }) => {
-            if (shouldRunTests(capabilities, ['imageInput'])) {
-              it('should generate an image', async () => {
-                const result = await generateImage({
-                  model,
-                  prompt: 'A cute cartoon cat',
+            describeIfCapability(
+              capabilities,
+              ['imageInput'],
+              'Image Generation',
+              () => {
+                it('should generate an image', async () => {
+                  const result = await generateImage({
+                    model,
+                    prompt: 'A cute cartoon cat',
+                  });
+
+                  // Verify we got a base64 string back
+                  expect(result.image.base64).toBeTruthy();
+                  expect(typeof result.image.base64).toBe('string');
+
+                  // Check the decoded length is reasonable (at least 10KB)
+                  const decoded = Buffer.from(result.image.base64, 'base64');
+                  expect(decoded.length).toBeGreaterThan(10 * 1024);
                 });
-
-                // Verify we got a base64 string back
-                expect(result.image.base64).toBeTruthy();
-                expect(typeof result.image.base64).toBe('string');
-
-                // Check the decoded length is reasonable (at least 10KB)
-                const decoded = Buffer.from(result.image.base64, 'base64');
-                expect(decoded.length).toBeGreaterThan(10 * 1024);
-              });
-            }
+              },
+            );
           },
         );
       }

@@ -4,65 +4,43 @@ import {
   togetherai as provider,
   TogetherAIErrorData,
 } from '@ai-sdk/togetherai';
-import { APICallError, LanguageModelV1 } from 'ai';
-import type { Capability } from './feature-test-suite';
+import { APICallError } from 'ai';
 import {
+  createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
-  ModelWithCapabilities,
+  createLanguageModelWithCapabilities,
 } from './feature-test-suite';
 
-const createBaseChatModel = (
-  modelId: string,
-): ModelWithCapabilities<LanguageModelV1> => ({
-  model: provider.chatModel(modelId),
-  capabilities: [
-    'imageInput',
-    'objectGeneration',
-    'pdfInput',
-    'textCompletion',
-    'toolCalls',
-  ],
-});
+const createChatModel = (modelId: string) =>
+  createLanguageModelWithCapabilities(provider.chatModel(modelId));
 
-const createBaseLanguageModel = (
-  modelId: string,
-): ModelWithCapabilities<LanguageModelV1> => ({
-  model: provider.completionModel(modelId),
-  capabilities: [
-    'imageInput',
-    'objectGeneration',
-    'pdfInput',
-    'textCompletion',
-    'toolCalls',
-  ],
-});
+const createCompletionModel = (modelId: string) =>
+  createLanguageModelWithCapabilities(provider.completionModel(modelId));
 
 createFeatureTestSuite({
   name: 'TogetherAI',
   models: {
     invalidModel: provider.chatModel('no-such-model'),
     languageModels: [
-      createBaseChatModel('deepseek-ai/DeepSeek-V3'), // no tools, objects, or images
-      createBaseChatModel('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'),
-      createBaseChatModel('mistralai/Mistral-7B-Instruct-v0.1'),
-      createBaseChatModel('google/gemma-2b-it'),
-      createBaseChatModel('meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'),
-      createBaseChatModel('mistralai/Mixtral-8x7B-Instruct-v0.1'),
-      createBaseChatModel('Qwen/Qwen2.5-72B-Instruct-Turbo'),
-      createBaseChatModel('databricks/dbrx-instruct'),
-      createBaseLanguageModel('Qwen/Qwen2.5-Coder-32B-Instruct'),
+      createChatModel('deepseek-ai/DeepSeek-V3'), // no tools, objects, or images
+      createChatModel('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'),
+      createChatModel('mistralai/Mistral-7B-Instruct-v0.1'),
+      createChatModel('google/gemma-2b-it'),
+      createChatModel('meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'),
+      createChatModel('mistralai/Mixtral-8x7B-Instruct-v0.1'),
+      createChatModel('Qwen/Qwen2.5-72B-Instruct-Turbo'),
+      createChatModel('databricks/dbrx-instruct'),
+      createCompletionModel('Qwen/Qwen2.5-Coder-32B-Instruct'),
     ],
     embeddingModels: [
-      {
-        model: provider.textEmbeddingModel(
+      createEmbeddingModelWithCapabilities(
+        provider.textEmbeddingModel(
           'togethercomputer/m2-bert-80M-8k-retrieval',
         ),
-        capabilities: ['embedding'] satisfies Capability[],
-      },
-      {
-        model: provider.textEmbeddingModel('BAAI/bge-base-en-v1.5'),
-        capabilities: ['embedding'] satisfies Capability[],
-      },
+      ),
+      createEmbeddingModelWithCapabilities(
+        provider.textEmbeddingModel('BAAI/bge-base-en-v1.5'),
+      ),
     ],
   },
   timeout: 10000,

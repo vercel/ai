@@ -26,32 +26,16 @@ import {
 import type { Capability } from './feature-test-suite';
 import {
   createFeatureTestSuite,
+  defaultChatModelCapabilities,
   ModelWithCapabilities,
 } from './feature-test-suite';
 
-const LONG_TEST_MILLIS = 20000;
-const COMPUTER_USE_TEST_MILLIS = 45000;
-
-// Model variants to test against
-const MODEL_VARIANTS = {
-  chat: [
-    'claude-3-5-sonnet-v2@20241022',
-    // 'claude-3-5-haiku@20241022',
-    // 'claude-3-5-sonnet@20240620',
-    // Models must be individually enabled through the Cloud Console. The above are the latest and most likely to be used.
-    // 'claude-3-haiku@20240307',
-    // 'claude-3-sonnet@20240229',
-    // 'claude-3-opus@20240229',
-  ],
-} as const;
-
-// Define runtime variants
 const RUNTIME_VARIANTS = {
-  // edge: {
-  //   name: 'Edge Runtime',
-  //   createVertexAnthropic: createVertexAnthropicEdge,
-  //   vertexAnthropic: vertexAnthropicEdge,
-  // },
+  edge: {
+    name: 'Edge Runtime',
+    createVertexAnthropic: createVertexAnthropicEdge,
+    vertexAnthropic: vertexAnthropicEdge,
+  },
   node: {
     name: 'Node Runtime',
     createVertexAnthropic: createVertexAnthropicNode,
@@ -60,24 +44,29 @@ const RUNTIME_VARIANTS = {
 } as const;
 
 const createModelVariants = (
-  modelId: string,
   createVertexAnthropic:
     | typeof createVertexAnthropicNode
     | typeof createVertexAnthropicEdge,
+  modelId: string,
 ): ModelWithCapabilities<LanguageModelV1>[] => [
   {
     model: createVertexAnthropic({
       project: process.env.GOOGLE_VERTEX_PROJECT!,
       location: process.env.GOOGLE_VERTEX_LOCATION ?? 'us-east5',
     })(modelId),
-    capabilities: [
-      'imageInput',
-      'objectGeneration',
-      'pdfInput',
-      'textCompletion',
-      'toolCalls',
-    ],
+    capabilities: defaultChatModelCapabilities,
   },
+];
+
+// Model variants to test against
+const CHAT_MODELS = [
+  'claude-3-5-sonnet-v2@20241022',
+  // 'claude-3-5-haiku@20241022',
+  // 'claude-3-5-sonnet@20240620',
+  // Models must be individually enabled through the Cloud Console. The above are the latest and most likely to be used.
+  // 'claude-3-haiku@20240307',
+  // 'claude-3-sonnet@20240229',
+  // 'claude-3-opus@20240229',
 ];
 
 const createModelsForRuntime = (
@@ -85,10 +74,13 @@ const createModelsForRuntime = (
     | typeof createVertexAnthropicNode
     | typeof createVertexAnthropicEdge,
 ) => ({
-  languageModels: MODEL_VARIANTS.chat.flatMap(modelId =>
-    createModelVariants(modelId, createVertexAnthropic),
+  languageModels: CHAT_MODELS.flatMap(modelId =>
+    createModelVariants(createVertexAnthropic, modelId),
   ),
 });
+
+const LONG_TEST_MILLIS = 20000;
+const COMPUTER_USE_TEST_MILLIS = 45000;
 
 describe.each(Object.values(RUNTIME_VARIANTS))(
   'Vertex Anthropic E2E Tests - $name',
