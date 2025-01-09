@@ -17,6 +17,7 @@
     "@ai-sdk/openai": "1.0.15",
     "@ai-sdk/openai-compatible": "0.0.14",
     "@ai-sdk/provider": "1.0.4",
+    "@ai-sdk/replicate": "0.0.0",
     "@ai-sdk/togetherai": "0.0.17",
     "@ai-sdk/xai": "1.0.15",
     "@opentelemetry/sdk-node": "0.54.2",
