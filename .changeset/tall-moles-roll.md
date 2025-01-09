@@ -1,4 +1,6 @@
 ---
+'@ai-sdk/google': patch
+'@ai-sdk/openai-compatible': patch
 '@ai-sdk/xai': patch
 ---
 
