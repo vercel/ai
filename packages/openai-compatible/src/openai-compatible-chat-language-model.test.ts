@@ -517,7 +517,6 @@ describe('doGenerate', () => {
           type: 'json_schema',
           json_schema: {
             name: 'response',
-            strict: true,
             schema: {
               type: 'object',
               properties: { value: { type: 'string' } },
@@ -568,7 +567,6 @@ describe('doGenerate', () => {
           type: 'json_schema',
           json_schema: {
             name: 'response',
-            strict: true,
             schema: {
               type: 'object',
               properties: { value: { type: 'string' } },
@@ -620,7 +618,6 @@ describe('doGenerate', () => {
           json_schema: {
             name: 'test-name',
             description: 'test description',
-            strict: true,
             schema: {
               type: 'object',
               properties: { value: { type: 'string' } },
@@ -728,7 +725,6 @@ describe('doGenerate', () => {
                 additionalProperties: false,
                 $schema: 'http://json-schema.org/draft-07/schema#',
               },
-              strict: true,
             },
           },
         ],
