@@ -1,8 +1,8 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
-  JsonTestServer,
   StreamingTestServer,
   convertReadableStreamToArray,
+  createTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { AnthropicAssistantMessage } from './anthropic-api-types';
 import { createAnthropic } from './anthropic-provider';
@@ -15,9 +15,9 @@ const provider = createAnthropic({ apiKey: 'test-api-key' });
 const model = provider('claude-3-haiku-20240307');
 
 describe('doGenerate', () => {
-  const server = new JsonTestServer('https://api.anthropic.com/v1/messages');
-
-  server.setupTestEnvironment();
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
 
   function prepareJsonResponse({
     content = [{ type: 'text', text: '', cache_control: undefined }],
@@ -28,6 +28,7 @@ describe('doGenerate', () => {
     stopReason = 'end_turn',
     id = 'msg_017TfcQ4AgGxKyBduUpqYPZn',
     model = 'claude-3-haiku-20240307',
+    headers = {},
   }: {
     content?: AnthropicAssistantMessage['content'];
     usage?: {
@@ -39,16 +40,21 @@ describe('doGenerate', () => {
     stopReason?: string;
     id?: string;
     model?: string;
+    headers?: Record<string, string>;
   }) {
-    server.responseBodyJson = {
-      id,
-      type: 'message',
-      role: 'assistant',
-      content,
-      model,
-      stop_reason: stopReason,
-      stop_sequence: null,
-      usage,
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        id,
+        type: 'message',
+        role: 'assistant',
+        content,
+        model,
+        stop_reason: stopReason,
+        stop_sequence: null,
+        usage,
+      },
     };
   }
 
@@ -170,8 +176,7 @@ describe('doGenerate', () => {
     expect(finishReason).toStrictEqual('tool-calls');
 
     // check request to Anthropic
-    const requestBodyJson = await server.getRequestBodyJson();
-    expect(requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       max_tokens: 4096,
       messages: [
         {
@@ -233,11 +238,11 @@ describe('doGenerate', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareJsonResponse({});
-
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+    prepareJsonResponse({
+      headers: {
+        'test-header': 'test-value',
+      },
+    });
 
     const { rawResponse } = await model.doGenerate({
       inputFormat: 'prompt',
@@ -270,7 +275,7 @@ describe('doGenerate', () => {
       frequencyPenalty: 0.15,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'claude-3-haiku-20240307',
       max_tokens: 100,
       stop_sequences: ['abc', 'def'],
@@ -309,7 +314,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'claude-3-haiku-20240307',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       max_tokens: 4096,
@@ -351,9 +356,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
-
-    expect(requestHeaders).toStrictEqual({
+    expect(await server.calls[0].requestHeaders).toStrictEqual({
       'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
@@ -392,7 +395,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'claude-3-haiku-20240307',
       messages: [
         {

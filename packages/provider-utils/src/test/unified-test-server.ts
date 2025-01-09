@@ -1,5 +1,4 @@
-import { JSONValue } from '@ai-sdk/provider';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, JsonBodyType } from 'msw';
 import { setupServer } from 'msw/node';
 
 export type UrlHandler = {
@@ -7,7 +6,7 @@ export type UrlHandler = {
     | {
         type: 'json-value';
         headers?: Record<string, string>;
-        body: JSONValue;
+        body: JsonBodyType;
       }
     | {
         type: 'binary';
@@ -32,7 +31,7 @@ export type FullUrlHandler = {
     | {
         type: 'json-value';
         headers?: Record<string, string>;
-        body: JSONValue;
+        body: JsonBodyType;
       }
     | {
         type: 'binary';
