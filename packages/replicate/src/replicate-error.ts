@@ -9,5 +9,5 @@ const replicateErrorSchema = z.object({
 export const replicateFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: replicateErrorSchema,
   errorToMessage: error =>
-    error.detail || error.error || 'Unknown Replicate error',
+    error.detail ?? error.error ?? 'Unknown Replicate error',
 });

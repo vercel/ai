@@ -94,9 +94,7 @@ export class ReplicateImageModel implements ImageModelV1 {
     const images = await Promise.all(
       output.map(async url => {
         const response = await fetch(url);
-        const blob = await response.blob();
-        const arrayBuffer = await blob.arrayBuffer();
-        return new Uint8Array(arrayBuffer);
+        return new Uint8Array(await response.arrayBuffer());
       }),
     );
 
