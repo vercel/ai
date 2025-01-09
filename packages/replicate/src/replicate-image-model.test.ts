@@ -8,12 +8,10 @@ const model = provider.image('black-forest-labs/flux-schnell');
 
 describe('doGenerate', () => {
   const server = createTestServer({
-    'https://api.replicate.com/*': {
-      type: 'json-value',
-    },
+    'https://api.replicate.com/*': {},
     'https://replicate.delivery/*': {
-      type: 'binary',
       response: {
+        type: 'binary',
         body: Buffer.from('test-binary-content'),
       },
     },
@@ -23,6 +21,7 @@ describe('doGenerate', () => {
     output = ['https://replicate.delivery/xezq/abc/out-0.webp'],
   }: { output?: string | Array<string> } = {}) {
     server.urls['https://api.replicate.com/*'].response = {
+      type: 'json-value',
       body: {
         id: 's7x1e3dcmhrmc0cm8rbatcneec',
         model: 'black-forest-labs/flux-schnell',
