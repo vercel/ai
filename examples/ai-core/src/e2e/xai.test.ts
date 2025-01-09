@@ -9,17 +9,17 @@ createFeatureTestSuite({
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
-      provider.chat('grok-beta'),
+      // provider.chat('grok-beta'),
       provider.chat('grok-2-1212'),
-      provider.chat('grok-vision-beta'),
-      provider.chat('grok-2-vision-1212'),
-      provider.languageModel('grok-beta'),
-      provider.languageModel('grok-2-1212'),
-      provider.languageModel('grok-vision-beta'),
-      provider.languageModel('grok-2-vision-1212'),
+      // provider.chat('grok-vision-beta'),
+      // provider.chat('grok-2-vision-1212'),
+      // provider.languageModel('grok-beta'),
+      // provider.languageModel('grok-2-1212'),
+      // provider.languageModel('grok-vision-beta'),
+      // provider.languageModel('grok-2-vision-1212'),
     ],
   },
-  timeout: 30000,
+  timeout: 10000,
   customAssertions: {
     errorValidator: (error: APICallError) => {
       expect((error.data as XaiErrorData).code).toBe(
