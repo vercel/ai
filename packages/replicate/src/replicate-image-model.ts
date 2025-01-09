@@ -59,12 +59,6 @@ export class ReplicateImageModel implements ImageModelV1 {
   > {
     const warnings: Array<ImageModelV1CallWarning> = [];
 
-    if (size) {
-      throw new Error(
-        'Replicate does not support the `size` option. Some models support width and height, some support aspect ratio, etc. Use model-specific input parameters instead, setting them in `providerOptions.replicate.input`.',
-      );
-    }
-
     const body = {
       input: {
         prompt,
@@ -90,9 +84,11 @@ export class ReplicateImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
 
+    const outputArray = Array.isArray(output) ? output : [output];
+
     // download the images:
     const images = await Promise.all(
-      output.map(async url => {
+      outputArray.map(async url => {
         const response = await fetch(url);
         return new Uint8Array(await response.arrayBuffer());
       }),
@@ -103,5 +99,5 @@ export class ReplicateImageModel implements ImageModelV1 {
 }
 
 const replicateImageResponseSchema = z.object({
-  output: z.array(z.string()),
+  output: z.union([z.array(z.string()), z.string()]),
 });

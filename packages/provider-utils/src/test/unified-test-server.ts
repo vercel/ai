@@ -93,7 +93,7 @@ class TestServerCall {
   }
 }
 
-export function createTestServer2<URLS extends { [url: string]: UrlHandler }>(
+export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
   routes: URLS,
 ): {
   urls: FullHandlers<URLS>;

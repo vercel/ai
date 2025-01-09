@@ -1,4 +1,4 @@
-import { createTestServer2 } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createReplicate } from './replicate-provider';
 
 const prompt = 'The Loch Ness monster getting a manicure';
@@ -7,7 +7,7 @@ const provider = createReplicate({ apiToken: 'test-api-token' });
 const model = provider.image('black-forest-labs/flux-schnell');
 
 describe('doGenerate', () => {
-  const server = createTestServer2({
+  const server = createTestServer({
     'https://api.replicate.com/*': {
       type: 'json-value',
     },
@@ -19,7 +19,9 @@ describe('doGenerate', () => {
     },
   });
 
-  function prepareResponse() {
+  function prepareResponse({
+    output = ['https://replicate.delivery/xezq/abc/out-0.webp'],
+  }: { output?: string | Array<string> } = {}) {
     server.urls['https://api.replicate.com/*'].response = {
       body: {
         id: 's7x1e3dcmhrmc0cm8rbatcneec',
@@ -30,7 +32,7 @@ describe('doGenerate', () => {
           prompt: 'The Loch Ness Monster getting a manicure',
         },
         logs: '',
-        output: ['https://replicate.delivery/xezq/abc/out-0.webp'],
+        output,
         data_removed: false,
         error: null,
         status: 'processing',
@@ -115,8 +117,34 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should extract the generated images', async () => {
-    prepareResponse();
+  it('should extract the generated image from array response', async () => {
+    prepareResponse({
+      output: ['https://replicate.delivery/xezq/abc/out-0.webp'],
+    });
+
+    const result = await model.doGenerate({
+      prompt,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.images).toStrictEqual([
+      new Uint8Array(Buffer.from('test-binary-content')),
+    ]);
+
+    expect(server.calls[1].requestMethod).toStrictEqual('GET');
+    expect(server.calls[1].requestUrl).toStrictEqual(
+      'https://replicate.delivery/xezq/abc/out-0.webp',
+    );
+  });
+
+  it('should extract the generated image from string response', async () => {
+    prepareResponse({
+      output: 'https://replicate.delivery/xezq/abc/out-0.webp',
+    });
 
     const result = await model.doGenerate({
       prompt,
