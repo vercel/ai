@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@4.0.31
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [e4ce80c]
   - ai@4.0.30
 

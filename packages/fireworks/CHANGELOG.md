@@ -1,5 +1,17 @@
 # @ai-sdk/fireworks
 
+## 0.0.10
+
+### Patch Changes
+
+- 90fb95a: chore (provider-utils): switch to unified test server
+- e6dfef4: feat (provider/fireworks): Support add'l image models.
+- Updated dependencies [90fb95a]
+- Updated dependencies [e6dfef4]
+- Updated dependencies [6636db6]
+  - @ai-sdk/provider-utils@2.0.7
+  - @ai-sdk/openai-compatible@0.0.15
+
 ## 0.0.9
 
 ### Patch Changes

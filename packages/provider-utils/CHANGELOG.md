@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 2.0.7
+
+### Patch Changes
+
+- 90fb95a: chore (provider-utils): switch to unified test server
+- e6dfef4: feat (provider/fireworks): Support add'l image models.
+- 6636db6: feat (provider-utils): add unified test server
+
 ## 2.0.6
 
 ### Patch Changes
