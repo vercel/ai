@@ -203,9 +203,13 @@ Enable streaming of tool call deltas as they are generated. Disabled by default.
 
     /**
 Optional transformation that is applied to the stream.
+
+@param stopStream - A function that stops the source stream.
+@param tools - The tools that are accessible to and can be called by the model. The model needs to support calling tools.
      */
     experimental_transform?: (options: {
       tools: TOOLS; // for type inference
+      stopStream: () => void;
     }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>;
 
     /**
@@ -267,7 +271,7 @@ Details for all steps.
     tools,
     toolChoice,
     toolCallStreaming,
-    transform: transform?.({ tools: tools as TOOLS }),
+    transform,
     activeTools,
     repairToolCall,
     maxSteps,
@@ -457,7 +461,10 @@ class DefaultStreamTextResult<
     toolChoice: CoreToolChoice<TOOLS> | undefined;
     toolCallStreaming: boolean;
     transform:
-      | TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>
+      | ((options: {
+          tools: TOOLS; // for type inference
+          stopStream: () => void;
+        }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>)
       | undefined;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
@@ -722,7 +729,14 @@ class DefaultStreamTextResult<
     // transform the stream before output parsing
     // to enable replacement of stream segments:
     if (transform) {
-      stream = stream.pipeThrough(transform);
+      stream = stream.pipeThrough(
+        transform({
+          tools: tools as TOOLS,
+          stopStream() {
+            stitchableStream.terminate();
+          },
+        }),
+      );
     }
 
     this.baseStream = stream

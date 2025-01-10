@@ -10,6 +10,7 @@ export function createStitchableStream<T>(): {
   stream: ReadableStream<T>;
   addStream: (innerStream: ReadableStream<T>) => void;
   close: () => void;
+  terminate: () => void;
 } {
   let innerStreamReaders: ReadableStreamDefaultReader<T>[] = [];
   let controller: ReadableStreamDefaultController<T> | null = null;
@@ -81,6 +82,11 @@ export function createStitchableStream<T>(): {
       innerStreamReaders.push(innerStream.getReader());
       waitForNewStream.resolve();
     },
+
+    /**
+     * Gracefully close the outer stream. This will let the inner streams
+     * finish processing and then close the outer stream.
+     */
     close: () => {
       isClosed = true;
       waitForNewStream.resolve();
@@ -88,6 +94,19 @@ export function createStitchableStream<T>(): {
       if (innerStreamReaders.length === 0) {
         controller?.close();
       }
+    },
+
+    /**
+     * Immediately close the outer stream. This will cancel all inner streams
+     * and close the outer stream.
+     */
+    terminate: () => {
+      isClosed = true;
+      waitForNewStream.resolve();
+
+      innerStreamReaders.forEach(reader => reader.cancel());
+      innerStreamReaders = [];
+      controller?.close();
     },
   };
 }

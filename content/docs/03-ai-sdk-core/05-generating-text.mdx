@@ -236,7 +236,7 @@ all text to uppercase:
 ```ts
 const upperCaseTransform =
   <TOOLS extends Record<string, CoreTool>>() =>
-  (options: { tools: TOOLS }) =>
+  (options: { tools: TOOLS; stopStream: () => void }) =>
     new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       transform(chunk, controller) {
         controller.enqueue(
