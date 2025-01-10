@@ -936,7 +936,15 @@ const reasoningModels = {
     systemMessageMode: 'remove',
     simulateStreamingByDefault: false,
   },
+  'o1-mini-2024-09-12': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
   'o1-preview': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
+  'o1-preview-2024-09-12': {
     systemMessageMode: 'remove',
     simulateStreamingByDefault: false,
   },
