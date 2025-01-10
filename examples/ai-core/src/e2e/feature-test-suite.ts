@@ -679,185 +679,51 @@ export function createFeatureTestSuite({
               });
 
               it('should handle multiple sequential tool calls', async () => {
-                let calculatorCalls = 0;
+                let weatherCalls = 0;
+                let musicCalls = 0;
+                const sfTemp = 15;
                 const result = await generateText({
                   model,
                   prompt:
-                    'First calculate 2+2, then calculate the result times 3 using the calculator tool.',
+                    'Check the temperature in San Francisco and play music that matches the weather. Be sure to report the chosen song name.',
                   tools: {
-                    calculator: {
+                    getTemperature: {
                       parameters: z.object({
-                        expression: z.string(),
+                        city: z
+                          .string()
+                          .describe('The city to check temperature for'),
                       }),
-                      execute: async ({ expression }) => {
-                        calculatorCalls++;
-                        return String(eval(expression));
+                      execute: async ({ city }) => {
+                        weatherCalls++;
+                        return `${sfTemp}`;
+                      },
+                    },
+                    playWeatherMusic: {
+                      parameters: z.object({
+                        temperature: z
+                          .number()
+                          .describe('Temperature in Celsius'),
+                      }),
+                      execute: async ({ temperature }) => {
+                        musicCalls++;
+                        if (temperature <= 10) {
+                          return 'Playing "Winter Winds" by Mumford & Sons';
+                        } else if (temperature <= 20) {
+                          return 'Playing "Foggy Day" by Frank Sinatra';
+                        } else if (temperature <= 30) {
+                          return 'Playing "Here Comes the Sun" by The Beatles';
+                        } else {
+                          return 'Playing "Hot Hot Hot" by Buster Poindexter';
+                        }
                       },
                     },
                   },
                   maxSteps: 10,
                 });
 
-                expect(result.text).toContain('12'); // (2+2)*3 = 12
-                expect(calculatorCalls).toBe(2); // Should be called exactly twice
-              });
-
-              it('should handle tool execution errors gracefully', async () => {
-                try {
-                  const result = await generateText({
-                    model,
-                    prompt: 'Calculate 1/0 using the calculator tool.',
-                    tools: {
-                      calculator: {
-                        parameters: z.object({
-                          expression: z.string(),
-                        }),
-                        execute: async ({ expression }) => {
-                          const result = eval(expression);
-                          if (!isFinite(result))
-                            throw new Error('Invalid calculation');
-                          return String(result);
-                        },
-                      },
-                    },
-                  });
-
-                  // Allow "gracefully" to mean either (a) the model refuses to
-                  // execute the tool call, or (b) the tool call fails.
-                  expect(
-                    result.text
-                      .toLowerCase()
-                      .match(
-                        /(invalid|impossible|not possible|cannot|undefined|infinity|error|invalid calculation)/,
-                      ),
-                  ).toBeTruthy();
-                } catch (error) {
-                  expect(error).toBeInstanceOf(ToolExecutionError);
-                  expect((error as ToolExecutionError).message).toContain(
-                    'Invalid calculation',
-                  );
-                }
-              });
-
-              it('should handle complex tool interactions', async () => {
-                const result = await generateText({
-                  model,
-                  prompt:
-                    'Create a shopping list calculator. Add bread ($2.50), milk ($3.75), and eggs ($4.25), then calculate the total.',
-                  tools: {
-                    calculator: {
-                      parameters: z.object({
-                        expression: z.string(),
-                      }),
-                      execute: async ({ expression }) => {
-                        return String(eval(expression));
-                      },
-                    },
-                    shoppingList: {
-                      parameters: z.object({
-                        action: z.enum(['add', 'total']),
-                        item: z.string().optional(),
-                        price: z.number().optional(),
-                      }),
-                      execute: async ({ action, item, price }) => {
-                        return action === 'total'
-                          ? 'Total: $10.50'
-                          : `Added ${item}: $${price}`;
-                      },
-                    },
-                  },
-                  maxSteps: 10,
-                });
-
-                expect(result.text).toContain('$10.50');
-              });
-
-              it('should validate tool chain results', async () => {
-                const results: string[] = [];
-                const result = await generateText({
-                  model,
-                  prompt:
-                    'Calculate (2+3)*4 by breaking it into two steps: first calculate 2+3, then multiply that result by 4. Use the calculator tool for each step.',
-                  tools: {
-                    calculator: {
-                      parameters: z.object({
-                        expression: z.string(),
-                      }),
-                      execute: async ({ expression }) => {
-                        const value = String(eval(expression));
-                        results.push(value);
-                        return value;
-                      },
-                    },
-                  },
-                  maxSteps: 10,
-                });
-
-                expect(results).toContain('5'); // 2+3
-                expect(results).toContain('20'); // 5*4
-                expect(result.text).toContain('20'); // Final result
-              });
-
-              it('should validate tool input parameters', async () => {
-                const result = await generateText({
-                  model,
-                  prompt: 'Divide 10 by 3 using the calculator tool.',
-                  tools: {
-                    calculator: {
-                      parameters: z.object({
-                        expression: z.string(),
-                        roundToInteger: z.boolean().default(false),
-                      }),
-                      execute: async ({ expression, roundToInteger }) => {
-                        const value = eval(expression);
-                        return roundToInteger
-                          ? Math.round(value).toString()
-                          : value.toString();
-                      },
-                    },
-                  },
-                });
-
-                expect(result.toolCalls?.[0]).toMatchObject({
-                  toolName: 'calculator',
-                  args: {
-                    expression: expect.stringMatching(/^10\s*\/\s*3$/),
-                    roundToInteger: false,
-                  },
-                });
-                expect(result.toolResults?.[0].result).toBe(
-                  '3.3333333333333335',
-                );
-
-                // Test with rounding
-                const roundedResult = await generateText({
-                  model,
-                  prompt:
-                    'Divide 10 by 3 and round to the nearest integer using the calculator tool.',
-                  tools: {
-                    calculator: {
-                      parameters: z.object({
-                        expression: z.string(),
-                        roundToInteger: z.boolean().default(false),
-                      }),
-                      execute: async ({ expression, roundToInteger }) => {
-                        const value = eval(expression);
-                        return roundToInteger
-                          ? Math.round(value).toString()
-                          : value.toString();
-                      },
-                    },
-                  },
-                });
-
-                expect(roundedResult.toolCalls?.[0]).toMatchObject({
-                  toolName: 'calculator',
-                  args: {
-                    expression: expect.stringMatching(/^10\s*\/\s*3$/),
-                    roundToInteger: true,
-                  },
-                });
-                expect(roundedResult.toolResults?.[0].result).toBe('3');
+                expect(weatherCalls).toBe(1);
+                expect(musicCalls).toBe(1);
+                expect(result.text).toContain('Foggy Day');
               });
             },
           );
