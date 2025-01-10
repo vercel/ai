@@ -26,6 +26,7 @@ import { object, text } from './output';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
 
 function createTestModel({
   stream = convertArrayToReadableStream([
@@ -3623,6 +3624,9 @@ describe('streamText', () => {
         });
 
     it('stream should stop when STOP token is encountered', async () => {
+      const { promise: onFinishText, resolve: resolveOnFinishText } =
+        createResolvablePromise<string>();
+
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
@@ -3639,6 +3643,10 @@ describe('streamText', () => {
         }),
         experimental_transform: stopWordTransform(),
         prompt: 'test-input',
+        onFinish: ({ text }) => {
+          console.log('HEREEEE');
+          resolveOnFinishText(text);
+        },
       });
 
       expect(
@@ -3657,6 +3665,10 @@ describe('streamText', () => {
           },
         },
       ]);
+
+      // confirm that on finish was called
+      const finalText = await onFinishText;
+      expect(finalText).toStrictEqual('Hello, ');
     });
   });
 });

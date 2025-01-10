@@ -533,6 +533,113 @@ class DefaultStreamTextResult<
     const recordedSteps: StepResult<TOOLS>[] = [];
     let rootSpan!: Span;
 
+    const handleFlush = async (
+      args:
+        | {
+            caller: 'flush';
+            controller: TransformStreamDefaultController;
+          }
+        | {
+            caller: 'stopStream';
+            controller?: undefined;
+          },
+    ) => {
+      try {
+        if (recordedSteps.length === 0 && args.caller === 'flush') {
+          return; // no steps recorded (e.g. in error scenario)
+        }
+
+        // from last step (when there are errors there may be no last step)
+        let lastStep = recordedSteps[recordedSteps.length - 1];
+
+        if (args.caller === 'stopStream') {
+          recordedFinishReason = 'stop';
+          lastStep = {
+            stepType,
+            text: recordedStepText,
+            toolCalls: recordedToolCalls,
+            toolResults: recordedToolResults,
+            finishReason: 'stop',
+            usage: {
+              promptTokens: NaN,
+              completionTokens: NaN,
+              totalTokens: NaN,
+            },
+            warnings: [],
+            logprobs: undefined,
+            request: {},
+            experimental_providerMetadata: undefined,
+            response: recordedResponse,
+            isContinued: stepType === 'continue',
+          };
+        }
+
+        self.warningsPromise.resolve(lastStep.warnings);
+        self.requestPromise.resolve(lastStep.request);
+        self.responsePromise.resolve(lastStep.response);
+        self.toolCallsPromise.resolve(lastStep.toolCalls);
+        self.toolResultsPromise.resolve(lastStep.toolResults);
+        self.providerMetadataPromise.resolve(
+          lastStep.experimental_providerMetadata,
+        );
+
+        // derived:
+        const finishReason = recordedFinishReason ?? 'unknown';
+        const usage = recordedUsage ?? {
+          completionTokens: NaN,
+          promptTokens: NaN,
+          totalTokens: NaN,
+        };
+
+        // from finish:
+        self.finishReasonPromise.resolve(finishReason);
+        self.usagePromise.resolve(usage);
+
+        // aggregate results:
+        self.textPromise.resolve(recordedFullText);
+        self.stepsPromise.resolve(recordedSteps);
+
+        // call onFinish callback:
+        await onFinish?.({
+          finishReason,
+          logprobs: undefined,
+          usage,
+          text: recordedFullText,
+          toolCalls: lastStep.toolCalls,
+          toolResults: lastStep.toolResults,
+          request: lastStep.request ?? {},
+          response: lastStep.response,
+          warnings: lastStep.warnings,
+          experimental_providerMetadata: lastStep.experimental_providerMetadata,
+          steps: recordedSteps,
+        });
+
+        // Add response information to the root span:
+        rootSpan.setAttributes(
+          selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              'ai.response.finishReason': finishReason,
+              'ai.response.text': { output: () => recordedFullText },
+              'ai.response.toolCalls': {
+                output: () =>
+                  lastStep.toolCalls?.length
+                    ? JSON.stringify(lastStep.toolCalls)
+                    : undefined,
+              },
+
+              'ai.usage.promptTokens': usage.promptTokens,
+              'ai.usage.completionTokens': usage.completionTokens,
+            },
+          }),
+        );
+      } catch (error) {
+        args.controller?.error(error);
+      } finally {
+        rootSpan.end();
+      }
+    };
+
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
@@ -643,79 +750,7 @@ class DefaultStreamTextResult<
       },
 
       async flush(controller) {
-        try {
-          if (recordedSteps.length === 0) {
-            return; // no steps recorded (e.g. in error scenario)
-          }
-
-          // from last step (when there are errors there may be no last step)
-          const lastStep = recordedSteps[recordedSteps.length - 1];
-
-          self.warningsPromise.resolve(lastStep.warnings);
-          self.requestPromise.resolve(lastStep.request);
-          self.responsePromise.resolve(lastStep.response);
-          self.toolCallsPromise.resolve(lastStep.toolCalls);
-          self.toolResultsPromise.resolve(lastStep.toolResults);
-          self.providerMetadataPromise.resolve(
-            lastStep.experimental_providerMetadata,
-          );
-
-          // derived:
-          const finishReason = recordedFinishReason ?? 'unknown';
-          const usage = recordedUsage ?? {
-            completionTokens: NaN,
-            promptTokens: NaN,
-            totalTokens: NaN,
-          };
-
-          // from finish:
-          self.finishReasonPromise.resolve(finishReason);
-          self.usagePromise.resolve(usage);
-
-          // aggregate results:
-          self.textPromise.resolve(recordedFullText);
-          self.stepsPromise.resolve(recordedSteps);
-
-          // call onFinish callback:
-          await onFinish?.({
-            finishReason,
-            logprobs: undefined,
-            usage,
-            text: recordedFullText,
-            toolCalls: lastStep.toolCalls,
-            toolResults: lastStep.toolResults,
-            request: lastStep.request ?? {},
-            response: lastStep.response,
-            warnings: lastStep.warnings,
-            experimental_providerMetadata:
-              lastStep.experimental_providerMetadata,
-            steps: recordedSteps,
-          });
-
-          // Add response information to the root span:
-          rootSpan.setAttributes(
-            selectTelemetryAttributes({
-              telemetry,
-              attributes: {
-                'ai.response.finishReason': finishReason,
-                'ai.response.text': { output: () => recordedFullText },
-                'ai.response.toolCalls': {
-                  output: () =>
-                    lastStep.toolCalls?.length
-                      ? JSON.stringify(lastStep.toolCalls)
-                      : undefined,
-                },
-
-                'ai.usage.promptTokens': usage.promptTokens,
-                'ai.usage.completionTokens': usage.completionTokens,
-              },
-            }),
-          );
-        } catch (error) {
-          controller.error(error);
-        } finally {
-          rootSpan.end();
-        }
+        await handleFlush({ caller: 'flush', controller });
       },
     });
 
@@ -734,6 +769,7 @@ class DefaultStreamTextResult<
           tools: tools as TOOLS,
           stopStream() {
             stitchableStream.terminate();
+            handleFlush({ caller: 'stopStream' });
           },
         }),
       );
