@@ -26,3 +26,18 @@ it('should throw an error when vectors have different lengths', () => {
 
   expect(() => cosineSimilarity(vector1, vector2)).toThrowError();
 });
+
+it('should give 0 when one of the vectors is a zero vector', () => {
+  const vector1 = [0, 1, 2];
+  const vector2 = [0, 0, 0];
+
+  const result = cosineSimilarity(vector1, vector2);
+
+  // test against pre-calculated value:
+  expect(result).toBe(0);
+
+  const result2 = cosineSimilarity(vector2, vector1);
+
+  // test against pre-calculated value:
+  expect(result2).toBe(0);
+});

@@ -15,9 +15,17 @@ export function cosineSimilarity(vector1: number[], vector2: number[]) {
     );
   }
 
-  return (
-    dotProduct(vector1, vector2) / (magnitude(vector1) * magnitude(vector2))
-  );
+  const mag1 = magnitude(vector1);
+  const mag2 = magnitude(vector2);
+
+  if (mag1 === 0 || mag2 === 0) {
+    // Handle zero magnitude case. Example: return 0
+    return 0;
+    // Or throw an error:
+    // throw new Error("Cannot calculate cosine similarity with a zero vector.");
+  }
+
+  return dotProduct(vector1, vector2) / (mag1 * mag2);
 }
 
 /**
