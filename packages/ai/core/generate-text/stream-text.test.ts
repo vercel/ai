@@ -3644,7 +3644,6 @@ describe('streamText', () => {
         experimental_transform: stopWordTransform(),
         prompt: 'test-input',
         onFinish: ({ text }) => {
-          console.log('HEREEEE');
           resolveOnFinishText(text);
         },
       });
