@@ -3625,10 +3625,6 @@ describe('streamText', () => {
           },
         });
 
-    // TODO requirements: onFinish should be called
-    // TODO requirements: record telemetry
-    // TODO requirements: close stream early
-
     it('stream should stop when STOP token is encountered', async () => {
       const result = streamText({
         model: createTestModel({
@@ -3636,6 +3632,12 @@ describe('streamText', () => {
             { type: 'text-delta', textDelta: 'Hello, ' },
             { type: 'text-delta', textDelta: 'STOP' },
             { type: 'text-delta', textDelta: ' World' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            },
           ]),
         }),
         experimental_transform: stopWordTransform(),
