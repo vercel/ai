@@ -1402,6 +1402,7 @@ describe('tool execution errors', () => {
     }).rejects.toThrow(
       new ToolExecutionError({
         toolName: 'tool1',
+        toolCallId: 'call-1',
         toolArgs: { value: 'value' },
         cause: new Error('test error'),
       }),
