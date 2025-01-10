@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 1.0.17
+
+### Patch Changes
+
+- ba62cf2: feat (provider/openai): automatically map maxTokens to max_completion_tokens for reasoning models
+- 3c3fae8: fix (provider/openai): add o1-mini-2024-09-12 and o1-preview-2024-09-12 configurations
+
 ## 1.0.16
 
 ### Patch Changes
