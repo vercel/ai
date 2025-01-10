@@ -1,6 +1,6 @@
 ---
 title: smoothStream
-description: Helper function for smoothing text streaming output
+description: Stream transformer for smoothing text output
 ---
 
 # `smoothStream()`
@@ -35,17 +35,17 @@ const result = streamText({
   content={[
     {
       name: 'delayInMs',
-      type: 'number',
+      type: 'number | null',
       isOptional: true,
       description:
-        'The delay in milliseconds between outputting each word. Defaults to 10ms. Set to 0 to disable delays.',
+        'The delay in milliseconds between outputting each chunk. Defaults to 10ms. Set to `null` to disable delays.',
     },
     {
       name: 'chunking',
-      type: '"word" | "line"',
+      type: '"word" | "line" | RegExp',
       isOptional: true,
       description:
-        'Controls how the text is chunked for streaming. Use "word" to stream word by word (default), or "line" to stream line by line.',
+        'Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom RegExp pattern for custom chunking.',
     },
   ]}
 />
@@ -55,6 +55,6 @@ const result = streamText({
 Returns a `TransformStream` that:
 
 - Buffers incoming text chunks
-- Releases complete words when whitespace is encountered
-- Adds configurable delays between words for smooth output
+- Releases text when the chunking pattern is encountered
+- Adds configurable delays between chunks for smooth output
 - Passes through non-text chunks (like step-finish events) immediately

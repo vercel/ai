@@ -1,5 +1,37 @@
 # @ai-sdk/google-vertex
 
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [90fb95a]
+- Updated dependencies [e6dfef4]
+- Updated dependencies [6636db6]
+  - @ai-sdk/provider-utils@2.0.7
+  - @ai-sdk/anthropic@1.0.8
+  - @ai-sdk/google@1.0.14
+
+## 2.0.14
+
+### Patch Changes
+
+- 19a2ce7: feat (ai/core): add aspectRatio and seed options to generateImage
+- 6337688: feat: change image generation errors to warnings
+- Updated dependencies [19a2ce7]
+- Updated dependencies [19a2ce7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider@1.0.4
+  - @ai-sdk/provider-utils@2.0.6
+  - @ai-sdk/anthropic@1.0.7
+  - @ai-sdk/google@1.0.13
+
+## 2.0.13
+
+### Patch Changes
+
+- e6ed588: feat (provider/google-vertex): Allow arbitrary image model ids.
+- 6612561: fix (provider/google-vertex): Use optional fetch in embed and streamline config.
+
 ## 2.0.12
 
 ### Patch Changes

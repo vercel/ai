@@ -236,7 +236,10 @@ Non-HTTP(s) providers should not set this.
       body?: string;
     };
 
-    warnings?: LanguageModelV1CallWarning[];
+    /**
+Warnings for the call, e.g. unsupported settings.
+     */
+    warnings?: Array<LanguageModelV1CallWarning>;
   }>;
 };
 

@@ -413,15 +413,14 @@ console.log('Usage:', {
 </Note>
 
 <Note>
-  OpenAI has introduced a new `developer` message type for reasoning models.
-  However, `system` messages are automatically converted to `developer` messages
-  by OpenAI. You can pass `system` messages to reasoning models and set the
-  `system` instruction as usual.
+  For some models such as `o1-preview`, system messages are removed and a
+  warning is added. For other reasoning models, system messages are converted to
+  `developer` messages.
 </Note>
 
 <Note>
-  The `o1` reasoning model currently does not support streaming. You can use the
-  `simulateStreaming` option to simulate streaming.
+  Streaming for the `o1` reasoning model is simulated by default. You can use
+  the `simulateStreaming` option to disable this.
 </Note>
 
 #### Prompt Caching
@@ -618,9 +617,14 @@ using the `.image()` factory method.
 const model = openai.image('dall-e-3');
 ```
 
+<Note>
+  Dall-E models do not support the `aspectRatio` parameter. Use the `size`
+  parameter instead.
+</Note>
+
 ### Model Capabilities
 
-| Model      | Supported Sizes                 |
+| Model      | Sizes                           |
 | ---------- | ------------------------------- |
 | `dall-e-3` | 1024x1024, 1792x1024, 1024x1792 |
 | `dall-e-2` | 256x256, 512x512, 1024x1024     |

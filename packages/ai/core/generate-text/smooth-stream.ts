@@ -1,12 +1,18 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { delay as originalDelay } from '../../util/delay';
 import { CoreTool } from '../tool/tool';
 import { TextStreamPart } from './stream-text-result';
 
+const CHUNKING_REGEXPS = {
+  word: /\s*\S+\s+/m,
+  line: /[^\n]*\n/m,
+};
+
 /**
  * Smooths text streaming output.
  *
- * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms.
- * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), or "line" to stream line by line.
+ * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay.
+ * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom RegExp pattern for custom chunking.
  *
  * @returns A transform stream that smooths text streaming output.
  */
@@ -15,21 +21,30 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
   chunking = 'word',
   _internal: { delay = originalDelay } = {},
 }: {
-  delayInMs?: number;
-  chunking?: 'word' | 'line';
+  delayInMs?: number | null;
+  chunking?: 'word' | 'line' | RegExp;
   /**
    * Internal. For test use only. May change without notice.
    */
   _internal?: {
-    delay?: (delayInMs: number) => Promise<void>;
+    delay?: (delayInMs: number | null) => Promise<void>;
   };
 } = {}): (options: {
   tools: TOOLS;
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>> {
-  let buffer = '';
+  const chunkingRegexp =
+    typeof chunking === 'string' ? CHUNKING_REGEXPS[chunking] : chunking;
 
-  return () =>
-    new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+  if (chunkingRegexp == null) {
+    throw new InvalidArgumentError({
+      argument: 'chunking',
+      message: `Chunking must be "word" or "line" or a RegExp. Received: ${chunking}`,
+    });
+  }
+
+  return () => {
+    let buffer = '';
+    return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
         if (chunk.type === 'step-finish') {
           if (buffer.length > 0) {
@@ -48,20 +63,15 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
 
         buffer += chunk.textDelta;
 
-        const regexp =
-          chunking === 'line'
-            ? /[^\n]*\n/m // Match full lines ending with newline
-            : /\s*\S+\s+/m; // Match words with whitespace
-
-        while (regexp.test(buffer)) {
-          const chunk = buffer.match(regexp)![0];
+        let match;
+        while ((match = chunkingRegexp.exec(buffer)) != null) {
+          const chunk = match[0];
           controller.enqueue({ type: 'text-delta', textDelta: chunk });
           buffer = buffer.slice(chunk.length);
 
-          if (delayInMs > 0) {
-            await delay(delayInMs);
-          }
+          await delay(delayInMs);
         }
       },
     });
+  };
 }

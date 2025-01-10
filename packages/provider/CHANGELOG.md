@@ -1,5 +1,12 @@
 # @ai-sdk/provider
 
+## 1.0.4
+
+### Patch Changes
+
+- 19a2ce7: feat (provider): add message option to UnsupportedFunctionalityError
+- 6337688: feat: change image generation errors to warnings
+
 ## 1.0.3
 
 ### Patch Changes

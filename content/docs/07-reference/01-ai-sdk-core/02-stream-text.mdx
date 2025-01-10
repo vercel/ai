@@ -1015,12 +1015,6 @@ To see `streamText` in action, check out [these examples](#examples).
         'Optional metadata from the provider. Resolved whe the response is finished. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
-      name: 'responseMessages',
-      type: 'Promise<Array<CoreAssistantMessage | CoreToolMessage>>',
-      description:
-        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately. Resolved when the response is finished.',
-    },
-    {
       name: 'text',
       type: 'Promise<string>',
       description:
@@ -1815,7 +1809,8 @@ To see `streamText` in action, check out [these examples](#examples).
         },
       ],
     },
-  ]}
+
+]}
 />
 
 ## Examples

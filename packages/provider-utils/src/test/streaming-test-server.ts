@@ -1,6 +1,9 @@
 import { HttpResponse, http } from 'msw';
 import { SetupServer, setupServer } from 'msw/node';
 
+/**
+ * @deprecated Use createTestServer instead
+ */
 export class StreamingTestServer {
   readonly server: SetupServer;
 
@@ -9,6 +12,9 @@ export class StreamingTestServer {
 
   request: Request | undefined;
 
+  /**
+   * @deprecated Use createTestServer instead
+   */
   constructor(url: string) {
     const responseChunks = () => this.responseChunks;
 

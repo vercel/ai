@@ -8,16 +8,36 @@ import { OpenAIChatPrompt } from './openai-chat-prompt';
 export function convertToOpenAIChatMessages({
   prompt,
   useLegacyFunctionCalling = false,
+  systemMessageMode = 'system',
 }: {
   prompt: LanguageModelV1Prompt;
   useLegacyFunctionCalling?: boolean;
+  systemMessageMode?: 'system' | 'developer' | 'remove';
 }): OpenAIChatPrompt {
   const messages: OpenAIChatPrompt = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        switch (systemMessageMode) {
+          case 'system': {
+            messages.push({ role: 'system', content });
+            break;
+          }
+          case 'developer': {
+            messages.push({ role: 'developer', content });
+            break;
+          }
+          case 'remove': {
+            break;
+          }
+          default: {
+            const _exhaustiveCheck: never = systemMessageMode;
+            throw new Error(
+              `Unsupported system message mode: ${_exhaustiveCheck}`,
+            );
+          }
+        }
         break;
       }
 

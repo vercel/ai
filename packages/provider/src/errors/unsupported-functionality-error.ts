@@ -9,12 +9,14 @@ export class UnsupportedFunctionalityError extends AISDKError {
 
   readonly functionality: string;
 
-  constructor({ functionality }: { functionality: string }) {
-    super({
-      name,
-      message: `'${functionality}' functionality not supported.`,
-    });
-
+  constructor({
+    functionality,
+    message = `'${functionality}' functionality not supported.`,
+  }: {
+    functionality: string;
+    message?: string;
+  }) {
+    super({ name, message });
     this.functionality = functionality;
   }
 

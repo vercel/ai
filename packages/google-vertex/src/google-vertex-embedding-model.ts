@@ -15,20 +15,13 @@ import {
   GoogleVertexEmbeddingModelId,
   GoogleVertexEmbeddingSettings,
 } from './google-vertex-embedding-settings';
-
-type GoogleVertexEmbeddingConfig = {
-  provider: string;
-  region: string;
-  project: string;
-  headers: Resolvable<Record<string, string | undefined>>;
-  baseURL: string;
-};
+import { GoogleVertexConfig } from './google-vertex-config';
 
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
   readonly specificationVersion = 'v1';
   readonly modelId: GoogleVertexEmbeddingModelId;
 
-  private readonly config: GoogleVertexEmbeddingConfig;
+  private readonly config: GoogleVertexConfig;
   private readonly settings: GoogleVertexEmbeddingSettings;
 
   get provider(): string {
@@ -46,7 +39,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
   constructor(
     modelId: GoogleVertexEmbeddingModelId,
     settings: GoogleVertexEmbeddingSettings,
-    config: GoogleVertexEmbeddingConfig,
+    config: GoogleVertexConfig,
   ) {
     this.modelId = modelId;
     this.settings = settings;
@@ -89,6 +82,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV1<string> {
         googleVertexTextEmbeddingResponseSchema,
       ),
       abortSignal,
+      fetch: this.config.fetch,
     });
 
     return {

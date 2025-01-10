@@ -1120,12 +1120,12 @@ describe('doGenerate', () => {
   });
 
   describe('reasoning models', () => {
-    it('should clear out temperature, top_p, frequency_penalty, presence_penalty', async () => {
+    it('should clear out temperature, top_p, frequency_penalty, presence_penalty and return warnings', async () => {
       prepareJsonResponse();
 
       const model = provider.chat('o1-preview');
 
-      await model.doGenerate({
+      const result = await model.doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
@@ -1139,7 +1139,82 @@ describe('doGenerate', () => {
         model: 'o1-preview',
         messages: [{ role: 'user', content: 'Hello' }],
       });
+
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported-setting',
+          setting: 'topP',
+          details: 'topP is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported-setting',
+          setting: 'frequencyPenalty',
+          details: 'frequencyPenalty is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported-setting',
+          setting: 'presencePenalty',
+          details: 'presencePenalty is not supported for reasoning models',
+        },
+      ]);
     });
+  });
+
+  it('should remove system messages for o1-preview and add a warning', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('o1-preview');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1-preview',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'other',
+        message: 'system messages are removed for this model',
+      },
+    ]);
+  });
+
+  it('should use developer messages for o1', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('o1');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1',
+      messages: [
+        { role: 'developer', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Hello' },
+      ],
+    });
+
+    expect(result.warnings).toStrictEqual([]);
   });
 
   it('should return the reasoning tokens in the provider metadata', async () => {
@@ -2352,7 +2427,7 @@ describe('doStream simulated streaming', () => {
 
   it('should stream text delta', async () => {
     prepareJsonResponse({ content: 'Hello, World!', model: 'o1-preview' });
-    const model = provider.chat('o1', {
+    const model = provider.chat('some-model', {
       simulateStreaming: true,
     });
 
@@ -2395,7 +2470,7 @@ describe('doStream simulated streaming', () => {
       ],
     });
 
-    const model = provider.chat('o1', {
+    const model = provider.chat('some-model', {
       simulateStreaming: true,
     });
 
@@ -2458,7 +2533,7 @@ describe('doStream simulated streaming', () => {
       },
     });
 
-    const model = provider.chat('o1', {
+    const model = provider.chat('some-model', {
       simulateStreaming: true,
     });
 
@@ -2486,6 +2561,35 @@ describe('doStream simulated streaming', () => {
             reasoningTokens: 10,
           },
         },
+      },
+    ]);
+  });
+
+  it('should simulate streaming by default for reasoning models', async () => {
+    prepareJsonResponse({ content: 'Hello, World!', model: 'o1' });
+
+    const model = provider.chat('o1');
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        modelId: 'o1',
+        timestamp: expect.any(Date),
+      },
+      { type: 'text-delta', textDelta: 'Hello, World!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 30 },
+        logprobs: undefined,
+        providerMetadata: { openai: {} },
       },
     ]);
   });

@@ -1,5 +1,34 @@
 # @ai-sdk/openai
 
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [90fb95a]
+- Updated dependencies [e6dfef4]
+- Updated dependencies [6636db6]
+  - @ai-sdk/provider-utils@2.0.7
+
+## 1.0.15
+
+### Patch Changes
+
+- f8c6acb: feat (provider/openai): automatically simulate streaming for reasoning models
+- d0041f7: feat (provider/openai): improved system message support for reasoning models
+- 4d2f97b: feat (provider/openai): improve automatic setting removal for reasoning models
+
+## 1.0.14
+
+### Patch Changes
+
+- 19a2ce7: feat (ai/core): add aspectRatio and seed options to generateImage
+- 6337688: feat: change image generation errors to warnings
+- Updated dependencies [19a2ce7]
+- Updated dependencies [19a2ce7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider@1.0.4
+  - @ai-sdk/provider-utils@2.0.6
+
 ## 1.0.13
 
 ### Patch Changes

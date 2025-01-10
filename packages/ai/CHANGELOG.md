@@ -1,5 +1,52 @@
 # ai
 
+## 4.0.31
+
+### Patch Changes
+
+- Updated dependencies [90fb95a]
+- Updated dependencies [e6dfef4]
+- Updated dependencies [6636db6]
+  - @ai-sdk/provider-utils@2.0.7
+  - @ai-sdk/react@1.0.9
+  - @ai-sdk/ui-utils@1.0.8
+
+## 4.0.30
+
+### Patch Changes
+
+- e4ce80c: fix (ai/core): prevent onFinish from masking stream errors
+
+## 4.0.29
+
+### Patch Changes
+
+- a92f5f6: feat (ai/core): generate many images with parallel model calls
+
+## 4.0.28
+
+### Patch Changes
+
+- 19a2ce7: feat (ai/core): add aspectRatio and seed options to generateImage
+- 6337688: feat: change image generation errors to warnings
+- 8b422ea: feat (ai/core): add caching to generated images
+- Updated dependencies [19a2ce7]
+- Updated dependencies [19a2ce7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider@1.0.4
+  - @ai-sdk/provider-utils@2.0.6
+  - @ai-sdk/ui-utils@1.0.7
+  - @ai-sdk/react@1.0.8
+
+## 4.0.27
+
+### Patch Changes
+
+- a56734f: feat (ai/core): export simulateReadableStream in ai package
+- 9589601: feat (ai/core): support null delay in smoothStream
+- e3cc23a: feat (ai/core): support regexp chunking pattern in smoothStream
+- e463e73: feat (ai/core): support skipping delays in simulateReadableStream
+
 ## 4.0.26
 
 ### Patch Changes

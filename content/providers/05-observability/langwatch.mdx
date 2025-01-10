@@ -69,7 +69,12 @@ First, you need to install the necessary dependencies:
 npm install @vercel/otel langwatch @opentelemetry/api-logs @opentelemetry/instrumentation @opentelemetry/sdk-logs
 ```
 
-Then, you need to enable the `instrumentationHook` in your `next.config.js` file if you haven't already:
+Then, set up the OpenTelemetry for your application, follow one of the tabs below depending whether you are using AI SDK with Next.js or on Node.js:
+
+<Tabs items={['Next.js', 'Node.js']}>
+<Tab title="Next.js">
+
+You need to enable the `instrumentationHook` in your `next.config.js` file if you haven't already:
 
 ```javascript
 /** @type {import('next').NextConfig} */
@@ -115,6 +120,28 @@ const result = await generateText({
   },
 });
 ```
+
+</Tab>
+<Tab title="Node.js">
+For Node.js, start by following the official OpenTelemetry guide:
+
+- [OpenTelemetry Node.js Getting Started](https://opentelemetry.io/docs/languages/js/getting-started/nodejs/)
+
+Once you have set up OpenTelemetry, you can use the `LangWatchExporter` to automatically send your traces to LangWatch:
+
+```typescript
+import { LangWatchExporter } from 'langwatch';
+
+const sdk = new NodeSDK({
+  traceExporter: new LangWatchExporter({
+    apiKey: process.env.LANGWATCH_API_KEY,
+  }),
+  // ...
+});
+```
+
+</Tab>
+</Tabs>
 
 That's it! Your messages will now be visible on LangWatch:
 
