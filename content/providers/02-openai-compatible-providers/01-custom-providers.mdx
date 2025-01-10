@@ -73,6 +73,10 @@ Custom headers to include in the requests.
 */
   headers?: Record<string, string>;
   /**
+Optional custom url params to include in requests url.
+*/
+  params?: Record<string, string>;
+  /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
 */
