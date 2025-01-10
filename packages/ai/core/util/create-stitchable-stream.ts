@@ -10,6 +10,7 @@ export function createStitchableStream<T>(): {
   stream: ReadableStream<T>;
   addStream: (innerStream: ReadableStream<T>) => void;
   close: () => void;
+  terminate: () => void;
 } {
   let innerStreamReaders: ReadableStreamDefaultReader<T>[] = [];
   let controller: ReadableStreamDefaultController<T> | null = null;
@@ -88,6 +89,14 @@ export function createStitchableStream<T>(): {
       if (innerStreamReaders.length === 0) {
         controller?.close();
       }
+    },
+    terminate: () => {
+      isClosed = true;
+      waitForNewStream.resolve();
+
+      innerStreamReaders.forEach(reader => reader.cancel());
+      innerStreamReaders = [];
+      controller?.close();
     },
   };
 }
