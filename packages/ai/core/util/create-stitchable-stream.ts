@@ -82,6 +82,11 @@ export function createStitchableStream<T>(): {
       innerStreamReaders.push(innerStream.getReader());
       waitForNewStream.resolve();
     },
+
+    /**
+     * Gracefully close the outer stream. This will let the inner streams
+     * finish processing and then close the outer stream.
+     */
     close: () => {
       isClosed = true;
       waitForNewStream.resolve();
@@ -90,6 +95,11 @@ export function createStitchableStream<T>(): {
         controller?.close();
       }
     },
+
+    /**
+     * Immediately close the outer stream. This will cancel all inner streams
+     * and close the outer stream.
+     */
     terminate: () => {
       isClosed = true;
       waitForNewStream.resolve();
