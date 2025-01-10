@@ -3584,23 +3584,20 @@ describe('streamText', () => {
   describe('with transformation that aborts stream', () => {
     const stopWordTransform =
       <TOOLS extends Record<string, CoreTool>>() =>
-      ({ closeStream }: { closeStream: () => void }) =>
+      ({ stopStream }: { stopStream: () => void }) =>
         new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
           // note: this is a simplified transformation for testing;
           // in a real-world version more there would need to be
           // stream buffering and scanning to correctly emit prior text
           // and to detect all STOP occurrences.
           transform(chunk, controller) {
-            console.log('chunk', JSON.stringify(chunk));
-
             if (chunk.type !== 'text-delta') {
               controller.enqueue(chunk);
               return;
             }
 
             if (chunk.textDelta.includes('STOP')) {
-              closeStream();
-              console.log('closeStream');
+              stopStream();
 
               controller.enqueue({
                 type: 'finish',
