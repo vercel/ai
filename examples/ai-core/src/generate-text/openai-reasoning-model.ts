@@ -6,9 +6,7 @@ async function main() {
   const { text, usage, experimental_providerMetadata } = await generateText({
     model: openai('o1-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
-    experimental_providerMetadata: {
-      openai: { maxCompletionTokens: 1000 },
-    },
+    maxTokens: 1000, // mapped to max_completion_tokens
   });
 
   console.log(text);
