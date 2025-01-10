@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.32
+
+### Patch Changes
+
+- de66619: feat (ai/core): add tool call id to ToolExecution error
+
 ## 4.0.31
 
 ### Patch Changes
