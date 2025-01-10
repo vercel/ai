@@ -51,6 +51,7 @@ describe('OpenAICompatibleProvider', () => {
         name: 'test-provider',
         apiKey: 'test-api-key',
         headers: { 'Custom-Header': 'value' },
+        params: { 'Custom-Param': 'value' },
       };
 
       const provider = createOpenAICompatible(options);
@@ -67,7 +68,7 @@ describe('OpenAICompatibleProvider', () => {
       });
       expect(config.provider).toBe('test-provider.chat');
       expect(config.url({ modelId: 'model-id', path: '/v1/chat' })).toBe(
-        'https://api.example.com/v1/chat',
+        'https://api.example.com/v1/chat?Custom-Param=value',
       );
     });
 
@@ -98,6 +99,7 @@ describe('OpenAICompatibleProvider', () => {
       name: 'test-provider',
       apiKey: 'test-api-key',
       headers: { 'Custom-Header': 'value' },
+      params: { 'Custom-Param': 'value' },
     };
 
     it('should create chat model with correct configuration', () => {
@@ -117,7 +119,7 @@ describe('OpenAICompatibleProvider', () => {
       });
       expect(config.provider).toBe('test-provider.chat');
       expect(config.url({ modelId: 'model-id', path: '/v1/chat' })).toBe(
-        'https://api.example.com/v1/chat',
+        'https://api.example.com/v1/chat?Custom-Param=value',
       );
     });
 
@@ -139,7 +141,7 @@ describe('OpenAICompatibleProvider', () => {
       expect(config.provider).toBe('test-provider.completion');
       expect(
         config.url({ modelId: 'completion-model', path: '/v1/completions' }),
-      ).toBe('https://api.example.com/v1/completions');
+      ).toBe('https://api.example.com/v1/completions?Custom-Param=value');
     });
 
     it('should create embedding model with correct configuration', () => {
@@ -159,7 +161,7 @@ describe('OpenAICompatibleProvider', () => {
       expect(config.provider).toBe('test-provider.embedding');
       expect(
         config.url({ modelId: 'embedding-model', path: '/v1/embeddings' }),
-      ).toBe('https://api.example.com/v1/embeddings');
+      ).toBe('https://api.example.com/v1/embeddings?Custom-Param=value');
     });
 
     it('should use languageModel as default when called as function', () => {
