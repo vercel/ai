@@ -8,6 +8,7 @@ import {
   embed,
   embedMany,
   APICallError,
+  ToolExecutionError,
 } from 'ai';
 import fs from 'fs';
 import { describe, expect, it, vi } from 'vitest';
@@ -675,6 +676,54 @@ export function createFeatureTestSuite({
                 if (!customAssertions.skipUsage) {
                   expect((await result.usage).totalTokens).toBeGreaterThan(0);
                 }
+              });
+
+              it('should handle multiple sequential tool calls', async () => {
+                let weatherCalls = 0;
+                let musicCalls = 0;
+                const sfTemp = 15;
+                const result = await generateText({
+                  model,
+                  prompt:
+                    'Check the temperature in San Francisco and play music that matches the weather. Be sure to report the chosen song name.',
+                  tools: {
+                    getTemperature: {
+                      parameters: z.object({
+                        city: z
+                          .string()
+                          .describe('The city to check temperature for'),
+                      }),
+                      execute: async ({ city }) => {
+                        weatherCalls++;
+                        return `${sfTemp}`;
+                      },
+                    },
+                    playWeatherMusic: {
+                      parameters: z.object({
+                        temperature: z
+                          .number()
+                          .describe('Temperature in Celsius'),
+                      }),
+                      execute: async ({ temperature }) => {
+                        musicCalls++;
+                        if (temperature <= 10) {
+                          return 'Playing "Winter Winds" by Mumford & Sons';
+                        } else if (temperature <= 20) {
+                          return 'Playing "Foggy Day" by Frank Sinatra';
+                        } else if (temperature <= 30) {
+                          return 'Playing "Here Comes the Sun" by The Beatles';
+                        } else {
+                          return 'Playing "Hot Hot Hot" by Buster Poindexter';
+                        }
+                      },
+                    },
+                  },
+                  maxSteps: 10,
+                });
+
+                expect(weatherCalls).toBe(1);
+                expect(musicCalls).toBe(1);
+                expect(result.text).toContain('Foggy Day');
               });
             },
           );
