@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.0.15
+
+### Patch Changes
+
+- 7611964: feat (provider/xai): Support structured output for latest models.
+
 ## 1.0.14
 
 ### Patch Changes
