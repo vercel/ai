@@ -95,14 +95,15 @@ export function createDeepSeek(
           prompt_cache_miss_tokens: z.number().nullish(),
         })
         .nullish(),
-      getProviderMetadata(value: any, _cur: LanguageModelV1ProviderMetadata | undefined) {
+      getProviderMetadata(
+        value: any,
+        _cur: LanguageModelV1ProviderMetadata | undefined,
+      ) {
         if (value?.usage?.prompt_cache_hit_tokens != null) {
           return {
             deepseek: {
-              promptCacheHitTokens: value.usage
-                .prompt_cache_hit_tokens,
-              promptCacheMissTokens: value.usage
-                .prompt_cache_miss_tokens,
+              promptCacheHitTokens: value.usage.prompt_cache_hit_tokens,
+              promptCacheMissTokens: value.usage.prompt_cache_miss_tokens,
             },
           };
         } else {
