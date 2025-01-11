@@ -57,7 +57,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 
   get supportsStructuredOutputs(): boolean {
-    return this.settings.structuredOutputs ?? false;
+    // enable structured outputs for reasoning models by default:
+    // TODO in the next major version, remove this and always use json mode for models
+    // that support structured outputs (blacklist other models)
+    return this.settings.structuredOutputs ?? isReasoningModel(this.modelId);
   }
 
   get defaultObjectGenerationMode() {
@@ -441,6 +444,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       isStreamingSimulatedByDefault(this.modelId)
     ) {
       const result = await this.doGenerate(options);
+
       const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
         start(controller) {
           controller.enqueue({ type: 'response-metadata', ...result.response });
@@ -452,6 +456,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           }
           if (result.toolCalls) {
             for (const toolCall of result.toolCalls) {
+              controller.enqueue({
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                argsTextDelta: toolCall.args,
+              });
+
               controller.enqueue({
                 type: 'tool-call',
                 ...toolCall,
