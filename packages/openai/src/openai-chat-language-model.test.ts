@@ -2522,6 +2522,13 @@ describe('doStream simulated streaming', () => {
         timestamp: expect.any(Date),
       },
       {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '{"value":"Sparkle Day"}',
+      },
+      {
         type: 'tool-call',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
         toolCallType: 'function',
