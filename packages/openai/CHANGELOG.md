@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.0.18
+
+### Patch Changes
+
+- fe816e4: fix (provider/openai): streamObject with o1
+
 ## 1.0.17
 
 ### Patch Changes
