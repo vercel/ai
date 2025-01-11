@@ -41,6 +41,13 @@ export type OpenAICompatibleChatConfig = {
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
 
+  usageStructure?: z.ZodType;
+
+  getProviderMetadata?: (
+    value: any,
+    cur: LanguageModelV1ProviderMetadata | undefined,
+  ) => LanguageModelV1ProviderMetadata | undefined;
+
   /**
 Default object generation mode that should be used with this model when
 no mode is specified. Should be the mode with the best results for this
@@ -80,6 +87,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       config.errorStructure ?? defaultOpenAICompatibleErrorStructure;
     this.chunkSchema = createOpenAICompatibleChatChunkSchema(
       errorStructure.errorSchema,
+      config.usageStructure,
     );
     this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure);
 
@@ -360,6 +368,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     let isFirstChunk = true;
 
     let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
+    const getProviderMetadata = this.config.getProviderMetadata;
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -390,6 +399,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                 type: 'response-metadata',
                 ...getResponseMetadata(value),
               });
+            }
+
+            if (typeof getProviderMetadata === 'function') {
+              providerMetadata = getProviderMetadata(value, providerMetadata);
             }
 
             if (value.usage != null) {
@@ -590,6 +603,7 @@ const OpenAICompatibleChatResponseSchema = z.object({
 // this approach limits breakages when the API changes and increases efficiency
 const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
   errorSchema: ERROR_SCHEMA,
+  usageSchema?: z.ZodType,
 ) =>
   z.union([
     z.object({
@@ -620,12 +634,14 @@ const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
           finish_reason: z.string().nullish(),
         }),
       ),
-      usage: z
-        .object({
-          prompt_tokens: z.number().nullish(),
-          completion_tokens: z.number().nullish(),
-        })
-        .nullish(),
+      usage:
+        usageSchema ??
+        z
+          .object({
+            prompt_tokens: z.number().nullish(),
+            completion_tokens: z.number().nullish(),
+          })
+          .nullish(),
     }),
     errorSchema,
   ]);
