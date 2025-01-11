@@ -3,6 +3,7 @@ import {
   LanguageModelV1,
   NoSuchModelError,
   ProviderV1,
+  LanguageModelV1ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -13,6 +14,7 @@ import {
   DeepSeekChatModelId,
   DeepSeekChatSettings,
 } from './deepseek-chat-settings';
+import { z } from 'zod';
 
 export interface DeepSeekProviderSettings {
   /**
@@ -85,6 +87,28 @@ export function createDeepSeek(
       headers: getHeaders,
       fetch: options.fetch,
       defaultObjectGenerationMode: 'json',
+      usageStructure: z
+        .object({
+          prompt_tokens: z.number().nullish(),
+          completion_tokens: z.number().nullish(),
+          prompt_cache_hit_tokens: z.number().nullish(),
+          prompt_cache_miss_tokens: z.number().nullish(),
+        })
+        .nullish(),
+      getProviderMetadata(value: any, _cur: LanguageModelV1ProviderMetadata | undefined) {
+        if (value?.usage?.prompt_cache_hit_tokens != null) {
+          return {
+            deepseek: {
+              promptCacheHitTokens: value.usage
+                .prompt_cache_hit_tokens,
+              promptCacheMissTokens: value.usage
+                .prompt_cache_miss_tokens,
+            },
+          };
+        } else {
+          return undefined;
+        }
+      },
     });
   };
 
