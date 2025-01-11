@@ -186,6 +186,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       seed,
 
       // openai specific settings:
+      // TODO remove in next major version; we auto-map maxTokens now
       max_completion_tokens: providerMetadata?.openai?.maxCompletionTokens,
       store: providerMetadata?.openai?.store,
       metadata: providerMetadata?.openai?.metadata,
@@ -202,9 +203,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       }),
     };
 
-    // remove unsupported settings for reasoning models
-    // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel(this.modelId)) {
+      // remove unsupported settings for reasoning models
+      // see https://platform.openai.com/docs/guides/reasoning#limitations
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
@@ -257,6 +258,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           type: 'other',
           message: 'topLogprobs is not supported for reasoning models',
         });
+      }
+
+      // reasoning models use max_completion_tokens instead of max_tokens:
+      if (baseArgs.max_tokens != null) {
+        if (baseArgs.max_completion_tokens == null) {
+          baseArgs.max_completion_tokens = baseArgs.max_tokens;
+        }
+        baseArgs.max_tokens = undefined;
       }
     }
 
@@ -936,7 +945,15 @@ const reasoningModels = {
     systemMessageMode: 'remove',
     simulateStreamingByDefault: false,
   },
+  'o1-mini-2024-09-12': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
   'o1-preview': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
+  'o1-preview-2024-09-12': {
     systemMessageMode: 'remove',
     simulateStreamingByDefault: false,
   },

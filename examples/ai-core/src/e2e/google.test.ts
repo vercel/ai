@@ -44,7 +44,7 @@ createFeatureTestSuite({
       ),
     ],
   },
-  timeout: 10000,
+  timeout: 20000,
   customAssertions: {
     skipUsage: true,
     errorValidator: (error: APICallError) => {
