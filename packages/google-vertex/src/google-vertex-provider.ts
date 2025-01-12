@@ -16,10 +16,11 @@ import {
 } from './google-vertex-embedding-settings';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import { GoogleVertexImageModel } from './google-vertex-image-model';
 import {
-  GoogleVertexImageModel,
   GoogleVertexImageModelId,
-} from './google-vertex-image-model';
+  GoogleVertexImageSettings,
+} from './google-vertex-image-settings';
 import { GoogleVertexConfig } from './google-vertex-config';
 
 export interface GoogleVertexProvider extends ProviderV1 {
@@ -39,7 +40,10 @@ Creates a model for text generation.
   /**
    * Creates a model for image generation.
    */
-  image(modelId: GoogleVertexImageModelId): ImageModelV1;
+  image(
+    modelId: GoogleVertexImageModelId,
+    settings?: GoogleVertexImageSettings,
+  ): ImageModelV1;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -137,8 +141,10 @@ export function createVertex(
       createConfig('embedding'),
     );
 
-  const createImageModel = (modelId: GoogleVertexImageModelId) =>
-    new GoogleVertexImageModel(modelId, createConfig('image'));
+  const createImageModel = (
+    modelId: GoogleVertexImageModelId,
+    settings: GoogleVertexImageSettings = {},
+  ) => new GoogleVertexImageModel(modelId, settings, createConfig('image'));
 
   const provider = function (
     modelId: GoogleVertexModelId,

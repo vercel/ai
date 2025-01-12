@@ -24,11 +24,6 @@ interface ReplicateImageModelConfig {
 export class ReplicateImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
-  readonly modelId: ReplicateImageModelId;
-  readonly settings: ReplicateImageSettings;
-
-  private readonly config: ReplicateImageModelConfig;
-
   get provider(): string {
     return this.config.provider;
   }
@@ -38,14 +33,10 @@ export class ReplicateImageModel implements ImageModelV1 {
   }
 
   constructor(
-    modelId: ReplicateImageModelId,
-    settings: ReplicateImageSettings,
-    config: ReplicateImageModelConfig,
-  ) {
-    this.modelId = modelId;
-    this.settings = settings;
-    this.config = config;
-  }
+    readonly modelId: ReplicateImageModelId,
+    private readonly settings: ReplicateImageSettings,
+    private readonly config: ReplicateImageModelConfig,
+  ) {}
 
   async doGenerate({
     prompt,

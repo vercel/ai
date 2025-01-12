@@ -4,7 +4,7 @@ import { createOpenAI } from './openai-provider';
 const prompt = 'A cute baby sea otter';
 
 const provider = createOpenAI({ apiKey: 'test-api-key' });
-const model = provider.image('dall-e-3');
+const model = provider.image('dall-e-3', { maxImagesPerCall: 2 });
 
 describe('doGenerate', () => {
   const server = new JsonTestServer(
@@ -126,5 +126,18 @@ describe('doGenerate', () => {
         setting: 'seed',
       },
     ]);
+  });
+
+  it('should respect maxImagesPerCall setting', async () => {
+    prepareJsonResponse();
+
+    const customModel = provider.image('dall-e-2', { maxImagesPerCall: 5 });
+    expect(customModel.maxImagesPerCall).toBe(5);
+
+    const defaultModel = provider.image('dall-e-2');
+    expect(defaultModel.maxImagesPerCall).toBe(10); // dall-e-2's default from settings
+
+    const unknownModel = provider.image('unknown-model' as any);
+    expect(unknownModel.maxImagesPerCall).toBe(1); // fallback for unknown models
   });
 });
