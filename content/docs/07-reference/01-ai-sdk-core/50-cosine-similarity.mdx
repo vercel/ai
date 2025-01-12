@@ -45,6 +45,26 @@ console.log(
       type: 'number[]',
       description: 'The second vector to compare',
     },
+    {
+      name: 'options',
+      type: 'Object',
+      isOptional: true,
+      description: 'Optional configuration.',
+      properties: [
+        {
+          type: 'Object',
+          parameters: [
+            {
+              name: 'throwErrorForEmptyVectors',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Set throwErrorForEmptyVectors to true to throw an error when vectors are empty (default: false)',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
