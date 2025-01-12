@@ -1,5 +1,17 @@
 # ai
 
+## 4.0.33
+
+### Patch Changes
+
+- 5510ee7: feat (ai/core): add stopStream option to streamText transforms
+
+## 4.0.32
+
+### Patch Changes
+
+- de66619: feat (ai/core): add tool call id to ToolExecution error
+
 ## 4.0.31
 
 ### Patch Changes

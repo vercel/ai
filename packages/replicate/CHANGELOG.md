@@ -1,5 +1,11 @@
 # @ai-sdk/replicate
 
+## 0.0.2
+
+### Patch Changes
+
+- 33b28df: feat (provider/replicate): Fix api key name typo, add package metadata/files config.
+
 ## 0.0.1
 
 ### Patch Changes

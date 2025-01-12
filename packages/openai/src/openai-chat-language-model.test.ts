@@ -1163,6 +1163,25 @@ describe('doGenerate', () => {
         },
       ]);
     });
+
+    it('should convert maxTokens to max_completion_tokens', async () => {
+      prepareJsonResponse();
+
+      const model = provider.chat('o1-preview');
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        maxTokens: 1000,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'o1-preview',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_completion_tokens: 1000,
+      });
+    });
   });
 
   it('should remove system messages for o1-preview and add a warning', async () => {
@@ -2501,6 +2520,13 @@ describe('doStream simulated streaming', () => {
         id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
         modelId: 'o1-preview',
         timestamp: expect.any(Date),
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '{"value":"Sparkle Day"}',
       },
       {
         type: 'tool-call',
