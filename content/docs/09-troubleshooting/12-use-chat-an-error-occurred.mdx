@@ -38,7 +38,8 @@ export function errorHandler(error: unknown) {
 
 ```tsx
 return result.toDataStreamResponse({
-  getErrorMessage: errorHandler
+  getErrorMessage: errorHandler,
+});
 ```
 
 In case you are using `createDataStreamResponse`, you can use the `onError` function when calling `toDataStreamResponse`:
