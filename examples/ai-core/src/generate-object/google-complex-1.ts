@@ -4,20 +4,10 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const Product = z.object({
-    name: z.string(),
-    category: z.string(),
-    description: z.string(),
-    key_ingredients: z.string(),
-    usage_instructions: z.string(),
-    precautions: z.string(),
-  });
-
+  const Product = z.object({ name: z.string() });
   const Prescription = z.object({
-    morning_routines: z.array(Product),
-    evening_routines: z.array(Product),
-    lifestyle_changes: z.array(z.string()),
-    treatment_notes: z.string(),
+    morning: z.array(Product),
+    evening: z.array(Product),
   });
 
   const result = await generateObject({
