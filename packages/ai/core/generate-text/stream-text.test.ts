@@ -3600,13 +3600,32 @@ describe('streamText', () => {
               stopStream();
 
               controller.enqueue({
+                type: 'step-finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: {
+                  completionTokens: NaN,
+                  promptTokens: NaN,
+                  totalTokens: NaN,
+                },
+                request: {},
+                response: {
+                  id: 'response-id',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                warnings: [],
+                isContinued: false,
+              });
+
+              controller.enqueue({
                 type: 'finish',
                 finishReason: 'stop',
                 logprobs: undefined,
                 usage: {
-                  completionTokens: 10,
-                  promptTokens: 3,
-                  totalTokens: 13,
+                  completionTokens: NaN,
+                  promptTokens: NaN,
+                  totalTokens: NaN,
                 },
                 response: {
                   id: 'response-id',
@@ -3633,12 +3652,16 @@ describe('streamText', () => {
               type: 'finish',
               finishReason: 'stop',
               logprobs: undefined,
-              usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+              usage: {
+                completionTokens: NaN,
+                promptTokens: NaN,
+                totalTokens: NaN,
+              },
             },
           ]),
         }),
-        experimental_transform: stopWordTransform(),
         prompt: 'test-input',
+        experimental_transform: stopWordTransform(),
       });
 
       expect(
@@ -3646,10 +3669,24 @@ describe('streamText', () => {
       ).toStrictEqual([
         { type: 'text-delta', textDelta: 'Hello, ' },
         {
+          type: 'step-finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
+          request: {},
+          response: {
+            id: 'response-id',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          warnings: [],
+          isContinued: false,
+        },
+        {
           type: 'finish',
           finishReason: 'stop',
           logprobs: undefined,
-          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
           response: {
             id: 'response-id',
             modelId: 'mock-model-id',
@@ -3657,6 +3694,37 @@ describe('streamText', () => {
           },
         },
       ]);
+    });
+
+    it('options.onStepFinish should be called', async () => {
+      let result!: Parameters<
+        Required<Parameters<typeof streamText>[0]>['onStepFinish']
+      >[0];
+
+      const { textStream } = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, ' },
+            { type: 'text-delta', textDelta: 'STOP' },
+            { type: 'text-delta', textDelta: ' World' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onStepFinish: async event => {
+          result = event as unknown as typeof result;
+        },
+        experimental_transform: stopWordTransform(),
+      });
+
+      await convertAsyncIterableToArray(textStream); // consume stream
+
+      expect(result).toMatchSnapshot();
     });
   });
 });
