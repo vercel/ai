@@ -626,6 +626,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               controller.enqueue({
                 type: 'text-delta',
                 textDelta: delta.content,
+                citations: value.citations
               });
             }
 
@@ -863,6 +864,7 @@ const openaiChatChunkSchema = z.union([
     id: z.string().nullish(),
     created: z.number().nullish(),
     model: z.string().nullish(),
+    citations: z.any().nullish(),
     choices: z.array(
       z.object({
         delta: z
