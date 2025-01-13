@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 2.0.18
+
+### Patch Changes
+
+- 218d001: feat (provider): Add maxImagesPerCall setting to all image providers.
+
 ## 2.0.17
 
 ### Patch Changes
