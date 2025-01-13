@@ -37,14 +37,23 @@ export function errorHandler(error: unknown) {
 ```
 
 ```tsx
+const result = streamText({
+  // ...
+});
+
 return result.toDataStreamResponse({
-  getErrorMessage: errorHandler
+  getErrorMessage: errorHandler,
+});
 ```
 
 In case you are using `createDataStreamResponse`, you can use the `onError` function when calling `toDataStreamResponse`:
 
 ```tsx
-return result.toDataStreamResponse({
+const response = createDataStreamResponse({
+  // ...
+  async execute(dataStream) {
+    // ...
+  },
   onError: errorHandler,
 });
 ```
