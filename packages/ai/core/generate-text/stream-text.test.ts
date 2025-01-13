@@ -3623,9 +3623,9 @@ describe('streamText', () => {
                 finishReason: 'stop',
                 logprobs: undefined,
                 usage: {
-                  completionTokens: 10,
-                  promptTokens: 3,
-                  totalTokens: 13,
+                  completionTokens: NaN,
+                  promptTokens: NaN,
+                  totalTokens: NaN,
                 },
                 response: {
                   id: 'response-id',
@@ -3652,7 +3652,11 @@ describe('streamText', () => {
               type: 'finish',
               finishReason: 'stop',
               logprobs: undefined,
-              usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+              usage: {
+                completionTokens: NaN,
+                promptTokens: NaN,
+                totalTokens: NaN,
+              },
             },
           ]),
         }),
