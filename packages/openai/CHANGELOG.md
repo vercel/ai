@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.0.19
+
+### Patch Changes
+
+- 218d001: feat (provider): Add maxImagesPerCall setting to all image providers.
+
 ## 1.0.18
 
 ### Patch Changes
