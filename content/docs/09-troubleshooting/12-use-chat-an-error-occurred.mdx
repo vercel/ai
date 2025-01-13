@@ -54,6 +54,6 @@ const response = createDataStreamResponse({
   async execute(dataStream) {
     // ...
   },
-  onError: error => `Custom error: ${error.message}`,
+  onError: errorHandler,
 });
 ```
