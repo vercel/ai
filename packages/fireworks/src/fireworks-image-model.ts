@@ -141,6 +141,7 @@ interface ImageRequestParams {
   aspectRatio?: string;
   size?: string;
   seed?: number;
+  samples: number;
   providerOptions: Record<string, unknown>;
   headers: Record<string, string | undefined>;
   abortSignal?: AbortSignal;
@@ -158,6 +159,7 @@ async function postImageToApi(
       prompt: params.prompt,
       aspect_ratio: params.aspectRatio,
       seed: params.seed,
+      samples: params.samples,
       ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
       ...(params.providerOptions.fireworks ?? {}),
     },
@@ -225,6 +227,7 @@ export class FireworksImageModel implements ImageModelV1 {
       size,
       seed,
       modelId: this.modelId,
+      samples: n,
       providerOptions,
       headers: combineHeaders(this.config.headers(), headers),
       abortSignal,
