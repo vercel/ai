@@ -3315,3 +3315,39 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
   },
 ]
 `;
+
+exports[`streamText > with transformation that aborts stream > options.onStepFinish should be called 1`] = `
+{
+  "experimental_providerMetadata": undefined,
+  "finishReason": "stop",
+  "isContinued": false,
+  "logprobs": undefined,
+  "request": {},
+  "response": {
+    "id": "response-id",
+    "messages": [
+      {
+        "content": [
+          {
+            "text": "Hello, ",
+            "type": "text",
+          },
+        ],
+        "role": "assistant",
+      },
+    ],
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "stepType": "initial",
+  "text": "Hello, ",
+  "toolCalls": [],
+  "toolResults": [],
+  "usage": {
+    "completionTokens": NaN,
+    "promptTokens": NaN,
+    "totalTokens": NaN,
+  },
+  "warnings": [],
+}
+`;
