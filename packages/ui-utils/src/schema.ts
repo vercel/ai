@@ -1,7 +1,7 @@
 import { Validator, validatorSymbol } from '@ai-sdk/provider-utils';
 import { JSONSchema7 } from 'json-schema';
 import { z } from 'zod';
-import zodToJsonSchema from 'zod-to-json-schema';
+import { zodSchema } from './zod-schema';
 
 /**
  * Used to mark schemas so we can support both Zod and custom schemas.
@@ -65,23 +65,4 @@ export function asSchema<OBJECT>(
   schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT>,
 ): Schema<OBJECT> {
   return isSchema(schema) ? schema : zodSchema(schema);
-}
-
-export function zodSchema<OBJECT>(
-  zodSchema: z.Schema<OBJECT, z.ZodTypeDef, any>,
-): Schema<OBJECT> {
-  return jsonSchema(
-    zodToJsonSchema(zodSchema, {
-      $refStrategy: 'none', // no references (to support openapi conversion for google)
-      target: 'openAi', // openai strict mode compatible
-    }) as JSONSchema7,
-    {
-      validate: value => {
-        const result = zodSchema.safeParse(value);
-        return result.success
-          ? { success: true, value: result.data }
-          : { success: false, error: result.error };
-      },
-    },
-  );
 }

@@ -4,18 +4,17 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const Product = z.object({ name: z.string() });
-  const Prescription = z.object({
-    morning: z.array(Product),
-    evening: z.array(Product),
+  // split schema support:
+  const Person = z.object({ name: z.string() });
+  const Team = z.object({
+    developers: z.array(Person),
+    designers: z.array(Person),
   });
 
   const result = await generateObject({
     model: google('gemini-exp-1206'),
-    schema: Prescription,
-    prompt:
-      'Generate a prescription for a patient with a history of ' +
-      'chronic pain and anxiety.',
+    schema: Team,
+    prompt: 'Generate a fake team of developers and designers.',
   });
 
   console.log(JSON.stringify(result.object, null, 2));
