@@ -1,5 +1,12 @@
 # @ai-sdk/ui-utils
 
+## 1.0.9
+
+### Patch Changes
+
+- 2495973: feat (ai/core): use openai compatible mode for json schema conversion
+- 2495973: fix (ai/core): duplicate instead of using reference in json schema
+
 ## 1.0.8
 
 ### Patch Changes

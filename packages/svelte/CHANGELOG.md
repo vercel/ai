@@ -1,5 +1,13 @@
 # @ai-sdk/svelte
 
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [2495973]
+- Updated dependencies [2495973]
+  - @ai-sdk/ui-utils@1.0.9
+
 ## 1.0.9
 
 ### Patch Changes
