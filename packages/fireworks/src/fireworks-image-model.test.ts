@@ -64,6 +64,7 @@ describe('FireworksImageModel', () => {
         prompt,
         aspect_ratio: '16:9',
         seed: 42,
+        samples: 1,
         additional_param: 'value',
       });
     });
@@ -182,6 +183,7 @@ describe('FireworksImageModel', () => {
         width: '1024',
         height: '768',
         seed: 42,
+        samples: 1,
       });
     });
 
@@ -268,6 +270,22 @@ describe('FireworksImageModel', () => {
       });
 
       expect(mockFetch).toHaveBeenCalled();
+    });
+
+    it('should pass samples parameter to API', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt,
+        n: 42,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBody;
+      expect(requestBody).toHaveProperty('samples', 42);
     });
   });
 

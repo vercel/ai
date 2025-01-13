@@ -134,42 +134,6 @@ const statusCodeErrorResponseHandler: ResponseHandler<APICallError> = async ({
   };
 };
 
-interface ImageRequestParams {
-  baseUrl: string;
-  modelId: FireworksImageModelId;
-  prompt: string;
-  aspectRatio?: string;
-  size?: string;
-  seed?: number;
-  providerOptions: Record<string, unknown>;
-  headers: Record<string, string | undefined>;
-  abortSignal?: AbortSignal;
-  fetch?: FetchFunction;
-}
-
-async function postImageToApi(
-  params: ImageRequestParams,
-): Promise<ArrayBuffer> {
-  const splitSize = params.size?.split('x');
-  const { value: response } = await postJsonToApi({
-    url: getUrlForModel(params.baseUrl, params.modelId),
-    headers: params.headers,
-    body: {
-      prompt: params.prompt,
-      aspect_ratio: params.aspectRatio,
-      seed: params.seed,
-      ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-      ...(params.providerOptions.fireworks ?? {}),
-    },
-    failedResponseHandler: statusCodeErrorResponseHandler,
-    successfulResponseHandler: createBinaryResponseHandler(),
-    abortSignal: params.abortSignal,
-    fetch: params.fetch,
-  });
-
-  return response;
-}
-
 export class FireworksImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
@@ -218,15 +182,20 @@ export class FireworksImageModel implements ImageModelV1 {
       });
     }
 
-    const response = await postImageToApi({
-      baseUrl: this.config.baseURL,
-      prompt,
-      aspectRatio,
-      size,
-      seed,
-      modelId: this.modelId,
-      providerOptions,
+    const splitSize = size?.split('x');
+    const { value: response } = await postJsonToApi({
+      url: getUrlForModel(this.config.baseURL, this.modelId),
       headers: combineHeaders(this.config.headers(), headers),
+      body: {
+        prompt,
+        aspect_ratio: aspectRatio,
+        seed,
+        samples: n,
+        ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
+        ...(providerOptions.fireworks ?? {}),
+      },
+      failedResponseHandler: statusCodeErrorResponseHandler,
+      successfulResponseHandler: createBinaryResponseHandler(),
       abortSignal,
       fetch: this.config.fetch,
     });
