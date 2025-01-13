@@ -140,6 +140,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
+        console.log('mode.schema', JSON.stringify(mode.schema, null, 2));
+
         return {
           args: {
             generationConfig: {

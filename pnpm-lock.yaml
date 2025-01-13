@@ -1080,9 +1080,6 @@ importers:
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
         version: 18.3.1
-      zod-to-json-schema:
-        specifier: ^3.23.5
-        version: 3.23.5(zod@3.23.8)
     devDependencies:
       '@edge-runtime/vm':
         specifier: ^5.0.0
@@ -1839,8 +1836,8 @@ importers:
         specifier: 2.0.7
         version: link:../provider-utils
       zod-to-json-schema:
-        specifier: ^3.23.5
-        version: 3.23.5(zod@3.23.8)
+        specifier: ^3.24.1
+        version: 3.24.1(zod@3.23.8)
     devDependencies:
       '@types/json-schema':
         specifier: 7.0.15
@@ -13794,6 +13791,11 @@ packages:
     peerDependencies:
       zod: ^3.23.3
 
+  zod-to-json-schema@3.24.1:
+    resolution: {integrity: sha512-3h08nf3Vw3Wl3PK+q3ow/lIil81IT2Oa7YpQyUUDsEWbXveMesdfK1xBd2RhCkynwZndAxixji/7SYJJowr62w==}
+    peerDependencies:
+      zod: ^3.24.1
+
   zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
 
@@ -16098,7 +16100,7 @@ snapshots:
       langsmith: 0.1.23(openai@4.52.6)
       uuid: 9.0.1
       zod: 3.23.8
-      zod-to-json-schema: 3.23.5(zod@3.23.8)
+      zod-to-json-schema: 3.24.1(zod@3.23.8)
     optionalDependencies:
       '@aws-crypto/sha256-js': 5.2.0
       '@aws-sdk/client-bedrock-runtime': 3.663.0
@@ -28727,6 +28729,10 @@ snapshots:
       readable-stream: 4.5.2
 
   zod-to-json-schema@3.23.5(zod@3.23.8):
+    dependencies:
+      zod: 3.23.8
+
+  zod-to-json-schema@3.24.1(zod@3.23.8):
     dependencies:
       zod: 3.23.8
 

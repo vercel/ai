@@ -71,8 +71,10 @@ export function zodSchema<OBJECT>(
   zodSchema: z.Schema<OBJECT, z.ZodTypeDef, any>,
 ): Schema<OBJECT> {
   return jsonSchema(
-    // we assume that zodToJsonSchema will return a valid JSONSchema7:
-    zodToJsonSchema(zodSchema) as JSONSchema7,
+    zodToJsonSchema(zodSchema, {
+      $refStrategy: 'none', // no references (to support openapi conversion for google)
+      target: 'openAi', // openai strict mode compatible
+    }) as JSONSchema7,
     {
       validate: value => {
         const result = zodSchema.safeParse(value);
