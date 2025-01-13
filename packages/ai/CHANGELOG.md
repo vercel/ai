@@ -1,5 +1,16 @@
 # ai
 
+## 4.0.34
+
+### Patch Changes
+
+- 2495973: feat (ai/core): use openai compatible mode for json schema conversion
+- 2495973: fix (ai/core): duplicate instead of using reference in json schema
+- Updated dependencies [2495973]
+- Updated dependencies [2495973]
+  - @ai-sdk/ui-utils@1.0.9
+  - @ai-sdk/react@1.0.10
+
 ## 4.0.33
 
 ### Patch Changes

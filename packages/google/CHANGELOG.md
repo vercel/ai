@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.0.16
+
+### Patch Changes
+
+- 4eb9b41: fix (provider/google): support conversion of string enums to openapi spec
+
 ## 1.0.15
 
 ### Patch Changes
