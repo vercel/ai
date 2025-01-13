@@ -283,6 +283,24 @@ By default, these errors are masked for security reasons, and show up as "An err
 To surface the errors, you can use the `getErrorMessage` function when calling `toDataStreamResponse`.
 
 ```tsx
+export function errorHandler(error: unknown) {
+  if (error == null) {
+    return 'unknown error';
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return JSON.stringify(error);
+}
+```
+
+```tsx
 const result = streamText({
   // ...
 });
