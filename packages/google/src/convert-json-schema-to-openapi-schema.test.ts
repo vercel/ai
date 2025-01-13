@@ -479,17 +479,43 @@ it('should return undefined for empty object schemas', () => {
 });
 
 it('should handle non-empty object schemas', () => {
-  const nonEmptySchema = {
+  const nonEmptySchema: JSONSchema7 = {
     type: 'object',
     properties: {
       name: { type: 'string' },
     },
-  } as const;
+  };
 
   expect(convertJSONSchemaToOpenAPISchema(nonEmptySchema)).toEqual({
     type: 'object',
     properties: {
       name: { type: 'string' },
     },
+  });
+});
+
+it('should convert string enum properties', () => {
+  const schemaWithEnumProperty: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      kind: {
+        type: 'string',
+        enum: ['text', 'code', 'image'],
+      },
+    },
+    required: ['kind'],
+    additionalProperties: false,
+    $schema: 'https://json-schema.org/draft/2019-09/schema#',
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(schemaWithEnumProperty)).toEqual({
+    type: 'object',
+    properties: {
+      kind: {
+        type: 'string',
+        enum: ['text', 'code', 'image'],
+      },
+    },
+    required: ['kind'],
   });
 });
