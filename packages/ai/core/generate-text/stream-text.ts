@@ -57,7 +57,7 @@ import { ToolResultUnion } from './tool-result';
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
 /**
-A transform stream that is applied to the stream.
+A transformation that is applied to the stream.
 
 @param stopStream - A function that stops the source stream.
 @param tools - The tools that are accessible to and can be called by the model. The model needs to support calling tools.
