@@ -1061,6 +1061,7 @@ describe('reload', () => {
         await userEvent.click(screen.getByTestId('do-reload'));
 
         expect(await call(1).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [{ content: 'hi', role: 'user' }],
           data: { 'test-data-key': 'test-data-value' },
           'request-body-key': 'request-body-value',
