@@ -13,7 +13,7 @@ import {
   generateId as generateIdFunc,
   prepareAttachmentsForRequest,
 } from '@ai-sdk/ui-utils';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
 import { throttle } from './throttle';
 
@@ -82,6 +82,9 @@ export type UseChatHelpers = {
       | undefined
       | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
   ) => void;
+
+  /** The id of the chat */
+  id: string;
 };
 
 const processResponseStream = async (
@@ -101,6 +104,7 @@ const processResponseStream = async (
   sendExtraMessageFields: boolean | undefined,
   experimental_prepareRequestBody:
     | ((options: {
+        id: string;
         messages: Message[];
         requestData?: JSONValue;
         requestBody?: object;
@@ -108,6 +112,7 @@ const processResponseStream = async (
     | undefined,
   fetch: FetchFunction | undefined,
   keepLastMessageOnError: boolean,
+  id: string,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages immediately:
   const previousMessages = messagesRef.current;
@@ -140,10 +145,12 @@ const processResponseStream = async (
   return await callChatApi({
     api,
     body: experimental_prepareRequestBody?.({
+      id,
       messages: chatRequest.messages,
       requestData: chatRequest.data,
       requestBody: chatRequest.body,
     }) ?? {
+      id,
       messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
@@ -236,8 +243,10 @@ By default, it's set to 1, which means that only a single LLM call is made.
     result: any;
   }) => void;
 } {
-  // Generate a unique id for the chat if not provided.
-  const hookId = useId();
+  // Generate ID once, store in state for stability across re-renders
+  const [hookId] = useState(() => generateId());
+
+  // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
   const idKey = id ?? hookId;
   const chatKey = typeof api === 'string' ? [api, idKey] : idKey;
 
@@ -327,6 +336,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           experimental_prepareRequestBody,
           fetch,
           keepLastMessageOnError,
+          idKey,
         );
 
         abortControllerRef.current = null;
@@ -386,6 +396,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       fetch,
       keepLastMessageOnError,
       throttleWaitMs,
+      idKey,
     ],
   );
 
@@ -567,6 +578,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   return {
     messages: messages || [],
+    id: idKey,
     setMessages,
     data: streamData,
     setData,
