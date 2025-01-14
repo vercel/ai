@@ -8,11 +8,10 @@ import {
 import { APICallError } from '@ai-sdk/provider';
 
 const createChatModel = (modelId: string) =>
-  createLanguageModelWithCapabilities(provider.chat(modelId));
-
-const createCompletionModel = (modelId: string) =>
-  createLanguageModelWithCapabilities(provider.languageModel(modelId), [
+  createLanguageModelWithCapabilities(provider.chat(modelId), [
+    'objectGeneration',
     'textCompletion',
+    'toolCalls',
   ]);
 
 createFeatureTestSuite({
@@ -28,9 +27,7 @@ createFeatureTestSuite({
   timeout: 30000,
   customAssertions: {
     errorValidator: (error: APICallError) => {
-      expect((error.data as CerebrasErrorData).error.code).toMatch(
-        /not found/i,
-      );
+      expect((error.data as CerebrasErrorData).message).toMatch(/not exist/i);
     },
   },
 })();

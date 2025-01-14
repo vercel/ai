@@ -13,6 +13,23 @@ import {
   CerebrasChatModelId,
   CerebrasChatSettings,
 } from './cerebras-chat-settings';
+import { z } from 'zod';
+import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
+
+// Add error schema and structure
+const cerebrasErrorSchema = z.object({
+  message: z.string(),
+  type: z.string(),
+  param: z.string(),
+  code: z.string(),
+});
+
+export type CerebrasErrorData = z.infer<typeof cerebrasErrorSchema>;
+
+const cerebrasErrorStructure: ProviderErrorStructure<CerebrasErrorData> = {
+  errorSchema: cerebrasErrorSchema,
+  errorToMessage: data => data.message,
+};
 
 export interface CerebrasProviderSettings {
   /**
@@ -84,7 +101,8 @@ export function createCerebras(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      defaultObjectGenerationMode: 'json',
+      defaultObjectGenerationMode: 'tool',
+      errorStructure: cerebrasErrorStructure,
     });
   };
 
