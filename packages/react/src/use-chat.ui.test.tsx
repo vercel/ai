@@ -33,7 +33,15 @@ describe('data protocol stream', () => {
 
   const TestComponent = ({ id: idParam }: { id: string }) => {
     const [id, setId] = React.useState<string>(idParam);
-    const { messages, append, error, data, isLoading, setData } = useChat({
+    const {
+      messages,
+      append,
+      error,
+      data,
+      isLoading,
+      setData,
+      id: idKey,
+    } = useChat({
       id,
       onFinish: (message, options) => {
         onFinishCalls.push({ message, options });
@@ -42,6 +50,7 @@ describe('data protocol stream', () => {
 
     return (
       <div>
+        <div data-testid="id">{idKey}</div>
         <div data-testid="loading">{isLoading.toString()}</div>
         {error && <div data-testid="error">{error.toString()}</div>}
         <div data-testid="data">{data != null ? JSON.stringify(data) : ''}</div>
@@ -278,6 +287,25 @@ describe('data protocol stream', () => {
   );
 
   describe('id', () => {
+    it(
+      'send the id to the server',
+      withTestServer(
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+        },
+        async ({ call }) => {
+          await userEvent.click(screen.getByTestId('do-append'));
+
+          expect(await call(0).getRequestBodyJson()).toStrictEqual({
+            id: screen.getByTestId('id').textContent,
+            messages: [{ role: 'user', content: 'hi' }],
+          });
+        },
+      ),
+    );
+
     it(
       'should clear out messages when the id changes',
       withTestServer(
@@ -675,6 +703,7 @@ describe('prepareRequestBody', () => {
         expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
         expect(bodyOptions).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -778,8 +807,8 @@ describe('tool invocations', () => {
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.toolInvocations?.map((toolInvocation, toolIdx) => {
               return (
-                <>
-                  <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
+                <div key={toolIdx}>
+                  <div data-testid={`tool-invocation-${toolIdx}`}>
                     {JSON.stringify(toolInvocation)}
                   </div>
                   {toolInvocation.state === 'call' && (
@@ -793,7 +822,7 @@ describe('tool invocations', () => {
                       }}
                     />
                   )}
-                </>
+                </div>
               );
             })}
           </div>
@@ -1257,6 +1286,7 @@ describe('file attachments with data url', () => {
         );
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -1314,6 +1344,7 @@ describe('file attachments with data url', () => {
         );
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -1437,6 +1468,7 @@ describe('file attachments with url', () => {
         );
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -1534,6 +1566,7 @@ describe('attachments with empty submit', () => {
         expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -1640,6 +1673,7 @@ describe('should append message with attachments', () => {
         expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -1729,6 +1763,7 @@ describe('reload', () => {
         await userEvent.click(screen.getByTestId('do-reload'));
 
         expect(await call(1).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [{ content: 'hi', role: 'user' }],
           data: { 'test-data-key': 'test-data-value' },
           'request-body-key': 'request-body-value',
@@ -1801,6 +1836,7 @@ describe('test sending additional fields during message submission', () => {
         expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',

@@ -77,9 +77,10 @@ export type UseChatHelpers = {
     toolCallId: string;
     result: any;
   }) => void;
-};
 
-let uniqueId = 0;
+  /** The id of the chat */
+  id: string;
+};
 
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv;
@@ -116,7 +117,7 @@ export function useChat(
   },
 ): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
-  const chatId = id || `chat-${uniqueId++}`;
+  const chatId = id ?? generateId();
 
   const key = `${api}|${chatId}`;
   const { data: messagesData, mutate: originalMutate } = useSWRV<Message[]>(
@@ -199,6 +200,7 @@ export function useChat(
       await callChatApi({
         api,
         body: {
+          id: chatId,
           messages: constructedMessagesPayload,
           data: chatRequest.data,
           ...unref(metadataBody), // Use unref to unwrap the ref value
@@ -397,6 +399,7 @@ export function useChat(
   };
 
   return {
+    id: chatId,
     messages,
     append,
     error,
