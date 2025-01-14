@@ -1,41 +1,18 @@
 'use client';
 
-import { useChat } from 'ai/react';
-import { useEffect, useState } from 'react';
+import { Message, useChat } from 'ai/react';
 
-export default function Chat({ chatId }: { chatId?: string | undefined } = {}) {
-  const [ready, setReady] = useState(false);
-
-  const {
-    input,
-    isLoading,
-    handleInputChange,
-    handleSubmit,
-    messages,
-    setMessages,
-  } = useChat({
-    api: '/api/use-chat-persistence',
-    id: chatId, // use the provided chatId
-    sendExtraMessageFields: true, // send id and createdAt for each message
-  });
-
-  useEffect(() => {
-    if (chatId) {
-      // load the messages from the server when a chatId is provided:
-      const fetchInitialMessages = async () => {
-        const response = await fetch(`/api/use-chat-persistence/${chatId}`);
-        setMessages(await response.json());
-        setReady(true);
-      };
-      fetchInitialMessages();
-    } else {
-      setReady(true);
-    }
-  }, [chatId, setMessages]);
-
-  if (!ready) {
-    return <div>Loading messages...</div>;
-  }
+export default function Chat({
+  chatId,
+  initialMessages,
+}: { chatId?: string | undefined; initialMessages?: Message[] } = {}) {
+  const { input, isLoading, handleInputChange, handleSubmit, messages } =
+    useChat({
+      api: '/api/use-chat-persistence',
+      id: chatId, // use the provided chatId
+      initialMessages, // initial messages if provided
+      sendExtraMessageFields: true, // send id and createdAt for each message
+    });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

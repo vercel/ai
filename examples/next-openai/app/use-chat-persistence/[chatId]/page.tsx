@@ -1,9 +1,15 @@
-'use client';
-
-import { useParams } from 'next/navigation';
+import { loadChat } from '@/app/api/use-chat-persistence/chat-store';
 import Chat from '../chat';
 
-export default function Page() {
-  const { chatId } = useParams();
-  return <Chat chatId={chatId as string} />;
+export default async function Page({
+  params: { chatId },
+}: {
+  params: { chatId: string };
+}) {
+  return (
+    <Chat
+      chatId={chatId as string}
+      initialMessages={await loadChat({ id: chatId })}
+    />
+  );
 }
