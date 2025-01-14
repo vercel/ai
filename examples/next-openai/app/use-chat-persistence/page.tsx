@@ -6,6 +6,7 @@ export default function Chat() {
   const { input, isLoading, handleInputChange, handleSubmit, messages } =
     useChat({
       api: '/api/use-chat-persistence',
+      sendExtraMessageFields: true, // send id and createdAt for each message
     });
 
   return (
