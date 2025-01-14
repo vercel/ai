@@ -33,12 +33,10 @@ it('should give 0 when one of the vectors is a zero vector', () => {
 
   const result = cosineSimilarity(vector1, vector2);
 
-  // test against pre-calculated value:
   expect(result).toBe(0);
 
   const result2 = cosineSimilarity(vector2, vector1);
 
-  // test against pre-calculated value:
   expect(result2).toBe(0);
 });
 
@@ -49,4 +47,19 @@ it('should throw an error when vectors are empty', () => {
   expect(() =>
     cosineSimilarity(vector1, vector2, { throwErrorForEmptyVectors: true }),
   ).toThrowError();
+});
+
+it('should handle vectors with very small magnitudes', () => {
+  const vector1 = [1e-10, 0, 0];
+  const vector2 = [2e-10, 0, 0];
+
+  const result = cosineSimilarity(vector1, vector2);
+
+  expect(result).toBe(1);
+
+  const vector3 = [1e-10, 0, 0];
+  const vector4 = [-1e-10, 0, 0];
+
+  const result2 = cosineSimilarity(vector3, vector4);
+  expect(result2).toBe(-1);
 });

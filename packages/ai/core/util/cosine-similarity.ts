@@ -17,29 +17,14 @@ import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 export function cosineSimilarity(
   vector1: number[],
   vector2: number[],
-  options?: {
+  options: {
     throwErrorForEmptyVectors?: boolean;
+  } = {
+    throwErrorForEmptyVectors: false,
   },
 ) {
   // TODO: In the next major version, change the default value of throwErrorForEmptyVectors to true
-  const { throwErrorForEmptyVectors = false } = options ?? {};
-
-  if (throwErrorForEmptyVectors) {
-    if (vector1.length === 0) {
-      throw new InvalidArgumentError({
-        parameter: 'vector1',
-        value: vector1,
-        message: 'Vector cannot be empty',
-      });
-    }
-    if (vector2.length === 0) {
-      throw new InvalidArgumentError({
-        parameter: 'vector2',
-        value: vector2,
-        message: 'Vector cannot be empty',
-      });
-    }
-  }
+  const { throwErrorForEmptyVectors } = options;
 
   if (vector1.length !== vector2.length) {
     throw new Error(
@@ -47,14 +32,22 @@ export function cosineSimilarity(
     );
   }
 
-  const mag1 = magnitude(vector1);
-  const mag2 = magnitude(vector2);
+  if (throwErrorForEmptyVectors && vector1.length === 0) {
+    throw new InvalidArgumentError({
+      parameter: 'vector1',
+      value: vector1,
+      message: 'Vectors cannot be empty',
+    });
+  }
 
-  if (mag1 === 0 || mag2 === 0) {
+  const magnitude1 = magnitude(vector1);
+  const magnitude2 = magnitude(vector2);
+
+  if (magnitude1 === 0 || magnitude2 === 0) {
     return 0;
   }
 
-  return dotProduct(vector1, vector2) / (mag1 * mag2);
+  return dotProduct(vector1, vector2) / (magnitude1 * magnitude2);
 }
 
 /**
