@@ -2,14 +2,14 @@ import { loadChat } from '@/app/api/use-chat-persistence/chat-store';
 import Chat from '../chat';
 
 export default async function Page({
-  params: { chatId },
+  params,
 }: {
-  params: { chatId: string };
+  params: {
+    chatId: string;
+  };
 }) {
+  const { chatId } = params;
   return (
-    <Chat
-      chatId={chatId as string}
-      initialMessages={await loadChat({ id: chatId })}
-    />
+    <Chat chatId={chatId} initialMessages={await loadChat({ id: chatId })} />
   );
 }
