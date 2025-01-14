@@ -1,4 +1,8 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import {
+  APICallError,
+  ImageModelV1,
+  ImageModelV1CallWarning,
+} from '@ai-sdk/provider';
 import {
   Resolvable,
   combineHeaders,
@@ -72,8 +76,9 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       },
     };
 
-    const { value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}:predict`,
+    const url = `${this.config.baseURL}/models/${this.modelId}:predict`;
+    const { value: response, responseHeaders } = await postJsonToApi({
+      url,
       headers: combineHeaders(await resolve(this.config.headers), headers),
       body,
       failedResponseHandler: googleVertexFailedResponseHandler,
@@ -84,10 +89,22 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
 
+    if (!response.predictions) {
+      throw new APICallError({
+        message: 'No predictions returned from API',
+        url,
+        requestBodyValues: body,
+        statusCode: 400,
+        responseHeaders,
+        responseBody: JSON.stringify(response),
+      });
+    }
+
     return {
-      images: response.predictions.map(
-        (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
-      ),
+      images:
+        response.predictions.map(
+          (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
+        ) ?? [],
       warnings,
     };
   }
@@ -96,5 +113,5 @@ export class GoogleVertexImageModel implements ImageModelV1 {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const vertexImageResponseSchema = z.object({
-  predictions: z.array(z.object({ bytesBase64Encoded: z.string() })),
+  predictions: z.array(z.object({ bytesBase64Encoded: z.string() })).optional(),
 });

@@ -246,5 +246,19 @@ describe('GoogleVertexImageModel', () => {
         },
       ]);
     });
+
+    it('should handle empty response object', async () => {
+      server.responseBodyJson = {};
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('No predictions returned from API');
+    });
   });
 });
