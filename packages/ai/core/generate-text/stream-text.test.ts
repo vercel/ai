@@ -3612,7 +3612,7 @@ describe('streamText', () => {
 
               controller.enqueue({
                 ...chunk,
-                textDelta: chunk.textDelta.replace(',', ''),
+                textDelta: chunk.textDelta.replaceAll(',', ''),
               });
             },
           });

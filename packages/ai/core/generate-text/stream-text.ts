@@ -279,7 +279,12 @@ Details for all steps.
     tools,
     toolChoice,
     toolCallStreaming,
-    transform,
+    transforms:
+      transform == null
+        ? []
+        : Array.isArray(transform)
+        ? transform
+        : [transform],
     activeTools,
     repairToolCall,
     maxSteps,
@@ -442,7 +447,7 @@ class DefaultStreamTextResult<
     tools,
     toolChoice,
     toolCallStreaming,
-    transform,
+    transforms,
     activeTools,
     repairToolCall,
     maxSteps,
@@ -468,10 +473,7 @@ class DefaultStreamTextResult<
     tools: TOOLS | undefined;
     toolChoice: CoreToolChoice<TOOLS> | undefined;
     toolCallStreaming: boolean;
-    transform:
-      | StreamTextTransform<TOOLS>
-      | Array<StreamTextTransform<TOOLS>>
-      | undefined;
+    transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
@@ -734,7 +736,7 @@ class DefaultStreamTextResult<
 
     // transform the stream before output parsing
     // to enable replacement of stream segments:
-    if (transform && !Array.isArray(transform)) {
+    for (const transform of transforms) {
       stream = stream.pipeThrough(
         transform({
           tools: tools as TOOLS,
