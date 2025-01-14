@@ -3581,46 +3581,75 @@ describe('streamText', () => {
         ]);
       });
     });
-  });
 
-  describe('with transformation that aborts stream', () => {
-    const stopWordTransform =
-      <TOOLS extends Record<string, CoreTool>>() =>
-      ({ stopStream }: { stopStream: () => void }) =>
-        new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
-          // note: this is a simplified transformation for testing;
-          // in a real-world version more there would need to be
-          // stream buffering and scanning to correctly emit prior text
-          // and to detect all STOP occurrences.
-          transform(chunk, controller) {
-            if (chunk.type !== 'text-delta') {
+    describe('with transformation that aborts stream', () => {
+      const stopWordTransform =
+        <TOOLS extends Record<string, CoreTool>>() =>
+        ({ stopStream }: { stopStream: () => void }) =>
+          new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+            // note: this is a simplified transformation for testing;
+            // in a real-world version more there would need to be
+            // stream buffering and scanning to correctly emit prior text
+            // and to detect all STOP occurrences.
+            transform(chunk, controller) {
+              if (chunk.type !== 'text-delta') {
+                controller.enqueue(chunk);
+                return;
+              }
+
+              if (chunk.textDelta.includes('STOP')) {
+                stopStream();
+
+                controller.enqueue({
+                  type: 'step-finish',
+                  finishReason: 'stop',
+                  logprobs: undefined,
+                  usage: {
+                    completionTokens: NaN,
+                    promptTokens: NaN,
+                    totalTokens: NaN,
+                  },
+                  request: {},
+                  response: {
+                    id: 'response-id',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  warnings: [],
+                  isContinued: false,
+                });
+
+                controller.enqueue({
+                  type: 'finish',
+                  finishReason: 'stop',
+                  logprobs: undefined,
+                  usage: {
+                    completionTokens: NaN,
+                    promptTokens: NaN,
+                    totalTokens: NaN,
+                  },
+                  response: {
+                    id: 'response-id',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                });
+
+                return;
+              }
+
               controller.enqueue(chunk);
-              return;
-            }
+            },
+          });
 
-            if (chunk.textDelta.includes('STOP')) {
-              stopStream();
-
-              controller.enqueue({
-                type: 'step-finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: {
-                  completionTokens: NaN,
-                  promptTokens: NaN,
-                  totalTokens: NaN,
-                },
-                request: {},
-                response: {
-                  id: 'response-id',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                warnings: [],
-                isContinued: false,
-              });
-
-              controller.enqueue({
+      it('stream should stop when STOP token is encountered', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello, ' },
+              { type: 'text-delta', textDelta: 'STOP' },
+              { type: 'text-delta', textDelta: ' World' },
+              {
                 type: 'finish',
                 finishReason: 'stop',
                 logprobs: undefined,
@@ -3629,107 +3658,89 @@ describe('streamText', () => {
                   promptTokens: NaN,
                   totalTokens: NaN,
                 },
-                response: {
-                  id: 'response-id',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-              });
-
-              return;
-            }
-
-            controller.enqueue(chunk);
-          },
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          experimental_transform: stopWordTransform(),
         });
 
-    it('stream should stop when STOP token is encountered', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello, ' },
-            { type: 'text-delta', textDelta: 'STOP' },
-            { type: 'text-delta', textDelta: ' World' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              logprobs: undefined,
-              usage: {
-                completionTokens: NaN,
-                promptTokens: NaN,
-                totalTokens: NaN,
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toStrictEqual([
+          { type: 'text-delta', textDelta: 'Hello, ' },
+          {
+            type: 'step-finish',
+            finishReason: 'stop',
+            logprobs: undefined,
+            usage: {
+              completionTokens: NaN,
+              promptTokens: NaN,
+              totalTokens: NaN,
+            },
+            request: {},
+            response: {
+              id: 'response-id',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            warnings: [],
+            isContinued: false,
+          },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            logprobs: undefined,
+            usage: {
+              completionTokens: NaN,
+              promptTokens: NaN,
+              totalTokens: NaN,
+            },
+            response: {
+              id: 'response-id',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+          },
+        ]);
+      });
+
+      it('options.onStepFinish should be called', async () => {
+        let result!: Parameters<
+          Required<Parameters<typeof streamText>[0]>['onStepFinish']
+        >[0];
+
+        const { textStream } = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello, ' },
+              { type: 'text-delta', textDelta: 'STOP' },
+              { type: 'text-delta', textDelta: ' World' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: {
+                  completionTokens: 10,
+                  promptTokens: 3,
+                  totalTokens: 13,
+                },
               },
-            },
-          ]),
-        }),
-        prompt: 'test-input',
-        experimental_transform: stopWordTransform(),
-      });
-
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toStrictEqual([
-        { type: 'text-delta', textDelta: 'Hello, ' },
-        {
-          type: 'step-finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
-          request: {},
-          response: {
-            id: 'response-id',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
+            ]),
+          }),
+          prompt: 'test-input',
+          onStepFinish: async event => {
+            result = event as unknown as typeof result;
           },
-          warnings: [],
-          isContinued: false,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
-          response: {
-            id: 'response-id',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-        },
-      ]);
-    });
+          experimental_transform: stopWordTransform(),
+        });
 
-    it('options.onStepFinish should be called', async () => {
-      let result!: Parameters<
-        Required<Parameters<typeof streamText>[0]>['onStepFinish']
-      >[0];
+        await convertAsyncIterableToArray(textStream); // consume stream
 
-      const { textStream } = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello, ' },
-            { type: 'text-delta', textDelta: 'STOP' },
-            { type: 'text-delta', textDelta: ' World' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              logprobs: undefined,
-              usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-            },
-          ]),
-        }),
-        prompt: 'test-input',
-        onStepFinish: async event => {
-          result = event as unknown as typeof result;
-        },
-        experimental_transform: stopWordTransform(),
+        expect(result).toMatchSnapshot();
       });
-
-      await convertAsyncIterableToArray(textStream); // consume stream
-
-      expect(result).toMatchSnapshot();
     });
   });
-
   describe('options.output', () => {
     describe('no output', () => {
       it('should throw error when accessing partial output stream', async () => {
