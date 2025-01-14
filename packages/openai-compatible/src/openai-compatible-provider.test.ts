@@ -51,11 +51,11 @@ describe('OpenAICompatibleProvider', () => {
         name: 'test-provider',
         apiKey: 'test-api-key',
         headers: { 'Custom-Header': 'value' },
-        params: { 'Custom-Param': 'value' },
+        queryParams: { 'Custom-Param': 'value' },
       };
 
       const provider = createOpenAICompatible(options);
-      const model = provider('model-id');
+      provider('model-id');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -99,7 +99,7 @@ describe('OpenAICompatibleProvider', () => {
       name: 'test-provider',
       apiKey: 'test-api-key',
       headers: { 'Custom-Header': 'value' },
-      params: { 'Custom-Param': 'value' },
+      queryParams: { 'Custom-Param': 'value' },
     };
 
     it('should create chat model with correct configuration', () => {
@@ -177,6 +177,25 @@ describe('OpenAICompatibleProvider', () => {
           provider: 'test-provider.chat',
           defaultObjectGenerationMode: 'tool',
         }),
+      );
+    });
+
+    it('should create URL without query parameters when queryParams is not specified', () => {
+      const options = {
+        baseURL: 'https://api.example.com',
+        name: 'test-provider',
+        apiKey: 'test-api-key',
+      };
+
+      const provider = createOpenAICompatible(options);
+      provider('model-id');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[2];
+
+      expect(config.url({ modelId: 'model-id', path: '/v1/chat' })).toBe(
+        'https://api.example.com/v1/chat',
       );
     });
   });

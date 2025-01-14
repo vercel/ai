@@ -73,9 +73,9 @@ Custom headers to include in the requests.
 */
   headers?: Record<string, string>;
   /**
-Optional custom url params to include in requests url.
+Optional custom url query parameters to include in request urls.
 */
-  params?: Record<string, string>;
+  queryParams?: Record<string, string>;
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
@@ -141,7 +141,13 @@ export function createExample(
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `example.${modelType}`,
-    url: ({ path }) => `${baseURL}${path}`,
+    url: ({ path }) => {
+      const url = new URL(`${baseURL}${path}`);
+      if (options.queryParams) {
+        url.search = new URLSearchParams(options.queryParams).toString();
+      }
+      return url.toString();
+    },
     headers: getHeaders,
     fetch: options.fetch,
   });
