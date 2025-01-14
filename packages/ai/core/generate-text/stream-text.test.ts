@@ -3582,6 +3582,57 @@ describe('streamText', () => {
       });
     });
 
+    describe('with multiple transformations', () => {
+      const toUppercaseAndAddCommaTransform =
+        <TOOLS extends Record<string, CoreTool>>() =>
+        (options: { tools: TOOLS }) =>
+          new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+            transform(chunk, controller) {
+              if (chunk.type !== 'text-delta') {
+                controller.enqueue(chunk);
+                return;
+              }
+
+              controller.enqueue({
+                ...chunk,
+                textDelta: `${chunk.textDelta.toUpperCase()},`,
+              });
+            },
+          });
+
+      const omitCommaTransform =
+        <TOOLS extends Record<string, CoreTool>>() =>
+        (options: { tools: TOOLS }) =>
+          new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+            transform(chunk, controller) {
+              if (chunk.type !== 'text-delta') {
+                controller.enqueue(chunk);
+                return;
+              }
+
+              controller.enqueue({
+                ...chunk,
+                textDelta: chunk.textDelta.replace(',', ''),
+              });
+            },
+          });
+
+      it('should transform the stream', async () => {
+        const result = streamText({
+          model: createTestModel(),
+          experimental_transform: [
+            toUppercaseAndAddCommaTransform(),
+            omitCommaTransform(),
+          ],
+          prompt: 'test-input',
+        });
+
+        expect(
+          await convertAsyncIterableToArray(result.textStream),
+        ).toStrictEqual(['HELLO', ' ', 'WORLD!']);
+      });
+    });
+
     describe('with transformation that aborts stream', () => {
       const stopWordTransform =
         <TOOLS extends Record<string, CoreTool>>() =>

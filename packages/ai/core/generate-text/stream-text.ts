@@ -216,7 +216,9 @@ Enable streaming of tool call deltas as they are generated. Disabled by default.
     /**
 Optional transformation that is applied to the stream.
      */
-    experimental_transform?: StreamTextTransform<TOOLS>;
+    experimental_transform?:
+      | StreamTextTransform<TOOLS>
+      | Array<StreamTextTransform<TOOLS>>;
 
     /**
 Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
@@ -466,7 +468,10 @@ class DefaultStreamTextResult<
     tools: TOOLS | undefined;
     toolChoice: CoreToolChoice<TOOLS> | undefined;
     toolCallStreaming: boolean;
-    transform: StreamTextTransform<TOOLS> | undefined;
+    transform:
+      | StreamTextTransform<TOOLS>
+      | Array<StreamTextTransform<TOOLS>>
+      | undefined;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
@@ -729,7 +734,7 @@ class DefaultStreamTextResult<
 
     // transform the stream before output parsing
     // to enable replacement of stream segments:
-    if (transform) {
+    if (transform && !Array.isArray(transform)) {
       stream = stream.pipeThrough(
         transform({
           tools: tools as TOOLS,
