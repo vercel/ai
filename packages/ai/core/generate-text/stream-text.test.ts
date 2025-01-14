@@ -3729,219 +3729,219 @@ describe('streamText', () => {
       expect(result).toMatchSnapshot();
     });
   });
-});
 
-describe('options.output', () => {
-  describe('no output', () => {
-    it('should throw error when accessing partial output stream', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: '{ ' },
-            { type: 'text-delta', textDelta: '"value": ' },
-            { type: 'text-delta', textDelta: `"Hello, ` },
-            { type: 'text-delta', textDelta: `world` },
-            { type: 'text-delta', textDelta: `!"` },
-            { type: 'text-delta', textDelta: ' }' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: { completionTokens: 10, promptTokens: 3 },
-            },
-          ]),
-        }),
-        prompt: 'prompt',
-      });
+  describe('options.output', () => {
+    describe('no output', () => {
+      it('should throw error when accessing partial output stream', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"value": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+          }),
+          prompt: 'prompt',
+        });
 
-      await expect(async () => {
-        await convertAsyncIterableToArray(
-          result.experimental_partialOutputStream,
-        );
-      }).rejects.toThrow('No output specified');
-    });
-  });
-
-  describe('text output', () => {
-    it('should send partial output stream', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello, ' },
-            { type: 'text-delta', textDelta: ',' },
-            { type: 'text-delta', textDelta: ' world!' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: { completionTokens: 10, promptTokens: 3 },
-            },
-          ]),
-        }),
-        experimental_output: text(),
-        prompt: 'prompt',
-      });
-
-      expect(
-        await convertAsyncIterableToArray(
-          result.experimental_partialOutputStream,
-        ),
-      ).toStrictEqual(['Hello, ', 'Hello, ,', 'Hello, , world!']);
-    });
-  });
-
-  describe('object output', () => {
-    it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
-      let callOptions!: LanguageModelV1CallOptions;
-
-      const result = streamText({
-        model: new MockLanguageModelV1({
-          supportsStructuredOutputs: false,
-          doStream: async args => {
-            callOptions = args;
-            return {
-              stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"value": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            };
-          },
-        }),
-        experimental_output: object({
-          schema: z.object({ value: z.string() }),
-        }),
-        prompt: 'prompt',
-      });
-
-      // consume stream
-      await convertAsyncIterableToArray(result.textStream);
-
-      expect(callOptions).toEqual({
-        temperature: 0,
-        mode: { type: 'regular' },
-        inputFormat: 'prompt',
-        responseFormat: { type: 'json', schema: undefined },
-        prompt: [
-          {
-            content:
-              'JSON schema:\n' +
-              '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}\n' +
-              'You MUST answer with a JSON object that matches the JSON schema above.',
-            role: 'system',
-          },
-          {
-            content: [{ text: 'prompt', type: 'text' }],
-            providerMetadata: undefined,
-            role: 'user',
-          },
-        ],
+        await expect(async () => {
+          await convertAsyncIterableToArray(
+            result.experimental_partialOutputStream,
+          );
+        }).rejects.toThrow('No output specified');
       });
     });
 
-    it('should send valid partial text fragments', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: '{ ' },
-            { type: 'text-delta', textDelta: '"value": ' },
-            { type: 'text-delta', textDelta: `"Hello, ` },
-            { type: 'text-delta', textDelta: `world` },
-            { type: 'text-delta', textDelta: `!"` },
-            { type: 'text-delta', textDelta: ' }' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: { completionTokens: 10, promptTokens: 3 },
-            },
-          ]),
-        }),
-        experimental_output: object({
-          schema: z.object({ value: z.string() }),
-        }),
-        prompt: 'prompt',
-      });
+    describe('text output', () => {
+      it('should send partial output stream', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello, ' },
+              { type: 'text-delta', textDelta: ',' },
+              { type: 'text-delta', textDelta: ' world!' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+          }),
+          experimental_output: text(),
+          prompt: 'prompt',
+        });
 
-      expect(
-        await convertAsyncIterableToArray(result.textStream),
-      ).toStrictEqual([
-        `{ `,
-        // key difference: need to combine after `:`
-        `"value": "Hello, `,
-        `world`,
-        `!"`,
-        ` }`,
-      ]);
+        expect(
+          await convertAsyncIterableToArray(
+            result.experimental_partialOutputStream,
+          ),
+        ).toStrictEqual(['Hello, ', 'Hello, ,', 'Hello, , world!']);
+      });
     });
 
-    it('should send partial output stream', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: '{ ' },
-            { type: 'text-delta', textDelta: '"value": ' },
-            { type: 'text-delta', textDelta: `"Hello, ` },
-            { type: 'text-delta', textDelta: `world` },
-            { type: 'text-delta', textDelta: `!"` },
-            { type: 'text-delta', textDelta: ' }' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: { completionTokens: 10, promptTokens: 3 },
+    describe('object output', () => {
+      it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
+        let callOptions!: LanguageModelV1CallOptions;
+
+        const result = streamText({
+          model: new MockLanguageModelV1({
+            supportsStructuredOutputs: false,
+            doStream: async args => {
+              callOptions = args;
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-delta', textDelta: '{ ' },
+                  { type: 'text-delta', textDelta: '"value": ' },
+                  { type: 'text-delta', textDelta: `"Hello, ` },
+                  { type: 'text-delta', textDelta: `world` },
+                  { type: 'text-delta', textDelta: `!"` },
+                  { type: 'text-delta', textDelta: ' }' },
+                  {
+                    type: 'finish',
+                    finishReason: 'stop',
+                    usage: { completionTokens: 10, promptTokens: 3 },
+                  },
+                ]),
+                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+              };
             },
-          ]),
-        }),
-        experimental_output: object({
-          schema: z.object({ value: z.string() }),
-        }),
-        prompt: 'prompt',
+          }),
+          experimental_output: object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+        });
+
+        // consume stream
+        await convertAsyncIterableToArray(result.textStream);
+
+        expect(callOptions).toEqual({
+          temperature: 0,
+          mode: { type: 'regular' },
+          inputFormat: 'prompt',
+          responseFormat: { type: 'json', schema: undefined },
+          prompt: [
+            {
+              content:
+                'JSON schema:\n' +
+                '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}\n' +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+              role: 'system',
+            },
+            {
+              content: [{ text: 'prompt', type: 'text' }],
+              providerMetadata: undefined,
+              role: 'user',
+            },
+          ],
+        });
       });
 
-      expect(
-        await convertAsyncIterableToArray(
-          result.experimental_partialOutputStream,
-        ),
-      ).toStrictEqual([
-        {},
-        { value: 'Hello, ' },
-        { value: 'Hello, world' },
-        { value: 'Hello, world!' },
-      ]);
-    });
+      it('should send valid partial text fragments', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"value": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+          }),
+          experimental_output: object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+        });
 
-    it('should send partial output stream when last chunk contains content', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: '{ ' },
-            { type: 'text-delta', textDelta: '"value": ' },
-            { type: 'text-delta', textDelta: `"Hello, ` },
-            { type: 'text-delta', textDelta: `world!" }` },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: { completionTokens: 10, promptTokens: 3 },
-            },
-          ]),
-        }),
-        experimental_output: object({
-          schema: z.object({ value: z.string() }),
-        }),
-        prompt: 'prompt',
+        expect(
+          await convertAsyncIterableToArray(result.textStream),
+        ).toStrictEqual([
+          `{ `,
+          // key difference: need to combine after `:`
+          `"value": "Hello, `,
+          `world`,
+          `!"`,
+          ` }`,
+        ]);
       });
 
-      expect(
-        await convertAsyncIterableToArray(
-          result.experimental_partialOutputStream,
-        ),
-      ).toStrictEqual([{}, { value: 'Hello, ' }, { value: 'Hello, world!' }]);
+      it('should send partial output stream', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"value": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+          }),
+          experimental_output: object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(
+          await convertAsyncIterableToArray(
+            result.experimental_partialOutputStream,
+          ),
+        ).toStrictEqual([
+          {},
+          { value: 'Hello, ' },
+          { value: 'Hello, world' },
+          { value: 'Hello, world!' },
+        ]);
+      });
+
+      it('should send partial output stream when last chunk contains content', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"value": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world!" }` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+          }),
+          experimental_output: object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(
+          await convertAsyncIterableToArray(
+            result.experimental_partialOutputStream,
+          ),
+        ).toStrictEqual([{}, { value: 'Hello, ' }, { value: 'Hello, world!' }]);
+      });
     });
   });
 });
