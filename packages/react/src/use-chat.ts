@@ -244,7 +244,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
   }) => void;
 } {
   // Generate ID once, store in state for stability across re-renders
-  const [hookId] = useState(() => generateId());
+  const [hookId] = useState(generateId);
 
   // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
   const idKey = id ?? hookId;
