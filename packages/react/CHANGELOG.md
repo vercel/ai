@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 1.0.11
+
+### Patch Changes
+
+- 37f4510: feat (ui): expose useChat id and send it to the server
+- Updated dependencies [37f4510]
+  - @ai-sdk/ui-utils@1.0.10
+
 ## 1.0.10
 
 ### Patch Changes
