@@ -2,6 +2,7 @@ export type OpenAIChatPrompt = Array<ChatCompletionMessage>;
 
 export type ChatCompletionMessage =
   | ChatCompletionSystemMessage
+  | ChatCompletionDeveloperMessage
   | ChatCompletionUserMessage
   | ChatCompletionAssistantMessage
   | ChatCompletionToolMessage
@@ -9,6 +10,11 @@ export type ChatCompletionMessage =
 
 export interface ChatCompletionSystemMessage {
   role: 'system';
+  content: string;
+}
+
+export interface ChatCompletionDeveloperMessage {
+  role: 'developer';
   content: string;
 }
 

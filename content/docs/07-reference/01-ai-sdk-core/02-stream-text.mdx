@@ -471,10 +471,39 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_transform',
-      type: '({ tools: TOOLS }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>',
+      type: 'StreamTextTransform | Array<StreamTextTransform>',
       isOptional: true,
       description:
-        'Optional transformation that is applied to the stream. Tools are passed in for type inference.',
+        'Optional stream transformations. They are applied in the order they are provided. The stream transformations must maintain the stream structure for streamText to work correctly.',
+      properties: [
+        {
+          type: 'StreamTextTransform',
+          parameters: [
+            {
+              name: 'transform',
+              type: '(options: TransformOptions) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>',
+              description: 'A transformation that is applied to the stream.',
+              properties: [
+                {
+                  type: 'TransformOptions',
+                  parameters: [
+                    {
+                      name: 'stopStream',
+                      type: '() => void',
+                      description: 'A function that stops the stream.',
+                    },
+                    {
+                      name: 'tools',
+                      type: 'TOOLS',
+                      description: 'The tools that are available.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'experimental_providerMetadata',

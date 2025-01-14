@@ -1,5 +1,26 @@
 # @ai-sdk/google
 
+## 1.0.16
+
+### Patch Changes
+
+- 4eb9b41: fix (provider/google): support conversion of string enums to openapi spec
+
+## 1.0.15
+
+### Patch Changes
+
+- 7611964: feat (provider/xai): Support structured output for latest models.
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [90fb95a]
+- Updated dependencies [e6dfef4]
+- Updated dependencies [6636db6]
+  - @ai-sdk/provider-utils@2.0.7
+
 ## 1.0.13
 
 ### Patch Changes

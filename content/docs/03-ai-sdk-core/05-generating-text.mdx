@@ -236,7 +236,7 @@ all text to uppercase:
 ```ts
 const upperCaseTransform =
   <TOOLS extends Record<string, CoreTool>>() =>
-  (options: { tools: TOOLS }) =>
+  (options: { tools: TOOLS; stopStream: () => void }) =>
     new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       transform(chunk, controller) {
         controller.enqueue(
@@ -247,6 +247,88 @@ const upperCaseTransform =
         );
       },
     });
+```
+
+You can also stop the stream using the `stopStream` function.
+This is e.g. useful if you want to stop the stream when model guardrails are violated, e.g. by generating inappropriate content.
+
+When you invoke `stopStream`, it is important to simulate the `step-finish` and `finish` events to guarantee that a well-formed stream is returned
+and all callbacks are invoked.
+
+```ts
+const stopWordTransform =
+  <TOOLS extends Record<string, CoreTool>>() =>
+  ({ stopStream }: { stopStream: () => void }) =>
+    new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+      // note: this is a simplified transformation for testing;
+      // in a real-world version more there would need to be
+      // stream buffering and scanning to correctly emit prior text
+      // and to detect all STOP occurrences.
+      transform(chunk, controller) {
+        if (chunk.type !== 'text-delta') {
+          controller.enqueue(chunk);
+          return;
+        }
+
+        if (chunk.textDelta.includes('STOP')) {
+          // stop the stream
+          stopStream();
+
+          // simulate the step-finish event
+          controller.enqueue({
+            type: 'step-finish',
+            finishReason: 'stop',
+            logprobs: undefined,
+            usage: {
+              completionTokens: NaN,
+              promptTokens: NaN,
+              totalTokens: NaN,
+            },
+            request: {},
+            response: {
+              id: 'response-id',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            warnings: [],
+            isContinued: false,
+          });
+
+          // simulate the finish event
+          controller.enqueue({
+            type: 'finish',
+            finishReason: 'stop',
+            logprobs: undefined,
+            usage: {
+              completionTokens: NaN,
+              promptTokens: NaN,
+              totalTokens: NaN,
+            },
+            response: {
+              id: 'response-id',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+          });
+
+          return;
+        }
+
+        controller.enqueue(chunk);
+      },
+    });
+```
+
+#### Multiple transformations
+
+You can also provide multiple transformations. They are applied in the order they are provided.
+
+```tsx highlight="4"
+const result = streamText({
+  model,
+  prompt,
+  experimental_transform: [firstTransform, secondTransform],
+});
 ```
 
 ## Generating Long Text

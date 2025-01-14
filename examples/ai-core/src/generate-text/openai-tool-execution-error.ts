@@ -26,6 +26,7 @@ async function main() {
     if (ToolExecutionError.isInstance(error)) {
       console.error('Tool execution error: ' + error.message);
       console.error('Tool name: ' + error.toolName);
+      console.error('Tool call ID: ' + error.toolCallId);
       console.error('Tool args: ' + JSON.stringify(error.toolArgs));
       console.error('Cause: ' + error.cause);
     } else {

@@ -1,5 +1,57 @@
 # ai
 
+## 4.0.35
+
+### Patch Changes
+
+- 3491f78: feat (ai/core): support multiple stream text transforms
+
+## 4.0.34
+
+### Patch Changes
+
+- 2495973: feat (ai/core): use openai compatible mode for json schema conversion
+- 2495973: fix (ai/core): duplicate instead of using reference in json schema
+- Updated dependencies [2495973]
+- Updated dependencies [2495973]
+  - @ai-sdk/ui-utils@1.0.9
+  - @ai-sdk/react@1.0.10
+
+## 4.0.33
+
+### Patch Changes
+
+- 5510ee7: feat (ai/core): add stopStream option to streamText transforms
+
+## 4.0.32
+
+### Patch Changes
+
+- de66619: feat (ai/core): add tool call id to ToolExecution error
+
+## 4.0.31
+
+### Patch Changes
+
+- Updated dependencies [90fb95a]
+- Updated dependencies [e6dfef4]
+- Updated dependencies [6636db6]
+  - @ai-sdk/provider-utils@2.0.7
+  - @ai-sdk/react@1.0.9
+  - @ai-sdk/ui-utils@1.0.8
+
+## 4.0.30
+
+### Patch Changes
+
+- e4ce80c: fix (ai/core): prevent onFinish from masking stream errors
+
+## 4.0.29
+
+### Patch Changes
+
+- a92f5f6: feat (ai/core): generate many images with parallel model calls
+
 ## 4.0.28
 
 ### Patch Changes

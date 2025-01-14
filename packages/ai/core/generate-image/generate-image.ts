@@ -27,7 +27,7 @@ as body parameters.
 export async function generateImage({
   model,
   prompt,
-  n,
+  n = 1,
   size,
   aspectRatio,
   seed,
@@ -102,20 +102,49 @@ Only applicable for HTTP-based providers.
 }): Promise<GenerateImageResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
-  return new DefaultGenerateImageResult(
-    await retry(() =>
-      model.doGenerate({
-        prompt,
-        n: n ?? 1,
-        abortSignal,
-        headers,
-        size,
-        aspectRatio,
-        seed,
-        providerOptions: providerOptions ?? {},
-      }),
+  // default to 1 if the model has not specified limits on
+  // how many images can be generated in a single call
+  const maxImagesPerCall = model.maxImagesPerCall ?? 1;
+
+  // parallelize calls to the model:
+  const callCount = Math.ceil(n / maxImagesPerCall);
+  const callImageCounts = Array.from({ length: callCount }, (_, i) => {
+    if (i < callCount - 1) {
+      return maxImagesPerCall;
+    }
+
+    const remainder = n % maxImagesPerCall;
+    return remainder === 0 ? maxImagesPerCall : remainder;
+  });
+  const results = await Promise.all(
+    callImageCounts.map(async callImageCount =>
+      retry(() =>
+        model.doGenerate({
+          prompt,
+          n: callImageCount,
+          abortSignal,
+          headers,
+          size,
+          aspectRatio,
+          seed,
+          providerOptions: providerOptions ?? {},
+        }),
+      ),
     ),
   );
+
+  // collect result images & warnings
+  const images: Array<DefaultGeneratedImage> = [];
+  const warnings: Array<ImageGenerationWarning> = [];
+
+  for (const result of results) {
+    images.push(
+      ...result.images.map(image => new DefaultGeneratedImage({ image })),
+    );
+    warnings.push(...result.warnings);
+  }
+
+  return new DefaultGenerateImageResult({ images, warnings });
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {
@@ -123,12 +152,10 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   readonly warnings: Array<ImageGenerationWarning>;
 
   constructor(options: {
-    images: Array<string> | Array<Uint8Array>;
+    images: Array<DefaultGeneratedImage>;
     warnings: Array<ImageGenerationWarning>;
   }) {
-    this.images = options.images.map(
-      image => new DefaultGeneratedImage({ imageData: image }),
-    );
+    this.images = options.images;
     this.warnings = options.warnings;
   }
 
@@ -141,11 +168,11 @@ class DefaultGeneratedImage implements GeneratedImage {
   private base64Data: string | undefined;
   private uint8ArrayData: Uint8Array | undefined;
 
-  constructor({ imageData }: { imageData: string | Uint8Array }) {
-    const isUint8Array = imageData instanceof Uint8Array;
+  constructor({ image }: { image: string | Uint8Array }) {
+    const isUint8Array = image instanceof Uint8Array;
 
-    this.base64Data = isUint8Array ? undefined : imageData;
-    this.uint8ArrayData = isUint8Array ? imageData : undefined;
+    this.base64Data = isUint8Array ? undefined : image;
+    this.uint8ArrayData = isUint8Array ? image : undefined;
   }
 
   // lazy conversion with caching to avoid unnecessary conversion overhead:

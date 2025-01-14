@@ -99,6 +99,7 @@ function createServer({
     });
 
   // keep track of url invocation counts:
+  // TODO bug needs reset after each test
   const urlInvocationCounts = Object.fromEntries(
     Object.entries(responsesByUrl).map(([url]) => [url, 0]),
   );
@@ -111,6 +112,7 @@ function createServer({
         const invocationCount = urlInvocationCounts[url]++;
         const response =
           responses[
+            // TODO bug needs to be >=
             invocationCount > responses.length
               ? responses.length - 1
               : invocationCount

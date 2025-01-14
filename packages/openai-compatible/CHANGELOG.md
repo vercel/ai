@@ -1,5 +1,20 @@
 # @ai-sdk/openai-compatible
 
+## 0.0.16
+
+### Patch Changes
+
+- 7611964: feat (provider/xai): Support structured output for latest models.
+
+## 0.0.15
+
+### Patch Changes
+
+- Updated dependencies [90fb95a]
+- Updated dependencies [e6dfef4]
+- Updated dependencies [6636db6]
+  - @ai-sdk/provider-utils@2.0.7
+
 ## 0.0.14
 
 ### Patch Changes

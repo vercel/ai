@@ -27,10 +27,11 @@ import {
   FireworksEmbeddingModelId,
   FireworksEmbeddingSettings,
 } from './fireworks-embedding-settings';
+import { FireworksImageModel } from './fireworks-image-model';
 import {
-  FireworksImageModel,
   FireworksImageModelId,
-} from './fireworks-image-model';
+  FireworksImageSettings,
+} from './fireworks-image-settings';
 
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
@@ -45,7 +46,8 @@ const fireworksErrorStructure: ProviderErrorStructure<FireworksErrorData> = {
 
 export interface FireworksProviderSettings {
   /**
-Fireworks API key.
+Fireworks API key. Default value is taken from the `FIREWORKS_API_KEY`
+environment variable.
 */
   apiKey?: string;
   /**
@@ -99,7 +101,10 @@ Creates a text embedding model for text generation.
   /**
 Creates a model for image generation.
 */
-  image(modelId: FireworksImageModelId): ImageModelV1;
+  image(
+    modelId: FireworksImageModelId,
+    settings?: FireworksImageSettings,
+  ): ImageModelV1;
 }
 
 const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';
@@ -160,8 +165,11 @@ export function createFireworks(
       errorStructure: fireworksErrorStructure,
     });
 
-  const createImageModel = (modelId: FireworksImageModelId) =>
-    new FireworksImageModel(modelId, {
+  const createImageModel = (
+    modelId: FireworksImageModelId,
+    settings: FireworksImageSettings = {},
+  ) =>
+    new FireworksImageModel(modelId, settings, {
       ...getCommonModelConfig('image'),
       baseURL: baseURL ?? defaultBaseURL,
     });

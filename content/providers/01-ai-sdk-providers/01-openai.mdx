@@ -190,7 +190,8 @@ The following optional settings are available for OpenAI chat models:
 
 - **structuredOutputs** _boolean_
 
-  Whether to use [structured outputs](#structured-outputs). Defaults to `false`.
+  Whether to use [structured outputs](#structured-outputs).
+  Defaults to `false` for normal models, and `true` for reasoning models.
 
   When enabled, tool calls and object generation will be strict and follow the provided schema.
 
@@ -378,7 +379,6 @@ Reasoning models support additional settings and response metadata:
 
 - You can use `experimental_providerMetadata` to set
 
-  - the `maxCompletionTokens` option, which determines the maximum number of both reasoning and output tokens that the model generates.
   - the `reasoningEffort` option (or alternatively the `reasoningEffort` model setting), which determines the amount of reasoning the model performs.
 
 - You can use response `experimental_providerMetadata` to access the number of reasoning tokens that the model generated.
@@ -393,7 +393,6 @@ const { text, usage, experimental_providerMetadata } = await generateText({
   experimental_providerMetadata: {
     openai: {
       reasoningEffort: 'low',
-      maxCompletionTokens: 1000,
     },
   },
 });
@@ -413,15 +412,19 @@ console.log('Usage:', {
 </Note>
 
 <Note>
-  OpenAI has introduced a new `developer` message type for reasoning models.
-  However, `system` messages are automatically converted to `developer` messages
-  by OpenAI. You can pass `system` messages to reasoning models and set the
-  `system` instruction as usual.
+  For some models such as `o1-preview`, system messages are removed and a
+  warning is added. For other reasoning models, system messages are converted to
+  `developer` messages.
 </Note>
 
 <Note>
-  The `o1` reasoning model currently does not support streaming. You can use the
-  `simulateStreaming` option to simulate streaming.
+  `maxTokens` is automatically mapped to `max_completion_tokens` for reasoning
+  models.
+</Note>
+
+<Note>
+  Streaming for the `o1` reasoning model is simulated by default. You can use
+  the `simulateStreaming` option to disable this.
 </Note>
 
 #### Prompt Caching

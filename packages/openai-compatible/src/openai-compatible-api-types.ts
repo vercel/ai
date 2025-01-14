@@ -53,7 +53,6 @@ export interface OpenAICompatibleMessageToolCall extends JsonRecord {
   function: {
     arguments: string;
     name: string;
-    strict?: boolean;
   };
 }
 

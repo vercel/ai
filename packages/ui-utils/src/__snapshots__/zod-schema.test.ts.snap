@@ -1,0 +1,61 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`zodSchema > should create a schema from a zod schema 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+    },
+  },
+  "required": [
+    "name",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`zodSchema > should duplicate inner schemas (and not use references) 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "designers": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "name",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+    "developers": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "name",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+  },
+  "required": [
+    "developers",
+    "designers",
+  ],
+  "type": "object",
+}
+`;

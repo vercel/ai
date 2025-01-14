@@ -611,6 +611,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
             return result;
           } catch (error) {
             throw new ToolExecutionError({
+              toolCallId,
               toolName,
               toolArgs: args,
               cause: error,

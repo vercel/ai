@@ -57,7 +57,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 
   get supportsStructuredOutputs(): boolean {
-    return this.settings.structuredOutputs ?? false;
+    // enable structured outputs for reasoning models by default:
+    // TODO in the next major version, remove this and always use json mode for models
+    // that support structured outputs (blacklist other models)
+    return this.settings.structuredOutputs ?? isReasoningModel(this.modelId);
   }
 
   get defaultObjectGenerationMode() {
@@ -130,6 +133,16 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (
+      getSystemMessageMode(this.modelId) === 'remove' &&
+      prompt.some(message => message.role === 'system')
+    ) {
+      warnings.push({
+        type: 'other',
+        message: 'system messages are removed for this model',
+      });
+    }
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -176,6 +189,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       seed,
 
       // openai specific settings:
+      // TODO remove in next major version; we auto-map maxTokens now
       max_completion_tokens: providerMetadata?.openai?.maxCompletionTokens,
       store: providerMetadata?.openai?.store,
       metadata: providerMetadata?.openai?.metadata,
@@ -188,15 +202,74 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       messages: convertToOpenAIChatMessages({
         prompt,
         useLegacyFunctionCalling,
+        systemMessageMode: getSystemMessageMode(this.modelId),
       }),
     };
 
-    // reasoning models have fixed params, remove them if they are set:
     if (isReasoningModel(this.modelId)) {
-      baseArgs.temperature = undefined;
-      baseArgs.top_p = undefined;
-      baseArgs.frequency_penalty = undefined;
-      baseArgs.presence_penalty = undefined;
+      // remove unsupported settings for reasoning models
+      // see https://platform.openai.com/docs/guides/reasoning#limitations
+      if (baseArgs.temperature != null) {
+        baseArgs.temperature = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.top_p != null) {
+        baseArgs.top_p = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'topP',
+          details: 'topP is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.frequency_penalty != null) {
+        baseArgs.frequency_penalty = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'frequencyPenalty',
+          details: 'frequencyPenalty is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.presence_penalty != null) {
+        baseArgs.presence_penalty = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'presencePenalty',
+          details: 'presencePenalty is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.logit_bias != null) {
+        baseArgs.logit_bias = undefined;
+        warnings.push({
+          type: 'other',
+          message: 'logitBias is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.logprobs != null) {
+        baseArgs.logprobs = undefined;
+        warnings.push({
+          type: 'other',
+          message: 'logprobs is not supported for reasoning models',
+        });
+      }
+      if (baseArgs.top_logprobs != null) {
+        baseArgs.top_logprobs = undefined;
+        warnings.push({
+          type: 'other',
+          message: 'topLogprobs is not supported for reasoning models',
+        });
+      }
+
+      // reasoning models use max_completion_tokens instead of max_tokens:
+      if (baseArgs.max_tokens != null) {
+        if (baseArgs.max_completion_tokens == null) {
+          baseArgs.max_completion_tokens = baseArgs.max_tokens;
+        }
+        baseArgs.max_tokens = undefined;
+      }
     }
 
     switch (type) {
@@ -366,8 +439,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    if (this.settings.simulateStreaming) {
+    if (
+      this.settings.simulateStreaming ??
+      isStreamingSimulatedByDefault(this.modelId)
+    ) {
       const result = await this.doGenerate(options);
+
       const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
         start(controller) {
           controller.enqueue({ type: 'response-metadata', ...result.response });
@@ -379,6 +456,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           }
           if (result.toolCalls) {
             for (const toolCall of result.toolCalls) {
+              controller.enqueue({
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                argsTextDelta: toolCall.args,
+              });
+
               controller.enqueue({
                 type: 'tool-call',
                 ...toolCall,
@@ -844,3 +929,44 @@ function isReasoningModel(modelId: string) {
 function isAudioModel(modelId: string) {
   return modelId.startsWith('gpt-4o-audio-preview');
 }
+
+function getSystemMessageMode(modelId: string) {
+  if (!isReasoningModel(modelId)) {
+    return 'system';
+  }
+
+  return (
+    reasoningModels[modelId as keyof typeof reasoningModels]
+      ?.systemMessageMode ?? 'developer'
+  );
+}
+
+function isStreamingSimulatedByDefault(modelId: string) {
+  if (!isReasoningModel(modelId)) {
+    return false;
+  }
+
+  return (
+    reasoningModels[modelId as keyof typeof reasoningModels]
+      ?.simulateStreamingByDefault ?? true
+  );
+}
+
+const reasoningModels = {
+  'o1-mini': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
+  'o1-mini-2024-09-12': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
+  'o1-preview': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
+  'o1-preview-2024-09-12': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
+} as const;

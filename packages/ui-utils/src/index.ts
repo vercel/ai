@@ -25,5 +25,6 @@ export { prepareAttachmentsForRequest } from './prepare-attachments-for-request'
 export { processAssistantStream } from './process-assistant-stream';
 export { processDataStream } from './process-data-stream';
 export { processTextStream } from './process-text-stream';
-export { asSchema, jsonSchema, zodSchema } from './schema';
+export { asSchema, jsonSchema } from './schema';
 export type { Schema } from './schema';
+export { zodSchema } from './zod-schema';
