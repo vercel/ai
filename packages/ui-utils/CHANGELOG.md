@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.0.10
+
+### Patch Changes
+
+- 37f4510: feat (ui): expose useChat id and send it to the server
+
 ## 1.0.9
 
 ### Patch Changes
