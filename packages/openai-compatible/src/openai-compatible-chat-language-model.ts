@@ -262,6 +262,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
 
+    let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
+    const getProviderMetadata = this.config.getProviderMetadata;
+    if (typeof getProviderMetadata === 'function') {
+      providerMetadata = getProviderMetadata(response, providerMetadata);
+    }
+
     return {
       text: choice.message.content ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
@@ -275,6 +281,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         promptTokens: response.usage?.prompt_tokens ?? NaN,
         completionTokens: response.usage?.completion_tokens ?? NaN,
       },
+      providerMetadata,
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       response: getResponseMetadata(response),

@@ -95,10 +95,10 @@ export function createDeepSeek(
           prompt_cache_miss_tokens: z.number().nullish(),
         })
         .nullish(),
-      getProviderMetadata(
+      getProviderMetadata: (
         value: any,
         _cur: LanguageModelV1ProviderMetadata | undefined,
-      ) {
+      ) => {
         if (value?.usage?.prompt_cache_hit_tokens != null) {
           return {
             deepseek: {
