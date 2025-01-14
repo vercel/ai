@@ -214,7 +214,9 @@ Enable streaming of tool call deltas as they are generated. Disabled by default.
     experimental_toolCallStreaming?: boolean;
 
     /**
-Optional transformation that is applied to the stream.
+Optional stream transformations.
+They are applied in the order they are provided.
+The stream transformations must maintain the stream structure for streamText to work correctly.
      */
     experimental_transform?:
       | StreamTextTransform<TOOLS>
