@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.35
+
+### Patch Changes
+
+- 3491f78: feat (ai/core): support multiple stream text transforms
+
 ## 4.0.34
 
 ### Patch Changes
