@@ -15,12 +15,13 @@ export default function Chat({ chatId }: { chatId?: string | undefined } = {}) {
     setMessages,
   } = useChat({
     api: '/api/use-chat-persistence',
-    id: chatId,
-    sendExtraMessageFields: true,
+    id: chatId, // use the provided chatId
+    sendExtraMessageFields: true, // send id and createdAt for each message
   });
 
   useEffect(() => {
     if (chatId) {
+      // load the messages from the server when a chatId is provided:
       const fetchInitialMessages = async () => {
         const response = await fetch(`/api/use-chat-persistence/${chatId}`);
         setMessages(await response.json());
