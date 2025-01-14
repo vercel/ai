@@ -1,0 +1,127 @@
+---
+title: Load Messages from Database
+description: Learn to load messages from an external database using the AI SDK and Next.js
+tags: ['next', 'persistence', 'useChat']
+---
+
+# Load Messages from Database
+
+The `useChat` hook accepts `initialMessages` to load an earlier chat history of messages.
+
+As messages are typically loaded from an external database,
+we can use server actions inside the Page component to fetch an already existing chat from the database during static generation and pass the messages as props to the `<Chat/>` component.
+
+<Note>
+This example assumes that the database table schema has a `messages` column that stores the chat messages as a JSON string of type `Array<CoreMessage>`.
+You can modify the [`convertToUIMessages`](#convert-to-ui-messages) function to suit your database schema.
+</Note>
+
+```tsx filename="@/app/chat/[id]/page.tsx"
+import { Chat } from '@/app/components/chat'
+import { getChatById } from '@/utils/queries'
+import { convertToUIMessages } from '@/utils/functions'
+
+export default async function Page({ params }: { params: any }) {
+  const { id } = params
+
+  // you need to implement the getChatById server action
+  const chatFromDb = await getChatById({ id })
+
+  const chat: Chat = {
+    ...chatFromDb,
+    messages: convertToUIMessages(chatFromDb.messages)
+  }
+
+  return <Chat key={id} id={chat.id} initialMessages={chat.messages} />
+}
+```
+
+In the above code snippet, we fetch the chat from the database using the `getChatById` server action and convert the messages to the format expected by `useChat` component using the `convertToUIMessages` function.
+
+```tsx filename="@/app/components/chat.tsx"
+'use client'
+
+import { Message } from 'ai'
+import { useChat } from 'ai/react'
+
+export function Chat({
+  id,
+  initialMessages
+}: {
+  id
+  initialMessages: Array<Message>
+}) {
+  const { messages } = useChat({
+    id,
+    initialMessages
+  })
+
+  return (
+    <div>
+      {messages.map(message => (
+        <div key={message.id}>
+          <div>{message.role}</div>
+          <div>{message.content}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+In the `Chat` component, we pass the `initialMessages` prop to the `useChat` hook to load the chat history. The `useChat` hook will then return the messages to be rendered in the chat window.
+
+## Convert to UI Messages
+
+The `convertToUIMessages` function converts the messages from the database to the format expected by the `useChat` hook.
+
+You can modify this function to suit your database schema.
+
+```tsx filename="@/utils/functions.ts"
+export function convertToUIMessages(
+  messages: Array<DBMessage>
+): Array<Message> {
+  return messages.reduce((chatMessages: Array<Message>, message) => {
+    if (message.role === 'tool') {
+      return addToolMessageToChat({
+        toolMessage: message as CoreToolMessage,
+        messages: chatMessages
+      })
+    }
+
+    let textContent = ''
+    const toolInvocations: Array<ToolInvocation> = []
+
+    if (typeof message.content === 'string') {
+      textContent = message.content
+    } else if (Array.isArray(message.content)) {
+      for (const content of message.content) {
+        if (content.type === 'text') {
+          textContent += content.text
+        } else if (content.type === 'tool-call') {
+          toolInvocations.push({
+            state: 'call',
+            toolCallId: content.toolCallId,
+            toolName: content.toolName,
+            args: content.args
+          })
+        }
+      }
+    }
+
+    chatMessages.push({
+      id: message.id,
+      role: message.role as Message['role'],
+      content: textContent,
+      toolInvocations
+    })
+
+    return chatMessages
+  }, [])
+}
+```
+
+## References
+
+- [Save Messages to Database](/cookbook/01-next/save-messages-to-database)
+- [Example Repository](https://github.com/nicoalbanese/persisted-ui-state-annotations)
