@@ -64,6 +64,11 @@ export interface GoogleGenerativeAIProvider extends ProviderV1 {
     modelId: GoogleGenerativeAIEmbeddingModelId,
     settings?: GoogleGenerativeAIEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  gemini(
+    modelId: GoogleGenerativeAIModelId,
+    settings?: GoogleGenerativeAISettings,
+  ): LanguageModelV1;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
@@ -138,6 +143,18 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
+  const createGeminiModel = (
+    modelId: GoogleGenerativeAIModelId,
+    settings: GoogleGenerativeAISettings = {},
+  ) =>
+    new GoogleGenerativeAILanguageModel(modelId, settings, {
+      provider: 'google.generative-ai',
+      baseURL,
+      headers: getHeaders,
+      generateId: options.generateId ?? generateId,
+      fetch: options.fetch,
+    });
+
   const provider = function (
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
@@ -157,6 +174,7 @@ export function createGoogleGenerativeAI(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.gemini = createGeminiModel;
 
   return provider as GoogleGenerativeAIProvider;
 }

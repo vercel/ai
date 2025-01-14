@@ -26,7 +26,7 @@ import {
   InternalGoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
 import { prepareTools } from './google-prepare-tools';
-import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
+import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-aifinish-reason';
 
 type GoogleGenerativeAIConfig = {
   provider: string;

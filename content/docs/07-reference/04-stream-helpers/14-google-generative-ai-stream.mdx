@@ -83,3 +83,31 @@ The GoogleGenerativeAIStream function is a utility that transforms the output fr
 ### Returns
 
 A `ReadableStream`.
+
+## Google Gemini Multi-Modal API
+
+The Google Gemini multi-modal API is now integrated into the AI SDK. This API allows for real-time multi-modal interactions, including text, image, and audio inputs.
+
+### Example Usage
+
+Here is an example of how to use the Google Gemini multi-modal API with the AI SDK:
+
+```javascript
+import { createGoogleGenerativeAI } from 'ai-sdk/google';
+
+const provider = createGoogleGenerativeAI({ apiKey: 'your-api-key' });
+
+const model = provider.languageModel('gemini-2.0-flash-exp');
+
+async function generateResponse(prompt) {
+  const response = await model.doGenerate({
+    inputFormat: 'prompt',
+    mode: { type: 'regular' },
+    prompt: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+  });
+
+  console.log(response.text);
+}
+
+generateResponse('Hello, how can I assist you today?');
+```
