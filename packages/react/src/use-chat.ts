@@ -247,8 +247,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
   const [hookId] = useState(generateId);
 
   // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
-  const idKey = id ?? hookId;
-  const chatKey = typeof api === 'string' ? [api, idKey] : idKey;
+  const chatId = id ?? hookId;
+  const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
 
   // Store a empty array as the initial messages
   // (instead of using a default parameter value that gets re-created each time)
@@ -336,7 +336,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           experimental_prepareRequestBody,
           fetch,
           keepLastMessageOnError,
-          idKey,
+          chatId,
         );
 
         abortControllerRef.current = null;
@@ -396,7 +396,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       fetch,
       keepLastMessageOnError,
       throttleWaitMs,
-      idKey,
+      chatId,
     ],
   );
 
@@ -578,7 +578,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   return {
     messages: messages || [],
-    id: idKey,
+    id: chatId,
     setMessages,
     data: streamData,
     setData,
