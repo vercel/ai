@@ -57,6 +57,18 @@ import { ToolResultUnion } from './tool-result';
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
 /**
+A transformation that is applied to the stream.
+
+@param stopStream - A function that stops the source stream.
+@param tools - The tools that are accessible to and can be called by the model. The model needs to support calling tools.
+ */
+export type StreamTextTransform<TOOLS extends Record<string, CoreTool>> =
+  (options: {
+    tools: TOOLS; // for type inference
+    stopStream: () => void;
+  }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>;
+
+/**
 Generate a text and call tools for a given prompt using a language model.
 
 This function streams the output. If you do not want to stream the output, use `generateText` instead.
@@ -202,15 +214,13 @@ Enable streaming of tool call deltas as they are generated. Disabled by default.
     experimental_toolCallStreaming?: boolean;
 
     /**
-Optional transformation that is applied to the stream.
-
-@param stopStream - A function that stops the source stream.
-@param tools - The tools that are accessible to and can be called by the model. The model needs to support calling tools.
+Optional stream transformations.
+They are applied in the order they are provided.
+The stream transformations must maintain the stream structure for streamText to work correctly.
      */
-    experimental_transform?: (options: {
-      tools: TOOLS; // for type inference
-      stopStream: () => void;
-    }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>;
+    experimental_transform?:
+      | StreamTextTransform<TOOLS>
+      | Array<StreamTextTransform<TOOLS>>;
 
     /**
 Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
@@ -271,7 +281,12 @@ Details for all steps.
     tools,
     toolChoice,
     toolCallStreaming,
-    transform,
+    transforms:
+      transform == null
+        ? []
+        : Array.isArray(transform)
+        ? transform
+        : [transform],
     activeTools,
     repairToolCall,
     maxSteps,
@@ -434,7 +449,7 @@ class DefaultStreamTextResult<
     tools,
     toolChoice,
     toolCallStreaming,
-    transform,
+    transforms,
     activeTools,
     repairToolCall,
     maxSteps,
@@ -460,12 +475,7 @@ class DefaultStreamTextResult<
     tools: TOOLS | undefined;
     toolChoice: CoreToolChoice<TOOLS> | undefined;
     toolCallStreaming: boolean;
-    transform:
-      | ((options: {
-          tools: TOOLS; // for type inference
-          stopStream: () => void;
-        }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>)
-      | undefined;
+    transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
@@ -728,7 +738,7 @@ class DefaultStreamTextResult<
 
     // transform the stream before output parsing
     // to enable replacement of stream segments:
-    if (transform) {
+    for (const transform of transforms) {
       stream = stream.pipeThrough(
         transform({
           tools: tools as TOOLS,

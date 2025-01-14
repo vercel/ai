@@ -319,6 +319,18 @@ const stopWordTransform =
     });
 ```
 
+#### Multiple transformations
+
+You can also provide multiple transformations. They are applied in the order they are provided.
+
+```tsx highlight="4"
+const result = streamText({
+  model,
+  prompt,
+  experimental_transform: [firstTransform, secondTransform],
+});
+```
+
 ## Generating Long Text
 
 Most language models have an output limit that is much shorter than their context window.
