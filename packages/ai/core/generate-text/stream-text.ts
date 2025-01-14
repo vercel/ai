@@ -57,6 +57,18 @@ import { ToolResultUnion } from './tool-result';
 const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
 
 /**
+A transform stream that is applied to the stream.
+
+@param stopStream - A function that stops the source stream.
+@param tools - The tools that are accessible to and can be called by the model. The model needs to support calling tools.
+ */
+export type StreamTextTransform<TOOLS extends Record<string, CoreTool>> =
+  (options: {
+    tools: TOOLS; // for type inference
+    stopStream: () => void;
+  }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>;
+
+/**
 Generate a text and call tools for a given prompt using a language model.
 
 This function streams the output. If you do not want to stream the output, use `generateText` instead.
@@ -203,14 +215,8 @@ Enable streaming of tool call deltas as they are generated. Disabled by default.
 
     /**
 Optional transformation that is applied to the stream.
-
-@param stopStream - A function that stops the source stream.
-@param tools - The tools that are accessible to and can be called by the model. The model needs to support calling tools.
      */
-    experimental_transform?: (options: {
-      tools: TOOLS; // for type inference
-      stopStream: () => void;
-    }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>;
+    experimental_transform?: StreamTextTransform<TOOLS>;
 
     /**
 Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
@@ -460,12 +466,7 @@ class DefaultStreamTextResult<
     tools: TOOLS | undefined;
     toolChoice: CoreToolChoice<TOOLS> | undefined;
     toolCallStreaming: boolean;
-    transform:
-      | ((options: {
-          tools: TOOLS; // for type inference
-          stopStream: () => void;
-        }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>)
-      | undefined;
+    transform: StreamTextTransform<TOOLS> | undefined;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
