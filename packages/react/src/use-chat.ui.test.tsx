@@ -675,6 +675,7 @@ describe('prepareRequestBody', () => {
         expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
         expect(bodyOptions).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -1257,6 +1258,7 @@ describe('file attachments with data url', () => {
         );
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -1314,6 +1316,7 @@ describe('file attachments with data url', () => {
         );
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -1437,6 +1440,7 @@ describe('file attachments with url', () => {
         );
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -1534,6 +1538,7 @@ describe('attachments with empty submit', () => {
         expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -1640,6 +1645,7 @@ describe('should append message with attachments', () => {
         expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
@@ -1729,6 +1735,7 @@ describe('reload', () => {
         await userEvent.click(screen.getByTestId('do-reload'));
 
         expect(await call(1).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [{ content: 'hi', role: 'user' }],
           data: { 'test-data-key': 'test-data-value' },
           'request-body-key': 'request-body-value',
@@ -1801,6 +1808,7 @@ describe('test sending additional fields during message submission', () => {
         expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
           messages: [
             {
               role: 'user',
