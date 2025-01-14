@@ -94,7 +94,7 @@ export function mergeMessages({
         for (const part of message.content) {
           // find the tool call in the previous message:
           const toolCall = previousMessage.toolInvocations.find(
-            call => call.toolCallId === toolResult.toolCallId,
+            call => call.toolCallId === part.toolCallId,
           );
 
           if (!toolCall) {
