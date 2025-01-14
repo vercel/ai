@@ -1,5 +1,28 @@
 # ai
 
+## 4.0.34
+
+### Patch Changes
+
+- 2495973: feat (ai/core): use openai compatible mode for json schema conversion
+- 2495973: fix (ai/core): duplicate instead of using reference in json schema
+- Updated dependencies [2495973]
+- Updated dependencies [2495973]
+  - @ai-sdk/ui-utils@1.0.9
+  - @ai-sdk/react@1.0.10
+
+## 4.0.33
+
+### Patch Changes
+
+- 5510ee7: feat (ai/core): add stopStream option to streamText transforms
+
+## 4.0.32
+
+### Patch Changes
+
+- de66619: feat (ai/core): add tool call id to ToolExecution error
+
 ## 4.0.31
 
 ### Patch Changes

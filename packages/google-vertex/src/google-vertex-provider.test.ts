@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createVertex } from './google-vertex-provider';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
+import { GoogleVertexImageModel } from './google-vertex-image-model';
 
 // Mock the imported modules
 vi.mock('@ai-sdk/provider-utils', () => ({
@@ -138,6 +139,47 @@ describe('google-vertex-provider', () => {
       {},
       expect.objectContaining({
         baseURL: customBaseURL,
+      }),
+    );
+  });
+
+  it('should create an image model with default settings', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.image('imagen-3.0-generate-001');
+
+    expect(GoogleVertexImageModel).toHaveBeenCalledWith(
+      'imagen-3.0-generate-001',
+      {},
+      expect.objectContaining({
+        provider: 'google.vertex.image',
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
+        headers: expect.any(Object),
+      }),
+    );
+  });
+
+  it('should create an image model with custom maxImagesPerCall', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    const imageSettings = {
+      maxImagesPerCall: 4,
+    };
+    provider.image('imagen-3.0-generate-001', imageSettings);
+
+    expect(GoogleVertexImageModel).toHaveBeenCalledWith(
+      'imagen-3.0-generate-001',
+      imageSettings,
+      expect.objectContaining({
+        provider: 'google.vertex.image',
+        headers: expect.any(Object),
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
       }),
     );
   });

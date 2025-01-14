@@ -127,7 +127,7 @@ const arrayOutputStrategy = <ELEMENT>(
     // be able to generate an array directly:
     // possible future optimization: use arrays directly when model supports grammar-guided generation
     jsonSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
+      $schema: 'https://json-schema.org/draft/2019-09/schema#',
       type: 'object',
       properties: {
         elements: { type: 'array', items: itemSchema },
@@ -286,7 +286,7 @@ const enumOutputStrategy = <ENUM extends string>(
     // be able to generate an enum value directly:
     // possible future optimization: use enums directly when model supports top-level enums
     jsonSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
+      $schema: 'https://json-schema.org/draft/2019-09/schema#',
       type: 'object',
       properties: {
         result: { type: 'string', enum: enumValues },

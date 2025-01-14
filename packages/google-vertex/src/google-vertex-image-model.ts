@@ -8,11 +8,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
-
-export type GoogleVertexImageModelId =
-  | 'imagen-3.0-generate-001'
-  | 'imagen-3.0-fast-generate-001'
-  | (string & {});
+import {
+  GoogleVertexImageModelId,
+  GoogleVertexImageSettings,
+} from './google-vertex-image-settings';
 
 interface GoogleVertexImageModelConfig {
   provider: string;
@@ -25,15 +24,18 @@ interface GoogleVertexImageModelConfig {
 export class GoogleVertexImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
-  // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
-  readonly maxImagesPerCall = 4;
-
   get provider(): string {
     return this.config.provider;
   }
 
+  get maxImagesPerCall(): number {
+    // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
+    return this.settings.maxImagesPerCall ?? 4;
+  }
+
   constructor(
     readonly modelId: GoogleVertexImageModelId,
+    readonly settings: GoogleVertexImageSettings,
     private config: GoogleVertexImageModelConfig,
   ) {}
 

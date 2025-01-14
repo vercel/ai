@@ -21,7 +21,11 @@ import {
   OpenAIEmbeddingModelId,
   OpenAIEmbeddingSettings,
 } from './openai-embedding-settings';
-import { OpenAIImageModel, OpenAIImageModelId } from './openai-image-model';
+import { OpenAIImageModel } from './openai-image-model';
+import {
+  OpenAIImageModelId,
+  OpenAIImageSettings,
+} from './openai-image-settings';
 
 export interface OpenAIProvider extends ProviderV1 {
   (
@@ -87,7 +91,10 @@ Creates a model for text embeddings.
   /**
 Creates a model for image generation.
    */
-  image(modelId: OpenAIImageModelId): ImageModelV1;
+  image(
+    modelId: OpenAIImageModelId,
+    settings?: OpenAIImageSettings,
+  ): ImageModelV1;
 }
 
 export interface OpenAIProviderSettings {
@@ -195,8 +202,11 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createImageModel = (modelId: OpenAIImageModelId) =>
-    new OpenAIImageModel(modelId, {
+  const createImageModel = (
+    modelId: OpenAIImageModelId,
+    settings: OpenAIImageSettings = {},
+  ) =>
+    new OpenAIImageModel(modelId, settings, {
       provider: `${providerName}.image`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,

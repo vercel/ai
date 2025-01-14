@@ -1,5 +1,19 @@
 # @ai-sdk/fireworks
 
+## 0.0.12
+
+### Patch Changes
+
+- 218d001: feat (provider): Add maxImagesPerCall setting to all image providers.
+- 971be76: feat (provider/fireworks): Send generateImage n parameter to Fireworks API as 'samples'.
+
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [7611964]
+  - @ai-sdk/openai-compatible@0.0.16
+
 ## 0.0.10
 
 ### Patch Changes

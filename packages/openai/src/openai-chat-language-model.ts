@@ -57,7 +57,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 
   get supportsStructuredOutputs(): boolean {
-    return this.settings.structuredOutputs ?? false;
+    // enable structured outputs for reasoning models by default:
+    // TODO in the next major version, remove this and always use json mode for models
+    // that support structured outputs (blacklist other models)
+    return this.settings.structuredOutputs ?? isReasoningModel(this.modelId);
   }
 
   get defaultObjectGenerationMode() {
@@ -186,6 +189,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       seed,
 
       // openai specific settings:
+      // TODO remove in next major version; we auto-map maxTokens now
       max_completion_tokens: providerMetadata?.openai?.maxCompletionTokens,
       store: providerMetadata?.openai?.store,
       metadata: providerMetadata?.openai?.metadata,
@@ -202,9 +206,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       }),
     };
 
-    // remove unsupported settings for reasoning models
-    // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel(this.modelId)) {
+      // remove unsupported settings for reasoning models
+      // see https://platform.openai.com/docs/guides/reasoning#limitations
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
@@ -257,6 +261,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           type: 'other',
           message: 'topLogprobs is not supported for reasoning models',
         });
+      }
+
+      // reasoning models use max_completion_tokens instead of max_tokens:
+      if (baseArgs.max_tokens != null) {
+        if (baseArgs.max_completion_tokens == null) {
+          baseArgs.max_completion_tokens = baseArgs.max_tokens;
+        }
+        baseArgs.max_tokens = undefined;
       }
     }
 
@@ -432,6 +444,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       isStreamingSimulatedByDefault(this.modelId)
     ) {
       const result = await this.doGenerate(options);
+
       const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
         start(controller) {
           controller.enqueue({ type: 'response-metadata', ...result.response });
@@ -443,6 +456,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           }
           if (result.toolCalls) {
             for (const toolCall of result.toolCalls) {
+              controller.enqueue({
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                argsTextDelta: toolCall.args,
+              });
+
               controller.enqueue({
                 type: 'tool-call',
                 ...toolCall,
@@ -936,7 +957,15 @@ const reasoningModels = {
     systemMessageMode: 'remove',
     simulateStreamingByDefault: false,
   },
+  'o1-mini-2024-09-12': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
   'o1-preview': {
+    systemMessageMode: 'remove',
+    simulateStreamingByDefault: false,
+  },
+  'o1-preview-2024-09-12': {
     systemMessageMode: 'remove',
     simulateStreamingByDefault: false,
   },

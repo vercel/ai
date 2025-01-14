@@ -511,6 +511,11 @@ const result = await generateObject({
 });
 ```
 
+The following Zod features are known to not work with Google Vertex:
+
+- `z.union`
+- `z.record`
+
 ### Model Capabilities
 
 | Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |

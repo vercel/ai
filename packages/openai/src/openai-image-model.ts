@@ -7,33 +7,30 @@ import {
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
-
-export type OpenAIImageModelId = 'dall-e-3' | 'dall-e-2' | (string & {});
-
-// https://platform.openai.com/docs/guides/images
-const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
-  'dall-e-3': 1,
-  'dall-e-2': 10,
-};
+import {
+  OpenAIImageModelId,
+  OpenAIImageSettings,
+  modelMaxImagesPerCall,
+} from './openai-image-settings';
 
 export class OpenAIImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly modelId: OpenAIImageModelId;
-
-  private readonly config: OpenAIConfig;
 
   get maxImagesPerCall(): number {
-    return modelMaxImagesPerCall[this.modelId] ?? 1;
+    return (
+      this.settings.maxImagesPerCall ?? modelMaxImagesPerCall[this.modelId] ?? 1
+    );
   }
 
   get provider(): string {
     return this.config.provider;
   }
 
-  constructor(modelId: OpenAIImageModelId, config: OpenAIConfig) {
-    this.modelId = modelId;
-    this.config = config;
-  }
+  constructor(
+    readonly modelId: OpenAIImageModelId,
+    private readonly settings: OpenAIImageSettings,
+    private readonly config: OpenAIConfig,
+  ) {}
 
   async doGenerate({
     prompt,

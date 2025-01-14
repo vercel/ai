@@ -542,7 +542,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}}",
       ],
       "ai.response.avgCompletionTokensPerSecond": 20,
       "ai.response.finishReason": "tool-calls",
@@ -602,7 +602,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}}",
       ],
       "ai.response.avgCompletionTokensPerSecond": 12.5,
       "ai.response.finishReason": "stop",
@@ -1858,7 +1858,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
 }
 `;
 
-exports[`streamText > options.transform > options.onFinish should receive transformed data 1`] = `
+exports[`streamText > options.transform > with base transformation > options.onFinish should receive transformed data 1`] = `
 {
   "experimental_providerMetadata": {
     "testProvider": {
@@ -2017,7 +2017,7 @@ exports[`streamText > options.transform > options.onFinish should receive transf
 }
 `;
 
-exports[`streamText > options.transform > options.onStepFinish should receive transformed data 1`] = `
+exports[`streamText > options.transform > with base transformation > options.onStepFinish should receive transformed data 1`] = `
 {
   "experimental_providerMetadata": {
     "testProvider": {
@@ -2098,7 +2098,7 @@ exports[`streamText > options.transform > options.onStepFinish should receive tr
 }
 `;
 
-exports[`streamText > options.transform > telemetry should record transformed data when enabled 1`] = `
+exports[`streamText > options.transform > with base transformation > telemetry should record transformed data when enabled 1`] = `
 [
   {
     "attributes": {
@@ -2127,7 +2127,7 @@ exports[`streamText > options.transform > telemetry should record transformed da
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}}",
       ],
       "ai.response.avgCompletionTokensPerSecond": 20,
       "ai.response.finishReason": "stop",
@@ -3111,7 +3111,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}}",
       ],
       "ai.response.avgCompletionTokensPerSecond": 40,
       "ai.response.finishReason": "stop",
@@ -3314,4 +3314,40 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     },
   },
 ]
+`;
+
+exports[`streamText > with transformation that aborts stream > options.onStepFinish should be called 1`] = `
+{
+  "experimental_providerMetadata": undefined,
+  "finishReason": "stop",
+  "isContinued": false,
+  "logprobs": undefined,
+  "request": {},
+  "response": {
+    "id": "response-id",
+    "messages": [
+      {
+        "content": [
+          {
+            "text": "Hello, ",
+            "type": "text",
+          },
+        ],
+        "role": "assistant",
+      },
+    ],
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "stepType": "initial",
+  "text": "Hello, ",
+  "toolCalls": [],
+  "toolResults": [],
+  "usage": {
+    "completionTokens": NaN,
+    "promptTokens": NaN,
+    "totalTokens": NaN,
+  },
+  "warnings": [],
+}
 `;

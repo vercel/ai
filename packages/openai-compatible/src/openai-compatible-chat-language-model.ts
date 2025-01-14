@@ -152,7 +152,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                 type: 'json_schema',
                 json_schema: {
                   schema: responseFormat.schema,
-                  strict: true,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
                 },
@@ -190,7 +189,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                     type: 'json_schema',
                     json_schema: {
                       schema: mode.schema,
-                      strict: true,
                       name: mode.name ?? 'response',
                       description: mode.description,
                     },
@@ -216,7 +214,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                   name: mode.tool.name,
                   description: mode.tool.description,
                   parameters: mode.tool.parameters,
-                  strict: this.supportsStructuredOutputs ? true : undefined,
                 },
               },
             ],
