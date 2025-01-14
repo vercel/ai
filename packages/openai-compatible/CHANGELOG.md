@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.0.17
+
+### Patch Changes
+
+- ae57beb: feat (provider/openai-compatible): add support for optional custom URL parameters in requests.
+
 ## 0.0.16
 
 ### Patch Changes
