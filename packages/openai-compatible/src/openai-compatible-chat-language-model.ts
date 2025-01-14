@@ -33,6 +33,10 @@ import {
   ProviderErrorStructure,
 } from './openai-compatible-error';
 import { prepareTools } from './openai-compatible-prepare-tools';
+import {
+  defaultOpenAICompatibleUsageStructure,
+  ProviderUsageStructure,
+} from './openai-compatible-usage';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
@@ -40,13 +44,7 @@ export type OpenAICompatibleChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
-
-  usageStructure?: z.ZodType;
-
-  getProviderMetadata?: (
-    value: any,
-    cur: LanguageModelV1ProviderMetadata | undefined,
-  ) => LanguageModelV1ProviderMetadata | undefined;
+  usageStructure?: ProviderUsageStructure<any>;
 
   /**
 Default object generation mode that should be used with this model when
@@ -65,29 +63,27 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
 
   readonly supportsStructuredOutputs: boolean;
-
-  readonly modelId: OpenAICompatibleChatModelId;
-  readonly settings: OpenAICompatibleChatSettings;
-
-  private readonly config: OpenAICompatibleChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
+  private readonly responseSchema; // type inferred via constructor
+  private readonly usageStructure: ProviderUsageStructure<any>;
 
   constructor(
-    modelId: OpenAICompatibleChatModelId,
-    settings: OpenAICompatibleChatSettings,
-    config: OpenAICompatibleChatConfig,
+    readonly modelId: OpenAICompatibleChatModelId,
+    readonly settings: OpenAICompatibleChatSettings,
+    private readonly config: OpenAICompatibleChatConfig,
   ) {
-    this.modelId = modelId;
-    this.settings = settings;
-    this.config = config;
-
-    // initialize error handling:
+    // initialize error and usage handling:
     const errorStructure =
       config.errorStructure ?? defaultOpenAICompatibleErrorStructure;
+    this.usageStructure =
+      config.usageStructure ?? defaultOpenAICompatibleUsageStructure;
     this.chunkSchema = createOpenAICompatibleChatChunkSchema(
+      this.usageStructure.usageSchema,
       errorStructure.errorSchema,
-      config.usageStructure,
+    );
+    this.responseSchema = createOpenAICompatibleChatResponseSchema(
+      this.usageStructure.usageSchema,
     );
     this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure);
 
@@ -252,21 +248,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        OpenAICompatibleChatResponseSchema,
-      ),
+      successfulResponseHandler: createJsonResponseHandler(this.responseSchema),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
-
-    let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
-    const getProviderMetadata = this.config.getProviderMetadata;
-    if (typeof getProviderMetadata === 'function') {
-      providerMetadata = getProviderMetadata(response, providerMetadata);
-    }
 
     return {
       text: choice.message.content ?? undefined,
@@ -277,11 +265,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         args: toolCall.function.arguments!,
       })),
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
-      usage: {
-        promptTokens: response.usage?.prompt_tokens ?? NaN,
-        completionTokens: response.usage?.completion_tokens ?? NaN,
-      },
-      providerMetadata,
+      usage: this.usageStructure.transformUsage(response.usage),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       response: getResponseMetadata(response),
@@ -365,17 +349,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     }> = [];
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
-    let usage: {
-      promptTokens: number | undefined;
-      completionTokens: number | undefined;
-    } = {
-      promptTokens: undefined,
-      completionTokens: undefined,
-    };
+    // TODO(shaper): see if we can get rid of the below `any`.
+    let usage: any;
     let isFirstChunk = true;
 
     let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
-    const getProviderMetadata = this.config.getProviderMetadata;
+    const usageStructure = this.usageStructure;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -408,15 +388,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
               });
             }
 
-            if (typeof getProviderMetadata === 'function') {
-              providerMetadata = getProviderMetadata(value, providerMetadata);
-            }
-
             if (value.usage != null) {
-              usage = {
-                promptTokens: value.usage.prompt_tokens ?? undefined,
-                completionTokens: value.usage.completion_tokens ?? undefined,
-              };
+              usage = usageStructure.transformUsage(value.usage);
             }
 
             const choice = value.choices[0];
@@ -554,10 +527,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: {
-                promptTokens: usage.promptTokens ?? NaN,
-                completionTokens: usage.completionTokens ?? NaN,
-              },
+              usage: usageStructure?.transformUsage(usage),
               ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
@@ -573,44 +543,47 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const OpenAICompatibleChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      message: z.object({
-        role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
+const createOpenAICompatibleChatResponseSchema = <
+  USAGE_SCHEMA extends z.ZodType,
+>(
+  usageSchema: USAGE_SCHEMA,
+) =>
+  z.object({
+    id: z.string().nullish(),
+    created: z.number().nullish(),
+    model: z.string().nullish(),
+    choices: z.array(
+      z.object({
+        message: z.object({
+          role: z.literal('assistant').nullish(),
+          content: z.string().nullish(),
+          tool_calls: z
+            .array(
+              z.object({
+                id: z.string().nullish(),
+                type: z.literal('function'),
+                function: z.object({
+                  name: z.string(),
+                  arguments: z.string(),
+                }),
               }),
-            }),
-          )
-          .nullish(),
+            )
+            .nullish(),
+        }),
+        finish_reason: z.string().nullish(),
       }),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  usage: z
-    .object({
-      prompt_tokens: z.number().nullish(),
-      completion_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+    ),
+    usage: usageSchema,
+  });
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
+const createOpenAICompatibleChatChunkSchema = <
+  USAGE_SCHEMA extends z.ZodType,
+  ERROR_SCHEMA extends z.ZodType,
+>(
+  usageSchema: USAGE_SCHEMA,
   errorSchema: ERROR_SCHEMA,
-  usageSchema?: z.ZodType,
 ) =>
   z.union([
     z.object({
@@ -641,14 +614,7 @@ const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
           finish_reason: z.string().nullish(),
         }),
       ),
-      usage:
-        usageSchema ??
-        z
-          .object({
-            prompt_tokens: z.number().nullish(),
-            completion_tokens: z.number().nullish(),
-          })
-          .nullish(),
+      usage: usageSchema,
     }),
     errorSchema,
   ]);

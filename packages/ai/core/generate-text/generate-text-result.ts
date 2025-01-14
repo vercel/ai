@@ -8,7 +8,11 @@ import {
 } from '../types';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { LanguageModelUsage } from '../types/usage';
+import {
+  LanguageModelUsage,
+  BaseLanguageModelUsage,
+  ExtendedLanguageModelUsage,
+} from '../types/usage';
 import { StepResult } from './step-result';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
@@ -20,6 +24,7 @@ It contains the generated text, the tool calls that were made during the generat
 export interface GenerateTextResult<
   TOOLS extends Record<string, CoreTool>,
   OUTPUT,
+  USAGE extends BaseLanguageModelUsage = ExtendedLanguageModelUsage,
 > {
   /**
   The generated text.
@@ -49,7 +54,7 @@ The generated structured output. It uses the `experimental_output` specification
   /**
   The token usage of the generated text.
    */
-  readonly usage: LanguageModelUsage;
+  readonly usage: LanguageModelUsage<USAGE>;
 
   /**
   Warnings from the model provider (e.g. unsupported settings)

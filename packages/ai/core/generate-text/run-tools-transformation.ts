@@ -14,7 +14,10 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { calculateLanguageModelUsage } from '../types/usage';
+import {
+  calculateLanguageModelUsage,
+  ExtendedLanguageModelUsage,
+} from '../types/usage';
 import { parseToolCall } from './parse-tool-call';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
@@ -272,7 +275,9 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
             type: 'finish',
             finishReason: chunk.finishReason,
             logprobs: chunk.logprobs,
-            usage: calculateLanguageModelUsage(chunk.usage),
+            usage: calculateLanguageModelUsage<ExtendedLanguageModelUsage>(
+              chunk.usage,
+            ),
             experimental_providerMetadata: chunk.providerMetadata,
           };
           break;

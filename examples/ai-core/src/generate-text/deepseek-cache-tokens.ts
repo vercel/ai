@@ -31,7 +31,6 @@ async function main() {
 
   //   console.log(result.text);
   console.log(result.usage);
-  console.log(result.experimental_providerMetadata?.deepseek);
   // "prompt_cache_hit_tokens":1856,"prompt_cache_miss_tokens":5}
   // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
 }

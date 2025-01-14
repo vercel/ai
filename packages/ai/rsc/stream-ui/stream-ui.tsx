@@ -18,6 +18,7 @@ import {
 import {
   LanguageModelUsage,
   calculateLanguageModelUsage,
+  ExtendedLanguageModelUsage,
 } from '../../core/types/usage';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
@@ -360,7 +361,9 @@ functionality that can be fully encapsulated in the provider.
           case 'finish': {
             finishEvent = {
               finishReason: value.finishReason,
-              usage: calculateLanguageModelUsage(value.usage),
+              usage: calculateLanguageModelUsage<ExtendedLanguageModelUsage>(
+                value.usage,
+              ),
               warnings: result.warnings,
               rawResponse: result.rawResponse,
             };

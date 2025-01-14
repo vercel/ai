@@ -13,3 +13,11 @@ export type {
 export type { OpenAICompatibleChatSettings } from './openai-compatible-chat-settings';
 export type { OpenAICompatibleCompletionSettings } from './openai-compatible-completion-settings';
 export type { OpenAICompatibleEmbeddingSettings } from './openai-compatible-embedding-settings';
+export type {
+  BaseUsageMetrics,
+  ProviderUsageStructure,
+} from './openai-compatible-usage';
+export {
+  defaultOpenAICompatibleUsageStructure,
+  openaiCompatibleUsageSchema,
+} from './openai-compatible-usage';

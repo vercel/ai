@@ -3,7 +3,6 @@ import {
   LanguageModelV1,
   NoSuchModelError,
   ProviderV1,
-  LanguageModelV1ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -15,6 +14,11 @@ import {
   DeepSeekChatSettings,
 } from './deepseek-chat-settings';
 import { z } from 'zod';
+import {
+  BaseUsageMetrics,
+  ProviderUsageStructure,
+  openaiCompatibleUsageSchema,
+} from '@ai-sdk/openai-compatible';
 
 export interface DeepSeekProviderSettings {
   /**
@@ -62,6 +66,37 @@ Creates a DeepSeek chat model for text generation.
   ): LanguageModelV1;
 }
 
+const deepseekUsageSchema = openaiCompatibleUsageSchema.extend({
+  prompt_cache_hit_tokens: z.number().nullish(),
+  prompt_cache_miss_tokens: z.number().nullish(),
+});
+
+type DeepSeekUsageData = z.infer<typeof deepseekUsageSchema>;
+
+interface DeepSeekUsageMetrics extends BaseUsageMetrics {
+  promptCacheHitTokens: number;
+  promptCacheMissTokens: number;
+}
+
+// see if we can use the schema rather than defining and using metrics here somehow
+const deepseekUsageStructure: ProviderUsageStructure<
+  DeepSeekUsageData,
+  DeepSeekUsageMetrics
+> = {
+  usageSchema: deepseekUsageSchema,
+  transformUsage: usage => {
+    const promptTokens = usage?.prompt_tokens ?? 0;
+    const completionTokens = usage?.completion_tokens ?? 0;
+    return {
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens,
+      promptCacheHitTokens: usage?.prompt_cache_hit_tokens ?? 0,
+      promptCacheMissTokens: usage?.prompt_cache_miss_tokens ?? 0,
+    };
+  },
+};
+
 export function createDeepSeek(
   options: DeepSeekProviderSettings = {},
 ): DeepSeekProvider {
@@ -87,29 +122,7 @@ export function createDeepSeek(
       headers: getHeaders,
       fetch: options.fetch,
       defaultObjectGenerationMode: 'json',
-      usageStructure: z
-        .object({
-          prompt_tokens: z.number().nullish(),
-          completion_tokens: z.number().nullish(),
-          prompt_cache_hit_tokens: z.number().nullish(),
-          prompt_cache_miss_tokens: z.number().nullish(),
-        })
-        .nullish(),
-      getProviderMetadata: (
-        value: any,
-        _cur: LanguageModelV1ProviderMetadata | undefined,
-      ) => {
-        if (value?.usage?.prompt_cache_hit_tokens != null) {
-          return {
-            deepseek: {
-              promptCacheHitTokens: value.usage.prompt_cache_hit_tokens,
-              promptCacheMissTokens: value.usage.prompt_cache_miss_tokens,
-            },
-          };
-        } else {
-          return undefined;
-        }
-      },
+      usageStructure: deepseekUsageStructure,
     });
   };
 

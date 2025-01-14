@@ -20,7 +20,7 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool/tool';
 import { CoreToolChoice, LanguageModel, ProviderMetadata } from '../types';
 import {
-  LanguageModelUsage,
+  ExtendedLanguageModelUsage,
   addLanguageModelUsage,
   calculateLanguageModelUsage,
 } from '../types/usage';
@@ -247,9 +247,9 @@ A function that attempts to repair a tool call that failed to parse.
         [];
       let text = '';
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
-      let usage: LanguageModelUsage = {
-        completionTokens: 0,
+      let usage: ExtendedLanguageModelUsage = {
         promptTokens: 0,
+        completionTokens: 0,
         totalTokens: 0,
       };
 
@@ -394,10 +394,14 @@ A function that attempts to repair a tool call that failed to parse.
               });
 
         // token usage:
-        const currentUsage = calculateLanguageModelUsage(
-          currentModelResponse.usage,
+        const currentUsage =
+          calculateLanguageModelUsage<ExtendedLanguageModelUsage>(
+            currentModelResponse.usage,
+          );
+        usage = addLanguageModelUsage<ExtendedLanguageModelUsage>(
+          usage,
+          currentUsage,
         );
-        usage = addLanguageModelUsage(usage, currentUsage);
 
         // check if another step is needed:
         let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';

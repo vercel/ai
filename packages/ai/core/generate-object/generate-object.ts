@@ -24,7 +24,10 @@ import {
 } from '../types';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { calculateLanguageModelUsage } from '../types/usage';
+import {
+  calculateLanguageModelUsage,
+  ExtendedLanguageModelUsage,
+} from '../types/usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
@@ -489,7 +492,10 @@ export async function generateObject<SCHEMA, RESULT>({
                     message:
                       'No object generated: the model did not return a response.',
                     response: responseData,
-                    usage: calculateLanguageModelUsage(result.usage),
+                    usage:
+                      calculateLanguageModelUsage<ExtendedLanguageModelUsage>(
+                        result.usage,
+                      ),
                   });
                 }
 
@@ -614,7 +620,10 @@ export async function generateObject<SCHEMA, RESULT>({
                   throw new NoObjectGeneratedError({
                     message: 'No object generated: the tool was not called.',
                     response: responseData,
-                    usage: calculateLanguageModelUsage(result.usage),
+                    usage:
+                      calculateLanguageModelUsage<ExtendedLanguageModelUsage>(
+                        result.usage,
+                      ),
                   });
                 }
 
@@ -683,7 +692,7 @@ export async function generateObject<SCHEMA, RESULT>({
           cause: parseResult.error,
           text: result,
           response,
-          usage: calculateLanguageModelUsage(usage),
+          usage: calculateLanguageModelUsage<ExtendedLanguageModelUsage>(usage),
         });
       }
 
@@ -692,7 +701,7 @@ export async function generateObject<SCHEMA, RESULT>({
         {
           text: result,
           response,
-          usage: calculateLanguageModelUsage(usage),
+          usage: calculateLanguageModelUsage<ExtendedLanguageModelUsage>(usage),
         },
       );
 
@@ -702,7 +711,7 @@ export async function generateObject<SCHEMA, RESULT>({
           cause: validationResult.error,
           text: result,
           response,
-          usage: calculateLanguageModelUsage(usage),
+          usage: calculateLanguageModelUsage<ExtendedLanguageModelUsage>(usage),
         });
       }
 
@@ -725,7 +734,7 @@ export async function generateObject<SCHEMA, RESULT>({
       return new DefaultGenerateObjectResult({
         object: validationResult.value,
         finishReason,
-        usage: calculateLanguageModelUsage(usage),
+        usage: calculateLanguageModelUsage<ExtendedLanguageModelUsage>(usage),
         warnings,
         request,
         response: {
