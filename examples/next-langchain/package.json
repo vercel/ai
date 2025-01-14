@@ -12,7 +12,7 @@
     "@ai-sdk/react": "1.0.10",
     "@langchain/openai": "0.0.28",
     "@langchain/core": "0.1.63",
-    "ai": "4.0.34",
+    "ai": "4.0.35",
     "langchain": "0.1.36",
     "next": "latest",
     "react": "^18",
