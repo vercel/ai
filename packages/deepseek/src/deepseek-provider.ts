@@ -77,6 +77,18 @@ export function createDeepSeek(
     ...options.headers,
   });
 
+  const buildDeepseekMetadata = (usage: Record<string, any> | undefined) => {
+    if (usage?.prompt_cache_hit_tokens != null) {
+      return {
+        deepseek: {
+          promptCacheHitTokens: usage.prompt_cache_hit_tokens ?? NaN,
+          promptCacheMissTokens: usage.prompt_cache_miss_tokens ?? NaN,
+        },
+      };
+    }
+    return undefined;
+  };
+
   const createLanguageModel = (
     modelId: DeepSeekChatModelId,
     settings: DeepSeekChatSettings = {},
@@ -90,27 +102,19 @@ export function createDeepSeek(
       metadataProcessor: {
         buildMetadataFromResponse: (response: unknown) => {
           const data = (response as Record<string, any>).response;
-          if (data?.usage?.prompt_cache_hit_tokens != null) {
-            return {
-              deepseek: {
-                promptCacheHitTokens:
-                  data.usage?.prompt_cache_hit_tokens ?? NaN,
-                promptCacheMissTokens:
-                  data.usage?.prompt_cache_miss_tokens ?? NaN,
-              },
-            };
-          } else {
-            return undefined;
-          }
+          return buildDeepseekMetadata(data?.usage);
         },
         createStreamingMetadataProcessor: () => {
+          let finalUsage: Record<string, number> | undefined;
+
           return {
             processChunk: (chunk: unknown) => {
-              console.log('processChunk', JSON.stringify(chunk, null, 2));
+              const data = chunk as Record<string, any>;
+              if (data.choices?.[0]?.finish_reason === 'stop' && data.usage) {
+                finalUsage = data.usage;
+              }
             },
-            buildFinalMetadata: () => {
-              return undefined;
-            },
+            buildFinalMetadata: () => buildDeepseekMetadata(finalUsage),
           };
         },
       },

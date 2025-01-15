@@ -1554,6 +1554,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 2.1.1
         version: link:../provider-utils
+      eventsource-parser:
+        specifier: ^3.0.0
+        version: 3.0.0
     devDependencies:
       '@types/node':
         specifier: ^18

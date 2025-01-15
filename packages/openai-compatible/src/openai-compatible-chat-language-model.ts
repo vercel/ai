@@ -33,6 +33,7 @@ import {
 } from './openai-compatible-error';
 import { prepareTools } from './openai-compatible-prepare-tools';
 import { MetadataProcessor } from './openai-compatible-metadata-processor';
+import { EventSourceMessage } from 'eventsource-parser/stream';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
@@ -359,6 +360,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs({ ...options });
 
     const body = JSON.stringify({ ...args, stream: true });
+    const metadataProcessor =
+      this.config.metadataProcessor?.createStreamingMetadataProcessor();
 
     const { responseHeaders, value: response } = await postJsonToApi<
       ReadableStream<ParseResult<z.infer<typeof this.chunkSchema>>>
@@ -375,6 +378,22 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         this.chunkSchema,
+        {
+          preprocess: metadataProcessor
+            ? new TransformStream<EventSourceMessage, EventSourceMessage>({
+                transform(chunk, controller) {
+                  try {
+                    // Process raw chunk before schema validation
+                    const rawData = JSON.parse(chunk.data);
+                    metadataProcessor.processChunk(rawData);
+                  } catch (error) {
+                    // Handle parse errors silently - the main transform will handle them
+                  }
+                  controller.enqueue(chunk);
+                },
+              })
+            : undefined,
+        },
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -402,24 +421,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     };
     let isFirstChunk = true;
 
-    // const fullResponse: Record<string, any>[] = [];
-    const metadataProcessor =
-      this.config.metadataProcessor?.createStreamingMetadataProcessor();
-    const startStream = metadataProcessor
-      ? response.pipeThrough(
-          new TransformStream({
-            transform(chunk, controller) {
-              const value = chunk as Record<string, any>;
-              // console.log('transform', value);
-              metadataProcessor?.processChunk(value);
-              controller.enqueue(chunk);
-            },
-          }),
-        )
-      : response;
-
     return {
-      stream: startStream.pipeThrough(
+      stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof this.chunkSchema>>,
           LanguageModelV1StreamPart
@@ -434,10 +437,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
             }
 
             const value = chunk.value as Record<string, any>;
-            if (metadataProcessor != null) {
-              metadataProcessor.processChunk(value);
-            }
-            // fullResponse.push(value);
 
             // handle error chunks:
             if ('error' in value) {
