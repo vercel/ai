@@ -429,15 +429,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
               return;
             }
 
-            const value = chunk.value as Record<string, any>;
+            const value = chunk.value;
 
             // handle error chunks:
             if ('error' in value) {
               finishReason = 'error';
-              controller.enqueue({
-                type: 'error',
-                error: value.error.message,
-              });
+              controller.enqueue({ type: 'error', error: value.error.message });
               return;
             }
 
