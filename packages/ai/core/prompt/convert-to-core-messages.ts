@@ -41,7 +41,7 @@ export function convertToCoreMessages<
       }
 
       case 'assistant': {
-        if (toolInvocations == null) {
+        if (toolInvocations == null || toolInvocations.length === 0) {
           coreMessages.push({ role: 'assistant', content });
           break;
         }
