@@ -3,11 +3,11 @@ import { CoreMessage } from './message';
 import { Message, ToolInvocation } from '@ai-sdk/ui-utils';
 
 /**
- * Appends the CoreMessage[] from the response to a UIMessage[].
- * The messages are converted to UIMessages before being appended.
+ * Appends the CoreMessage[] from the response to a Message[] (for useChat).
+ * The messages are converted to Messages before being appended.
  * Timestamps and IDs are generated for the new messages.
  *
- * @returns A new UIMessage[] with the response messages appended.
+ * @returns A new Message[] with the response messages appended.
  */
 export function appendResponseMessages({
   messages,
