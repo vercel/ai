@@ -77,6 +77,8 @@ import { readFile } from 'fs/promises';
 export async function loadChat(id: string): Promise<Message[]> {
   return JSON.parse(await readFile(getChatFile(id), 'utf8'));
 }
+
+// ... rest of the file
 ```
 
 The display component is a simple chat component that uses the `useChat` hook to
@@ -176,4 +178,6 @@ export async function saveChat({
   const content = JSON.stringify(messages, null, 2);
   await writeFile(getChatFile(id), content);
 }
+
+// ... rest of the file
 ```
