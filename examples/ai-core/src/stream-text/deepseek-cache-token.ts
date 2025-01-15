@@ -29,9 +29,9 @@ async function main() {
     ],
   });
 
-  //   console.log(result);
+  console.log(result);
   for await (const textPart of result.textStream) {
-    // process.stdout.write(textPart);
+    process.stdout.write(textPart);
   }
 
   console.log();

@@ -232,12 +232,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   }
 
   private getProviderMetadata(response: unknown) {
-    console.log('getProviderMetadata', JSON.stringify(response, null, 2));
-    const metadata = this.config.metadataProcessor?.buildMetadataFromResponse?.(
-      {
-        response,
-      },
-    );
+    const metadata =
+      this.config.metadataProcessor?.buildMetadataFromResponse?.(response);
     return metadata && { providerMetadata: metadata };
   }
 
@@ -605,7 +601,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
           flush(controller) {
             const finalMetadata = metadataProcessor?.buildFinalMetadata();
-            console.log('finalMetadata', finalMetadata);
             controller.enqueue({
               type: 'finish',
               finishReason,

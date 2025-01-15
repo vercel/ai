@@ -101,7 +101,7 @@ export function createDeepSeek(
       defaultObjectGenerationMode: 'json',
       metadataProcessor: {
         buildMetadataFromResponse: (response: unknown) => {
-          const data = (response as Record<string, any>).response;
+          const data = response as Record<string, any>;
           return buildDeepseekMetadata(data?.usage);
         },
         createStreamingMetadataProcessor: () => {
