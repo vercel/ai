@@ -1,0 +1,49 @@
+---
+title: appendResponseMessages
+description: Appends CoreMessage[] from an AI response to an existing array of UI messages, generating timestamps and IDs for useChat (API Reference)
+---
+
+# `appendResponseMessages()`
+
+Appends an array of CoreMessage objects (from the AI response) to an existing array of UI messages.
+It generates new IDs and timestamps for each appended message and merges tool-call results with the previous assistant message. Useful for maintaining a unified message history when working with AI responses in a client-side chat application.
+
+## Import
+
+<Snippet text={`import { appendResponseMessages } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'messages',
+      type: 'Message[]',
+      description:
+        'An existing array of UI messages for useChat (usually from state).',
+    },
+    {
+      name: 'responseMessages',
+      type: 'CoreMessage[]',
+      description:
+        'The new CoreMessage array returned from the AI service to be appended.',
+    },
+  ]}
+/>
+
+### Returns
+
+An updated array of Message objects.
+
+<PropertiesTable
+  content={[
+    {
+      name: 'Message[]',
+      type: 'Array',
+      description:
+        'A new array of UI messages with appended AI response messages.',
+    },
+  ]}
+/>
