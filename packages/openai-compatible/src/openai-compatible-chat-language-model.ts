@@ -18,6 +18,7 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
+  safeParseJSON,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
@@ -375,13 +376,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
           preprocess: metadataProcessor
             ? new TransformStream<EventSourceMessage, EventSourceMessage>({
                 transform(chunk, controller) {
-                  try {
-                    // Process raw chunk before schema validation
-                    const rawData = JSON.parse(chunk.data);
-                    metadataProcessor.processChunk(rawData);
-                  } catch (error) {
-                    // Handle parse errors silently - the main transform will handle them
+                  // Just parse JSON here, schema validation happens later.
+                  const parseResult = safeParseJSON({
+                    text: chunk.data,
+                    schema: z.any(),
+                  });
+                  if (parseResult.success) {
+                    metadataProcessor.processChunk(parseResult.value);
                   }
+                  // Even if parsing fails, we still need to forward the chunk
+                  // for the main transform to handle.
                   controller.enqueue(chunk);
                 },
               })
