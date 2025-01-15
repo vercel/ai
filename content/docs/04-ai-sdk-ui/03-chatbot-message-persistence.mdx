@@ -68,7 +68,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 }
 ```
 
-The `loadChat` function is implemented as follows:
+The `loadChat` function in our file-based chat store is implemented as follows:
 
 ```tsx filename="tools/chat-store.ts"
 import { Message } from 'ai';
@@ -82,7 +82,7 @@ export async function loadChat(id: string): Promise<Message[]> {
 The display component is a simple chat component that uses the `useChat` hook to
 send and receive messages:
 
-```tsx filename="ui/chat.tsx"
+```tsx filename="ui/chat.tsx" highlight="10-12"
 'use client';
 
 import { Message, useChat } from 'ai/react';
@@ -117,4 +117,63 @@ export default function Chat({
 
 ## Storing messages
 
-`useChat` message format vs `CoreMessage` format.
+`useChat` sends the chat id and the messages to the backend.
+We have enabled the `sendExtraMessageFields` option to send the id and createdAt fields,
+meaning that we store messages in the `useChat` message format.
+
+<Note>
+  The `useChat` message format is different from the `CoreMessage` format. The
+  `useChat` message format is designed for frontend display, and contains
+  additional fields such as `id` and `createdAt`. We recommend storing the
+  messages in the `useChat` message format.
+</Note>
+
+Storing messages is done in the `onFinish` callback of the `streamText` function.
+`onFinish` receives the messages from the AI response as a `CoreMessage[]`,
+and we use the [`appendResponseMessages`](/docs/reference/ai-sdk-ui/append-response-messages)
+helper to append the AI response messages to the chat messages.
+
+```tsx filename="app/api/chat/route.ts" highlight="6,11-19"
+import { openai } from '@ai-sdk/openai';
+import { appendResponseMessages, streamText } from 'ai';
+import { saveChat } from '@tools/chat-store';
+
+export async function POST(req: Request) {
+  const { messages, id } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o-mini'),
+    messages,
+    async onFinish({ response }) {
+      await saveChat({
+        id,
+        messages: appendResponseMessages({
+          messages,
+          responseMessages: response.messages,
+        }),
+      });
+    },
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+The actual storage of the messages is done in the `saveChat` function, which in
+our file-based chat store is implemented as follows:
+
+```tsx filename="tools/chat-store.ts"
+import { Message } from 'ai';
+import { writeFile } from 'fs/promises';
+
+export async function saveChat({
+  id,
+  messages,
+}: {
+  id: string;
+  messages: Message[];
+}): Promise<void> {
+  const content = JSON.stringify(messages, null, 2);
+  await writeFile(getChatFile(id), content);
+}
+```
