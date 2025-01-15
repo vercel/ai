@@ -358,9 +358,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     const metadataProcessor =
       this.config.metadataProcessor?.createStreamingMetadataProcessor();
 
-    const { responseHeaders, value: response } = await postJsonToApi<
-      ReadableStream<ParseResult<z.infer<typeof this.chunkSchema>>>
-    >({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
