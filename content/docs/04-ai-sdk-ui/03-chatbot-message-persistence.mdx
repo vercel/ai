@@ -4,3 +4,117 @@ description: Learn how to store and load chat messages in a chatbot.
 ---
 
 # Chatbot Message Persistence
+
+Being able to store and load chat messages is crucial for most AI chatbots.
+In this guide, we'll show how to implement message persistence with `useChat` and `streamText`.
+
+<Note>
+  This guide does not cover authorization, error handling, or other real-world
+  considerations. It is intended to be a simple example of how to implement
+  message persistence.
+</Note>
+
+## Starting a new chat
+
+When the user navigates to the chat page without providing a chat ID,
+we need to create a new chat and redirect to the chat page with the new chat ID.
+
+```tsx filename="app/chat/page.tsx"
+import { redirect } from 'next/navigation';
+import { createChat } from '@tools/chat-store';
+
+export default async function Page() {
+  const id = await createChat(); // create a new chat
+  redirect(`/chat/${id}`); // redirect to chat page, see below
+}
+```
+
+Our example chat store implementation uses files to store the chat messages.
+In a real-world application, you would use a database or a cloud storage service,
+and get the chat ID from the database.
+That being said, the function interfaces are designed to be easily replaced with other implementations.
+
+```tsx filename="tools/chat-store.ts"
+import { generateId } from 'ai';
+import { existsSync, mkdirSync } from 'fs';
+import { writeFile } from 'fs/promises';
+import path from 'path';
+
+export async function createChat() {
+  const id = generateId(); // generate a unique chat ID
+  await writeFile(getChatFile(id), '[]'); // create an empty chat file
+  return id;
+}
+
+function getChatFile(id: string): string {
+  const chatDir = path.join(process.cwd(), '.chats');
+  if (!existsSync(chatDir)) mkdirSync(chatDir, { recursive: true });
+  return path.join(chatDir, `${id}.json`);
+}
+```
+
+## Loading an existing chat
+
+When the user navigates to the chat page with a chat ID, we need to load the chat messages and display them.
+
+```tsx filename="app/chat/[id]/page.tsx"
+import { loadChat } from '@tools/chat-store';
+import Chat from '@ui/chat';
+
+export default async function Page(props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params; // get the chat ID from the URL
+  const messages = await loadChat(id); // load the chat messages
+  return <Chat id={id} initialMessages={messages} />; // display the chat
+}
+```
+
+The `loadChat` function is implemented as follows:
+
+```tsx filename="tools/chat-store.ts"
+import { Message } from 'ai';
+import { readFile } from 'fs/promises';
+
+export async function loadChat(id: string): Promise<Message[]> {
+  return JSON.parse(await readFile(getChatFile(id), 'utf8'));
+}
+```
+
+The display component is a simple chat component that uses the `useChat` hook to
+send and receive messages:
+
+```tsx filename="ui/chat.tsx"
+'use client';
+
+import { Message, useChat } from 'ai/react';
+
+export default function Chat({
+  id,
+  initialMessages,
+}: { id?: string | undefined; initialMessages?: Message[] } = {}) {
+  const { input, handleInputChange, handleSubmit, messages } = useChat({
+    id, // use the provided chat ID
+    initialMessages, // initial messages if provided
+    sendExtraMessageFields: true, // send id and createdAt for each message
+  });
+
+  // simplified rendering code, extend as needed:
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
+
+## Storing messages
+
+`useChat` message format vs `CoreMessage` format.
