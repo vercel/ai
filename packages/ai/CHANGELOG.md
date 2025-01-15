@@ -1,5 +1,11 @@
 # ai
 
+## 4.0.38
+
+### Patch Changes
+
+- 0118fa7: fix (ai/core): handle empty tool invocation array in convertToCoreMessages
+
 ## 4.0.37
 
 ### Patch Changes
