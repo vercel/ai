@@ -50,15 +50,15 @@ In this example, we'll use three tools:
 ### API route
 
 ```tsx filename='app/api/chat/route.ts'
-import { openai } from '@ai-sdk/openai'
-import { streamText } from 'ai'
-import { z } from 'zod'
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
-export const maxDuration = 30
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4-turbo'),
@@ -69,29 +69,29 @@ export async function POST(req: Request) {
         description: 'show the weather in a given city to the user',
         parameters: z.object({ city: z.string() }),
         execute: async ({}: { city: string }) => {
-          const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy']
+          const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
           return weatherOptions[
             Math.floor(Math.random() * weatherOptions.length)
-          ]
-        }
+          ];
+        },
       },
       // client-side tool that starts user interaction:
       askForConfirmation: {
         description: 'Ask the user for confirmation.',
         parameters: z.object({
-          message: z.string().describe('The message to ask for confirmation.')
-        })
+          message: z.string().describe('The message to ask for confirmation.'),
+        }),
       },
       // client-side tool that is automatically executed on the client:
       getLocation: {
         description:
           'Get the user location. Always ask for confirmation before using this tool.',
-        parameters: z.object({})
-      }
-    }
-  })
+        parameters: z.object({}),
+      },
+    },
+  });
 
-  return result.toDataStreamResponse()
+  return result.toDataStreamResponse();
 }
 ```
 
@@ -114,10 +114,10 @@ There are three things worth mentioning:
    This enables several tool use iterations between the client and the server.
 
 ```tsx filename='app/page.tsx' highlight="9,12,31"
-'use client'
+'use client';
 
-import { ToolInvocation } from 'ai'
-import { Message, useChat } from 'ai/react'
+import { ToolInvocation } from 'ai';
+import { Message, useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
@@ -127,11 +127,16 @@ export default function Chat() {
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {
         if (toolCall.toolName === 'getLocation') {
-          const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco']
-          return cities[Math.floor(Math.random() * cities.length)]
+          const cities = [
+            'New York',
+            'Los Angeles',
+            'Chicago',
+            'San Francisco',
+          ];
+          return cities[Math.floor(Math.random() * cities.length)];
         }
-      }
-    })
+      },
+    });
 
   return (
     <>
@@ -140,9 +145,9 @@ export default function Chat() {
           <strong>{m.role}:</strong>
           {m.content}
           {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
-            const toolCallId = toolInvocation.toolCallId
+            const toolCallId = toolInvocation.toolCallId;
             const addResult = (result: string) =>
-              addToolResult({ toolCallId, result })
+              addToolResult({ toolCallId, result });
 
             // render confirmation tool (client-side tool with user interaction)
             if (toolInvocation.toolName === 'askForConfirmation') {
@@ -160,7 +165,7 @@ export default function Chat() {
                     )}
                   </div>
                 </div>
-              )
+              );
             }
 
             // other tools:
@@ -171,7 +176,7 @@ export default function Chat() {
               </div>
             ) : (
               <div key={toolCallId}>Calling {toolInvocation.toolName}...</div>
-            )
+            );
           })}
           <br />
         </div>
@@ -181,7 +186,7 @@ export default function Chat() {
         <input value={input} onChange={handleInputChange} />
       </form>
     </>
-  )
+  );
 }
 ```
 
@@ -197,11 +202,11 @@ export async function POST(req: Request) {
   // ...
 
   const result = streamText({
-    experimental_toolCallStreaming: true
+    experimental_toolCallStreaming: true,
     // ...
-  })
+  });
 
-  return result.toDataStreamResponse()
+  return result.toDataStreamResponse();
 }
 ```
 
@@ -220,17 +225,17 @@ export default function Chat() {
           {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
             switch (toolInvocation.state) {
               case 'partial-call':
-                return <>render partial tool call</>
+                return <>render partial tool call</>;
               case 'call':
-                return <>render full tool call</>
+                return <>render full tool call</>;
               case 'result':
-                return <>render tool result</>
+                return <>render tool result</>;
             }
           })}
         </div>
       ))}
     </>
-  )
+  );
 }
 ```
 
@@ -240,12 +245,12 @@ You can also use multi-step calls on the server-side with `streamText`.
 This works when all invoked tools have an `execute` function on the server side.
 
 ```tsx filename='app/api/chat/route.ts' highlight="15-21,24"
-import { openai } from '@ai-sdk/openai'
-import { streamText } from 'ai'
-import { z } from 'zod'
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+import { z } from 'zod';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4-turbo'),
@@ -256,17 +261,17 @@ export async function POST(req: Request) {
         parameters: z.object({ city: z.string() }),
         // tool has execute function:
         execute: async ({}: { city: string }) => {
-          const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy']
+          const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
           return weatherOptions[
             Math.floor(Math.random() * weatherOptions.length)
-          ]
-        }
-      }
+          ];
+        },
+      },
     },
-    maxSteps: 5
-  })
+    maxSteps: 5,
+  });
 
-  return result.toDataStreamResponse()
+  return result.toDataStreamResponse();
 }
 ```
 
@@ -280,29 +285,29 @@ To surface the errors, you can use the `getErrorMessage` function when calling `
 ```tsx
 export function errorHandler(error: unknown) {
   if (error == null) {
-    return 'unknown error'
+    return 'unknown error';
   }
 
   if (typeof error === 'string') {
-    return error
+    return error;
   }
 
   if (error instanceof Error) {
-    return error.message
+    return error.message;
   }
 
-  return JSON.stringify(error)
+  return JSON.stringify(error);
 }
 ```
 
 ```tsx
 const result = streamText({
   // ...
-})
+});
 
 return result.toDataStreamResponse({
-  getErrorMessage: errorHandler
-})
+  getErrorMessage: errorHandler,
+});
 ```
 
 In case you are using `createDataStreamResponse`, you can use the `onError` function when calling `toDataStreamResponse`:
@@ -313,6 +318,6 @@ const response = createDataStreamResponse({
   async execute(dataStream) {
     // ...
   },
-  onError: error => `Custom error: ${error.message}`
-})
+  onError: error => `Custom error: ${error.message}`,
+});
 ```
