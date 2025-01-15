@@ -66,6 +66,11 @@ after any headers potentially added by use of the `apiKey` option.
   headers?: Record<string, string>;
 
   /**
+Optional custom url query parameters to include in request urls.
+   */
+  queryParams?: Record<string, string>;
+
+  /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
    */
@@ -115,7 +120,13 @@ export function createOpenAICompatible<
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `${providerName}.${modelType}`,
-    url: ({ path }) => `${baseURL}${path}`,
+    url: ({ path }) => {
+      const url = new URL(`${baseURL}${path}`);
+      if (options.queryParams) {
+        url.search = new URLSearchParams(options.queryParams).toString();
+      }
+      return url.toString();
+    },
     headers: getHeaders,
     fetch: options.fetch,
   });

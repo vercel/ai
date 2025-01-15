@@ -66,19 +66,19 @@ importers:
         specifier: 1.0.21
         version: link:../../packages/azure
       '@ai-sdk/cerebras':
-        specifier: 0.0.1
+        specifier: 0.0.2
         version: link:../../packages/cerebras
       '@ai-sdk/cohere':
         specifier: 1.0.8
         version: link:../../packages/cohere
       '@ai-sdk/deepinfra':
-        specifier: 0.0.8
+        specifier: 0.0.9
         version: link:../../packages/deepinfra
       '@ai-sdk/deepseek':
-        specifier: 0.0.4
+        specifier: 0.0.5
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 0.0.12
+        specifier: 0.0.13
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 1.0.16
@@ -96,7 +96,7 @@ importers:
         specifier: 1.0.19
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.16
+        specifier: 0.0.17
         version: link:../../packages/openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.4
@@ -105,10 +105,10 @@ importers:
         specifier: 0.0.3
         version: link:../../packages/replicate
       '@ai-sdk/togetherai':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../../packages/togetherai
       '@ai-sdk/xai':
-        specifier: 1.0.17
+        specifier: 1.0.18
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
@@ -1229,7 +1229,7 @@ importers:
   packages/cerebras:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.16
+        specifier: 0.0.17
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.4
@@ -1331,7 +1331,7 @@ importers:
   packages/deepinfra:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.16
+        specifier: 0.0.17
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.4
@@ -1359,7 +1359,7 @@ importers:
   packages/deepseek:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.16
+        specifier: 0.0.17
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.4
@@ -1387,7 +1387,7 @@ importers:
   packages/fireworks:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.16
+        specifier: 0.0.17
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.4
@@ -1833,7 +1833,7 @@ importers:
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.16
+        specifier: 0.0.17
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.4
@@ -1950,7 +1950,7 @@ importers:
   packages/xai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.0.16
+        specifier: 0.0.17
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.4
