@@ -1,5 +1,12 @@
 # ai
 
+## 4.0.37
+
+### Patch Changes
+
+- 8304ed8: feat (ai/core): Add option `throwErrorForEmptyVectors` to cosineSimilarity
+- ed28182: feat (ai/ui): add appendResponseMessages helper
+
 ## 4.0.36
 
 ### Patch Changes
