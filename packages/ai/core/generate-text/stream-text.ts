@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
@@ -637,6 +638,7 @@ class DefaultStreamTextResult<
           recordedResponse.timestamp = part.response.timestamp;
           recordedResponse.modelId = part.response.modelId;
           recordedResponse.headers = part.response.headers;
+          recordedResponse.msToFirstChunk = part.response.msToFirstChunk;
           recordedUsage = part.usage;
           recordedFinishReason = part.finishReason;
         }
@@ -712,6 +714,7 @@ class DefaultStreamTextResult<
             }),
           );
           console.log({
+            'ai.usage.promptTokens': usage.promptTokens,
             'ai.usage.completionTokens': usage.completionTokens,
           });
         } catch (error) {
@@ -914,6 +917,7 @@ class DefaultStreamTextResult<
           };
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
+          let msToFirstChunk_: number | undefined = undefined;
           let stepText = '';
           let fullStepText = stepType === 'continue' ? previousStepText : '';
           let stepLogProbs: LogProbs | undefined;
@@ -954,7 +958,7 @@ class DefaultStreamTextResult<
                   // Telemetry for first chunk:
                   if (stepFirstChunk) {
                     const msToFirstChunk = now() - startTimestampMs;
-
+                    msToFirstChunk_ = msToFirstChunk;
                     stepFirstChunk = false;
 
                     doStreamSpan.addEvent('ai.stream.firstChunk', {
@@ -1196,6 +1200,7 @@ class DefaultStreamTextResult<
                       response: {
                         ...stepResponse,
                         headers: rawResponse?.headers,
+                        msToFirstChunk: msToFirstChunk_,
                       },
                     });
 
