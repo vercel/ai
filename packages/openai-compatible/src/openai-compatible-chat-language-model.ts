@@ -231,13 +231,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     }
   }
 
-  private getProviderMetadata(response: unknown) {
-    const metadata =
-      this.config.metadataProcessor?.buildMetadataFromResponse?.(response);
-    return metadata && { providerMetadata: metadata };
-  }
-
-  private createResponseHandlerWithRaw<T>(
+  private createResponseHandlerWithParsedAndRawResponse<T>(
     schema: z.ZodType<T>,
   ): ResponseHandler<{ value: T; rawResponse: any }> {
     return async ({ response: rawResponse, ...rest }) => {
@@ -272,9 +266,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
-      successfulResponseHandler: this.createResponseHandlerWithRaw(
-        OpenAICompatibleChatResponseSchema,
-      ),
+      successfulResponseHandler:
+        this.createResponseHandlerWithParsedAndRawResponse(
+          OpenAICompatibleChatResponseSchema,
+        ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
@@ -283,6 +278,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
+    const providerMetadata =
+      this.config.metadataProcessor?.buildMetadataFromResponse?.(response);
 
     return {
       text: choice.message.content ?? undefined,
@@ -298,7 +295,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         promptTokens: response.usage?.prompt_tokens ?? NaN,
         completionTokens: response.usage?.completion_tokens ?? NaN,
       },
-      ...this.getProviderMetadata(fullResponse.rawResponse),
+      ...(providerMetadata && { providerMetadata }),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       response: getResponseMetadata(response),
