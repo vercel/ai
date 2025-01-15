@@ -310,6 +310,27 @@ describe('assistant message', () => {
       },
     ]);
   });
+
+  it('should handle conversation with an assistant message that has empty tool invocations', () => {
+    const result = convertToCoreMessages([
+      { role: 'user', content: 'test', toolInvocations: [] },
+      {
+        role: 'assistant',
+        content: "Understood. I'm ready to help with your questions.\n",
+        toolInvocations: [],
+      },
+      { role: 'user', content: 'test' },
+    ]);
+
+    expect(result).toEqual([
+      { role: 'user', content: 'test' },
+      {
+        role: 'assistant',
+        content: "Understood. I'm ready to help with your questions.\n",
+      },
+      { role: 'user', content: 'test' },
+    ]);
+  });
 });
 
 describe('multiple messages', () => {
