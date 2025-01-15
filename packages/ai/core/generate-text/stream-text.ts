@@ -711,6 +711,9 @@ class DefaultStreamTextResult<
               },
             }),
           );
+          console.log({
+            'ai.usage.completionTokens': usage.completionTokens,
+          });
         } catch (error) {
           controller.error(error);
         } finally {
@@ -961,6 +964,9 @@ class DefaultStreamTextResult<
                     doStreamSpan.setAttributes({
                       'ai.response.msToFirstChunk': msToFirstChunk,
                     });
+                    console.log({
+                      'ai.response.msToFirstChunk': msToFirstChunk,
+                    });
                   }
 
                   // Filter out empty text deltas
@@ -1047,6 +1053,12 @@ class DefaultStreamTextResult<
                       const msToFinish = now() - startTimestampMs;
                       doStreamSpan.addEvent('ai.stream.finish');
                       doStreamSpan.setAttributes({
+                        'ai.response.msToFinish': msToFinish,
+                        'ai.response.avgCompletionTokensPerSecond':
+                          (1000 * stepUsage.completionTokens) / msToFinish,
+                      });
+
+                      console.log({
                         'ai.response.msToFinish': msToFinish,
                         'ai.response.avgCompletionTokensPerSecond':
                           (1000 * stepUsage.completionTokens) / msToFinish,
