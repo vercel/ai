@@ -40,12 +40,8 @@ export type OpenAICompatibleChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
-
-  usageStructure?: z.ZodType;
-
   getProviderMetadata?: (
-    value: any,
-    cur: LanguageModelV1ProviderMetadata | undefined,
+    response: unknown,
   ) => LanguageModelV1ProviderMetadata | undefined;
 
   /**
@@ -87,7 +83,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       config.errorStructure ?? defaultOpenAICompatibleErrorStructure;
     this.chunkSchema = createOpenAICompatibleChatChunkSchema(
       errorStructure.errorSchema,
-      config.usageStructure,
     );
     this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure);
 
@@ -237,6 +232,30 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     }
   }
 
+  private getProviderMetadata(response: unknown) {
+    const metadata = this.config.getProviderMetadata?.({
+      response,
+    });
+    return metadata && { providerMetadata: metadata };
+  }
+
+  private createResponseHandlerWithRaw<T>(
+    schema: z.ZodType<T>,
+  ): ResponseHandler<{ value: T; rawResponse: any }> {
+    return async ({ response: rawResponse, ...rest }) => {
+      const { value, responseHeaders } = await createJsonResponseHandler(
+        schema,
+      )({
+        response: rawResponse.clone(),
+        ...rest,
+      });
+      return {
+        value: { value, rawResponse: await rawResponse.json() },
+        responseHeaders,
+      };
+    };
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
@@ -244,7 +263,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     const body = JSON.stringify(args);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const { responseHeaders, value: fullResponse } = await postJsonToApi<{
+      value: z.infer<typeof OpenAICompatibleChatResponseSchema>;
+      rawResponse: any;
+    }>({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
@@ -252,12 +274,21 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
+      // TODO(shaper): Potentially only create the tee-handler if
+      // `config.getProviderMetadata` is defined to save on overhead.
+      successfulResponseHandler: this.createResponseHandlerWithRaw(
         OpenAICompatibleChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
+
+    const response = fullResponse.value;
+    // console.log('validated response', JSON.stringify(response, null, 2));
+    // console.log(
+    //   'raw response',
+    //   JSON.stringify(fullResponse.rawResponse, null, 2),
+    // );
 
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
@@ -276,6 +307,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         promptTokens: response.usage?.prompt_tokens ?? NaN,
         completionTokens: response.usage?.completion_tokens ?? NaN,
       },
+      ...this.getProviderMetadata(fullResponse.rawResponse),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       response: getResponseMetadata(response),
@@ -334,7 +366,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     const body = JSON.stringify({ ...args, stream: true });
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi<
+      ReadableStream<ParseResult<z.infer<typeof this.chunkSchema>>>
+    >({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
@@ -409,9 +443,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
               });
             }
 
-            if (typeof getProviderMetadata === 'function') {
-              providerMetadata = getProviderMetadata(value, providerMetadata);
-            }
+            // if (typeof getProviderMetadata === 'function') {
+            //   providerMetadata = getProviderMetadata(value, providerMetadata);
+            // }
 
             if (value.usage != null) {
               usage = {
@@ -620,7 +654,6 @@ const OpenAICompatibleChatResponseSchema = z.object({
 // this approach limits breakages when the API changes and increases efficiency
 const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
   errorSchema: ERROR_SCHEMA,
-  usageSchema?: z.ZodType,
 ) =>
   z.union([
     z.object({
@@ -652,14 +685,12 @@ const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
           finish_reason: z.string().nullish(),
         }),
       ),
-      usage:
-        usageSchema ??
-        z
-          .object({
-            prompt_tokens: z.number().nullish(),
-            completion_tokens: z.number().nullish(),
-          })
-          .nullish(),
+      usage: z
+        .object({
+          prompt_tokens: z.number().nullish(),
+          completion_tokens: z.number().nullish(),
+        })
+        .nullish(),
     }),
     errorSchema,
   ]);

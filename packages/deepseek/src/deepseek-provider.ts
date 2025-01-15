@@ -87,23 +87,14 @@ export function createDeepSeek(
       headers: getHeaders,
       fetch: options.fetch,
       defaultObjectGenerationMode: 'json',
-      usageStructure: z
-        .object({
-          prompt_tokens: z.number().nullish(),
-          completion_tokens: z.number().nullish(),
-          prompt_cache_hit_tokens: z.number().nullish(),
-          prompt_cache_miss_tokens: z.number().nullish(),
-        })
-        .nullish(),
-      getProviderMetadata(
-        value: any,
-        _cur: LanguageModelV1ProviderMetadata | undefined,
-      ) {
-        if (value?.usage?.prompt_cache_hit_tokens != null) {
+      getProviderMetadata: (response: unknown) => {
+        const data = (response as Record<string, any>).response;
+        if (data?.usage?.prompt_cache_hit_tokens != null) {
           return {
             deepseek: {
-              promptCacheHitTokens: value.usage.prompt_cache_hit_tokens,
-              promptCacheMissTokens: value.usage.prompt_cache_miss_tokens,
+              promptCacheHitTokens: data.usage?.prompt_cache_hit_tokens ?? NaN,
+              promptCacheMissTokens:
+                data.usage?.prompt_cache_miss_tokens ?? NaN,
             },
           };
         } else {
