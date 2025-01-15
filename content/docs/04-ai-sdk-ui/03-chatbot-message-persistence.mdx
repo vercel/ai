@@ -40,7 +40,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { writeFile } from 'fs/promises';
 import path from 'path';
 
-export async function createChat() {
+export async function createChat(): Promise<string> {
   const id = generateId(); // generate a unique chat ID
   await writeFile(getChatFile(id), '[]'); // create an empty chat file
   return id;
