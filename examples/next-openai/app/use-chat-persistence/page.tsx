@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
-import { generateId } from 'ai';
+import { createChat } from '../api/use-chat-persistence/chat-store';
 
-export default function ChatPage() {
-  redirect(`/use-chat-persistence/${generateId()}`);
+export default async function ChatPage() {
+  const { id } = await createChat();
+  redirect(`/use-chat-persistence/${id}`);
 }

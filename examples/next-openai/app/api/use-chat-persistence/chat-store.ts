@@ -1,10 +1,18 @@
-import { Message } from 'ai';
+import { generateId, Message } from 'ai';
 import { existsSync, mkdirSync } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
 
 // example implementation for demo purposes
-// in a real app, you would save the chat to a database.
+// in a real app, you would save the chat to a database
+// and use the id from the database entry
+
+export async function createChat() {
+  const id = generateId();
+  await writeFile(getChatFile(id), '[]');
+  return { id };
+}
+
 export async function saveChat({
   id,
   messages,
@@ -16,13 +24,7 @@ export async function saveChat({
 }
 
 export async function loadChat({ id }: { id: string }): Promise<Message[]> {
-  const file = getChatFile(id);
-
-  if (!existsSync(file)) {
-    await writeFile(file, '[]');
-  }
-
-  return JSON.parse(await readFile(file, 'utf8'));
+  return JSON.parse(await readFile(getChatFile(id), 'utf8'));
 }
 
 function getChatFile(chatId: string): string {
