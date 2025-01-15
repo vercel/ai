@@ -234,7 +234,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
   private createResponseHandlerWithParsedAndRawResponse<T>(
     schema: z.ZodType<T>,
-  ): ResponseHandler<{ value: T; rawResponse: any }> {
+  ): ResponseHandler<{ parsed: T; raw: any }> {
     return async ({ response: rawResponse, ...rest }) => {
       const { value, responseHeaders } = await createJsonResponseHandler(
         schema,
@@ -243,7 +243,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         ...rest,
       });
       return {
-        value: { value, rawResponse: await rawResponse.json() },
+        value: {
+          parsed: value,
+          raw: await rawResponse.json(),
+        },
         responseHeaders,
       };
     };
@@ -256,10 +259,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     const body = JSON.stringify(args);
 
-    const { responseHeaders, value: fullResponse } = await postJsonToApi<{
-      value: z.infer<typeof OpenAICompatibleChatResponseSchema>;
-      rawResponse: any;
-    }>({
+    const {
+      responseHeaders,
+      value: { parsed: response, raw: rawResponse },
+    } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
@@ -275,12 +278,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
-    const response = fullResponse.value;
-
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
     const providerMetadata =
-      this.config.metadataProcessor?.buildMetadataFromResponse?.(response);
+      this.config.metadataProcessor?.buildMetadataFromResponse?.(rawResponse);
 
     return {
       text: choice.message.content ?? undefined,
