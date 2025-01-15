@@ -313,22 +313,27 @@ describe('assistant message', () => {
 
   it('should handle conversation with an assistant message that has empty tool invocations', () => {
     const result = convertToCoreMessages([
-      { role: 'user', content: 'test', toolInvocations: [] },
       {
-        role: 'assistant',
-        content: "Understood. I'm ready to help with your questions.\n",
+        role: 'user',
+        content: 'text1',
         toolInvocations: [],
       },
-      { role: 'user', content: 'test' },
+      {
+        role: 'assistant',
+        content: 'text2',
+        toolInvocations: [],
+      },
     ]);
 
     expect(result).toEqual([
-      { role: 'user', content: 'test' },
+      {
+        role: 'user',
+        content: 'text1',
+      },
       {
         role: 'assistant',
-        content: "Understood. I'm ready to help with your questions.\n",
+        content: 'text2',
       },
-      { role: 'user', content: 'test' },
     ]);
   });
 });
