@@ -87,19 +87,32 @@ export function createDeepSeek(
       headers: getHeaders,
       fetch: options.fetch,
       defaultObjectGenerationMode: 'json',
-      getProviderMetadata: (response: unknown) => {
-        const data = (response as Record<string, any>).response;
-        if (data?.usage?.prompt_cache_hit_tokens != null) {
+      metadataProcessor: {
+        buildMetadataFromResponse: (response: unknown) => {
+          const data = (response as Record<string, any>).response;
+          if (data?.usage?.prompt_cache_hit_tokens != null) {
+            return {
+              deepseek: {
+                promptCacheHitTokens:
+                  data.usage?.prompt_cache_hit_tokens ?? NaN,
+                promptCacheMissTokens:
+                  data.usage?.prompt_cache_miss_tokens ?? NaN,
+              },
+            };
+          } else {
+            return undefined;
+          }
+        },
+        createStreamingMetadataProcessor: () => {
           return {
-            deepseek: {
-              promptCacheHitTokens: data.usage?.prompt_cache_hit_tokens ?? NaN,
-              promptCacheMissTokens:
-                data.usage?.prompt_cache_miss_tokens ?? NaN,
+            processChunk: (chunk: unknown) => {
+              console.log('processChunk', JSON.stringify(chunk, null, 2));
+            },
+            buildFinalMetadata: () => {
+              return undefined;
             },
           };
-        } else {
-          return undefined;
-        }
+        },
       },
     });
   };

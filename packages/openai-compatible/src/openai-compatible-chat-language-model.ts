@@ -5,7 +5,6 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1ObjectGenerationMode,
-  LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import {
@@ -33,6 +32,7 @@ import {
   ProviderErrorStructure,
 } from './openai-compatible-error';
 import { prepareTools } from './openai-compatible-prepare-tools';
+import { MetadataProcessor } from './openai-compatible-metadata-processor';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
@@ -40,9 +40,7 @@ export type OpenAICompatibleChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
-  getProviderMetadata?: (
-    response: unknown,
-  ) => LanguageModelV1ProviderMetadata | undefined;
+  metadataProcessor?: MetadataProcessor;
 
   /**
 Default object generation mode that should be used with this model when
@@ -233,9 +231,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   }
 
   private getProviderMetadata(response: unknown) {
-    const metadata = this.config.getProviderMetadata?.({
-      response,
-    });
+    console.log('getProviderMetadata', JSON.stringify(response, null, 2));
+    const metadata = this.config.metadataProcessor?.buildMetadataFromResponse?.(
+      {
+        response,
+      },
+    );
     return metadata && { providerMetadata: metadata };
   }
 
@@ -274,8 +275,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
-      // TODO(shaper): Potentially only create the tee-handler if
-      // `config.getProviderMetadata` is defined to save on overhead.
       successfulResponseHandler: this.createResponseHandlerWithRaw(
         OpenAICompatibleChatResponseSchema,
       ),
@@ -284,11 +283,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     });
 
     const response = fullResponse.value;
-    // console.log('validated response', JSON.stringify(response, null, 2));
-    // console.log(
-    //   'raw response',
-    //   JSON.stringify(fullResponse.rawResponse, null, 2),
-    // );
 
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
@@ -408,10 +402,24 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     };
     let isFirstChunk = true;
 
-    let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
-    const getProviderMetadata = this.config.getProviderMetadata;
+    // const fullResponse: Record<string, any>[] = [];
+    const metadataProcessor =
+      this.config.metadataProcessor?.createStreamingMetadataProcessor();
+    const startStream = metadataProcessor
+      ? response.pipeThrough(
+          new TransformStream({
+            transform(chunk, controller) {
+              const value = chunk as Record<string, any>;
+              // console.log('transform', value);
+              metadataProcessor?.processChunk(value);
+              controller.enqueue(chunk);
+            },
+          }),
+        )
+      : response;
+
     return {
-      stream: response.pipeThrough(
+      stream: startStream.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof this.chunkSchema>>,
           LanguageModelV1StreamPart
@@ -425,12 +433,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
               return;
             }
 
-            const value = chunk.value;
+            const value = chunk.value as Record<string, any>;
+            if (metadataProcessor != null) {
+              metadataProcessor.processChunk(value);
+            }
+            // fullResponse.push(value);
 
             // handle error chunks:
             if ('error' in value) {
               finishReason = 'error';
-              controller.enqueue({ type: 'error', error: value.error.message });
+              controller.enqueue({
+                type: 'error',
+                error: value.error.message,
+              });
               return;
             }
 
@@ -442,10 +457,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                 ...getResponseMetadata(value),
               });
             }
-
-            // if (typeof getProviderMetadata === 'function') {
-            //   providerMetadata = getProviderMetadata(value, providerMetadata);
-            // }
 
             if (value.usage != null) {
               usage = {
@@ -594,6 +605,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
+            const finalMetadata = metadataProcessor?.buildFinalMetadata();
+            console.log('finalMetadata', finalMetadata);
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -601,7 +614,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                 promptTokens: usage.promptTokens ?? NaN,
                 completionTokens: usage.completionTokens ?? NaN,
               },
-              ...(providerMetadata != null ? { providerMetadata } : {}),
+              ...(finalMetadata && { providerMetadata: finalMetadata }),
             });
           },
         }),
