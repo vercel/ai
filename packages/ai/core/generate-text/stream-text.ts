@@ -639,7 +639,12 @@ class DefaultStreamTextResult<
           recordedResponse.modelId = part.response.modelId;
           recordedResponse.headers = part.response.headers;
           recordedResponse.msToFirstChunk = part.response.msToFirstChunk;
-          recordedUsage = part.usage;
+          recordedResponse.msToFinish = part.response.msToFinish;
+          recordedUsage = {
+            ...part.usage,
+            msToFirstChunk: part.response.msToFirstChunk,
+            msToFinish: part.response.msToFinish,
+          };
           recordedFinishReason = part.finishReason;
         }
       },
@@ -918,6 +923,7 @@ class DefaultStreamTextResult<
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let msToFirstChunk_: number | undefined = undefined;
+          let msToFinish_: number | undefined = undefined;
           let stepText = '';
           let fullStepText = stepType === 'continue' ? previousStepText : '';
           let stepLogProbs: LogProbs | undefined;
@@ -1061,6 +1067,7 @@ class DefaultStreamTextResult<
                         'ai.response.avgCompletionTokensPerSecond':
                           (1000 * stepUsage.completionTokens) / msToFinish,
                       });
+                      msToFinish_ = msToFinish;
 
                       console.log({
                         'ai.response.msToFinish': msToFinish,
@@ -1201,6 +1208,7 @@ class DefaultStreamTextResult<
                         ...stepResponse,
                         headers: rawResponse?.headers,
                         msToFirstChunk: msToFirstChunk_,
+                        msToFinish: msToFinish_,
                       },
                     });
 
