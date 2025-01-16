@@ -31,6 +31,7 @@ export async function processChatResponse({
 
   let currentMessage: Message | undefined = undefined;
   let createNewMessage: boolean = true;
+  let newMessageId: string | undefined = undefined;
   const previousMessages: Message[] = [];
 
   const data: JSONValue[] = [];
@@ -94,14 +95,15 @@ export async function processChatResponse({
         previousMessages.push(currentMessage);
       }
 
-      createNewMessage = false;
-
       currentMessage = {
-        id: generateId(),
+        id: newMessageId ?? generateId(),
         role: 'assistant',
         content: '',
         createdAt,
       };
+
+      createNewMessage = false;
+      newMessageId = undefined;
     }
 
     return currentMessage;
@@ -234,6 +236,9 @@ export async function processChatResponse({
     },
     onFinishStepPart(value) {
       createNewMessage = !value.isContinued;
+    },
+    onStartStepPart(value) {
+      newMessageId = value.id;
     },
     onFinishMessagePart(value) {
       finishReason = value.finishReason;
