@@ -20,6 +20,7 @@
     "@ai-sdk/provider": "1.0.4",
     "@ai-sdk/replicate": "0.0.3",
     "@ai-sdk/togetherai": "0.0.20",
+    "@ai-sdk/venice": "0.0.1",
     "@ai-sdk/xai": "1.0.18",
     "@opentelemetry/sdk-node": "0.54.2",
     "@opentelemetry/auto-instrumentations-node": "0.54.0",
