@@ -232,13 +232,12 @@ It includes the following metadata:
 - [`FinishReason`](/docs/reference/ai-sdk-ui/use-chat#on-finish-finish-reason)
 - [`Usage`](/docs/reference/ai-sdk-ui/use-chat#on-finish-usage) for that step.
 - `isContinued` to indicate if the step text will be continued in the next step.
-- `messageId` to indicate the id of the message that this step belongs to.
 
 The finish step part needs to come at the end of a step.
 
-Format: `e:{finishReason:'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';usage:{promptTokens:number; completionTokens:number;},isContinued:boolean,messageId:string}\n`
+Format: `e:{finishReason:'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';usage:{promptTokens:number; completionTokens:number;},isContinued:boolean}\n`
 
-Example: `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20},"isContinued":false,"messageId":"step_123"}\n`
+Example: `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20},"isContinued":false}\n`
 
 ### Finish Message Part
 
