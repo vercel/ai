@@ -1,5 +1,13 @@
 # @ai-sdk/ui-utils
 
+## 1.0.11
+
+### Patch Changes
+
+- 00114c5: feat (ui): generate and forward message ids for response messages
+- Updated dependencies [00114c5]
+  - @ai-sdk/provider-utils@2.0.8
+
 ## 1.0.10
 
 ### Patch Changes
