@@ -480,7 +480,12 @@ A function that attempts to repair a tool call that failed to parse.
             headers: currentModelResponse.rawResponse?.headers,
 
             // deep clone msgs to avoid mutating past messages in multi-step:
-            messages: JSON.parse(JSON.stringify(responseMessages)),
+            messages: structuredClone(
+              responseMessages.map(message => ({
+                ...message,
+                id: '123', // TODO add test case; use id generator; make id generator configurable
+              })),
+            ),
           },
           experimental_providerMetadata: currentModelResponse.providerMetadata,
           isContinued: nextStepType === 'continue',

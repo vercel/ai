@@ -618,7 +618,12 @@ class DefaultStreamTextResult<
             request: part.request,
             response: {
               ...part.response,
-              messages: [...recordedResponse.messages, ...stepMessages],
+              messages: [...recordedResponse.messages, ...stepMessages].map(
+                message => ({
+                  ...message,
+                  id: '123', // TODO add test case; use id generator; make id generator configurable
+                }),
+              ),
             },
             experimental_providerMetadata: part.experimental_providerMetadata,
             isContinued: part.isContinued,
