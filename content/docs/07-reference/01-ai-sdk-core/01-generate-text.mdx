@@ -407,6 +407,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
     },
     {
+      name: 'experimental_generateMessageId',
+      type: '() => string',
+      isOptional: true,
+      description:
+        'Function used to generate a unique ID for each message. This is an experimental feature.',
+    },
+    {
       name: 'experimental_continueSteps',
       type: 'boolean',
       isOptional: true,
