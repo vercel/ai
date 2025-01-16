@@ -227,24 +227,45 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       type: 'tool-result';
     } & ToolResultUnion<TOOLS>)
   | {
-      type: 'step-finish';
-      finishReason: FinishReason;
-      logprobs?: LogProbs;
-      usage: LanguageModelUsage;
+      type: 'step-start';
+      messageId: string;
       request: LanguageModelRequestMetadata;
-      response: LanguageModelResponseMetadata;
+      warnings: CallWarning[];
+    }
+  | {
+      type: 'step-finish';
+      messageId: string;
+
+      // TODO 5.0 breaking change: remove logprobs
+      logprobs?: LogProbs;
+      // TODO 5.0 breaking change: remove request (on start instead)
+      request: LanguageModelRequestMetadata;
+      // TODO 5.0 breaking change: remove warnings (on start instead)
       warnings: CallWarning[] | undefined;
+
+      response: LanguageModelResponseMetadata;
+      usage: LanguageModelUsage;
+      finishReason: FinishReason;
       experimental_providerMetadata?: ProviderMetadata;
       isContinued: boolean;
     }
   | {
       type: 'finish';
       finishReason: FinishReason;
-      logprobs?: LogProbs;
       usage: LanguageModelUsage;
-      // TODO 4.0 breaking change: remove response (on step instead)
-      response: LanguageModelResponseMetadata;
       experimental_providerMetadata?: ProviderMetadata;
+
+      /**
+       * @deprecated will be moved into provider metadata
+       */
+      // TODO 5.0 breaking change: remove logprobs
+      logprobs?: LogProbs;
+
+      /**
+       * @deprecated use response on step-finish instead
+       */
+      // TODO 5.0 breaking change: remove response (on step instead)
+      response: LanguageModelResponseMetadata;
     }
   | {
       type: 'error';
