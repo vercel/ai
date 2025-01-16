@@ -893,7 +893,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
             "type": "text",
           },
         ],
-        "id": "msg-3",
+        "id": "msg-0",
         "role": "assistant",
       },
     ],
@@ -956,7 +956,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
                 "type": "text",
               },
             ],
-            "id": "msg-1",
+            "id": "msg-0",
             "role": "assistant",
           },
         ],
@@ -994,7 +994,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
                 "type": "text",
               },
             ],
-            "id": "msg-2",
+            "id": "msg-0",
             "role": "assistant",
           },
         ],
@@ -1033,7 +1033,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
                 "type": "text",
               },
             ],
-            "id": "msg-3",
+            "id": "msg-0",
             "role": "assistant",
           },
         ],
@@ -1124,7 +1124,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
-          "id": "msg-1",
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1162,7 +1162,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
-          "id": "msg-2",
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1201,7 +1201,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
-          "id": "msg-3",
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1266,7 +1266,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
-    "messageId": "msg-1",
+    "messageId": "msg-0",
     "request": {},
     "type": "step-start",
     "warnings": [],
@@ -1280,7 +1280,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
-    "messageId": "msg-1",
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,
@@ -1297,7 +1297,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
-    "messageId": "msg-2",
+    "messageId": "msg-0",
     "request": {},
     "type": "step-start",
     "warnings": [],
@@ -1311,7 +1311,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
-    "messageId": "msg-2",
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": {
@@ -1330,7 +1330,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
-    "messageId": "msg-3",
+    "messageId": "msg-0",
     "request": {},
     "type": "step-start",
     "warnings": [],
@@ -1357,7 +1357,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
-    "messageId": "msg-3",
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": {
@@ -1409,19 +1409,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 ",
   "e:{"finishReason":"length","usage":{"promptTokens":10,"completionTokens":20},"isContinued":true}
 ",
-  "f:{"messageId":"msg-1"}
+  "f:{"messageId":"msg-0"}
 ",
   "0:"no-whitespace"
 ",
   "e:{"finishReason":"length","usage":{"promptTokens":30,"completionTokens":5},"isContinued":true}
 ",
-  "f:{"messageId":"msg-2"}
+  "f:{"messageId":"msg-0"}
 ",
   "0:"immediatefollow  "
 ",
   "e:{"finishReason":"length","usage":{"promptTokens":3,"completionTokens":2},"isContinued":true}
 ",
-  "f:{"messageId":"msg-3"}
+  "f:{"messageId":"msg-0"}
 ",
   "0:"final "
 ",
@@ -1693,7 +1693,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
-          "id": "msg-1",
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1731,7 +1731,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
-          "id": "msg-2",
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1770,7 +1770,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
-          "id": "msg-3",
+          "id": "msg-0",
           "role": "assistant",
         },
       ],

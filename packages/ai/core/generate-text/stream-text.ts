@@ -1263,7 +1263,11 @@ class DefaultStreamTextResult<
                       stepType: nextStepType,
                       previousStepText: fullStepText,
                       hasLeadingWhitespace: hasWhitespaceSuffix,
-                      messageId: generateMessageId(), // TODO continue special case
+                      messageId:
+                        // keep the same id when continuing a step:
+                        nextStepType === 'continue'
+                          ? messageId
+                          : generateMessageId(),
                     });
                   }
                 },
