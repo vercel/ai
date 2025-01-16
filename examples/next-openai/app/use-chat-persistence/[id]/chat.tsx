@@ -12,6 +12,7 @@ export default function Chat({
       id, // use the provided chatId
       initialMessages, // initial messages if provided
       sendExtraMessageFields: true, // send id and createdAt for each message
+      generateId,
     });
 
   return (
