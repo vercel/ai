@@ -320,7 +320,7 @@ const startStepStreamPart: DataStreamPart<
   'f',
   'start_step',
   {
-    id: string;
+    messageId: string;
   }
 > = {
   code: 'f',
@@ -329,8 +329,8 @@ const startStepStreamPart: DataStreamPart<
     if (
       value == null ||
       typeof value !== 'object' ||
-      !('id' in value) ||
-      typeof value.id !== 'string'
+      !('messageId' in value) ||
+      typeof value.messageId !== 'string'
     ) {
       throw new Error(
         '"start_step" parts expect an object with an "id" property.',
@@ -340,7 +340,7 @@ const startStepStreamPart: DataStreamPart<
     return {
       type: 'start_step',
       value: {
-        id: value.id,
+        messageId: value.messageId,
       },
     };
   },

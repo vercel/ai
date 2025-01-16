@@ -272,16 +272,16 @@ describe('finish_step stream part', () => {
 
 describe('start_step stream part', () => {
   it('should format a start_step stream part', () => {
-    expect(formatDataStreamPart('start_step', { id: 'step_123' })).toEqual(
-      'f:{"id":"step_123"}\n',
-    );
+    expect(
+      formatDataStreamPart('start_step', { messageId: 'step_123' }),
+    ).toEqual('f:{"messageId":"step_123"}\n');
   });
 
   it('should parse a start_step stream part', () => {
-    const input = 'f:{"id":"step_123"}';
+    const input = 'f:{"messageId":"step_123"}';
     expect(parseDataStreamPart(input)).toEqual({
       type: 'start_step',
-      value: { id: 'step_123' },
+      value: { messageId: 'step_123' },
     });
   });
 
@@ -290,8 +290,8 @@ describe('start_step stream part', () => {
     expect(() => parseDataStreamPart(input)).toThrow();
   });
 
-  it('should throw an error if the id property is not a string', () => {
-    const input = 'f:{"id":123}';
+  it('should throw an error if the messageId property is not a string', () => {
+    const input = 'f:{"messageId":123}';
     expect(() => parseDataStreamPart(input)).toThrow();
   });
 });

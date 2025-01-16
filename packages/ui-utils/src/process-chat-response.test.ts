@@ -701,7 +701,7 @@ describe('scenario: tool call streaming', () => {
 describe('scenario: server provides message ids', () => {
   beforeEach(async () => {
     const stream = createDataProtocolStream([
-      formatDataStreamPart('start_step', { id: 'step_123' }),
+      formatDataStreamPart('start_step', { messageId: 'step_123' }),
       formatDataStreamPart('text', 'Hello, '),
       formatDataStreamPart('text', 'world!'),
       formatDataStreamPart('finish_step', {

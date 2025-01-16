@@ -238,7 +238,7 @@ export async function processChatResponse({
       createNewMessage = !value.isContinued;
     },
     onStartStepPart(value) {
-      newMessageId = value.id;
+      newMessageId = value.messageId;
     },
     onFinishMessagePart(value) {
       finishReason = value.finishReason;
