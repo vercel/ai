@@ -16,6 +16,7 @@ describe('appendResponseMessages', () => {
         {
           role: 'assistant',
           content: 'This is a response from the assistant.',
+          id: '123',
         },
       ],
     });
@@ -30,34 +31,11 @@ describe('appendResponseMessages', () => {
       {
         role: 'assistant',
         content: 'This is a response from the assistant.',
-        id: expect.any(String),
+        id: '123',
         createdAt: expect.any(Date),
         toolInvocations: [],
       },
     ]);
-  });
-
-  it('throws an error if AI response contains a system or user role', () => {
-    expect(() =>
-      appendResponseMessages({
-        messages: [
-          {
-            role: 'user',
-            id: '1',
-            content: 'Hello!',
-            createdAt: new Date(123),
-          },
-        ],
-        responseMessages: [
-          {
-            role: 'system',
-            content: 'System message goes here.',
-          },
-        ],
-      }),
-    ).toThrowError(
-      'AI response must not contain system or user messages: system',
-    );
   });
 
   it('handles tool calls and marks them as "call" initially', () => {
@@ -82,6 +60,7 @@ describe('appendResponseMessages', () => {
               args: { query: 'some query' },
             },
           ],
+          id: '123',
         },
       ],
     });
@@ -96,7 +75,7 @@ describe('appendResponseMessages', () => {
       {
         role: 'assistant',
         content: 'Processing tool call...',
-        id: expect.any(String),
+        id: '123',
         createdAt: expect.any(Date),
         toolInvocations: [
           {
@@ -138,6 +117,7 @@ describe('appendResponseMessages', () => {
       responseMessages: [
         {
           role: 'tool',
+          id: '123',
           content: [
             {
               type: 'tool-result',
@@ -189,6 +169,7 @@ describe('appendResponseMessages', () => {
         responseMessages: [
           {
             role: 'tool',
+            id: '123',
             content: [
               {
                 type: 'tool-result',

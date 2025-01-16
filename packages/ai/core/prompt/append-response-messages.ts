@@ -1,11 +1,10 @@
-import { generateId } from '@ai-sdk/provider-utils';
-import { CoreMessage } from './message';
 import { Message, ToolInvocation } from '@ai-sdk/ui-utils';
+import { ResponseMessage } from '../generate-text/step-result';
 
 /**
- * Appends the CoreMessage[] from the response to a Message[] (for useChat).
+ * Appends the ResponseMessage[] from the response to a Message[] (for useChat).
  * The messages are converted to Messages before being appended.
- * Timestamps and IDs are generated for the new messages.
+ * Timestamps are generated for the new messages.
  *
  * @returns A new Message[] with the response messages appended.
  */
@@ -14,7 +13,7 @@ export function appendResponseMessages({
   responseMessages,
 }: {
   messages: Message[];
-  responseMessages: CoreMessage[];
+  responseMessages: ResponseMessage[];
 }): Message[] {
   const clonedMessages = structuredClone(messages);
 
@@ -22,17 +21,10 @@ export function appendResponseMessages({
     const role = message.role;
 
     switch (role) {
-      case 'system':
-      case 'user': {
-        throw new Error(
-          'AI response must not contain system or user messages: ' + role,
-        );
-      }
-
       case 'assistant': {
         clonedMessages.push({
           role: 'assistant',
-          id: generateId(), // generate an id for the message, will be overridden by the client
+          id: message.id,
           createdAt: new Date(), // generate a createdAt date for the message, will be overridden by the client
 
           // only include text in the content:
@@ -85,6 +77,11 @@ export function appendResponseMessages({
         }
 
         break;
+      }
+
+      default: {
+        const _exhaustiveCheck: never = role;
+        throw new Error(`Unsupported message role: ${_exhaustiveCheck}`);
       }
     }
   }
