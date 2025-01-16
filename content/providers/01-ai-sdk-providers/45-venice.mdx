@@ -1,0 +1,132 @@
+---
+title: Venice Provider
+description: Learn how to use the Venice provider in the AI SDK.
+---
+
+# Venice Provider
+
+The Venice provider allows you to use [Venice](https://venice.ai)'s high-performance AI models for text and image generation through the AI SDK.
+
+## Installation
+
+Install the Venice provider package:
+
+```bash
+npm install @ai-sdk/venice
+```
+
+## Setup
+
+To use the Venice provider, you'll need a Venice API key. You can set it using the `VENICE_API_KEY` environment variable or pass it directly to the provider:
+
+```typescript
+import { createVenice } from '@ai-sdk/venice';
+
+// Using environment variable
+const venice = createVenice();
+
+// Or passing API key directly
+const venice = createVenice({
+  apiKey: 'your-api-key'
+});
+```
+
+## Text Generation
+
+Venice offers several powerful language models for text generation:
+
+```typescript
+import { venice } from '@ai-sdk/venice';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: venice('llama-3.3-70b'),
+  prompt: 'Write a JavaScript function that sorts a list:',
+});
+```
+
+### Available Text Models
+
+- `llama-3.2-3b` - Small but efficient model
+- `llama-3.3-70b` - Large, powerful model
+- `llama-3.1-405b` - Very large model for complex tasks
+- `dolphin-2.9.2-qwen2-72b` - Advanced model with broad capabilities
+- `qwen32b` - Balanced model for general use
+
+### Text Generation Settings
+
+You can customize the behavior of text generation with Venice-specific parameters:
+
+```typescript
+const model = venice('llama-3.3-70b', {
+  venice_parameters: {
+    include_venice_system_prompt: true
+  }
+});
+```
+
+## Image Generation
+
+Venice also provides several models for image generation:
+
+```typescript
+import { venice } from '@ai-sdk/venice';
+import { generateImages } from 'ai';
+
+const { images } = await generateImages({
+  model: venice.imageModel('fluently-xl'),
+  prompt: 'A serene mountain landscape at sunset',
+  venice_parameters: {
+    style_preset: 'photographic',
+    safe_mode: true,
+    num_inference_steps: 30,
+    guidance_scale: 7.5
+  }
+});
+```
+
+### Available Image Models
+
+- `fluently-xl` - High-quality image generation
+- `flux-dev` - Development model with standard content filtering
+- `flux-dev-uncensored` - Development model without content filtering
+- `pony-realism` - Specialized for realistic images
+- `stable-diffusion-3.5` - Latest Stable Diffusion model
+
+### Image Generation Settings
+
+You can customize image generation with these parameters:
+
+```typescript
+const model = venice.imageModel('fluently-xl', {
+  venice_parameters: {
+    style_preset: 'photographic', // Available presets: "anime", "photographic", "digital-art", etc.
+    safe_mode: true,             // Enable content filtering
+    num_inference_steps: 30,     // Number of inference steps
+    guidance_scale: 7.5,         // Controls adherence to prompt
+    height: 1024,               // Image height in pixels
+    width: 1024,                // Image width in pixels
+    seed: 12345                 // Optional seed for reproducibility
+  }
+});
+```
+
+## Custom Configuration
+
+You can customize the provider configuration:
+
+```typescript
+const venice = createVenice({
+  apiKey: 'your-api-key',
+  baseURL: 'https://custom.venice.url', // Custom API endpoint
+  headers: {                           // Custom headers
+    'Custom-Header': 'value'
+  }
+});
+```
+
+## Resources
+
+- [Venice Website](https://venice.ai)
+- [Venice API Documentation](https://docs.venice.ai/api-reference/api-spec)
+- [Venice FAQ](https://docs.venice.ai/welcome/about-venice) 
