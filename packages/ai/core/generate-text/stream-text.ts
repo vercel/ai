@@ -115,7 +115,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-@param generateMessageId - Generate a unique ID for each message.
+@param experimental_generateMessageId - Generate a unique ID for each message.
 
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -140,7 +140,7 @@ export function streamText<
   abortSignal,
   headers,
   maxSteps = 1,
-  generateMessageId = originalGenerateMessageId,
+  experimental_generateMessageId: generateMessageId = originalGenerateMessageId,
   experimental_output: output,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
@@ -183,6 +183,11 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
  */
     maxSteps?: number;
+
+    /**
+Generate a unique ID for each message.
+     */
+    experimental_generateMessageId?: () => string;
 
     /**
 When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
@@ -269,11 +274,6 @@ Details for all steps.
 Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
     onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
-
-    /**
-Generate a unique ID for each message.
-     */
-    generateMessageId?: () => string;
 
     /**
 Internal. For test use only. May change without notice.
