@@ -1,12 +1,11 @@
 ---
 title: appendResponseMessages
-description: Appends CoreMessage[] from an AI response to an existing array of UI messages, generating timestamps and IDs for useChat (API Reference)
+description: Appends ResponseMessage[] from an AI response to an existing array of UI messages, generating timestamps and reusing IDs for useChat (API Reference)
 ---
 
 # `appendResponseMessages()`
 
-Appends an array of CoreMessage objects (from the AI response) to an existing array of UI messages.
-It generates new IDs and timestamps for each appended message and merges tool-call results with the previous assistant message. Useful for maintaining a unified message history when working with AI responses in a client-side chat application.
+Appends an array of ResponseMessage objects (from the AI response) to an existing array of UI messages. It reuses the existing IDs from the response messages, generates new timestamps, and merges tool-call results with the previous assistant message (if any). This is useful for maintaining a unified message history when working with AI responses in a client-side chat application.
 
 ## Import
 
@@ -26,9 +25,9 @@ It generates new IDs and timestamps for each appended message and merges tool-ca
     },
     {
       name: 'responseMessages',
-      type: 'CoreMessage[]',
+      type: 'ResponseMessage[]',
       description:
-        'The new CoreMessage array returned from the AI service to be appended.',
+        'The new array of AI messages returned from the AI service to be appended. For example, "assistant" messages get added as new items, while tool-call results (role: "tool") are merged with the previous assistant message.',
     },
   ]}
 />
@@ -43,7 +42,7 @@ An updated array of Message objects.
       name: 'Message[]',
       type: 'Array',
       description:
-        'A new array of UI messages with appended AI response messages.',
+        'A new array of UI messages with the appended AI response messages (and updated tool-call results for the preceding assistant message).',
     },
   ]}
 />
