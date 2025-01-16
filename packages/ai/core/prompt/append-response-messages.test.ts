@@ -117,7 +117,7 @@ describe('appendResponseMessages', () => {
       responseMessages: [
         {
           role: 'tool',
-          id: '123',
+          id: '3',
           content: [
             {
               type: 'tool-result',
@@ -169,7 +169,7 @@ describe('appendResponseMessages', () => {
         responseMessages: [
           {
             role: 'tool',
-            id: '123',
+            id: '3',
             content: [
               {
                 type: 'tool-result',
