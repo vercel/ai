@@ -1,5 +1,6 @@
 'use client';
 
+import { createIdGenerator } from 'ai';
 import { Message, useChat } from 'ai/react';
 
 export default function Chat({
@@ -12,7 +13,7 @@ export default function Chat({
       id, // use the provided chatId
       initialMessages, // initial messages if provided
       sendExtraMessageFields: true, // send id and createdAt for each message
-      generateId,
+      generateId: createIdGenerator({ prefix: 'msgc', size: 16 }), // id format for client-side messages
     });
 
   return (
