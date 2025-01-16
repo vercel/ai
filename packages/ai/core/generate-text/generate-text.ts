@@ -1,4 +1,4 @@
-import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
@@ -20,9 +20,9 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool/tool';
 import { CoreToolChoice, LanguageModel, ProviderMetadata } from '../types';
 import {
-  LanguageModelUsage,
   addLanguageModelUsage,
   calculateLanguageModelUsage,
+  LanguageModelUsage,
 } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
 import { GenerateTextResult } from './generate-text-result';
@@ -148,7 +148,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     /**
 Generate a unique ID for each message.
      */
-    experimental_generateMessageId?: () => string;
+    experimental_generateMessageId?: IDGenerator;
 
     /**
 When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
@@ -194,7 +194,7 @@ A function that attempts to repair a tool call that failed to parse.
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
-      generateId?: () => string;
+      generateId?: IDGenerator;
       currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
