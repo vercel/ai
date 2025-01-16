@@ -409,6 +409,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
     },
     {
+      name: 'experimental_generateMessageId',
+      type: '() => string',
+      isOptional: true,
+      description:
+        'Function used to generate a unique ID for each message. This is an experimental feature.',
+    },
+    {
       name: 'experimental_continueSteps',
       type: 'boolean',
       isOptional: true,
@@ -978,7 +985,7 @@ To see `streamText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'messages',
-                      type: 'Array<CoreAssistantMessage | CoreToolMessage>',
+                      type: 'Array<ResponseMessage>',
                       description:
                         'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
                     },
@@ -1115,7 +1122,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'messages',
-              type: 'Array<CoreAssistantMessage | CoreToolMessage>',
+              type: 'Array<ResponseMessage>',
               description:
                 'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
             },
@@ -1247,7 +1254,7 @@ To see `streamText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'messages',
-                      type: 'Array<CoreAssistantMessage | CoreToolMessage>',
+                      type: 'Array<ResponseMessage>',
                       description:
                         'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
                     },
@@ -1420,63 +1427,19 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'type',
-              type: "'error'",
-              description: 'The type to identify the object as error.',
+              type: "'step-start'",
+              description: 'Indicates the start of a new step in the stream.',
             },
             {
-              name: 'error',
-              type: 'Error',
-              description:
-                'Describes the error that may have occurred during execution.',
-            },
-          ],
-        },
-        {
-          type: 'TextStreamPart',
-          parameters: [
-            {
-              name: 'type',
-              type: "'step-finish'",
-              description: 'The type to identify the object as step finish.',
-            },
-            {
-              name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
-              description: 'The reason the model finished generating the text.',
-            },
-            {
-              name: 'usage',
-              type: 'TokenUsage',
-              description: 'The token usage of the generated text.',
-              properties: [
-                {
-                  type: 'TokenUsage',
-                  parameters: [
-                    {
-                      name: 'promptTokens',
-                      type: 'number',
-                      description: 'The total number of tokens in the prompt.',
-                    },
-                    {
-                      name: 'completionTokens',
-                      type: 'number',
-                      description:
-                        'The total number of tokens in the completion.',
-                    },
-                    {
-                      name: 'totalTokens',
-                      type: 'number',
-                      description: 'The total number of tokens generated.',
-                    },
-                  ],
-                },
-              ],
+              name: 'messageId',
+              type: 'string',
+              description: 'The ID of the assistant message that started the step.',
             },
             {
               name: 'request',
               type: 'RequestMetadata',
-              isOptional: true,
-              description: 'Request metadata.',
+              description:
+                'Information about the request that was sent to the language model provider.',
               properties: [
                 {
                   type: 'RequestMetadata',
@@ -1492,10 +1455,60 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
+              name: 'warnings',
+              type: 'Warning[]',
+              description: 'Warnings from the model provider (e.g. unsupported settings).',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'step-finish'",
+              description: 'Indicates the end of the current step in the stream.',
+            },
+            {
+              name: 'messageId',
+              type: 'string',
+              description: 'The ID of the assistant message that ended the step.',
+            },
+            {
+              name: 'logprobs',
+              type: 'LogProbs',
+              isOptional: true,
+              description:
+                'Optional log probabilities for tokens returned by some providers.',
+            },
+            {
+              name: 'request',
+              type: 'RequestMetadata',
+              description: 'Information about the request that was sent to the language model provider.',
+              properties: [
+                {
+                  type: 'RequestMetadata',
+                  parameters: [
+                    {
+                      name: 'body',
+                      type: 'string',
+                      description:
+                        'Raw request HTTP body that was sent to the provider API as a string.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[]',
+              isOptional: true,
+              description: 'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
               name: 'response',
               type: 'ResponseMetadata',
-              isOptional: true,
-              description: 'Response metadata.',
+              description: 'Response metadata from the language model provider.',
               properties: [
                 {
                   type: 'ResponseMetadata',
@@ -1528,10 +1541,37 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
-              name: 'warnings',
-              type: 'Warning[] | undefined',
-              description:
-                'Warnings from the model provider (e.g. unsupported settings).',
+              name: 'usage',
+              type: 'TokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'TokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              description: 'The reason the model finished generating the text.',
             },
             {
               name: 'experimental_providerMetadata',
@@ -1590,13 +1630,26 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
-              name: 'response',
-              type: 'Response',
+              name: 'experimental_providerMetadata',
+              type: 'Record<string,Record<string,JSONValue>> | undefined',
               isOptional: true,
-              description: 'Response metadata.',
+              description:
+                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+            },
+            {
+              name: 'logprobs',
+              type: 'LogProbs',
+              isOptional: true,
+              description:
+                'Optional log probabilities for tokens returned by some providers.',
+            },
+            {
+              name: 'response',
+              type: 'ResponseMetadata',
+              description: 'Response metadata from the language model provider.',
               properties: [
                 {
-                  type: 'Response',
+                  type: 'ResponseMetadata',
                   parameters: [
                     {
                       name: 'id',
@@ -1625,12 +1678,21 @@ To see `streamText` in action, check out [these examples](#examples).
                 },
               ],
             },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
             {
-              name: 'experimental_providerMetadata',
-              type: 'Record<string,Record<string,JSONValue>> | undefined',
-              isOptional: true,
+              name: 'type',
+              type: "'error'",
+              description: 'The type to identify the object as error.',
+            },
+            {
+              name: 'error',
+              type: 'unknown',
               description:
-                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+                'Describes the error that may have occurred during execution.',
             },
           ],
         },

@@ -1,15 +1,16 @@
-import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
 import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { StreamData } from '../../streams/stream-data';
+import { asArray } from '../../util/as-array';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
+import { CoreAssistantMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareRetries } from '../prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
@@ -47,14 +48,22 @@ import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
-import { StepResult } from './step-result';
+import { ResponseMessage, StepResult } from './step-result';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aitxt', size: 24 });
+const originalGenerateId = createIdGenerator({
+  prefix: 'aitxt',
+  size: 24,
+});
+
+const originalGenerateMessageId = createIdGenerator({
+  prefix: 'msg',
+  size: 24,
+});
 
 /**
 A transformation that is applied to the stream.
@@ -106,6 +115,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
+@param experimental_generateMessageId - Generate a unique ID for each message.
 
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -130,6 +140,7 @@ export function streamText<
   abortSignal,
   headers,
   maxSteps = 1,
+  experimental_generateMessageId: generateMessageId = originalGenerateMessageId,
   experimental_output: output,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
@@ -172,6 +183,11 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
  */
     maxSteps?: number;
+
+    /**
+Generate a unique ID for each message.
+     */
+    experimental_generateMessageId?: IDGenerator;
 
     /**
 When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
@@ -255,16 +271,16 @@ Details for all steps.
     ) => Promise<void> | void;
 
     /**
-    Callback that is called when each step (LLM call) is finished, including intermediate steps.
+Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
     onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
 
     /**
-     * Internal. For test use only. May change without notice.
+Internal. For test use only. May change without notice.
      */
     _internal?: {
       now?: () => number;
-      generateId?: () => string;
+      generateId?: IDGenerator;
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
@@ -281,12 +297,7 @@ Details for all steps.
     tools,
     toolChoice,
     toolCallStreaming,
-    transforms:
-      transform == null
-        ? []
-        : Array.isArray(transform)
-        ? transform
-        : [transform],
+    transforms: asArray(transform),
     activeTools,
     repairToolCall,
     maxSteps,
@@ -299,6 +310,7 @@ Details for all steps.
     now,
     currentDate,
     generateId,
+    generateMessageId,
   });
 }
 
@@ -462,6 +474,7 @@ class DefaultStreamTextResult<
     now,
     currentDate,
     generateId,
+    generateMessageId,
   }: {
     model: LanguageModel;
     telemetry: TelemetrySettings | undefined;
@@ -510,6 +523,7 @@ class DefaultStreamTextResult<
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
+    generateMessageId: () => string;
   }) {
     if (maxSteps < 1) {
       throw new InvalidArgumentError({
@@ -528,7 +542,7 @@ class DefaultStreamTextResult<
     let recordedContinuationText = '';
     let recordedFullText = '';
     const recordedResponse: LanguageModelResponseMetadata & {
-      messages: Array<CoreAssistantMessage | CoreToolMessage>;
+      messages: Array<ResponseMessage>;
     } = {
       id: generateId(),
       timestamp: currentDate(),
@@ -582,6 +596,8 @@ class DefaultStreamTextResult<
             tools: tools ?? ({} as TOOLS),
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
+            messageId: part.messageId,
+            generateMessageId,
           });
 
           // determine the next step type
@@ -803,13 +819,15 @@ class DefaultStreamTextResult<
           stepType,
           previousStepText,
           hasLeadingWhitespace,
+          messageId,
         }: {
           currentStep: number;
-          responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
+          responseMessages: Array<ResponseMessage>;
           usage: LanguageModelUsage;
           stepType: 'initial' | 'continue' | 'tool-result';
           previousStepText: string;
           hasLeadingWhitespace: boolean;
+          messageId: string;
         }) {
           // after the 1st step, we need to switch to messages format:
           const promptFormat =
@@ -958,8 +976,8 @@ class DefaultStreamTextResult<
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
-                  // Telemetry for first chunk:
                   if (stepFirstChunk) {
+                    // Telemetry for first chunk:
                     const msToFirstChunk = now() - startTimestampMs;
 
                     stepFirstChunk = false;
@@ -970,6 +988,14 @@ class DefaultStreamTextResult<
 
                     doStreamSpan.setAttributes({
                       'ai.response.msToFirstChunk': msToFirstChunk,
+                    });
+
+                    // Step start:
+                    controller.enqueue({
+                      type: 'step-start',
+                      messageId,
+                      request: stepRequest,
+                      warnings: warnings ?? [],
                     });
                   }
 
@@ -1180,6 +1206,7 @@ class DefaultStreamTextResult<
                     },
                     warnings,
                     isContinued: nextStepType === 'continue',
+                    messageId,
                   });
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
@@ -1223,6 +1250,8 @@ class DefaultStreamTextResult<
                           tools: tools ?? ({} as TOOLS),
                           toolCalls: stepToolCalls,
                           toolResults: stepToolResults,
+                          messageId,
+                          generateMessageId,
                         }),
                       );
                     }
@@ -1234,6 +1263,11 @@ class DefaultStreamTextResult<
                       stepType: nextStepType,
                       previousStepText: fullStepText,
                       hasLeadingWhitespace: hasWhitespaceSuffix,
+                      messageId:
+                        // keep the same id when continuing a step:
+                        nextStepType === 'continue'
+                          ? messageId
+                          : generateMessageId(),
                     });
                   }
                 },
@@ -1254,6 +1288,7 @@ class DefaultStreamTextResult<
           previousStepText: '',
           stepType: 'initial',
           hasLeadingWhitespace: false,
+          messageId: generateMessageId(),
         });
       },
     }).catch(error => {
@@ -1454,6 +1489,15 @@ However, the LLM results are expected to be small enough to not cause issues.
           case 'error': {
             controller.enqueue(
               formatDataStreamPart('error', getErrorMessage(chunk.error)),
+            );
+            break;
+          }
+
+          case 'step-start': {
+            controller.enqueue(
+              formatDataStreamPart('start_step', {
+                messageId: chunk.messageId,
+              }),
             );
             break;
           }

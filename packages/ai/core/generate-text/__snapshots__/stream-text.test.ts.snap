@@ -3,6 +3,8 @@
 exports[`streamText > multiple stream consumption > should support text stream, ai stream, full stream on single result object 1`] = `
 {
   "dataStream": [
+    "f:{"messageId":"msg-0"}
+",
     "0:"Hello"
 ",
     "0:", "
@@ -15,6 +17,12 @@ exports[`streamText > multiple stream consumption > should support text stream, 
 ",
   ],
   "fullStream": [
+    {
+      "messageId": "msg-0",
+      "request": {},
+      "type": "step-start",
+      "warnings": [],
+    },
     {
       "textDelta": "Hello",
       "type": "text-delta",
@@ -32,6 +40,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "messageId": "msg-0",
       "request": {},
       "response": {
         "headers": undefined,
@@ -100,6 +109,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
             "type": "tool-call",
           },
         ],
+        "id": "msg-0",
         "role": "assistant",
       },
       {
@@ -111,6 +121,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
             "type": "tool-result",
           },
         ],
+        "id": "msg-3",
         "role": "tool",
       },
       {
@@ -120,6 +131,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
             "type": "text",
           },
         ],
+        "id": "msg-2",
         "role": "assistant",
       },
     ],
@@ -154,6 +166,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
                 "type": "tool-call",
               },
             ],
+            "id": "msg-0",
             "role": "assistant",
           },
           {
@@ -165,6 +178,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
                 "type": "tool-result",
               },
             ],
+            "id": "msg-3",
             "role": "tool",
           },
         ],
@@ -228,6 +242,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
                 "type": "tool-call",
               },
             ],
+            "id": "msg-0",
             "role": "assistant",
           },
           {
@@ -239,6 +254,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
                 "type": "tool-result",
               },
             ],
+            "id": "msg-3",
             "role": "tool",
           },
           {
@@ -248,6 +264,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
                 "type": "text",
               },
             ],
+            "id": "msg-2",
             "role": "assistant",
           },
         ],
@@ -307,6 +324,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               "type": "tool-call",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -318,6 +336,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               "type": "tool-result",
             },
           ],
+          "id": "msg-3",
           "role": "tool",
         },
       ],
@@ -381,6 +400,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               "type": "tool-call",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -392,6 +412,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               "type": "tool-result",
             },
           ],
+          "id": "msg-3",
           "role": "tool",
         },
         {
@@ -401,6 +422,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               "type": "text",
             },
           ],
+          "id": "msg-2",
           "role": "assistant",
         },
       ],
@@ -424,6 +446,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should contain assistant response message and tool message from all steps 1`] = `
 [
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "args": {
       "value": "value",
     },
@@ -445,6 +473,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": {
@@ -463,6 +492,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "warnings": undefined,
   },
   {
+    "messageId": "msg-2",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "textDelta": "Hello, ",
     "type": "text-delta",
   },
@@ -475,6 +510,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-2",
     "request": {},
     "response": {
       "headers": {
@@ -660,6 +696,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
         "type": "tool-call",
       },
     ],
+    "id": "msg-0",
     "role": "assistant",
   },
   {
@@ -671,6 +708,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
         "type": "tool-result",
       },
     ],
+    "id": "msg-3",
     "role": "tool",
   },
   {
@@ -680,6 +718,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
         "type": "text",
       },
     ],
+    "id": "msg-2",
     "role": "assistant",
   },
 ]
@@ -714,6 +753,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
               "type": "tool-call",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -725,6 +765,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
               "type": "tool-result",
             },
           ],
+          "id": "msg-3",
           "role": "tool",
         },
       ],
@@ -788,6 +829,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
               "type": "tool-call",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -799,6 +841,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
               "type": "tool-result",
             },
           ],
+          "id": "msg-3",
           "role": "tool",
         },
         {
@@ -808,6 +851,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
               "type": "text",
             },
           ],
+          "id": "msg-2",
           "role": "assistant",
         },
       ],
@@ -849,6 +893,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
             "type": "text",
           },
         ],
+        "id": "msg-0",
         "role": "assistant",
       },
     ],
@@ -874,6 +919,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
                 "type": "text",
               },
             ],
+            "id": "msg-0",
             "role": "assistant",
           },
         ],
@@ -910,6 +956,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
                 "type": "text",
               },
             ],
+            "id": "msg-0",
             "role": "assistant",
           },
         ],
@@ -947,6 +994,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
                 "type": "text",
               },
             ],
+            "id": "msg-0",
             "role": "assistant",
           },
         ],
@@ -985,6 +1033,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
                 "type": "text",
               },
             ],
+            "id": "msg-0",
             "role": "assistant",
           },
         ],
@@ -1038,6 +1087,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1074,6 +1124,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1111,6 +1162,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1149,6 +1201,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1173,6 +1226,12 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > should contain text deltas from all steps 1`] = `
 [
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "textDelta": "part ",
     "type": "text-delta",
   },
@@ -1190,6 +1249,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,
@@ -1206,6 +1266,12 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "textDelta": "no-whitespace",
     "type": "text-delta",
   },
@@ -1214,6 +1280,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,
@@ -1230,6 +1297,12 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "textDelta": "immediatefollow  ",
     "type": "text-delta",
   },
@@ -1238,6 +1311,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": {
@@ -1254,6 +1328,12 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "totalTokens": 5,
     },
     "warnings": undefined,
+  },
+  {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
   },
   {
     "textDelta": "final ",
@@ -1277,6 +1357,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": {
@@ -1318,6 +1399,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > should generate correct data stream 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "0:"part "
 ",
   "0:"1 \\n"
@@ -1326,13 +1409,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 ",
   "e:{"finishReason":"length","usage":{"promptTokens":10,"completionTokens":20},"isContinued":true}
 ",
+  "f:{"messageId":"msg-0"}
+",
   "0:"no-whitespace"
 ",
   "e:{"finishReason":"length","usage":{"promptTokens":30,"completionTokens":5},"isContinued":true}
 ",
+  "f:{"messageId":"msg-0"}
+",
   "0:"immediatefollow  "
 ",
   "e:{"finishReason":"length","usage":{"promptTokens":3,"completionTokens":2},"isContinued":true}
+",
+  "f:{"messageId":"msg-0"}
 ",
   "0:"final "
 ",
@@ -1567,6 +1656,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1603,6 +1693,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1640,6 +1731,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1678,6 +1770,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1730,6 +1823,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
             "type": "tool-call",
           },
         ],
+        "id": "msg-0",
         "role": "assistant",
       },
       {
@@ -1741,6 +1835,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
             "type": "tool-result",
           },
         ],
+        "id": "msg-1",
         "role": "tool",
       },
     ],
@@ -1779,6 +1874,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
                 "type": "tool-call",
               },
             ],
+            "id": "msg-0",
             "role": "assistant",
           },
           {
@@ -1790,6 +1886,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
                 "type": "tool-result",
               },
             ],
+            "id": "msg-1",
             "role": "tool",
           },
         ],
@@ -1889,6 +1986,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
             "type": "tool-call",
           },
         ],
+        "id": "msg-0",
         "role": "assistant",
       },
       {
@@ -1900,6 +1998,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
             "type": "tool-result",
           },
         ],
+        "id": "msg-1",
         "role": "tool",
       },
     ],
@@ -1938,6 +2037,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
                 "type": "tool-call",
               },
             ],
+            "id": "msg-0",
             "role": "assistant",
           },
           {
@@ -1949,6 +2049,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
                 "type": "tool-result",
               },
             ],
+            "id": "msg-1",
             "role": "tool",
           },
         ],
@@ -2049,6 +2150,7 @@ exports[`streamText > options.transform > with base transformation > options.onS
             "type": "tool-call",
           },
         ],
+        "id": "msg-0",
         "role": "assistant",
       },
       {
@@ -2060,6 +2162,7 @@ exports[`streamText > options.transform > with base transformation > options.onS
             "type": "tool-result",
           },
         ],
+        "id": "msg-1",
         "role": "tool",
       },
     ],
@@ -2198,6 +2301,7 @@ exports[`streamText > options.transform > with transformation that aborts stream
             "type": "text",
           },
         ],
+        "id": "msg-transformed-123",
         "role": "assistant",
       },
     ],
@@ -2220,6 +2324,12 @@ exports[`streamText > options.transform > with transformation that aborts stream
 exports[`streamText > result.fullStream > should filter out empty text deltas 1`] = `
 [
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "textDelta": "Hello",
     "type": "text-delta",
   },
@@ -2236,6 +2346,7 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,
@@ -2274,6 +2385,12 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
 exports[`streamText > result.fullStream > should not send tool call deltas when toolCallStreaming is disabled 1`] = `
 [
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "args": {
       "value": "Sparkle Day",
     },
@@ -2286,6 +2403,7 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,
@@ -2324,6 +2442,12 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
 exports[`streamText > result.fullStream > should send delayed asynchronous tool results 1`] = `
 [
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "args": {
       "value": "value",
     },
@@ -2345,6 +2469,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,
@@ -2383,6 +2508,12 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
 exports[`streamText > result.fullStream > should send text deltas 1`] = `
 [
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "textDelta": "Hello",
     "type": "text-delta",
   },
@@ -2399,6 +2530,7 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,
@@ -2436,6 +2568,12 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
 
 exports[`streamText > result.fullStream > should send tool call deltas when toolCallStreaming is enabled 1`] = `
 [
+  {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
   {
     "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
     "toolName": "test-tool",
@@ -2496,6 +2634,7 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,
@@ -2534,6 +2673,12 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
 exports[`streamText > result.fullStream > should send tool calls 1`] = `
 [
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "args": {
       "value": "value",
     },
@@ -2546,6 +2691,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,
@@ -2584,6 +2730,12 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
 exports[`streamText > result.fullStream > should send tool results 1`] = `
 [
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "args": {
       "value": "value",
     },
@@ -2605,6 +2757,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,
@@ -2643,6 +2796,12 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
 exports[`streamText > result.fullStream > should use fallback response metadata when response metadata is not provided 1`] = `
 [
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "textDelta": "Hello",
     "type": "text-delta",
   },
@@ -2659,6 +2818,7 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,
@@ -2696,6 +2856,8 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
 
 exports[`streamText > result.mergeIntoDataStream > should merge the result into a data stream 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "0:"Hello"
 ",
   "0:", "
@@ -2711,6 +2873,8 @@ exports[`streamText > result.mergeIntoDataStream > should merge the result into 
 
 exports[`streamText > result.mergeIntoDataStream > should use the onError handler from the data stream 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "3:"custom error message: error"
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
@@ -2722,6 +2886,8 @@ exports[`streamText > result.mergeIntoDataStream > should use the onError handle
 
 exports[`streamText > result.pipeDataStreamToResponse > should create a Response with a data stream and custom headers 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "0:"Hello"
 ",
   "0:", "
@@ -2737,6 +2903,8 @@ exports[`streamText > result.pipeDataStreamToResponse > should create a Response
 
 exports[`streamText > result.pipeDataStreamToResponse > should mask error messages by default 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "3:"An error occurred."
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
@@ -2748,6 +2916,8 @@ exports[`streamText > result.pipeDataStreamToResponse > should mask error messag
 
 exports[`streamText > result.pipeDataStreamToResponse > should support custom error messages 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "3:"custom error message: error"
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
@@ -2760,6 +2930,8 @@ exports[`streamText > result.pipeDataStreamToResponse > should support custom er
 exports[`streamText > result.pipeDataStreamToResponse > should support merging with existing stream data 1`] = `
 [
   "2:["stream-data-value"]
+",
+  "f:{"messageId":"msg-0"}
 ",
   "0:"Hello"
 ",
@@ -2776,6 +2948,8 @@ exports[`streamText > result.pipeDataStreamToResponse > should support merging w
 
 exports[`streamText > result.pipeDataStreamToResponse > should suppress usage information when sendUsage is false 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "0:"Hello, World!"
 ",
   "e:{"finishReason":"stop","isContinued":false}
@@ -2787,6 +2961,8 @@ exports[`streamText > result.pipeDataStreamToResponse > should suppress usage in
 
 exports[`streamText > result.pipeDataStreamToResponse > should write data stream parts to a Node.js response-like object 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "0:"Hello"
 ",
   "0:", "
@@ -2814,6 +2990,7 @@ exports[`streamText > result.response > should resolve with response information
           "type": "text",
         },
       ],
+      "id": "msg-0",
       "role": "assistant",
     },
   ],
@@ -2839,6 +3016,7 @@ exports[`streamText > result.responseMessages > should contain assistant respons
         "type": "tool-call",
       },
     ],
+    "id": "msg-0",
     "role": "assistant",
   },
   {
@@ -2850,6 +3028,7 @@ exports[`streamText > result.responseMessages > should contain assistant respons
         "type": "tool-result",
       },
     ],
+    "id": "msg-1",
     "role": "tool",
   },
 ]
@@ -2864,6 +3043,7 @@ exports[`streamText > result.responseMessages > should contain assistant respons
         "type": "text",
       },
     ],
+    "id": "msg-0",
     "role": "assistant",
   },
 ]
@@ -2871,6 +3051,8 @@ exports[`streamText > result.responseMessages > should contain assistant respons
 
 exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "0:"Hello"
 ",
   "0:", "
@@ -2886,6 +3068,8 @@ exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 
 exports[`streamText > result.toDataStream > should mask error messages by default 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "3:"An error occurred."
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
@@ -2897,6 +3081,8 @@ exports[`streamText > result.toDataStream > should mask error messages by defaul
 
 exports[`streamText > result.toDataStream > should send tool call and tool result stream parts 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "9:{"toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}
 ",
   "a:{"toolCallId":"call-1","result":"value-result"}
@@ -2910,6 +3096,8 @@ exports[`streamText > result.toDataStream > should send tool call and tool resul
 
 exports[`streamText > result.toDataStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "b:{"toolCallId":"call-1","toolName":"tool1"}
 ",
   "c:{"toolCallId":"call-1","argsTextDelta":"{ \\"value\\":"}
@@ -2929,6 +3117,8 @@ exports[`streamText > result.toDataStream > should send tool call, tool call str
 
 exports[`streamText > result.toDataStream > should support custom error messages 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "3:"custom error message: error"
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
@@ -2941,6 +3131,8 @@ exports[`streamText > result.toDataStream > should support custom error messages
 exports[`streamText > result.toDataStream > should support merging with existing stream data 1`] = `
 [
   "2:["stream-data-value"]
+",
+  "f:{"messageId":"msg-0"}
 ",
   "0:"Hello"
 ",
@@ -2957,6 +3149,8 @@ exports[`streamText > result.toDataStream > should support merging with existing
 
 exports[`streamText > result.toDataStream > should suppress usage information when sendUsage is false 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "0:"Hello, World!"
 ",
   "e:{"finishReason":"stop","isContinued":false}
@@ -2968,6 +3162,8 @@ exports[`streamText > result.toDataStream > should suppress usage information wh
 
 exports[`streamText > result.toDataStreamResponse > should create a Response with a data stream 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "0:"Hello"
 ",
   "0:", "
@@ -2983,6 +3179,8 @@ exports[`streamText > result.toDataStreamResponse > should create a Response wit
 
 exports[`streamText > result.toDataStreamResponse > should create a Response with a data stream and custom headers 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "0:"Hello"
 ",
   "0:", "
@@ -2998,6 +3196,8 @@ exports[`streamText > result.toDataStreamResponse > should create a Response wit
 
 exports[`streamText > result.toDataStreamResponse > should mask error messages by default 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "3:"An error occurred."
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
@@ -3009,6 +3209,8 @@ exports[`streamText > result.toDataStreamResponse > should mask error messages b
 
 exports[`streamText > result.toDataStreamResponse > should support custom error messages 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "3:"custom error message: error"
 ",
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
@@ -3021,6 +3223,8 @@ exports[`streamText > result.toDataStreamResponse > should support custom error 
 exports[`streamText > result.toDataStreamResponse > should support merging with existing stream data 1`] = `
 [
   "2:["stream-data-value"]
+",
+  "f:{"messageId":"msg-0"}
 ",
   "0:"Hello"
 ",
@@ -3037,6 +3241,8 @@ exports[`streamText > result.toDataStreamResponse > should support merging with 
 
 exports[`streamText > result.toDataStreamResponse > should suppress usage information when sendUsage is false 1`] = `
 [
+  "f:{"messageId":"msg-0"}
+",
   "0:"Hello, World!"
 ",
   "e:{"finishReason":"stop","isContinued":false}
@@ -3305,6 +3511,12 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
 exports[`streamText > tools with custom schema > should send tool calls 1`] = `
 [
   {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
     "args": {
       "value": "value",
     },
@@ -3317,6 +3529,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "messageId": "msg-0",
     "request": {},
     "response": {
       "headers": undefined,

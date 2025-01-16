@@ -4,6 +4,7 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
 import { ToolExecutionError } from '../../errors';
+import { mockId } from '../test/mock-id';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
@@ -245,6 +246,7 @@ describe('result.response.messages', () => {
         }),
       }),
       prompt: 'test-input',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -287,6 +289,7 @@ describe('result.response.messages', () => {
         },
       },
       prompt: 'test-input',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -334,6 +337,7 @@ describe('result.response', () => {
         }),
       }),
       prompt: 'prompt',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response).toMatchSnapshot();
@@ -500,6 +504,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
     });
 
@@ -724,6 +729,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
     });
 
@@ -736,6 +742,8 @@ describe('options.maxSteps', () => {
     it('result.response.messages should contain an assistant message with the combined text', () => {
       expect(result.response.messages).toStrictEqual([
         {
+          role: 'assistant',
+          id: 'msg-0',
           content: [
             {
               text: 'part 1 \n ',
@@ -754,7 +762,6 @@ describe('options.maxSteps', () => {
               type: 'text',
             },
           ],
-          role: 'assistant',
         },
       ]);
     });
