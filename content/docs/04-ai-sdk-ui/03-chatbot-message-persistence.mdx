@@ -251,7 +251,7 @@ const {
 
 On the server, you can then load the previous messages and append the new message to the previous messages:
 
-```tsx filename="app/api/chat/route.ts" highlight="10-19"
+```tsx filename="app/api/chat/route.ts" highlight="2-9"
 export async function POST(req: Request) {
   // get the last message from the client:
   const { message, id } = await req.json();
