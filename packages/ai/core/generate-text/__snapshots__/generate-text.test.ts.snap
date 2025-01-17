@@ -852,7 +852,7 @@ exports[`telemetry > should record successful tool call 1`] = `
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}}",
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
       "ai.response.finishReason": "stop",
       "ai.response.id": "test-id",
