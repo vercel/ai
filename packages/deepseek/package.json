@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/deepseek",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,9 +30,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "0.0.18",
+    "@ai-sdk/openai-compatible": "0.1.0",
     "@ai-sdk/provider": "1.0.4",
-    "@ai-sdk/provider-utils": "2.0.8"
+    "@ai-sdk/provider-utils": "2.1.0"
   },
   "devDependencies": {
     "@types/node": "^18",

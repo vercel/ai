@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 2.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+### Patch Changes
+
+- Updated dependencies [62ba5ad]
+  - @ai-sdk/anthropic@1.1.0
+  - @ai-sdk/google@1.1.0
+  - @ai-sdk/provider-utils@2.1.0
+
 ## 2.0.19
 
 ### Patch Changes
