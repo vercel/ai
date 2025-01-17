@@ -77,14 +77,14 @@ describe('safeParseJSON', () => {
   it('should handle nested objects and preserve raw values', () => {
     const schema = z.object({
       user: z.object({
-        id: z.coerce.number(),
+        id: z.string().transform(val => parseInt(val, 10)),
         name: z.string(),
       }),
     });
 
     const result = safeParseJSON({
       text: '{"user": {"id": "123", "name": "John"}}',
-      schema: schema,
+      schema: schema as any,
     });
 
     expect(result).toEqual({
