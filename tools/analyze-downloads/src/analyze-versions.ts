@@ -107,10 +107,17 @@ async function main() {
     const parsed = parseVersions(html);
     const aggregated = aggregateByMinor(parsed);
 
+    // Calculate total downloads
+    const totalDownloads = Object.values(aggregated).reduce(
+      (sum, count) => sum + count,
+      0,
+    );
+
     // Convert the aggregated data into an array of objects for console.table
     const results = Object.entries(aggregated).map(([version, downloads]) => ({
       version,
       'weekly downloads': downloads,
+      percentage: ((downloads / totalDownloads) * 100).toFixed(1) + '%',
     }));
 
     // Show the results in a table format
