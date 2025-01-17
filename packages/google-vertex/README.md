@@ -80,7 +80,7 @@ const { text } = await generateText({
 
 ## Prompt Caching Support for Anthropic Claude Models
 
-The Google Vertex Anthropic provider now supports prompt caching for Anthropic Claude models. Prompt caching can help reduce latency and costs by reusing cached results for identical requests. Caches are unique to Google Cloud projects and have a five-minute lifetime. Prompt caching can be enabled via the Anthropic Claude SDK or the Vertex AI REST API.
+The Google Vertex Anthropic provider supports prompt caching for Anthropic Claude models. Prompt caching can help reduce latency and costs by reusing cached results for identical requests. Caches are unique to Google Cloud projects and have a five-minute lifetime.
 
 ### Enabling Prompt Caching
 
