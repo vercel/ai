@@ -578,7 +578,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#""}}",
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
       "ai.response.avgCompletionTokensPerSecond": 20,
       "ai.response.finishReason": "tool-calls",
@@ -638,7 +638,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#""}}",
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
       "ai.response.avgCompletionTokensPerSecond": 12.5,
       "ai.response.finishReason": "stop",
@@ -887,7 +887,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       {
         "content": [
           {
-            "text": "part 1
+            "text": "part 1 
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
             "type": "text",
@@ -914,7 +914,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           {
             "content": [
               {
-                "text": "part 1
+                "text": "part 1 
  ",
                 "type": "text",
               },
@@ -927,7 +927,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
       "stepType": "initial",
-      "text": "part 1
+      "text": "part 1 
  ",
       "toolCalls": [],
       "toolResults": [],
@@ -951,7 +951,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           {
             "content": [
               {
-                "text": "part 1
+                "text": "part 1 
  no-whitespace",
                 "type": "text",
               },
@@ -989,7 +989,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           {
             "content": [
               {
-                "text": "part 1
+                "text": "part 1 
  no-whitespaceimmediatefollow  ",
                 "type": "text",
               },
@@ -1027,7 +1027,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           {
             "content": [
               {
-                "text": "part 1
+                "text": "part 1 
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
                 "type": "text",
@@ -1053,7 +1053,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "warnings": undefined,
     },
   ],
-  "text": "part 1
+  "text": "part 1 
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
   "toolCalls": [],
@@ -1082,7 +1082,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1
+              "text": "part 1 
  ",
               "type": "text",
             },
@@ -1095,7 +1095,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "stepType": "initial",
-    "text": "part 1
+    "text": "part 1 
  ",
     "toolCalls": [],
     "toolResults": [],
@@ -1119,7 +1119,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1
+              "text": "part 1 
  no-whitespace",
               "type": "text",
             },
@@ -1157,7 +1157,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1
+              "text": "part 1 
  no-whitespaceimmediatefollow  ",
               "type": "text",
             },
@@ -1195,7 +1195,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1
+              "text": "part 1 
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
               "type": "text",
@@ -1236,7 +1236,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "type": "text-delta",
   },
   {
-    "textDelta": "1
+    "textDelta": "1 
 ",
     "type": "text-delta",
   },
@@ -1447,7 +1447,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.operationId": "ai.streamText",
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.response.finishReason": "stop",
-      "ai.response.text": "part 1
+      "ai.response.text": "part 1 
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
       "ai.settings.maxRetries": 2,
@@ -1472,7 +1472,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 500,
       "ai.response.msToFirstChunk": 100,
-      "ai.response.text": "part 1
+      "ai.response.text": "part 1 
  ",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.settings.maxRetries": 2,
@@ -1651,7 +1651,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1
+              "text": "part 1 
  ",
               "type": "text",
             },
@@ -1664,7 +1664,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "stepType": "initial",
-    "text": "part 1
+    "text": "part 1 
  ",
     "toolCalls": [],
     "toolResults": [],
@@ -1688,7 +1688,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1
+              "text": "part 1 
  no-whitespace",
               "type": "text",
             },
@@ -1726,7 +1726,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1
+              "text": "part 1 
  no-whitespaceimmediatefollow  ",
               "type": "text",
             },
@@ -1764,7 +1764,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1
+              "text": "part 1 
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
               "type": "text",
@@ -2230,7 +2230,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#""}}",
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
       "ai.response.avgCompletionTokensPerSecond": 20,
       "ai.response.finishReason": "stop",
@@ -3353,7 +3353,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#""}}",
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
       "ai.response.avgCompletionTokensPerSecond": 40,
       "ai.response.finishReason": "stop",

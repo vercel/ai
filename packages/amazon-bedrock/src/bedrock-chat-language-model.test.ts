@@ -452,7 +452,7 @@ describe('doStream', () => {
               properties: { value: { type: 'string' } },
               required: ['value'],
               additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#"',
+              $schema: 'http://json-schema.org/draft-07/schema#'
             },
           },
         ],
@@ -556,7 +556,7 @@ describe('doStream', () => {
               properties: { value1: { type: 'string' } },
               required: ['value'],
               additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#"',
+              $schema: 'http://json-schema.org/draft-07/schema#'
             },
           },
           {
@@ -567,7 +567,7 @@ describe('doStream', () => {
               properties: { value2: { type: 'string' } },
               required: ['value'],
               additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#"',
+              $schema: 'http://json-schema.org/draft-07/schema#'
             },
           },
         ],

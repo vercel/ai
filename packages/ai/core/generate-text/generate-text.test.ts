@@ -64,7 +64,7 @@ describe('result.toolCalls', () => {
                 name: 'tool1',
                 description: undefined,
                 parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#"',
+                  $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
                   required: ['value'],
@@ -76,7 +76,7 @@ describe('result.toolCalls', () => {
                 name: 'tool2',
                 description: undefined,
                 parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#"',
+                  $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
                   properties: { somethingElse: { type: 'string' } },
                   required: ['somethingElse'],
@@ -150,7 +150,7 @@ describe('result.toolResults', () => {
                 name: 'tool1',
                 description: undefined,
                 parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#"',
+                  $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
                   required: ['value'],
@@ -367,7 +367,7 @@ describe('options.maxSteps', () => {
                       name: 'tool1',
                       description: undefined,
                       parameters: {
-                        $schema: 'http://json-schema.org/draft-07/schema#"',
+                        $schema: 'http://json-schema.org/draft-07/schema#',
                         additionalProperties: false,
                         properties: { value: { type: 'string' } },
                         required: ['value'],
@@ -421,7 +421,7 @@ describe('options.maxSteps', () => {
                       name: 'tool1',
                       description: undefined,
                       parameters: {
-                        $schema: 'http://json-schema.org/draft-07/schema#"',
+                        $schema: 'http://json-schema.org/draft-07/schema#',
                         additionalProperties: false,
                         properties: { value: { type: 'string' } },
                         required: ['value'],
@@ -1299,7 +1299,7 @@ describe('options.output', () => {
             {
               content:
                 'JSON schema:\n' +
-                '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#""}\n' +
+                '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                 'You MUST answer with a JSON object that matches the JSON schema above.',
               role: 'system',
             },
@@ -1359,7 +1359,7 @@ describe('options.output', () => {
           responseFormat: {
             type: 'json',
             schema: {
-              $schema: 'http://json-schema.org/draft-07/schema#"',
+              $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,
               properties: { value: { type: 'string' } },
               required: ['value'],

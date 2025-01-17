@@ -3,7 +3,7 @@ import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-opena
 
 it('should remove additionalProperties and $schema', () => {
   const input: JSONSchema7 = {
-    $schema: 'http://json-schema.org/draft-07/schema#"',
+    $schema: 'http://json-schema.org/draft-07/schema#'
     type: 'object',
     properties: {
       name: { type: 'string' },
@@ -297,7 +297,7 @@ it('should correctly convert a complex schema with nested const and anyOf', () =
     },
     required: ['name', 'age', 'contact', 'occupation'],
     additionalProperties: false,
-    $schema: 'http://json-schema.org/draft-07/schema#"',
+    $schema: 'http://json-schema.org/draft-07/schema#'
   };
 
   const expected = {
@@ -505,7 +505,7 @@ it('should convert string enum properties', () => {
     },
     required: ['kind'],
     additionalProperties: false,
-    $schema: 'http://json-schema.org/draft-07/schema#"',
+    $schema: 'http://json-schema.org/draft-07/schema#'
   };
 
   expect(convertJSONSchemaToOpenAPISchema(schemaWithEnumProperty)).toEqual({

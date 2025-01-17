@@ -106,7 +106,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 properties: { value: { type: 'string' } },
                 required: ['value'],
                 additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#"',
+                $schema: 'http://json-schema.org/draft-07/schema#'
               },
             },
           ],
@@ -158,7 +158,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               properties: { value: { type: 'string' } },
               required: ['value'],
               additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#"',
+              $schema: 'http://json-schema.org/draft-07/schema#'
             },
           },
         },
@@ -190,7 +190,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           {
             description: 'Respond with a JSON object.',
             input_schema: {
-              $schema: 'http://json-schema.org/draft-07/schema#"',
+              $schema: 'http://json-schema.org/draft-07/schema#'
               additionalProperties: false,
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -304,7 +304,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 properties: { value: { type: 'string' } },
                 required: ['value'],
                 additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#"',
+                $schema: 'http://json-schema.org/draft-07/schema#'
               },
             },
           ],
@@ -330,7 +330,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               properties: { value: { type: 'string' } },
               required: ['value'],
               additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#"',
+              $schema: 'http://json-schema.org/draft-07/schema#'
             },
           },
         ],
@@ -528,7 +528,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 properties: { value: { type: 'string' } },
                 required: ['value'],
                 additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#"',
+                $schema: 'http://json-schema.org/draft-07/schema#'
               },
             },
           ],
