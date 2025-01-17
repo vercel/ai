@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "name": "analyze-downloads",
+  "scripts": {
+    "analyze": "tsx src/analyze-downloads.ts"
+  },
+  "lint-staged": {
+    "*": [
+      "prettier --ignore-unknown --write"
+    ]
+  },
+  "devDependencies": {
+    "tsx": "4.19.2",
+    "typescript": "5.6.3"
+  }
+}
