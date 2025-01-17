@@ -58,7 +58,7 @@ export function parseJSON<T>({
 }
 
 export type ParseResult<T> =
-  | { success: true; value: T }
+  | { success: true; value: T; rawValue: unknown }
   | { success: false; error: JSONParseError | TypeValidationError };
 
 /**
@@ -89,20 +89,19 @@ export function safeParseJSON<T>({
 }: {
   text: string;
   schema?: ZodSchema<T> | Validator<T>;
-}):
-  | { success: true; value: T }
-  | { success: false; error: JSONParseError | TypeValidationError } {
+}): ParseResult<T> {
   try {
     const value = SecureJSON.parse(text);
 
     if (schema == null) {
-      return {
-        success: true,
-        value: value as T,
-      };
+      return { success: true, value: value as T, rawValue: value };
     }
 
-    return safeValidateTypes({ value, schema });
+    const validationResult = safeValidateTypes({ value, schema });
+
+    return validationResult.success
+      ? { ...validationResult, rawValue: value }
+      : validationResult;
   } catch (error) {
     return {
       success: false,
