@@ -113,7 +113,7 @@ async function main() {
     const aggregated = aggregateByMinor(parsed);
 
     // Show the results
-    console.log('Aggregated all-time downloads by minor version:');
+    console.log('Aggregated last 7 days downloads by minor version:');
     console.log(aggregated);
   } catch (err) {
     console.error('Error:', err);
