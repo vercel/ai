@@ -261,6 +261,11 @@ export async function POST(req: Request) {
   // append the new message to the previous messages:
   const messages = [...previousMessages, message];
 
+  const result = streamText({
+    // ...
+    messages,
+  });
+
   // ...
 }
 ```
