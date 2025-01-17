@@ -234,8 +234,7 @@ This reduces the amount of data sent to the server on each request and can impro
 To achieve this, you can provide an `experimental_prepareRequestBody` function to the `useChat` hook (React only).
 This function receives the messages and the chat ID, and returns the request body to be sent to the server.
 
-```tsx filename="ui/chat.tsx" highlight="8-11"
-import { createIdGenerator } from 'ai';
+```tsx filename="ui/chat.tsx" highlight="7-10"
 import { useChat } from 'ai/react';
 
 const {
