@@ -1,4 +1,5 @@
 ---
+'@ai-sdk/ui-utils': patch
 '@ai-sdk/provider-utils': patch
 '@ai-sdk/openai': patch
 ---
