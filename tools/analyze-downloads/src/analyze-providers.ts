@@ -86,7 +86,7 @@ async function main() {
   const results: Array<{
     package: string;
     'weekly downloads': number;
-    'percentage of total': string;
+    percentage: string;
   }> = [];
 
   try {
@@ -98,7 +98,7 @@ async function main() {
       results.push({
         package: pkg,
         'weekly downloads': weeklyDownloads,
-        'percentage of total': '0%', // Initial placeholder
+        percentage: '0%', // Initial placeholder
       });
     }
 
