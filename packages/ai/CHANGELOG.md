@@ -1,5 +1,18 @@
 # ai
 
+## 4.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+### Patch Changes
+
+- Updated dependencies [62ba5ad]
+  - @ai-sdk/provider-utils@2.1.0
+  - @ai-sdk/react@1.1.0
+  - @ai-sdk/ui-utils@1.1.0
+
 ## 4.0.41
 
 ### Patch Changes

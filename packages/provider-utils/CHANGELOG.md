@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
 ## 2.0.8
 
 ### Patch Changes
