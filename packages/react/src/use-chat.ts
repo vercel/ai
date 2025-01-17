@@ -108,7 +108,7 @@ const processResponseStream = async (
         messages: Message[];
         requestData?: JSONValue;
         requestBody?: object;
-      }) => JSONValue)
+      }) => unknown)
     | undefined,
   fetch: FetchFunction | undefined,
   keepLastMessageOnError: boolean,
@@ -215,10 +215,11 @@ export function useChat({
    * @param requestBody The request body object passed in the chat request.
    */
   experimental_prepareRequestBody?: (options: {
+    id: string;
     messages: Message[];
     requestData?: JSONValue;
     requestBody?: object;
-  }) => JSONValue;
+  }) => unknown;
 
   /**
 Custom throttle wait in ms for the chat messages and data updates.
