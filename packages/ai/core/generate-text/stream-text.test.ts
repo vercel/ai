@@ -265,7 +265,7 @@ describe('streamText', () => {
                   name: 'tool1',
                   description: undefined,
                   parameters: {
-                    $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                    $schema: 'http://json-schema.org/draft-07/schema#"',
                     additionalProperties: false,
                     properties: { value: { type: 'string' } },
                     required: ['value'],
@@ -337,7 +337,7 @@ describe('streamText', () => {
                   name: 'test-tool',
                   description: undefined,
                   parameters: {
-                    $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                    $schema: 'http://json-schema.org/draft-07/schema#"',
                     additionalProperties: false,
                     properties: { value: { type: 'string' } },
                     required: ['value'],
@@ -1839,8 +1839,7 @@ describe('streamText', () => {
                         name: 'tool1',
                         description: undefined,
                         parameters: {
-                          $schema:
-                            'https://json-schema.org/draft/2019-09/schema#',
+                          $schema: 'http://json-schema.org/draft-07/schema#"',
                           additionalProperties: false,
                           properties: { value: { type: 'string' } },
                           required: ['value'],
@@ -1894,8 +1893,7 @@ describe('streamText', () => {
                         name: 'tool1',
                         description: undefined,
                         parameters: {
-                          $schema:
-                            'https://json-schema.org/draft/2019-09/schema#',
+                          $schema: 'http://json-schema.org/draft-07/schema#"',
                           additionalProperties: false,
                           properties: { value: { type: 'string' } },
                           required: ['value'],
@@ -3961,7 +3959,7 @@ describe('streamText', () => {
             {
               content:
                 'JSON schema:\n' +
-                '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}\n' +
+                '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#""}\n' +
                 'You MUST answer with a JSON object that matches the JSON schema above.',
               role: 'system',
             },
