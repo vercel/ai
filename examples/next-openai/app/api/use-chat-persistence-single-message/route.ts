@@ -1,9 +1,16 @@
 import { openai } from '@ai-sdk/openai';
 import { appendResponseMessages, createIdGenerator, streamText } from 'ai';
-import { saveChat } from '@util/chat-store';
+import { loadChat, saveChat } from '@util/chat-store';
 
 export async function POST(req: Request) {
-  const { messages, id } = await req.json();
+  // get the last message from the client:
+  const { message, id } = await req.json();
+
+  // load the previous messages from the server:
+  const previousMessages = await loadChat(id);
+
+  // append the new message to the previous messages:
+  const messages = [...previousMessages, message];
 
   const result = streamText({
     model: openai('gpt-4o-mini'),
