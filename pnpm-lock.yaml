@@ -1975,6 +1975,15 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
 
+  tools/analyze-downloads:
+    devDependencies:
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+
   tools/eslint-config:
     dependencies:
       eslint-config-next:
