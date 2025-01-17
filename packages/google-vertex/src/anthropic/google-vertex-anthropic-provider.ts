@@ -106,11 +106,10 @@ export function createVertexAnthropic(
           }`,
         transformRequestBody: args => {
           // Remove model from args and add anthropic version
-          const { model, cacheControl, ...rest } = args;
+          const { model, ...rest } = args;
           return {
             ...rest,
             anthropic_version: 'vertex-2023-10-16',
-            cache_control: cacheControl,
           };
         },
       },

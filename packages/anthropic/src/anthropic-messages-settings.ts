@@ -13,8 +13,7 @@ export type AnthropicMessagesModelId =
 
 export interface AnthropicMessagesSettings {
   /**
-Enable Anthropic cache control (beta feature). This will add the beta header and
-allow you to use provider-specific cacheControl metadata.
+Enable Anthropic cache control. This will allow you to use provider-specific `cacheControl` metadata.
    */
   cacheControl?: boolean;
 }
