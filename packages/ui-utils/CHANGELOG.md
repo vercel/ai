@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.0.12
+
+### Patch Changes
+
+- 33592d2: fix (ai/core): switch to json schema 7 target for zod to json schema conversion
+
 ## 1.0.11
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # ai
 
+## 4.0.40
+
+### Patch Changes
+
+- 33592d2: fix (ai/core): switch to json schema 7 target for zod to json schema conversion
+- Updated dependencies [33592d2]
+  - @ai-sdk/ui-utils@1.0.12
+  - @ai-sdk/react@1.0.13
+
 ## 4.0.39
 
 ### Patch Changes
