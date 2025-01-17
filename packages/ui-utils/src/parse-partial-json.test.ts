@@ -16,9 +16,11 @@ it('should handle nullish input', () => {
 it('should parse valid JSON', () => {
   const validJson = '{"key": "value"}';
   const parsedValue = { key: 'value' };
+
   vi.mocked(safeParseJSON).mockReturnValueOnce({
     success: true,
     value: parsedValue,
+    rawValue: parsedValue,
   });
 
   expect(parsePartialJson(validJson)).toEqual({
@@ -38,7 +40,11 @@ it('should repair and parse partial JSON', () => {
       success: false,
       error: new JSONParseError({ text: partialJson, cause: undefined }),
     })
-    .mockReturnValueOnce({ success: true, value: parsedValue });
+    .mockReturnValueOnce({
+      success: true,
+      value: parsedValue,
+      rawValue: parsedValue,
+    });
   vi.mocked(fixJson).mockReturnValueOnce(fixedJson);
 
   expect(parsePartialJson(partialJson)).toEqual({
