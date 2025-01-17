@@ -83,7 +83,11 @@ async function main() {
     'workers-ai-provider',
     '@openrouter/ai-sdk-provider',
   ];
-  const results: Array<{ package: string; 'weekly downloads': number }> = [];
+  const results: Array<{
+    package: string;
+    'weekly downloads': number;
+    percentage: string;
+  }> = [];
 
   try {
     for (const pkg of packages) {
@@ -91,8 +95,24 @@ async function main() {
       const html = await fetchPage(url);
       const weeklyDownloads = parseWeeklyDownloads(html);
 
-      results.push({ package: pkg, 'weekly downloads': weeklyDownloads });
+      results.push({
+        package: pkg,
+        'weekly downloads': weeklyDownloads,
+        percentage: '0%', // Initial placeholder
+      });
     }
+
+    // Calculate total downloads
+    const totalDownloads = results.reduce(
+      (sum, item) => sum + item['weekly downloads'],
+      0,
+    );
+
+    // Update percentages
+    results.forEach(item => {
+      const percentage = (item['weekly downloads'] / totalDownloads) * 100;
+      item['percentage of total'] = `${percentage.toFixed(1)}%`;
+    });
 
     // Sort results by weekly downloads in descending order
     results.sort((a, b) => b['weekly downloads'] - a['weekly downloads']);
