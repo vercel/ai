@@ -697,3 +697,78 @@ describe('scenario: tool call streaming', () => {
     ]);
   });
 });
+
+describe('scenario: server provides message ids', () => {
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatDataStreamPart('start_step', { messageId: 'step_123' }),
+      formatDataStreamPart('text', 'Hello, '),
+      formatDataStreamPart('text', 'world!'),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+      }),
+    ]);
+
+    await processChatResponse({
+      stream,
+      update,
+      onFinish,
+      generateId: mockId(),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+    });
+  });
+
+  it('should call the update function with the correct arguments', async () => {
+    expect(updateCalls).toStrictEqual([
+      {
+        newMessages: [
+          {
+            content: 'Hello, ',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
+            id: 'step_123',
+            revisionId: 'id-0',
+            role: 'assistant',
+          },
+        ],
+        data: [],
+      },
+      {
+        newMessages: [
+          {
+            content: 'Hello, world!',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
+            id: 'step_123',
+            revisionId: 'id-1',
+            role: 'assistant',
+          },
+        ],
+        data: [],
+      },
+    ]);
+  });
+
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toStrictEqual([
+      {
+        message: {
+          content: 'Hello, world!',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'step_123',
+          role: 'assistant',
+        },
+        finishReason: 'stop',
+        usage: {
+          completionTokens: 5,
+          promptTokens: 10,
+          totalTokens: 15,
+        },
+      },
+    ]);
+  });
+});

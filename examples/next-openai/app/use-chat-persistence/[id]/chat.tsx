@@ -1,17 +1,19 @@
 'use client';
 
+import { createIdGenerator } from 'ai';
 import { Message, useChat } from 'ai/react';
 
 export default function Chat({
-  chatId,
+  id,
   initialMessages,
-}: { chatId?: string | undefined; initialMessages?: Message[] } = {}) {
+}: { id?: string | undefined; initialMessages?: Message[] } = {}) {
   const { input, isLoading, handleInputChange, handleSubmit, messages } =
     useChat({
       api: '/api/use-chat-persistence',
-      id: chatId, // use the provided chatId
+      id, // use the provided chatId
       initialMessages, // initial messages if provided
       sendExtraMessageFields: true, // send id and createdAt for each message
+      generateId: createIdGenerator({ prefix: 'msgc', size: 16 }), // id format for client-side messages
     });
 
   return (

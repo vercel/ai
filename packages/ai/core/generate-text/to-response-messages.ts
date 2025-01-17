@@ -1,9 +1,6 @@
-import {
-  CoreAssistantMessage,
-  CoreToolMessage,
-  ToolResultPart,
-} from '../prompt';
+import { ToolResultPart } from '../prompt';
 import { CoreTool } from '../tool/tool';
+import { ResponseMessage } from './step-result';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
 
@@ -15,22 +12,28 @@ export function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
   tools,
   toolCalls,
   toolResults,
+  messageId,
+  generateMessageId,
 }: {
   text: string | undefined;
   tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
   toolResults: ToolResultArray<TOOLS>;
-}): Array<CoreAssistantMessage | CoreToolMessage> {
-  const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> = [];
+  messageId: string;
+  generateMessageId: () => string;
+}): Array<ResponseMessage> {
+  const responseMessages: Array<ResponseMessage> = [];
 
   responseMessages.push({
     role: 'assistant',
     content: [{ type: 'text', text }, ...toolCalls],
+    id: messageId,
   });
 
   if (toolResults.length > 0) {
     responseMessages.push({
       role: 'tool',
+      id: generateMessageId(),
       content: toolResults.map((toolResult): ToolResultPart => {
         const tool = tools[toolResult.toolName];
         return tool?.experimental_toToolResultContent != null

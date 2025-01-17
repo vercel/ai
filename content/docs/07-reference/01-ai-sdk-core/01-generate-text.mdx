@@ -407,6 +407,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 1.',
     },
     {
+      name: 'experimental_generateMessageId',
+      type: '() => string',
+      isOptional: true,
+      description:
+        'Function used to generate a unique ID for each message. This is an experimental feature.',
+    },
+    {
       name: 'experimental_continueSteps',
       type: 'boolean',
       isOptional: true,
@@ -788,7 +795,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'messages',
-              type: 'Array<CoreAssistantMessage | CoreToolMessage>',
+              type: 'Array<ResponseMessage>',
               description:
                 'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
             },
@@ -932,7 +939,7 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'messages',
-                      type: 'Array<CoreAssistantMessage | CoreToolMessage>',
+                      type: 'Array<ResponseMessage>',
                       description:
                         'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
                     },

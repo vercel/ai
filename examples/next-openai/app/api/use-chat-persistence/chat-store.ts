@@ -7,10 +7,10 @@ import path from 'path';
 // in a real app, you would save the chat to a database
 // and use the id from the database entry
 
-export async function createChat() {
+export async function createChat(): Promise<string> {
   const id = generateId();
   await writeFile(getChatFile(id), '[]');
-  return { id };
+  return id;
 }
 
 export async function saveChat({
@@ -23,16 +23,12 @@ export async function saveChat({
   await writeFile(getChatFile(id), JSON.stringify(messages, null, 2));
 }
 
-export async function loadChat({ id }: { id: string }): Promise<Message[]> {
+export async function loadChat(id: string): Promise<Message[]> {
   return JSON.parse(await readFile(getChatFile(id), 'utf8'));
 }
 
-function getChatFile(chatId: string): string {
+function getChatFile(id: string): string {
   const chatDir = path.join(process.cwd(), '.chats');
-
-  if (!existsSync(chatDir)) {
-    mkdirSync(chatDir, { recursive: true });
-  }
-
-  return path.join(chatDir, `${chatId}.json`);
+  if (!existsSync(chatDir)) mkdirSync(chatDir, { recursive: true });
+  return path.join(chatDir, `${id}.json`);
 }

@@ -1,4 +1,8 @@
-export function mockId(): () => string {
+export function mockId({
+  prefix = 'id',
+}: {
+  prefix?: string;
+} = {}): () => string {
   let counter = 0;
-  return () => `id-${counter++}`;
+  return () => `${prefix}-${counter++}`;
 }

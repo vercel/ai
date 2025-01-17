@@ -9,7 +9,7 @@ export function zodSchema<OBJECT>(
   return jsonSchema(
     zodToJsonSchema(zodSchema, {
       $refStrategy: 'none', // no references (to support openapi conversion for google)
-      target: 'openAi', // openai strict mode compatible
+      target: 'jsonSchema7', // note: openai mode breaks various gemini conversions
     }) as JSONSchema7,
     {
       validate: value => {

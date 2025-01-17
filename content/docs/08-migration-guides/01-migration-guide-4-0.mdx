@@ -311,7 +311,7 @@ const { text, steps } = await generateText({
 
 ### Removed `nanoid` export
 
-The `nanoid` export has been removed. Please use [`generateId`](/docs/reference/stream-helpers/generate-id) instead.
+The `nanoid` export has been removed. Please use [`generateId`](/docs/reference/ai-sdk-core/generate-id) instead.
 
 ```ts filename="AI SDK 3.4"
 import { nanoid } from 'ai';
@@ -328,7 +328,7 @@ import { generateId } from 'ai';
   code manually.
 </Note>
 
-The [`generateId`](/docs/reference/stream-helpers/generate-id) function now
+The [`generateId`](/docs/reference/ai-sdk-core/generate-id) function now
 generates 16-character IDs. The previous default was 7 characters.
 
 This might e.g. require updating your database schema if you limit the length of

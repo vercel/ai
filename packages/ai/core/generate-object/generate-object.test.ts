@@ -25,7 +25,7 @@ describe('output = "object"', () => {
               name: undefined,
               description: undefined,
               schema: {
-                $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                $schema: 'http://json-schema.org/draft-07/schema#',
                 additionalProperties: false,
                 properties: { content: { type: 'string' } },
                 required: ['content'],
@@ -38,7 +38,7 @@ describe('output = "object"', () => {
                 role: 'system',
                 content:
                   'JSON schema:\n' +
-                  '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}\n' +
+                  '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                   'You MUST answer with a JSON object that matches the JSON schema above.',
               },
               {
@@ -72,7 +72,7 @@ describe('output = "object"', () => {
               name: undefined,
               description: undefined,
               schema: {
-                $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                $schema: 'http://json-schema.org/draft-07/schema#',
                 additionalProperties: false,
                 properties: { content: { type: 'string' } },
                 required: ['content'],
@@ -112,7 +112,7 @@ describe('output = "object"', () => {
               name: 'test-name',
               description: 'test description',
               schema: {
-                $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                $schema: 'http://json-schema.org/draft-07/schema#',
                 additionalProperties: false,
                 properties: { content: { type: 'string' } },
                 required: ['content'],
@@ -155,7 +155,7 @@ describe('output = "object"', () => {
                 name: 'json',
                 description: 'Respond with a JSON object.',
                 parameters: {
-                  $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                  $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
                   properties: { content: { type: 'string' } },
                   required: ['content'],
@@ -204,7 +204,7 @@ describe('output = "object"', () => {
                 name: 'test-name',
                 description: 'test description',
                 parameters: {
-                  $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                  $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
                   properties: { content: { type: 'string' } },
                   required: ['content'],
@@ -380,7 +380,7 @@ describe('output = "object"', () => {
               name: undefined,
               description: undefined,
               schema: {
-                $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                $schema: 'http://json-schema.org/draft-07/schema#',
                 additionalProperties: false,
                 properties: { content: { type: 'string' } },
                 required: ['content'],
@@ -392,7 +392,7 @@ describe('output = "object"', () => {
                 role: 'system',
                 content:
                   'JSON schema:\n' +
-                  '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}\n' +
+                  '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                   'You MUST answer with a JSON object that matches the JSON schema above.',
               },
               {
@@ -427,7 +427,7 @@ describe('output = "object"', () => {
               name: undefined,
               description: undefined,
               schema: {
-                $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                $schema: 'http://json-schema.org/draft-07/schema#',
                 additionalProperties: false,
                 properties: { content: { type: 'string' } },
                 required: ['content'],
@@ -439,7 +439,7 @@ describe('output = "object"', () => {
                 role: 'system',
                 content:
                   'JSON schema:\n' +
-                  '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}\n' +
+                  '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                   'You MUST answer with a JSON object that matches the JSON schema above.',
               },
               {
@@ -876,7 +876,7 @@ describe('output = "array"', () => {
             name: undefined,
             description: undefined,
             schema: {
-              $schema: 'https://json-schema.org/draft/2019-09/schema#',
+              $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,
               properties: {
                 elements: {
@@ -899,7 +899,7 @@ describe('output = "array"', () => {
               role: 'system',
               content:
                 'JSON schema:\n' +
-                `{\"$schema\":\"https://json-schema.org/draft/2019-09/schema#\",\"type\":\"object\",\"properties\":{\"elements\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false}}},\"required\":[\"elements\"],\"additionalProperties\":false}` +
+                `{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"elements\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false}}},\"required\":[\"elements\"],\"additionalProperties\":false}` +
                 `\n` +
                 'You MUST answer with a JSON object that matches the JSON schema above.',
             },
@@ -946,7 +946,7 @@ describe('output = "enum"', () => {
             name: undefined,
             description: undefined,
             schema: {
-              $schema: 'https://json-schema.org/draft/2019-09/schema#',
+              $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,
               properties: {
                 result: {
@@ -964,7 +964,7 @@ describe('output = "enum"', () => {
               role: 'system',
               content:
                 'JSON schema:\n' +
-                `{\"$schema\":\"https://json-schema.org/draft/2019-09/schema#\",\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"string\",\"enum\":[\"sunny\",\"rainy\",\"snowy\"]}},\"required\":[\"result\"],\"additionalProperties\":false}` +
+                `{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"string\",\"enum\":[\"sunny\",\"rainy\",\"snowy\"]}},\"required\":[\"result\"],\"additionalProperties\":false}` +
                 `\n` +
                 'You MUST answer with a JSON object that matches the JSON schema above.',
             },
@@ -1206,7 +1206,7 @@ describe('options.messages', () => {
               role: 'system',
               content:
                 'JSON schema:\n' +
-                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}\n' +
+                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                 'You MUST answer with a JSON object that matches the JSON schema above.',
             },
             {

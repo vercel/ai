@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.0.8
+
+### Patch Changes
+
+- 00114c5: feat: expose IDGenerator and createIdGenerator
+
 ## 2.0.7
 
 ### Patch Changes

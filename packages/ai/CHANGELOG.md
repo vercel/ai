@@ -1,5 +1,26 @@
 # ai
 
+## 4.0.40
+
+### Patch Changes
+
+- 33592d2: fix (ai/core): switch to json schema 7 target for zod to json schema conversion
+- Updated dependencies [33592d2]
+  - @ai-sdk/ui-utils@1.0.12
+  - @ai-sdk/react@1.0.13
+
+## 4.0.39
+
+### Patch Changes
+
+- 00114c5: feat: expose IDGenerator and createIdGenerator
+- 00114c5: feat (ui): generate and forward message ids for response messages
+- Updated dependencies [00114c5]
+- Updated dependencies [00114c5]
+  - @ai-sdk/provider-utils@2.0.8
+  - @ai-sdk/ui-utils@1.0.11
+  - @ai-sdk/react@1.0.12
+
 ## 4.0.38
 
 ### Patch Changes

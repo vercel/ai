@@ -4,6 +4,7 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
 import { ToolExecutionError } from '../../errors';
+import { mockId } from '../test/mock-id';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
@@ -63,7 +64,7 @@ describe('result.toolCalls', () => {
                 name: 'tool1',
                 description: undefined,
                 parameters: {
-                  $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                  $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
                   required: ['value'],
@@ -75,7 +76,7 @@ describe('result.toolCalls', () => {
                 name: 'tool2',
                 description: undefined,
                 parameters: {
-                  $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                  $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
                   properties: { somethingElse: { type: 'string' } },
                   required: ['somethingElse'],
@@ -149,7 +150,7 @@ describe('result.toolResults', () => {
                 name: 'tool1',
                 description: undefined,
                 parameters: {
-                  $schema: 'https://json-schema.org/draft/2019-09/schema#',
+                  $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
                   required: ['value'],
@@ -245,6 +246,7 @@ describe('result.response.messages', () => {
         }),
       }),
       prompt: 'test-input',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -287,6 +289,7 @@ describe('result.response.messages', () => {
         },
       },
       prompt: 'test-input',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -334,6 +337,7 @@ describe('result.response', () => {
         }),
       }),
       prompt: 'prompt',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response).toMatchSnapshot();
@@ -363,8 +367,7 @@ describe('options.maxSteps', () => {
                       name: 'tool1',
                       description: undefined,
                       parameters: {
-                        $schema:
-                          'https://json-schema.org/draft/2019-09/schema#',
+                        $schema: 'http://json-schema.org/draft-07/schema#',
                         additionalProperties: false,
                         properties: { value: { type: 'string' } },
                         required: ['value'],
@@ -418,8 +421,7 @@ describe('options.maxSteps', () => {
                       name: 'tool1',
                       description: undefined,
                       parameters: {
-                        $schema:
-                          'https://json-schema.org/draft/2019-09/schema#',
+                        $schema: 'http://json-schema.org/draft-07/schema#',
                         additionalProperties: false,
                         properties: { value: { type: 'string' } },
                         required: ['value'],
@@ -500,6 +502,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
     });
 
@@ -724,6 +727,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
     });
 
@@ -736,6 +740,8 @@ describe('options.maxSteps', () => {
     it('result.response.messages should contain an assistant message with the combined text', () => {
       expect(result.response.messages).toStrictEqual([
         {
+          role: 'assistant',
+          id: 'msg-0',
           content: [
             {
               text: 'part 1 \n ',
@@ -754,7 +760,6 @@ describe('options.maxSteps', () => {
               type: 'text',
             },
           ],
-          role: 'assistant',
         },
       ]);
     });
@@ -1294,7 +1299,7 @@ describe('options.output', () => {
             {
               content:
                 'JSON schema:\n' +
-                '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}\n' +
+                '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                 'You MUST answer with a JSON object that matches the JSON schema above.',
               role: 'system',
             },
@@ -1354,7 +1359,7 @@ describe('options.output', () => {
           responseFormat: {
             type: 'json',
             schema: {
-              $schema: 'https://json-schema.org/draft/2019-09/schema#',
+              $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,
               properties: { value: { type: 'string' } },
               required: ['value'],

@@ -209,6 +209,18 @@ Example: `a:{"toolCallId":"call-123","result":"tool output"}\n`
   height={1148}
 />
 
+### Start Step Part
+
+A part indicating the start of a step.
+
+It includes the following metadata:
+
+- `messageId` to indicate the id of the message that this step belongs to.
+
+Format: `f:{id:string}\n`
+
+Example: `f:{"id":"step_123"}\n`
+
 ### Finish Step Part
 
 A part indicating that a step (i.e., one LLM API call in the backend) has been completed.
