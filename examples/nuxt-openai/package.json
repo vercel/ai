@@ -9,9 +9,9 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@ai-sdk/vue": "1.0.12",
+    "@ai-sdk/vue": "1.0.13",
     "@ai-sdk/openai": "1.0.20",
-    "ai": "4.0.39",
+    "ai": "4.0.40",
     "zod": "3.23.8"
   },
   "devDependencies": {
