@@ -27,12 +27,12 @@ function fetchPage(url: string): Promise<string> {
  * Extracts version + all-time downloads from the npm versions page
  * by applying a naive regex-based search on the HTML.
  *
- * Returns an array of { version, allTimeDownloads } objects.
+ * Returns an array of { version, weeklyDownloads } objects.
  */
 function parseVersions(
   html: string,
-): { version: string; allTimeDownloads: number }[] {
-  const results: { version: string; allTimeDownloads: number }[] = [];
+): { version: string; weeklyDownloads: number }[] {
+  const results: { version: string; weeklyDownloads: number }[] = [];
 
   // First find the Version History section
   const versionHistorySection = html.split('Version History')[1];
@@ -62,7 +62,7 @@ function parseVersions(
     if (!isNaN(downloads)) {
       results.push({
         version,
-        allTimeDownloads: downloads,
+        weeklyDownloads: downloads,
       });
     }
   }
@@ -86,12 +86,12 @@ function toMinorVersion(fullVersion: string): string {
  * Aggregates the download counts by major.minor key.
  */
 function aggregateByMinor(
-  data: { version: string; allTimeDownloads: number }[],
+  data: { version: string; weeklyDownloads: number }[],
 ): Record<string, number> {
   const output: Record<string, number> = {};
   for (const entry of data) {
     const minor = toMinorVersion(entry.version);
-    output[minor] = (output[minor] || 0) + entry.allTimeDownloads;
+    output[minor] = (output[minor] || 0) + entry.weeklyDownloads;
   }
   return output;
 }
@@ -103,18 +103,19 @@ async function main() {
   const url = 'https://www.npmjs.com/package/ai?activeTab=versions';
 
   try {
-    console.log(`Fetching page: ${url}`);
     const html = await fetchPage(url);
-
-    console.log('Parsing versions...');
     const parsed = parseVersions(html);
-
-    console.log(`Found ${parsed.length} versions. Aggregating by minor...`);
     const aggregated = aggregateByMinor(parsed);
 
-    // Show the results
-    console.log('Aggregated last 7 days downloads by minor version:');
-    console.log(aggregated);
+    // Convert the aggregated data into an array of objects for console.table
+    const results = Object.entries(aggregated).map(([version, downloads]) => ({
+      version,
+      'weekly downloads': downloads,
+    }));
+
+    // Show the results in a table format
+    console.log('Aggregated downloads by minor version:');
+    console.table(results);
   } catch (err) {
     console.error('Error:', err);
   }

@@ -2,7 +2,8 @@
   "private": true,
   "name": "analyze-downloads",
   "scripts": {
-    "analyze": "tsx src/analyze-downloads.ts"
+    "analyze-versions": "tsx src/analyze-versions.ts",
+    "analyze-providers": "tsx src/analyze-providers.ts"
   },
   "lint-staged": {
     "*": [
