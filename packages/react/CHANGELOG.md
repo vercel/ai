@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 1.0.14
+
+### Patch Changes
+
+- 44f04d5: feat (ai/react): expose chat id in experimental_prepareRequestBody
+
 ## 1.0.13
 
 ### Patch Changes
