@@ -144,6 +144,27 @@ exports[`zodSchema > json schema conversion > should support optional fields in 
 }
 `;
 
+exports[`zodSchema > json schema conversion > should support optional fields with descriptions in object 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "optional": {
+      "description": "Optional description",
+      "type": "string",
+    },
+    "required": {
+      "description": "Required description",
+      "type": "string",
+    },
+  },
+  "required": [
+    "required",
+  ],
+  "type": "object",
+}
+`;
+
 exports[`zodSchema > json schema conversion > should support required enums 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",

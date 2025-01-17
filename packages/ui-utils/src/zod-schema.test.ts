@@ -25,6 +25,17 @@ describe('zodSchema', () => {
       expect(schema.jsonSchema).toMatchSnapshot();
     });
 
+    it('should support optional fields with descriptions in object', () => {
+      const schema = zodSchema(
+        z.object({
+          required: z.string().describe('Required description'),
+          optional: z.string().optional().describe('Optional description'),
+        }),
+      );
+
+      expect(schema.jsonSchema).toMatchSnapshot();
+    });
+
     it('should support arrays', () => {
       const schema = zodSchema(
         z.object({
