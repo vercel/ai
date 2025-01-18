@@ -1,10 +1,10 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: vertex('gemini-1.5-pro', {
+    model: google('gemini-2.0-flash-exp', {
       useSearchGrounding: true,
     }),
     prompt:
