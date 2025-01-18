@@ -180,6 +180,34 @@ const { image, warnings } = await generateImage({
 });
 ```
 
+### Error Handling
+
+When `generateImage` cannot generate a valid image, it throws a [`AI_NoImageGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-image-generated-error).
+
+This error occurs when the AI provider fails to generate an image. It can arise due to the following reasons:
+
+- The model failed to generate a response
+- The model generated a response that could not be parsed
+
+The error preserves the following information to help you log the issue:
+
+- `response`: Metadata about the image model response, including timestamp, and model
+- `cause`: The cause of the error. You can use this for more detailed error handling
+
+```ts
+import { generateImage, NoImageGeneratedError } from 'ai';
+
+try {
+  await generateImage({ model, prompt });
+} catch (error) {
+  if (NoImageGeneratedError.isInstance(error)) {
+    console.log('NoImageGeneratedError');
+    console.log('Cause:', error.cause);
+    console.log('Response:', error.response);
+  }
+}
+```
+
 ## Image Models
 
 | Provider                                                                | Model                                                        | Support sizes (`width x height`) or aspect ratios (`width : height`)                                                                                                |
