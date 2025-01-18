@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { parseJSON, safeParseJSON, isParsableJson } from './parse-json';
 import { z } from 'zod';
 import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
+import { validator } from './validator';
 
 describe('parseJSON', () => {
   it('should parse basic JSON without schema', () => {
@@ -84,7 +85,7 @@ describe('safeParseJSON', () => {
 
     const result = safeParseJSON({
       text: '{"user": {"id": "123", "name": "John"}}',
-      schema: schema as any,
+      schema,
     });
 
     expect(result).toEqual({
@@ -169,6 +170,70 @@ describe('safeParseJSON', () => {
       success: true,
       value: { value: 123 },
       rawValue: { value: 123 },
+    });
+  });
+
+  describe('input/output type transformations', () => {
+    it('should handle zod schema transformations', () => {
+      const schema = z.object({
+        id: z.string().transform(val => parseInt(val, 10)),
+        tags: z
+          .array(z.string())
+          .transform(tags => tags.map(t => t.toUpperCase())),
+      });
+
+      const result = safeParseJSON({
+        text: '{"id": "123", "tags": ["draft", "review"]}',
+        schema,
+      });
+
+      expect(result).toEqual({
+        success: true,
+        value: { id: 123, tags: ['DRAFT', 'REVIEW'] },
+        rawValue: { id: '123', tags: ['draft', 'review'] },
+      });
+    });
+
+    it('should handle custom validator transformations', () => {
+      type Input = { timestamp: string; status: string };
+      type Output = { date: Date; isActive: boolean };
+
+      const customValidator = validator<Output, Input>(value => {
+        if (
+          typeof value === 'object' &&
+          value !== null &&
+          'timestamp' in value &&
+          'status' in value
+        ) {
+          const input = value as Input;
+          return {
+            success: true,
+            value: {
+              date: new Date(input.timestamp),
+              isActive: input.status === 'active',
+            },
+            rawValue: input,
+          };
+        }
+        return { success: false, error: new Error('Invalid input') };
+      });
+
+      const result = safeParseJSON({
+        text: '{"timestamp": "2024-01-01", "status": "active"}',
+        schema: customValidator,
+      });
+
+      expect(result).toEqual({
+        success: true,
+        value: {
+          date: new Date('2024-01-01'),
+          isActive: true,
+        },
+        rawValue: {
+          timestamp: '2024-01-01',
+          status: 'active',
+        },
+      });
     });
   });
 });

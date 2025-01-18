@@ -1,4 +1,8 @@
-import { Validator, validatorSymbol } from '@ai-sdk/provider-utils';
+import {
+  Validator,
+  validatorSymbol,
+  ValidationResult,
+} from '@ai-sdk/provider-utils';
 import { JSONSchema7 } from 'json-schema';
 import { z } from 'zod';
 import { zodSchema } from './zod-schema';
@@ -8,7 +12,10 @@ import { zodSchema } from './zod-schema';
  */
 const schemaSymbol = Symbol.for('vercel.ai.schema');
 
-export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
+export type Schema<OUTPUT = unknown, INPUT = OUTPUT> = Validator<
+  OUTPUT,
+  INPUT
+> & {
   /**
    * Used to mark schemas so we can support both Zod and custom schemas.
    */
@@ -17,7 +24,7 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
   /**
    * Schema type for inference.
    */
-  _type: OBJECT;
+  _type: OUTPUT;
 
   /**
    * The JSON Schema for the schema. It is passed to the providers.
@@ -31,19 +38,17 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
  * @param jsonSchema The JSON Schema for the schema.
  * @param options.validate Optional. A validation function for the schema.
  */
-export function jsonSchema<OBJECT = unknown>(
+export function jsonSchema<OUTPUT = unknown, INPUT = OUTPUT>(
   jsonSchema: JSONSchema7,
   {
     validate,
   }: {
-    validate?: (
-      value: unknown,
-    ) => { success: true; value: OBJECT } | { success: false; error: Error };
+    validate?: (value: unknown) => ValidationResult<OUTPUT, INPUT>;
   } = {},
-): Schema<OBJECT> {
+): Schema<OUTPUT, INPUT> {
   return {
     [schemaSymbol]: true,
-    _type: undefined as OBJECT, // should never be used directly
+    _type: undefined as OUTPUT, // should never be used directly
     [validatorSymbol]: true,
     jsonSchema,
     validate,

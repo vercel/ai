@@ -11,7 +11,11 @@ const customValidator = validator<{ name: string; age: number }>(value =>
   typeof value.name === 'string' &&
   'age' in value &&
   typeof value.age === 'number'
-    ? { success: true, value: value as { name: string; age: number } }
+    ? {
+        success: true,
+        value: value as { name: string; age: number },
+        rawValue: value as { name: string; age: number },
+      }
     : { success: false, error: new Error('Invalid input') },
 );
 
@@ -60,7 +64,7 @@ describe('safeValidateTypes', () => {
     it('should return validated object for valid input', () => {
       const input = { name: 'John', age: 30 };
       const result = safeValidateTypes({ value: input, schema });
-      expect(result).toEqual({ success: true, value: input });
+      expect(result).toEqual({ success: true, value: input, rawValue: input });
     });
 
     it('should return error object for invalid input', () => {
@@ -77,6 +81,73 @@ describe('safeValidateTypes', () => {
         expect(result.error.value).toEqual(input);
         expect(result.error.message).toContain('Type validation failed');
       }
+    });
+  });
+});
+
+describe('type transformations', () => {
+  const transformSchema = z.object({
+    id: z.string().transform(val => {
+      const num = parseInt(val, 10);
+      if (isNaN(num)) throw new Error('Invalid number');
+      return num;
+    }),
+    name: z.string(),
+  });
+
+  const transformValidator = validator<
+    { id: number; name: string },
+    { id: string; name: string }
+  >(value => {
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      'id' in value &&
+      typeof value.id === 'string' &&
+      'name' in value &&
+      typeof value.name === 'string'
+    ) {
+      const num = parseInt(value.id, 10);
+      if (isNaN(num)) {
+        return { success: false, error: new Error('Invalid number') };
+      }
+      return {
+        success: true,
+        value: { id: num, name: value.name },
+        rawValue: value as { id: string; name: string },
+      };
+    }
+    return { success: false, error: new Error('Invalid input') };
+  });
+
+  describe.each([
+    ['Zod schema', transformSchema],
+    ['Custom validator', transformValidator],
+  ])('using %s', (_, schema) => {
+    const validInput = { id: '123', name: 'John' };
+    const expectedOutput = { id: 123, name: 'John' };
+
+    it('should transform types in validateTypes', () => {
+      const result = validateTypes({ value: validInput, schema });
+      expect(result).toEqual(expectedOutput);
+    });
+
+    it('should transform types in safeValidateTypes', () => {
+      const result = safeValidateTypes({ value: validInput, schema });
+      expect(result).toEqual({
+        success: true,
+        value: expectedOutput,
+        rawValue: validInput,
+      });
+    });
+
+    it('should handle invalid transformations', () => {
+      const invalidInput = { id: 'not-a-number', name: 'John' };
+      const result = safeValidateTypes({ value: invalidInput, schema });
+      expect(result).toEqual({
+        success: false,
+        error: expect.any(TypeValidationError),
+      });
     });
   });
 });

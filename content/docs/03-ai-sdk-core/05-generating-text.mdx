@@ -13,7 +13,7 @@ The AI SDK Core provides two functions to generate text and stream it from LLMs:
 - [`generateText`](#generatetext): Generates text for a given prompt and model.
 - [`streamText`](#streamtext): Streams text from a given prompt and model.
 
-Advanced LLM features such as [tool calling](./tools-and-tool-calling) and [structured data generation](./generating-structured-data) are built on top of text generation.
+Advanced LLM features such as [tool calling](./tools-and-tool-calling) and [structured data generation](./generating-structured-data) are built on top of text generation. When generating structured data, the system validates both input and output types to ensure type safety throughout the generation process.
 
 ## `generateText`
 

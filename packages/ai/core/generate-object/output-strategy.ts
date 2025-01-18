@@ -55,7 +55,17 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
   jsonSchema: undefined,
 
   validatePartialResult({ value, textDelta }) {
-    return { success: true, value: { partial: value, textDelta } };
+    return {
+      success: true,
+      value: {
+        partial: value,
+        textDelta,
+      },
+      rawValue: {
+        partial: value,
+        textDelta,
+      },
+    };
   },
 
   validateFinalResult(
@@ -76,7 +86,7 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
             usage: context.usage,
           }),
         }
-      : { success: true, value };
+      : { success: true, value, rawValue: value };
   },
 
   createElementStream() {
@@ -97,6 +107,10 @@ const objectOutputStrategy = <OBJECT>(
       success: true,
       value: {
         // Note: currently no validation of partial results:
+        partial: value as DeepPartial<OBJECT>,
+        textDelta,
+      },
+      rawValue: {
         partial: value as DeepPartial<OBJECT>,
         textDelta,
       },
@@ -198,6 +212,10 @@ const arrayOutputStrategy = <ELEMENT>(
           partial: resultArray,
           textDelta,
         },
+        rawValue: {
+          partial: resultArray,
+          textDelta,
+        },
       };
     },
 
@@ -225,7 +243,11 @@ const arrayOutputStrategy = <ELEMENT>(
         }
       }
 
-      return { success: true, value: inputArray as Array<ELEMENT> };
+      return {
+        success: true,
+        value: inputArray as Array<ELEMENT>,
+        rawValue: inputArray as Array<ELEMENT>,
+      };
     },
 
     createElementStream(
@@ -311,7 +333,7 @@ const enumOutputStrategy = <ENUM extends string>(
       const result = value.result as string;
 
       return enumValues.includes(result as ENUM)
-        ? { success: true, value: result as ENUM }
+        ? { success: true, value: result as ENUM, rawValue: result as ENUM }
         : {
             success: false,
             error: new TypeValidationError({

@@ -6,18 +6,19 @@ import { Validator, asValidator } from './validator';
  * Validates the types of an unknown object using a schema and
  * return a strongly-typed object.
  *
- * @template T - The type of the object to validate.
+ * @template OUTPUT - The output type after validation/transformation
+ * @template INPUT - The input type before validation/transformation
  * @param {string} options.value - The object to validate.
- * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
- * @returns {T} - The typed object.
+ * @param {Validator<OUTPUT, INPUT> | z.Schema<OUTPUT, z.ZodTypeDef, INPUT>} options.schema - The schema to use for validating the JSON.
+ * @returns {OUTPUT} - The typed object.
  */
-export function validateTypes<T>({
+export function validateTypes<OUTPUT, INPUT = OUTPUT>({
   value,
   schema: inputSchema,
 }: {
   value: unknown;
-  schema: z.Schema<T, z.ZodTypeDef, any> | Validator<T>;
-}): T {
+  schema: z.Schema<OUTPUT, z.ZodTypeDef, INPUT> | Validator<OUTPUT, INPUT>;
+}): OUTPUT {
   const result = safeValidateTypes({ value, schema: inputSchema });
 
   if (!result.success) {
@@ -31,25 +32,30 @@ export function validateTypes<T>({
  * Safely validates the types of an unknown object using a schema and
  * return a strongly-typed object.
  *
- * @template T - The type of the object to validate.
+ * @template OUTPUT - The output type after validation/transformation
+ * @template INPUT - The input type before validation/transformation
  * @param {string} options.value - The JSON object to validate.
- * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
+ * @param {Validator<OUTPUT, INPUT> | z.Schema<OUTPUT, z.ZodTypeDef, INPUT>} options.schema - The schema to use for validating the JSON.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
-export function safeValidateTypes<T>({
+export function safeValidateTypes<OUTPUT, INPUT = OUTPUT>({
   value,
   schema,
 }: {
   value: unknown;
-  schema: z.Schema<T, z.ZodTypeDef, any> | Validator<T>;
+  schema: z.Schema<OUTPUT, z.ZodTypeDef, INPUT> | Validator<OUTPUT, INPUT>;
 }):
-  | { success: true; value: T }
+  | { success: true; value: OUTPUT; rawValue: INPUT }
   | { success: false; error: TypeValidationError } {
   const validator = asValidator(schema);
 
   try {
     if (validator.validate == null) {
-      return { success: true, value: value as T };
+      return {
+        success: true,
+        value: value as OUTPUT,
+        rawValue: value as INPUT,
+      };
     }
 
     const result = validator.validate(value);

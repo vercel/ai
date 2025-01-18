@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { zodSchema } from './zod-schema';
+import { fail } from 'assert';
 
 describe('zodSchema', () => {
   describe('json schema conversion', () => {
@@ -90,6 +91,86 @@ describe('zodSchema', () => {
       );
 
       expect(schema.jsonSchema).toMatchSnapshot();
+    });
+  });
+
+  describe('type validation and transformation', () => {
+    it('should handle basic validation', () => {
+      const schema = zodSchema(z.string());
+      const result = schema.validate?.('hello');
+      expect(result).toEqual({
+        success: true,
+        value: 'hello',
+        rawValue: 'hello',
+      });
+    });
+
+    it('should handle validation failures', () => {
+      const schema = zodSchema(z.number());
+      const result = schema.validate?.(123);
+      expect(result).toEqual({
+        success: true,
+        value: 123,
+        rawValue: 123,
+      });
+    });
+
+    it('should preserve raw values during transformation', () => {
+      const schema = zodSchema(
+        z.object({
+          count: z.string().transform(val => parseInt(val, 10)),
+        }),
+      );
+
+      const input = { count: '42' };
+      const result = schema.validate?.(input);
+
+      expect(result).toEqual({
+        success: true,
+        value: { count: 42 },
+        rawValue: input,
+      });
+    });
+
+    it('should handle nested transformations', () => {
+      const schema = zodSchema(
+        z.object({
+          user: z.object({
+            id: z.string().transform(val => parseInt(val, 10)),
+            tags: z
+              .array(z.string())
+              .transform(tags => tags.map(t => t.toUpperCase())),
+          }),
+        }),
+      );
+
+      const input = { user: { id: '123', tags: ['draft', 'review'] } };
+      const result = schema.validate?.(input);
+
+      expect(result).toEqual({
+        success: true,
+        value: { user: { id: 123, tags: ['DRAFT', 'REVIEW'] } },
+        rawValue: input,
+      });
+    });
+
+    it('should handle validation errors in transformations', () => {
+      const schema = zodSchema(
+        z.object({
+          count: z.string().transform(val => {
+            const num = parseInt(val, 10);
+            if (isNaN(num)) throw new Error('Invalid number');
+            return num;
+          }),
+        }),
+      );
+
+      const result = schema.validate?.('not a number');
+      if (!result?.success) {
+        expect(result?.error).toBeInstanceOf(z.ZodError);
+      } else {
+        fail('Expected validation to fail');
+      }
     });
   });
 });

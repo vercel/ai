@@ -8,7 +8,19 @@ tags: ['next', 'structured data']
 
 Earlier functions like `generateText` and `streamText` gave us the ability to generate unstructured text. However, if you want to generate structured data like JSON, you can provide a schema that describes the structure of your desired object to the `generateObject` function.
 
-The function requires you to provide a schema using [zod](https://zod.dev), a library for defining schemas for JavaScript objects. By using zod, you can also use it to validate the generated object and ensure that it conforms to the specified structure.
+The function requires you to provide a schema using either [zod](https://zod.dev) or a custom validator that implements the `Validator` interface. When using zod, you can define schemas for JavaScript objects and use them for both validation and type inference. Custom validators allow you to implement your own validation logic while maintaining type safety.
+
+## Type Transformation
+
+The validation system supports transforming input types to different output types. This is useful when you want to parse and transform the raw input data into a different structure. For example:
+
+```typescript
+const schema = z.object({
+  date: z.string().transform(str => new Date(str)),
+});
+```
+
+The schema above will accept a string input but transform it into a Date object during validation.
 
 <Browser>
   <ObjectGeneration
@@ -105,6 +117,21 @@ export async function POST(req: Request) {
   });
 
   return result.toJsonResponse();
+}
+```
+
+## Error Handling
+
+When validation fails, the system throws a `TypeValidationError` that includes both the invalid value and the cause of the validation failure. This makes it easier to debug validation issues:
+
+```typescript
+try {
+  const result = validateTypes({ value, schema });
+} catch (error) {
+  if (error instanceof TypeValidationError) {
+    console.log('Invalid value:', error.value);
+    console.log('Cause:', error.cause);
+  }
 }
 ```
 
