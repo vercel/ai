@@ -249,6 +249,46 @@ describe('GoogleVertexImageModel', () => {
 
     it('should handle empty response object', async () => {
       server.responseBodyJson = {};
+      const testDate = new Date(2024, 0, 1);
+      const modelWithDate = new GoogleVertexImageModel(
+        'imagen-3.0-generate-001',
+        {
+          _internal: {
+            currentDate: () => testDate,
+          },
+        },
+        {
+          provider: 'google-vertex',
+          baseURL: 'https://api.example.com',
+          headers: { 'api-key': 'test-key' },
+        },
+      );
+
+      await expect(
+        modelWithDate.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoImageGeneratedError',
+        response: {
+          timestamp: testDate,
+          modelId: 'imagen-3.0-generate-001',
+          headers: expect.any(Object),
+        },
+      });
+    });
+
+    it('should pass through response headers when no predictions', async () => {
+      server.responseBodyJson = {};
+      server.responseHeaders = {
+        'custom-response-header': 'response-header-value',
+      };
+
       await expect(
         model.doGenerate({
           prompt,
@@ -258,7 +298,14 @@ describe('GoogleVertexImageModel', () => {
           seed: undefined,
           providerOptions: {},
         }),
-      ).rejects.toThrow('No predictions returned from API');
+      ).rejects.toMatchObject({
+        name: 'AI_NoImageGeneratedError',
+        response: {
+          headers: {
+            'custom-response-header': 'response-header-value',
+          },
+        },
+      });
     });
   });
 });

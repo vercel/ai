@@ -1,12 +1,10 @@
-import {
-  APICallError,
-  ImageModelV1,
-  ImageModelV1CallWarning,
-} from '@ai-sdk/provider';
+import { ImageModelResponseMetadata, NoImageGeneratedError } from 'ai';
+import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
 import {
   Resolvable,
   combineHeaders,
   createJsonResponseHandler,
+  generateId,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
@@ -77,6 +75,7 @@ export class GoogleVertexImageModel implements ImageModelV1 {
     };
 
     const url = `${this.config.baseURL}/models/${this.modelId}:predict`;
+    const currentDate = this.settings._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
       headers: combineHeaders(await resolve(this.config.headers), headers),
@@ -90,13 +89,13 @@ export class GoogleVertexImageModel implements ImageModelV1 {
     });
 
     if (!response.predictions) {
-      throw new APICallError({
-        message: 'No predictions returned from API',
-        url,
-        requestBodyValues: body,
-        statusCode: 400,
-        responseHeaders,
-        responseBody: JSON.stringify(response),
+      const response: ImageModelResponseMetadata = {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      };
+      throw new NoImageGeneratedError({
+        response,
       });
     }
 
