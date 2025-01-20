@@ -23,7 +23,7 @@ function fetchPage(url: string, retries = 10, delay = 4000): Promise<string> {
 
         if (res.statusCode !== 200) {
           reject(
-            new Error(`Failed to fetch page. Status code: ${res.statusCode}`),
+            new Error(`Failed to fetch ${url}. Status code: ${res.statusCode}`),
           );
           return;
         }
@@ -59,29 +59,18 @@ function parseWeeklyDownloads(html: string): number {
  */
 async function main() {
   const packages = [
-    '@ai-sdk/openai',
-    '@ai-sdk/openai-compatible',
-    '@ai-sdk/azure',
-    '@ai-sdk/anthropic',
-    '@ai-sdk/amazon-bedrock',
-    '@ai-sdk/google',
-    '@ai-sdk/google-vertex',
-    '@ai-sdk/mistral',
-    '@ai-sdk/xai',
-    '@ai-sdk/togetherai',
-    '@ai-sdk/cohere',
-    '@ai-sdk/fireworks',
-    '@ai-sdk/deepinfra',
-    '@ai-sdk/deepseek',
-    '@ai-sdk/cerebras',
-    '@ai-sdk/groq',
-    '@ai-sdk/replicate',
-
-    'ollama-ai-provider',
-    'chrome-ai',
-    '@portkey-ai/vercel-provider',
-    'workers-ai-provider',
-    '@openrouter/ai-sdk-provider',
+    'ai',
+    'openai',
+    '@anthropic-ai/sdk',
+    'langchain',
+    '@aws-sdk/client-bedrock-runtime',
+    '@google/generative-ai',
+    '@google-cloud/vertexai',
+    '@xenova/transformers',
+    '@mistralai/mistralai',
+    'llamaindex',
+    '@instructor-ai/instructor',
+    'together-ai',
   ];
   const results: Array<{
     package: string;
