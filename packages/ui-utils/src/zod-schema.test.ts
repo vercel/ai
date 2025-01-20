@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { zodSchema } from './zod-schema';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 
 describe('zodSchema', () => {
   describe('json schema conversion', () => {
@@ -90,6 +91,30 @@ describe('zodSchema', () => {
       );
 
       expect(schema.jsonSchema).toMatchSnapshot();
+    });
+  });
+
+  describe('output validation', () => {
+    it('should validate output with transform', () => {
+      const schema = zodSchema(
+        z.object({
+          user: z.object({
+            id: z.string().transform(val => parseInt(val, 10)),
+            name: z.string(),
+          }),
+        }),
+      );
+
+      const result = safeParseJSON({
+        text: '{"user": {"id": "123", "name": "John"}}',
+        schema,
+      });
+
+      expect(result).toStrictEqual({
+        success: true,
+        value: { user: { id: 123, name: 'John' } },
+        rawValue: { user: { id: '123', name: 'John' } },
+      });
     });
   });
 });
