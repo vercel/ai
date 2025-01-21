@@ -366,6 +366,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
           ParseResult<z.infer<typeof this.chunkSchema>>,
           LanguageModelV1StreamPart
         >({
+          // TODO we lost type safety on Chunk, most likely due to the error schema. MUST FIX
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
@@ -414,10 +415,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
             const delta = choice.delta;
 
             // enqueue reasoning before text deltas:
-            if (value.reasoning_content != null) {
+            if (delta.reasoning_content != null) {
               controller.enqueue({
                 type: 'reasoning',
-                textDelta: value.reasoning_content,
+                textDelta: delta.reasoning_content,
               });
             }
 
