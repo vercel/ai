@@ -47,5 +47,15 @@ be returned as binary data.
 Warnings for the call, e.g. unsupported settings.
      */
     warnings: Array<ImageModelV1CallWarning>;
+
+    /**
+Optional response information for telemetry and debugging purposes.
+     */
+    response?: {
+      /**
+Response headers.
+      */
+      headers?: Record<string, string>;
+    };
   }>;
 };

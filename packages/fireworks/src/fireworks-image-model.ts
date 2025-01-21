@@ -179,7 +179,7 @@ export class FireworksImageModel implements ImageModelV1 {
     }
 
     const splitSize = size?.split('x');
-    const { value: response } = await postJsonToApi({
+    const { value: response, responseHeaders } = await postJsonToApi({
       url: getUrlForModel(this.config.baseURL, this.modelId),
       headers: combineHeaders(this.config.headers(), headers),
       body: {
@@ -196,6 +196,12 @@ export class FireworksImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
 
-    return { images: [new Uint8Array(response)], warnings };
+    return {
+      images: [new Uint8Array(response)],
+      warnings,
+      response: {
+        headers: responseHeaders,
+      },
+    };
   }
 }

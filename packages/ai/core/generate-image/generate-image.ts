@@ -6,6 +6,8 @@ import {
 import { prepareRetries } from '../prompt/prepare-retries';
 import { ImageGenerationWarning } from '../types/image-model';
 import { GeneratedImage, GenerateImageResult } from './generate-image-result';
+import { NoImageGeneratedError } from '../../errors/no-image-generated-error';
+import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 
 /**
 Generates images using an image model.
@@ -35,6 +37,9 @@ export async function generateImage({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  _internal = {
+    currentDate: () => new Date(),
+  },
 }: {
   /**
 The image model to use.
@@ -99,6 +104,13 @@ Additional headers to include in the request.
 Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
+
+  /**
+   * Internal. For test use only. May change without notice.
+   */
+  _internal?: {
+    currentDate?: () => Date;
+  };
 }): Promise<GenerateImageResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
@@ -133,30 +145,43 @@ Only applicable for HTTP-based providers.
     ),
   );
 
-  // collect result images & warnings
+  // collect result images, warnings, and response metadata
   const images: Array<DefaultGeneratedImage> = [];
   const warnings: Array<ImageGenerationWarning> = [];
-
+  const responses: Array<ImageModelResponseMetadata | undefined> = [];
+  const currentDate = _internal?.currentDate?.() ?? new Date();
   for (const result of results) {
     images.push(
       ...result.images.map(image => new DefaultGeneratedImage({ image })),
     );
     warnings.push(...result.warnings);
+    responses.push({
+      timestamp: currentDate,
+      modelId: model.modelId,
+      headers: result.response?.headers,
+    });
   }
 
-  return new DefaultGenerateImageResult({ images, warnings });
+  if (!images.length) {
+    throw new NoImageGeneratedError({ responses });
+  }
+
+  return new DefaultGenerateImageResult({ images, warnings, responses });
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedImage>;
   readonly warnings: Array<ImageGenerationWarning>;
+  readonly responses: Array<ImageModelResponseMetadata | undefined>;
 
   constructor(options: {
     images: Array<DefaultGeneratedImage>;
     warnings: Array<ImageGenerationWarning>;
+    responses: Array<ImageModelResponseMetadata | undefined>;
   }) {
     this.images = options.images;
     this.warnings = options.warnings;
+    this.responses = options.responses;
   }
 
   get image() {

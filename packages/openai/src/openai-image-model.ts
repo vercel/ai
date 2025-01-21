@@ -59,7 +59,7 @@ export class OpenAIImageModel implements ImageModelV1 {
       warnings.push({ type: 'unsupported-setting', setting: 'seed' });
     }
 
-    const { value: response } = await postJsonToApi({
+    const { value: response, responseHeaders } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',
         modelId: this.modelId,
@@ -84,6 +84,9 @@ export class OpenAIImageModel implements ImageModelV1 {
     return {
       images: response.data.map(item => item.b64_json),
       warnings,
+      response: {
+        headers: responseHeaders,
+      },
     };
   }
 }

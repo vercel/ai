@@ -1,10 +1,8 @@
-import { ImageModelResponseMetadata, NoImageGeneratedError } from 'ai';
 import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
 import {
   Resolvable,
   combineHeaders,
   createJsonResponseHandler,
-  generateId,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
@@ -74,10 +72,8 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       },
     };
 
-    const url = `${this.config.baseURL}/models/${this.modelId}:predict`;
-    const currentDate = this.settings._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
-      url,
+      url: `${this.config.baseURL}/models/${this.modelId}:predict`,
       headers: combineHeaders(await resolve(this.config.headers), headers),
       body,
       failedResponseHandler: googleVertexFailedResponseHandler,
@@ -88,23 +84,15 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
 
-    if (!response.predictions) {
-      const response: ImageModelResponseMetadata = {
-        timestamp: currentDate,
-        modelId: this.modelId,
-        headers: responseHeaders,
-      };
-      throw new NoImageGeneratedError({
-        response,
-      });
-    }
-
     return {
       images:
-        response.predictions.map(
+        response.predictions?.map(
           (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
         ) ?? [],
       warnings,
+      response: {
+        headers: responseHeaders,
+      },
     };
   }
 }
@@ -112,5 +100,5 @@ export class GoogleVertexImageModel implements ImageModelV1 {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const vertexImageResponseSchema = z.object({
-  predictions: z.array(z.object({ bytesBase64Encoded: z.string() })).optional(),
+  predictions: z.array(z.object({ bytesBase64Encoded: z.string() })).nullish(),
 });

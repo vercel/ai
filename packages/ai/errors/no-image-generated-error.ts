@@ -15,22 +15,22 @@ export class NoImageGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   /**
-  The response metadata.
+The response metadata for each call.
    */
-  readonly response: ImageModelResponseMetadata | undefined;
+  readonly responses: Array<ImageModelResponseMetadata | undefined> | undefined;
 
   constructor({
     message = 'No image generated.',
     cause,
-    response,
+    responses,
   }: {
     message?: string;
     cause?: Error;
-    response: ImageModelResponseMetadata;
+    responses: Array<ImageModelResponseMetadata | undefined>;
   }) {
     super({ name, message, cause });
 
-    this.response = response;
+    this.responses = responses;
   }
 
   static isInstance(error: unknown): error is NoImageGeneratedError {

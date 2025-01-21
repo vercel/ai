@@ -9,6 +9,10 @@ import {
 const prompt = 'sunny day at the beach';
 
 describe('generateImage', () => {
+  // 1x1 transparent PNG
+  const mockBase64Image =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
+
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
@@ -19,7 +23,7 @@ describe('generateImage', () => {
       model: new MockImageModelV1({
         doGenerate: async args => {
           capturedArgs = args;
-          return { images: [], warnings: [] };
+          return { images: [mockBase64Image], warnings: [] };
         },
       }),
       prompt,
@@ -47,7 +51,7 @@ describe('generateImage', () => {
     const result = await generateImage({
       model: new MockImageModelV1({
         doGenerate: async () => ({
-          images: [],
+          images: [mockBase64Image],
           warnings: [
             {
               type: 'other',
@@ -273,6 +277,67 @@ describe('generateImage', () => {
         { type: 'other', message: '1' },
         { type: 'other', message: '2' },
       ]);
+    });
+  });
+
+  describe('error handling', () => {
+    const testDate = new Date(2024, 0, 1);
+
+    it('should throw NoImageGeneratedError when no images are returned', async () => {
+      await expect(
+        generateImage({
+          model: new MockImageModelV1({
+            doGenerate: async () => ({ images: [], warnings: [] }),
+          }),
+          prompt,
+          _internal: {
+            currentDate: () => testDate,
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoImageGeneratedError',
+        message: 'No image generated.',
+        responses: [
+          {
+            timestamp: testDate,
+            modelId: expect.any(String),
+          },
+        ],
+      });
+    });
+
+    it('should include response headers in error when no images generated', async () => {
+      await expect(
+        generateImage({
+          model: new MockImageModelV1({
+            doGenerate: async () => ({
+              images: [],
+              warnings: [],
+              response: {
+                headers: {
+                  'custom-response-header': 'response-header-value',
+                },
+              },
+            }),
+          }),
+          prompt,
+          _internal: {
+            currentDate: () => testDate,
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoImageGeneratedError',
+        message: 'No image generated.',
+        responses: [
+          {
+            timestamp: testDate,
+            modelId: expect.any(String),
+            headers: {
+              'custom-response-header': 'response-header-value',
+            },
+          },
+        ],
+      });
     });
   });
 });

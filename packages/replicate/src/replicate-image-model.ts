@@ -54,6 +54,7 @@ export class ReplicateImageModel implements ImageModelV1 {
 
     const {
       value: { output },
+      responseHeaders,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}/predictions`,
       headers: combineHeaders(await resolve(this.config.headers), headers, {
@@ -86,7 +87,13 @@ export class ReplicateImageModel implements ImageModelV1 {
       }),
     );
 
-    return { images, warnings };
+    return {
+      images,
+      warnings,
+      response: {
+        headers: responseHeaders,
+      },
+    };
   }
 }
 
