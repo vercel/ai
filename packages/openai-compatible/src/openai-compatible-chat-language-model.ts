@@ -420,6 +420,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
               });
             }
 
+            const rawDelta = (chunk.rawValue as any).choices?.[0]?.delta;
+            if (rawDelta?.reasoning_content != null) {
+              controller.enqueue({
+                type: 'reasoning-delta',
+                reasoningDelta: rawDelta.reasoning_content,
+              });
+            }
+
             if (delta.tool_calls != null) {
               for (const toolCallDelta of delta.tool_calls) {
                 const index = toolCallDelta.index;

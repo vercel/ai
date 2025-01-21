@@ -29,6 +29,17 @@ const textStreamPart: DataStreamPart<'0', 'text', string> = {
   },
 };
 
+const reasoningTextStreamPart: DataStreamPart<'1', 'reasoning_text', string> = {
+  code: '1',
+  name: 'reasoning_text',
+  parse: (value: JSONValue) => {
+    if (typeof value !== 'string') {
+      throw new Error('"reasoning_text" parts expect a string value.');
+    }
+    return { type: 'reasoning_text', value };
+  },
+};
+
 const dataStreamPart: DataStreamPart<'2', 'data', Array<JSONValue>> = {
   code: '2',
   name: 'data',
@@ -348,6 +359,7 @@ const startStepStreamPart: DataStreamPart<
 
 const dataStreamParts = [
   textStreamPart,
+  reasoningTextStreamPart,
   dataStreamPart,
   errorStreamPart,
   messageAnnotationsStreamPart,
@@ -362,6 +374,7 @@ const dataStreamParts = [
 
 type DataStreamParts =
   | typeof textStreamPart
+  | typeof reasoningTextStreamPart
   | typeof dataStreamPart
   | typeof errorStreamPart
   | typeof messageAnnotationsStreamPart
@@ -382,6 +395,7 @@ type DataStreamPartValueType = {
 
 export type DataStreamPartType =
   | ReturnType<typeof textStreamPart.parse>
+  | ReturnType<typeof reasoningTextStreamPart.parse>
   | ReturnType<typeof dataStreamPart.parse>
   | ReturnType<typeof errorStreamPart.parse>
   | ReturnType<typeof messageAnnotationsStreamPart.parse>
@@ -431,6 +445,7 @@ export const dataStreamPartsByCode = {
  */
 export const DataStreamStringPrefixes = {
   [textStreamPart.name]: textStreamPart.code,
+  [reasoningTextStreamPart.name]: reasoningTextStreamPart.code,
   [dataStreamPart.name]: dataStreamPart.code,
   [errorStreamPart.name]: errorStreamPart.code,
   [messageAnnotationsStreamPart.name]: messageAnnotationsStreamPart.code,

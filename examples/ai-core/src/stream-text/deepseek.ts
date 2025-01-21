@@ -4,14 +4,19 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: deepseek('deepseek-chat'),
+    model: deepseek('deepseek-reasoner'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  console.log(result);
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
+  for await (const part of result.fullStream) {
+    console.log('part', JSON.stringify(part, null, 2));
   }
+
+  // console.log(result);
+  // for await (const textPart of result.textStream) {
+  //   console.log('textPart', JSON.stringify(textPart, null, 2));
+  //   process.stdout.write(textPart);
+  // }
 
   console.log();
   console.log('Token usage:', await result.usage);

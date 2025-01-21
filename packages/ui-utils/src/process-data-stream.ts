@@ -19,6 +19,7 @@ function concatChunks(chunks: Uint8Array[], totalLength: number) {
 export async function processDataStream({
   stream,
   onTextPart,
+  onReasoningTextPart,
   onDataPart,
   onErrorPart,
   onToolCallStreamingStartPart,
@@ -33,6 +34,9 @@ export async function processDataStream({
   stream: ReadableStream<Uint8Array>;
   onTextPart?: (
     streamPart: (DataStreamPartType & { type: 'text' })['value'],
+  ) => Promise<void> | void;
+  onReasoningTextPart?: (
+    streamPart: (DataStreamPartType & { type: 'reasoning_text' })['value'],
   ) => Promise<void> | void;
   onDataPart?: (
     streamPart: (DataStreamPartType & { type: 'data' })['value'],
@@ -106,6 +110,9 @@ export async function processDataStream({
       switch (type) {
         case 'text':
           await onTextPart?.(value);
+          break;
+        case 'reasoning_text':
+          await onReasoningTextPart?.(value);
           break;
         case 'data':
           await onDataPart?.(value);

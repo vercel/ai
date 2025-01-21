@@ -969,6 +969,45 @@ class DefaultStreamTextResult<
             hasWhitespaceSuffix = chunk.textDelta.trimEnd() !== chunk.textDelta;
           }
 
+          function handleStreamingContent<T extends { type: string }>({
+            chunk,
+            getDelta,
+            createChunk,
+            publish,
+          }: {
+            chunk: T;
+            getDelta: (chunk: T) => string;
+            createChunk: (text: string) => T;
+            publish: (chunk: T) => Promise<void>;
+          }) {
+            if (continueSteps) {
+              // when a new step starts, leading whitespace is to be discarded
+              // when there is already preceding whitespace in the chunk buffer
+              const trimmedText =
+                inWhitespacePrefix && hasLeadingWhitespace
+                  ? getDelta(chunk).trimStart()
+                  : getDelta(chunk);
+
+              if (trimmedText.length === 0) {
+                return;
+              }
+
+              inWhitespacePrefix = false;
+              chunkBuffer += trimmedText;
+
+              const split = splitOnLastWhitespace(chunkBuffer);
+
+              // publish the text until the last whitespace:
+              if (split != null) {
+                chunkBuffer = split.suffix;
+
+                publish(createChunk(split.prefix + split.whitespace));
+              }
+            } else {
+              publish(chunk);
+            }
+          }
+
           self.addStream(
             transformedStream.pipeThrough(
               new TransformStream<
@@ -1010,39 +1049,29 @@ class DefaultStreamTextResult<
                   const chunkType = chunk.type;
                   switch (chunkType) {
                     case 'text-delta': {
-                      if (continueSteps) {
-                        // when a new step starts, leading whitespace is to be discarded
-                        // when there is already preceding whitespace in the chunk buffer
-                        const trimmedChunkText =
-                          inWhitespacePrefix && hasLeadingWhitespace
-                            ? chunk.textDelta.trimStart()
-                            : chunk.textDelta;
+                      handleStreamingContent({
+                        chunk,
+                        getDelta: c => c.textDelta,
+                        createChunk: text => ({
+                          type: 'text-delta' as const,
+                          textDelta: text,
+                        }),
+                        publish: chunk =>
+                          publishTextChunk({ controller, chunk }),
+                      });
+                      break;
+                    }
 
-                        if (trimmedChunkText.length === 0) {
-                          break;
-                        }
-
-                        inWhitespacePrefix = false;
-                        chunkBuffer += trimmedChunkText;
-
-                        const split = splitOnLastWhitespace(chunkBuffer);
-
-                        // publish the text until the last whitespace:
-                        if (split != null) {
-                          chunkBuffer = split.suffix;
-
-                          await publishTextChunk({
-                            controller,
-                            chunk: {
-                              type: 'text-delta',
-                              textDelta: split.prefix + split.whitespace,
-                            },
-                          });
-                        }
-                      } else {
-                        await publishTextChunk({ controller, chunk });
-                      }
-
+                    case 'reasoning-delta': {
+                      handleStreamingContent({
+                        chunk,
+                        getDelta: c => c.reasoningDelta,
+                        createChunk: text => ({
+                          type: 'reasoning-delta' as const,
+                          reasoningDelta: text,
+                        }),
+                        publish: async c => controller.enqueue(c),
+                      });
                       break;
                     }
 
@@ -1442,6 +1471,13 @@ However, the LLM results are expected to be small enough to not cause issues.
         switch (chunkType) {
           case 'text-delta': {
             controller.enqueue(formatDataStreamPart('text', chunk.textDelta));
+            break;
+          }
+
+          case 'reasoning-delta': {
+            controller.enqueue(
+              formatDataStreamPart('reasoning_text', chunk.reasoningDelta),
+            );
             break;
           }
 
