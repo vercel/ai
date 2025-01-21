@@ -776,14 +776,6 @@ Some models have multi-modal capabilities.
 const model = anthropic('claude-3-haiku-20240307');
 ```
 
-The following optional settings are available for Google Vertex Anthropic models:
-
-- **cacheControl** _boolean_
-
-  Enable the Anthropic cache control feature.
-
-  You can then use provider metadata to set cache control breakpoints ([example](#cache-control))
-
 You can use Anthropic language models to generate text with the `generateText` function:
 
 ```ts
@@ -807,9 +799,13 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
 
 #### Cache Control
 
-You can enable the cache control feature by setting the `cacheControl` option to `true` when creating the model instance.
+<Note>
+  Anthropic cache control is in a Pre-Generally Available (GA) state on Google
+  Vertex. For more see [Google Vertex Anthropic cache control
+  documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude-prompt-caching).
+</Note>
 
-In the messages and message parts, you can then use the `experimental_providerMetadata` property to set cache control breakpoints.
+In the messages and message parts, you can use the `experimental_providerMetadata` property to set cache control breakpoints.
 You need to set the `anthropic` property in the `experimental_providerMetadata` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
 The cache creation input tokens are then returned in the `experimental_providerMetadata` object
@@ -825,9 +821,7 @@ import { generateText } from 'ai';
 const errorMessage = '... long error message ...';
 
 const result = await generateText({
-  model: vertexAnthropic('claude-3-5-sonnet-20240620', {
-    cacheControl: true,
-  }),
+  model: vertexAnthropic('claude-3-5-sonnet-20240620'),
   messages: [
     {
       role: 'user',
@@ -855,9 +849,7 @@ You can also use cache control on system messages by providing multiple system m
 
 ```ts highlight="3,9-11"
 const result = await generateText({
-  model: vertexAnthropic('claude-3-5-sonnet-20240620', {
-    cacheControl: true,
-  }),
+  model: vertexAnthropic('claude-3-5-sonnet-20240620'),
   messages: [
     {
       role: 'system',

@@ -109,7 +109,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     const { prompt: messagesPrompt, betas: messagesBetas } =
       convertToAnthropicMessagesPrompt({
         prompt,
-        cacheControl: this.settings.cacheControl ?? false,
       });
 
     const baseArgs = {
@@ -254,17 +253,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         modelId: response.model ?? undefined,
       },
       warnings,
-      providerMetadata:
-        this.settings.cacheControl === true
-          ? {
-              anthropic: {
-                cacheCreationInputTokens:
-                  response.usage.cache_creation_input_tokens ?? null,
-                cacheReadInputTokens:
-                  response.usage.cache_read_input_tokens ?? null,
-              },
-            }
-          : undefined,
+      providerMetadata: {
+        anthropic: {
+          cacheCreationInputTokens:
+            response.usage.cache_creation_input_tokens ?? null,
+          cacheReadInputTokens: response.usage.cache_read_input_tokens ?? null,
+        },
+      },
       request: { body: JSON.stringify(args) },
     };
   }
@@ -413,16 +408,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                 usage.promptTokens = value.message.usage.input_tokens;
                 usage.completionTokens = value.message.usage.output_tokens;
 
-                if (self.settings.cacheControl === true) {
-                  providerMetadata = {
-                    anthropic: {
-                      cacheCreationInputTokens:
-                        value.message.usage.cache_creation_input_tokens ?? null,
-                      cacheReadInputTokens:
-                        value.message.usage.cache_read_input_tokens ?? null,
-                    },
-                  };
-                }
+                providerMetadata = {
+                  anthropic: {
+                    cacheCreationInputTokens:
+                      value.message.usage.cache_creation_input_tokens ?? null,
+                    cacheReadInputTokens:
+                      value.message.usage.cache_read_input_tokens ?? null,
+                  },
+                };
 
                 controller.enqueue({
                   type: 'response-metadata',
