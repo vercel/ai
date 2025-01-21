@@ -1451,9 +1451,6 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 2.1.1
         version: link:../provider-utils
-      ai:
-        specifier: 4.1.0
-        version: link:../ai
       google-auth-library:
         specifier: ^9.15.0
         version: 9.15.0
