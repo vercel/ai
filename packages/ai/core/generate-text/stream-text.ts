@@ -1042,6 +1042,7 @@ class DefaultStreamTextResult<
                       } else {
                         await publishTextChunk({ controller, chunk });
                       }
+                      break;
                     }
 
                     case 'reasoning': {
