@@ -8,8 +8,14 @@ async function main() {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
+  console.log('Reasoning:');
+  console.log(result.reasoning);
+  console.log();
+
+  console.log('Text:');
   console.log(result.text);
   console.log();
+
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
 }
