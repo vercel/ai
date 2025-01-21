@@ -541,7 +541,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     setInput(e.target.value);
   };
 
-  const addToolResult = ({
+  const addToolResult = useCallback(({
     toolCallId,
     result,
   }: {
@@ -575,7 +575,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
       triggerRequest({ messages: updatedMessages });
     }
-  };
+  }, [mutate, triggerRequest]);
 
   return {
     messages: messages || [],
