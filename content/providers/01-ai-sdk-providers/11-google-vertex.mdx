@@ -766,6 +766,120 @@ You can use the following optional settings to customize the provider instance:
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+### Language Models
+
+You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
+The first argument is the model id, e.g. `claude-3-haiku-20240307`.
+Some models have multi-modal capabilities.
+
+```ts
+const model = anthropic('claude-3-haiku-20240307');
+```
+
+The following optional settings are available for Google Vertex Anthropic models:
+
+- **cacheControl** _boolean_
+
+  Enable the Anthropic cache control feature.
+
+  You can then use provider metadata to set cache control breakpoints ([example](#cache-control))
+
+You can use Anthropic language models to generate text with the `generateText` function:
+
+```ts
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertexAnthropic('claude-3-haiku-20240307'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Anthropic language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
+<Note>
+  The Anthropic API returns streaming tool calls all at once after a delay. This
+  causes the `streamObject` function to generate the object fully after a delay
+  instead of streaming it incrementally.
+</Note>
+
+#### Cache Control
+
+You can enable the cache control feature by setting the `cacheControl` option to `true` when creating the model instance.
+
+In the messages and message parts, you can then use the `experimental_providerMetadata` property to set cache control breakpoints.
+You need to set the `anthropic` property in the `experimental_providerMetadata` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
+
+The cache creation input tokens are then returned in the `experimental_providerMetadata` object
+for `generateText` and `generateObject`, again under the `anthropic` property.
+When you use `streamText` or `streamObject`, the response contains a promise
+that resolves to the metadata. Alternatively you can receive it in the
+`onFinish` callback.
+
+```ts highlight="8,18-20,29-30"
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { generateText } from 'ai';
+
+const errorMessage = '... long error message ...';
+
+const result = await generateText({
+  model: vertexAnthropic('claude-3-5-sonnet-20240620', {
+    cacheControl: true,
+  }),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'You are a JavaScript expert.' },
+        {
+          type: 'text',
+          text: `Error message: ${errorMessage}`,
+          experimental_providerMetadata: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        { type: 'text', text: 'Explain the error message.' },
+      ],
+    },
+  ],
+});
+
+console.log(result.text);
+console.log(result.experimental_providerMetadata?.anthropic);
+// e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
+```
+
+You can also use cache control on system messages by providing multiple system messages at the head of your messages array:
+
+```ts highlight="3,9-11"
+const result = await generateText({
+  model: vertexAnthropic('claude-3-5-sonnet-20240620', {
+    cacheControl: true,
+  }),
+  messages: [
+    {
+      role: 'system',
+      content: 'Cached system message part',
+      experimental_providerMetadata: {
+        anthropic: { cacheControl: { type: 'ephemeral' } },
+      },
+    },
+    {
+      role: 'system',
+      content: 'Uncached system message part',
+    },
+    {
+      role: 'user',
+      content: 'User prompt',
+    },
+  ],
+});
+```
+
+For more on prompt caching with Anthropic, see [Google Vertex AI's Claude prompt caching documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude-prompt-caching) and [Anthropic's Cache Control documentation](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching).
+
 ### Computer Use
 
 Anthropic provides three built-in tools that can be used to interact with external systems:

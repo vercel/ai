@@ -78,9 +78,9 @@ The following optional settings are available for Anthropic models:
 
 - **cacheControl** _boolean_
 
-  Enable the Anthropic cache control beta.
+  Enable the Anthropic cache control feature.
 
-  You can then use provider metadata to set cache control breakpoints ([example](#example-cache-control))
+  You can then use provider metadata to set cache control breakpoints ([example](#cache-control))
 
 You can use Anthropic language models to generate text with the `generateText` function:
 
@@ -105,7 +105,7 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
 
 ### Cache Control
 
-You can enable the cache control beta by setting the `cacheControl` option to `true` when creating the model instance.
+You can enable the cache control feature by setting the `cacheControl` option to `true` when creating the model instance.
 
 In the messages and message parts, you can then use the `experimental_providerMetadata` property to set cache control breakpoints.
 You need to set the `anthropic` property in the `experimental_providerMetadata` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
@@ -175,6 +175,8 @@ const result = await generateText({
   ],
 });
 ```
+
+For more on prompt caching with Anthropic, see [Anthropic's Cache Control documentation](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching).
 
 ### Computer Use
 

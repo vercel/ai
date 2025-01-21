@@ -178,10 +178,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     betas: Set<string>;
     headers: Record<string, string | undefined> | undefined;
   }) {
-    if (this.settings.cacheControl) {
-      betas.add('prompt-caching-2024-07-31');
-    }
-
     return combineHeaders(
       await resolve(this.config.headers),
       betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
