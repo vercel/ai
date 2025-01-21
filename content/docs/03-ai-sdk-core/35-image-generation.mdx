@@ -191,7 +191,7 @@ This error occurs when the AI provider fails to generate an image. It can arise 
 
 The error preserves the following information to help you log the issue:
 
-- `response`: Metadata about the image model response, including timestamp, and model
+- `responses`: Metadata about the image model responses, including timestamp, model, and headers.
 - `cause`: The cause of the error. You can use this for more detailed error handling
 
 ```ts
@@ -203,7 +203,7 @@ try {
   if (NoImageGeneratedError.isInstance(error)) {
     console.log('NoImageGeneratedError');
     console.log('Cause:', error.cause);
-    console.log('Response:', error.response);
+    console.log('Responses:', error.responses);
   }
 }
 ```
