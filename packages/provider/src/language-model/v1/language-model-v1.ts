@@ -89,6 +89,12 @@ has only generated tool calls.
     text?: string;
 
     /**
+Reasoning text that the model has generated. Can be undefined if the model
+has only generated text.
+     */
+    reasoning?: string;
+
+    /**
 Tool calls that the model has generated. Can be undefined if the
 model has only generated text.
      */

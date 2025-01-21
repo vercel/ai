@@ -256,6 +256,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     return {
       text: choice.message.content ?? undefined,
+      reasoning: choice.message.reasoning_content ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
         toolCallId: toolCall.id ?? generateId(),
@@ -571,6 +572,7 @@ const OpenAICompatibleChatResponseSchema = z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
+        reasoning_content: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({
