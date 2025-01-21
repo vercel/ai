@@ -29,17 +29,6 @@ const textStreamPart: DataStreamPart<'0', 'text', string> = {
   },
 };
 
-const reasoningTextStreamPart: DataStreamPart<'1', 'reasoning_text', string> = {
-  code: '1',
-  name: 'reasoning_text',
-  parse: (value: JSONValue) => {
-    if (typeof value !== 'string') {
-      throw new Error('"reasoning_text" parts expect a string value.');
-    }
-    return { type: 'reasoning_text', value };
-  },
-};
-
 const dataStreamPart: DataStreamPart<'2', 'data', Array<JSONValue>> = {
   code: '2',
   name: 'data',
@@ -357,9 +346,19 @@ const startStepStreamPart: DataStreamPart<
   },
 };
 
+const reasoningStreamPart: DataStreamPart<'g', 'reasoning', string> = {
+  code: 'g',
+  name: 'reasoning',
+  parse: (value: JSONValue) => {
+    if (typeof value !== 'string') {
+      throw new Error('"reasoning" parts expect a string value.');
+    }
+    return { type: 'reasoning', value };
+  },
+};
+
 const dataStreamParts = [
   textStreamPart,
-  reasoningTextStreamPart,
   dataStreamPart,
   errorStreamPart,
   messageAnnotationsStreamPart,
@@ -370,11 +369,11 @@ const dataStreamParts = [
   finishMessageStreamPart,
   finishStepStreamPart,
   startStepStreamPart,
+  reasoningStreamPart,
 ] as const;
 
 type DataStreamParts =
   | typeof textStreamPart
-  | typeof reasoningTextStreamPart
   | typeof dataStreamPart
   | typeof errorStreamPart
   | typeof messageAnnotationsStreamPart
@@ -384,7 +383,8 @@ type DataStreamParts =
   | typeof toolCallDeltaStreamPart
   | typeof finishMessageStreamPart
   | typeof finishStepStreamPart
-  | typeof startStepStreamPart;
+  | typeof startStepStreamPart
+  | typeof reasoningStreamPart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -395,7 +395,6 @@ type DataStreamPartValueType = {
 
 export type DataStreamPartType =
   | ReturnType<typeof textStreamPart.parse>
-  | ReturnType<typeof reasoningTextStreamPart.parse>
   | ReturnType<typeof dataStreamPart.parse>
   | ReturnType<typeof errorStreamPart.parse>
   | ReturnType<typeof messageAnnotationsStreamPart.parse>
@@ -405,7 +404,8 @@ export type DataStreamPartType =
   | ReturnType<typeof toolCallDeltaStreamPart.parse>
   | ReturnType<typeof finishMessageStreamPart.parse>
   | ReturnType<typeof finishStepStreamPart.parse>
-  | ReturnType<typeof startStepStreamPart.parse>;
+  | ReturnType<typeof startStepStreamPart.parse>
+  | ReturnType<typeof reasoningStreamPart.parse>;
 
 export const dataStreamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -419,6 +419,7 @@ export const dataStreamPartsByCode = {
   [finishMessageStreamPart.code]: finishMessageStreamPart,
   [finishStepStreamPart.code]: finishStepStreamPart,
   [startStepStreamPart.code]: startStepStreamPart,
+  [reasoningStreamPart.code]: reasoningStreamPart,
 } as const;
 
 /**
@@ -445,7 +446,6 @@ export const dataStreamPartsByCode = {
  */
 export const DataStreamStringPrefixes = {
   [textStreamPart.name]: textStreamPart.code,
-  [reasoningTextStreamPart.name]: reasoningTextStreamPart.code,
   [dataStreamPart.name]: dataStreamPart.code,
   [errorStreamPart.name]: errorStreamPart.code,
   [messageAnnotationsStreamPart.name]: messageAnnotationsStreamPart.code,
@@ -457,6 +457,7 @@ export const DataStreamStringPrefixes = {
   [finishMessageStreamPart.name]: finishMessageStreamPart.code,
   [finishStepStreamPart.name]: finishStepStreamPart.code,
   [startStepStreamPart.name]: startStepStreamPart.code,
+  [reasoningStreamPart.name]: reasoningStreamPart.code,
 } as const;
 
 export const validCodes = dataStreamParts.map(part => part.code);

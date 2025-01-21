@@ -28,8 +28,8 @@ export type SingleRequestTextStreamPart<
       textDelta: string;
     }
   | {
-      type: 'reasoning-delta';
-      reasoningDelta: string;
+      type: 'reasoning';
+      textDelta: string;
     }
   | ({
       type: 'tool-call';
@@ -140,7 +140,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
       switch (chunkType) {
         // forward:
         case 'text-delta':
-        case 'reasoning-delta':
+        case 'reasoning':
         case 'response-metadata':
         case 'error': {
           controller.enqueue(chunk);

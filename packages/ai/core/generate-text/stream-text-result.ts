@@ -210,8 +210,8 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       textDelta: string;
     }
   | {
-      type: 'reasoning-delta';
-      reasoningDelta: string;
+      type: 'reasoning';
+      textDelta: string;
     }
   | ({
       type: 'tool-call';

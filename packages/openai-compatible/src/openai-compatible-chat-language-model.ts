@@ -413,18 +413,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
             const delta = choice.delta;
 
+            // enqueue reasoning before text deltas:
+            if (value.reasoning_content != null) {
+              controller.enqueue({
+                type: 'reasoning',
+                textDelta: value.reasoning_content,
+              });
+            }
+
             if (delta.content != null) {
               controller.enqueue({
                 type: 'text-delta',
                 textDelta: delta.content,
-              });
-            }
-
-            const rawDelta = (chunk.rawValue as any).choices?.[0]?.delta;
-            if (rawDelta?.reasoning_content != null) {
-              controller.enqueue({
-                type: 'reasoning-delta',
-                reasoningDelta: rawDelta.reasoning_content,
               });
             }
 
@@ -610,6 +610,7 @@ const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
             .object({
               role: z.enum(['assistant']).nullish(),
               content: z.string().nullish(),
+              reasoning_content: z.string().nullish(),
               tool_calls: z
                 .array(
                   z.object({
