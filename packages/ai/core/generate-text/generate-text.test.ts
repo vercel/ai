@@ -67,7 +67,9 @@ describe('result.reasoning', () => {
       'I will open the conversation with witty banter.',
     );
   });
+});
 
+describe('result.steps', () => {
   it('should add the reasoning from the model response to the step result', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
