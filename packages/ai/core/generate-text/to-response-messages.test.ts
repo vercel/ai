@@ -54,8 +54,8 @@ describe('toResponseMessages', () => {
 
   it('should include tool calls in the assistant message', () => {
     const result = toResponseMessages({
-      text: 'Using a tool',
       reasoning: 'Feeling clever',
+      text: 'Using a tool',
       tools: {
         testTool: {
           description: 'A test tool',
@@ -80,11 +80,11 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          { type: 'text', text: 'Using a tool' },
           {
             type: 'reasoning',
             text: 'Feeling clever',
           },
+          { type: 'text', text: 'Using a tool' },
           {
             type: 'tool-call',
             toolCallId: '123',
@@ -98,8 +98,8 @@ describe('toResponseMessages', () => {
 
   it('should include tool results as a separate message', () => {
     const result = toResponseMessages({
-      text: 'Tool used',
       reasoning: 'Feeling clever',
+      text: 'Tool used',
       tools: {
         testTool: {
           description: 'A test tool',
@@ -133,11 +133,11 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          { type: 'text', text: 'Tool used' },
           {
             type: 'reasoning',
             text: 'Feeling clever',
           },
+          { type: 'text', text: 'Tool used' },
           {
             type: 'tool-call',
             toolCallId: '123',

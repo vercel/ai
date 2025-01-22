@@ -26,19 +26,13 @@ export function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
 }): Array<ResponseMessage> {
   const responseMessages: Array<ResponseMessage> = [];
 
-  // Reasoning models likely return reasoning prior to text and one would expect
-  // to see it before the text in the response.
-  if (reasoning) {
-    responseMessages.push({
-      role: 'assistant',
-      content: [{ type: 'reasoning', text: reasoning }],
-      id: messageId,
-    });
-  }
-
   responseMessages.push({
     role: 'assistant',
-    content: [{ type: 'text', text }, ...toolCalls],
+    content: [
+      ...(reasoning ? [{ type: 'reasoning' as const, text: reasoning }] : []),
+      { type: 'text' as const, text },
+      ...toolCalls,
+    ],
     id: messageId,
   });
 
