@@ -3159,6 +3159,47 @@ exports[`streamText > result.responseMessages > should contain assistant respons
 ]
 `;
 
+exports[`streamText > result.steps > should add the reasoning from the model response to the step result 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "reasoning": "I will open the conversation with witty banter.",
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "stepType": "initial",
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
 exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 [
   "f:{"messageId":"msg-0"}
