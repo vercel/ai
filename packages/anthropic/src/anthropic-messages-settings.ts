@@ -13,7 +13,11 @@ export type AnthropicMessagesModelId =
 
 export interface AnthropicMessagesSettings {
   /**
-Enable Anthropic cache control. This will allow you to use provider-specific `cacheControl` metadata.
-   */
+Enable Anthropic cache control. This will allow you to use provider-specific
+`cacheControl` metadata.
+
+@deprecated cache control is now enabled by default (meaning you are able to
+optionally mark content for caching) and this setting is no longer needed.
+*/
   cacheControl?: boolean;
 }
