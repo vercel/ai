@@ -608,6 +608,22 @@ To see `streamText` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'type',
+                      type: "'reasoning'",
+                      description:
+                        'The type to identify the object as reasoning.',
+                    },
+                    {
+                      name: 'textDelta',
+                      type: 'string',
+                      description: 'The reasoning text delta.',
+                    },
+                  ],
+                },
+                {
+                  type: 'TextStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
                       type: "'tool-call'",
                       description:
                         'The type to identify the object as tool call.',
@@ -1057,6 +1073,12 @@ To see `streamText` in action, check out [these examples](#examples).
         'The full text that has been generated. Resolved when the response is finished.',
     },
     {
+      name: 'reasoning',
+      type: 'Promise<string>',
+      description:
+        'The reasoning text of the model (only available for some models). Resolved when the response is finished.',
+    },
+    {
       name: 'toolCalls',
       type: 'Promise<ToolCall[]>',
       description:
@@ -1309,6 +1331,21 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'textDelta',
               type: 'string',
               description: 'The text delta.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'reasoning'",
+              description: 'The type to identify the object as reasoning.',
+            },
+            {
+              name: 'textDelta',
+              type: 'string',
+              description: 'The reasoning text delta.',
             },
           ],
         },
