@@ -530,7 +530,7 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
-        reasoning: currentModelResponse.reasoning, // TODO what about reasoning from previous steps?
+        reasoning: currentModelResponse.reasoning,
         outputResolver: () => {
           if (output == null) {
             throw new NoOutputSpecifiedError();
