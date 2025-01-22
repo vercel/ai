@@ -590,7 +590,8 @@ class DefaultStreamTextResult<
         }
 
         if (part.type === 'reasoning') {
-          recordedReasoningText += part.textDelta;
+          recordedReasoningText =
+            (recordedReasoningText ?? '') + part.textDelta;
         }
 
         if (part.type === 'tool-call') {

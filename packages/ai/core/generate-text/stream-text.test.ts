@@ -1583,6 +1583,69 @@ describe('streamText', () => {
     });
   });
 
+  describe('result.reasoning', () => {
+    it('should contain reasoning from model response', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'reasoning',
+                textDelta: 'I will open the conversation',
+              },
+              {
+                type: 'reasoning',
+                textDelta: ' with witty banter.',
+              },
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.textStream);
+
+      expect(await result.reasoning).toStrictEqual(
+        'I will open the conversation with witty banter.',
+      );
+    });
+  });
+
+  // describe('result.steps', () => {
+  //   it('should add the reasoning from the model response to the step result', async () => {
+  //     const result = await generateText({
+  //       model: new MockLanguageModelV1({
+  //         doGenerate: async () => ({
+  //           ...dummyResponseValues,
+  //           text: 'Hello, world!',
+  //           reasoning: 'I will open the conversation with witty banter.',
+  //         }),
+  //       }),
+  //       prompt: 'prompt',
+  //       experimental_generateMessageId: mockId({
+  //         prefix: 'msg',
+  //       }),
+  //       _internal: {
+  //         generateId: mockId({ prefix: 'id' }),
+  //         currentDate: () => new Date(0),
+  //       },
+  //     });
+
+  //     expect(result.steps).toMatchSnapshot();
+  //   });
+  // });
+
   describe('result.toolCalls', () => {
     it('should resolve with tool calls', async () => {
       const result = streamText({
