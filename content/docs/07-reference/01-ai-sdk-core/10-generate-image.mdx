@@ -155,5 +155,35 @@ console.log(images);
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
     },
+    {
+      name: 'responses',
+      type: 'Array<ImageModelResponseMetadata | undefined>',
+      description:
+        'Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.',
+      properties: [
+        {
+          type: 'ImageModelResponseMetadata',
+          parameters: [
+            {
+              name: 'timestamp',
+              type: 'Date',
+              description: 'Timestamp for the start of the generated response.',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description:
+                'The ID of the model that was used to generate the response.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              isOptional: true,
+              description: 'Response headers.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
