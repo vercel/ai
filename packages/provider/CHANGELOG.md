@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.0.5
+
+### Patch Changes
+
+- 0a699f1: feat: add reasoning token support
+
 ## 1.0.4
 
 ### Patch Changes
