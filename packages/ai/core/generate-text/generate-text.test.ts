@@ -50,6 +50,31 @@ describe('result.text', () => {
   });
 });
 
+describe('result.reasoning', () => {
+  it('should contain reasoning from model response', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: 'Hello, world!',
+          reasoning: 'I will open the conversation with witty banter.',
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
+        }),
+      }),
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(
+      result.reasoning,
+      'I will open the conversation with witty banter.',
+    );
+  });
+});
+
 describe('result.toolCalls', () => {
   it('should contain tool calls', async () => {
     const result = await generateText({
