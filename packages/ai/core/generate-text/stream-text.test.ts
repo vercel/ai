@@ -1676,6 +1676,7 @@ describe('streamText', () => {
         {
           type:
             | 'text-delta'
+            | 'reasoning'
             | 'tool-call'
             | 'tool-call-streaming-start'
             | 'tool-call-delta'
@@ -1697,6 +1698,10 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolName: 'tool1',
               argsTextDelta: '{"value": "',
+            },
+            {
+              type: 'reasoning',
+              textDelta: 'Feeling clever',
             },
             {
               type: 'tool-call-delta',
@@ -1761,6 +1766,10 @@ describe('streamText', () => {
           argsTextDelta: '{"value": "',
           toolCallId: '1',
           toolName: 'tool1',
+        },
+        {
+          type: 'reasoning',
+          textDelta: 'Feeling clever',
         },
         {
           type: 'tool-call-delta',
@@ -3646,6 +3655,7 @@ describe('streamText', () => {
             {
               type:
                 | 'text-delta'
+                | 'reasoning'
                 | 'tool-call'
                 | 'tool-call-streaming-start'
                 | 'tool-call-delta'
@@ -3658,6 +3668,7 @@ describe('streamText', () => {
           model: createTestModel({
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'reasoning', textDelta: 'Feeling clever' },
               {
                 type: 'tool-call-delta',
                 toolCallId: '1',
@@ -3717,6 +3728,10 @@ describe('streamText', () => {
 
         assert.deepStrictEqual(result, [
           { type: 'text-delta', textDelta: 'HELLO' },
+          {
+            type: 'reasoning',
+            textDelta: 'Feeling clever',
+          },
           {
             type: 'tool-call-streaming-start',
             toolCallId: '1',

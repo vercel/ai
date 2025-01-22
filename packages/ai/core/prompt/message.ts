@@ -6,6 +6,7 @@ import {
   filePartSchema,
   ImagePart,
   imagePartSchema,
+  ReasoningPart,
   TextPart,
   textPartSchema,
   ToolCallPart,
@@ -96,7 +97,9 @@ export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
 /**
 Content of an assistant message. It can be a string or an array of text and tool call parts.
  */
-export type AssistantContent = string | Array<TextPart | ToolCallPart>;
+export type AssistantContent =
+  | string
+  | Array<TextPart | ReasoningPart | ToolCallPart>;
 
 /**
 A tool message. It contains the result of one or more tool calls.

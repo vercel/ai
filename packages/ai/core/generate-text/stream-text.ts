@@ -247,6 +247,7 @@ Callback that is called for each chunk of the stream. The stream processing will
         {
           type:
             | 'text-delta'
+            | 'reasoning'
             | 'tool-call'
             | 'tool-call-streaming-start'
             | 'tool-call-delta'
@@ -422,6 +423,9 @@ class DefaultStreamTextResult<
   private readonly textPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['text']>
   >();
+  private readonly reasoningPromise = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoning']>
+  >();
   private readonly toolCallsPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['toolCalls']>
   >();
@@ -503,6 +507,7 @@ class DefaultStreamTextResult<
             {
               type:
                 | 'text-delta'
+                | 'reasoning'
                 | 'tool-call'
                 | 'tool-call-streaming-start'
                 | 'tool-call-delta'
@@ -541,6 +546,7 @@ class DefaultStreamTextResult<
     let recordedStepText = '';
     let recordedContinuationText = '';
     let recordedFullText = '';
+    let recordedReasoningText = '';
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<ResponseMessage>;
     } = {
@@ -568,6 +574,7 @@ class DefaultStreamTextResult<
 
         if (
           part.type === 'text-delta' ||
+          part.type === 'reasoning' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
           part.type === 'tool-call-streaming-start' ||
@@ -582,6 +589,10 @@ class DefaultStreamTextResult<
           recordedFullText += part.textDelta;
         }
 
+        if (part.type === 'reasoning') {
+          recordedReasoningText += part.textDelta;
+        }
+
         if (part.type === 'tool-call') {
           recordedToolCalls.push(part);
         }
@@ -593,6 +604,7 @@ class DefaultStreamTextResult<
         if (part.type === 'step-finish') {
           const stepMessages = toResponseMessages({
             text: recordedContinuationText,
+            reasoning: recordedReasoningText,
             tools: tools ?? ({} as TOOLS),
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
@@ -700,6 +712,7 @@ class DefaultStreamTextResult<
 
           // aggregate results:
           self.textPromise.resolve(recordedFullText);
+          self.reasoningPromise.resolve(recordedReasoningText);
           self.stepsPromise.resolve(recordedSteps);
 
           // call onFinish callback:
@@ -940,6 +953,7 @@ class DefaultStreamTextResult<
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let stepText = '';
+          let stepReasoning = '';
           let fullStepText = stepType === 'continue' ? previousStepText : '';
           let stepLogProbs: LogProbs | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
@@ -1047,6 +1061,7 @@ class DefaultStreamTextResult<
 
                     case 'reasoning': {
                       controller.enqueue(chunk);
+                      stepReasoning += chunk.textDelta;
                       break;
                     }
 
@@ -1251,6 +1266,7 @@ class DefaultStreamTextResult<
                       responseMessages.push(
                         ...toResponseMessages({
                           text: stepText,
+                          reasoning: stepReasoning,
                           tools: tools ?? ({} as TOOLS),
                           toolCalls: stepToolCalls,
                           toolResults: stepToolResults,
@@ -1327,6 +1343,10 @@ class DefaultStreamTextResult<
 
   get text() {
     return this.textPromise.value;
+  }
+
+  get reasoning() {
+    return this.reasoningPromise.value;
   }
 
   get toolCalls() {
