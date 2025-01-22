@@ -7,6 +7,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -81,6 +82,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -198,6 +200,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -272,6 +275,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -344,6 +348,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -381,6 +386,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -423,6 +429,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -467,6 +474,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -522,6 +530,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -559,6 +568,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -601,6 +611,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -645,6 +656,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -687,6 +699,47 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
       "completionTokens": 2,
       "promptTokens": 3,
       "totalTokens": 5,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`result.reasoning > should add the reasoning from the model response to the step result 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "reasoning": "I will open the conversation with witty banter.",
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "stepType": "initial",
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
     },
     "warnings": undefined,
   },

@@ -67,6 +67,28 @@ describe('result.reasoning', () => {
       'I will open the conversation with witty banter.',
     );
   });
+
+  it('should add the reasoning from the model response to the step result', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: 'Hello, world!',
+          reasoning: 'I will open the conversation with witty banter.',
+        }),
+      }),
+      prompt: 'prompt',
+      experimental_generateMessageId: mockId({
+        prefix: 'msg',
+      }),
+      _internal: {
+        generateId: mockId({ prefix: 'id' }),
+        currentDate: () => new Date(0),
+      },
+    });
+
+    expect(result.steps).toMatchSnapshot();
+  });
 });
 
 describe('result.toolCalls', () => {
