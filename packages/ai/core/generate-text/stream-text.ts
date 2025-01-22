@@ -546,7 +546,7 @@ class DefaultStreamTextResult<
     let recordedStepText = '';
     let recordedContinuationText = '';
     let recordedFullText = '';
-    let recordedReasoningText = '';
+    let recordedReasoningText: string | undefined = undefined;
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<ResponseMessage>;
     } = {
@@ -636,6 +636,7 @@ class DefaultStreamTextResult<
           const currentStepResult: StepResult<TOOLS> = {
             stepType,
             text: recordedStepText,
+            reasoning: recordedReasoningText,
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
             finishReason: part.finishReason,
@@ -720,6 +721,7 @@ class DefaultStreamTextResult<
             logprobs: undefined,
             usage,
             text: recordedFullText,
+            reasoning: recordedReasoningText,
             toolCalls: lastStep.toolCalls,
             toolResults: lastStep.toolResults,
             request: lastStep.request ?? {},

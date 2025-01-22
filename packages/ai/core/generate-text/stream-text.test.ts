@@ -3338,6 +3338,7 @@ describe('streamText', () => {
           {
             stepType: 'initial',
             text: 'HELLO, WORLD!',
+            reasoning: undefined,
             experimental_providerMetadata: undefined,
             finishReason: 'stop',
             isContinued: false,

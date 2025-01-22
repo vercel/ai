@@ -87,6 +87,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -144,6 +145,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "finishReason": "tool-calls",
       "isContinued": false,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -220,6 +222,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -302,6 +305,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -378,6 +382,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -731,6 +736,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -807,6 +813,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -877,6 +884,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -906,6 +914,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -943,6 +952,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -979,6 +989,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -1017,6 +1028,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -1074,6 +1086,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1111,6 +1124,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1147,6 +1161,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1185,6 +1200,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1643,6 +1659,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1680,6 +1697,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1716,6 +1734,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1754,6 +1773,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1801,6 +1821,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
   },
   "finishReason": "stop",
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -1852,6 +1873,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -1964,6 +1986,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
   },
   "finishReason": "stop",
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -2015,6 +2038,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -2128,6 +2152,7 @@ exports[`streamText > options.transform > with base transformation > options.onS
   "finishReason": "stop",
   "isContinued": false,
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -2290,6 +2315,7 @@ exports[`streamText > options.transform > with transformation that aborts stream
   "finishReason": "stop",
   "isContinued": false,
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "id": "response-id",
