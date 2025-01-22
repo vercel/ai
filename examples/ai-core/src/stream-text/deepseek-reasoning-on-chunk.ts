@@ -6,16 +6,18 @@ async function main() {
   const result = streamText({
     model: deepseek('deepseek-reasoner'),
     prompt: 'Invent a new holiday and describe its traditions.',
+    onChunk({ chunk }) {
+      if (chunk.type === 'reasoning') {
+        console.log('reasoning', chunk.textDelta);
+      }
+    },
   });
 
-  console.log(result);
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
+  // consume stream:
+  for await (const part of result.fullStream) {
   }
 
-  console.log();
-  console.log('Token usage:', await result.usage);
-  console.log('Finish reason:', await result.finishReason);
+  console.log('reasoning', await result.reasoning);
 }
 
 main().catch(console.error);

@@ -89,6 +89,12 @@ has only generated tool calls.
     text?: string;
 
     /**
+Reasoning text that the model has generated. Can be undefined if the model
+has only generated text.
+     */
+    reasoning?: string;
+
+    /**
 Tool calls that the model has generated. Can be undefined if the
 model has only generated text.
      */
@@ -246,6 +252,9 @@ Warnings for the call, e.g. unsupported settings.
 export type LanguageModelV1StreamPart =
   // Basic text deltas:
   | { type: 'text-delta'; textDelta: string }
+
+  // Reasoning text deltas:
+  | { type: 'reasoning'; textDelta: string }
 
   // Complete tool calls:
   | ({ type: 'tool-call' } & LanguageModelV1FunctionToolCall)

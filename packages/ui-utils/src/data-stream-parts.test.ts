@@ -295,3 +295,26 @@ describe('start_step stream part', () => {
     expect(() => parseDataStreamPart(input)).toThrow();
   });
 });
+
+describe('reasoning stream part', () => {
+  it('should format a reasoning stream part', () => {
+    expect(formatDataStreamPart('reasoning', 'test reasoning')).toEqual(
+      'g:"test reasoning"\n',
+    );
+  });
+
+  it('should parse a reasoning stream part', () => {
+    const input = 'g:"test reasoning"';
+    expect(parseDataStreamPart(input)).toEqual({
+      type: 'reasoning',
+      value: 'test reasoning',
+    });
+  });
+
+  it('should throw an error if the value is not a string', () => {
+    const input = 'g:{"invalid": "object"}';
+    expect(() => parseDataStreamPart(input)).toThrow(
+      '"reasoning" parts expect a string value.',
+    );
+  });
+});

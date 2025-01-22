@@ -22,9 +22,15 @@ export interface GenerateTextResult<
   OUTPUT,
 > {
   /**
-  The generated text.
+The generated text.
      */
   readonly text: string;
+
+  /**
+The reasoning text that the model has generated. Can be undefined if the model
+has only generated text.
+   */
+  readonly reasoning: string | undefined;
 
   /**
 The generated structured output. It uses the `experimental_output` specification.

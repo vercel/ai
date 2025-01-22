@@ -46,7 +46,50 @@ describe('result.text', () => {
       prompt: 'prompt',
     });
 
-    assert.deepStrictEqual(result.text, 'Hello, world!');
+    expect(result.text).toStrictEqual('Hello, world!');
+  });
+});
+
+describe('result.reasoning', () => {
+  it('should contain reasoning from model response', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: 'Hello, world!',
+          reasoning: 'I will open the conversation with witty banter.',
+        }),
+      }),
+      prompt: 'prompt',
+    });
+
+    expect(result.reasoning).toStrictEqual(
+      'I will open the conversation with witty banter.',
+    );
+  });
+});
+
+describe('result.steps', () => {
+  it('should add the reasoning from the model response to the step result', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: 'Hello, world!',
+          reasoning: 'I will open the conversation with witty banter.',
+        }),
+      }),
+      prompt: 'prompt',
+      experimental_generateMessageId: mockId({
+        prefix: 'msg',
+      }),
+      _internal: {
+        generateId: mockId({ prefix: 'id' }),
+        currentDate: () => new Date(0),
+      },
+    });
+
+    expect(result.steps).toMatchSnapshot();
   });
 });
 

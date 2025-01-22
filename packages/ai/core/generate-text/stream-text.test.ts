@@ -140,6 +140,49 @@ describe('streamText', () => {
       );
     });
 
+    it('should not include reasoning content in textStream', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'reasoning',
+                textDelta: 'I will open the conversation',
+              },
+              {
+                type: 'reasoning',
+                textDelta: ' with witty banter.',
+              },
+              {
+                type: 'reasoning',
+                textDelta: 'Once the user has relaxed,',
+              },
+              {
+                type: 'reasoning',
+                textDelta: ' I will pry for valuable information.',
+              },
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      assert.deepStrictEqual(
+        await convertAsyncIterableToArray(result.textStream),
+        ['Hello', ', ', 'world!'],
+      );
+    });
+
     it('should re-throw error in doStream', async () => {
       const result = streamText({
         model: new MockLanguageModelV1({
@@ -198,6 +241,41 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.fullStream),
+      ).toMatchSnapshot();
+    });
+
+    it('should include reasoning content in fullStream', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'reasoning', textDelta: 'I will open the conversation' },
+              { type: 'reasoning', textDelta: ' with witty banter.' },
+              { type: 'reasoning', textDelta: 'Once the user has relaxed,' },
+              {
+                type: 'reasoning',
+                textDelta: ' I will pry for valuable information.',
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          }),
+        }),
+        prompt: 'test-input',
+        _internal: {
+          currentDate: mockValues(new Date(2000)),
+          generateId: mockValues('id-2000'),
+        },
         experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
@@ -825,6 +903,49 @@ describe('streamText', () => {
 
       await mockResponse.waitForEnd();
 
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
+    it('should write reasoning content to a Node.js response-like object', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'reasoning', textDelta: 'I will open the conversation' },
+            { type: 'reasoning', textDelta: ' with witty banter.' },
+            { type: 'reasoning', textDelta: 'Once the user has relaxed,' },
+            {
+              type: 'reasoning',
+              textDelta: ' I will pry for valuable information.',
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse);
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.statusCode).toBe(200);
+      expect(mockResponse.headers).toEqual({
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Vercel-AI-Data-Stream': 'v1',
+      });
       expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
     });
   });
@@ -1462,6 +1583,89 @@ describe('streamText', () => {
     });
   });
 
+  describe('result.reasoning', () => {
+    it('should contain reasoning from model response', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'reasoning',
+                textDelta: 'I will open the conversation',
+              },
+              {
+                type: 'reasoning',
+                textDelta: ' with witty banter.',
+              },
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.textStream);
+
+      expect(await result.reasoning).toStrictEqual(
+        'I will open the conversation with witty banter.',
+      );
+    });
+  });
+
+  describe('result.steps', () => {
+    it('should add the reasoning from the model response to the step result', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'reasoning',
+                textDelta: 'I will open the conversation',
+              },
+              {
+                type: 'reasoning',
+                textDelta: ' with witty banter.',
+              },
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          }),
+        }),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({
+          prefix: 'msg',
+        }),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          currentDate: () => new Date(0),
+        },
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(result.textStream);
+
+      expect(await result.steps).toMatchSnapshot();
+    });
+  });
+
   describe('result.toolCalls', () => {
     it('should resolve with tool calls', async () => {
       const result = streamText({
@@ -1555,6 +1759,7 @@ describe('streamText', () => {
         {
           type:
             | 'text-delta'
+            | 'reasoning'
             | 'tool-call'
             | 'tool-call-streaming-start'
             | 'tool-call-delta'
@@ -1576,6 +1781,10 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolName: 'tool1',
               argsTextDelta: '{"value": "',
+            },
+            {
+              type: 'reasoning',
+              textDelta: 'Feeling clever',
             },
             {
               type: 'tool-call-delta',
@@ -1640,6 +1849,10 @@ describe('streamText', () => {
           argsTextDelta: '{"value": "',
           toolCallId: '1',
           toolName: 'tool1',
+        },
+        {
+          type: 'reasoning',
+          textDelta: 'Feeling clever',
         },
         {
           type: 'tool-call-delta',
@@ -3208,6 +3421,7 @@ describe('streamText', () => {
           {
             stepType: 'initial',
             text: 'HELLO, WORLD!',
+            reasoning: undefined,
             experimental_providerMetadata: undefined,
             finishReason: 'stop',
             isContinued: false,
@@ -3525,6 +3739,7 @@ describe('streamText', () => {
             {
               type:
                 | 'text-delta'
+                | 'reasoning'
                 | 'tool-call'
                 | 'tool-call-streaming-start'
                 | 'tool-call-delta'
@@ -3537,6 +3752,7 @@ describe('streamText', () => {
           model: createTestModel({
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'reasoning', textDelta: 'Feeling clever' },
               {
                 type: 'tool-call-delta',
                 toolCallId: '1',
@@ -3596,6 +3812,10 @@ describe('streamText', () => {
 
         assert.deepStrictEqual(result, [
           { type: 'text-delta', textDelta: 'HELLO' },
+          {
+            type: 'reasoning',
+            textDelta: 'Feeling clever',
+          },
           {
             type: 'tool-call-streaming-start',
             toolCallId: '1',
