@@ -46,7 +46,7 @@ describe('result.text', () => {
       prompt: 'prompt',
     });
 
-    assert.deepStrictEqual(result.text, 'Hello, world!');
+    expect(result.text).toStrictEqual('Hello, world!');
   });
 });
 
@@ -58,18 +58,12 @@ describe('result.reasoning', () => {
           ...dummyResponseValues,
           text: 'Hello, world!',
           reasoning: 'I will open the conversation with witty banter.',
-          response: {
-            id: 'test-id-from-model',
-            timestamp: new Date(10000),
-            modelId: 'test-response-model-id',
-          },
         }),
       }),
       prompt: 'prompt',
     });
 
-    assert.deepStrictEqual(
-      result.reasoning,
+    expect(result.reasoning).toStrictEqual(
       'I will open the conversation with witty banter.',
     );
   });
