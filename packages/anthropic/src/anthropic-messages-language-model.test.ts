@@ -379,9 +379,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         },
       });
 
-      const model = provider('claude-3-haiku-20240307', {
-        cacheControl: true,
-      });
+      const model = provider('claude-3-haiku-20240307');
 
       const result = await model.doGenerate({
         mode: { type: 'regular' },
@@ -473,21 +471,37 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      // note: space moved to last chunk bc of trimming
       expect(await convertReadableStreamToArray(stream)).toStrictEqual([
         {
-          type: 'response-metadata',
           id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
           modelId: 'claude-3-haiku-20240307',
+          type: 'response-metadata',
         },
-        { type: 'text-delta', textDelta: 'Hello' },
-        { type: 'text-delta', textDelta: ', ' },
-        { type: 'text-delta', textDelta: 'World!' },
         {
-          type: 'finish',
+          textDelta: 'Hello',
+          type: 'text-delta',
+        },
+        {
+          textDelta: ', ',
+          type: 'text-delta',
+        },
+        {
+          textDelta: 'World!',
+          type: 'text-delta',
+        },
+        {
           finishReason: 'stop',
-          usage: { promptTokens: 17, completionTokens: 227 },
-          providerMetadata: undefined,
+          providerMetadata: {
+            anthropic: {
+              cacheCreationInputTokens: null,
+              cacheReadInputTokens: null,
+            },
+          },
+          type: 'finish',
+          usage: {
+            completionTokens: 227,
+            promptTokens: 17,
+          },
         },
       ]);
     });
@@ -600,10 +614,18 @@ describe('AnthropicMessagesLanguageModel', () => {
           args: '{"value":"Sparkle Day"}',
         },
         {
-          type: 'finish',
           finishReason: 'tool-calls',
-          usage: { promptTokens: 441, completionTokens: 65 },
-          providerMetadata: undefined,
+          providerMetadata: {
+            anthropic: {
+              cacheCreationInputTokens: null,
+              cacheReadInputTokens: null,
+            },
+          },
+          type: 'finish',
+          usage: {
+            completionTokens: 65,
+            promptTokens: 441,
+          },
         },
       ]);
     });
@@ -722,9 +744,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         ],
       };
 
-      const model = provider('claude-3-haiku-20240307', {
-        cacheControl: true,
-      });
+      const model = provider('claude-3-haiku-20240307');
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',

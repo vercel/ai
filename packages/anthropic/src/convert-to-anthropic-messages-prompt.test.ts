@@ -4,7 +4,6 @@ describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
     const result = convertToAnthropicMessagesPrompt({
       prompt: [{ role: 'system', content: 'This is a system message' }],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -22,7 +21,6 @@ describe('system messages', () => {
         { role: 'system', content: 'This is a system message' },
         { role: 'system', content: 'This is another system message' },
       ],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -53,7 +51,6 @@ describe('user messages', () => {
           ],
         },
       ],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -93,7 +90,6 @@ describe('user messages', () => {
           ],
         },
       ],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -134,7 +130,6 @@ describe('user messages', () => {
             ],
           },
         ],
-        cacheControl: false,
       }),
     ).toThrow('Non-PDF files in user messages');
   });
@@ -154,7 +149,6 @@ describe('user messages', () => {
             ],
           },
         ],
-        cacheControl: false,
       }),
     ).toThrow('Non-PDF files in user messages');
   });
@@ -176,7 +170,6 @@ describe('tool messages', () => {
           ],
         },
       ],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -221,7 +214,6 @@ describe('tool messages', () => {
           ],
         },
       ],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -270,7 +262,6 @@ describe('tool messages', () => {
           content: [{ type: 'text', text: 'This is a user message' }],
         },
       ],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -321,7 +312,6 @@ describe('tool messages', () => {
           ],
         },
       ],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -368,7 +358,6 @@ describe('assistant messages', () => {
           content: [{ type: 'text', text: 'assistant content  ' }],
         },
       ],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -403,7 +392,6 @@ describe('assistant messages', () => {
           ],
         },
       ],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -442,7 +430,6 @@ describe('assistant messages', () => {
           content: [{ type: 'text', text: 'user content 2' }],
         },
       ],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -474,7 +461,6 @@ describe('assistant messages', () => {
         { role: 'assistant', content: [{ type: 'text', text: 'World' }] },
         { role: 'assistant', content: [{ type: 'text', text: '!' }] },
       ],
-      cacheControl: false,
     });
 
     expect(result).toEqual({
@@ -509,7 +495,6 @@ describe('cache control', () => {
             },
           },
         ],
-        cacheControl: true,
       });
 
       expect(result).toEqual({
@@ -547,7 +532,6 @@ describe('cache control', () => {
             ],
           },
         ],
-        cacheControl: true,
       });
 
       expect(result).toEqual({
@@ -585,7 +569,6 @@ describe('cache control', () => {
             },
           },
         ],
-        cacheControl: true,
       });
 
       expect(result).toEqual({
@@ -633,7 +616,6 @@ describe('cache control', () => {
             ],
           },
         ],
-        cacheControl: true,
       });
 
       expect(result).toEqual({
@@ -677,7 +659,6 @@ describe('cache control', () => {
             ],
           },
         ],
-        cacheControl: true,
       });
 
       expect(result).toEqual({
@@ -719,7 +700,6 @@ describe('cache control', () => {
             },
           },
         ],
-        cacheControl: true,
       });
 
       expect(result).toEqual({
@@ -769,7 +749,6 @@ describe('cache control', () => {
             ],
           },
         ],
-        cacheControl: true,
       });
 
       expect(result).toEqual({
@@ -819,7 +798,6 @@ describe('cache control', () => {
             },
           },
         ],
-        cacheControl: true,
       });
 
       expect(result).toEqual({
@@ -841,48 +819,6 @@ describe('cache control', () => {
                   content: '{"test":"part2"}',
                   is_error: undefined,
                   cache_control: { type: 'ephemeral' },
-                },
-              ],
-            },
-          ],
-        },
-        betas: new Set(),
-      });
-    });
-  });
-
-  describe('disabled cache control', () => {
-    it('should not set cache_control on messages', async () => {
-      const result = convertToAnthropicMessagesPrompt({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'test',
-                providerMetadata: {
-                  anthropic: {
-                    cacheControl: { type: 'ephemeral' },
-                  },
-                },
-              },
-            ],
-          },
-        ],
-        cacheControl: false,
-      });
-
-      expect(result).toEqual({
-        prompt: {
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'test',
-                  cache_control: undefined,
                 },
               ],
             },
