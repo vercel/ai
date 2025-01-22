@@ -284,6 +284,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
         start(controller) {
           controller.enqueue({ type: 'response-metadata', ...result.response });
+          if (result.reasoning) {
+            controller.enqueue({
+              type: 'reasoning',
+              textDelta: result.reasoning,
+            });
+          }
           if (result.text) {
             controller.enqueue({
               type: 'text-delta',
