@@ -34,6 +34,11 @@ The generated text.
   readonly text: string;
 
   /**
+The reasoning that was generated during the generation.
+*/
+  readonly reasoning: string | undefined;
+
+  /**
 The tool calls that were made during the generation.
 */
   readonly toolCalls: ToolCallArray<TOOLS>;

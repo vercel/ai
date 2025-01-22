@@ -15,11 +15,11 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.1.0",
+    "@ai-sdk/openai": "1.1.1",
     "@nestjs/common": "^10.4.15",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.4.9",
-    "ai": "4.1.0",
+    "ai": "4.1.1",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1"
   },

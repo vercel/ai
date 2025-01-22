@@ -699,6 +699,12 @@ To see `generateText` in action, check out [these examples](#examples).
       description: 'The generated text by the model.',
     },
     {
+      name: 'reasoning',
+      type: 'string | undefined',
+      description:
+        'The reasoning text of the model (only available for some models).',
+    },
+    {
       name: 'toolCalls',
       type: 'array',
       description: 'A list of tool calls made by the model.',
@@ -840,6 +846,12 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'text',
               type: 'string',
               description: 'The generated text by the model.',
+            },
+            {
+              name: 'reasoning',
+              type: 'string | undefined',
+              description:
+                'The reasoning text of the model (only available for some models).',
             },
             {
               name: 'toolCalls',

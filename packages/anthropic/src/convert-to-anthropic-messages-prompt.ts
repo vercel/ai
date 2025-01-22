@@ -14,10 +14,8 @@ import {
 
 export function convertToAnthropicMessagesPrompt({
   prompt,
-  cacheControl: isCacheControlEnabled,
 }: {
   prompt: LanguageModelV1Prompt;
-  cacheControl: boolean;
 }): {
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -31,10 +29,6 @@ export function convertToAnthropicMessagesPrompt({
   function getCacheControl(
     providerMetadata: LanguageModelV1ProviderMetadata | undefined,
   ): AnthropicCacheControl | undefined {
-    if (isCacheControlEnabled === false) {
-      return undefined;
-    }
-
     const anthropic = providerMetadata?.anthropic;
 
     // allow both cacheControl and cache_control:

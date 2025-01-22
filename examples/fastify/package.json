@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "1.1.0",
-    "ai": "4.1.0",
+    "@ai-sdk/openai": "1.1.1",
+    "ai": "4.1.1",
     "dotenv": "16.4.5",
     "fastify": "5.1.0"
   },

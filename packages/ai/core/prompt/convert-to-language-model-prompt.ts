@@ -276,8 +276,8 @@ function convertPartToLanguageModelPart(
       }
     }
   } else {
-    // Since we know know the content is not a URL, we can attempt to normalize the data
-    // assuming it is some sort of data.
+    // Since we know now the content is not a URL, we can attempt to normalize
+    // the data assuming it is some sort of data.
     normalizedData = convertDataContentToUint8Array(content);
   }
 

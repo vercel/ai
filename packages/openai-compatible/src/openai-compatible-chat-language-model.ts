@@ -256,6 +256,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     return {
       text: choice.message.content ?? undefined,
+      reasoning: choice.message.reasoning_content ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
         toolCallId: toolCall.id ?? generateId(),
@@ -283,6 +284,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
         start(controller) {
           controller.enqueue({ type: 'response-metadata', ...result.response });
+          if (result.reasoning) {
+            controller.enqueue({
+              type: 'reasoning',
+              textDelta: result.reasoning,
+            });
+          }
           if (result.text) {
             controller.enqueue({
               type: 'text-delta',
@@ -366,6 +373,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
           ParseResult<z.infer<typeof this.chunkSchema>>,
           LanguageModelV1StreamPart
         >({
+          // TODO we lost type safety on Chunk, most likely due to the error schema. MUST FIX
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
@@ -412,6 +420,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
             }
 
             const delta = choice.delta;
+
+            // enqueue reasoning before text deltas:
+            if (delta.reasoning_content != null) {
+              controller.enqueue({
+                type: 'reasoning',
+                textDelta: delta.reasoning_content,
+              });
+            }
 
             if (delta.content != null) {
               controller.enqueue({
@@ -562,6 +578,7 @@ const OpenAICompatibleChatResponseSchema = z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
+        reasoning_content: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({
@@ -602,6 +619,7 @@ const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
             .object({
               role: z.enum(['assistant']).nullish(),
               content: z.string().nullish(),
+              reasoning_content: z.string().nullish(),
               tool_calls: z
                 .array(
                   z.object({
