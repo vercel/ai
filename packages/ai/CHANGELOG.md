@@ -1,5 +1,17 @@
 # ai
 
+## 4.1.1
+
+### Patch Changes
+
+- 0a699f1: feat: add reasoning token support
+- Updated dependencies [e7a9ec9]
+- Updated dependencies [0a699f1]
+  - @ai-sdk/ui-utils@1.1.1
+  - @ai-sdk/provider-utils@2.1.1
+  - @ai-sdk/provider@1.0.5
+  - @ai-sdk/react@1.1.1
+
 ## 4.1.0
 
 ### Minor Changes

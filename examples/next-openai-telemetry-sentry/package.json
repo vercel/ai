@@ -9,15 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.1.0",
-    "@ai-sdk/react": "1.1.0",
+    "@ai-sdk/openai": "1.1.1",
+    "@ai-sdk/react": "1.1.1",
     "@opentelemetry/api-logs": "0.55.0",
     "@opentelemetry/instrumentation": "0.52.1",
     "@opentelemetry/sdk-logs": "0.55.0",
     "@sentry/nextjs": "^8.42.0",
     "@sentry/opentelemetry": "8.22.0",
     "@vercel/otel": "1.10.0",
-    "ai": "4.1.0",
+    "ai": "4.1.1",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",

@@ -1,5 +1,16 @@
 # @ai-sdk/ui-utils
 
+## 1.1.1
+
+### Patch Changes
+
+- e7a9ec9: feat (provider-utils): include raw value in json parse results
+- 0a699f1: feat: add reasoning token support
+- Updated dependencies [e7a9ec9]
+- Updated dependencies [0a699f1]
+  - @ai-sdk/provider-utils@2.1.1
+  - @ai-sdk/provider@1.0.5
+
 ## 1.1.0
 
 ### Minor Changes

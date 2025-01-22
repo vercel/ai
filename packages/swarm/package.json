@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/swarm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -27,7 +27,7 @@
     }
   },
   "dependencies": {
-    "ai": "4.1.0",
+    "ai": "4.1.1",
     "zod": "3.23.8"
   },
   "devDependencies": {
