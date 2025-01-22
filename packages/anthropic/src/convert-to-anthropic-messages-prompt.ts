@@ -228,6 +228,9 @@ export function convertToAnthropicMessagesPrompt({
 
           for (let k = 0; k < content.length; k++) {
             const part = content[k];
+            if (part.type === 'reasoning') {
+              continue;
+            }
             const isLastContentPart = k === content.length - 1;
 
             // cache control: first add cache control from part.

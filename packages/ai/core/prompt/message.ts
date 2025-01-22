@@ -7,6 +7,7 @@ import {
   ImagePart,
   imagePartSchema,
   ReasoningPart,
+  reasoningPartSchema,
   TextPart,
   textPartSchema,
   ToolCallPart,
@@ -89,7 +90,9 @@ export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
     role: z.literal('assistant'),
     content: z.union([
       z.string(),
-      z.array(z.union([textPartSchema, toolCallPartSchema])),
+      z.array(
+        z.union([textPartSchema, reasoningPartSchema, toolCallPartSchema]),
+      ),
     ]),
     experimental_providerMetadata: providerMetadataSchema.optional(),
   });

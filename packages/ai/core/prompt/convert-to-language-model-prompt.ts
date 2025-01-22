@@ -4,11 +4,12 @@ import {
   LanguageModelV1Message,
   LanguageModelV1Prompt,
   LanguageModelV1TextPart,
+  LanguageModelV1ReasoningPart,
 } from '@ai-sdk/provider';
 import { download } from '../../util/download';
 import { CoreMessage } from '../prompt/message';
 import { detectImageMimeType } from '../util/detect-image-mimetype';
-import { FilePart, ImagePart, TextPart } from './content-part';
+import { FilePart, ImagePart, TextPart, ReasoningPart } from './content-part';
 import {
   convertDataContentToBase64String,
   convertDataContentToUint8Array,
@@ -106,6 +107,7 @@ export function convertToLanguageModelMessage(
             part => part.type !== 'text' || part.text !== '',
           )
           .map(part => {
+            if (part.type === 'reasoning') return part;
             const { experimental_providerMetadata, ...rest } = part;
             return {
               ...rest,
@@ -276,8 +278,8 @@ function convertPartToLanguageModelPart(
       }
     }
   } else {
-    // Since we know know the content is not a URL, we can attempt to normalize the data
-    // assuming it is some sort of data.
+    // Since we know now the content is not a URL, we can attempt to normalize
+    // the data assuming it is some sort of data.
     normalizedData = convertDataContentToUint8Array(content);
   }
 

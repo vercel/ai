@@ -30,7 +30,11 @@ export type LanguageModelV1Message =
       }
     | {
         role: 'assistant';
-        content: Array<LanguageModelV1TextPart | LanguageModelV1ToolCallPart>;
+        content: Array<
+          | LanguageModelV1TextPart
+          | LanguageModelV1ReasoningPart
+          | LanguageModelV1ToolCallPart
+        >;
       }
     | {
         role: 'tool';
@@ -62,6 +66,14 @@ The text content.
    * functionality that can be fully encapsulated in the provider.
    */
   providerMetadata?: LanguageModelV1ProviderMetadata;
+}
+
+/**
+Reasoning content part of a prompt. It contains a string of reasoning text.
+ */
+export interface LanguageModelV1ReasoningPart {
+  type: 'reasoning';
+  text: string;
 }
 
 /**
