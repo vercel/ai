@@ -7,7 +7,6 @@ describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
     const result = toResponseMessages({
       text: 'Hello, world!',
-      reasoning: undefined,
       tools: {
         testTool: {
           description: 'A test tool',
@@ -29,32 +28,8 @@ describe('toResponseMessages', () => {
     ]);
   });
 
-  it('should return an assistant message with reasoning and text', () => {
-    const result = toResponseMessages({
-      text: 'Hello, world!',
-      reasoning: 'Feeling clever',
-      tools: {},
-      toolCalls: [],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
-    });
-
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        id: 'msg-123',
-        content: [
-          { type: 'reasoning', text: 'Feeling clever' },
-          { type: 'text', text: 'Hello, world!' },
-        ],
-      },
-    ]);
-  });
-
   it('should include tool calls in the assistant message', () => {
     const result = toResponseMessages({
-      reasoning: 'Feeling clever',
       text: 'Using a tool',
       tools: {
         testTool: {
@@ -80,10 +55,6 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          {
-            type: 'reasoning',
-            text: 'Feeling clever',
-          },
           { type: 'text', text: 'Using a tool' },
           {
             type: 'tool-call',
@@ -98,7 +69,6 @@ describe('toResponseMessages', () => {
 
   it('should include tool results as a separate message', () => {
     const result = toResponseMessages({
-      reasoning: 'Feeling clever',
       text: 'Tool used',
       tools: {
         testTool: {
@@ -133,10 +103,6 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          {
-            type: 'reasoning',
-            text: 'Feeling clever',
-          },
           { type: 'text', text: 'Tool used' },
           {
             type: 'tool-call',
@@ -164,7 +130,6 @@ describe('toResponseMessages', () => {
   it('should handle undefined text', () => {
     const result = toResponseMessages({
       text: undefined,
-      reasoning: undefined,
       tools: {
         testTool: {
           description: 'A test tool',
@@ -189,7 +154,6 @@ describe('toResponseMessages', () => {
   it('should handle multipart tool results', () => {
     const result = toResponseMessages({
       text: 'multipart tool result',
-      reasoning: undefined,
       tools: {
         testTool: tool({
           description: 'A test tool',

@@ -471,7 +471,6 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               text,
-              reasoning: currentModelResponse.reasoning,
               tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
               toolResults: currentToolResults,

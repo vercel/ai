@@ -49,7 +49,7 @@ type CoreAssistantMessage = {
   content: AssistantContent;
 };
 
-type AssistantContent = string | Array<TextPart | ReasoningPart | ToolCallPart>;
+type AssistantContent = string | Array<TextPart | ToolCallPart>;
 ```
 
 ### `CoreToolMessage`
@@ -77,17 +77,6 @@ export interface TextPart {
   /**
    * The text content.
    */
-  text: string;
-}
-```
-
-### `ReasoningPart`
-
-Represents a reasoning part in a response. It contains a string of reasoning text.
-
-```typescript
-export interface ReasoningPart {
-  type: 'reasoning';
   text: string;
 }
 ```

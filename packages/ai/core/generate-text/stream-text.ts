@@ -604,7 +604,6 @@ class DefaultStreamTextResult<
         if (part.type === 'step-finish') {
           const stepMessages = toResponseMessages({
             text: recordedContinuationText,
-            reasoning: recordedReasoningText,
             tools: tools ?? ({} as TOOLS),
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
@@ -1266,7 +1265,6 @@ class DefaultStreamTextResult<
                       responseMessages.push(
                         ...toResponseMessages({
                           text: stepText,
-                          reasoning: stepReasoning,
                           tools: tools ?? ({} as TOOLS),
                           toolCalls: stepToolCalls,
                           toolResults: stepToolResults,

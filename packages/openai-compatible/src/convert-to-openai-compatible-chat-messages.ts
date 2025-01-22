@@ -78,9 +78,6 @@ export function convertToOpenAICompatibleChatMessages(
         }> = [];
 
         for (const part of content) {
-          if (part.type === 'reasoning') {
-            continue;
-          }
           const partMetadata = getOpenAIMetadata(part);
           switch (part.type) {
             case 'text': {

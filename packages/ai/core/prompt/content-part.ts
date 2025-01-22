@@ -35,19 +35,6 @@ export const textPartSchema: z.ZodType<TextPart> = z.object({
 });
 
 /**
-Reasoning content part of a response. It contains a string of reasoning text.
- */
-export interface ReasoningPart {
-  type: 'reasoning';
-  text: string;
-}
-
-export const reasoningPartSchema: z.ZodType<ReasoningPart> = z.object({
-  type: z.literal('reasoning'),
-  text: z.string(),
-});
-
-/**
 Image content part of a prompt. It contains an image.
  */
 export interface ImagePart {
