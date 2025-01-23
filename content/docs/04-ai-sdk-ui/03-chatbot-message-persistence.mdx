@@ -225,3 +225,47 @@ export async function POST(req: Request) {
   // ...
 }
 ```
+
+## Sending only the last message
+
+Once you have implemented message persistence, you might want to send only the last message to the server.
+This reduces the amount of data sent to the server on each request and can improve performance.
+
+To achieve this, you can provide an `experimental_prepareRequestBody` function to the `useChat` hook (React only).
+This function receives the messages and the chat ID, and returns the request body to be sent to the server.
+
+```tsx filename="ui/chat.tsx" highlight="7-10"
+import { useChat } from 'ai/react';
+
+const {
+  // ...
+} = useChat({
+  // ...
+  // only send the last message to the server:
+  experimental_prepareRequestBody({ messages, id }) {
+    return { message: messages[messages.length - 1], id };
+  },
+});
+```
+
+On the server, you can then load the previous messages and append the new message to the previous messages:
+
+```tsx filename="app/api/chat/route.ts" highlight="2-9"
+export async function POST(req: Request) {
+  // get the last message from the client:
+  const { message, id } = await req.json();
+
+  // load the previous messages from the server:
+  const previousMessages = await loadChat(id);
+
+  // append the new message to the previous messages:
+  const messages = [...previousMessages, message];
+
+  const result = streamText({
+    // ...
+    messages,
+  });
+
+  // ...
+}
+```

@@ -1,5 +1,51 @@
 # ai
 
+## 4.1.2
+
+### Patch Changes
+
+- 3c5fafa: chore (ai/core): move streamText toolCallStreaming option to stable
+- 3a58a2e: feat (ai/core): throw NoImageGeneratedError from generateImage when no predictions are returned.
+- Updated dependencies [ed012d2]
+- Updated dependencies [6f4d063]
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/provider-utils@2.1.2
+  - @ai-sdk/react@1.1.2
+  - @ai-sdk/provider@1.0.6
+  - @ai-sdk/ui-utils@1.1.2
+
+## 4.1.1
+
+### Patch Changes
+
+- 0a699f1: feat: add reasoning token support
+- Updated dependencies [e7a9ec9]
+- Updated dependencies [0a699f1]
+  - @ai-sdk/ui-utils@1.1.1
+  - @ai-sdk/provider-utils@2.1.1
+  - @ai-sdk/provider@1.0.5
+  - @ai-sdk/react@1.1.1
+
+## 4.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+### Patch Changes
+
+- Updated dependencies [62ba5ad]
+  - @ai-sdk/provider-utils@2.1.0
+  - @ai-sdk/react@1.1.0
+  - @ai-sdk/ui-utils@1.1.0
+
+## 4.0.41
+
+### Patch Changes
+
+- Updated dependencies [44f04d5]
+  - @ai-sdk/react@1.0.14
+
 ## 4.0.40
 
 ### Patch Changes

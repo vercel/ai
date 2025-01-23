@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 1.0.6
+
+### Patch Changes
+
+- 3a58a2e: feat (ai/core): throw NoImageGeneratedError from generateImage when no predictions are returned.
+
+## 1.0.5
+
+### Patch Changes
+
+- 0a699f1: feat: add reasoning token support
+
 ## 1.0.4
 
 ### Patch Changes

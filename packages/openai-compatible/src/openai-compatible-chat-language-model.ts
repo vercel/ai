@@ -5,7 +5,6 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1ObjectGenerationMode,
-  LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import {
@@ -33,6 +32,7 @@ import {
   ProviderErrorStructure,
 } from './openai-compatible-error';
 import { prepareTools } from './openai-compatible-prepare-tools';
+import { MetadataExtractor } from './openai-compatible-metadata-extractor';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
@@ -40,6 +40,7 @@ export type OpenAICompatibleChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
+  metadataExtractor?: MetadataExtractor;
 
   /**
 Default object generation mode that should be used with this model when
@@ -236,7 +237,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     const body = JSON.stringify(args);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: responseBody,
+      rawValue: parsedBody,
+    } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
@@ -252,10 +257,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
-    const choice = response.choices[0];
+    const choice = responseBody.choices[0];
+    const providerMetadata = this.config.metadataExtractor?.extractMetadata?.({
+      parsedBody,
+    });
 
     return {
       text: choice.message.content ?? undefined,
+      reasoning: choice.message.reasoning_content ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
         toolCallId: toolCall.id ?? generateId(),
@@ -264,12 +273,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       })),
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       usage: {
-        promptTokens: response.usage?.prompt_tokens ?? NaN,
-        completionTokens: response.usage?.completion_tokens ?? NaN,
+        promptTokens: responseBody.usage?.prompt_tokens ?? NaN,
+        completionTokens: responseBody.usage?.completion_tokens ?? NaN,
       },
+      ...(providerMetadata && { providerMetadata }),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
-      response: getResponseMetadata(response),
+      response: getResponseMetadata(responseBody),
       warnings,
       request: { body },
     };
@@ -283,6 +293,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
         start(controller) {
           controller.enqueue({ type: 'response-metadata', ...result.response });
+          if (result.reasoning) {
+            controller.enqueue({
+              type: 'reasoning',
+              textDelta: result.reasoning,
+            });
+          }
           if (result.text) {
             controller.enqueue({
               type: 'text-delta',
@@ -318,6 +334,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs({ ...options });
 
     const body = JSON.stringify({ ...args, stream: true });
+    const metadataExtractor =
+      this.config.metadataExtractor?.createStreamExtractor();
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -359,13 +377,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     };
     let isFirstChunk = true;
 
-    let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof this.chunkSchema>>,
           LanguageModelV1StreamPart
         >({
+          // TODO we lost type safety on Chunk, most likely due to the error schema. MUST FIX
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
@@ -373,8 +391,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
-
             const value = chunk.value;
+
+            metadataExtractor?.processChunk(chunk.rawValue);
 
             // handle error chunks:
             if ('error' in value) {
@@ -412,6 +431,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
             }
 
             const delta = choice.delta;
+
+            // enqueue reasoning before text deltas:
+            if (delta.reasoning_content != null) {
+              controller.enqueue({
+                type: 'reasoning',
+                textDelta: delta.reasoning_content,
+              });
+            }
 
             if (delta.content != null) {
               controller.enqueue({
@@ -531,6 +558,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
+            const metadata = metadataExtractor?.buildMetadata();
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -538,7 +566,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                 promptTokens: usage.promptTokens ?? NaN,
                 completionTokens: usage.completionTokens ?? NaN,
               },
-              ...(providerMetadata != null ? { providerMetadata } : {}),
+              ...(metadata && { providerMetadata: metadata }),
             });
           },
         }),
@@ -562,6 +590,7 @@ const OpenAICompatibleChatResponseSchema = z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
+        reasoning_content: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({
@@ -602,6 +631,7 @@ const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
             .object({
               role: z.enum(['assistant']).nullish(),
               content: z.string().nullish(),
+              reasoning_content: z.string().nullish(),
               tool_calls: z
                 .array(
                   z.object({

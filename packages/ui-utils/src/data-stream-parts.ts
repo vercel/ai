@@ -346,6 +346,17 @@ const startStepStreamPart: DataStreamPart<
   },
 };
 
+const reasoningStreamPart: DataStreamPart<'g', 'reasoning', string> = {
+  code: 'g',
+  name: 'reasoning',
+  parse: (value: JSONValue) => {
+    if (typeof value !== 'string') {
+      throw new Error('"reasoning" parts expect a string value.');
+    }
+    return { type: 'reasoning', value };
+  },
+};
+
 const dataStreamParts = [
   textStreamPart,
   dataStreamPart,
@@ -358,6 +369,7 @@ const dataStreamParts = [
   finishMessageStreamPart,
   finishStepStreamPart,
   startStepStreamPart,
+  reasoningStreamPart,
 ] as const;
 
 type DataStreamParts =
@@ -371,7 +383,8 @@ type DataStreamParts =
   | typeof toolCallDeltaStreamPart
   | typeof finishMessageStreamPart
   | typeof finishStepStreamPart
-  | typeof startStepStreamPart;
+  | typeof startStepStreamPart
+  | typeof reasoningStreamPart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -391,7 +404,8 @@ export type DataStreamPartType =
   | ReturnType<typeof toolCallDeltaStreamPart.parse>
   | ReturnType<typeof finishMessageStreamPart.parse>
   | ReturnType<typeof finishStepStreamPart.parse>
-  | ReturnType<typeof startStepStreamPart.parse>;
+  | ReturnType<typeof startStepStreamPart.parse>
+  | ReturnType<typeof reasoningStreamPart.parse>;
 
 export const dataStreamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -405,6 +419,7 @@ export const dataStreamPartsByCode = {
   [finishMessageStreamPart.code]: finishMessageStreamPart,
   [finishStepStreamPart.code]: finishStepStreamPart,
   [startStepStreamPart.code]: startStepStreamPart,
+  [reasoningStreamPart.code]: reasoningStreamPart,
 } as const;
 
 /**
@@ -442,6 +457,7 @@ export const DataStreamStringPrefixes = {
   [finishMessageStreamPart.name]: finishMessageStreamPart.code,
   [finishStepStreamPart.name]: finishStepStreamPart.code,
   [startStepStreamPart.name]: startStepStreamPart.code,
+  [reasoningStreamPart.name]: reasoningStreamPart.code,
 } as const;
 
 export const validCodes = dataStreamParts.map(part => part.code);

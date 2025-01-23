@@ -5,7 +5,7 @@ import * as https from 'https';
 /**
  * Fetches the raw HTML text from the given URL using https.
  */
-function fetchPage(url: string, retries = 10, delay = 1000): Promise<string> {
+function fetchPage(url: string, retries = 10, delay = 4000): Promise<string> {
   return new Promise((resolve, reject) => {
     https
       .get(url, res => {
@@ -111,7 +111,7 @@ async function main() {
     // Update percentages
     results.forEach(item => {
       const percentage = (item['weekly downloads'] / totalDownloads) * 100;
-      item['percentage of total'] = `${percentage.toFixed(1)}%`;
+      item['percentage'] = `${percentage.toFixed(1)}%`;
     });
 
     // Sort results by weekly downloads in descending order

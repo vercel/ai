@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: deepseek('deepseek-chat'),
+    model: deepseek('deepseek-reasoner'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

@@ -1,5 +1,44 @@
 # @ai-sdk/google-vertex
 
+## 2.1.2
+
+### Patch Changes
+
+- 3a58a2e: feat (ai/core): throw NoImageGeneratedError from generateImage when no predictions are returned.
+- Updated dependencies [ed012d2]
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/provider-utils@2.1.2
+  - @ai-sdk/provider@1.0.6
+  - @ai-sdk/anthropic@1.1.2
+  - @ai-sdk/google@1.1.2
+
+## 2.1.1
+
+### Patch Changes
+
+- b284e2c: feat (provider/google-vertex): support prompt caching for Anthropic Claude models
+- Updated dependencies [e7a9ec9]
+- Updated dependencies [858f934]
+- Updated dependencies [b284e2c]
+- Updated dependencies [0a699f1]
+  - @ai-sdk/provider-utils@2.1.1
+  - @ai-sdk/anthropic@1.1.1
+  - @ai-sdk/provider@1.0.5
+  - @ai-sdk/google@1.1.1
+
+## 2.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+### Patch Changes
+
+- Updated dependencies [62ba5ad]
+  - @ai-sdk/anthropic@1.1.0
+  - @ai-sdk/google@1.1.0
+  - @ai-sdk/provider-utils@2.1.0
+
 ## 2.0.19
 
 ### Patch Changes

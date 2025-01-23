@@ -108,7 +108,7 @@ const processResponseStream = async (
         messages: Message[];
         requestData?: JSONValue;
         requestBody?: object;
-      }) => JSONValue)
+      }) => unknown)
     | undefined,
   fetch: FetchFunction | undefined,
   keepLastMessageOnError: boolean,
@@ -215,10 +215,11 @@ export function useChat({
    * @param requestBody The request body object passed in the chat request.
    */
   experimental_prepareRequestBody?: (options: {
+    id: string;
     messages: Message[];
     requestData?: JSONValue;
     requestBody?: object;
-  }) => JSONValue;
+  }) => unknown;
 
   /**
 Custom throttle wait in ms for the chat messages and data updates.
@@ -540,41 +541,38 @@ By default, it's set to 1, which means that only a single LLM call is made.
     setInput(e.target.value);
   };
 
-  const addToolResult = ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: any;
-  }) => {
-    const updatedMessages = messagesRef.current.map((message, index, arr) =>
-      // update the tool calls in the last assistant message:
-      index === arr.length - 1 &&
-      message.role === 'assistant' &&
-      message.toolInvocations
-        ? {
-            ...message,
-            toolInvocations: message.toolInvocations.map(toolInvocation =>
-              toolInvocation.toolCallId === toolCallId
-                ? {
-                    ...toolInvocation,
-                    result,
-                    state: 'result' as const,
-                  }
-                : toolInvocation,
-            ),
-          }
-        : message,
-    );
+  const addToolResult = useCallback(
+    ({ toolCallId, result }: { toolCallId: string; result: any }) => {
+      const updatedMessages = messagesRef.current.map((message, index, arr) =>
+        // update the tool calls in the last assistant message:
+        index === arr.length - 1 &&
+        message.role === 'assistant' &&
+        message.toolInvocations
+          ? {
+              ...message,
+              toolInvocations: message.toolInvocations.map(toolInvocation =>
+                toolInvocation.toolCallId === toolCallId
+                  ? {
+                      ...toolInvocation,
+                      result,
+                      state: 'result' as const,
+                    }
+                  : toolInvocation,
+              ),
+            }
+          : message,
+      );
 
-    mutate(updatedMessages, false);
+      mutate(updatedMessages, false);
 
-    // auto-submit when all tool calls in the last assistant message have results:
-    const lastMessage = updatedMessages[updatedMessages.length - 1];
-    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      triggerRequest({ messages: updatedMessages });
-    }
-  };
+      // auto-submit when all tool calls in the last assistant message have results:
+      const lastMessage = updatedMessages[updatedMessages.length - 1];
+      if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
+        triggerRequest({ messages: updatedMessages });
+      }
+    },
+    [mutate, triggerRequest],
+  );
 
   return {
     messages: messages || [],
