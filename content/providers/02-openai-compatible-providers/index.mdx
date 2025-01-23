@@ -171,37 +171,40 @@ const provider = createOpenAICompatible({
 For example, with the above configuration, API requests would include the query parameter in the URL like:
 `https://api.provider.com/v1/chat/completions?api-version=1.0.0`.
 
-## Metadata Processors
+## Custom Metadata Extraction
 
-The OpenAI Compatible provider supports extracting and processing provider-specific metadata from API responses through metadata processors. These processors allow you to capture additional information returned by the provider beyond the standard response format.
+The OpenAI Compatible provider supports extracting provider-specific metadata from API responses through metadata extractors.
+These extractors allow you to capture additional information returned by the provider beyond the standard response format.
 
-Metadata processors receive the raw, unprocessed response data from the provider, giving you complete flexibility to extract any custom fields or experimental features that the provider may include. This is particularly useful when:
+Metadata extractors receive the raw, unprocessed response data from the provider, giving you complete flexibility
+to extract any custom fields or experimental features that the provider may include.
+This is particularly useful when:
 
 - Working with providers that include non-standard response fields
 - Experimenting with beta or preview features
 - Capturing provider-specific metrics or debugging information
 - Supporting rapid provider API evolution without SDK changes
 
-Metadata processors work with both streaming and non-streaming chat completions and consist of two main components:
+Metadata extractors work with both streaming and non-streaming chat completions and consist of two main components:
 
 1. A function to extract metadata from complete responses
-2. A streaming processor that can accumulate metadata across chunks in a streaming response
+2. A streaming extractor that can accumulate metadata across chunks in a streaming response
 
-Here's an example metadata processor that captures both standard and custom provider data:
+Here's an example metadata extractor that captures both standard and custom provider data:
 
 ```typescript
-const MyMetadataProcessor: MetadataProcessor = {
+const MyMetadataExtractor: MetadataExtractor = {
   // Process complete, non-streaming responses
-  buildMetadataFromResponse: (response: unknown) => {
+  extractMetadata: ({ parsedBody }) => {
     // You have access to the complete raw response
     // Extract any fields the provider includes
     return {
       myProvider: {
-        standardUsage: response.usage,
-        experimentalFeatures: response.beta_features,
+        standardUsage: parsedBody.usage,
+        experimentalFeatures: parsedBody.beta_features,
         customMetrics: {
-          processingTime: response.server_timing?.total_ms,
-          modelVersion: response.model_version,
+          processingTime: parsedBody.server_timing?.total_ms,
+          modelVersion: parsedBody.model_version,
           // ... any other provider-specific data
         },
       },
@@ -209,7 +212,7 @@ const MyMetadataProcessor: MetadataProcessor = {
   },
 
   // Process streaming responses
-  createStreamingMetadataProcessor: () => {
+  createStreamExtractor: () => {
     let accumulatedData = {
       timing: [],
       customFields: {},
@@ -217,16 +220,16 @@ const MyMetadataProcessor: MetadataProcessor = {
 
     return {
       // Process each chunk's raw data
-      processChunk: (chunk: unknown) => {
-        if (chunk.server_timing) {
-          accumulatedData.timing.push(chunk.server_timing);
+      processChunk: parsedChunk => {
+        if (parsedChunk.server_timing) {
+          accumulatedData.timing.push(parsedChunk.server_timing);
         }
-        if (chunk.custom_data) {
-          Object.assign(accumulatedData.customFields, chunk.custom_data);
+        if (parsedChunk.custom_data) {
+          Object.assign(accumulatedData.customFields, parsedChunk.custom_data);
         }
       },
       // Build final metadata from accumulated data
-      buildFinalMetadata: () => ({
+      buildMetadata: () => ({
         myProvider: {
           streamTiming: accumulatedData.timing,
           customData: accumulatedData.customFields,
@@ -237,14 +240,14 @@ const MyMetadataProcessor: MetadataProcessor = {
 };
 ```
 
-You can provide a metadata processor when creating your provider instance:
+You can provide a metadata extractor when creating your provider instance:
 
 ```typescript
 const provider = createOpenAICompatible({
   name: 'my-provider',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
-  metadataProcessor: MyMetadataProcessor,
+  metadataExtractor: MyMetadataExtractor,
 });
 ```
 
@@ -260,83 +263,3 @@ console.log(providerMetadata.myProvider.customMetric);
 ```
 
 This allows you to access provider-specific information while maintaining a consistent interface across different providers.
-
-### Type-Safe Metadata Processing with Zod
-
-When working with provider-specific response data, it's recommended to use a schema validation library like [Zod](https://zod.dev) to ensure type safety and handle potential inconsistencies in the response data. Here's a simplified example:
-
-```typescript
-import { MetadataProcessor } from '@ai-sdk/openai-compatible';
-import { z } from 'zod';
-
-// Define schemas for expected response shapes
-const UsageSchema = z.object({
-  cache_hit_tokens: z.number().nullish(),
-  cache_miss_tokens: z.number().nullish(),
-});
-
-const ResponseSchema = z.object({
-  usage: UsageSchema.nullish(),
-});
-
-const StreamChunkSchema = z.object({
-  choices: z
-    .array(
-      z.object({
-        finish_reason: z.string().nullish(),
-      }),
-    )
-    .optional(),
-  usage: UsageSchema.nullish(),
-});
-
-// Create a type-safe metadata processor
-const TypeSafeMetadataProcessor: MetadataProcessor = {
-  buildMetadataFromResponse: (response: unknown) => {
-    // Safely parse the raw response
-    const parsed = ResponseSchema.safeParse(response);
-    if (!parsed.success || !parsed.data.usage) return undefined;
-
-    return {
-      provider: {
-        cacheHitTokens: parsed.data.usage.cache_hit_tokens ?? NaN,
-        cacheMissTokens: parsed.data.usage.cache_miss_tokens ?? NaN,
-      },
-    };
-  },
-
-  createStreamingMetadataProcessor: () => {
-    let finalUsage: z.infer<typeof UsageSchema> | undefined;
-
-    return {
-      processChunk: (chunk: unknown) => {
-        const parsed = StreamChunkSchema.safeParse(chunk);
-        if (!parsed.success) return;
-
-        // Capture usage data from the final chunk
-        if (parsed.data.choices?.[0]?.finish_reason === 'stop') {
-          finalUsage = parsed.data.usage;
-        }
-      },
-      buildFinalMetadata: () => {
-        if (!finalUsage) return undefined;
-        return {
-          provider: {
-            cacheHitTokens: finalUsage.cache_hit_tokens ?? NaN,
-            cacheMissTokens: finalUsage.cache_miss_tokens ?? NaN,
-          },
-        };
-      },
-    };
-  },
-};
-```
-
-Using Zod schemas provides several benefits:
-
-- Type safety and runtime validation of response data
-- Clear documentation of expected response structure
-- Graceful handling of missing or nullable fields
-- TypeScript inference from schema definitions
-
-This approach is particularly valuable when working with experimental or evolving provider APIs, as it helps catch and handle response format changes early in development.
