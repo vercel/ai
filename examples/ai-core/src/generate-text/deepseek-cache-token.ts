@@ -1,6 +1,6 @@
-import 'dotenv/config';
 import { deepseek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
+import 'dotenv/config';
 import fs from 'node:fs';
 
 const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');

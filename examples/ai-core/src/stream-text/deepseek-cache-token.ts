@@ -1,5 +1,5 @@
 import { deepseek } from '@ai-sdk/deepseek';
-import { generateText, streamText } from 'ai';
+import { streamText } from 'ai';
 import 'dotenv/config';
 import fs from 'node:fs';
 
@@ -29,7 +29,6 @@ async function main() {
     ],
   });
 
-  console.log(result);
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }
