@@ -17,6 +17,7 @@
     "@ai-sdk/mistral": "1.1.2",
     "@ai-sdk/openai": "1.1.2",
     "@ai-sdk/openai-compatible": "0.1.2",
+    "@ai-sdk/perplexity": "0.0.0",
     "@ai-sdk/provider": "1.0.6",
     "@ai-sdk/replicate": "0.1.2",
     "@ai-sdk/togetherai": "0.1.2",
