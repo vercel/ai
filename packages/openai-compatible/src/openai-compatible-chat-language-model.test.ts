@@ -1677,23 +1677,23 @@ describe('doStream simulated streaming', () => {
   });
 });
 
-describe('metadata processor', () => {
-  const testMetadataProcessor = {
-    buildMetadataFromResponse: (response: unknown) => {
+describe('metadata extraction', () => {
+  const testMetadataExtractor = {
+    extractMetadata: ({ parsedBody }: { parsedBody: unknown }) => {
       if (
-        typeof response !== 'object' ||
-        !response ||
-        !('test_field' in response)
+        typeof parsedBody !== 'object' ||
+        !parsedBody ||
+        !('test_field' in parsedBody)
       ) {
         return undefined;
       }
       return {
         test: {
-          value: response.test_field as string,
+          value: parsedBody.test_field as string,
         },
       };
     },
-    createStreamingMetadataProcessor: () => {
+    createStreamExtractor: () => {
       let accumulatedValue: string | undefined;
 
       return {
@@ -1709,7 +1709,7 @@ describe('metadata processor', () => {
             accumulatedValue = chunk.test_field as string;
           }
         },
-        buildFinalMetadata: () =>
+        buildMetadata: () =>
           accumulatedValue
             ? {
                 test: {
@@ -1723,7 +1723,7 @@ describe('metadata processor', () => {
 
   describe('non-streaming', () => {
     describeWithTestServer(
-      'metadata processing',
+      'metadata extraction',
       {
         url: 'https://my.api.com/v1/chat/completions',
         type: 'json-value',
@@ -1754,7 +1754,7 @@ describe('metadata processor', () => {
               provider: 'test-provider',
               url: () => 'https://my.api.com/v1/chat/completions',
               headers: () => ({}),
-              metadataProcessor: testMetadataProcessor,
+              metadataExtractor: testMetadataExtractor,
             },
           );
 
@@ -1801,7 +1801,7 @@ describe('metadata processor', () => {
               provider: 'test-provider',
               url: () => 'https://my.api.com/v1/chat/completions',
               headers: () => ({}),
-              metadataProcessor: testMetadataProcessor,
+              metadataExtractor: testMetadataExtractor,
             },
           );
 

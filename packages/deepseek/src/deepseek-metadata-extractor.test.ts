@@ -1,4 +1,4 @@
-import { DeepSeekMetadataProcessor } from './deepseek-metadata-processor';
+import { deepSeekMetadataExtractor } from './deepseek-metadata-extractor';
 
 describe('buildMetadataFromResponse', () => {
   it('should extract metadata from complete response with usage data', () => {
@@ -9,8 +9,9 @@ describe('buildMetadataFromResponse', () => {
       },
     };
 
-    const metadata =
-      DeepSeekMetadataProcessor.buildMetadataFromResponse(response);
+    const metadata = deepSeekMetadataExtractor.extractMetadata({
+      parsedBody: response,
+    });
 
     expect(metadata).toEqual({
       deepseek: {
@@ -26,8 +27,9 @@ describe('buildMetadataFromResponse', () => {
       choices: [],
     };
 
-    const metadata =
-      DeepSeekMetadataProcessor.buildMetadataFromResponse(response);
+    const metadata = deepSeekMetadataExtractor.extractMetadata({
+      parsedBody: response,
+    });
 
     expect(metadata).toBeUndefined();
   });
@@ -35,8 +37,9 @@ describe('buildMetadataFromResponse', () => {
   it('should handle invalid response data', () => {
     const response = 'invalid data';
 
-    const metadata =
-      DeepSeekMetadataProcessor.buildMetadataFromResponse(response);
+    const metadata = deepSeekMetadataExtractor.extractMetadata({
+      parsedBody: response,
+    });
 
     expect(metadata).toBeUndefined();
   });
@@ -44,8 +47,7 @@ describe('buildMetadataFromResponse', () => {
 
 describe('streaming metadata processor', () => {
   it('should process streaming chunks and build final metadata', () => {
-    const processor =
-      DeepSeekMetadataProcessor.createStreamingMetadataProcessor();
+    const processor = deepSeekMetadataExtractor.createStreamExtractor();
 
     // Process initial chunks without usage data
     processor.processChunk({
@@ -61,7 +63,7 @@ describe('streaming metadata processor', () => {
       },
     });
 
-    const finalMetadata = processor.buildFinalMetadata();
+    const finalMetadata = processor.buildMetadata();
 
     expect(finalMetadata).toEqual({
       deepseek: {
@@ -72,32 +74,29 @@ describe('streaming metadata processor', () => {
   });
 
   it('should handle streaming chunks without usage data', () => {
-    const processor =
-      DeepSeekMetadataProcessor.createStreamingMetadataProcessor();
+    const processor = deepSeekMetadataExtractor.createStreamExtractor();
 
     processor.processChunk({
       choices: [{ finish_reason: 'stop' }],
     });
 
-    const finalMetadata = processor.buildFinalMetadata();
+    const finalMetadata = processor.buildMetadata();
 
     expect(finalMetadata).toBeUndefined();
   });
 
   it('should handle invalid streaming chunks', () => {
-    const processor =
-      DeepSeekMetadataProcessor.createStreamingMetadataProcessor();
+    const processor = deepSeekMetadataExtractor.createStreamExtractor();
 
     processor.processChunk('invalid chunk');
 
-    const finalMetadata = processor.buildFinalMetadata();
+    const finalMetadata = processor.buildMetadata();
 
     expect(finalMetadata).toBeUndefined();
   });
 
   it('should only capture usage data from final chunk with stop reason', () => {
-    const processor =
-      DeepSeekMetadataProcessor.createStreamingMetadataProcessor();
+    const processor = deepSeekMetadataExtractor.createStreamExtractor();
 
     // Process chunk with usage but no stop reason
     processor.processChunk({
@@ -117,7 +116,7 @@ describe('streaming metadata processor', () => {
       },
     });
 
-    const finalMetadata = processor.buildFinalMetadata();
+    const finalMetadata = processor.buildMetadata();
 
     expect(finalMetadata).toEqual({
       deepseek: {
@@ -128,8 +127,7 @@ describe('streaming metadata processor', () => {
   });
 
   it('should handle null values in usage data', () => {
-    const processor =
-      DeepSeekMetadataProcessor.createStreamingMetadataProcessor();
+    const processor = deepSeekMetadataExtractor.createStreamExtractor();
 
     processor.processChunk({
       choices: [{ finish_reason: 'stop' }],
@@ -139,7 +137,7 @@ describe('streaming metadata processor', () => {
       },
     });
 
-    const finalMetadata = processor.buildFinalMetadata();
+    const finalMetadata = processor.buildMetadata();
 
     expect(finalMetadata).toEqual({
       deepseek: {

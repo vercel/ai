@@ -13,7 +13,7 @@ import {
   DeepSeekChatModelId,
   DeepSeekChatSettings,
 } from './deepseek-chat-settings';
-import { DeepSeekMetadataProcessor } from './deepseek-metadata-processor';
+import { deepSeekMetadataExtractor } from './deepseek-metadata-extractor';
 
 export interface DeepSeekProviderSettings {
   /**
@@ -86,7 +86,7 @@ export function createDeepSeek(
       headers: getHeaders,
       fetch: options.fetch,
       defaultObjectGenerationMode: 'json',
-      metadataProcessor: DeepSeekMetadataProcessor,
+      metadataExtractor: deepSeekMetadataExtractor,
     });
   };
 

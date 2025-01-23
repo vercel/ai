@@ -32,7 +32,7 @@ import {
   ProviderErrorStructure,
 } from './openai-compatible-error';
 import { prepareTools } from './openai-compatible-prepare-tools';
-import { MetadataProcessor } from './openai-compatible-metadata-processor';
+import { MetadataExtractor } from './openai-compatible-metadata-extractor';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
@@ -40,7 +40,7 @@ export type OpenAICompatibleChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
-  metadataProcessor?: MetadataProcessor;
+  metadataExtractor?: MetadataExtractor;
 
   /**
 Default object generation mode that should be used with this model when
@@ -239,8 +239,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     const {
       responseHeaders,
-      value: response,
-      rawValue: rawResponse,
+      value: responseBody,
+      rawValue: parsedBody,
     } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
@@ -257,9 +257,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
-    const choice = response.choices[0];
-    const providerMetadata =
-      this.config.metadataProcessor?.buildMetadataFromResponse?.(rawResponse);
+    const choice = responseBody.choices[0];
+    const providerMetadata = this.config.metadataExtractor?.extractMetadata?.({
+      parsedBody,
+    });
 
     return {
       text: choice.message.content ?? undefined,
@@ -272,13 +273,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       })),
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       usage: {
-        promptTokens: response.usage?.prompt_tokens ?? NaN,
-        completionTokens: response.usage?.completion_tokens ?? NaN,
+        promptTokens: responseBody.usage?.prompt_tokens ?? NaN,
+        completionTokens: responseBody.usage?.completion_tokens ?? NaN,
       },
       ...(providerMetadata && { providerMetadata }),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
-      response: getResponseMetadata(response),
+      response: getResponseMetadata(responseBody),
       warnings,
       request: { body },
     };
@@ -333,8 +334,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs({ ...options });
 
     const body = JSON.stringify({ ...args, stream: true });
-    const metadataProcessor =
-      this.config.metadataProcessor?.createStreamingMetadataProcessor();
+    const metadataExtractor =
+      this.config.metadataExtractor?.createStreamExtractor();
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -392,7 +393,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
             }
             const value = chunk.value;
 
-            metadataProcessor?.processChunk(chunk.rawValue);
+            metadataExtractor?.processChunk(chunk.rawValue);
 
             // handle error chunks:
             if ('error' in value) {
@@ -557,7 +558,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
-            const finalMetadata = metadataProcessor?.buildFinalMetadata();
+            const metadata = metadataExtractor?.buildMetadata();
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -565,7 +566,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                 promptTokens: usage.promptTokens ?? NaN,
                 completionTokens: usage.completionTokens ?? NaN,
               },
-              ...(finalMetadata && { providerMetadata: finalMetadata }),
+              ...(metadata && { providerMetadata: metadata }),
             });
           },
         }),
