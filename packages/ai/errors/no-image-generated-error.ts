@@ -17,7 +17,7 @@ export class NoImageGeneratedError extends AISDKError {
   /**
 The response metadata for each call.
    */
-  readonly responses: Array<ImageModelResponseMetadata | undefined> | undefined;
+  readonly responses: Array<ImageModelResponseMetadata> | undefined;
 
   constructor({
     message = 'No image generated.',

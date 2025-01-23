@@ -65,7 +65,7 @@ The ID of the response model that was used to generate the response.
       /**
 Response headers.
       */
-      headers?: Record<string, string>;
+      headers: Record<string, string> | undefined;
     };
   }>;
 };
