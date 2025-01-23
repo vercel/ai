@@ -1027,7 +1027,28 @@ describe('doStream', () => {
     server.responseChunks = [
       `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
-        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
+        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
+        `"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
+        `"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
+        `"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
+        `"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
+        `"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
+        `"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
+        `"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
         `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
         `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
@@ -1069,7 +1090,56 @@ describe('doStream', () => {
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
         toolCallType: 'function',
         toolName: 'test-tool',
-        argsTextDelta: '{"value":"Sparkle Day"}',
+        argsTextDelta: '{"',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: 'va',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: 'lue',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '":"',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: 'Spark',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: 'le',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: ' Day',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '"}',
       },
       {
         type: 'tool-call',
