@@ -49,9 +49,19 @@ Warnings for the call, e.g. unsupported settings.
     warnings: Array<ImageModelV1CallWarning>;
 
     /**
-Optional response information for telemetry and debugging purposes.
+Response information for telemetry and debugging purposes.
      */
-    response?: {
+    response: {
+      /**
+Timestamp for the start of the generated response.
+      */
+      timestamp: Date;
+
+      /**
+The ID of the response model that was used to generate the response.
+      */
+      modelId: string;
+
       /**
 Response headers.
       */

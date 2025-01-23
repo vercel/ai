@@ -24,7 +24,7 @@ Warnings for the call, e.g. unsupported settings.
   /**
 Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
    */
-  readonly responses: Array<ImageModelResponseMetadata | undefined>;
+  readonly responses: Array<ImageModelResponseMetadata>;
 }
 
 export interface GeneratedImage {

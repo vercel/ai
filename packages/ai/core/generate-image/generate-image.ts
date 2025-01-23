@@ -148,18 +148,13 @@ Only applicable for HTTP-based providers.
   // collect result images, warnings, and response metadata
   const images: Array<DefaultGeneratedImage> = [];
   const warnings: Array<ImageGenerationWarning> = [];
-  const responses: Array<ImageModelResponseMetadata | undefined> = [];
-  const currentDate = _internal?.currentDate?.() ?? new Date();
+  const responses: Array<ImageModelResponseMetadata> = [];
   for (const result of results) {
     images.push(
       ...result.images.map(image => new DefaultGeneratedImage({ image })),
     );
     warnings.push(...result.warnings);
-    responses.push({
-      timestamp: currentDate,
-      modelId: model.modelId,
-      headers: result.response?.headers,
-    });
+    responses.push(result.response);
   }
 
   if (!images.length) {
@@ -172,12 +167,12 @@ Only applicable for HTTP-based providers.
 class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedImage>;
   readonly warnings: Array<ImageGenerationWarning>;
-  readonly responses: Array<ImageModelResponseMetadata | undefined>;
+  readonly responses: Array<ImageModelResponseMetadata>;
 
   constructor(options: {
     images: Array<DefaultGeneratedImage>;
     warnings: Array<ImageGenerationWarning>;
-    responses: Array<ImageModelResponseMetadata | undefined>;
+    responses: Array<ImageModelResponseMetadata>;
   }) {
     this.images = options.images;
     this.warnings = options.warnings;

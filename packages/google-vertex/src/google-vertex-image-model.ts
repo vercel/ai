@@ -18,6 +18,9 @@ interface GoogleVertexImageModelConfig {
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: typeof fetch;
+  _internal?: {
+    currentDate?: () => Date;
+  };
 }
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
@@ -72,6 +75,7 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       },
     };
 
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:predict`,
       headers: combineHeaders(await resolve(this.config.headers), headers),
@@ -91,6 +95,8 @@ export class GoogleVertexImageModel implements ImageModelV1 {
         ) ?? [],
       warnings,
       response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
         headers: responseHeaders,
       },
     };

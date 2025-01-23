@@ -26,7 +26,7 @@ The response metadata for each call.
   }: {
     message?: string;
     cause?: Error;
-    responses: Array<ImageModelResponseMetadata | undefined>;
+    responses?: Array<ImageModelResponseMetadata>;
   }) {
     super({ name, message, cause });
 

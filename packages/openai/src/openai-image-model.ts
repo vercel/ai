@@ -13,6 +13,12 @@ import {
   modelMaxImagesPerCall,
 } from './openai-image-settings';
 
+interface OpenAIImageModelConfig extends OpenAIConfig {
+  _internal?: {
+    currentDate?: () => Date;
+  };
+}
+
 export class OpenAIImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
@@ -29,7 +35,7 @@ export class OpenAIImageModel implements ImageModelV1 {
   constructor(
     readonly modelId: OpenAIImageModelId,
     private readonly settings: OpenAIImageSettings,
-    private readonly config: OpenAIConfig,
+    private readonly config: OpenAIImageModelConfig,
   ) {}
 
   async doGenerate({
@@ -59,6 +65,7 @@ export class OpenAIImageModel implements ImageModelV1 {
       warnings.push({ type: 'unsupported-setting', setting: 'seed' });
     }
 
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',
@@ -85,6 +92,8 @@ export class OpenAIImageModel implements ImageModelV1 {
       images: response.data.map(item => item.b64_json),
       warnings,
       response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
         headers: responseHeaders,
       },
     };

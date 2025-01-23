@@ -69,6 +69,9 @@ interface FireworksImageModelConfig {
   baseURL: string;
   headers: () => Record<string, string>;
   fetch?: FetchFunction;
+  _internal?: {
+    currentDate?: () => Date;
+  };
 }
 
 const createBinaryResponseHandler =
@@ -179,6 +182,7 @@ export class FireworksImageModel implements ImageModelV1 {
     }
 
     const splitSize = size?.split('x');
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: getUrlForModel(this.config.baseURL, this.modelId),
       headers: combineHeaders(this.config.headers(), headers),
@@ -200,6 +204,8 @@ export class FireworksImageModel implements ImageModelV1 {
       images: [new Uint8Array(response)],
       warnings,
       response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
         headers: responseHeaders,
       },
     };

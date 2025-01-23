@@ -23,7 +23,15 @@ describe('generateImage', () => {
       model: new MockImageModelV1({
         doGenerate: async args => {
           capturedArgs = args;
-          return { images: [mockBase64Image], warnings: [] };
+          return {
+            images: [mockBase64Image],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
         },
       }),
       prompt,
@@ -58,6 +66,11 @@ describe('generateImage', () => {
               message: 'Setting is not supported',
             },
           ],
+          response: {
+            timestamp: new Date(),
+            modelId: 'test-model-id',
+            headers: {},
+          },
         }),
       }),
       prompt,
@@ -80,7 +93,15 @@ describe('generateImage', () => {
 
       const result = await generateImage({
         model: new MockImageModelV1({
-          doGenerate: async () => ({ images: base64Images, warnings: [] }),
+          doGenerate: async () => ({
+            images: base64Images,
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
         }),
         prompt,
       });
@@ -110,6 +131,11 @@ describe('generateImage', () => {
           doGenerate: async () => ({
             images: [base64Image, 'base64-image-2'],
             warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
           }),
         }),
         prompt,
@@ -134,7 +160,15 @@ describe('generateImage', () => {
 
       const result = await generateImage({
         model: new MockImageModelV1({
-          doGenerate: async () => ({ images: uint8ArrayImages, warnings: [] }),
+          doGenerate: async () => ({
+            images: uint8ArrayImages,
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
         }),
         prompt,
       });
@@ -183,7 +217,15 @@ describe('generateImage', () => {
                   headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
-                return { images: base64Images.slice(0, 2), warnings: [] };
+                return {
+                  images: base64Images.slice(0, 2),
+                  warnings: [],
+                  response: {
+                    timestamp: new Date(),
+                    modelId: 'test-model-id',
+                    headers: {},
+                  },
+                };
               case 1:
                 expect(options).toStrictEqual({
                   prompt,
@@ -195,7 +237,15 @@ describe('generateImage', () => {
                   headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
-                return { images: base64Images.slice(2), warnings: [] };
+                return {
+                  images: base64Images.slice(2),
+                  warnings: [],
+                  response: {
+                    timestamp: new Date(),
+                    modelId: 'test-model-id',
+                    headers: {},
+                  },
+                };
               default:
                 throw new Error('Unexpected call');
             }
@@ -243,6 +293,11 @@ describe('generateImage', () => {
                 return {
                   images: base64Images.slice(0, 2),
                   warnings: [{ type: 'other', message: '1' }],
+                  response: {
+                    timestamp: new Date(),
+                    modelId: 'test-model-id',
+                    headers: {},
+                  },
                 };
               case 1:
                 expect(options).toStrictEqual({
@@ -258,6 +313,11 @@ describe('generateImage', () => {
                 return {
                   images: base64Images.slice(2),
                   warnings: [{ type: 'other', message: '2' }],
+                  response: {
+                    timestamp: new Date(),
+                    modelId: 'test-model-id',
+                    headers: {},
+                  },
                 };
               default:
                 throw new Error('Unexpected call');
@@ -287,7 +347,15 @@ describe('generateImage', () => {
       await expect(
         generateImage({
           model: new MockImageModelV1({
-            doGenerate: async () => ({ images: [], warnings: [] }),
+            doGenerate: async () => ({
+              images: [],
+              warnings: [],
+              response: {
+                timestamp: testDate,
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
           }),
           prompt,
           _internal: {
@@ -314,6 +382,8 @@ describe('generateImage', () => {
               images: [],
               warnings: [],
               response: {
+                timestamp: testDate,
+                modelId: 'test-model-id',
                 headers: {
                   'custom-response-header': 'response-header-value',
                 },
