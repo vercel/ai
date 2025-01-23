@@ -51,14 +51,15 @@ export default function Chat() {
       <form
         onSubmit={e => {
           e.preventDefault();
-          const text = inputRef.current?.value || '';
+          const input = inputRef.current;
+          if (!input) return;
+
           submitMessage({
-            text,
-            metadata: {
-              createdAt: new Date(),
-            },
+            text: input.value,
+            metadata: { createdAt: new Date() },
           });
-          if (inputRef.current) inputRef.current.value = '';
+
+          input.value = '';
         }}
       >
         <input
