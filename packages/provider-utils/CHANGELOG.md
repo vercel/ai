@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 2.1.2
+
+### Patch Changes
+
+- ed012d2: feat (provider): add metadata extraction mechanism to openai-compatible providers
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/provider@1.0.6
+
 ## 2.1.1
 
 ### Patch Changes
