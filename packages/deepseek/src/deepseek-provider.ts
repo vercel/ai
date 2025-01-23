@@ -3,7 +3,6 @@ import {
   LanguageModelV1,
   NoSuchModelError,
   ProviderV1,
-  LanguageModelV1ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -77,7 +76,9 @@ export function createDeepSeek(
     ...options.headers,
   });
 
-  const buildDeepseekMetadata = (usage: Record<string, any> | undefined) => {
+  const buildDeepseekMetadata = (
+    usage: z.infer<typeof DeepSeekUsageSchema> | undefined,
+  ) => {
     if (usage?.prompt_cache_hit_tokens != null) {
       return {
         deepseek: {
@@ -101,17 +102,23 @@ export function createDeepSeek(
       defaultObjectGenerationMode: 'json',
       metadataProcessor: {
         buildMetadataFromResponse: (response: unknown) => {
-          const data = response as Record<string, any>;
-          return buildDeepseekMetadata(data?.usage);
+          const parsed = DeepSeekResponseSchema.safeParse(response);
+          if (!parsed.success || !parsed.data.usage) return undefined;
+          return buildDeepseekMetadata(parsed.data.usage);
         },
         createStreamingMetadataProcessor: () => {
-          let finalUsage: Record<string, number> | undefined;
+          let finalUsage: z.infer<typeof DeepSeekUsageSchema> | undefined;
 
           return {
             processChunk: (chunk: unknown) => {
-              const data = chunk as Record<string, any>;
-              if (data.choices?.[0]?.finish_reason === 'stop' && data.usage) {
-                finalUsage = data.usage;
+              const parsed = DeepSeekStreamChunkSchema.safeParse(chunk);
+              if (!parsed.success) return;
+
+              if (
+                parsed.data.choices?.[0]?.finish_reason === 'stop' &&
+                parsed.data.usage
+              ) {
+                finalUsage = parsed.data.usage;
               }
             },
             buildFinalMetadata: () => buildDeepseekMetadata(finalUsage),
@@ -136,3 +143,23 @@ export function createDeepSeek(
 }
 
 export const deepseek = createDeepSeek();
+
+const DeepSeekUsageSchema = z.object({
+  prompt_cache_hit_tokens: z.number().nullish(),
+  prompt_cache_miss_tokens: z.number().nullish(),
+});
+
+const DeepSeekResponseSchema = z.object({
+  usage: DeepSeekUsageSchema.nullish(),
+});
+
+const DeepSeekStreamChunkSchema = z.object({
+  choices: z
+    .array(
+      z.object({
+        finish_reason: z.string().nullish(),
+      }),
+    )
+    .optional(),
+  usage: DeepSeekUsageSchema.nullish(),
+});

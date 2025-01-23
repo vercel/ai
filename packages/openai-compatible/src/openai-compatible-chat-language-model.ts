@@ -392,7 +392,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
             }
             const value = chunk.value;
 
-            // console.log('chunk', JSON.stringify(chunk, null, 2));
             metadataProcessor?.processChunk(chunk.rawValue);
 
             // handle error chunks:
