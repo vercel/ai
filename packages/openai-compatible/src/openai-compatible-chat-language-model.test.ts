@@ -3,6 +3,8 @@ import {
   JsonTestServer,
   StreamingTestServer,
   convertReadableStreamToArray,
+  createTestServer,
+  describeWithTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from './openai-compatible-provider';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
@@ -1025,28 +1027,7 @@ describe('doStream', () => {
     server.responseChunks = [
       `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
-        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
+        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
         `"finish_reason":null}]}\n\n`,
       `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
         `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
@@ -1088,56 +1069,7 @@ describe('doStream', () => {
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
         toolCallType: 'function',
         toolName: 'test-tool',
-        argsTextDelta: '{"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'va',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'lue',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '":"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'Spark',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'le',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: ' Day',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"}',
+        argsTextDelta: '{"value":"Sparkle Day"}',
       },
       {
         type: 'tool-call',
@@ -1673,5 +1605,160 @@ describe('doStream simulated streaming', () => {
         providerMetadata: undefined,
       },
     ]);
+  });
+});
+
+describe('metadata processor', () => {
+  const testMetadataProcessor = {
+    buildMetadataFromResponse: (response: unknown) => {
+      if (
+        typeof response !== 'object' ||
+        !response ||
+        !('test_field' in response)
+      ) {
+        return undefined;
+      }
+      return {
+        test: {
+          value: response.test_field as string,
+        },
+      };
+    },
+    createStreamingMetadataProcessor: () => {
+      let accumulatedValue: string | undefined;
+
+      return {
+        processChunk: (chunk: unknown) => {
+          if (
+            typeof chunk === 'object' &&
+            chunk &&
+            'choices' in chunk &&
+            Array.isArray(chunk.choices) &&
+            chunk.choices[0]?.finish_reason === 'stop' &&
+            'test_field' in chunk
+          ) {
+            accumulatedValue = chunk.test_field as string;
+          }
+        },
+        buildFinalMetadata: () =>
+          accumulatedValue
+            ? {
+                test: {
+                  value: accumulatedValue,
+                },
+              }
+            : undefined,
+      };
+    },
+  };
+
+  describe('non-streaming', () => {
+    describeWithTestServer(
+      'metadata processing',
+      {
+        url: 'https://my.api.com/v1/chat/completions',
+        type: 'json-value',
+        content: {
+          id: 'chatcmpl-123',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'gpt-4',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello',
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          test_field: 'test_value',
+        },
+      },
+      ({ call }) => {
+        it('should process metadata from complete response', async () => {
+          const model = new OpenAICompatibleChatLanguageModel(
+            'gpt-4',
+            {},
+            {
+              provider: 'test-provider',
+              url: () => 'https://my.api.com/v1/chat/completions',
+              headers: () => ({}),
+              metadataProcessor: testMetadataProcessor,
+            },
+          );
+
+          const result = await model.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(result.providerMetadata).toEqual({
+            test: {
+              value: 'test_value',
+            },
+          });
+
+          const requestBody = await call(0).getRequestBodyJson();
+          expect(requestBody).toStrictEqual({
+            model: 'gpt-4',
+            messages: [{ role: 'user', content: 'Hello' }],
+          });
+        });
+      },
+    );
+  });
+
+  describe('streaming', () => {
+    describeWithTestServer(
+      'metadata streaming',
+      {
+        url: 'https://my.api.com/v1/chat/completions',
+        type: 'stream-values',
+        content: [
+          'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n',
+          'data: {"choices":[{"finish_reason":"stop"}],"test_field":"test_value"}\n\n',
+          'data: [DONE]\n\n',
+        ],
+      },
+      ({ call }) => {
+        it('should process metadata from streaming response', async () => {
+          const model = new OpenAICompatibleChatLanguageModel(
+            'gpt-4',
+            {},
+            {
+              provider: 'test-provider',
+              url: () => 'https://my.api.com/v1/chat/completions',
+              headers: () => ({}),
+              metadataProcessor: testMetadataProcessor,
+            },
+          );
+
+          const result = await model.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          const parts = await convertReadableStreamToArray(result.stream);
+          const finishPart = parts.find(part => part.type === 'finish');
+
+          expect(finishPart?.providerMetadata).toEqual({
+            test: {
+              value: 'test_value',
+            },
+          });
+
+          const requestBody = await call(0).getRequestBodyJson();
+          expect(requestBody).toStrictEqual({
+            model: 'gpt-4',
+            messages: [{ role: 'user', content: 'Hello' }],
+            stream: true,
+          });
+        });
+      },
+    );
   });
 });
