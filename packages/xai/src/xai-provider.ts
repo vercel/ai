@@ -9,7 +9,11 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { XaiChatModelId, XaiChatSettings } from './xai-chat-settings';
+import {
+  XaiChatModelId,
+  XaiChatSettings,
+  supportsStructuredOutputs,
+} from './xai-chat-settings';
 import { z } from 'zod';
 import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 
@@ -89,13 +93,15 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     modelId: XaiChatModelId,
     settings: XaiChatSettings = {},
   ) => {
+    const structuredOutputs = supportsStructuredOutputs(modelId);
     return new OpenAICompatibleChatLanguageModel(modelId, settings, {
       provider: 'xai.chat',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      defaultObjectGenerationMode: 'tool',
+      defaultObjectGenerationMode: structuredOutputs ? 'json' : 'tool',
       errorStructure: xaiErrorStructure,
+      supportsStructuredOutputs: structuredOutputs,
     });
   };
 

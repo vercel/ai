@@ -4,6 +4,7 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
 import { ToolExecutionError } from '../../errors';
+import { mockId } from '../test/mock-id';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
@@ -45,7 +46,50 @@ describe('result.text', () => {
       prompt: 'prompt',
     });
 
-    assert.deepStrictEqual(result.text, 'Hello, world!');
+    expect(result.text).toStrictEqual('Hello, world!');
+  });
+});
+
+describe('result.reasoning', () => {
+  it('should contain reasoning from model response', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: 'Hello, world!',
+          reasoning: 'I will open the conversation with witty banter.',
+        }),
+      }),
+      prompt: 'prompt',
+    });
+
+    expect(result.reasoning).toStrictEqual(
+      'I will open the conversation with witty banter.',
+    );
+  });
+});
+
+describe('result.steps', () => {
+  it('should add the reasoning from the model response to the step result', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: 'Hello, world!',
+          reasoning: 'I will open the conversation with witty banter.',
+        }),
+      }),
+      prompt: 'prompt',
+      experimental_generateMessageId: mockId({
+        prefix: 'msg',
+      }),
+      _internal: {
+        generateId: mockId({ prefix: 'id' }),
+        currentDate: () => new Date(0),
+      },
+    });
+
+    expect(result.steps).toMatchSnapshot();
   });
 });
 
@@ -245,6 +289,7 @@ describe('result.response.messages', () => {
         }),
       }),
       prompt: 'test-input',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -287,6 +332,7 @@ describe('result.response.messages', () => {
         },
       },
       prompt: 'test-input',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -334,6 +380,7 @@ describe('result.response', () => {
         }),
       }),
       prompt: 'prompt',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response).toMatchSnapshot();
@@ -498,6 +545,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
     });
 
@@ -722,6 +770,7 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
     });
 
@@ -734,6 +783,8 @@ describe('options.maxSteps', () => {
     it('result.response.messages should contain an assistant message with the combined text', () => {
       expect(result.response.messages).toStrictEqual([
         {
+          role: 'assistant',
+          id: 'msg-0',
           content: [
             {
               text: 'part 1 \n ',
@@ -752,7 +803,6 @@ describe('options.maxSteps', () => {
               type: 'text',
             },
           ],
-          role: 'assistant',
         },
       ]);
     });
@@ -1177,7 +1227,7 @@ describe('options.messages', () => {
 
 describe('options.output', () => {
   describe('no output', () => {
-    it('should have undefined output', async () => {
+    it('should throw error when accessing output', async () => {
       const result = await generateText({
         model: new MockLanguageModelV1({
           doGenerate: async () => ({
@@ -1188,7 +1238,9 @@ describe('options.output', () => {
         prompt: 'prompt',
       });
 
-      expect(result.experimental_output).toBeUndefined();
+      expect(() => {
+        result.experimental_output;
+      }).toThrow('No output specified');
     });
   });
 
@@ -1400,6 +1452,7 @@ describe('tool execution errors', () => {
     }).rejects.toThrow(
       new ToolExecutionError({
         toolName: 'tool1',
+        toolCallId: 'call-1',
         toolArgs: { value: 'value' },
         cause: new Error('test error'),
       }),

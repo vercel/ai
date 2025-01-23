@@ -1,4 +1,4 @@
-import { ImageModelV1 } from '@ai-sdk/provider';
+import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -7,34 +7,58 @@ import {
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
-
-export type OpenAIImageModelId = 'dall-e-3' | 'dall-e-2' | (string & {});
+import {
+  OpenAIImageModelId,
+  OpenAIImageSettings,
+  modelMaxImagesPerCall,
+} from './openai-image-settings';
 
 export class OpenAIImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly modelId: OpenAIImageModelId;
 
-  private readonly config: OpenAIConfig;
+  get maxImagesPerCall(): number {
+    return (
+      this.settings.maxImagesPerCall ?? modelMaxImagesPerCall[this.modelId] ?? 1
+    );
+  }
 
   get provider(): string {
     return this.config.provider;
   }
 
-  constructor(modelId: OpenAIImageModelId, config: OpenAIConfig) {
-    this.modelId = modelId;
-    this.config = config;
-  }
+  constructor(
+    readonly modelId: OpenAIImageModelId,
+    private readonly settings: OpenAIImageSettings,
+    private readonly config: OpenAIConfig,
+  ) {}
 
   async doGenerate({
     prompt,
     n,
     size,
+    aspectRatio,
+    seed,
     providerOptions,
     headers,
     abortSignal,
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
+    const warnings: Array<ImageModelV1CallWarning> = [];
+
+    if (aspectRatio != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'aspectRatio',
+        details:
+          'This model does not support aspect ratio. Use `size` instead.',
+      });
+    }
+
+    if (seed != null) {
+      warnings.push({ type: 'unsupported-setting', setting: 'seed' });
+    }
+
     const { value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',
@@ -59,6 +83,7 @@ export class OpenAIImageModel implements ImageModelV1 {
 
     return {
       images: response.data.map(item => item.b64_json),
+      warnings,
     };
   }
 }

@@ -227,13 +227,6 @@ export default function Page() {
 
 The useChat hook on your root page (`app/page.tsx`) will make a request to your AI provider endpoint (`app/api/chat/route.ts`) whenever the user submits a message. The messages are then displayed in the chat UI.
 
-<Note>
-  o1 does not support streaming. To use o1 with `streamText`, enable the
-  [`simulateStreaming`](/providers/ai-sdk-providers/openai#chat-models) option,
-  which will 'stream' the response once the model completes its reasoning and
-  generates the full output. The latest version of o1-mini supports streaming.
-</Note>
-
 ## Get Started
 
 Ready to get started? Here's how you can dive in:

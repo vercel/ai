@@ -1,5 +1,77 @@
 # @ai-sdk/solid
 
+## 1.1.1
+
+### Patch Changes
+
+- Updated dependencies [e7a9ec9]
+- Updated dependencies [0a699f1]
+  - @ai-sdk/ui-utils@1.1.1
+  - @ai-sdk/provider-utils@2.1.1
+
+## 1.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+### Patch Changes
+
+- Updated dependencies [62ba5ad]
+  - @ai-sdk/provider-utils@2.1.0
+  - @ai-sdk/ui-utils@1.1.0
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [33592d2]
+  - @ai-sdk/ui-utils@1.0.12
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [00114c5]
+- Updated dependencies [00114c5]
+  - @ai-sdk/provider-utils@2.0.8
+  - @ai-sdk/ui-utils@1.0.11
+
+## 1.0.11
+
+### Patch Changes
+
+- 37f4510: feat (ui): expose useChat id and send it to the server
+- Updated dependencies [37f4510]
+  - @ai-sdk/ui-utils@1.0.10
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [2495973]
+- Updated dependencies [2495973]
+  - @ai-sdk/ui-utils@1.0.9
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [90fb95a]
+- Updated dependencies [e6dfef4]
+- Updated dependencies [6636db6]
+  - @ai-sdk/provider-utils@2.0.7
+  - @ai-sdk/ui-utils@1.0.8
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [19a2ce7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider-utils@2.0.6
+  - @ai-sdk/ui-utils@1.0.7
+
 ## 1.0.7
 
 ### Patch Changes

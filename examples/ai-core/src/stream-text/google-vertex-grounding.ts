@@ -16,7 +16,7 @@ async function main() {
     process.stdout.write(textPart);
   }
 
-  console.log((await result.experimental_providerMetadata)?.vertex);
+  console.log((await result.experimental_providerMetadata)?.google);
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createFireworks } from './fireworks-provider';
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
@@ -8,6 +7,7 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
+import { FireworksImageModel } from './fireworks-image-model';
 
 // Add type assertion for the mocked class
 const OpenAICompatibleChatLanguageModelMock =
@@ -22,6 +22,10 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
 vi.mock('@ai-sdk/provider-utils', () => ({
   loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
   withoutTrailingSlash: vi.fn(url => url),
+}));
+
+vi.mock('./fireworks-image-model', () => ({
+  FireworksImageModel: vi.fn(),
 }));
 
 describe('FireworksProvider', () => {
@@ -123,6 +127,56 @@ describe('FireworksProvider', () => {
       const model = provider.textEmbeddingModel(modelId, settings);
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
+    });
+  });
+
+  describe('image', () => {
+    it('should construct an image model with correct configuration', () => {
+      const provider = createFireworks();
+      const modelId = 'accounts/fireworks/models/flux-1-dev-fp8';
+      const settings = { maxImagesPerCall: 2 };
+
+      const model = provider.image(modelId, settings);
+
+      expect(model).toBeInstanceOf(FireworksImageModel);
+      expect(FireworksImageModel).toHaveBeenCalledWith(
+        modelId,
+        settings,
+        expect.objectContaining({
+          provider: 'fireworks.image',
+          baseURL: 'https://api.fireworks.ai/inference/v1',
+        }),
+      );
+    });
+
+    it('should use default settings when none provided', () => {
+      const provider = createFireworks();
+      const modelId = 'accounts/fireworks/models/flux-1-dev-fp8';
+
+      const model = provider.image(modelId);
+
+      expect(model).toBeInstanceOf(FireworksImageModel);
+      expect(FireworksImageModel).toHaveBeenCalledWith(
+        modelId,
+        {},
+        expect.any(Object),
+      );
+    });
+
+    it('should respect custom baseURL', () => {
+      const customBaseURL = 'https://custom.api.fireworks.ai';
+      const provider = createFireworks({ baseURL: customBaseURL });
+      const modelId = 'accounts/fireworks/models/flux-1-dev-fp8';
+
+      const model = provider.image(modelId);
+
+      expect(FireworksImageModel).toHaveBeenCalledWith(
+        modelId,
+        expect.any(Object),
+        expect.objectContaining({
+          baseURL: customBaseURL,
+        }),
+      );
     });
   });
 });

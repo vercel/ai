@@ -217,7 +217,7 @@ either synchronously or asynchronously.
   onError?: (error: Error) => void;
 
   /**
-   * A way to provide a function that is going to be used for ids for messages.
+   * A way to provide a function that is going to be used for ids for messages and the chat.
    * If not provided the default AI SDK `generateId` is used.
    */
   generateId?: IdGenerator;

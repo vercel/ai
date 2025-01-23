@@ -175,6 +175,8 @@ describe('doGenerate', () => {
       completion_tokens?: number;
       completion_tokens_details?: {
         reasoning_tokens?: number;
+        accepted_prediction_tokens?: number;
+        rejected_prediction_tokens?: number;
       };
       prompt_tokens_details?: {
         cached_tokens?: number;
@@ -1088,13 +1090,42 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should return accepted_prediction_tokens and rejected_prediction_tokens in completion_details_tokens', async () => {
+    prepareJsonResponse({
+      usage: {
+        prompt_tokens: 15,
+        completion_tokens: 20,
+        total_tokens: 35,
+        completion_tokens_details: {
+          accepted_prediction_tokens: 123,
+          rejected_prediction_tokens: 456,
+        },
+      },
+    });
+
+    const model = provider.chat('gpt-4o-mini');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      openai: {
+        acceptedPredictionTokens: 123,
+        rejectedPredictionTokens: 456,
+      },
+    });
+  });
+
   describe('reasoning models', () => {
-    it('should clear out temperature, top_p, frequency_penalty, presence_penalty', async () => {
+    it('should clear out temperature, top_p, frequency_penalty, presence_penalty and return warnings', async () => {
       prepareJsonResponse();
 
       const model = provider.chat('o1-preview');
 
-      await model.doGenerate({
+      const result = await model.doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
@@ -1108,7 +1139,101 @@ describe('doGenerate', () => {
         model: 'o1-preview',
         messages: [{ role: 'user', content: 'Hello' }],
       });
+
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported-setting',
+          setting: 'topP',
+          details: 'topP is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported-setting',
+          setting: 'frequencyPenalty',
+          details: 'frequencyPenalty is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported-setting',
+          setting: 'presencePenalty',
+          details: 'presencePenalty is not supported for reasoning models',
+        },
+      ]);
     });
+
+    it('should convert maxTokens to max_completion_tokens', async () => {
+      prepareJsonResponse();
+
+      const model = provider.chat('o1-preview');
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        maxTokens: 1000,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'o1-preview',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_completion_tokens: 1000,
+      });
+    });
+  });
+
+  it('should remove system messages for o1-preview and add a warning', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('o1-preview');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1-preview',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'other',
+        message: 'system messages are removed for this model',
+      },
+    ]);
+  });
+
+  it('should use developer messages for o1', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('o1');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'o1',
+      messages: [
+        { role: 'developer', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Hello' },
+      ],
+    });
+
+    expect(result.warnings).toStrictEqual([]);
   });
 
   it('should return the reasoning tokens in the provider metadata', async () => {
@@ -1262,7 +1387,9 @@ describe('doStream', () => {
         cached_tokens?: number;
       };
       completion_tokens_details?: {
-        reasoning_tokens: number;
+        reasoning_tokens?: number;
+        accepted_prediction_tokens?: number;
+        rejected_prediction_tokens?: number;
       };
     };
     logprobs?: {
@@ -1333,6 +1460,7 @@ describe('doStream', () => {
         finishReason: 'stop',
         logprobs: mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
         usage: { promptTokens: 17, completionTokens: 227 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1460,6 +1588,7 @@ describe('doStream', () => {
         finishReason: 'tool-calls',
         logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1594,6 +1723,7 @@ describe('doStream', () => {
         finishReason: 'tool-calls',
         logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1717,6 +1847,7 @@ describe('doStream', () => {
         finishReason: 'tool-calls',
         logprobs: undefined,
         usage: { promptTokens: 226, completionTokens: 20 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1781,6 +1912,7 @@ describe('doStream', () => {
         finishReason: 'tool-calls',
         logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1857,6 +1989,7 @@ describe('doStream', () => {
         finishReason: 'stop',
         logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1895,6 +2028,7 @@ describe('doStream', () => {
           completionTokens: NaN,
           promptTokens: NaN,
         },
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -1920,6 +2054,7 @@ describe('doStream', () => {
         completionTokens: NaN,
         promptTokens: NaN,
       },
+      providerMetadata: { openai: {} },
     });
   });
 
@@ -2011,7 +2146,7 @@ describe('doStream', () => {
     });
   });
 
-  it('should handle cached tokens in experimental_providerMetadata', async () => {
+  it('should return cached tokens in providerMetadata', async () => {
     prepareStreamResponse({
       content: [],
       usage: {
@@ -2037,10 +2172,7 @@ describe('doStream', () => {
       messages: [{ role: 'user', content: 'Hello' }],
     });
 
-    const chunksArr = await convertReadableStreamToArray(stream);
-    expect(chunksArr[chunksArr.length - 1]).toHaveProperty('providerMetadata');
-    expect(chunksArr[chunksArr.length - 1].type).toEqual('finish');
-    expect(chunksArr[chunksArr.length - 1]).toStrictEqual({
+    expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual({
       type: 'finish',
       finishReason: 'stop',
       logprobs: undefined,
@@ -2050,6 +2182,50 @@ describe('doStream', () => {
       },
       providerMetadata: {
         openai: { cachedPromptTokens: 1152 },
+      },
+    });
+  });
+
+  it('should return accepted_prediction_tokens and rejected_prediction_tokens in providerMetadata', async () => {
+    prepareStreamResponse({
+      content: [],
+      usage: {
+        prompt_tokens: 15,
+        completion_tokens: 20,
+        total_tokens: 35,
+        completion_tokens_details: {
+          accepted_prediction_tokens: 123,
+          rejected_prediction_tokens: 456,
+        },
+      },
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      stream: true,
+      stream_options: { include_usage: true },
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+
+    expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual({
+      type: 'finish',
+      finishReason: 'stop',
+      logprobs: undefined,
+      usage: {
+        promptTokens: 15,
+        completionTokens: 20,
+      },
+      providerMetadata: {
+        openai: {
+          acceptedPredictionTokens: 123,
+          rejectedPredictionTokens: 456,
+        },
       },
     });
   });
@@ -2133,6 +2309,7 @@ describe('doStream', () => {
           finishReason: 'stop',
           usage: { promptTokens: 17, completionTokens: 227 },
           logprobs: undefined,
+          providerMetadata: { openai: {} },
         },
       ]);
     });
@@ -2269,7 +2446,7 @@ describe('doStream simulated streaming', () => {
 
   it('should stream text delta', async () => {
     prepareJsonResponse({ content: 'Hello, World!', model: 'o1-preview' });
-    const model = provider.chat('o1', {
+    const model = provider.chat('some-model', {
       simulateStreaming: true,
     });
 
@@ -2292,7 +2469,7 @@ describe('doStream simulated streaming', () => {
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 30 },
         logprobs: undefined,
-        providerMetadata: undefined,
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -2312,7 +2489,7 @@ describe('doStream simulated streaming', () => {
       ],
     });
 
-    const model = provider.chat('o1', {
+    const model = provider.chat('some-model', {
       simulateStreaming: true,
     });
 
@@ -2345,6 +2522,13 @@ describe('doStream simulated streaming', () => {
         timestamp: expect.any(Date),
       },
       {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '{"value":"Sparkle Day"}',
+      },
+      {
         type: 'tool-call',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
         toolCallType: 'function',
@@ -2356,7 +2540,7 @@ describe('doStream simulated streaming', () => {
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 30 },
         logprobs: undefined,
-        providerMetadata: undefined,
+        providerMetadata: { openai: {} },
       },
     ]);
   });
@@ -2375,7 +2559,7 @@ describe('doStream simulated streaming', () => {
       },
     });
 
-    const model = provider.chat('o1', {
+    const model = provider.chat('some-model', {
       simulateStreaming: true,
     });
 
@@ -2403,6 +2587,35 @@ describe('doStream simulated streaming', () => {
             reasoningTokens: 10,
           },
         },
+      },
+    ]);
+  });
+
+  it('should simulate streaming by default for reasoning models', async () => {
+    prepareJsonResponse({ content: 'Hello, World!', model: 'o1' });
+
+    const model = provider.chat('o1');
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        modelId: 'o1',
+        timestamp: expect.any(Date),
+      },
+      { type: 'text-delta', textDelta: 'Hello, World!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 30 },
+        logprobs: undefined,
+        providerMetadata: { openai: {} },
       },
     ]);
   });

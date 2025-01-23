@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 1.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
 ## 1.0.3
 
 ### Patch Changes

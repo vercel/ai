@@ -23,8 +23,8 @@ describe('createJsonStreamResponseHandler', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { success: true, value: { a: 1 } },
-      { success: true, value: { a: 2 } },
+      { success: true, value: { a: 1 }, rawValue: { a: 1 } },
+      { success: true, value: { a: 2 }, rawValue: { a: 2 } },
     ]);
   });
 
@@ -45,7 +45,7 @@ describe('createJsonStreamResponseHandler', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { success: true, value: { a: 1 } },
+      { success: true, value: { a: 1 }, rawValue: { a: 1 } },
     ]);
   });
 });

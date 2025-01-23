@@ -13,13 +13,13 @@ Obtain your `LANGWATCH_API_KEY` from the [LangWatch dashboard](https://app.langw
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
-    <Snippet text="pnpm add @ai-sdk/openai langwatch" dark />
+    <Snippet text="pnpm add langwatch" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install @ai-sdk/openai langwatch" dark />
+    <Snippet text="npm install langwatch" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @ai-sdk/openai langwatch" dark />
+    <Snippet text="yarn add langwatch" dark />
   </Tab>
 </Tabs>
 
@@ -51,13 +51,13 @@ const langwatch = new LangWatch({
 
 ## Basic Concepts
 
-- Each message triggering your LLM pipeline as a whole is captured with a [Trace](/concepts#traces).
-- A [Trace](/concepts#traces) contains multiple [Spans](/concepts#spans), which are the steps inside your pipeline.
+- Each message triggering your LLM pipeline as a whole is captured with a [Trace](https://docs.langwatch.ai/concepts#traces).
+- A [Trace](https://docs.langwatch.ai/concepts#traces) contains multiple [Spans](https://docs.langwatch.ai/concepts#spans), which are the steps inside your pipeline.
   - A span can be an LLM call, a database query for a RAG retrieval, or a simple function transformation.
-  - Different types of [Spans](/concepts#spans) capture different parameters.
-  - [Spans](/concepts#spans) can be nested to capture the pipeline structure.
-- [Traces](/concepts#traces) can be grouped together on LangWatch Dashboard by having the same [`thread_id`](/concepts#threads) in their metadata, making the individual messages become part of a conversation.
-  - It is also recommended to provide the [`user_id`](/concepts#user-id) metadata to track user analytics.
+  - Different types of [Spans](https://docs.langwatch.ai/concepts#spans) capture different parameters.
+  - [Spans](https://docs.langwatch.ai/concepts#spans) can be nested to capture the pipeline structure.
+- [Traces](https://docs.langwatch.ai/concepts#traces) can be grouped together on LangWatch Dashboard by having the same [`thread_id`](https://docs.langwatch.ai/concepts#threads) in their metadata, making the individual messages become part of a conversation.
+  - It is also recommended to provide the [`user_id`](https://docs.langwatch.ai/concepts#user-id) metadata to track user analytics.
 
 ## Configuration
 
@@ -69,7 +69,12 @@ First, you need to install the necessary dependencies:
 npm install @vercel/otel langwatch @opentelemetry/api-logs @opentelemetry/instrumentation @opentelemetry/sdk-logs
 ```
 
-Then, you need to enable the `instrumentationHook` in your `next.config.js` file if you haven't already:
+Then, set up the OpenTelemetry for your application, follow one of the tabs below depending whether you are using AI SDK with Next.js or on Node.js:
+
+<Tabs items={['Next.js', 'Node.js']}>
+<Tab title="Next.js">
+
+You need to enable the `instrumentationHook` in your `next.config.js` file if you haven't already:
 
 ```javascript
 /** @type {import('next').NextConfig} */
@@ -115,6 +120,28 @@ const result = await generateText({
   },
 });
 ```
+
+</Tab>
+<Tab title="Node.js">
+For Node.js, start by following the official OpenTelemetry guide:
+
+- [OpenTelemetry Node.js Getting Started](https://opentelemetry.io/docs/languages/js/getting-started/nodejs/)
+
+Once you have set up OpenTelemetry, you can use the `LangWatchExporter` to automatically send your traces to LangWatch:
+
+```typescript
+import { LangWatchExporter } from 'langwatch';
+
+const sdk = new NodeSDK({
+  traceExporter: new LangWatchExporter({
+    apiKey: process.env.LANGWATCH_API_KEY,
+  }),
+  // ...
+});
+```
+
+</Tab>
+</Tabs>
 
 That's it! Your messages will now be visible on LangWatch:
 
@@ -171,7 +198,7 @@ span.end({
 
 For more information and examples, you can read more below:
 
-- [LangWatch documentation](https://langwatch.ai/docs)
+- [LangWatch documentation](https://docs.langwatch.ai/)
 - [LangWatch GitHub](https://github.com/langwatch/langwatch)
 
 ## Support

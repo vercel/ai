@@ -1,5 +1,5 @@
 ---
-title: Voyage AI Provider
+title: Voyage AI
 description: Learn how to use the Voyage AI provider.
 ---
 
@@ -67,15 +67,16 @@ You can find more models on the [Voyage Library](https://docs.voyageai.com/docs/
 
 ### Model Capabilities
 
-| Model                   | Default Dimensions | Context Length |
-| ----------------------- | ------------------ | -------------- |
-| `voyage-3`              | 1024               | 32000          |
-| `voyage-3-lite`         | 512                | 32000          |
-| `voyage-finance-2`      | 1024               | 32000          |
-| `voyage-multilingual-2` | 1024               | 32000          |
-| `voyage-law-2`          | 1024               | 32000          |
-| `voyage-code-2`         | 1024               | 16000          |
-| `voyage-3-lite`         | 1024               | 16000          |
+| Model                   | Default Dimensions             | Context Length |
+| ----------------------- | ------------------------------ | -------------- |
+| `voyage-3-large`        | 1024 (default), 256, 512, 2048 | 32,000         |
+| `voyage-3`              | 1024                           | 32000          |
+| `voyage-code-3`         | 1024 (default), 256, 512, 2048 | 32000          |
+| `voyage-3-lite`         | 512                            | 32000          |
+| `voyage-finance-2`      | 1024                           | 32000          |
+| `voyage-multilingual-2` | 1024                           | 32000          |
+| `voyage-law-2`          | 1024                           | 32000          |
+| `voyage-code-2`         | 1024                           | 16000          |
 
 <Note>
   The table above lists popular models. Please see the [Voyage
@@ -93,5 +94,9 @@ import { voyage } from 'voyage-ai-provider';
 const embeddingModel = voyage.textEmbeddingModel('voyage-3', {
   inputType: 'document', // 'document' or 'query'
   truncation: false,
+  outputDimension: '1024', // the new model voyage-code-3, voyage-3-large has 4 different output dimensions: 256, 512, 1024 (default), 2048
+  output_dtype: 'float', // output data types - int8, uint8, binary, ubinary are supported by the new model voyage-code-3, voyage-3-large
 });
 ```
+
+Learn more about the [output data types.](https://docs.voyageai.com/docs/faq#what-is-quantization-and-output-data-types)

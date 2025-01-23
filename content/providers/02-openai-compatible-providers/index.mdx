@@ -42,12 +42,38 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 const provider = createOpenAICompatible({
   name: 'provider-name',
-  headers: {
-    Authorization: `Bearer ${process.env.PROVIDER_API_KEY}`,
-  },
+  apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
 });
 ```
+
+You can use the following optional settings to customize the provider instance:
+
+- **baseURL** _string_
+
+  Set the URL prefix for API calls.
+
+- **apiKey** _string_
+
+  API key for authenticating requests. If specified, adds an `Authorization`
+  header to request headers with the value `Bearer <apiKey>`. This will be added
+  before any headers potentially specified in the `headers` option.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Optional custom headers to include in requests. These will be added to request headers
+  after any headers potentially added by use of the `apiKey` option.
+
+- **queryParams** _Record&lt;string,string&gt;_
+
+  Optional custom url query parameters to include in request urls.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
 
 ## Language Models
 
@@ -68,9 +94,7 @@ import { generateText } from 'ai'
 
 const provider = createOpenAICompatible({
   name: 'provider-name',
-  headers: {
-    Authorization: `Bearer ${process.env.PROVIDER_API_KEY}`,
-  },
+  apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1'
 })
 
@@ -107,9 +131,7 @@ const model = createOpenAICompatible<
   ExampleEmbeddingModelIds
 >({
   name: 'example',
-  headers: {
-    Authorization: `Bearer ${process.env.MY_API_KEY}`,
-  },
+  apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.example.com/v1',
 });
 
@@ -122,3 +144,29 @@ const { text } = await generateText({
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
+
+### Custom query parameters
+
+Some providers may require custom query parameters. An example is the [Azure AI
+Model Inference
+API](https://learn.microsoft.com/en-us/azure/machine-learning/reference-model-inference-chat-completions?view=azureml-api-2)
+which requires an `api-version` query parameter.
+
+You can set these via the optional `queryParams` provider setting. These will be
+added to all requests made by the provider.
+
+```ts highlight="7-9"
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const provider = createOpenAICompatible({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+  queryParams: {
+    'api-version': '1.0.0',
+  },
+});
+```
+
+For example, with the above configuration, API requests would include the query parameter in the URL like:
+`https://api.provider.com/v1/chat/completions?api-version=1.0.0`.

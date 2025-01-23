@@ -16,10 +16,12 @@ import {
 } from './google-vertex-embedding-settings';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import { GoogleVertexImageModel } from './google-vertex-image-model';
 import {
-  GoogleVertexImageModel,
   GoogleVertexImageModelId,
-} from './google-vertex-image-model';
+  GoogleVertexImageSettings,
+} from './google-vertex-image-settings';
+import { GoogleVertexConfig } from './google-vertex-config';
 
 export interface GoogleVertexProvider extends ProviderV1 {
   /**
@@ -38,7 +40,10 @@ Creates a model for text generation.
   /**
    * Creates a model for image generation.
    */
-  image(modelId: GoogleVertexImageModelId): ImageModelV1;
+  image(
+    modelId: GoogleVertexImageModelId,
+    settings?: GoogleVertexImageSettings,
+  ): ImageModelV1;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -107,16 +112,22 @@ export function createVertex(
     );
   };
 
+  const createConfig = (name: string): GoogleVertexConfig => {
+    return {
+      provider: `google.vertex.${name}`,
+      headers: options.headers ?? {},
+      fetch: options.fetch,
+      baseURL: loadBaseURL(),
+    };
+  };
+
   const createChatModel = (
     modelId: GoogleVertexModelId,
     settings: GoogleVertexSettings = {},
   ) => {
     return new GoogleGenerativeAILanguageModel(modelId, settings, {
-      provider: `google.vertex.chat`,
-      headers: options.headers ?? {},
+      ...createConfig('chat'),
       generateId: options.generateId ?? generateId,
-      fetch: options.fetch,
-      baseURL: loadBaseURL(),
     });
   };
 
@@ -124,21 +135,16 @@ export function createVertex(
     modelId: GoogleVertexEmbeddingModelId,
     settings: GoogleVertexEmbeddingSettings = {},
   ) =>
-    new GoogleVertexEmbeddingModel(modelId, settings, {
-      provider: `google.vertex.embedding`,
-      region: loadVertexLocation(),
-      project: loadVertexProject(),
-      headers: options.headers ?? {},
-      baseURL: loadBaseURL(),
-    });
+    new GoogleVertexEmbeddingModel(
+      modelId,
+      settings,
+      createConfig('embedding'),
+    );
 
-  const createImageModel = (modelId: GoogleVertexImageModelId) =>
-    new GoogleVertexImageModel(modelId, {
-      provider: `google.vertex.image`,
-      baseURL: loadBaseURL(),
-      headers: options.headers ?? {},
-      fetch: options.fetch,
-    });
+  const createImageModel = (
+    modelId: GoogleVertexImageModelId,
+    settings: GoogleVertexImageSettings = {},
+  ) => new GoogleVertexImageModel(modelId, settings, createConfig('image'));
 
   const provider = function (
     modelId: GoogleVertexModelId,

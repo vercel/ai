@@ -4,7 +4,7 @@ import { createOpenAI } from './openai-provider';
 const prompt = 'A cute baby sea otter';
 
 const provider = createOpenAI({ apiKey: 'test-api-key' });
-const model = provider.image('dall-e-3');
+const model = provider.image('dall-e-3', { maxImagesPerCall: 2 });
 
 describe('doGenerate', () => {
   const server = new JsonTestServer(
@@ -34,15 +34,17 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
-      n: 2,
+      n: 1,
       size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
       providerOptions: { openai: { style: 'vivid' } },
     });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'dall-e-3',
       prompt,
-      n: 2,
+      n: 1,
       size: '1024x1024',
       style: 'vivid',
       response_format: 'b64_json',
@@ -63,8 +65,10 @@ describe('doGenerate', () => {
 
     await provider.image('dall-e-3').doGenerate({
       prompt,
-      n: 2,
+      n: 1,
       size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
       providerOptions: { openai: { style: 'vivid' } },
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -88,11 +92,52 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       prompt,
-      n: 2,
+      n: 1,
       size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
       providerOptions: {},
     });
 
     expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
+  });
+
+  it('should return warnings for unsupported settings', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: '1:1',
+      seed: 123,
+      providerOptions: {},
+    });
+
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported-setting',
+        setting: 'aspectRatio',
+        details:
+          'This model does not support aspect ratio. Use `size` instead.',
+      },
+      {
+        type: 'unsupported-setting',
+        setting: 'seed',
+      },
+    ]);
+  });
+
+  it('should respect maxImagesPerCall setting', async () => {
+    prepareJsonResponse();
+
+    const customModel = provider.image('dall-e-2', { maxImagesPerCall: 5 });
+    expect(customModel.maxImagesPerCall).toBe(5);
+
+    const defaultModel = provider.image('dall-e-2');
+    expect(defaultModel.maxImagesPerCall).toBe(10); // dall-e-2's default from settings
+
+    const unknownModel = provider.image('unknown-model' as any);
+    expect(unknownModel.maxImagesPerCall).toBe(1); // fallback for unknown models
   });
 });

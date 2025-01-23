@@ -1,5 +1,65 @@
 # @ai-sdk/openai-compatible
 
+## 0.1.1
+
+### Patch Changes
+
+- 0a699f1: feat: add reasoning token support
+- Updated dependencies [e7a9ec9]
+- Updated dependencies [0a699f1]
+  - @ai-sdk/provider-utils@2.1.1
+  - @ai-sdk/provider@1.0.5
+
+## 0.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+### Patch Changes
+
+- Updated dependencies [62ba5ad]
+  - @ai-sdk/provider-utils@2.1.0
+
+## 0.0.18
+
+### Patch Changes
+
+- Updated dependencies [00114c5]
+  - @ai-sdk/provider-utils@2.0.8
+
+## 0.0.17
+
+### Patch Changes
+
+- ae57beb: feat (provider/openai-compatible): add support for optional custom URL parameters in requests.
+
+## 0.0.16
+
+### Patch Changes
+
+- 7611964: feat (provider/xai): Support structured output for latest models.
+
+## 0.0.15
+
+### Patch Changes
+
+- Updated dependencies [90fb95a]
+- Updated dependencies [e6dfef4]
+- Updated dependencies [6636db6]
+  - @ai-sdk/provider-utils@2.0.7
+
+## 0.0.14
+
+### Patch Changes
+
+- 43b37f7: feat (provider/openai-compatible): Add 'apiKey' option for concise direct use.
+- Updated dependencies [19a2ce7]
+- Updated dependencies [19a2ce7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider@1.0.4
+  - @ai-sdk/provider-utils@2.0.6
+
 ## 0.0.13
 
 ### Patch Changes

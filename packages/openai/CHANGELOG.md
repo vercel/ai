@@ -1,5 +1,87 @@
 # @ai-sdk/openai
 
+## 1.1.1
+
+### Patch Changes
+
+- e7a9ec9: feat (provider-utils): include raw value in json parse results
+- Updated dependencies [e7a9ec9]
+- Updated dependencies [0a699f1]
+  - @ai-sdk/provider-utils@2.1.1
+  - @ai-sdk/provider@1.0.5
+
+## 1.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+### Patch Changes
+
+- Updated dependencies [62ba5ad]
+  - @ai-sdk/provider-utils@2.1.0
+
+## 1.0.20
+
+### Patch Changes
+
+- Updated dependencies [00114c5]
+  - @ai-sdk/provider-utils@2.0.8
+
+## 1.0.19
+
+### Patch Changes
+
+- 218d001: feat (provider): Add maxImagesPerCall setting to all image providers.
+
+## 1.0.18
+
+### Patch Changes
+
+- fe816e4: fix (provider/openai): streamObject with o1
+
+## 1.0.17
+
+### Patch Changes
+
+- ba62cf2: feat (provider/openai): automatically map maxTokens to max_completion_tokens for reasoning models
+- 3c3fae8: fix (provider/openai): add o1-mini-2024-09-12 and o1-preview-2024-09-12 configurations
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [90fb95a]
+- Updated dependencies [e6dfef4]
+- Updated dependencies [6636db6]
+  - @ai-sdk/provider-utils@2.0.7
+
+## 1.0.15
+
+### Patch Changes
+
+- f8c6acb: feat (provider/openai): automatically simulate streaming for reasoning models
+- d0041f7: feat (provider/openai): improved system message support for reasoning models
+- 4d2f97b: feat (provider/openai): improve automatic setting removal for reasoning models
+
+## 1.0.14
+
+### Patch Changes
+
+- 19a2ce7: feat (ai/core): add aspectRatio and seed options to generateImage
+- 6337688: feat: change image generation errors to warnings
+- Updated dependencies [19a2ce7]
+- Updated dependencies [19a2ce7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider@1.0.4
+  - @ai-sdk/provider-utils@2.0.6
+
+## 1.0.13
+
+### Patch Changes
+
+- b19aa82: feat (provider/openai): add predicted outputs token usage
+
 ## 1.0.12
 
 ### Patch Changes

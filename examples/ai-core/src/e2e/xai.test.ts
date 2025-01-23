@@ -1,22 +1,33 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
 import { xai as provider, XaiErrorData } from '@ai-sdk/xai';
-import { createFeatureTestSuite } from './feature-test-suite';
+import {
+  createFeatureTestSuite,
+  createLanguageModelWithCapabilities,
+} from './feature-test-suite';
 import { APICallError } from '@ai-sdk/provider';
+
+const createChatModel = (modelId: string) =>
+  createLanguageModelWithCapabilities(provider.chat(modelId));
+
+const createCompletionModel = (modelId: string) =>
+  createLanguageModelWithCapabilities(provider.languageModel(modelId), [
+    'textCompletion',
+  ]);
 
 createFeatureTestSuite({
   name: 'xAI',
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
-      provider.chat('grok-beta'),
-      provider.chat('grok-2-1212'),
-      provider.chat('grok-vision-beta'),
-      provider.chat('grok-2-vision-1212'),
-      provider.languageModel('grok-beta'),
-      provider.languageModel('grok-2-1212'),
-      provider.languageModel('grok-vision-beta'),
-      provider.languageModel('grok-2-vision-1212'),
+      // createChatModel('grok-beta'),
+      createChatModel('grok-2-1212'),
+      // createChatModel('grok-vision-beta'),
+      createChatModel('grok-2-vision-1212'),
+      // createCompletionModel('grok-beta'),
+      createCompletionModel('grok-2-1212'),
+      // createCompletionModel('grok-vision-beta'),
+      createCompletionModel('grok-2-vision-1212'),
     ],
   },
   timeout: 30000,

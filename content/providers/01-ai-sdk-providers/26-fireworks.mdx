@@ -87,7 +87,7 @@ const { text } = await generateText({
 
 Fireworks language models can also be used in the `streamText` and `streamUI` functions (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
-## Completion Models
+### Completion Models
 
 You can create models that call the Fireworks completions API using the `.completion()` factory method:
 
@@ -95,17 +95,7 @@ You can create models that call the Fireworks completions API using the `.comple
 const model = fireworks.completion('accounts/fireworks/models/firefunction-v1');
 ```
 
-## Embedding Models
-
-You can create models that call the Fireworks embeddings API using the `.textEmbeddingModel()` factory method:
-
-```ts
-const model = fireworks.textEmbeddingModel(
-  'accounts/fireworks/models/nomic-embed-text-v1',
-);
-```
-
-## Model Capabilities
+### Model Capabilities
 
 | Model                                                      | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ---------------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
@@ -124,3 +114,70 @@ const model = fireworks.textEmbeddingModel(
   The table above lists popular models. Please see the [Fireworks models
   page](https://fireworks.ai/models) for a full list of available models.
 </Note>
+
+## Embedding Models
+
+You can create models that call the Fireworks embeddings API using the `.textEmbeddingModel()` factory method:
+
+```ts
+const model = fireworks.textEmbeddingModel(
+  'accounts/fireworks/models/nomic-embed-text-v1',
+);
+```
+
+## Image Models
+
+You can create Fireworks image models using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+```ts
+import { fireworks } from '@ai-sdk/fireworks';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: fireworks.image('accounts/fireworks/models/flux-1-dev-fp8'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
+});
+```
+
+<Note>
+  Model support for `size` and `aspectRatio` parameters varies. See the [Model
+  Capabilities](#model-capabilities-1) section below for supported dimensions,
+  or check the model's documentation on [Fireworks models
+  page](https://fireworks.ai/models) for more details.
+</Note>
+
+### Model Capabilities
+
+For all models supporting aspect ratios, the following aspect ratios are supported:
+
+`1:1 (default), 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9`
+
+For all models supporting size, the following sizes are supported:
+
+`640 x 1536, 768 x 1344, 832 x 1216, 896 x 1152, 1024x1024 (default), 1152 x 896, 1216 x 832, 1344 x 768, 1536 x 640`
+
+| Model                                                        | Dimensions Specification |
+| ------------------------------------------------------------ | ------------------------ |
+| `accounts/fireworks/models/flux-1-dev-fp8`                   | Aspect Ratio             |
+| `accounts/fireworks/models/flux-1-schnell-fp8`               | Aspect Ratio             |
+| `accounts/fireworks/models/playground-v2-5-1024px-aesthetic` | Size                     |
+| `accounts/fireworks/models/japanese-stable-diffusion-xl`     | Size                     |
+| `accounts/fireworks/models/playground-v2-1024px-aesthetic`   | Size                     |
+| `accounts/fireworks/models/SSD-1B`                           | Size                     |
+| `accounts/fireworks/models/stable-diffusion-xl-1024-v1-0`    | Size                     |
+
+For more details, see the [Fireworks models page](https://fireworks.ai/models).
+
+#### Stability AI Models
+
+Fireworks also presents several Stability AI models backed by Stability AI API
+keys and endpoint. The AI SDK Fireworks provider does not currently include
+support for these models:
+
+| Model ID                               |
+| -------------------------------------- |
+| `accounts/stability/models/sd3-turbo`  |
+| `accounts/stability/models/sd3-medium` |
+| `accounts/stability/models/sd3`        |

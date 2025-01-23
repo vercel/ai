@@ -1,5 +1,35 @@
-export { jsonSchema } from '@ai-sdk/ui-utils';
-export type { DeepPartial, Schema } from '@ai-sdk/ui-utils';
+// re-exports:
+export { createIdGenerator, generateId } from '@ai-sdk/provider-utils';
+export type { IDGenerator } from '@ai-sdk/provider-utils';
+export {
+  formatAssistantStreamPart,
+  formatDataStreamPart,
+  jsonSchema,
+  parseAssistantStreamPart,
+  parseDataStreamPart,
+  processDataStream,
+  processTextStream,
+} from '@ai-sdk/ui-utils';
+export type {
+  AssistantMessage,
+  AssistantStatus,
+  Attachment,
+  ChatRequest,
+  ChatRequestOptions,
+  CreateMessage,
+  DataMessage,
+  DataStreamPart,
+  DeepPartial,
+  IdGenerator,
+  JSONValue,
+  Message,
+  RequestOptions,
+  Schema,
+  ToolInvocation,
+  UseAssistantOptions,
+} from '@ai-sdk/ui-utils';
+
+// directory exports:
 export * from './data-stream';
 export * from './embed';
 export * from './generate-image';
@@ -10,4 +40,7 @@ export * from './prompt';
 export * from './registry';
 export * from './tool';
 export * from './types';
+
+// util exports:
 export { cosineSimilarity } from './util/cosine-similarity';
+export { simulateReadableStream } from './util/simulate-readable-stream';

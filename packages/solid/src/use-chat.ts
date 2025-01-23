@@ -102,6 +102,9 @@ or to provide a custom fetch implementation for e.g. testing.
     toolCallId: string;
     result: any;
   }) => void;
+
+  /** The id of the chat */
+  id: string;
 };
 
 const processStreamedResponse = async (
@@ -121,6 +124,7 @@ const processStreamedResponse = async (
   sendExtraMessageFields: boolean | undefined,
   fetch: FetchFunction | undefined,
   keepLastMessageOnError: boolean,
+  chatId: string,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -145,6 +149,7 @@ const processStreamedResponse = async (
   return await callChatApi({
     api,
     body: {
+      id: chatId,
       messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadata.body,
@@ -200,10 +205,8 @@ export function useChat(
   const generateId = createMemo(
     () => useChatOptions().generateId?.() ?? generateIdFunc,
   );
-  const idKey = createMemo(
-    () => useChatOptions().id?.() ?? `chat-${createUniqueId()}`,
-  );
-  const chatKey = createMemo(() => `${api()}|${idKey()}|messages`);
+  const chatId = createMemo(() => useChatOptions().id?.() ?? generateId()());
+  const chatKey = createMemo(() => `${api()}|${chatId()}|messages`);
 
   const _messages = createMemo(
     () =>
@@ -271,6 +274,7 @@ export function useChat(
         useChatOptions().sendExtraMessageFields?.(),
         useChatOptions().fetch?.(),
         useChatOptions().keepLastMessageOnError?.() ?? true,
+        chatId(),
       );
 
       abortController = null;
@@ -465,6 +469,7 @@ export function useChat(
   return {
     // TODO next major release: replace with direct message store access (breaking change)
     messages: () => messagesStore,
+    id: chatId(),
     append,
     error,
     reload,

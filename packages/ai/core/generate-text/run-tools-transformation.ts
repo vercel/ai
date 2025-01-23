@@ -27,6 +27,10 @@ export type SingleRequestTextStreamPart<
       type: 'text-delta';
       textDelta: string;
     }
+  | {
+      type: 'reasoning';
+      textDelta: string;
+    }
   | ({
       type: 'tool-call';
     } & ToolCallUnion<TOOLS>)
@@ -136,6 +140,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
       switch (chunkType) {
         // forward:
         case 'text-delta':
+        case 'reasoning':
         case 'response-metadata':
         case 'error': {
           controller.enqueue(chunk);
@@ -244,6 +249,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                       toolResultsStreamController!.enqueue({
                         type: 'error',
                         error: new ToolExecutionError({
+                          toolCallId: toolCall.toolCallId,
                           toolName: toolCall.toolName,
                           toolArgs: toolCall.args,
                           cause: error,

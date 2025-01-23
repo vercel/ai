@@ -1,5 +1,43 @@
 # @ai-sdk/provider-utils
 
+## 2.1.1
+
+### Patch Changes
+
+- e7a9ec9: feat (provider-utils): include raw value in json parse results
+- Updated dependencies [0a699f1]
+  - @ai-sdk/provider@1.0.5
+
+## 2.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+## 2.0.8
+
+### Patch Changes
+
+- 00114c5: feat: expose IDGenerator and createIdGenerator
+
+## 2.0.7
+
+### Patch Changes
+
+- 90fb95a: chore (provider-utils): switch to unified test server
+- e6dfef4: feat (provider/fireworks): Support add'l image models.
+- 6636db6: feat (provider-utils): add unified test server
+
+## 2.0.6
+
+### Patch Changes
+
+- 19a2ce7: feat (provider/fireworks): Add image model support.
+- 6337688: feat: change image generation errors to warnings
+- Updated dependencies [19a2ce7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider@1.0.4
+
 ## 2.0.5
 
 ### Patch Changes

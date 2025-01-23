@@ -28,6 +28,7 @@ describe('doGenerate', () => {
 
   function prepareJsonResponse({
     content = '',
+    reasoning_content = '',
     tool_calls,
     function_call,
     usage = {
@@ -41,6 +42,7 @@ describe('doGenerate', () => {
     model = 'grok-beta',
   }: {
     content?: string;
+    reasoning_content?: string;
     tool_calls?: Array<{
       id: string;
       type: 'function';
@@ -74,6 +76,7 @@ describe('doGenerate', () => {
           message: {
             role: 'assistant',
             content,
+            reasoning_content,
             tool_calls,
             function_call,
           },
@@ -110,6 +113,24 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Hello, World!');
+  });
+
+  it('should extract reasoning content', async () => {
+    prepareJsonResponse({
+      content: 'Hello, World!',
+      reasoning_content: 'This is the reasoning behind the response',
+    });
+
+    const { text, reasoning } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('Hello, World!');
+    expect(reasoning).toStrictEqual(
+      'This is the reasoning behind the response',
+    );
   });
 
   it('should extract usage', async () => {
@@ -213,7 +234,7 @@ describe('doGenerate', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
-      'content-length': '312',
+      'content-length': '335',
       'content-type': 'application/json',
 
       // custom header
@@ -517,7 +538,6 @@ describe('doGenerate', () => {
           type: 'json_schema',
           json_schema: {
             name: 'response',
-            strict: true,
             schema: {
               type: 'object',
               properties: { value: { type: 'string' } },
@@ -568,7 +588,6 @@ describe('doGenerate', () => {
           type: 'json_schema',
           json_schema: {
             name: 'response',
-            strict: true,
             schema: {
               type: 'object',
               properties: { value: { type: 'string' } },
@@ -620,7 +639,6 @@ describe('doGenerate', () => {
           json_schema: {
             name: 'test-name',
             description: 'test description',
-            strict: true,
             schema: {
               type: 'object',
               properties: { value: { type: 'string' } },
@@ -728,7 +746,6 @@ describe('doGenerate', () => {
                 additionalProperties: false,
                 $schema: 'http://json-schema.org/draft-07/schema#',
               },
-              strict: true,
             },
           },
         ],
@@ -817,6 +834,59 @@ describe('doStream', () => {
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
       { type: 'text-delta', textDelta: 'World!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 18, completionTokens: 439 },
+      },
+    ]);
+  });
+
+  it('should stream reasoning content before text deltas', async () => {
+    server.responseChunks = [
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here's"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" my response"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+        `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
+      'data: [DONE]\n\n',
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
+        modelId: 'grok-beta',
+        timestamp: new Date('2024-03-25T09:06:38.000Z'),
+      },
+      {
+        type: 'reasoning',
+        textDelta: 'Let me think',
+      },
+      {
+        type: 'reasoning',
+        textDelta: ' about this',
+      },
+      {
+        type: 'text-delta',
+        textDelta: "Here's",
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' my response',
+      },
       {
         type: 'finish',
         finishReason: 'stop',
@@ -1414,6 +1484,7 @@ describe('doStream simulated streaming', () => {
 
   function prepareJsonResponse({
     content = '',
+    reasoning_content = '',
     tool_calls,
     usage = {
       prompt_tokens: 4,
@@ -1426,6 +1497,7 @@ describe('doStream simulated streaming', () => {
     model = 'gpt-3.5-turbo-0125',
   }: {
     content?: string;
+    reasoning_content?: string;
     tool_calls?: Array<{
       id: string;
       type: 'function';
@@ -1456,6 +1528,7 @@ describe('doStream simulated streaming', () => {
             role: 'assistant',
             content,
             tool_calls,
+            reasoning_content,
           },
           finish_reason,
         },
@@ -1486,6 +1559,48 @@ describe('doStream simulated streaming', () => {
         timestamp: expect.any(Date),
       },
       { type: 'text-delta', textDelta: 'Hello, World!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 30 },
+        logprobs: undefined,
+        providerMetadata: undefined,
+      },
+    ]);
+  });
+
+  it('should stream reasoning content before text delta in simulated streaming', async () => {
+    prepareJsonResponse({
+      content: 'Hello, World!',
+      reasoning_content: 'This is the reasoning',
+      model: 'o1-preview',
+    });
+
+    const model = provider.chatModel('o1', {
+      simulateStreaming: true,
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        modelId: 'o1-preview',
+        timestamp: expect.any(Date),
+      },
+      {
+        type: 'reasoning',
+        textDelta: 'This is the reasoning',
+      },
+      {
+        type: 'text-delta',
+        textDelta: 'Hello, World!',
+      },
       {
         type: 'finish',
         finishReason: 'stop',

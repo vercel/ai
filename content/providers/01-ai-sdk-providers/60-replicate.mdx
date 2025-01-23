@@ -1,0 +1,114 @@
+---
+title: Replicate
+description: Learn how to use Replicate models with the AI SDK.
+---
+
+# Replicate Provider
+
+[Replicate](https://replicate.com/) is a platform for running open-source AI models.
+It is a popular choice for running image generation models.
+
+## Setup
+
+The Replicate provider is available via the `@ai-sdk/replicate` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add ai @ai-sdk/replicate" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai @ai-sdk/replicate" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai @ai-sdk/replicate" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `replicate` from `@ai-sdk/replicate`:
+
+```ts
+import { replicate } from '@ai-sdk/replicate';
+```
+
+If you need a customized setup, you can import `createReplicate` from `@ai-sdk/replicate`
+and create a provider instance with your settings:
+
+```ts
+import { createReplicate } from '@ai-sdk/replicate';
+
+const replicate = createReplicate({
+  apiKey: process.env.REPLICATE_API_TOKEN ?? '',
+});
+```
+
+You can use the following optional settings to customize the Replicate provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.replicate.com/v1`.
+
+- **apiToken** _string_
+
+  API token that is being sent using the `Authorization` header. It defaults to
+  the `REPLICATE_API_TOKEN` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Image Models
+
+You can create Replicate image models using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+<Note>
+  Model support for `size` and other parameters varies by model. Check the
+  model's documentation on [Replicate](https://replicate.com/explore) for
+  supported options and additional parameters that can be passed via
+  `providerOptions.replicate`.
+</Note>
+
+### Basic Usage
+
+```ts
+import { replicate } from '@ai-sdk/replicate';
+import { experimental_generateImage as generateImage } from 'ai';
+import { writeFile } from 'node:fs/promises';
+
+const { image } = await generateImage({
+  model: replicate.image('black-forest-labs/flux-schnell'),
+  prompt: 'The Loch Ness Monster getting a manicure',
+  aspectRatio: '16:9',
+});
+
+await writeFile('image.webp', image.uint8Array);
+
+console.log('Image saved as image.webp');
+```
+
+### Model-specific options
+
+```ts highlight="9-11"
+import { replicate } from '@ai-sdk/replicate';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: replicate.image('recraft-ai/recraft-v3'),
+  prompt: 'The Loch Ness Monster getting a manicure',
+  size: '1365x1024',
+  providerOptions: {
+    replicate: {
+      style: 'realistic_image',
+    },
+  },
+});
+```
+
+For more details, see the [Replicate models page](https://replicate.com/explore).

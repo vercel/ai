@@ -4,7 +4,11 @@ import {
   OpenAICompatibleEmbeddingModel,
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
-import { EmbeddingModelV1, LanguageModelV1 } from '@ai-sdk/provider';
+import {
+  EmbeddingModelV1,
+  ImageModelV1,
+  LanguageModelV1,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -23,6 +27,11 @@ import {
   FireworksEmbeddingModelId,
   FireworksEmbeddingSettings,
 } from './fireworks-embedding-settings';
+import { FireworksImageModel } from './fireworks-image-model';
+import {
+  FireworksImageModelId,
+  FireworksImageSettings,
+} from './fireworks-image-settings';
 
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
@@ -37,7 +46,8 @@ const fireworksErrorStructure: ProviderErrorStructure<FireworksErrorData> = {
 
 export interface FireworksProviderSettings {
   /**
-Fireworks API key.
+Fireworks API key. Default value is taken from the `FIREWORKS_API_KEY`
+environment variable.
 */
   apiKey?: string;
   /**
@@ -87,14 +97,22 @@ Creates a text embedding model for text generation.
     modelId: FireworksEmbeddingModelId,
     settings?: FireworksEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  /**
+Creates a model for image generation.
+*/
+  image(
+    modelId: FireworksImageModelId,
+    settings?: FireworksImageSettings,
+  ): ImageModelV1;
 }
+
+const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';
 
 export function createFireworks(
   options: FireworksProviderSettings = {},
 ): FireworksProvider {
-  const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.fireworks.ai/inference/v1',
-  );
+  const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
@@ -105,11 +123,10 @@ export function createFireworks(
   });
 
   interface CommonModelConfig {
-    provider: `fireworks.${string}`;
+    provider: string;
     url: ({ path }: { path: string }) => string;
     headers: () => Record<string, string>;
     fetch?: FetchFunction;
-    errorStructure?: ProviderErrorStructure<FireworksErrorData>;
   }
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
@@ -117,7 +134,6 @@ export function createFireworks(
     url: ({ path }) => `${baseURL}${path}`,
     headers: getHeaders,
     fetch: options.fetch,
-    errorStructure: fireworksErrorStructure,
   });
 
   const createChatModel = (
@@ -126,6 +142,7 @@ export function createFireworks(
   ) => {
     return new OpenAICompatibleChatLanguageModel(modelId, settings, {
       ...getCommonModelConfig('chat'),
+      errorStructure: fireworksErrorStructure,
       defaultObjectGenerationMode: 'json',
     });
   };
@@ -134,21 +151,28 @@ export function createFireworks(
     modelId: FireworksCompletionModelId,
     settings: FireworksCompletionSettings = {},
   ) =>
-    new OpenAICompatibleCompletionLanguageModel(
-      modelId,
-      settings,
-      getCommonModelConfig('completion'),
-    );
+    new OpenAICompatibleCompletionLanguageModel(modelId, settings, {
+      ...getCommonModelConfig('completion'),
+      errorStructure: fireworksErrorStructure,
+    });
 
   const createTextEmbeddingModel = (
     modelId: FireworksEmbeddingModelId,
     settings: FireworksEmbeddingSettings = {},
   ) =>
-    new OpenAICompatibleEmbeddingModel(
-      modelId,
-      settings,
-      getCommonModelConfig('embedding'),
-    );
+    new OpenAICompatibleEmbeddingModel(modelId, settings, {
+      ...getCommonModelConfig('embedding'),
+      errorStructure: fireworksErrorStructure,
+    });
+
+  const createImageModel = (
+    modelId: FireworksImageModelId,
+    settings: FireworksImageSettings = {},
+  ) =>
+    new FireworksImageModel(modelId, settings, {
+      ...getCommonModelConfig('image'),
+      baseURL: baseURL ?? defaultBaseURL,
+    });
 
   const provider = (
     modelId: FireworksChatModelId,
@@ -158,6 +182,7 @@ export function createFireworks(
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.image = createImageModel;
 
   return provider as FireworksProvider;
 }

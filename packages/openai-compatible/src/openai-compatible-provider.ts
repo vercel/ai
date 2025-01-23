@@ -3,7 +3,11 @@ import {
   LanguageModelV1,
   ProviderV1,
 } from '@ai-sdk/provider';
-import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  withoutTrailingSlash,
+} from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 import { OpenAICompatibleChatSettings } from './openai-compatible-chat-settings';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
@@ -44,23 +48,36 @@ export interface OpenAICompatibleProvider<
 
 export interface OpenAICompatibleProviderSettings {
   /**
-   Base URL for the API calls.
+Base URL for the API calls.
    */
   baseURL?: string;
 
   /**
-   Custom headers to include in the requests.
+API key for authenticating requests. If specified, adds an `Authorization`
+header to request headers with the value `Bearer <apiKey>`. This will be added
+before any headers potentially specified in the `headers` option.
+   */
+  apiKey?: string;
+
+  /**
+Optional custom headers to include in requests. These will be added to request headers
+after any headers potentially added by use of the `apiKey` option.
    */
   headers?: Record<string, string>;
 
   /**
-   Custom fetch implementation. You can use it as a middleware to intercept requests,
-   or to provide a custom fetch implementation for e.g. testing.
+Optional custom url query parameters to include in request urls.
+   */
+  queryParams?: Record<string, string>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
 
   /**
-   Provider name.
+Provider name.
    */
   name?: string;
 }
@@ -96,10 +113,21 @@ export function createOpenAICompatible<
     fetch?: FetchFunction;
   }
 
+  const getHeaders = () => ({
+    ...(options.apiKey && { Authorization: `Bearer ${options.apiKey}` }),
+    ...options.headers,
+  });
+
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `${providerName}.${modelType}`,
-    url: ({ path }) => `${baseURL}${path}`,
-    headers: () => options.headers ?? {},
+    url: ({ path }) => {
+      const url = new URL(`${baseURL}${path}`);
+      if (options.queryParams) {
+        url.search = new URLSearchParams(options.queryParams).toString();
+      }
+      return url.toString();
+    },
+    headers: getHeaders,
     fetch: options.fetch,
   });
 

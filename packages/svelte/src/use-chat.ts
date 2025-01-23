@@ -80,6 +80,9 @@ export type UseChatHelpers = {
       | undefined
       | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
   ) => void;
+
+  /** The id of the chat */
+  id: string;
 };
 
 const getStreamedResponse = async (
@@ -103,6 +106,7 @@ const getStreamedResponse = async (
   sendExtraMessageFields: boolean | undefined,
   fetch: FetchFunction | undefined,
   keepLastMessageOnError: boolean | undefined,
+  chatId: string,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -123,6 +127,7 @@ const getStreamedResponse = async (
   return await callChatApi({
     api,
     body: {
+      id: chatId,
       messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadata.body,
@@ -216,7 +221,7 @@ export function useChat({
   }) => void;
 } {
   // Generate a unique id for the chat if not provided.
-  const chatId = id || `chat-${uniqueId++}`;
+  const chatId = id ?? generateId();
 
   const key = `${api}|${chatId}`;
   const {
@@ -284,6 +289,7 @@ export function useChat({
         sendExtraMessageFields,
         fetch,
         keepLastMessageOnError,
+        chatId,
       );
     } catch (err) {
       // Ignore abort errors as they are expected.
@@ -468,6 +474,7 @@ export function useChat({
   };
 
   return {
+    id: chatId,
     messages,
     error,
     append,

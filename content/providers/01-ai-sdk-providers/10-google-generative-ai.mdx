@@ -107,7 +107,7 @@ The following optional settings are available for Google Generative AI models:
   Google Generative AI uses. You can use this to disable
   structured outputs if you need to.
 
-  See [Troubleshooting: Schema Limitations](#troubleshooting-schema-limitations) for more details.
+  See [Troubleshooting: Schema Limitations](#schema-limitations) for more details.
 
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 
@@ -382,6 +382,11 @@ const result = await generateObject({
   prompt: 'Generate an example person for testing.',
 });
 ```
+
+The following Zod features are known to not work with Google Generative AI:
+
+- `z.union`
+- `z.record`
 
 ### Model Capabilities
 

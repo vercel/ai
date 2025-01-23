@@ -1,5 +1,93 @@
 # @ai-sdk/google-vertex
 
+## 2.1.1
+
+### Patch Changes
+
+- b284e2c: feat (provider/google-vertex): support prompt caching for Anthropic Claude models
+- Updated dependencies [e7a9ec9]
+- Updated dependencies [858f934]
+- Updated dependencies [b284e2c]
+- Updated dependencies [0a699f1]
+  - @ai-sdk/provider-utils@2.1.1
+  - @ai-sdk/anthropic@1.1.1
+  - @ai-sdk/provider@1.0.5
+  - @ai-sdk/google@1.1.1
+
+## 2.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+### Patch Changes
+
+- Updated dependencies [62ba5ad]
+  - @ai-sdk/anthropic@1.1.0
+  - @ai-sdk/google@1.1.0
+  - @ai-sdk/provider-utils@2.1.0
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [00114c5]
+  - @ai-sdk/provider-utils@2.0.8
+  - @ai-sdk/anthropic@1.0.9
+  - @ai-sdk/google@1.0.17
+
+## 2.0.18
+
+### Patch Changes
+
+- 218d001: feat (provider): Add maxImagesPerCall setting to all image providers.
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [4eb9b41]
+  - @ai-sdk/google@1.0.16
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [7611964]
+  - @ai-sdk/google@1.0.15
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [90fb95a]
+- Updated dependencies [e6dfef4]
+- Updated dependencies [6636db6]
+  - @ai-sdk/provider-utils@2.0.7
+  - @ai-sdk/anthropic@1.0.8
+  - @ai-sdk/google@1.0.14
+
+## 2.0.14
+
+### Patch Changes
+
+- 19a2ce7: feat (ai/core): add aspectRatio and seed options to generateImage
+- 6337688: feat: change image generation errors to warnings
+- Updated dependencies [19a2ce7]
+- Updated dependencies [19a2ce7]
+- Updated dependencies [6337688]
+  - @ai-sdk/provider@1.0.4
+  - @ai-sdk/provider-utils@2.0.6
+  - @ai-sdk/anthropic@1.0.7
+  - @ai-sdk/google@1.0.13
+
+## 2.0.13
+
+### Patch Changes
+
+- e6ed588: feat (provider/google-vertex): Allow arbitrary image model ids.
+- 6612561: fix (provider/google-vertex): Use optional fetch in embed and streamline config.
+
 ## 2.0.12
 
 ### Patch Changes

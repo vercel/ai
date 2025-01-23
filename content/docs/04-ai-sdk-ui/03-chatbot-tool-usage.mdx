@@ -1,9 +1,9 @@
 ---
-title: Chatbot with Tools
+title: Chatbot Tool Usage
 description: Learn how to use tools with the useChat hook.
 ---
 
-# Chatbot with Tools
+# Chatbot Tool Usage
 
 With [`useChat`](/docs/reference/ai-sdk-ui/use-chat) and [`streamText`](/docs/reference/ai-sdk-core/stream-text), you can use tools in your chatbot application.
 The AI SDK supports three types of tools in this context:
@@ -273,4 +273,51 @@ export async function POST(req: Request) {
 
   return result.toDataStreamResponse();
 }
+```
+
+## Errors
+
+Language models can make errors when calling tools.
+By default, these errors are masked for security reasons, and show up as "An error occurred" in the UI.
+
+To surface the errors, you can use the `getErrorMessage` function when calling `toDataStreamResponse`.
+
+```tsx
+export function errorHandler(error: unknown) {
+  if (error == null) {
+    return 'unknown error';
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return JSON.stringify(error);
+}
+```
+
+```tsx
+const result = streamText({
+  // ...
+});
+
+return result.toDataStreamResponse({
+  getErrorMessage: errorHandler,
+});
+```
+
+In case you are using `createDataStreamResponse`, you can use the `onError` function when calling `toDataStreamResponse`:
+
+```tsx
+const response = createDataStreamResponse({
+  // ...
+  async execute(dataStream) {
+    // ...
+  },
+  onError: error => `Custom error: ${error.message}`,
+});
 ```

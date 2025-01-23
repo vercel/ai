@@ -1,17 +1,17 @@
-import { ImageModelV1, JSONValue } from '@ai-sdk/provider';
+import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
 import {
   Resolvable,
-  postJsonToApi,
   combineHeaders,
   createJsonResponseHandler,
+  postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
-
-export type GoogleVertexImageModelId =
-  | 'imagen-3.0-generate-001'
-  | 'imagen-3.0-fast-generate-001';
+import {
+  GoogleVertexImageModelId,
+  GoogleVertexImageSettings,
+} from './google-vertex-image-settings';
 
 interface GoogleVertexImageModelConfig {
   provider: string;
@@ -28,8 +28,14 @@ export class GoogleVertexImageModel implements ImageModelV1 {
     return this.config.provider;
   }
 
+  get maxImagesPerCall(): number {
+    // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
+    return this.settings.maxImagesPerCall ?? 4;
+  }
+
   constructor(
     readonly modelId: GoogleVertexImageModelId,
+    readonly settings: GoogleVertexImageSettings,
     private config: GoogleVertexImageModelConfig,
   ) {}
 
@@ -37,24 +43,31 @@ export class GoogleVertexImageModel implements ImageModelV1 {
     prompt,
     n,
     size,
+    aspectRatio,
+    seed,
     providerOptions,
     headers,
     abortSignal,
   }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
-    if (size) {
-      throw new Error(
-        'Google Vertex does not support the `size` option. Use ' +
-          '`providerOptions.vertex.aspectRatio` instead. See ' +
-          'https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images#aspect-ratio',
-      );
+    const warnings: Array<ImageModelV1CallWarning> = [];
+
+    if (size != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'size',
+        details:
+          'This model does not support the `size` option. Use `aspectRatio` instead.',
+      });
     }
 
     const body = {
       instances: [{ prompt }],
       parameters: {
         sampleCount: n,
+        ...(aspectRatio != null ? { aspectRatio } : {}),
+        ...(seed != null ? { seed } : {}),
         ...(providerOptions.vertex ?? {}),
       },
     };
@@ -67,7 +80,7 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       successfulResponseHandler: createJsonResponseHandler(
         vertexImageResponseSchema,
       ),
-      abortSignal: abortSignal,
+      abortSignal,
       fetch: this.config.fetch,
     });
 
@@ -75,6 +88,7 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       images: response.predictions.map(
         (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
       ),
+      warnings,
     };
   }
 }
