@@ -13,7 +13,7 @@ async function main() {
         parameters: z.object({ city: z.string() }),
       },
     },
-    experimental_toolCallStreaming: true,
+    toolCallStreaming: true,
     onChunk(chunk) {
       console.log('onChunk', chunk);
     },

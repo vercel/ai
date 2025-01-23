@@ -145,7 +145,8 @@ export function streamText<
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
-  experimental_toolCallStreaming: toolCallStreaming = false,
+  experimental_toolCallStreaming = false,
+  toolCallStreaming = experimental_toolCallStreaming,
   experimental_activeTools: activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
@@ -226,6 +227,11 @@ A function that attempts to repair a tool call that failed to parse.
 
     /**
 Enable streaming of tool call deltas as they are generated. Disabled by default.
+     */
+    toolCallStreaming?: boolean;
+
+    /**
+@deprecated Use `toolCallStreaming` instead.
      */
     experimental_toolCallStreaming?: boolean;
 
