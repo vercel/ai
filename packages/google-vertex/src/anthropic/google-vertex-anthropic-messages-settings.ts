@@ -11,4 +11,4 @@ export type GoogleVertexAnthropicMessagesModelId =
   | (string & {});
 
 export interface GoogleVertexAnthropicMessagesSettings
-  extends Omit<AnthropicMessagesSettings, 'cacheControl'> {}
+  extends AnthropicMessagesSettings {}

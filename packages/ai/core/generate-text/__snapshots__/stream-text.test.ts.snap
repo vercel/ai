@@ -87,6 +87,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -144,6 +145,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "finishReason": "tool-calls",
       "isContinued": false,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -220,6 +222,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -302,6 +305,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -378,6 +382,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -731,6 +736,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -807,6 +813,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -877,6 +884,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -906,6 +914,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -943,6 +952,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -979,6 +989,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -1017,6 +1028,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -1074,6 +1086,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1111,6 +1124,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1147,6 +1161,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1185,6 +1200,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1643,6 +1659,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1680,6 +1697,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1716,6 +1734,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1754,6 +1773,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1801,6 +1821,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
   },
   "finishReason": "stop",
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -1852,6 +1873,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -1964,6 +1986,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
   },
   "finishReason": "stop",
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -2015,6 +2038,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "reasoning": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -2128,6 +2152,7 @@ exports[`streamText > options.transform > with base transformation > options.onS
   "finishReason": "stop",
   "isContinued": false,
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -2290,6 +2315,7 @@ exports[`streamText > options.transform > with transformation that aborts stream
   "finishReason": "stop",
   "isContinued": false,
   "logprobs": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "id": "response-id",
@@ -2371,6 +2397,71 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+]
+`;
+
+exports[`streamText > result.fullStream > should include reasoning content in fullStream 1`] = `
+[
+  {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
+    "textDelta": "I will open the conversation",
+    "type": "reasoning",
+  },
+  {
+    "textDelta": " with witty banter.",
+    "type": "reasoning",
+  },
+  {
+    "textDelta": "Once the user has relaxed,",
+    "type": "reasoning",
+  },
+  {
+    "textDelta": " I will pry for valuable information.",
+    "type": "reasoning",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-0",
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-2000",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:02.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "id-2000",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:02.000Z,
     },
     "type": "finish",
     "usage": {
@@ -2976,6 +3067,25 @@ exports[`streamText > result.pipeDataStreamToResponse > should write data stream
 ]
 `;
 
+exports[`streamText > result.pipeDataStreamToResponse > should write reasoning content to a Node.js response-like object 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "g:"I will open the conversation"
+",
+  "g:" with witty banter."
+",
+  "g:"Once the user has relaxed,"
+",
+  "g:" I will pry for valuable information."
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
 exports[`streamText > result.response > should resolve with response information 1`] = `
 {
   "headers": {
@@ -3045,6 +3155,47 @@ exports[`streamText > result.responseMessages > should contain assistant respons
     ],
     "id": "msg-0",
     "role": "assistant",
+  },
+]
+`;
+
+exports[`streamText > result.steps > should add the reasoning from the model response to the step result 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "reasoning": "I will open the conversation with witty banter.",
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "stepType": "initial",
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
   },
 ]
 `;

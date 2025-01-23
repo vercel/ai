@@ -3,6 +3,7 @@ import {
   JsonTestServer,
   StreamingTestServer,
   convertReadableStreamToArray,
+  describeWithTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from './openai-compatible-provider';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
@@ -28,6 +29,7 @@ describe('doGenerate', () => {
 
   function prepareJsonResponse({
     content = '',
+    reasoning_content = '',
     tool_calls,
     function_call,
     usage = {
@@ -41,6 +43,7 @@ describe('doGenerate', () => {
     model = 'grok-beta',
   }: {
     content?: string;
+    reasoning_content?: string;
     tool_calls?: Array<{
       id: string;
       type: 'function';
@@ -74,6 +77,7 @@ describe('doGenerate', () => {
           message: {
             role: 'assistant',
             content,
+            reasoning_content,
             tool_calls,
             function_call,
           },
@@ -110,6 +114,24 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Hello, World!');
+  });
+
+  it('should extract reasoning content', async () => {
+    prepareJsonResponse({
+      content: 'Hello, World!',
+      reasoning_content: 'This is the reasoning behind the response',
+    });
+
+    const { text, reasoning } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('Hello, World!');
+    expect(reasoning).toStrictEqual(
+      'This is the reasoning behind the response',
+    );
   });
 
   it('should extract usage', async () => {
@@ -213,7 +235,7 @@ describe('doGenerate', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
-      'content-length': '312',
+      'content-length': '335',
       'content-type': 'application/json',
 
       // custom header
@@ -821,6 +843,59 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should stream reasoning content before text deltas', async () => {
+    server.responseChunks = [
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here's"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" my response"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+        `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
+      'data: [DONE]\n\n',
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
+        modelId: 'grok-beta',
+        timestamp: new Date('2024-03-25T09:06:38.000Z'),
+      },
+      {
+        type: 'reasoning',
+        textDelta: 'Let me think',
+      },
+      {
+        type: 'reasoning',
+        textDelta: ' about this',
+      },
+      {
+        type: 'text-delta',
+        textDelta: "Here's",
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' my response',
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 18, completionTokens: 439 },
+      },
+    ]);
+  });
+
   it('should stream tool deltas', async () => {
     server.responseChunks = [
       `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
@@ -1410,6 +1485,7 @@ describe('doStream simulated streaming', () => {
 
   function prepareJsonResponse({
     content = '',
+    reasoning_content = '',
     tool_calls,
     usage = {
       prompt_tokens: 4,
@@ -1422,6 +1498,7 @@ describe('doStream simulated streaming', () => {
     model = 'gpt-3.5-turbo-0125',
   }: {
     content?: string;
+    reasoning_content?: string;
     tool_calls?: Array<{
       id: string;
       type: 'function';
@@ -1452,6 +1529,7 @@ describe('doStream simulated streaming', () => {
             role: 'assistant',
             content,
             tool_calls,
+            reasoning_content,
           },
           finish_reason,
         },
@@ -1482,6 +1560,48 @@ describe('doStream simulated streaming', () => {
         timestamp: expect.any(Date),
       },
       { type: 'text-delta', textDelta: 'Hello, World!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 30 },
+        logprobs: undefined,
+        providerMetadata: undefined,
+      },
+    ]);
+  });
+
+  it('should stream reasoning content before text delta in simulated streaming', async () => {
+    prepareJsonResponse({
+      content: 'Hello, World!',
+      reasoning_content: 'This is the reasoning',
+      model: 'o1-preview',
+    });
+
+    const model = provider.chatModel('o1', {
+      simulateStreaming: true,
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        modelId: 'o1-preview',
+        timestamp: expect.any(Date),
+      },
+      {
+        type: 'reasoning',
+        textDelta: 'This is the reasoning',
+      },
+      {
+        type: 'text-delta',
+        textDelta: 'Hello, World!',
+      },
       {
         type: 'finish',
         finishReason: 'stop',
@@ -1554,5 +1674,160 @@ describe('doStream simulated streaming', () => {
         providerMetadata: undefined,
       },
     ]);
+  });
+});
+
+describe('metadata extraction', () => {
+  const testMetadataExtractor = {
+    extractMetadata: ({ parsedBody }: { parsedBody: unknown }) => {
+      if (
+        typeof parsedBody !== 'object' ||
+        !parsedBody ||
+        !('test_field' in parsedBody)
+      ) {
+        return undefined;
+      }
+      return {
+        test: {
+          value: parsedBody.test_field as string,
+        },
+      };
+    },
+    createStreamExtractor: () => {
+      let accumulatedValue: string | undefined;
+
+      return {
+        processChunk: (chunk: unknown) => {
+          if (
+            typeof chunk === 'object' &&
+            chunk &&
+            'choices' in chunk &&
+            Array.isArray(chunk.choices) &&
+            chunk.choices[0]?.finish_reason === 'stop' &&
+            'test_field' in chunk
+          ) {
+            accumulatedValue = chunk.test_field as string;
+          }
+        },
+        buildMetadata: () =>
+          accumulatedValue
+            ? {
+                test: {
+                  value: accumulatedValue,
+                },
+              }
+            : undefined,
+      };
+    },
+  };
+
+  describe('non-streaming', () => {
+    describeWithTestServer(
+      'metadata extraction',
+      {
+        url: 'https://my.api.com/v1/chat/completions',
+        type: 'json-value',
+        content: {
+          id: 'chatcmpl-123',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'gpt-4',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello',
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          test_field: 'test_value',
+        },
+      },
+      ({ call }) => {
+        it('should process metadata from complete response', async () => {
+          const model = new OpenAICompatibleChatLanguageModel(
+            'gpt-4',
+            {},
+            {
+              provider: 'test-provider',
+              url: () => 'https://my.api.com/v1/chat/completions',
+              headers: () => ({}),
+              metadataExtractor: testMetadataExtractor,
+            },
+          );
+
+          const result = await model.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(result.providerMetadata).toEqual({
+            test: {
+              value: 'test_value',
+            },
+          });
+
+          const requestBody = await call(0).getRequestBodyJson();
+          expect(requestBody).toStrictEqual({
+            model: 'gpt-4',
+            messages: [{ role: 'user', content: 'Hello' }],
+          });
+        });
+      },
+    );
+  });
+
+  describe('streaming', () => {
+    describeWithTestServer(
+      'metadata streaming',
+      {
+        url: 'https://my.api.com/v1/chat/completions',
+        type: 'stream-values',
+        content: [
+          'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n',
+          'data: {"choices":[{"finish_reason":"stop"}],"test_field":"test_value"}\n\n',
+          'data: [DONE]\n\n',
+        ],
+      },
+      ({ call }) => {
+        it('should process metadata from streaming response', async () => {
+          const model = new OpenAICompatibleChatLanguageModel(
+            'gpt-4',
+            {},
+            {
+              provider: 'test-provider',
+              url: () => 'https://my.api.com/v1/chat/completions',
+              headers: () => ({}),
+              metadataExtractor: testMetadataExtractor,
+            },
+          );
+
+          const result = await model.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          const parts = await convertReadableStreamToArray(result.stream);
+          const finishPart = parts.find(part => part.type === 'finish');
+
+          expect(finishPart?.providerMetadata).toEqual({
+            test: {
+              value: 'test_value',
+            },
+          });
+
+          const requestBody = await call(0).getRequestBodyJson();
+          expect(requestBody).toStrictEqual({
+            model: 'gpt-4',
+            messages: [{ role: 'user', content: 'Hello' }],
+            stream: true,
+          });
+        });
+      },
+    );
   });
 });

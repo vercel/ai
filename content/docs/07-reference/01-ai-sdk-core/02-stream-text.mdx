@@ -470,7 +470,7 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_toolCallStreaming',
+      name: 'toolCallStreaming',
       type: 'boolean',
       isOptional: true,
       description:
@@ -600,6 +600,22 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'textDelta',
                       type: 'string',
                       description: 'The text delta.',
+                    },
+                  ],
+                },
+                {
+                  type: 'TextStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'reasoning'",
+                      description:
+                        'The type to identify the object as reasoning.',
+                    },
+                    {
+                      name: 'textDelta',
+                      type: 'string',
+                      description: 'The reasoning text delta.',
                     },
                   ],
                 },
@@ -1057,6 +1073,12 @@ To see `streamText` in action, check out [these examples](#examples).
         'The full text that has been generated. Resolved when the response is finished.',
     },
     {
+      name: 'reasoning',
+      type: 'Promise<string | undefined>',
+      description:
+        'The reasoning text of the model (only available for some models). Resolved when the response is finished.',
+    },
+    {
       name: 'toolCalls',
       type: 'Promise<ToolCall[]>',
       description:
@@ -1155,6 +1177,12 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'text',
               type: 'string',
               description: 'The generated text by the model.',
+            },
+            {
+              name: 'reasoning',
+              type: 'string | undefined',
+              description:
+                'The reasoning text of the model (only available for some models).',
             },
             {
               name: 'toolCalls',
@@ -1309,6 +1337,21 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'textDelta',
               type: 'string',
               description: 'The text delta.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'reasoning'",
+              description: 'The type to identify the object as reasoning.',
+            },
+            {
+              name: 'textDelta',
+              type: 'string',
+              description: 'The reasoning text delta.',
             },
           ],
         },

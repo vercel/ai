@@ -13,6 +13,7 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
   response: Response;
 }) => PromiseLike<{
   value: RETURN_TYPE;
+  rawValue?: unknown;
   responseHeaders?: Record<string, string>;
 }>;
 
@@ -180,5 +181,6 @@ export const createJsonResponseHandler =
     return {
       responseHeaders,
       value: parsedResult.value,
+      rawValue: parsedResult.rawValue,
     };
   };
