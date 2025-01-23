@@ -45,17 +45,17 @@ describe('buildMetadataFromResponse', () => {
   });
 });
 
-describe('streaming metadata processor', () => {
+describe('streaming metadata extractor', () => {
   it('should process streaming chunks and build final metadata', () => {
-    const processor = deepSeekMetadataExtractor.createStreamExtractor();
+    const extractor = deepSeekMetadataExtractor.createStreamExtractor();
 
     // Process initial chunks without usage data
-    processor.processChunk({
+    extractor.processChunk({
       choices: [{ finish_reason: null }],
     });
 
     // Process final chunk with usage data
-    processor.processChunk({
+    extractor.processChunk({
       choices: [{ finish_reason: 'stop' }],
       usage: {
         prompt_cache_hit_tokens: 100,
@@ -63,7 +63,7 @@ describe('streaming metadata processor', () => {
       },
     });
 
-    const finalMetadata = processor.buildMetadata();
+    const finalMetadata = extractor.buildMetadata();
 
     expect(finalMetadata).toEqual({
       deepseek: {
@@ -74,32 +74,32 @@ describe('streaming metadata processor', () => {
   });
 
   it('should handle streaming chunks without usage data', () => {
-    const processor = deepSeekMetadataExtractor.createStreamExtractor();
+    const extractor = deepSeekMetadataExtractor.createStreamExtractor();
 
-    processor.processChunk({
+    extractor.processChunk({
       choices: [{ finish_reason: 'stop' }],
     });
 
-    const finalMetadata = processor.buildMetadata();
+    const finalMetadata = extractor.buildMetadata();
 
     expect(finalMetadata).toBeUndefined();
   });
 
   it('should handle invalid streaming chunks', () => {
-    const processor = deepSeekMetadataExtractor.createStreamExtractor();
+    const extractor = deepSeekMetadataExtractor.createStreamExtractor();
 
-    processor.processChunk('invalid chunk');
+    extractor.processChunk('invalid chunk');
 
-    const finalMetadata = processor.buildMetadata();
+    const finalMetadata = extractor.buildMetadata();
 
     expect(finalMetadata).toBeUndefined();
   });
 
   it('should only capture usage data from final chunk with stop reason', () => {
-    const processor = deepSeekMetadataExtractor.createStreamExtractor();
+    const extractor = deepSeekMetadataExtractor.createStreamExtractor();
 
     // Process chunk with usage but no stop reason
-    processor.processChunk({
+    extractor.processChunk({
       choices: [{ finish_reason: null }],
       usage: {
         prompt_cache_hit_tokens: 50,
@@ -108,7 +108,7 @@ describe('streaming metadata processor', () => {
     });
 
     // Process final chunk with different usage data
-    processor.processChunk({
+    extractor.processChunk({
       choices: [{ finish_reason: 'stop' }],
       usage: {
         prompt_cache_hit_tokens: 100,
@@ -116,7 +116,7 @@ describe('streaming metadata processor', () => {
       },
     });
 
-    const finalMetadata = processor.buildMetadata();
+    const finalMetadata = extractor.buildMetadata();
 
     expect(finalMetadata).toEqual({
       deepseek: {
@@ -127,9 +127,9 @@ describe('streaming metadata processor', () => {
   });
 
   it('should handle null values in usage data', () => {
-    const processor = deepSeekMetadataExtractor.createStreamExtractor();
+    const extractor = deepSeekMetadataExtractor.createStreamExtractor();
 
-    processor.processChunk({
+    extractor.processChunk({
       choices: [{ finish_reason: 'stop' }],
       usage: {
         prompt_cache_hit_tokens: null,
@@ -137,7 +137,7 @@ describe('streaming metadata processor', () => {
       },
     });
 
-    const finalMetadata = processor.buildMetadata();
+    const finalMetadata = extractor.buildMetadata();
 
     expect(finalMetadata).toEqual({
       deepseek: {
