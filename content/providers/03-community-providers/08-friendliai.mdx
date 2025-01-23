@@ -52,7 +52,7 @@ You can create [FriendliAI models](https://friendli.ai/docs/guides/serverless_en
 The first argument is the model id, e.g. `meta-llama-3.1-8b-instruct`.
 
 ```ts
-const model = friendli('meta-llama-3.1-70b-instruct');
+const model = friendli('meta-llama-3.1-8b-instruct');
 ```
 
 ### Example: Generating text
@@ -106,7 +106,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: friendli('meta-llama-3.1-70b-instruct'),
+  model: friendli('meta-llama-3.3-70b-instruct'),
   schemaName: 'CalendarEvent',
   schema: z.object({
     name: z.string(),
@@ -133,7 +133,7 @@ import { friendli } from '@friendliai/ai-provider';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: friendli('meta-llama-3.1-70b-instruct', {
+  model: friendli('meta-llama-3.3-70b-instruct', {
     tools: [{ type: 'web:search' }, { type: 'math:calculator' }],
   }),
   prompt:
@@ -184,9 +184,9 @@ FriendliAI language models can also be used in the `streamText`, `generateObject
 
 | Model                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `meta-llama-3.3-70b-instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `meta-llama-3.1-70b-instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `meta-llama-3.1-8b-instruct`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mixtral-8x7b-instruct-v0-1`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   To access [more models](https://friendli.ai/models), visit the [Friendli
