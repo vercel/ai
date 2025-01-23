@@ -7,6 +7,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -27,6 +28,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
               "type": "tool-call",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -38,6 +40,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
               "type": "tool-result",
             },
           ],
+          "id": "msg-1",
           "role": "tool",
         },
       ],
@@ -79,6 +82,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -101,6 +105,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
               "type": "tool-call",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -112,6 +117,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
               "type": "tool-result",
             },
           ],
+          "id": "msg-1",
           "role": "tool",
         },
         {
@@ -121,6 +127,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
               "type": "text",
             },
           ],
+          "id": "msg-2",
           "role": "assistant",
         },
       ],
@@ -158,6 +165,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.mess
         "type": "tool-call",
       },
     ],
+    "id": "msg-0",
     "role": "assistant",
   },
   {
@@ -169,6 +177,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.mess
         "type": "tool-result",
       },
     ],
+    "id": "msg-1",
     "role": "tool",
   },
   {
@@ -178,6 +187,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.mess
         "type": "text",
       },
     ],
+    "id": "msg-2",
     "role": "assistant",
   },
 ]
@@ -190,6 +200,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -210,6 +221,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
               "type": "tool-call",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -221,6 +233,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
               "type": "tool-result",
             },
           ],
+          "id": "msg-1",
           "role": "tool",
         },
       ],
@@ -262,6 +275,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -284,6 +298,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
               "type": "tool-call",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -295,6 +310,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
               "type": "tool-result",
             },
           ],
+          "id": "msg-1",
           "role": "tool",
         },
         {
@@ -304,6 +320,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
               "type": "text",
             },
           ],
+          "id": "msg-2",
           "role": "assistant",
         },
       ],
@@ -331,6 +348,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -344,6 +362,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -367,6 +386,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -386,6 +406,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -408,6 +429,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -429,6 +451,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -451,6 +474,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -477,6 +501,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -505,6 +530,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -518,6 +544,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -541,6 +568,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -560,6 +588,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -582,6 +611,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -603,6 +633,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -625,6 +656,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "reasoning": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -651,6 +683,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
               "type": "text",
             },
           ],
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -686,6 +719,7 @@ exports[`result.response > should contain response information 1`] = `
           "type": "text",
         },
       ],
+      "id": "msg-0",
       "role": "assistant",
     },
   ],
@@ -711,6 +745,7 @@ exports[`result.response.messages > should contain assistant response message an
         "type": "tool-call",
       },
     ],
+    "id": "msg-0",
     "role": "assistant",
   },
   {
@@ -722,6 +757,7 @@ exports[`result.response.messages > should contain assistant response message an
         "type": "tool-result",
       },
     ],
+    "id": "msg-1",
     "role": "tool",
   },
 ]
@@ -736,7 +772,49 @@ exports[`result.response.messages > should contain assistant response message wh
         "type": "text",
       },
     ],
+    "id": "msg-0",
     "role": "assistant",
+  },
+]
+`;
+
+exports[`result.steps > should add the reasoning from the model response to the step result 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "reasoning": "I will open the conversation with witty banter.",
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "stepType": "initial",
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
   },
 ]
 `;
@@ -827,7 +905,7 @@ exports[`telemetry > should record successful tool call 1`] = `
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"https://json-schema.org/draft/2019-09/schema#"}}",
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
       "ai.response.finishReason": "stop",
       "ai.response.id": "test-id",

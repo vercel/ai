@@ -1,5 +1,25 @@
 # @ai-sdk/provider-utils
 
+## 2.1.1
+
+### Patch Changes
+
+- e7a9ec9: feat (provider-utils): include raw value in json parse results
+- Updated dependencies [0a699f1]
+  - @ai-sdk/provider@1.0.5
+
+## 2.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+## 2.0.8
+
+### Patch Changes
+
+- 00114c5: feat: expose IDGenerator and createIdGenerator
+
 ## 2.0.7
 
 ### Patch Changes

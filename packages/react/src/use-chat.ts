@@ -13,7 +13,7 @@ import {
   generateId as generateIdFunc,
   prepareAttachmentsForRequest,
 } from '@ai-sdk/ui-utils';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
 import { throttle } from './throttle';
 
@@ -82,6 +82,9 @@ export type UseChatHelpers = {
       | undefined
       | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
   ) => void;
+
+  /** The id of the chat */
+  id: string;
 };
 
 const processResponseStream = async (
@@ -101,13 +104,15 @@ const processResponseStream = async (
   sendExtraMessageFields: boolean | undefined,
   experimental_prepareRequestBody:
     | ((options: {
+        id: string;
         messages: Message[];
         requestData?: JSONValue;
         requestBody?: object;
-      }) => JSONValue)
+      }) => unknown)
     | undefined,
   fetch: FetchFunction | undefined,
   keepLastMessageOnError: boolean,
+  id: string,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages immediately:
   const previousMessages = messagesRef.current;
@@ -140,10 +145,12 @@ const processResponseStream = async (
   return await callChatApi({
     api,
     body: experimental_prepareRequestBody?.({
+      id,
       messages: chatRequest.messages,
       requestData: chatRequest.data,
       requestBody: chatRequest.body,
     }) ?? {
+      id,
       messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
@@ -208,10 +215,11 @@ export function useChat({
    * @param requestBody The request body object passed in the chat request.
    */
   experimental_prepareRequestBody?: (options: {
+    id: string;
     messages: Message[];
     requestData?: JSONValue;
     requestBody?: object;
-  }) => JSONValue;
+  }) => unknown;
 
   /**
 Custom throttle wait in ms for the chat messages and data updates.
@@ -236,10 +244,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
     result: any;
   }) => void;
 } {
-  // Generate a unique id for the chat if not provided.
-  const hookId = useId();
-  const idKey = id ?? hookId;
-  const chatKey = typeof api === 'string' ? [api, idKey] : idKey;
+  // Generate ID once, store in state for stability across re-renders
+  const [hookId] = useState(generateId);
+
+  // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
+  const chatId = id ?? hookId;
+  const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
 
   // Store a empty array as the initial messages
   // (instead of using a default parameter value that gets re-created each time)
@@ -327,6 +337,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           experimental_prepareRequestBody,
           fetch,
           keepLastMessageOnError,
+          chatId,
         );
 
         abortControllerRef.current = null;
@@ -386,6 +397,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       fetch,
       keepLastMessageOnError,
       throttleWaitMs,
+      chatId,
     ],
   );
 
@@ -529,44 +541,42 @@ By default, it's set to 1, which means that only a single LLM call is made.
     setInput(e.target.value);
   };
 
-  const addToolResult = ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: any;
-  }) => {
-    const updatedMessages = messagesRef.current.map((message, index, arr) =>
-      // update the tool calls in the last assistant message:
-      index === arr.length - 1 &&
-      message.role === 'assistant' &&
-      message.toolInvocations
-        ? {
-            ...message,
-            toolInvocations: message.toolInvocations.map(toolInvocation =>
-              toolInvocation.toolCallId === toolCallId
-                ? {
-                    ...toolInvocation,
-                    result,
-                    state: 'result' as const,
-                  }
-                : toolInvocation,
-            ),
-          }
-        : message,
-    );
+  const addToolResult = useCallback(
+    ({ toolCallId, result }: { toolCallId: string; result: any }) => {
+      const updatedMessages = messagesRef.current.map((message, index, arr) =>
+        // update the tool calls in the last assistant message:
+        index === arr.length - 1 &&
+        message.role === 'assistant' &&
+        message.toolInvocations
+          ? {
+              ...message,
+              toolInvocations: message.toolInvocations.map(toolInvocation =>
+                toolInvocation.toolCallId === toolCallId
+                  ? {
+                      ...toolInvocation,
+                      result,
+                      state: 'result' as const,
+                    }
+                  : toolInvocation,
+              ),
+            }
+          : message,
+      );
 
-    mutate(updatedMessages, false);
+      mutate(updatedMessages, false);
 
-    // auto-submit when all tool calls in the last assistant message have results:
-    const lastMessage = updatedMessages[updatedMessages.length - 1];
-    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      triggerRequest({ messages: updatedMessages });
-    }
-  };
+      // auto-submit when all tool calls in the last assistant message have results:
+      const lastMessage = updatedMessages[updatedMessages.length - 1];
+      if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
+        triggerRequest({ messages: updatedMessages });
+      }
+    },
+    [mutate, triggerRequest],
+  );
 
   return {
     messages: messages || [],
+    id: chatId,
     setMessages,
     data: streamData,
     setData,

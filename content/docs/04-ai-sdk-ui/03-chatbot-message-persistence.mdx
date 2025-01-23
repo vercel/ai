@@ -1,0 +1,271 @@
+---
+title: Chatbot Message Persistence
+description: Learn how to store and load chat messages in a chatbot.
+---
+
+# Chatbot Message Persistence
+
+Being able to store and load chat messages is crucial for most AI chatbots.
+In this guide, we'll show how to implement message persistence with `useChat` and `streamText`.
+
+<Note>
+  This guide does not cover authorization, error handling, or other real-world
+  considerations. It is intended to be a simple example of how to implement
+  message persistence.
+</Note>
+
+## Starting a new chat
+
+When the user navigates to the chat page without providing a chat ID,
+we need to create a new chat and redirect to the chat page with the new chat ID.
+
+```tsx filename="app/chat/page.tsx"
+import { redirect } from 'next/navigation';
+import { createChat } from '@tools/chat-store';
+
+export default async function Page() {
+  const id = await createChat(); // create a new chat
+  redirect(`/chat/${id}`); // redirect to chat page, see below
+}
+```
+
+Our example chat store implementation uses files to store the chat messages.
+In a real-world application, you would use a database or a cloud storage service,
+and get the chat ID from the database.
+That being said, the function interfaces are designed to be easily replaced with other implementations.
+
+```tsx filename="tools/chat-store.ts"
+import { generateId } from 'ai';
+import { existsSync, mkdirSync } from 'fs';
+import { writeFile } from 'fs/promises';
+import path from 'path';
+
+export async function createChat(): Promise<string> {
+  const id = generateId(); // generate a unique chat ID
+  await writeFile(getChatFile(id), '[]'); // create an empty chat file
+  return id;
+}
+
+function getChatFile(id: string): string {
+  const chatDir = path.join(process.cwd(), '.chats');
+  if (!existsSync(chatDir)) mkdirSync(chatDir, { recursive: true });
+  return path.join(chatDir, `${id}.json`);
+}
+```
+
+## Loading an existing chat
+
+When the user navigates to the chat page with a chat ID, we need to load the chat messages and display them.
+
+```tsx filename="app/chat/[id]/page.tsx"
+import { loadChat } from '@tools/chat-store';
+import Chat from '@ui/chat';
+
+export default async function Page(props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params; // get the chat ID from the URL
+  const messages = await loadChat(id); // load the chat messages
+  return <Chat id={id} initialMessages={messages} />; // display the chat
+}
+```
+
+The `loadChat` function in our file-based chat store is implemented as follows:
+
+```tsx filename="tools/chat-store.ts"
+import { Message } from 'ai';
+import { readFile } from 'fs/promises';
+
+export async function loadChat(id: string): Promise<Message[]> {
+  return JSON.parse(await readFile(getChatFile(id), 'utf8'));
+}
+
+// ... rest of the file
+```
+
+The display component is a simple chat component that uses the `useChat` hook to
+send and receive messages:
+
+```tsx filename="ui/chat.tsx" highlight="10-12"
+'use client';
+
+import { Message, useChat } from 'ai/react';
+
+export default function Chat({
+  id,
+  initialMessages,
+}: { id?: string | undefined; initialMessages?: Message[] } = {}) {
+  const { input, handleInputChange, handleSubmit, messages } = useChat({
+    id, // use the provided chat ID
+    initialMessages, // initial messages if provided
+    sendExtraMessageFields: true, // send id and createdAt for each message
+  });
+
+  // simplified rendering code, extend as needed:
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
+
+## Storing messages
+
+`useChat` sends the chat id and the messages to the backend.
+We have enabled the `sendExtraMessageFields` option to send the id and createdAt fields,
+meaning that we store messages in the `useChat` message format.
+
+<Note>
+  The `useChat` message format is different from the `CoreMessage` format. The
+  `useChat` message format is designed for frontend display, and contains
+  additional fields such as `id` and `createdAt`. We recommend storing the
+  messages in the `useChat` message format.
+</Note>
+
+Storing messages is done in the `onFinish` callback of the `streamText` function.
+`onFinish` receives the messages from the AI response as a `CoreMessage[]`,
+and we use the [`appendResponseMessages`](/docs/reference/ai-sdk-ui/append-response-messages)
+helper to append the AI response messages to the chat messages.
+
+```tsx filename="app/api/chat/route.ts" highlight="6,11-19"
+import { openai } from '@ai-sdk/openai';
+import { appendResponseMessages, streamText } from 'ai';
+import { saveChat } from '@tools/chat-store';
+
+export async function POST(req: Request) {
+  const { messages, id } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o-mini'),
+    messages,
+    async onFinish({ response }) {
+      await saveChat({
+        id,
+        messages: appendResponseMessages({
+          messages,
+          responseMessages: response.messages,
+        }),
+      });
+    },
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+The actual storage of the messages is done in the `saveChat` function, which in
+our file-based chat store is implemented as follows:
+
+```tsx filename="tools/chat-store.ts"
+import { Message } from 'ai';
+import { writeFile } from 'fs/promises';
+
+export async function saveChat({
+  id,
+  messages,
+}: {
+  id: string;
+  messages: Message[];
+}): Promise<void> {
+  const content = JSON.stringify(messages, null, 2);
+  await writeFile(getChatFile(id), content);
+}
+
+// ... rest of the file
+```
+
+## Message IDs
+
+In addition to a chat ID, each message has an ID.
+You can use this message ID to e.g. manipulate individual messages.
+
+The IDs for user messages are generated by the `useChat` hook on the client,
+and the IDs for AI response messages are generated by `streamText`.
+
+You can control the ID format by providing ID generators
+(see [`createIdGenerator()`](/docs/reference/ai-sdk-core/create-id-generator):
+
+```tsx filename="ui/chat.tsx" highlight="8-12"
+import { createIdGenerator } from 'ai';
+import { useChat } from 'ai/react';
+
+const {
+  // ...
+} = useChat({
+  // ...
+  // id format for client-side messages:
+  generateId: createIdGenerator({
+    prefix: 'msgc',
+    size: 16,
+  }),
+});
+```
+
+```tsx filename="app/api/chat/route.ts" highlight="7-11"
+import { createIdGenerator, streamText } from 'ai';
+
+export async function POST(req: Request) {
+  // ...
+  const result = streamText({
+    // ...
+    // id format for server-side messages:
+    experimental_generateMessageId: createIdGenerator({
+      prefix: 'msgs',
+      size: 16,
+    }),
+  });
+  // ...
+}
+```
+
+## Sending only the last message
+
+Once you have implemented message persistence, you might want to send only the last message to the server.
+This reduces the amount of data sent to the server on each request and can improve performance.
+
+To achieve this, you can provide an `experimental_prepareRequestBody` function to the `useChat` hook (React only).
+This function receives the messages and the chat ID, and returns the request body to be sent to the server.
+
+```tsx filename="ui/chat.tsx" highlight="7-10"
+import { useChat } from 'ai/react';
+
+const {
+  // ...
+} = useChat({
+  // ...
+  // only send the last message to the server:
+  experimental_prepareRequestBody({ messages, id }) {
+    return { message: messages[messages.length - 1], id };
+  },
+});
+```
+
+On the server, you can then load the previous messages and append the new message to the previous messages:
+
+```tsx filename="app/api/chat/route.ts" highlight="2-9"
+export async function POST(req: Request) {
+  // get the last message from the client:
+  const { message, id } = await req.json();
+
+  // load the previous messages from the server:
+  const previousMessages = await loadChat(id);
+
+  // append the new message to the previous messages:
+  const messages = [...previousMessages, message];
+
+  const result = streamText({
+    // ...
+    messages,
+  });
+
+  // ...
+}
+```

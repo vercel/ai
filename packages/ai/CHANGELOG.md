@@ -1,5 +1,85 @@
 # ai
 
+## 4.1.1
+
+### Patch Changes
+
+- 0a699f1: feat: add reasoning token support
+- Updated dependencies [e7a9ec9]
+- Updated dependencies [0a699f1]
+  - @ai-sdk/ui-utils@1.1.1
+  - @ai-sdk/provider-utils@2.1.1
+  - @ai-sdk/provider@1.0.5
+  - @ai-sdk/react@1.1.1
+
+## 4.1.0
+
+### Minor Changes
+
+- 62ba5ad: release: AI SDK 4.1
+
+### Patch Changes
+
+- Updated dependencies [62ba5ad]
+  - @ai-sdk/provider-utils@2.1.0
+  - @ai-sdk/react@1.1.0
+  - @ai-sdk/ui-utils@1.1.0
+
+## 4.0.41
+
+### Patch Changes
+
+- Updated dependencies [44f04d5]
+  - @ai-sdk/react@1.0.14
+
+## 4.0.40
+
+### Patch Changes
+
+- 33592d2: fix (ai/core): switch to json schema 7 target for zod to json schema conversion
+- Updated dependencies [33592d2]
+  - @ai-sdk/ui-utils@1.0.12
+  - @ai-sdk/react@1.0.13
+
+## 4.0.39
+
+### Patch Changes
+
+- 00114c5: feat: expose IDGenerator and createIdGenerator
+- 00114c5: feat (ui): generate and forward message ids for response messages
+- Updated dependencies [00114c5]
+- Updated dependencies [00114c5]
+  - @ai-sdk/provider-utils@2.0.8
+  - @ai-sdk/ui-utils@1.0.11
+  - @ai-sdk/react@1.0.12
+
+## 4.0.38
+
+### Patch Changes
+
+- 0118fa7: fix (ai/core): handle empty tool invocation array in convertToCoreMessages
+
+## 4.0.37
+
+### Patch Changes
+
+- 8304ed8: feat (ai/core): Add option `throwErrorForEmptyVectors` to cosineSimilarity
+- ed28182: feat (ai/ui): add appendResponseMessages helper
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [37f4510]
+  - @ai-sdk/ui-utils@1.0.10
+  - @ai-sdk/react@1.0.11
+
+## 4.0.35
+
+### Patch Changes
+
+- 3491f78: feat (ai/core): support multiple stream text transforms
+
 ## 4.0.34
 
 ### Patch Changes

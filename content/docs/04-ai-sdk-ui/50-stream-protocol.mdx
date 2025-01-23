@@ -111,6 +111,14 @@ Example: `0:"example"\n`
   height={1148}
 />
 
+### Reasoning Part
+
+The reasoning parts are appended to the message as they are received. The reasoning part is available through `reasoning`.
+
+Format: `g:string\n`
+
+Example: `g:"I will open the conversation with witty banter."\n`
+
 ### Data Part
 
 The data parts are parsed as JSON and appended to the message as they are received. The data part is available through `data`.
@@ -208,6 +216,18 @@ Example: `a:{"toolCallId":"call-123","result":"tool output"}\n`
   width={3200}
   height={1148}
 />
+
+### Start Step Part
+
+A part indicating the start of a step.
+
+It includes the following metadata:
+
+- `messageId` to indicate the id of the message that this step belongs to.
+
+Format: `f:{id:string}\n`
+
+Example: `f:{"id":"step_123"}\n`
 
 ### Finish Step Part
 

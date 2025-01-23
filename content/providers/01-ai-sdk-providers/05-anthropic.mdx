@@ -74,14 +74,6 @@ Some models have multi-modal capabilities.
 const model = anthropic('claude-3-haiku-20240307');
 ```
 
-The following optional settings are available for Anthropic models:
-
-- **cacheControl** _boolean_
-
-  Enable the Anthropic cache control beta.
-
-  You can then use provider metadata to set cache control breakpoints ([example](#example-cache-control))
-
 You can use Anthropic language models to generate text with the `generateText` function:
 
 ```ts
@@ -105,9 +97,14 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
 
 ### Cache Control
 
-You can enable the cache control beta by setting the `cacheControl` option to `true` when creating the model instance.
+<Note>
+  Anthropic cache control was originally a beta feature and required passing an
+  opt-in `cacheControl` setting when creating the model instance. It is now
+  Generally Available and enabled by default. The `cacheControl` setting is no
+  longer needed and will be removed in a future release.
+</Note>
 
-In the messages and message parts, you can then use the `experimental_providerMetadata` property to set cache control breakpoints.
+In the messages and message parts, you can use the `experimental_providerMetadata` property to set cache control breakpoints.
 You need to set the `anthropic` property in the `experimental_providerMetadata` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
 The cache creation input tokens are then returned in the `experimental_providerMetadata` object
@@ -123,9 +120,7 @@ import { generateText } from 'ai';
 const errorMessage = '... long error message ...';
 
 const result = await generateText({
-  model: anthropic('claude-3-5-sonnet-20240620', {
-    cacheControl: true,
-  }),
+  model: anthropic('claude-3-5-sonnet-20240620'),
   messages: [
     {
       role: 'user',
@@ -153,9 +148,7 @@ You can also use cache control on system messages by providing multiple system m
 
 ```ts highlight="3,9-11"
 const result = await generateText({
-  model: anthropic('claude-3-5-sonnet-20240620', {
-    cacheControl: true,
-  }),
+  model: anthropic('claude-3-5-sonnet-20240620'),
   messages: [
     {
       role: 'system',
@@ -175,6 +168,8 @@ const result = await generateText({
   ],
 });
 ```
+
+For more on prompt caching with Anthropic, see [Anthropic's Cache Control documentation](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching).
 
 ### Computer Use
 

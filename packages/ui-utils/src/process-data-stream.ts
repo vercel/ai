@@ -19,6 +19,7 @@ function concatChunks(chunks: Uint8Array[], totalLength: number) {
 export async function processDataStream({
   stream,
   onTextPart,
+  onReasoningPart,
   onDataPart,
   onErrorPart,
   onToolCallStreamingStartPart,
@@ -28,10 +29,14 @@ export async function processDataStream({
   onMessageAnnotationsPart,
   onFinishMessagePart,
   onFinishStepPart,
+  onStartStepPart,
 }: {
   stream: ReadableStream<Uint8Array>;
   onTextPart?: (
     streamPart: (DataStreamPartType & { type: 'text' })['value'],
+  ) => Promise<void> | void;
+  onReasoningPart?: (
+    streamPart: (DataStreamPartType & { type: 'reasoning' })['value'],
   ) => Promise<void> | void;
   onDataPart?: (
     streamPart: (DataStreamPartType & { type: 'data' })['value'],
@@ -63,6 +68,9 @@ export async function processDataStream({
   ) => Promise<void> | void;
   onFinishStepPart?: (
     streamPart: (DataStreamPartType & { type: 'finish_step' })['value'],
+  ) => Promise<void> | void;
+  onStartStepPart?: (
+    streamPart: (DataStreamPartType & { type: 'start_step' })['value'],
   ) => Promise<void> | void;
 }): Promise<void> {
   // implementation note: this slightly more complex algorithm is required
@@ -103,6 +111,9 @@ export async function processDataStream({
         case 'text':
           await onTextPart?.(value);
           break;
+        case 'reasoning':
+          await onReasoningPart?.(value);
+          break;
         case 'data':
           await onDataPart?.(value);
           break;
@@ -129,6 +140,9 @@ export async function processDataStream({
           break;
         case 'finish_step':
           await onFinishStepPart?.(value);
+          break;
+        case 'start_step':
+          await onStartStepPart?.(value);
           break;
         default: {
           const exhaustiveCheck: never = type;

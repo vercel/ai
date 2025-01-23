@@ -88,7 +88,7 @@ it('should correctly map tool properties', () => {
     name: 'tool1',
     description: 'Tool 1 description',
     parameters: {
-      $schema: 'https://json-schema.org/draft/2019-09/schema#',
+      $schema: 'http://json-schema.org/draft-07/schema#',
       additionalProperties: false,
       type: 'object',
       properties: {},

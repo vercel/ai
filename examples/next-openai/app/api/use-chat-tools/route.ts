@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o'),
     messages,
-    experimental_toolCallStreaming: true,
+    toolCallStreaming: true,
     maxSteps: 5, // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:

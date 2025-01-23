@@ -316,6 +316,47 @@ const finishStepStreamPart: DataStreamPart<
   },
 };
 
+const startStepStreamPart: DataStreamPart<
+  'f',
+  'start_step',
+  {
+    messageId: string;
+  }
+> = {
+  code: 'f',
+  name: 'start_step',
+  parse: (value: JSONValue) => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('messageId' in value) ||
+      typeof value.messageId !== 'string'
+    ) {
+      throw new Error(
+        '"start_step" parts expect an object with an "id" property.',
+      );
+    }
+
+    return {
+      type: 'start_step',
+      value: {
+        messageId: value.messageId,
+      },
+    };
+  },
+};
+
+const reasoningStreamPart: DataStreamPart<'g', 'reasoning', string> = {
+  code: 'g',
+  name: 'reasoning',
+  parse: (value: JSONValue) => {
+    if (typeof value !== 'string') {
+      throw new Error('"reasoning" parts expect a string value.');
+    }
+    return { type: 'reasoning', value };
+  },
+};
+
 const dataStreamParts = [
   textStreamPart,
   dataStreamPart,
@@ -327,6 +368,8 @@ const dataStreamParts = [
   toolCallDeltaStreamPart,
   finishMessageStreamPart,
   finishStepStreamPart,
+  startStepStreamPart,
+  reasoningStreamPart,
 ] as const;
 
 type DataStreamParts =
@@ -339,7 +382,9 @@ type DataStreamParts =
   | typeof toolCallStreamingStartStreamPart
   | typeof toolCallDeltaStreamPart
   | typeof finishMessageStreamPart
-  | typeof finishStepStreamPart;
+  | typeof finishStepStreamPart
+  | typeof startStepStreamPart
+  | typeof reasoningStreamPart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -358,7 +403,9 @@ export type DataStreamPartType =
   | ReturnType<typeof toolCallStreamingStartStreamPart.parse>
   | ReturnType<typeof toolCallDeltaStreamPart.parse>
   | ReturnType<typeof finishMessageStreamPart.parse>
-  | ReturnType<typeof finishStepStreamPart.parse>;
+  | ReturnType<typeof finishStepStreamPart.parse>
+  | ReturnType<typeof startStepStreamPart.parse>
+  | ReturnType<typeof reasoningStreamPart.parse>;
 
 export const dataStreamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -371,6 +418,8 @@ export const dataStreamPartsByCode = {
   [toolCallDeltaStreamPart.code]: toolCallDeltaStreamPart,
   [finishMessageStreamPart.code]: finishMessageStreamPart,
   [finishStepStreamPart.code]: finishStepStreamPart,
+  [startStepStreamPart.code]: startStepStreamPart,
+  [reasoningStreamPart.code]: reasoningStreamPart,
 } as const;
 
 /**
@@ -407,6 +456,8 @@ export const DataStreamStringPrefixes = {
   [toolCallDeltaStreamPart.name]: toolCallDeltaStreamPart.code,
   [finishMessageStreamPart.name]: finishMessageStreamPart.code,
   [finishStepStreamPart.name]: finishStepStreamPart.code,
+  [startStepStreamPart.name]: startStepStreamPart.code,
+  [reasoningStreamPart.name]: reasoningStreamPart.code,
 } as const;
 
 export const validCodes = dataStreamParts.map(part => part.code);
