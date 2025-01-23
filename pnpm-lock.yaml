@@ -1577,14 +1577,14 @@ importers:
   packages/perplexity:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.1
-        version: 0.1.1(zod@3.23.8)
+        specifier: 0.1.2
+        version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.5
-        version: 1.0.5
+        specifier: 1.0.6
+        version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.1
-        version: 2.1.1(zod@3.23.8)
+        specifier: 2.1.2
+        version: link:../provider-utils
     devDependencies:
       '@types/node':
         specifier: ^18
@@ -2036,25 +2036,6 @@ packages:
 
   '@adobe/css-tools@4.4.0':
     resolution: {integrity: sha512-Ff9+ksdQQB3rMncgqDK78uLznstjyfIf2Arnh22pW8kBpLs6rpKDwgnZT46hin5Hl1WzazzK64DOrhSwYpS7bQ==}
-
-  '@ai-sdk/openai-compatible@0.1.1':
-    resolution: {integrity: sha512-/RQhsi/7Ww8AS6W7zHf2IqWV6BrSKaBruysZS/ASlnYcI+wHhgBBZfaUQN43zH+3EXkUs9ahxb9RQtQT/DjHQg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/provider-utils@2.1.1':
-    resolution: {integrity: sha512-+FRXSAdzPJFJN6TpyvyGWLo7WJuoBKI1g66UL+sli1HrxlldXSwxRPeb8tMMmNcyi3VKQogg2VsoJjlt4ort5w==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
-  '@ai-sdk/provider@1.0.5':
-    resolution: {integrity: sha512-KATFp9CNXtMEzs8KBwLYK2+rGkkeED6p1+4koQveszyscIavObXIRW7vjr0MoZ9HFIHOUlrcak+3s/Xt3UXmAg==}
-    engines: {node: '>=18'}
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -13895,25 +13876,6 @@ packages:
 snapshots:
 
   '@adobe/css-tools@4.4.0': {}
-
-  '@ai-sdk/openai-compatible@0.1.1(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.5
-      '@ai-sdk/provider-utils': 2.1.1(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/provider-utils@2.1.1(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.5
-      eventsource-parser: 3.0.0
-      nanoid: 3.3.8
-      secure-json-parse: 2.7.0
-    optionalDependencies:
-      zod: 3.23.8
-
-  '@ai-sdk/provider@1.0.5':
-    dependencies:
-      json-schema: 0.4.0
 
   '@alloc/quick-lru@5.2.0': {}
 
