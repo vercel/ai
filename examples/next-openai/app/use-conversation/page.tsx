@@ -15,10 +15,13 @@ export default function Chat() {
 
   const { messages, submitMessage } = useConversation({
     api: {
-      sendMessage: function (message) {
+      send: function ({ messages }) {
         const { textStream } = streamText({
           model: openai('gpt-4o'),
-          prompt: message,
+          messages: messages.map(m => ({
+            role: m.role,
+            content: m.content.map(c => ({ type: 'text', text: c.text })),
+          })),
         });
 
         return createAsyncIterableStream(

@@ -41,7 +41,11 @@ function useConversation<MESSAGE_METADATA extends FlexibleSchema>({
   messageMetadata,
 }: {
   api: {
-    sendMessage: (message: string) => AsyncIterable<{
+    send: (options: {
+      messages: Array<
+        InDevelopment_UIMessage<inferFlexibleSchema<MESSAGE_METADATA>>
+      >;
+    }) => AsyncIterable<{
       type: 'text-delta';
       delta: string;
     }>;
@@ -78,6 +82,8 @@ function useConversation<MESSAGE_METADATA extends FlexibleSchema>({
           metadata,
         });
 
+        const inputMessages = structuredClone(messages);
+
         // add the assistant message
         const assistantMessage: InDevelopment_UIMessage<
           inferFlexibleSchema<MESSAGE_METADATA>
@@ -91,7 +97,8 @@ function useConversation<MESSAGE_METADATA extends FlexibleSchema>({
 
         setMessages(structuredClone(messages));
 
-        const stream = api.sendMessage(text);
+        const stream = api.send({ messages: inputMessages });
+
         for await (const delta of stream) {
           if (assistantMessage.content.length === 0) {
             assistantMessage.content.push({ type: 'text', text: delta.delta });
