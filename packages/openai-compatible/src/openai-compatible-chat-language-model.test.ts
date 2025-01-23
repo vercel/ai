@@ -3,7 +3,6 @@ import {
   JsonTestServer,
   StreamingTestServer,
   convertReadableStreamToArray,
-  createTestServer,
   describeWithTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from './openai-compatible-provider';
