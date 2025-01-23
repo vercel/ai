@@ -5,15 +5,14 @@ import { z } from 'zod';
 const buildDeepseekMetadata = (
   usage: z.infer<typeof deepSeekUsageSchema> | undefined,
 ) => {
-  if (usage) {
-    return {
-      deepseek: {
-        promptCacheHitTokens: usage.prompt_cache_hit_tokens ?? NaN,
-        promptCacheMissTokens: usage.prompt_cache_miss_tokens ?? NaN,
-      },
-    };
-  }
-  return undefined;
+  return usage == null
+    ? undefined
+    : {
+        deepseek: {
+          promptCacheHitTokens: usage.prompt_cache_hit_tokens ?? NaN,
+          promptCacheMissTokens: usage.prompt_cache_miss_tokens ?? NaN,
+        },
+      };
 };
 
 export const deepSeekMetadataExtractor: MetadataExtractor = {
