@@ -44,3 +44,6 @@ export * from './types';
 // util exports:
 export { cosineSimilarity } from './util/cosine-similarity';
 export { simulateReadableStream } from './util/simulate-readable-stream';
+
+// TEMP
+export { createAsyncIterableStream } from './util/async-iterable-stream';
