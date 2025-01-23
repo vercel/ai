@@ -157,7 +157,7 @@ console.log(images);
     },
     {
       name: 'responses',
-      type: 'Array<ImageModelResponseMetadata | undefined>',
+      type: 'Array<ImageModelResponseMetadata>',
       description:
         'Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.',
       properties: [
@@ -173,7 +173,7 @@ console.log(images);
               name: 'modelId',
               type: 'string',
               description:
-                'The ID of the model that was used to generate the response.',
+                'The ID of the response model that was used to generate the response.',
             },
             {
               name: 'headers',
