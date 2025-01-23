@@ -526,7 +526,7 @@ describe('streamText', () => {
 
     it('should send tool call deltas when toolCallStreaming is enabled', async () => {
       const result = streamText({
-        experimental_toolCallStreaming: true,
+        toolCallStreaming: true,
         model: createTestModel({
           stream: convertArrayToReadableStream([
             {
@@ -1108,7 +1108,7 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        experimental_toolCallStreaming: true,
+        toolCallStreaming: true,
         experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
@@ -1826,7 +1826,7 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        experimental_toolCallStreaming: true,
+        toolCallStreaming: true,
         onChunk(event) {
           result.push(event.chunk);
         },
@@ -3800,7 +3800,7 @@ describe('streamText', () => {
             },
           },
           prompt: 'test-input',
-          experimental_toolCallStreaming: true,
+          toolCallStreaming: true,
           onChunk(event) {
             result.push(event.chunk);
           },
