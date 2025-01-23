@@ -18,6 +18,9 @@ interface GoogleVertexImageModelConfig {
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: typeof fetch;
+  _internal?: {
+    currentDate?: () => Date;
+  };
 }
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
@@ -72,7 +75,8 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       },
     };
 
-    const { value: response } = await postJsonToApi({
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:predict`,
       headers: combineHeaders(await resolve(this.config.headers), headers),
       body,
@@ -85,10 +89,16 @@ export class GoogleVertexImageModel implements ImageModelV1 {
     });
 
     return {
-      images: response.predictions.map(
-        (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
-      ),
+      images:
+        response.predictions?.map(
+          (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
+        ) ?? [],
       warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
     };
   }
 }
@@ -96,5 +106,5 @@ export class GoogleVertexImageModel implements ImageModelV1 {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const vertexImageResponseSchema = z.object({
-  predictions: z.array(z.object({ bytesBase64Encoded: z.string() })),
+  predictions: z.array(z.object({ bytesBase64Encoded: z.string() })).nullish(),
 });

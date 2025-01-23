@@ -19,6 +19,9 @@ interface ReplicateImageModelConfig {
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
+  _internal?: {
+    currentDate?: () => Date;
+  };
 }
 
 export class ReplicateImageModel implements ImageModelV1 {
@@ -52,8 +55,10 @@ export class ReplicateImageModel implements ImageModelV1 {
   > {
     const warnings: Array<ImageModelV1CallWarning> = [];
 
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const {
       value: { output },
+      responseHeaders,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}/predictions`,
       headers: combineHeaders(await resolve(this.config.headers), headers, {
@@ -86,7 +91,15 @@ export class ReplicateImageModel implements ImageModelV1 {
       }),
     );
 
-    return { images, warnings };
+    return {
+      images,
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
   }
 }
 

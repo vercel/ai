@@ -9,10 +9,12 @@ const prompt = 'A cute baby sea otter';
 function createBasicModel({
   headers,
   fetch,
+  currentDate,
   settings,
 }: {
   headers?: () => Record<string, string>;
   fetch?: FetchFunction;
+  currentDate?: () => Date;
   settings?: FireworksImageSettings;
 } = {}) {
   return new FireworksImageModel(
@@ -23,6 +25,9 @@ function createBasicModel({
       baseURL: 'https://api.example.com',
       headers: headers ?? (() => ({ 'api-key': 'test-key' })),
       fetch,
+      _internal: {
+        currentDate,
+      },
     },
   );
 }
@@ -294,6 +299,57 @@ describe('FireworksImageModel', () => {
 
       const requestBody = await server.calls[0].requestBody;
       expect(requestBody).toHaveProperty('samples', 42);
+    });
+
+    describe('response metadata', () => {
+      it('should include timestamp, headers and modelId in response', async () => {
+        const testDate = new Date('2024-01-01T00:00:00Z');
+        const model = createBasicModel({
+          currentDate: () => testDate,
+        });
+
+        const result = await model.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        expect(result.response).toStrictEqual({
+          timestamp: testDate,
+          modelId: 'accounts/fireworks/models/flux-1-dev-fp8',
+          headers: expect.any(Object),
+        });
+      });
+
+      it('should include response headers from API call', async () => {
+        server.urls['https://api.example.com/*'].response = {
+          type: 'binary',
+          body: Buffer.from('test-binary-content'),
+          headers: {
+            'x-request-id': 'test-request-id',
+            'content-type': 'image/png',
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        expect(result.response.headers).toStrictEqual({
+          'content-length': '19',
+          'x-request-id': 'test-request-id',
+          'content-type': 'image/png',
+        });
+      });
     });
   });
 

@@ -3,6 +3,7 @@ export type {
   ImageModel,
   ImageGenerationWarning as ImageModelCallWarning,
 } from './image-model';
+export type { ImageModelResponseMetadata } from './image-model-response-metadata';
 export type {
   CallWarning,
   CoreToolChoice,
