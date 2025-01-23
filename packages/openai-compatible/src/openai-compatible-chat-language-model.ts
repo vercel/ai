@@ -18,7 +18,6 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
-  safeParseJSON,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
@@ -34,7 +33,6 @@ import {
 } from './openai-compatible-error';
 import { prepareTools } from './openai-compatible-prepare-tools';
 import { MetadataProcessor } from './openai-compatible-metadata-processor';
-import { EventSourceMessage } from 'eventsource-parser/stream';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
@@ -232,26 +230,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     }
   }
 
-  private createResponseHandlerWithParsedAndRawResponse<T>(
-    schema: z.ZodType<T>,
-  ): ResponseHandler<{ parsed: T; raw: any }> {
-    return async ({ response: rawResponse, ...rest }) => {
-      const { value, responseHeaders } = await createJsonResponseHandler(
-        schema,
-      )({
-        response: rawResponse.clone(),
-        ...rest,
-      });
-      return {
-        value: {
-          parsed: value,
-          raw: await rawResponse.json(),
-        },
-        responseHeaders,
-      };
-    };
-  }
-
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
@@ -261,7 +239,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     const {
       responseHeaders,
-      value: { parsed: response, raw: rawResponse },
+      value: response,
+      rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
@@ -270,10 +249,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
-      successfulResponseHandler:
-        this.createResponseHandlerWithParsedAndRawResponse(
-          OpenAICompatibleChatResponseSchema,
-        ),
+      successfulResponseHandler: createJsonResponseHandler(
+        OpenAICompatibleChatResponseSchema,
+      ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
@@ -371,25 +349,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         this.chunkSchema,
-        {
-          preprocess: metadataProcessor
-            ? new TransformStream<EventSourceMessage, EventSourceMessage>({
-                transform(chunk, controller) {
-                  // Just parse JSON here, schema validation happens later.
-                  const parseResult = safeParseJSON({
-                    text: chunk.data,
-                    schema: z.any(),
-                  });
-                  if (parseResult.success) {
-                    metadataProcessor.processChunk(parseResult.value);
-                  }
-                  // Even if parsing fails, we still need to forward the chunk
-                  // for the main transform to handle.
-                  controller.enqueue(chunk);
-                },
-              })
-            : undefined,
-        },
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -431,8 +390,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
-
             const value = chunk.value;
+
+            // console.log('chunk', JSON.stringify(chunk, null, 2));
+            metadataProcessor?.processChunk(chunk.rawValue);
 
             // handle error chunks:
             if ('error' in value) {

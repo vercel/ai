@@ -13,6 +13,7 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
   response: Response;
 }) => PromiseLike<{
   value: RETURN_TYPE;
+  rawValue?: unknown;
   responseHeaders?: Record<string, string>;
 }>;
 
@@ -85,9 +86,6 @@ export const createJsonErrorResponseHandler =
 export const createEventSourceResponseHandler =
   <T>(
     chunkSchema: ZodSchema<T>,
-    options?: {
-      preprocess?: TransformStream<EventSourceMessage, EventSourceMessage>;
-    },
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     const responseHeaders = extractResponseHeaders(response);
@@ -96,34 +94,28 @@ export const createEventSourceResponseHandler =
       throw new EmptyResponseBodyError({});
     }
 
-    let stream = response.body
-      .pipeThrough(new TextDecoderStream())
-      .pipeThrough(new EventSourceParserStream());
-
-    // Insert preprocessing transform if provided
-    if (options?.preprocess) {
-      stream = stream.pipeThrough(options.preprocess);
-    }
-
     return {
       responseHeaders,
-      value: stream.pipeThrough(
-        new TransformStream<EventSourceMessage, ParseResult<T>>({
-          transform({ data }, controller) {
-            // ignore the 'DONE' event that e.g. OpenAI sends:
-            if (data === '[DONE]') {
-              return;
-            }
+      value: response.body
+        .pipeThrough(new TextDecoderStream())
+        .pipeThrough(new EventSourceParserStream())
+        .pipeThrough(
+          new TransformStream<EventSourceMessage, ParseResult<T>>({
+            transform({ data }, controller) {
+              // ignore the 'DONE' event that e.g. OpenAI sends:
+              if (data === '[DONE]') {
+                return;
+              }
 
-            controller.enqueue(
-              safeParseJSON({
-                text: data,
-                schema: chunkSchema,
-              }),
-            );
-          },
-        }),
-      ),
+              controller.enqueue(
+                safeParseJSON({
+                  text: data,
+                  schema: chunkSchema,
+                }),
+              );
+            },
+          }),
+        ),
     };
   };
 
@@ -189,5 +181,6 @@ export const createJsonResponseHandler =
     return {
       responseHeaders,
       value: parsedResult.value,
+      rawValue: parsedResult.rawValue,
     };
   };
