@@ -21,10 +21,11 @@ export type MetadataExtractor = {
   }) => LanguageModelV1ProviderMetadata | undefined;
 
   /**
-   * Creates a streaming metadata processor that can accumulate and process chunks
-   * of a streaming response. Used to build metadata progressively during streaming.
+   * Creates an extractor for handling streaming responses. The returned object provides
+   * methods to process individual chunks and build the final metadata from the accumulated
+   * stream data.
    *
-   * @returns A new StreamingMetadataProcessor instance
+   * @returns An object with methods to process chunks and build metadata from a stream
    */
   createStreamExtractor: () => {
     /**
