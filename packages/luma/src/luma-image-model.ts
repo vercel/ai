@@ -5,11 +5,11 @@ import {
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
-  ResponseHandler,
   combineHeaders,
+  createBinaryResponseHandler,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
-  extractResponseHeaders,
+  createStatusCodeErrorResponseHandler,
   getFromApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -107,8 +107,9 @@ export class LumaImageModel implements ImageModelV1 {
 
     // Step 3: Download the image
     console.log('imageResponse', JSON.stringify(imageResponse, null, 2));
+    // TODO: Handle case where image is not available.
     const downloadedImage = await this.downloadImage(
-      imageResponse.assets.image,
+      imageResponse.assets?.image ?? '',
     );
 
     return {
@@ -125,7 +126,7 @@ export class LumaImageModel implements ImageModelV1 {
 
   private async pollForImage(
     generationId: string,
-    abortSignal: AbortSignal,
+    abortSignal: AbortSignal | undefined,
   ): Promise<LumaGenerationResponse> {
     const checkInterval = 5000;
     let attempts = 0;
@@ -176,7 +177,7 @@ export class LumaImageModel implements ImageModelV1 {
   private async downloadImage(imageUrl: string): Promise<Uint8Array> {
     const { value: buffer } = await getFromApi({
       url: imageUrl,
-      failedResponseHandler: statusCodeErrorResponseHandler,
+      failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
       fetch: this.config.fetch,
     });
@@ -222,60 +223,3 @@ const lumaErrorResponseSchema = z.object({
 type LumaGenerationResponse = z.infer<typeof lumaGenerationResponseSchema>;
 type LumaErrorResponse = z.infer<typeof lumaErrorResponseSchema>;
 type LumaRequest = z.infer<typeof lumaRequestSchema>;
-
-// TODO: Share the below with FireworksImageModel.
-const createBinaryResponseHandler =
-  (): ResponseHandler<ArrayBuffer> =>
-  async ({ response, url, requestBodyValues }) => {
-    const responseHeaders = extractResponseHeaders(response);
-
-    if (!response.body) {
-      throw new APICallError({
-        message: 'Response body is empty',
-        url,
-        requestBodyValues,
-        statusCode: response.status,
-        responseHeaders,
-        responseBody: undefined,
-      });
-    }
-
-    try {
-      const buffer = await response.arrayBuffer();
-      return {
-        responseHeaders,
-        value: buffer,
-      };
-    } catch (error) {
-      throw new APICallError({
-        message: 'Failed to read response as array buffer',
-        url,
-        requestBodyValues,
-        statusCode: response.status,
-        responseHeaders,
-        responseBody: undefined,
-        cause: error,
-      });
-    }
-  };
-
-const statusCodeErrorResponseHandler: ResponseHandler<APICallError> = async ({
-  response,
-  url,
-  requestBodyValues,
-}) => {
-  const responseHeaders = extractResponseHeaders(response);
-  const responseBody = await response.text();
-
-  return {
-    responseHeaders,
-    value: new APICallError({
-      message: response.statusText,
-      url,
-      requestBodyValues: requestBodyValues as Record<string, unknown>,
-      statusCode: response.status,
-      responseHeaders,
-      responseBody,
-    }),
-  };
-};
