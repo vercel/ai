@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.1.3
+
+### Patch Changes
+
+- 361fd08: chore: update a few add'l processor references to extractor
+
 ## 0.1.2
 
 ### Patch Changes
