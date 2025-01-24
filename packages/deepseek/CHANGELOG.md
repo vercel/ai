@@ -1,5 +1,24 @@
 # @ai-sdk/deepseek
 
+## 0.1.3
+
+### Patch Changes
+
+- 361fd08: chore: update a few add'l processor references to extractor
+- Updated dependencies [361fd08]
+  - @ai-sdk/openai-compatible@0.1.3
+
+## 0.1.2
+
+### Patch Changes
+
+- ed012d2: feat (provider/deepseek): extract cache usage as provide metadata
+- Updated dependencies [ed012d2]
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/openai-compatible@0.1.2
+  - @ai-sdk/provider-utils@2.1.2
+  - @ai-sdk/provider@1.0.6
+
 ## 0.1.1
 
 ### Patch Changes

@@ -28,6 +28,9 @@ functionality that can be fully encapsulated in the provider.
   experimental_providerMetadata?: ProviderMetadata;
 }
 
+/**
+@internal
+ */
 export const textPartSchema: z.ZodType<TextPart> = z.object({
   type: z.literal('text'),
   text: z.string(),
@@ -61,6 +64,9 @@ functionality that can be fully encapsulated in the provider.
   experimental_providerMetadata?: ProviderMetadata;
 }
 
+/**
+@internal
+ */
 export const imagePartSchema: z.ZodType<ImagePart> = z.object({
   type: z.literal('image'),
   image: z.union([dataContentSchema, z.instanceof(URL)]),
@@ -95,6 +101,9 @@ functionality that can be fully encapsulated in the provider.
   experimental_providerMetadata?: ProviderMetadata;
 }
 
+/**
+@internal
+ */
 export const filePartSchema: z.ZodType<FilePart> = z.object({
   type: z.literal('file'),
   data: z.union([dataContentSchema, z.instanceof(URL)]),
@@ -131,6 +140,9 @@ functionality that can be fully encapsulated in the provider.
   experimental_providerMetadata?: ProviderMetadata;
 }
 
+/**
+@internal
+ */
 export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
   type: z.literal('tool-call'),
   toolCallId: z.string(),
@@ -177,6 +189,9 @@ functionality that can be fully encapsulated in the provider.
   experimental_providerMetadata?: ProviderMetadata;
 }
 
+/**
+@internal
+ */
 export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   type: z.literal('tool-result'),
   toolCallId: z.string(),

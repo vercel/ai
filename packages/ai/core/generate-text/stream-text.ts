@@ -145,7 +145,8 @@ export function streamText<
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   experimental_providerMetadata: providerMetadata,
-  experimental_toolCallStreaming: toolCallStreaming = false,
+  experimental_toolCallStreaming = false,
+  toolCallStreaming = experimental_toolCallStreaming,
   experimental_activeTools: activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
@@ -226,6 +227,11 @@ A function that attempts to repair a tool call that failed to parse.
 
     /**
 Enable streaming of tool call deltas as they are generated. Disabled by default.
+     */
+    toolCallStreaming?: boolean;
+
+    /**
+@deprecated Use `toolCallStreaming` instead.
      */
     experimental_toolCallStreaming?: boolean;
 
@@ -1439,10 +1445,12 @@ However, the LLM results are expected to be small enough to not cause issues.
   private toDataStreamInternal({
     getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
+    sendReasoning = false,
   }: {
-    getErrorMessage?: (error: unknown) => string;
-    sendUsage?: boolean;
-  } = {}): ReadableStream<DataStreamString> {
+    getErrorMessage: ((error: unknown) => string) | undefined;
+    sendUsage: boolean | undefined;
+    sendReasoning: boolean | undefined;
+  }): ReadableStream<DataStreamString> {
     let aggregatedResponse = '';
 
     const callbackTransformer = new TransformStream<
@@ -1471,9 +1479,11 @@ However, the LLM results are expected to be small enough to not cause issues.
           }
 
           case 'reasoning': {
-            controller.enqueue(
-              formatDataStreamPart('reasoning', chunk.textDelta),
-            );
+            if (sendReasoning) {
+              controller.enqueue(
+                formatDataStreamPart('reasoning', chunk.textDelta),
+              );
+            }
             break;
           }
 
@@ -1587,10 +1597,12 @@ However, the LLM results are expected to be small enough to not cause issues.
       data,
       getErrorMessage,
       sendUsage,
+      sendReasoning,
     }: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+      sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
+      sendReasoning?: boolean; // default to false
     } = {},
   ) {
     writeToServerResponse({
@@ -1601,7 +1613,12 @@ However, the LLM results are expected to be small enough to not cause issues.
         contentType: 'text/plain; charset=utf-8',
         dataStreamVersion: 'v1',
       }),
-      stream: this.toDataStream({ data, getErrorMessage, sendUsage }),
+      stream: this.toDataStream({
+        data,
+        getErrorMessage,
+        sendUsage,
+        sendReasoning,
+      }),
     });
   }
 
@@ -1622,19 +1639,29 @@ However, the LLM results are expected to be small enough to not cause issues.
     data?: StreamData;
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean;
+    sendReasoning?: boolean;
   }) {
     const stream = this.toDataStreamInternal({
       getErrorMessage: options?.getErrorMessage,
       sendUsage: options?.sendUsage,
+      sendReasoning: options?.sendReasoning,
     }).pipeThrough(new TextEncoderStream());
 
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
   }
 
-  mergeIntoDataStream(writer: DataStreamWriter) {
+  mergeIntoDataStream(
+    writer: DataStreamWriter,
+    options?: {
+      sendUsage?: boolean;
+      sendReasoning?: boolean;
+    },
+  ) {
     writer.merge(
       this.toDataStreamInternal({
         getErrorMessage: writer.onError,
+        sendUsage: options?.sendUsage,
+        sendReasoning: options?.sendReasoning,
       }),
     );
   }
@@ -1646,13 +1673,15 @@ However, the LLM results are expected to be small enough to not cause issues.
     data,
     getErrorMessage,
     sendUsage,
+    sendReasoning,
   }: ResponseInit & {
     data?: StreamData;
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean;
+    sendReasoning?: boolean;
   } = {}): Response {
     return new Response(
-      this.toDataStream({ data, getErrorMessage, sendUsage }),
+      this.toDataStream({ data, getErrorMessage, sendUsage, sendReasoning }),
       {
         status,
         statusText,

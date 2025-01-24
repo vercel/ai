@@ -146,7 +146,7 @@ console.log(result.experimental_providerMetadata?.anthropic);
 
 You can also use cache control on system messages by providing multiple system messages at the head of your messages array:
 
-```ts highlight="3,9-11"
+```ts highlight="3,7-9"
 const result = await generateText({
   model: anthropic('claude-3-5-sonnet-20240620'),
   messages: [

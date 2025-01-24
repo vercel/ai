@@ -1,4 +1,4 @@
-import { ImageModelV1 } from '@ai-sdk/provider';
+import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
 import { MockImageModelV1 } from '../test/mock-image-model-v1';
 import { generateImage } from './generate-image';
 import {
@@ -7,8 +7,29 @@ import {
 } from '@ai-sdk/provider-utils';
 
 const prompt = 'sunny day at the beach';
+const testDate = new Date(2024, 0, 1);
+
+const createMockResponse = (options: {
+  images: string[] | Uint8Array[];
+  warnings?: ImageModelV1CallWarning[];
+  timestamp?: Date;
+  modelId?: string;
+  headers?: Record<string, string>;
+}) => ({
+  images: options.images,
+  warnings: options.warnings ?? [],
+  response: {
+    timestamp: options.timestamp ?? new Date(),
+    modelId: options.modelId ?? 'test-model-id',
+    headers: options.headers ?? {},
+  },
+});
 
 describe('generateImage', () => {
+  // 1x1 transparent PNG
+  const mockBase64Image =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
+
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
@@ -19,7 +40,9 @@ describe('generateImage', () => {
       model: new MockImageModelV1({
         doGenerate: async args => {
           capturedArgs = args;
-          return { images: [], warnings: [] };
+          return createMockResponse({
+            images: [mockBase64Image],
+          });
         },
       }),
       prompt,
@@ -46,15 +69,16 @@ describe('generateImage', () => {
   it('should return warnings', async () => {
     const result = await generateImage({
       model: new MockImageModelV1({
-        doGenerate: async () => ({
-          images: [],
-          warnings: [
-            {
-              type: 'other',
-              message: 'Setting is not supported',
-            },
-          ],
-        }),
+        doGenerate: async () =>
+          createMockResponse({
+            images: [mockBase64Image],
+            warnings: [
+              {
+                type: 'other',
+                message: 'Setting is not supported',
+              },
+            ],
+          }),
       }),
       prompt,
     });
@@ -76,7 +100,10 @@ describe('generateImage', () => {
 
       const result = await generateImage({
         model: new MockImageModelV1({
-          doGenerate: async () => ({ images: base64Images, warnings: [] }),
+          doGenerate: async () =>
+            createMockResponse({
+              images: base64Images,
+            }),
         }),
         prompt,
       });
@@ -103,10 +130,10 @@ describe('generateImage', () => {
 
       const result = await generateImage({
         model: new MockImageModelV1({
-          doGenerate: async () => ({
-            images: [base64Image, 'base64-image-2'],
-            warnings: [],
-          }),
+          doGenerate: async () =>
+            createMockResponse({
+              images: [base64Image, 'base64-image-2'],
+            }),
         }),
         prompt,
       });
@@ -130,7 +157,10 @@ describe('generateImage', () => {
 
       const result = await generateImage({
         model: new MockImageModelV1({
-          doGenerate: async () => ({ images: uint8ArrayImages, warnings: [] }),
+          doGenerate: async () =>
+            createMockResponse({
+              images: uint8ArrayImages,
+            }),
         }),
         prompt,
       });
@@ -179,7 +209,9 @@ describe('generateImage', () => {
                   headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
-                return { images: base64Images.slice(0, 2), warnings: [] };
+                return createMockResponse({
+                  images: base64Images.slice(0, 2),
+                });
               case 1:
                 expect(options).toStrictEqual({
                   prompt,
@@ -191,7 +223,9 @@ describe('generateImage', () => {
                   headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
-                return { images: base64Images.slice(2), warnings: [] };
+                return createMockResponse({
+                  images: base64Images.slice(2),
+                });
               default:
                 throw new Error('Unexpected call');
             }
@@ -236,10 +270,10 @@ describe('generateImage', () => {
                   headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
-                return {
+                return createMockResponse({
                   images: base64Images.slice(0, 2),
                   warnings: [{ type: 'other', message: '1' }],
-                };
+                });
               case 1:
                 expect(options).toStrictEqual({
                   prompt,
@@ -251,10 +285,10 @@ describe('generateImage', () => {
                   headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
-                return {
+                return createMockResponse({
                   images: base64Images.slice(2),
                   warnings: [{ type: 'other', message: '2' }],
-                };
+                });
               default:
                 throw new Error('Unexpected call');
             }
@@ -274,5 +308,92 @@ describe('generateImage', () => {
         { type: 'other', message: '2' },
       ]);
     });
+  });
+
+  describe('error handling', () => {
+    it('should throw NoImageGeneratedError when no images are returned', async () => {
+      await expect(
+        generateImage({
+          model: new MockImageModelV1({
+            doGenerate: async () =>
+              createMockResponse({
+                images: [],
+                timestamp: testDate,
+              }),
+          }),
+          prompt,
+          _internal: {
+            currentDate: () => testDate,
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoImageGeneratedError',
+        message: 'No image generated.',
+        responses: [
+          {
+            timestamp: testDate,
+            modelId: expect.any(String),
+          },
+        ],
+      });
+    });
+
+    it('should include response headers in error when no images generated', async () => {
+      await expect(
+        generateImage({
+          model: new MockImageModelV1({
+            doGenerate: async () =>
+              createMockResponse({
+                images: [],
+                timestamp: testDate,
+                headers: {
+                  'custom-response-header': 'response-header-value',
+                },
+              }),
+          }),
+          prompt,
+          _internal: {
+            currentDate: () => testDate,
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoImageGeneratedError',
+        message: 'No image generated.',
+        responses: [
+          {
+            timestamp: testDate,
+            modelId: expect.any(String),
+            headers: {
+              'custom-response-header': 'response-header-value',
+            },
+          },
+        ],
+      });
+    });
+  });
+
+  it('should return response metadata', async () => {
+    const testHeaders = { 'x-test': 'value' };
+
+    const result = await generateImage({
+      model: new MockImageModelV1({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [mockBase64Image],
+            timestamp: testDate,
+            modelId: 'test-model',
+            headers: testHeaders,
+          }),
+      }),
+      prompt,
+    });
+
+    expect(result.responses).toStrictEqual([
+      {
+        timestamp: testDate,
+        modelId: 'test-model',
+        headers: testHeaders,
+      },
+    ]);
   });
 });

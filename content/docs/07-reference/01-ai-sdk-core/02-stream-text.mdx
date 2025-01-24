@@ -470,7 +470,7 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_toolCallStreaming',
+      name: 'toolCallStreaming',
       type: 'boolean',
       isOptional: true,
       description:
@@ -1476,7 +1476,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'messageId',
               type: 'string',
-              description: 'The ID of the assistant message that started the step.',
+              description:
+                'The ID of the assistant message that started the step.',
             },
             {
               name: 'request',
@@ -1500,7 +1501,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'warnings',
               type: 'Warning[]',
-              description: 'Warnings from the model provider (e.g. unsupported settings).',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
             },
           ],
         },
@@ -1510,12 +1512,14 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'type',
               type: "'step-finish'",
-              description: 'Indicates the end of the current step in the stream.',
+              description:
+                'Indicates the end of the current step in the stream.',
             },
             {
               name: 'messageId',
               type: 'string',
-              description: 'The ID of the assistant message that ended the step.',
+              description:
+                'The ID of the assistant message that ended the step.',
             },
             {
               name: 'logprobs',
@@ -1527,7 +1531,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'request',
               type: 'RequestMetadata',
-              description: 'Information about the request that was sent to the language model provider.',
+              description:
+                'Information about the request that was sent to the language model provider.',
               properties: [
                 {
                   type: 'RequestMetadata',
@@ -1546,12 +1551,14 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'warnings',
               type: 'Warning[]',
               isOptional: true,
-              description: 'Warnings from the model provider (e.g. unsupported settings).',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
             },
             {
               name: 'response',
               type: 'ResponseMetadata',
-              description: 'Response metadata from the language model provider.',
+              description:
+                'Response metadata from the language model provider.',
               properties: [
                 {
                   type: 'ResponseMetadata',
@@ -1689,7 +1696,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'ResponseMetadata',
-              description: 'Response metadata from the language model provider.',
+              description:
+                'Response metadata from the language model provider.',
               properties: [
                 {
                   type: 'ResponseMetadata',
@@ -1794,6 +1802,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Whether to send the usage information in the stream. Defaults to true.',
             },
+            {
+              name: 'sendReasoning',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the reasoning information in the stream. Defaults to false.',
+            },
           ],
         },
       ],
@@ -1857,6 +1872,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Whether to send the usage information in the stream. Defaults to true.',
             },
+            {
+              name: 'sendReasoning',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the reasoning information in the stream. Defaults to false.',
+            },
           ],
         },
       ],
@@ -1908,6 +1930,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Whether to send the usage information in the stream. Defaults to true.',
             },
+            {
+              name: 'sendReasoning',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the reasoning information in the stream. Defaults to false.',
+            },
           ],
         },
       ],
@@ -1943,8 +1972,34 @@ To see `streamText` in action, check out [these examples](#examples).
         },
       ],
     },
-
-]}
+    {
+      name: 'mergeIntoDataStream',
+      type: '(dataStream: DataStreamWriter, options?: { sendUsage?: boolean, sendReasoning?: boolean }) => void',
+      description:
+        'Merges the result as a data stream into another data stream.',
+      properties: [
+        {
+          type: 'MergeIntoDataStreamOptions',
+          parameters: [
+            {
+              name: 'sendUsage',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the usage information to the client. Defaults to true.',
+            },
+            {
+              name: 'sendReasoning',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the reasoning information in the stream. Defaults to false.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
 />
 
 ## Examples

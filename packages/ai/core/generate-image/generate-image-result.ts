@@ -1,4 +1,5 @@
 import { ImageGenerationWarning } from '../types/image-model';
+import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 
 /**
 The result of a `generateImage` call.
@@ -19,6 +20,11 @@ The images that were generated.
 Warnings for the call, e.g. unsupported settings.
      */
   readonly warnings: Array<ImageGenerationWarning>;
+
+  /**
+Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
+   */
+  readonly responses: Array<ImageModelResponseMetadata>;
 }
 
 export interface GeneratedImage {

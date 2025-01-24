@@ -1,5 +1,42 @@
 # ai
 
+## 4.1.5
+
+### Patch Changes
+
+- 9ce598c: feat (ai/ui): add reasoning support to useChat
+- Updated dependencies [9ce598c]
+  - @ai-sdk/ui-utils@1.1.3
+  - @ai-sdk/react@1.1.3
+
+## 4.1.4
+
+### Patch Changes
+
+- caaad11: feat (ai/core): re-export languagemodelv1 types for middleware implementations
+- caaad11: feat (ai/core): expose TelemetrySettings type
+
+## 4.1.3
+
+### Patch Changes
+
+- 7f30a77: feat (core): export core message schemas
+- 4298996: feat (core): add helper for merging single client message
+
+## 4.1.2
+
+### Patch Changes
+
+- 3c5fafa: chore (ai/core): move streamText toolCallStreaming option to stable
+- 3a58a2e: feat (ai/core): throw NoImageGeneratedError from generateImage when no predictions are returned.
+- Updated dependencies [ed012d2]
+- Updated dependencies [6f4d063]
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/provider-utils@2.1.2
+  - @ai-sdk/react@1.1.2
+  - @ai-sdk/provider@1.0.6
+  - @ai-sdk/ui-utils@1.1.2
+
 ## 4.1.1
 
 ### Patch Changes

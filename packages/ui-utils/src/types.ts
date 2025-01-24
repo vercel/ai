@@ -61,6 +61,11 @@ Text content of the message.
   content: string;
 
   /**
+Reasoning for the message.
+   */
+  reasoning?: string;
+
+  /**
    * Additional attachments to be sent along with the message.
    */
   experimental_attachments?: Attachment[];
