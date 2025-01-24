@@ -32,13 +32,11 @@
   "dependencies": {
     "@ai-sdk/provider": "1.0.7",
     "@ai-sdk/provider-utils": "2.1.6",
-    "@aws-sdk/client-bedrock-runtime": "^3.663.0"
+    "aws4fetch": "^1.0.20"
   },
   "devDependencies": {
-    "@smithy/types": "^3.5.0",
     "@types/node": "^18.19.54",
     "@vercel/ai-tsconfig": "workspace:*",
-    "aws-sdk-client-mock": "^4.0.2",
     "tsup": "^8.3.0",
     "typescript": "5.6.3",
     "zod": "3.23.8"

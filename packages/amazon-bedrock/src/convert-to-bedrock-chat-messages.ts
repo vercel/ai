@@ -4,7 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
-import { DocumentFormat, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
+import { DocumentFormat, ImageFormat } from './bedrock-api-types';
 import {
   BedrockAssistantMessage,
   BedrockMessagesPrompt,

@@ -1,4 +1,4 @@
-import { ContentBlock } from '@aws-sdk/client-bedrock-runtime';
+import { ContentBlock } from './bedrock-api-types';
 
 export type BedrockMessagesPrompt = {
   system?: string;

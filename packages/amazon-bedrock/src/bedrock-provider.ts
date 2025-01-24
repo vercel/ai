@@ -8,10 +8,6 @@ import {
   loadOptionalSetting,
   loadSetting,
 } from '@ai-sdk/provider-utils';
-import {
-  BedrockRuntimeClient,
-  BedrockRuntimeClientConfig,
-} from '@aws-sdk/client-bedrock-runtime';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import {
   BedrockChatModelId,
@@ -22,6 +18,8 @@ import {
   BedrockEmbeddingModelId,
   BedrockEmbeddingSettings,
 } from './bedrock-embedding-settings';
+import { AwsSigV4Signer } from './bedrock-sigv4-signer';
+import { BedrockHeadersFunction } from './bedrock-api-types';
 
 export interface AmazonBedrockProviderSettings {
   region?: string;
@@ -34,7 +32,7 @@ export interface AmazonBedrockProviderSettings {
    * other options. When this is provided, the region, accessKeyId, and
    * secretAccessKey settings are ignored.
    */
-  bedrockOptions?: BedrockRuntimeClientConfig;
+  // bedrockOptions?: BedrockRuntimeClientConfig;
 
   // for testing
   generateId?: () => string;
@@ -63,42 +61,58 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const createBedrockRuntimeClient = () =>
-    new BedrockRuntimeClient(
-      options.bedrockOptions ?? {
-        region: loadSetting({
-          settingValue: options.region,
-          settingName: 'region',
-          environmentVariableName: 'AWS_REGION',
-          description: 'AWS region',
+  const createSigner = () =>
+    new AwsSigV4Signer({
+      region: loadSetting({
+        settingValue: options.region,
+        settingName: 'region',
+        environmentVariableName: 'AWS_REGION',
+        description: 'AWS region',
+      }),
+      service: 'bedrock',
+      credentials: {
+        accessKeyId: loadSetting({
+          settingValue: options.accessKeyId,
+          settingName: 'accessKeyId',
+          environmentVariableName: 'AWS_ACCESS_KEY_ID',
+          description: 'AWS access key ID',
         }),
-        credentials: {
-          accessKeyId: loadSetting({
-            settingValue: options.accessKeyId,
-            settingName: 'accessKeyId',
-            environmentVariableName: 'AWS_ACCESS_KEY_ID',
-            description: 'AWS access key ID',
-          }),
-          secretAccessKey: loadSetting({
-            settingValue: options.secretAccessKey,
-            settingName: 'secretAccessKey',
-            environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-            description: 'AWS secret access key',
-          }),
-          sessionToken: loadOptionalSetting({
-            settingValue: options.sessionToken,
-            environmentVariableName: 'AWS_SESSION_TOKEN',
-          }),
-        },
+        secretAccessKey: loadSetting({
+          settingValue: options.secretAccessKey,
+          settingName: 'secretAccessKey',
+          environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
+          description: 'AWS secret access key',
+        }),
+        sessionToken: loadOptionalSetting({
+          settingValue: options.sessionToken,
+          environmentVariableName: 'AWS_SESSION_TOKEN',
+        }),
       },
-    );
+    });
+
+  const getHeaders: BedrockHeadersFunction = async ({
+    url,
+    target,
+    headers,
+    body,
+  }) =>
+    createSigner().signRequest({
+      method: 'POST',
+      url,
+      headers: {
+        ...headers,
+        'X-Amz-Target': target,
+      },
+      body: JSON.stringify(body),
+    });
 
   const createChatModel = (
     modelId: BedrockChatModelId,
     settings: BedrockChatSettings = {},
   ) =>
     new BedrockChatLanguageModel(modelId, settings, {
-      client: createBedrockRuntimeClient(),
+      baseUrl: 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: getHeaders,
       generateId,
     });
 
@@ -120,7 +134,8 @@ export function createAmazonBedrock(
     settings: BedrockEmbeddingSettings = {},
   ) =>
     new BedrockEmbeddingModel(modelId, settings, {
-      client: createBedrockRuntimeClient(),
+      baseUrl: 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: getHeaders,
     });
 
   provider.languageModel = createChatModel;
