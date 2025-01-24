@@ -14,12 +14,12 @@
     "geist": "^1.3.1",
     "next": "latest",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^19.0.0-rc.1"
   },
   "devDependencies": {
     "@types/node": "^17.0.12",
     "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react-dom": "^19",
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
