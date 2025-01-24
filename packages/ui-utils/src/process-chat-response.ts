@@ -119,6 +119,14 @@ export async function processChatResponse({
       };
       execUpdate();
     },
+    onReasoningPart(value) {
+      const activeMessage = getMessage();
+      currentMessage = {
+        ...activeMessage,
+        reasoning: (activeMessage.reasoning ?? '') + value,
+      };
+      execUpdate();
+    },
     onToolCallStreamingStartPart(value) {
       const activeMessage = getMessage();
 

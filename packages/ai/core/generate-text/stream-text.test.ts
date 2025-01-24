@@ -937,7 +937,9 @@ describe('streamText', () => {
         experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      result.pipeDataStreamToResponse(mockResponse);
+      result.pipeDataStreamToResponse(mockResponse, {
+        sendReasoning: true,
+      });
 
       await mockResponse.waitForEnd();
 

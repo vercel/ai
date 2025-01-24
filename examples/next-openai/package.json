@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "0.1.3",
     "@ai-sdk/openai": "1.1.2",
     "@ai-sdk/ui-utils": "1.1.2",
     "@ai-sdk/react": "1.1.2",
