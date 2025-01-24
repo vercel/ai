@@ -15,6 +15,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 
+const POLL_INTERVAL_MILLIS = 5000;
+const MAX_POLL_ATTEMPTS = 60000 / POLL_INTERVAL_MILLIS;
+
 interface LumaImageModelConfig {
   provider: string;
   baseURL: string;
@@ -39,7 +42,7 @@ export class LumaImageModel implements ImageModelV1 {
   constructor(
     readonly modelId: string,
     private readonly settings: any,
-    private config: LumaImageModelConfig,
+    private readonly config: LumaImageModelConfig,
   ) {}
 
   async doGenerate({
@@ -73,10 +76,10 @@ export class LumaImageModel implements ImageModelV1 {
       });
     }
 
-    // Step 1: Send request to generate image
+    // Send request to generate image.
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: generationResponse, responseHeaders } = await postJsonToApi({
-      url: `${this.config.baseURL}/dream-machine/v1/generations/image`,
+      url: this.getLumaGenerationsUrl(),
       headers: combineHeaders(this.config.headers(), headers),
       body: {
         prompt,
@@ -100,12 +103,12 @@ export class LumaImageModel implements ImageModelV1 {
       JSON.stringify(generationResponse, null, 2),
     );
 
-    // Step 2: Poll for generation status
+    // Poll for generation status.
     const generationId = generationResponse.id;
     console.log('generationId', generationId);
     const imageResponse = await this.pollForImage(generationId, abortSignal);
 
-    // Step 3: Download the image
+    // Download the image.
     console.log('imageResponse', JSON.stringify(imageResponse, null, 2));
     // TODO: Handle case where image is not available.
     const downloadedImage = await this.downloadImage(
@@ -128,13 +131,12 @@ export class LumaImageModel implements ImageModelV1 {
     generationId: string,
     abortSignal: AbortSignal | undefined,
   ): Promise<LumaGenerationResponse> {
-    const checkInterval = 5000;
-    let attempts = 0;
-
-    while (attempts < 12) {
+    let attemptCount = 0;
+    const url = this.getLumaGenerationsUrl(generationId);
+    while (attemptCount < MAX_POLL_ATTEMPTS) {
       console.log('polling for image', generationId);
       const { value: statusResponse } = await getFromApi({
-        url: `${this.config.baseURL}/dream-machine/v1/generations/${generationId}`,
+        url,
         headers: this.config.headers(),
         abortSignal,
         fetch: this.config.fetch,
@@ -158,25 +160,31 @@ export class LumaImageModel implements ImageModelV1 {
       if (statusResponse.state === 'failed') {
         throw new APICallError({
           message: statusResponse.failure_reason || 'Image generation failed',
-          url: `${this.config.baseURL}/dream-machine/v1/generations/${generationId}`,
+          url,
           requestBodyValues: {},
         });
       }
 
-      attempts++;
-      await new Promise(resolve => setTimeout(resolve, checkInterval));
+      attemptCount++;
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MILLIS));
     }
 
     throw new APICallError({
       message: 'Image generation timed out',
-      url: `${this.config.baseURL}/dream-machine/v1/generations/${generationId}`,
+      url,
       requestBodyValues: {},
     });
   }
 
-  private async downloadImage(imageUrl: string): Promise<Uint8Array> {
+  private getLumaGenerationsUrl(generationId?: string) {
+    return `${this.config.baseURL}/dream-machine/v1/generations/${
+      generationId || 'image'
+    }`;
+  }
+
+  private async downloadImage(url: string): Promise<Uint8Array> {
     const { value: buffer } = await getFromApi({
-      url: imageUrl,
+      url,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
       fetch: this.config.fetch,
@@ -200,7 +208,7 @@ const lumaRequestSchema = z.object({
 const lumaGenerationResponseSchema = z.object({
   id: z.string(),
   generation_type: z.literal('image'),
-  state: z.enum(['queued', 'processing', 'completed', 'failed']),
+  state: z.enum(['queued', 'dreaming', 'completed', 'failed']),
   failure_reason: z.string().nullish(),
   created_at: z.string(),
   assets: z
