@@ -134,21 +134,30 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   @param data an optional StreamData object that will be merged into the stream.
   @param getErrorMessage an optional function that converts an error to an error message.
   @param sendUsage whether to send the usage information to the client. Defaults to true.
-
+  @param sendReasoning whether to send the reasoning information to the client. Defaults to false.
   @return A data stream.
      */
   toDataStream(options?: {
     data?: StreamData;
     getErrorMessage?: (error: unknown) => string;
-    sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+    sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
+    sendReasoning?: boolean; // default to false
   }): ReadableStream<Uint8Array>;
 
   /**
    * Merges the result as a data stream into another data stream.
    *
    * @param dataStream A data stream writer.
+   * @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
+   * @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
    */
-  mergeIntoDataStream(dataStream: DataStreamWriter): void;
+  mergeIntoDataStream(
+    dataStream: DataStreamWriter,
+    options?: {
+      sendUsage?: boolean;
+      sendReasoning?: boolean;
+    },
+  ): void;
 
   /**
   Writes data stream output to a Node.js response-like object.

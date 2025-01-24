@@ -1445,10 +1445,12 @@ However, the LLM results are expected to be small enough to not cause issues.
   private toDataStreamInternal({
     getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
+    sendReasoning = false,
   }: {
-    getErrorMessage?: (error: unknown) => string;
-    sendUsage?: boolean;
-  } = {}): ReadableStream<DataStreamString> {
+    getErrorMessage: ((error: unknown) => string) | undefined;
+    sendUsage: boolean | undefined;
+    sendReasoning: boolean | undefined;
+  }): ReadableStream<DataStreamString> {
     let aggregatedResponse = '';
 
     const callbackTransformer = new TransformStream<
@@ -1477,9 +1479,11 @@ However, the LLM results are expected to be small enough to not cause issues.
           }
 
           case 'reasoning': {
-            controller.enqueue(
-              formatDataStreamPart('reasoning', chunk.textDelta),
-            );
+            if (sendReasoning) {
+              controller.enqueue(
+                formatDataStreamPart('reasoning', chunk.textDelta),
+              );
+            }
             break;
           }
 
@@ -1628,19 +1632,29 @@ However, the LLM results are expected to be small enough to not cause issues.
     data?: StreamData;
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean;
+    sendReasoning?: boolean;
   }) {
     const stream = this.toDataStreamInternal({
       getErrorMessage: options?.getErrorMessage,
       sendUsage: options?.sendUsage,
+      sendReasoning: options?.sendReasoning,
     }).pipeThrough(new TextEncoderStream());
 
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
   }
 
-  mergeIntoDataStream(writer: DataStreamWriter) {
+  mergeIntoDataStream(
+    writer: DataStreamWriter,
+    options?: {
+      sendUsage?: boolean;
+      sendReasoning?: boolean;
+    },
+  ) {
     writer.merge(
       this.toDataStreamInternal({
         getErrorMessage: writer.onError,
+        sendUsage: options?.sendUsage,
+        sendReasoning: options?.sendReasoning,
       }),
     );
   }
