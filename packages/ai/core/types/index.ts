@@ -1,4 +1,5 @@
 export type { Embedding, EmbeddingModel } from './embedding-model';
+export type { RerankingModel, RerankedDocumentIndex } from './reranking-model';
 export type {
   ImageModel,
   ImageGenerationWarning as ImageModelCallWarning,
