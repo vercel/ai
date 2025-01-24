@@ -209,7 +209,7 @@ A stream of partial outputs. It uses the `experimental_output` specification.
     options?: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (TODOchange to false in v5: secure by default)
+      sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
       sendReasoning?: boolean; // default to false
     },
   ): Response;
