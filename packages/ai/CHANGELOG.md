@@ -1,5 +1,12 @@
 # ai
 
+## 4.1.4
+
+### Patch Changes
+
+- caaad11: feat (ai/core): re-export languagemodelv1 types for middleware implementations
+- caaad11: feat (ai/core): expose TelemetrySettings type
+
 ## 4.1.3
 
 ### Patch Changes
