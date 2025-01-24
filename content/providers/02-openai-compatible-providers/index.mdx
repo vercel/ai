@@ -193,7 +193,7 @@ Metadata extractors work with both streaming and non-streaming chat completions 
 Here's an example metadata extractor that captures both standard and custom provider data:
 
 ```typescript
-const MyMetadataExtractor: MetadataExtractor = {
+const myMetadataExtractor: MetadataExtractor = {
   // Process complete, non-streaming responses
   extractMetadata: ({ parsedBody }) => {
     // You have access to the complete raw response
@@ -247,7 +247,7 @@ const provider = createOpenAICompatible({
   name: 'my-provider',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
-  metadataExtractor: MyMetadataExtractor,
+  metadataExtractor: myMetadataExtractor,
 });
 ```
 
