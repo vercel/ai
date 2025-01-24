@@ -77,6 +77,7 @@ export interface ModelVariants {
   invalidModel?: LanguageModelV1;
   languageModels?: ModelWithCapabilities<LanguageModelV1>[];
   embeddingModels?: ModelWithCapabilities<EmbeddingModelV1<string>>[];
+  invalidImageModel?: ImageModelV1;
   imageModels?: ModelWithCapabilities<ImageModelV1>[];
 }
 
@@ -1014,6 +1015,25 @@ export function createFeatureTestSuite({
               // If we reach here, the test should fail
               expect(true).toBe(false); // Force test to fail if no error is thrown
             } catch (error) {
+              expect(error).toBeInstanceOf(APICallError);
+              errorValidator(error as APICallError);
+            }
+          });
+        });
+      }
+
+      if (models.invalidImageModel) {
+        describe('Image Model Error Handling:', () => {
+          const invalidModel = models.invalidImageModel!;
+
+          it('should throw error on generate image attempt with invalid model ID', async () => {
+            try {
+              await generateImage({
+                model: invalidModel,
+                prompt: 'This should fail',
+              });
+            } catch (error) {
+              console.log(JSON.stringify(error, null, 2));
               expect(error).toBeInstanceOf(APICallError);
               errorValidator(error as APICallError);
             }

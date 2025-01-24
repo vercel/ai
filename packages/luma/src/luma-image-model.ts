@@ -90,26 +90,20 @@ export class LumaImageModel implements ImageModelV1 {
       abortSignal,
       fetch: this.config.fetch,
       failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: lumaErrorResponseSchema,
-        errorToMessage: (error: LumaErrorResponse) => error.error.message,
+        errorSchema: lumaErrorSchema,
+        errorToMessage: (error: LumaErrorData) =>
+          error.detail[0].msg || 'Unknown error',
       }),
       successfulResponseHandler: createJsonResponseHandler(
         lumaGenerationResponseSchema,
       ),
     });
 
-    console.log(
-      'generationResponse',
-      JSON.stringify(generationResponse, null, 2),
-    );
-
     // Poll for generation status.
     const generationId = generationResponse.id;
-    console.log('generationId', generationId);
     const imageResponse = await this.pollForImage(generationId, abortSignal);
 
     // Download the image.
-    console.log('imageResponse', JSON.stringify(imageResponse, null, 2));
     // TODO: Handle case where image is not available.
     const downloadedImage = await this.downloadImage(
       imageResponse.assets?.image ?? '',
@@ -141,8 +135,9 @@ export class LumaImageModel implements ImageModelV1 {
         abortSignal,
         fetch: this.config.fetch,
         failedResponseHandler: createJsonErrorResponseHandler({
-          errorSchema: lumaErrorResponseSchema,
-          errorToMessage: (error: LumaErrorResponse) => error.error.message,
+          errorSchema: lumaErrorSchema,
+          errorToMessage: (error: LumaErrorData) =>
+            error.detail[0].msg || 'Unknown error',
         }),
         successfulResponseHandler: createJsonResponseHandler(
           lumaGenerationResponseSchema,
@@ -245,14 +240,21 @@ const lumaGenerationResponseSchema = z.object({
   request: lumaRequestSchema,
 });
 
-const lumaErrorResponseSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    type: z.string().nullish(),
-    code: z.string().nullish(),
-  }),
+const lumaErrorSchema = z.object({
+  detail: z.array(
+    z.object({
+      type: z.string(),
+      loc: z.array(z.string()),
+      msg: z.string(),
+      input: z.string(),
+      ctx: z
+        .object({
+          expected: z.string(),
+        })
+        .optional(),
+    }),
+  ),
 });
 
 type LumaGenerationResponse = z.infer<typeof lumaGenerationResponseSchema>;
-type LumaErrorResponse = z.infer<typeof lumaErrorResponseSchema>;
-type LumaRequest = z.infer<typeof lumaRequestSchema>;
+export type LumaErrorData = z.infer<typeof lumaErrorSchema>;
