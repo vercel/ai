@@ -35,7 +35,6 @@ import { luma } from '@ai-sdk/luma';
 import { experimental_generateImage as generateImage } from 'ai';
 import fs from 'fs';
 
-// Using Photon model
 const { image } = await generateImage({
   model: luma.image('photon'),
   prompt: 'A serene mountain landscape at sunset',
@@ -48,4 +47,4 @@ console.log(`Image saved to ${filename}`);
 
 ## Documentation
 
-For more detailed information about the Luma Photon models and their capabilities, please visit [Luma Photon](https://lumalabs.ai/photon).
+For more detailed information about the Luma models and their capabilities, please visit [Luma AI](https://lumalabs.ai/).

@@ -199,10 +199,35 @@ const lumaRequestSchema = z.object({
   prompt: z.string(),
   aspect_ratio: z.string().nullish(),
   callback_url: z.string().nullish(),
-  image_ref: z.string().nullish(),
-  style_ref: z.string().nullish(),
-  character_ref: z.string().nullish(),
-  modify_image_ref: z.string().nullish(),
+  image_ref: z
+    .array(
+      z.object({
+        url: z.string(),
+        weight: z.number(),
+      }),
+    )
+    .nullish(),
+  style_ref: z
+    .array(
+      z.object({
+        url: z.string(),
+        weight: z.number(),
+      }),
+    )
+    .nullish(),
+  character_ref: z
+    .object({
+      identity0: z.object({
+        images: z.array(z.string()),
+      }),
+    })
+    .nullish(),
+  modify_image_ref: z
+    .object({
+      url: z.string(),
+      weight: z.number(),
+    })
+    .nullish(),
 });
 
 const lumaGenerationResponseSchema = z.object({

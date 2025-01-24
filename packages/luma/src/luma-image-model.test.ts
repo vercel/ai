@@ -291,4 +291,224 @@ describe('LumaImageModel', () => {
       expect(model.maxImagesPerCall).toBe(1);
     });
   });
+
+  describe('response schema validation', () => {
+    it('should parse response with image references', async () => {
+      server.urls[
+        'https://api.example.com/dream-machine/v1/generations/test-generation-id'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-generation-id',
+          generation_type: 'image',
+          state: 'completed',
+          created_at: '2024-01-01T00:00:00Z',
+          assets: {
+            image: 'https://api.example.com/image.png',
+          },
+          model: 'test-model',
+          request: {
+            generation_type: 'image',
+            model: 'test-model',
+            prompt: 'A cute baby sea otter',
+            image_ref: [
+              {
+                url: 'https://example.com/ref1.jpg',
+                weight: 0.85,
+              },
+            ],
+          },
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+      });
+
+      // If schema validation fails, this won't get reached
+      expect(result.images).toBeDefined();
+    });
+
+    it('should parse response with style references', async () => {
+      server.urls[
+        'https://api.example.com/dream-machine/v1/generations/test-generation-id'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-generation-id',
+          generation_type: 'image',
+          state: 'completed',
+          created_at: '2024-01-01T00:00:00Z',
+          assets: {
+            image: 'https://api.example.com/image.png',
+          },
+          model: 'test-model',
+          request: {
+            generation_type: 'image',
+            model: 'test-model',
+            prompt: 'A cute baby sea otter',
+            style_ref: [
+              {
+                url: 'https://example.com/style1.jpg',
+                weight: 0.8,
+              },
+            ],
+          },
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+      });
+
+      expect(result.images).toBeDefined();
+    });
+
+    it('should parse response with character references', async () => {
+      server.urls[
+        'https://api.example.com/dream-machine/v1/generations/test-generation-id'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-generation-id',
+          generation_type: 'image',
+          state: 'completed',
+          created_at: '2024-01-01T00:00:00Z',
+          assets: {
+            image: 'https://api.example.com/image.png',
+          },
+          model: 'test-model',
+          request: {
+            generation_type: 'image',
+            model: 'test-model',
+            prompt: 'A cute baby sea otter',
+            character_ref: {
+              identity0: {
+                images: ['https://example.com/character1.jpg'],
+              },
+            },
+          },
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+      });
+
+      expect(result.images).toBeDefined();
+    });
+
+    it('should parse response with modify image reference', async () => {
+      server.urls[
+        'https://api.example.com/dream-machine/v1/generations/test-generation-id'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-generation-id',
+          generation_type: 'image',
+          state: 'completed',
+          created_at: '2024-01-01T00:00:00Z',
+          assets: {
+            image: 'https://api.example.com/image.png',
+          },
+          model: 'test-model',
+          request: {
+            generation_type: 'image',
+            model: 'test-model',
+            prompt: 'A cute baby sea otter',
+            modify_image_ref: {
+              url: 'https://example.com/modify.jpg',
+              weight: 1.0,
+            },
+          },
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+      });
+
+      expect(result.images).toBeDefined();
+    });
+
+    it('should parse response with multiple reference types', async () => {
+      server.urls[
+        'https://api.example.com/dream-machine/v1/generations/test-generation-id'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-generation-id',
+          generation_type: 'image',
+          state: 'completed',
+          created_at: '2024-01-01T00:00:00Z',
+          assets: {
+            image: 'https://api.example.com/image.png',
+          },
+          model: 'test-model',
+          request: {
+            generation_type: 'image',
+            model: 'test-model',
+            prompt: 'A cute baby sea otter',
+            image_ref: [
+              {
+                url: 'https://example.com/ref1.jpg',
+                weight: 0.85,
+              },
+            ],
+            style_ref: [
+              {
+                url: 'https://example.com/style1.jpg',
+                weight: 0.8,
+              },
+            ],
+            character_ref: {
+              identity0: {
+                images: ['https://example.com/character1.jpg'],
+              },
+            },
+            modify_image_ref: {
+              url: 'https://example.com/modify.jpg',
+              weight: 1.0,
+            },
+          },
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+      });
+
+      expect(result.images).toBeDefined();
+    });
+  });
 });
