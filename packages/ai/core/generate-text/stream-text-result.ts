@@ -169,13 +169,15 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   @param options.data The stream data.
   @param options.getErrorMessage An optional function that converts an error to an error message.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
+  @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
      */
   pipeDataStreamToResponse(
     response: ServerResponse,
     options?: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+      sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
+      sendReasoning?: boolean; // default to false
     },
   ): void;
 
@@ -199,6 +201,7 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   @param options.data The stream data.
   @param options.getErrorMessage An optional function that converts an error to an error message.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
+  @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
 
   @return A response object.
      */
@@ -206,7 +209,8 @@ A stream of partial outputs. It uses the `experimental_output` specification.
     options?: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+      sendUsage?: boolean; // default to true (TODOchange to false in v5: secure by default)
+      sendReasoning?: boolean; // default to false
     },
   ): Response;
 

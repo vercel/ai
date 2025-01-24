@@ -1597,10 +1597,12 @@ However, the LLM results are expected to be small enough to not cause issues.
       data,
       getErrorMessage,
       sendUsage,
+      sendReasoning,
     }: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+      sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
+      sendReasoning?: boolean; // default to false
     } = {},
   ) {
     writeToServerResponse({
@@ -1611,7 +1613,12 @@ However, the LLM results are expected to be small enough to not cause issues.
         contentType: 'text/plain; charset=utf-8',
         dataStreamVersion: 'v1',
       }),
-      stream: this.toDataStream({ data, getErrorMessage, sendUsage }),
+      stream: this.toDataStream({
+        data,
+        getErrorMessage,
+        sendUsage,
+        sendReasoning,
+      }),
     });
   }
 
@@ -1666,13 +1673,15 @@ However, the LLM results are expected to be small enough to not cause issues.
     data,
     getErrorMessage,
     sendUsage,
+    sendReasoning,
   }: ResponseInit & {
     data?: StreamData;
     getErrorMessage?: (error: unknown) => string;
     sendUsage?: boolean;
+    sendReasoning?: boolean;
   } = {}): Response {
     return new Response(
-      this.toDataStream({ data, getErrorMessage, sendUsage }),
+      this.toDataStream({ data, getErrorMessage, sendUsage, sendReasoning }),
       {
         status,
         statusText,
