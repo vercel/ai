@@ -41,6 +41,9 @@ export * from './registry';
 export * from './tool';
 export * from './types';
 
+// telemetry types:
+export type { TelemetrySettings } from './telemetry/telemetry-settings';
+
 // util exports:
 export { cosineSimilarity } from './util/cosine-similarity';
 export { simulateReadableStream } from './util/simulate-readable-stream';
