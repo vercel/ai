@@ -9,8 +9,21 @@ import {
 export type {
   LanguageModelV1,
   LanguageModelV1CallOptions,
+  LanguageModelV1CallWarning,
+  LanguageModelV1FilePart,
+  LanguageModelV1FinishReason,
+  LanguageModelV1FunctionToolCall,
+  LanguageModelV1ImagePart,
+  LanguageModelV1Message,
+  LanguageModelV1ObjectGenerationMode,
   LanguageModelV1Prompt,
+  LanguageModelV1ProviderDefinedTool,
+  LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
+  LanguageModelV1TextPart,
+  LanguageModelV1ToolCallPart,
+  LanguageModelV1ToolChoice,
+  LanguageModelV1ToolResultPart,
 } from '@ai-sdk/provider';
 
 /**
