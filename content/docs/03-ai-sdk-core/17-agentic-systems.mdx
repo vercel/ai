@@ -1,34 +1,55 @@
 ---
 title: Agentic Systems
-description: Learn about creating agentic systems (agents and workflows) with AI SDK Core.
+description: Learn about creating agentic systems with AI SDK Core.
 ---
 
 # Agentic Systems
 
-When building AI applications, a common goal is to create systems that can understand context and take meaningful actions. Let's explore two approaches to building such systems: agents and workflows, with a focus on helping you choose the right approach for your use case.
+When building AI applications, you often need systems that can understand context and take meaningful actions. When building these systems, the key consideration is finding the right balance between flexibility and control. Let's explore different approaches and patterns for building these systems, with a focus on helping you match capabilities to your needs.
 
-### Agents
+## Building Blocks
 
-Agents provide a model with low-level tools (eg. calculator, file-system, browser etc.) and the autonomy to use them in any way to achieve a given task. In practice, this looks like a model being called in a loop, making decisions about which tools to use based on the context of the conversation, previous tool results, and the overall goal.
+When building AI systems, you can combine these fundamental components:
 
-### Workflows
+### Single-Step LLM Generation
+The basic building block - one call to an LLM to get a response. Useful for straightforward tasks like classification or text generation.
 
-Workflows take a higher-level approach by providing pre-defined steps that are specifically designed to solve particular tasks (eg. summarize web page, generate a report, create an API route, etc.). It is imporant to note that, like Agents, workflows can be used in a model-driven loop. However, unlike Agents, the model does not need to perform complex planning to break down tasks into smaller steps, and instead acts as a router between purposefully designed components.
+### Tool Usage
+Enhanced capabilities through tool interfaces (like calculators, APIs, or databases) that the LLM can use to accomplish tasks. Tools provide a controlled way to extend what the LLM can do.
 
-## Choosing the Right Approach
+### Multi-Agent Systems
+Multiple LLMs working together, each specialized for different aspects of a complex task. This enables sophisticated behaviors while keeping individual components focused.
 
-**Start with workflows for most use cases**. By breaking down complex tasks into well-defined, purpose-built steps, you create more predictable and maintainable systems. The model's role as a router rather than a full autonomous agent results in more consistent outcomes. Additionally, by forcing yourself to think through the required steps to complete any given task, you offload the planning and decision-making process to the human, allowing the model to focus on executing the steps. Other advantages include:
+## Patterns
+These building blocks can be combined with workflow patterns that help manage complexity:
 
-- **Focused Attention**: Model attention is a limited resource - by breaking tasks into discrete steps, each component receives the model's full focus, leading to higher quality outputs.
-- **Predictability**: Workflows provide clear touchpoints for review and intervention, making it easier to guide the system if it fails.
-- **Reduced Context Load**: Instead of relying on the model to maintain context across many steps, workflows explicitly define the necessary context for each component.
-- **Human-in-the-Loop Ready**: The discrete nature of workflow steps creates natural integration points for human review and intervention when needed.
+- Sequential Processing - Steps executed in order
+- Parallel Processing - Independent tasks run simultaneously
+- Evaluation/Feedback Loops - Results checked and improved iteratively
+- Orchestration - Coordinating multiple components
+- Routing - Directing work based on context
 
-**Consider agents for tasks where the solution path is poorly defined or too complex to map out as a workflow in advance**. While agents offer more flexibility, be aware that giving the model full autonomy over low-level tools requires careful prompt engineering and thorough testing to ensure reliability. When building agents, it's crucial to implement checkpoints where human oversight can validate the model's direction. This ensures the model stays aligned with the intended goal and provides opportunities to correct its course before significant resources are invested in an incorrect approach.
+## Choosing Your Approach
 
-## Workflow Patterns
+The key factors to consider:
 
-The following patterns, adapted from [ Anthropic's guide on building effective agents ](https://www.anthropic.com/research/building-effective-agents), serve as building blocks that can be combined to create comprehensive workflows. Each pattern addresses specific aspects of task execution, and by combining them thoughtfully, you can build reliable solutions for complex problems.
+- **Flexibility vs Control** - How much freedom does the LLM need vs how tightly must you constrain its actions?
+- **Error Tolerance** - What are the consequences of mistakes in your use case?
+- **Cost Considerations** - More complex systems typically mean more LLM calls and higher costs
+- **Maintenance** - Simpler architectures are easier to debug and modify
+
+**Start with the simplest approach that meets your needs**. Add complexity only when required by:
+
+1. Breaking down tasks into clear steps
+2. Adding tools for specific capabilities
+3. Implementing feedback loops for quality control
+4. Introducing multiple agents for complex workflows
+
+Let's look at examples of these patterns in action.
+
+## Patterns
+
+The following patterns, adapted from [Anthropic's guide on building effective agents](https://www.anthropic.com/research/building-effective-agents), serve as building blocks that can be combined to create comprehensive workflows. Each pattern addresses specific aspects of task execution, and by combining them thoughtfully, you can build reliable solutions for complex problems.
 
 ### Sequential Processing (Chains)
 
