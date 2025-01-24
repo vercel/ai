@@ -10,6 +10,9 @@ Data content. Can either be a base64-encoded string, a Uint8Array, an ArrayBuffe
  */
 export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
 
+/**
+@internal
+ */
 export const dataContentSchema: z.ZodType<DataContent> = z.union([
   z.string(),
   z.instanceof(Uint8Array),
