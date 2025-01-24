@@ -14,7 +14,7 @@ async function main() {
         character_ref: {
           identity0: {
             images: [
-              'https://pbs.twimg.com/media/GiBweI6XUAEOh3w?format=jpg&name=4096x4096',
+              'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/future-me-8hcBWcZOkbE53q3gshhEm16S87qDpF.jpeg',
             ],
           },
         },

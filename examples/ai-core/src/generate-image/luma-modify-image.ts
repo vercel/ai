@@ -12,7 +12,7 @@ async function main() {
       luma: {
         // https://docs.lumalabs.ai/docs/image-generation#modify-image
         modify_image_ref: {
-          url: 'https://pbs.twimg.com/media/GiBweI6XUAEOh3w?format=jpg&name=4096x4096',
+          url: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/future-me-8hcBWcZOkbE53q3gshhEm16S87qDpF.jpeg',
           weight: 1.0,
         },
       },

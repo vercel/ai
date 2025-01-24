@@ -13,7 +13,7 @@ async function main() {
         // https://docs.lumalabs.ai/docs/image-generation#style-reference
         style_ref: [
           {
-            url: 'https://pbs.twimg.com/media/GiBweI6XUAEOh3w?format=jpg&name=4096x4096',
+            url: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/future-me-8hcBWcZOkbE53q3gshhEm16S87qDpF.jpeg',
             weight: 0.8,
           },
         ],
