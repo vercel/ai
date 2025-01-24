@@ -1,5 +1,12 @@
 # ai
 
+## 4.1.3
+
+### Patch Changes
+
+- 7f30a77: feat (core): export core message schemas
+- 4298996: feat (core): add helper for merging single client message
+
 ## 4.1.2
 
 ### Patch Changes

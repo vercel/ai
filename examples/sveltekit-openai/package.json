@@ -12,7 +12,7 @@
   "dependencies": {
     "@ai-sdk/openai": "1.1.2",
     "@ai-sdk/svelte": "1.1.2",
-    "ai": "4.1.2",
+    "ai": "4.1.3",
     "openai": "4.52.6",
     "zod": "^3.23.8"
   },
