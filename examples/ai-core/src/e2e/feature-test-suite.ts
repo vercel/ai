@@ -1033,7 +1033,6 @@ export function createFeatureTestSuite({
                 prompt: 'This should fail',
               });
             } catch (error) {
-              console.log(JSON.stringify(error, null, 2));
               expect(error).toBeInstanceOf(APICallError);
               errorValidator(error as APICallError);
             }

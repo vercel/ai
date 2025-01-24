@@ -128,7 +128,6 @@ export class LumaImageModel implements ImageModelV1 {
     let attemptCount = 0;
     const url = this.getLumaGenerationsUrl(generationId);
     while (attemptCount < MAX_POLL_ATTEMPTS) {
-      console.log('polling for image', generationId);
       const { value: statusResponse } = await getFromApi({
         url,
         headers: this.config.headers(),
@@ -143,7 +142,6 @@ export class LumaImageModel implements ImageModelV1 {
           lumaGenerationResponseSchema,
         ),
       });
-      console.log('statusResponse', JSON.stringify(statusResponse, null, 2));
 
       if (
         statusResponse.state === 'completed' &&
