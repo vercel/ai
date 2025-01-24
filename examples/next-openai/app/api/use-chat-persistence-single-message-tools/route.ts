@@ -1,12 +1,12 @@
 import { openai } from '@ai-sdk/openai';
+import { loadChat, saveChat } from '@util/chat-store';
 import {
+  appendClientMessage,
   appendResponseMessages,
   createIdGenerator,
-  Message,
   streamText,
   tool,
 } from 'ai';
-import { loadChat, saveChat } from '@util/chat-store';
 import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
@@ -76,19 +76,4 @@ export async function POST(req: Request) {
   });
 
   return result.toDataStreamResponse();
-}
-
-function appendClientMessage({
-  messages,
-  message,
-}: {
-  messages: Message[];
-  message: Message;
-}) {
-  return [
-    ...(messages.length > 0 && messages[messages.length - 1].id === message.id
-      ? messages.slice(0, -1)
-      : messages),
-    message,
-  ];
 }

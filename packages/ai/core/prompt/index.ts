@@ -1,3 +1,4 @@
+export { appendClientMessage } from './append-client-message';
 export { appendResponseMessages } from './append-response-messages';
 export type {
   FilePart,
