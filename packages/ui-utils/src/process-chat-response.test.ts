@@ -772,3 +772,45 @@ describe('scenario: server provides message ids', () => {
     ]);
   });
 });
+
+describe('scenario: server provides reasoning', () => {
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatDataStreamPart('start_step', { messageId: 'step_123' }),
+      formatDataStreamPart('reasoning', 'I will open the conversation'),
+      formatDataStreamPart('reasoning', ' with witty banter. '),
+      formatDataStreamPart('reasoning', 'Once the user has relaxed,'),
+      formatDataStreamPart(
+        'reasoning',
+        ' I will pry for valuable information.',
+      ),
+      formatDataStreamPart('text', 'Hello, '),
+      formatDataStreamPart('text', 'world!'),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+      }),
+    ]);
+
+    await processChatResponse({
+      stream,
+      update,
+      onFinish,
+      generateId: mockId(),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+    });
+  });
+
+  it('should call the update function with the correct arguments', async () => {
+    expect(updateCalls).toMatchSnapshot();
+  });
+
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toMatchSnapshot();
+  });
+});
