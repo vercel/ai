@@ -9,6 +9,13 @@ export type {
 } from './content-part';
 export { convertToCoreMessages } from './convert-to-core-messages';
 export type { DataContent } from './data-content';
+export {
+  coreAssistantMessageSchema,
+  coreMessageSchema,
+  coreSystemMessageSchema,
+  coreToolMessageSchema,
+  coreUserMessageSchema,
+} from './message';
 export type {
   AssistantContent,
   CoreAssistantMessage,
