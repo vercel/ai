@@ -1,5 +1,14 @@
 # ai
 
+## 4.1.5
+
+### Patch Changes
+
+- 9ce598c: feat (ai/ui): add reasoning support to useChat
+- Updated dependencies [9ce598c]
+  - @ai-sdk/ui-utils@1.1.3
+  - @ai-sdk/react@1.1.3
+
 ## 4.1.4
 
 ### Patch Changes

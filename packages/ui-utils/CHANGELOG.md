@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.1.3
+
+### Patch Changes
+
+- 9ce598c: feat (ai/ui): add reasoning support to useChat
+
 ## 1.1.2
 
 ### Patch Changes
