@@ -510,7 +510,7 @@ export async function POST(req: Request) {
 }
 ```
 
-On the client side, you can access the reasoning text in the `reasoning` property of the message object:
+On the client side, you can access the reasoning text with the `reasoning` property on the message object:
 
 ```tsx filename="app/page.tsx" highlight="4"
 messages.map(m => (
