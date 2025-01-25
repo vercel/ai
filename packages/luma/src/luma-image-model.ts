@@ -118,7 +118,6 @@ export class LumaImageModel implements ImageModelV1 {
       response: {
         modelId: this.modelId,
         timestamp: currentDate,
-        // TODO: Include add'l headers from polling/downloading.
         headers: responseHeaders,
       },
     };
