@@ -90,6 +90,32 @@ fs.writeFileSync(filename, image.uint8Array);
 console.log(`Image saved to ${filename}`);
 ```
 
+### Image Model Settings
+
+When creating an image model, you can customize the generation behavior with optional settings:
+
+```ts
+const model = luma.image('photon-1', {
+  maxImagesPerCall: 1, // Maximum number of images to generate per API call
+  pollIntervalMillis: 5000, // How often to check for completed images (in ms)
+  maxPollAttempts: 10, // Maximum number of polling attempts before timeout
+});
+```
+
+Since Luma processes images through an asynchronous queue system, these settings allow you to tune the polling behavior:
+
+- **maxImagesPerCall** _number_
+
+  Override the maximum number of images generated per API call. Defaults to 1.
+
+- **pollIntervalMillis** _number_
+
+  Control how frequently the API is checked for completed images while they are being processed. Defaults to 5000ms (5 seconds).
+
+- **maxPollAttempts** _number_
+
+  Limit how long to wait for results before timing out, since image generation is queued asynchronously. Defaults to 10 attempts.
+
 ### Model Capabilities
 
 Luma offers two main models:

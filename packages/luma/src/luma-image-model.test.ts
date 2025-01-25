@@ -2,6 +2,7 @@ import { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { LumaImageModel } from './luma-image-model';
+import { InvalidResponseDataError } from '@ai-sdk/provider';
 
 const prompt = 'A cute baby sea otter';
 
@@ -207,9 +208,7 @@ describe('LumaImageModel', () => {
           seed: undefined,
           aspectRatio: undefined,
         }),
-      ).rejects.toMatchObject({
-        message: 'Generation failed',
-      });
+      ).rejects.toThrow(InvalidResponseDataError);
     });
 
     describe('warnings', () => {

@@ -1,7 +1,7 @@
 import {
-  APICallError,
   ImageModelV1,
   ImageModelV1CallWarning,
+  InvalidResponseDataError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -13,10 +13,11 @@ import {
   getFromApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
+import { LumaImageSettings } from './luma-image-settings';
 import { z } from 'zod';
 
-const POLL_INTERVAL_MILLIS = 5000;
-const MAX_POLL_ATTEMPTS = 60000 / POLL_INTERVAL_MILLIS;
+const DEFAULT_POLL_INTERVAL_MILLIS = 5000;
+const DEFAULT_MAX_POLL_ATTEMPTS = 10;
 
 interface LumaImageModelConfig {
   provider: string;
@@ -31,6 +32,9 @@ interface LumaImageModelConfig {
 export class LumaImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
+  private readonly pollIntervalMillis: number;
+  private readonly maxPollAttempts: number;
+
   get provider(): string {
     return this.config.provider;
   }
@@ -41,9 +45,14 @@ export class LumaImageModel implements ImageModelV1 {
 
   constructor(
     readonly modelId: string,
-    private readonly settings: any,
+    private readonly settings: LumaImageSettings,
     private readonly config: LumaImageModelConfig,
-  ) {}
+  ) {
+    this.pollIntervalMillis =
+      settings.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS;
+    this.maxPollAttempts =
+      settings.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS;
+  }
 
   async doGenerate({
     prompt,
@@ -76,11 +85,11 @@ export class LumaImageModel implements ImageModelV1 {
       });
     }
 
-    // Send request to generate image.
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const fullHeaders = combineHeaders(this.config.headers(), headers);
     const { value: generationResponse, responseHeaders } = await postJsonToApi({
       url: this.getLumaGenerationsUrl(),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: fullHeaders,
       body: {
         prompt,
         ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}),
@@ -89,25 +98,19 @@ export class LumaImageModel implements ImageModelV1 {
       },
       abortSignal,
       fetch: this.config.fetch,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: lumaErrorSchema,
-        errorToMessage: (error: LumaErrorData) =>
-          error.detail[0].msg || 'Unknown error',
-      }),
+      failedResponseHandler: this.createLumaErrorHandler(),
       successfulResponseHandler: createJsonResponseHandler(
         lumaGenerationResponseSchema,
       ),
     });
 
-    // Poll for generation status.
-    const generationId = generationResponse.id;
-    const imageResponse = await this.pollForImage(generationId, abortSignal);
-
-    // Download the image.
-    // TODO: Handle case where image is not available.
-    const downloadedImage = await this.downloadImage(
-      imageResponse.assets?.image ?? '',
+    const imageUrl = await this.pollForImageUrl(
+      generationResponse.id,
+      fullHeaders,
+      abortSignal,
     );
+
+    const downloadedImage = await this.downloadImage(imageUrl, abortSignal);
 
     return {
       images: [downloadedImage],
@@ -121,51 +124,62 @@ export class LumaImageModel implements ImageModelV1 {
     };
   }
 
-  private async pollForImage(
+  private async pollForImageUrl(
     generationId: string,
+    headers: Record<string, string | undefined>,
     abortSignal: AbortSignal | undefined,
-  ): Promise<LumaGenerationResponse> {
+  ): Promise<string> {
     let attemptCount = 0;
     const url = this.getLumaGenerationsUrl(generationId);
-    while (attemptCount < MAX_POLL_ATTEMPTS) {
+    while (attemptCount < this.maxPollAttempts) {
       const { value: statusResponse } = await getFromApi({
         url,
-        headers: this.config.headers(),
+        headers,
         abortSignal,
         fetch: this.config.fetch,
-        failedResponseHandler: createJsonErrorResponseHandler({
-          errorSchema: lumaErrorSchema,
-          errorToMessage: (error: LumaErrorData) =>
-            error.detail[0].msg || 'Unknown error',
-        }),
+        failedResponseHandler: this.createLumaErrorHandler(),
         successfulResponseHandler: createJsonResponseHandler(
           lumaGenerationResponseSchema,
         ),
       });
 
-      if (
-        statusResponse.state === 'completed' &&
-        statusResponse.assets?.image
-      ) {
-        return statusResponse;
-      }
-
-      if (statusResponse.state === 'failed') {
-        throw new APICallError({
-          message: statusResponse.failure_reason || 'Image generation failed',
-          url,
-          requestBodyValues: {},
-        });
+      switch (statusResponse.state) {
+        case 'completed':
+          if (!statusResponse.assets?.image) {
+            throw new InvalidResponseDataError({
+              data: statusResponse,
+              message: `Image generation completed but no image was found.`,
+            });
+          }
+          return statusResponse.assets.image;
+        case 'failed':
+          throw new InvalidResponseDataError({
+            data: statusResponse,
+            message: `Image generation failed: ${JSON.stringify(
+              statusResponse,
+            )}`,
+          });
+        case 'dreaming':
+        case 'queued':
+          break;
       }
 
       attemptCount++;
-      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MILLIS));
+      await new Promise(resolve =>
+        setTimeout(resolve, this.pollIntervalMillis),
+      );
     }
 
-    throw new APICallError({
-      message: 'Image generation timed out',
-      url,
-      requestBodyValues: {},
+    throw new Error(
+      `Image generation timed out after ${this.maxPollAttempts} attempts`,
+    );
+  }
+
+  private createLumaErrorHandler() {
+    return createJsonErrorResponseHandler({
+      errorSchema: lumaErrorSchema,
+      errorToMessage: (error: LumaErrorData) =>
+        error.detail[0].msg || 'Unknown error',
     });
   }
 
@@ -175,9 +189,15 @@ export class LumaImageModel implements ImageModelV1 {
     }`;
   }
 
-  private async downloadImage(url: string): Promise<Uint8Array> {
+  private async downloadImage(
+    url: string,
+    abortSignal: AbortSignal | undefined,
+  ): Promise<Uint8Array> {
     const { value: buffer } = await getFromApi({
       url,
+      // No specific headers should be needed for this request as it's a
+      // generated image provided by Luma.
+      abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
       fetch: this.config.fetch,
@@ -254,5 +274,4 @@ const lumaErrorSchema = z.object({
   ),
 });
 
-type LumaGenerationResponse = z.infer<typeof lumaGenerationResponseSchema>;
 export type LumaErrorData = z.infer<typeof lumaErrorSchema>;
