@@ -154,9 +154,7 @@ export class LumaImageModel implements ImageModelV1 {
         case 'failed':
           throw new InvalidResponseDataError({
             data: statusResponse,
-            message: `Image generation failed: ${JSON.stringify(
-              statusResponse,
-            )}`,
+            message: `Image generation failed.`,
           });
         case 'dreaming':
         case 'queued':
@@ -170,7 +168,7 @@ export class LumaImageModel implements ImageModelV1 {
     }
 
     throw new Error(
-      `Image generation timed out after ${this.maxPollAttempts} attempts`,
+      `Image generation timed out after ${this.maxPollAttempts} attempts.`,
     );
   }
 
