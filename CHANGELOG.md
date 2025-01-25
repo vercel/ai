@@ -17,6 +17,7 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/google](./packages/google/CHANGELOG.md)
 - [@ai-sdk/google-vertex](./packages/google-vertex/CHANGELOG.md)
 - [@ai-sdk/groq](./packages/groq/CHANGELOG.md)
+- [@ai-sdk/luma](./packages/luma/CHANGELOG.md)
 - [@ai-sdk/mistral](./packages/mistral/CHANGELOG.md)
 - [@ai-sdk/openai](./packages/openai/CHANGELOG.md)
 - [@ai-sdk/openai-compatible](./packages/openai-compatible/CHANGELOG.md)

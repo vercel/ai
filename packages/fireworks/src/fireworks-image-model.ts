@@ -1,14 +1,10 @@
-import {
-  APICallError,
-  ImageModelV1,
-  ImageModelV1CallWarning,
-} from '@ai-sdk/provider';
+import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  extractResponseHeaders,
+  createBinaryResponseHandler,
+  createStatusCodeErrorResponseHandler,
   FetchFunction,
   postJsonToApi,
-  ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import {
   FireworksImageModelId,
@@ -74,62 +70,6 @@ interface FireworksImageModelConfig {
   };
 }
 
-const createBinaryResponseHandler =
-  (): ResponseHandler<ArrayBuffer> =>
-  async ({ response, url, requestBodyValues }) => {
-    const responseHeaders = extractResponseHeaders(response);
-
-    if (!response.body) {
-      throw new APICallError({
-        message: 'Response body is empty',
-        url,
-        requestBodyValues,
-        statusCode: response.status,
-        responseHeaders,
-        responseBody: undefined,
-      });
-    }
-
-    try {
-      const buffer = await response.arrayBuffer();
-      return {
-        responseHeaders,
-        value: buffer,
-      };
-    } catch (error) {
-      throw new APICallError({
-        message: 'Failed to read response as array buffer',
-        url,
-        requestBodyValues,
-        statusCode: response.status,
-        responseHeaders,
-        responseBody: undefined,
-        cause: error,
-      });
-    }
-  };
-
-const statusCodeErrorResponseHandler: ResponseHandler<APICallError> = async ({
-  response,
-  url,
-  requestBodyValues,
-}) => {
-  const responseHeaders = extractResponseHeaders(response);
-  const responseBody = await response.text();
-
-  return {
-    responseHeaders,
-    value: new APICallError({
-      message: response.statusText,
-      url,
-      requestBodyValues: requestBodyValues as Record<string, unknown>,
-      statusCode: response.status,
-      responseHeaders,
-      responseBody,
-    }),
-  };
-};
-
 export class FireworksImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
@@ -194,7 +134,7 @@ export class FireworksImageModel implements ImageModelV1 {
         ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
         ...(providerOptions.fireworks ?? {}),
       },
-      failedResponseHandler: statusCodeErrorResponseHandler,
+      failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
       abortSignal,
       fetch: this.config.fetch,
