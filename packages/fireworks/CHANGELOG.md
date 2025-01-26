@@ -1,5 +1,14 @@
 # @ai-sdk/fireworks
 
+## 0.1.4
+
+### Patch Changes
+
+- 39e5c1f: feat (provider-utils): add getFromApi and response handlers for binary responses and status-code errors
+- Updated dependencies [39e5c1f]
+  - @ai-sdk/provider-utils@2.1.3
+  - @ai-sdk/openai-compatible@0.1.4
+
 ## 0.1.3
 
 ### Patch Changes
