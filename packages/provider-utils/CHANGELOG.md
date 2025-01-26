@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.1.4
+
+### Patch Changes
+
+- 066206e: feat (provider-utils): move delay to provider-utils from ai
+
 ## 2.1.3
 
 ### Patch Changes
