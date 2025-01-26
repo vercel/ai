@@ -4,6 +4,7 @@ export * from './extract-response-headers';
 export * from './fetch-function';
 export { createIdGenerator, generateId } from './generate-id';
 export * from './get-error-message';
+export * from './get-from-api';
 export * from './is-abort-error';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
