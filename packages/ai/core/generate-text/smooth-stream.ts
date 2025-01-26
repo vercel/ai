@@ -1,5 +1,5 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
-import { delay as originalDelay } from '../../util/delay';
+import { delay as originalDelay } from '@ai-sdk/provider-utils';
 import { CoreTool } from '../tool/tool';
 import { TextStreamPart } from './stream-text-result';
 

@@ -1,4 +1,4 @@
-import { delay as delayFunction } from '../../util/delay';
+import { delay as delayFunction } from '@ai-sdk/provider-utils';
 
 /**
  * Creates a ReadableStream that emits the provided values with an optional delay between each value.
