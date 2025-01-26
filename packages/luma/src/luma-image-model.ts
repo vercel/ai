@@ -10,6 +10,7 @@ import {
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
   createStatusCodeErrorResponseHandler,
+  delay,
   getFromApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -27,12 +28,6 @@ interface LumaImageModelConfig {
   _internal?: {
     currentDate?: () => Date;
   };
-}
-
-async function delay(delayInMs?: number | null): Promise<void> {
-  return delayInMs == null
-    ? Promise.resolve()
-    : new Promise(resolve => setTimeout(resolve, delayInMs));
 }
 
 export class LumaImageModel implements ImageModelV1 {

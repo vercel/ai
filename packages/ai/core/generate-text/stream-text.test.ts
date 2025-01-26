@@ -4,6 +4,7 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
+import { delay } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
@@ -15,7 +16,6 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { ToolExecutionError } from '../../errors/tool-execution-error';
 import { StreamData } from '../../streams/stream-data';
-import { delay } from '../../util/delay';
 import { createDataStream } from '../data-stream/create-data-stream';
 import { mockId } from '../test/mock-id';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
