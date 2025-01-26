@@ -12,6 +12,8 @@ Luma Photon and Photon Flash are groundbreaking image generation models that del
 - Unique character consistency capabilities from single reference images
 - Multi-image reference support for precise style matching
 
+For more detailed information about the Luma models and their capabilities, please visit [Luma AI](https://lumalabs.ai/).
+
 ## Setup
 
 The Luma provider is available in the `@ai-sdk/luma` module. You can install it with:
@@ -36,7 +38,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 import fs from 'fs';
 
 const { image } = await generateImage({
-  model: luma.image('photon'),
+  model: luma.image('photon-1'),
   prompt: 'A serene mountain landscape at sunset',
 });
 
@@ -47,4 +49,4 @@ console.log(`Image saved to ${filename}`);
 
 ## Documentation
 
-For more detailed information about the Luma models and their capabilities, please visit [Luma AI](https://lumalabs.ai/).
+Please check out the **[Luma provider](https://sdk.vercel.ai/providers/ai-sdk-providers/luma)** for more information.
