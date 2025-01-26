@@ -1,5 +1,15 @@
 # ai
 
+## 4.1.7
+
+### Patch Changes
+
+- 066206e: feat (provider-utils): move delay to provider-utils from ai
+- Updated dependencies [066206e]
+  - @ai-sdk/provider-utils@2.1.4
+  - @ai-sdk/react@1.1.5
+  - @ai-sdk/ui-utils@1.1.5
+
 ## 4.1.6
 
 ### Patch Changes
