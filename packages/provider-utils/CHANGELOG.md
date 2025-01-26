@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.1.3
+
+### Patch Changes
+
+- 39e5c1f: feat (provider-utils): add getFromApi and response handlers for binary responses and status-code errors
+
 ## 2.1.2
 
 ### Patch Changes
