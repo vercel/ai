@@ -97,8 +97,8 @@ describe('createBinaryResponseHandler', () => {
       response,
     });
 
-    expect(result.value).toBeInstanceOf(ArrayBuffer);
-    expect(new Uint8Array(result.value)).toEqual(binaryData);
+    expect(result.value).toBeInstanceOf(Uint8Array);
+    expect(result.value).toEqual(binaryData);
   });
 
   it('should throw APICallError when response body is null', async () => {

@@ -110,11 +110,13 @@ Since Luma processes images through an asynchronous queue system, these settings
 
 - **pollIntervalMillis** _number_
 
-  Control how frequently the API is checked for completed images while they are being processed. Defaults to 5000ms (5 seconds).
+  Control how frequently the API is checked for completed images while they are
+  being processed. Defaults to 500ms.
 
 - **maxPollAttempts** _number_
 
-  Limit how long to wait for results before timing out, since image generation is queued asynchronously. Defaults to 10 attempts.
+  Limit how long to wait for results before timing out, since image generation
+  is queued asynchronously. Defaults to 120 attempts.
 
 ### Model Capabilities
 

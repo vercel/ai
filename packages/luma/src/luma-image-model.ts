@@ -16,8 +16,8 @@ import {
 import { LumaImageSettings } from './luma-image-settings';
 import { z } from 'zod';
 
-const DEFAULT_POLL_INTERVAL_MILLIS = 5000;
-const DEFAULT_MAX_POLL_ATTEMPTS = 10;
+const DEFAULT_POLL_INTERVAL_MILLIS = 500;
+const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;
 
 interface LumaImageModelConfig {
   provider: string;
@@ -27,6 +27,12 @@ interface LumaImageModelConfig {
   _internal?: {
     currentDate?: () => Date;
   };
+}
+
+async function delay(delayInMs?: number | null): Promise<void> {
+  return delayInMs == null
+    ? Promise.resolve()
+    : new Promise(resolve => setTimeout(resolve, delayInMs));
 }
 
 export class LumaImageModel implements ImageModelV1 {
@@ -130,7 +136,7 @@ export class LumaImageModel implements ImageModelV1 {
   ): Promise<string> {
     let attemptCount = 0;
     const url = this.getLumaGenerationsUrl(generationId);
-    while (attemptCount < this.maxPollAttempts) {
+    for (let i = 0; i < this.maxPollAttempts; i++) {
       const { value: statusResponse } = await getFromApi({
         url,
         headers,
@@ -156,15 +162,8 @@ export class LumaImageModel implements ImageModelV1 {
             data: statusResponse,
             message: `Image generation failed.`,
           });
-        case 'dreaming':
-        case 'queued':
-          break;
       }
-
-      attemptCount++;
-      await new Promise(resolve =>
-        setTimeout(resolve, this.pollIntervalMillis),
-      );
+      await delay(this.pollIntervalMillis);
     }
 
     throw new Error(
@@ -176,13 +175,13 @@ export class LumaImageModel implements ImageModelV1 {
     return createJsonErrorResponseHandler({
       errorSchema: lumaErrorSchema,
       errorToMessage: (error: LumaErrorData) =>
-        error.detail[0].msg || 'Unknown error',
+        error.detail[0].msg ?? 'Unknown error',
     });
   }
 
   private getLumaGenerationsUrl(generationId?: string) {
     return `${this.config.baseURL}/dream-machine/v1/generations/${
-      generationId || 'image'
+      generationId ?? 'image'
     }`;
   }
 
@@ -190,7 +189,7 @@ export class LumaImageModel implements ImageModelV1 {
     url: string,
     abortSignal: AbortSignal | undefined,
   ): Promise<Uint8Array> {
-    const { value: buffer } = await getFromApi({
+    const { value: response } = await getFromApi({
       url,
       // No specific headers should be needed for this request as it's a
       // generated image provided by Luma.
@@ -199,60 +198,21 @@ export class LumaImageModel implements ImageModelV1 {
       successfulResponseHandler: createBinaryResponseHandler(),
       fetch: this.config.fetch,
     });
-    return new Uint8Array(buffer);
+    return response;
   }
 }
 
-const lumaRequestSchema = z.object({
-  generation_type: z.literal('image'),
-  model: z.string(),
-  prompt: z.string(),
-  aspect_ratio: z.string().nullish(),
-  callback_url: z.string().nullish(),
-  image_ref: z
-    .array(
-      z.object({
-        url: z.string(),
-        weight: z.number(),
-      }),
-    )
-    .nullish(),
-  style_ref: z
-    .array(
-      z.object({
-        url: z.string(),
-        weight: z.number(),
-      }),
-    )
-    .nullish(),
-  character_ref: z
-    .object({
-      identity0: z.object({
-        images: z.array(z.string()),
-      }),
-    })
-    .nullish(),
-  modify_image_ref: z
-    .object({
-      url: z.string(),
-      weight: z.number(),
-    })
-    .nullish(),
-});
-
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
 const lumaGenerationResponseSchema = z.object({
   id: z.string(),
-  generation_type: z.literal('image'),
   state: z.enum(['queued', 'dreaming', 'completed', 'failed']),
   failure_reason: z.string().nullish(),
-  created_at: z.string(),
   assets: z
     .object({
       image: z.string(), // URL of the generated image
     })
     .nullish(),
-  model: z.string(),
-  request: lumaRequestSchema,
 });
 
 const lumaErrorSchema = z.object({
@@ -266,7 +226,7 @@ const lumaErrorSchema = z.object({
         .object({
           expected: z.string(),
         })
-        .optional(),
+        .nullish(),
     }),
   ),
 });

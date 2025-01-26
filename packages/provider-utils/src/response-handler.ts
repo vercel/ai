@@ -186,7 +186,7 @@ export const createJsonResponseHandler =
   };
 
 export const createBinaryResponseHandler =
-  (): ResponseHandler<ArrayBuffer> =>
+  (): ResponseHandler<Uint8Array> =>
   async ({ response, url, requestBodyValues }) => {
     const responseHeaders = extractResponseHeaders(response);
 
@@ -205,7 +205,7 @@ export const createBinaryResponseHandler =
       const buffer = await response.arrayBuffer();
       return {
         responseHeaders,
-        value: buffer,
+        value: new Uint8Array(buffer),
       };
     } catch (error) {
       throw new APICallError({

@@ -141,7 +141,7 @@ export class FireworksImageModel implements ImageModelV1 {
     });
 
     return {
-      images: [new Uint8Array(response)],
+      images: [response],
       warnings,
       response: {
         timestamp: currentDate,
