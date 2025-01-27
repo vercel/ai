@@ -17,8 +17,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { Tool } from '../tool/tool';
-import { ToolChoice, LanguageModel, ProviderMetadata } from '../types';
+import { LanguageModel, ProviderMetadata, ToolChoice } from '../types';
 import {
   addLanguageModelUsage,
   calculateLanguageModelUsage,
@@ -33,6 +32,7 @@ import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
+import { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -92,7 +92,7 @@ If set and supported by the model, calls will generate deterministic results.
 A result object that contains the generated text, the results of the tool calls, and additional information.
  */
 export async function generateText<
-  TOOLS extends Record<string, Tool>,
+  TOOLS extends ToolSet,
   OUTPUT = never,
   OUTPUT_PARTIAL = never,
 >({
@@ -560,7 +560,7 @@ A function that attempts to repair a tool call that failed to parse.
   });
 }
 
-async function executeTools<TOOLS extends Record<string, Tool>>({
+async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
   tools,
   tracer,
@@ -653,7 +653,7 @@ async function executeTools<TOOLS extends Record<string, Tool>>({
   );
 }
 
-class DefaultGenerateTextResult<TOOLS extends Record<string, Tool>, OUTPUT>
+class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
   readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];

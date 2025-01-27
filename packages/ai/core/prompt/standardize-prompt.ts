@@ -1,12 +1,12 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
+import { ToolSet } from '../generate-text/tool-set';
+import { convertToCoreMessages } from './convert-to-core-messages';
+import { detectPromptType } from './detect-prompt-type';
 import { CoreMessage, coreMessageSchema } from './message';
 import { Prompt } from './prompt';
-import { detectPromptType } from './detect-prompt-type';
-import { convertToCoreMessages } from './convert-to-core-messages';
 import { UIMessage } from './ui-message';
-import { Tool } from '../tool/tool';
 
 export type StandardizedPrompt = {
   /**
@@ -26,7 +26,7 @@ export type StandardizedPrompt = {
   messages: CoreMessage[];
 };
 
-export function standardizePrompt<TOOLS extends Record<string, Tool>>({
+export function standardizePrompt<TOOLS extends ToolSet>({
   prompt,
   tools,
 }: {

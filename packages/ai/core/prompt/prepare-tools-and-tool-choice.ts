@@ -4,11 +4,11 @@ import {
   LanguageModelV1ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/ui-utils';
-import { Tool } from '../tool/tool';
+import { ToolSet } from '../generate-text';
 import { ToolChoice } from '../types/language-model';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
 
-export function prepareToolsAndToolChoice<TOOLS extends Record<string, Tool>>({
+export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   tools,
   toolChoice,
   activeTools,

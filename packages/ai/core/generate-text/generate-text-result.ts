@@ -1,5 +1,4 @@
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
-import { Tool } from '../tool/tool';
 import {
   CallWarning,
   FinishReason,
@@ -12,15 +11,13 @@ import { LanguageModelUsage } from '../types/usage';
 import { StepResult } from './step-result';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
+import { ToolSet } from './tool-set';
 
 /**
 The result of a `generateText` call.
 It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
  */
-export interface GenerateTextResult<
-  TOOLS extends Record<string, Tool>,
-  OUTPUT,
-> {
+export interface GenerateTextResult<TOOLS extends ToolSet, OUTPUT> {
   /**
 The generated text.
      */

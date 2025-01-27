@@ -308,9 +308,9 @@ Each tool call is typed with `ToolCall<NAME extends string, ARGS>`, depending
 on the tool that has been invoked.
 Similarly, the tool results are typed with `ToolResult<NAME extends string, ARGS, RESULT>`.
 
-The tools in `streamText` and `generateText` are defined as a `Record<string, Tool>`.
-The type inference helpers `ToolCallUnion<TOOLS extends Record<string, Tool>>`
-and `ToolResultUnion<TOOLS extends Record<string, Tool>>` can be used to
+The tools in `streamText` and `generateText` are defined as a `ToolSet`.
+The type inference helpers `ToolCallUnion<TOOLS extends ToolSet>`
+and `ToolResultUnion<TOOLS extends ToolSet>` can be used to
 extract the tool call and tool result types from the tools.
 
 ```ts highlight="18-19,23-24"

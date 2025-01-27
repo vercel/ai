@@ -1,13 +1,13 @@
 import { ToolResultPart } from '../prompt';
-import { Tool } from '../tool/tool';
 import { ResponseMessage } from './step-result';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
+import { ToolSet } from './tool-set';
 
 /**
 Converts the result of a `generateText` call to a list of response messages.
  */
-export function toResponseMessages<TOOLS extends Record<string, Tool>>({
+export function toResponseMessages<TOOLS extends ToolSet>({
   text = '',
   tools,
   toolCalls,

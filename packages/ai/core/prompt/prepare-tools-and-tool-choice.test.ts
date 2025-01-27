@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { ToolSet } from '../generate-text/tool-set';
 import { Tool, tool } from '../tool/tool';
 import { prepareToolsAndToolChoice } from './prepare-tools-and-tool-choice';
 
-const mockTools: Record<string, Tool> = {
+const mockTools: ToolSet = {
   tool1: tool({
     description: 'Tool 1 description',
     parameters: z.object({}),
@@ -20,7 +21,7 @@ const mockProviderDefinedTool: Tool = {
   parameters: z.object({}),
 };
 
-const mockToolsWithProviderDefined: Record<string, Tool> = {
+const mockToolsWithProviderDefined: ToolSet = {
   ...mockTools,
   providerTool: mockProviderDefinedTool,
 };

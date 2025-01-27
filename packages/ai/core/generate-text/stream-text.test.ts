@@ -22,11 +22,12 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
-import { Tool, tool } from '../tool/tool';
+import { tool } from '../tool/tool';
 import { object, text } from './output';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
+import { ToolSet } from './tool-set';
 
 function createTestModel({
   stream = convertArrayToReadableStream([
@@ -3122,7 +3123,7 @@ describe('streamText', () => {
   describe('options.transform', () => {
     describe('with base transformation', () => {
       const upperCaseTransform =
-        <TOOLS extends Record<string, Tool>>() =>
+        <TOOLS extends ToolSet>() =>
         (options: { tools: TOOLS }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             transform(chunk, controller) {
@@ -3861,7 +3862,7 @@ describe('streamText', () => {
 
     describe('with multiple transformations', () => {
       const toUppercaseAndAddCommaTransform =
-        <TOOLS extends Record<string, Tool>>() =>
+        <TOOLS extends ToolSet>() =>
         (options: { tools: TOOLS }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             transform(chunk, controller) {
@@ -3878,7 +3879,7 @@ describe('streamText', () => {
           });
 
       const omitCommaTransform =
-        <TOOLS extends Record<string, Tool>>() =>
+        <TOOLS extends ToolSet>() =>
         (options: { tools: TOOLS }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             transform(chunk, controller) {
@@ -3912,7 +3913,7 @@ describe('streamText', () => {
 
     describe('with transformation that aborts stream', () => {
       const stopWordTransform =
-        <TOOLS extends Record<string, Tool>>() =>
+        <TOOLS extends ToolSet>() =>
         ({ stopStream }: { stopStream: () => void }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             // note: this is a simplified transformation for testing;
