@@ -162,7 +162,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
     },
     {
       name: 'messages',
-      type: 'Array<CoreSystemMessage | CoreUserMessage | CoreAssistantMessage | ToolMessage> | Array<UIMessage>',
+      type: 'Array<CoreSystemMessage | CoreUserMessage | CoreAssistantMessage | CoreToolMessage> | Array<UIMessage>',
       description:
         'A list of messages that represent a conversation. Automatically converts UI messages from the useChat hook.',
       properties: [
@@ -316,7 +316,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
           ],
         },
         {
-          type: 'ToolMessage',
+          type: 'CoreToolMessage',
           parameters: [
             {
               name: 'role',

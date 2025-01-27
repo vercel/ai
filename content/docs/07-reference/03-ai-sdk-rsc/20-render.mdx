@@ -46,7 +46,7 @@ A helper function to create a streamable UI from LLM providers. This function is
     },
     {
       name: 'messages',
-      type: 'Array<SystemMessage | UserMessage | AssistantMessage | ToolMessage>',
+      type: 'Array<SystemMessage | UserMessage | AssistantMessage | CoreToolMessage>',
       description: 'A list of messages that represent a conversation.',
       properties: [
         {
@@ -139,7 +139,7 @@ A helper function to create a streamable UI from LLM providers. This function is
           ],
         },
         {
-          type: 'ToolMessage',
+          type: 'CoreToolMessage',
           parameters: [
             {
               name: 'role',

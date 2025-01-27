@@ -3,7 +3,7 @@ import {
   CoreMessage,
   Tool,
   ToolChoice,
-  ToolMessage,
+  CoreToolMessage,
   FinishReason,
   generateText,
   GenerateTextResult,
@@ -138,7 +138,7 @@ export async function runSwarm<CONTEXT = any>({
     // update last messages
     const toolMessage =
       responseMessages.at(-1)?.role === 'tool'
-        ? (responseMessages.at(-1) as ToolMessage)
+        ? (responseMessages.at(-1) as CoreToolMessage)
         : undefined;
     const assistantMessage = responseMessages.at(
       toolMessage === undefined ? -1 : -2,
