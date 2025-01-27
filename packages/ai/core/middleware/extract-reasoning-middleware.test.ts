@@ -10,7 +10,7 @@ import { mockId } from '../test/mock-id';
 
 describe('extractReasoningMiddleware', () => {
   describe('wrapGenerate', () => {
-    it('should extract reasoning from <think> tags during generation', async () => {
+    it('should extract reasoning from <think> tags', async () => {
       const mockModel = new MockLanguageModelV1({
         async doGenerate() {
           return {
@@ -34,7 +34,7 @@ describe('extractReasoningMiddleware', () => {
       expect(result.text).toStrictEqual('Here is the response');
     });
 
-    it('should extract multiple reasoning from <think> tags during generation', async () => {
+    it('should extract reasoning from multiple <think> tags', async () => {
       const mockModel = new MockLanguageModelV1({
         async doGenerate() {
           return {
@@ -62,7 +62,7 @@ describe('extractReasoningMiddleware', () => {
   });
 
   describe('wrapStream', () => {
-    it('should extract reasoning from <think> tags during streaming', async () => {
+    it('should extract reasoning from split <think> tags', async () => {
       const mockModel = new MockLanguageModelV1({
         async doStream() {
           return {
