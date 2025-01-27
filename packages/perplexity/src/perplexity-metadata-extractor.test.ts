@@ -87,18 +87,18 @@ describe('buildMetadataFromResponse', () => {
   });
 });
 
-describe('streaming metadata processor', () => {
+describe('streaming metadata extractor', () => {
   it('should process streaming chunks and build final metadata', () => {
-    const processor = perplexityMetadataExtractor.createStreamExtractor();
+    const extractor = perplexityMetadataExtractor.createStreamExtractor();
 
     // Process chunk with citations
-    processor.processChunk({
+    extractor.processChunk({
       choices: [{ delta: { role: 'assistant', content: 'content' } }],
       citations: ['source1', 'source2'],
     });
 
     // Process chunk with usage
-    processor.processChunk({
+    extractor.processChunk({
       choices: [{ delta: { role: 'assistant', content: 'content' } }],
       usage: {
         citation_tokens: 100,
@@ -106,7 +106,7 @@ describe('streaming metadata processor', () => {
       },
     });
 
-    const finalMetadata = processor.buildMetadata();
+    const finalMetadata = extractor.buildMetadata();
 
     expect(finalMetadata).toEqual({
       perplexity: {
@@ -120,10 +120,10 @@ describe('streaming metadata processor', () => {
   });
 
   it('should update metadata with latest chunk data', () => {
-    const processor = perplexityMetadataExtractor.createStreamExtractor();
+    const extractor = perplexityMetadataExtractor.createStreamExtractor();
 
     // Process initial chunk
-    processor.processChunk({
+    extractor.processChunk({
       citations: ['source1'],
       usage: {
         citation_tokens: 50,
@@ -132,7 +132,7 @@ describe('streaming metadata processor', () => {
     });
 
     // Process chunk with updated data
-    processor.processChunk({
+    extractor.processChunk({
       citations: ['source1', 'source2'],
       usage: {
         citation_tokens: 100,
@@ -140,7 +140,7 @@ describe('streaming metadata processor', () => {
       },
     });
 
-    const finalMetadata = processor.buildMetadata();
+    const finalMetadata = extractor.buildMetadata();
 
     expect(finalMetadata).toEqual({
       perplexity: {
@@ -154,38 +154,38 @@ describe('streaming metadata processor', () => {
   });
 
   it('should handle streaming chunks without metadata', () => {
-    const processor = perplexityMetadataExtractor.createStreamExtractor();
+    const extractor = perplexityMetadataExtractor.createStreamExtractor();
 
-    processor.processChunk({
+    extractor.processChunk({
       choices: [{ delta: { role: 'assistant', content: 'content' } }],
     });
 
-    const finalMetadata = processor.buildMetadata();
+    const finalMetadata = extractor.buildMetadata();
 
     expect(finalMetadata).toBeUndefined();
   });
 
   it('should handle invalid streaming chunks', () => {
-    const processor = perplexityMetadataExtractor.createStreamExtractor();
+    const extractor = perplexityMetadataExtractor.createStreamExtractor();
 
-    processor.processChunk('invalid chunk');
+    extractor.processChunk('invalid chunk');
 
-    const finalMetadata = processor.buildMetadata();
+    const finalMetadata = extractor.buildMetadata();
 
     expect(finalMetadata).toBeUndefined();
   });
 
   it('should handle null values in usage data', () => {
-    const processor = perplexityMetadataExtractor.createStreamExtractor();
+    const extractor = perplexityMetadataExtractor.createStreamExtractor();
 
-    processor.processChunk({
+    extractor.processChunk({
       usage: {
         citation_tokens: null,
         num_search_queries: null,
       },
     });
 
-    const finalMetadata = processor.buildMetadata();
+    const finalMetadata = extractor.buildMetadata();
 
     expect(finalMetadata).toEqual({
       perplexity: {
