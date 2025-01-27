@@ -19,9 +19,9 @@ export default createTransformer((fileInfo, api, options, context) => {
         ) {
           context.hasChanges = true;
           targetImports.add(spec.local?.name || spec.imported.name);
-          spec.imported.name = 'Tool';
+          spec.imported.name = 'CoreTool';
           if (spec.local) {
-            spec.local.name = 'Tool';
+            spec.local.name = 'CoreTool';
           }
         }
       });
@@ -38,7 +38,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     .forEach(path => {
       if (path.node.typeName.type === 'Identifier') {
         context.hasChanges = true;
-        path.node.typeName.name = 'Tool';
+        path.node.typeName.name = 'CoreTool';
       }
     });
 });
