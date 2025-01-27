@@ -87,7 +87,7 @@ import {
   extractReasoningMiddleware,
 } from 'ai';
 
-const model = wrapLanguageModel({
+const enhancedModel = wrapLanguageModel({
   model: groq('deepseek-r1-distill-llama-70b'),
   middleware: extractReasoningMiddleware({ tagName: 'think' }),
 });
