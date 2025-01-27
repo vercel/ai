@@ -1,8 +1,8 @@
 import {
   CoreAssistantMessage,
   CoreMessage,
-  CoreTool,
-  CoreToolChoice,
+  Tool,
+  ToolChoice,
   CoreToolMessage,
   FinishReason,
   generateText,
@@ -30,7 +30,7 @@ export async function runSwarm<CONTEXT = any>({
   context?: CONTEXT;
   model: LanguageModel;
   maxSteps?: number;
-  toolChoice?: CoreToolChoice<any>;
+  toolChoice?: ToolChoice<any>;
   debug?: boolean;
   onStepFinish?: (event: StepResult<any>) => Promise<void> | void;
 }): Promise<{
@@ -56,7 +56,7 @@ export async function runSwarm<CONTEXT = any>({
           : activeAgent.system,
       tools: Object.fromEntries(
         Object.entries(activeAgent.tools ?? {}).map(
-          ([name, tool]): [string, CoreTool] => [
+          ([name, tool]): [string, Tool] => [
             name,
             tool.type === 'handover'
               ? {

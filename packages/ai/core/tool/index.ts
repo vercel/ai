@@ -1,2 +1,2 @@
 export { tool } from './tool';
-export type { CoreTool, ToolExecutionOptions } from './tool';
+export type { CoreTool, Tool, ToolExecutionOptions } from './tool';

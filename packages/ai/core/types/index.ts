@@ -14,6 +14,7 @@ export type {
   LanguageModelV1Prompt,
   LanguageModelV1StreamPart,
   LogProbs,
+  ToolChoice,
 } from './language-model';
 export type { LanguageModelRequestMetadata } from './language-model-request-metadata';
 export type { LanguageModelResponseMetadata } from './language-model-response-metadata';

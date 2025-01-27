@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { CoreToolCallUnion, CoreToolResultUnion, generateText, tool } from 'ai';
+import { ToolCallUnion, ToolResultUnion, generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const myToolSet = {
@@ -15,8 +15,8 @@ const myToolSet = {
   }),
 };
 
-type MyToolCall = CoreToolCallUnion<typeof myToolSet>;
-type MyToolResult = CoreToolResultUnion<typeof myToolSet>;
+type MyToolCall = ToolCallUnion<typeof myToolSet>;
+type MyToolResult = ToolResultUnion<typeof myToolSet>;
 
 async function generateSomething(prompt: string): Promise<{
   text: string;
