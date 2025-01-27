@@ -65,6 +65,7 @@ export type ParseResult<T> =
  * Safely parses a JSON string and returns the result as an object of type `unknown`.
  *
  * @param text - The JSON string to parse.
+ * @param {boolean} tryMutipleBraceVariations - Whether to try multiple variations of the JSON string to fix potential issues with missing or extra braces.
  * @returns {object} Either an object with `success: true` and the parsed data, or an object with `success: false` and the error that occurred.
  */
 export function safeParseJSON(options: {
@@ -78,6 +79,7 @@ export function safeParseJSON(options: {
  * @template T - The type of the object to parse the JSON into.
  * @param {string} text - The JSON string to parse.
  * @param {Validator<T>} schema - The schema to use for parsing the JSON.
+ * @param {boolean} tryMutipleBraceVariations - Whether to try multiple variations of the JSON string to fix potential issues with missing or extra braces.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
 export function safeParseJSON<T>(options: {
