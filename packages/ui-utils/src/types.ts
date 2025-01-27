@@ -1,9 +1,5 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
-import {
-  ToolCall as ToolCall,
-  ToolResult as ToolResult,
-  FetchFunction,
-} from '@ai-sdk/provider-utils';
+import { ToolCall, ToolResult, FetchFunction } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from './duplicated/usage';
 
 export * from './use-assistant-types';

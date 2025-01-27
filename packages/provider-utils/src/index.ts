@@ -20,5 +20,5 @@ export * from './validator';
 export * from './without-trailing-slash';
 
 export type { IDGenerator } from './generate-id';
-export type { ToolCall } from './types/tool-call';
-export type { ToolResult } from './types/tool-result';
+export type { CoreToolCall, ToolCall } from './types/tool-call';
+export type { CoreToolResult, ToolResult } from './types/tool-result';
