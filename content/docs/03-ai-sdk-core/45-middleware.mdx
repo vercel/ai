@@ -55,11 +55,13 @@ import {
   extractReasoningMiddleware,
 } from 'ai';
 
-const wrappedLanguageModel = wrapLanguageModel({
+const model = wrapLanguageModel({
   model: yourModel,
   middleware: extractReasoningMiddleware({ tagName: 'think' }),
 });
 ```
+
+You can then use that enhanced model in functions like `generateText` and `streamText`.
 
 ## Implementing Language Model Middleware
 
