@@ -1,11 +1,11 @@
 ---
-title: Agentic Systems
-description: Learn about creating agentic systems with AI SDK Core.
+title: Agents
+description: Learn about creating agents with AI SDK Core.
 ---
 
-# Agentic Systems
+# Agents
 
-When building AI applications, you often need systems that can understand context and take meaningful actions. When building these systems, the key consideration is finding the right balance between flexibility and control. Let's explore different approaches and patterns for building these systems, with a focus on helping you match capabilities to your needs.
+When building AI applications, you often need **systems that can understand context and take meaningful actions**. When building these systems, the key consideration is finding the right balance between flexibility and control. Let's explore different approaches and patterns for building these systems, with a focus on helping you match capabilities to your needs.
 
 ## Building Blocks
 
@@ -17,7 +17,9 @@ The basic building block - one call to an LLM to get a response. Useful for stra
 
 ### Tool Usage
 
-Enhanced capabilities through tool interfaces (like calculators, APIs, or databases) that the LLM can use to accomplish tasks. Tools provide a controlled way to extend what the LLM can do.
+Enhanced capabilities through tools (like calculators, APIs, or databases) that the LLM can use to accomplish tasks. Tools provide a controlled way to extend what the LLM can do.
+
+When solving complex problems, **an LLM can make multiple tool calls across multiple steps without you explicity specifying the order** - for example, looking up information in a database, using that to make calculations, and then storing results. The AI SDK makes this [multi-step tool usage](#multi-step-tool-usage) straightforward through the `maxSteps` parameter.
 
 ### Multi-Agent Systems
 
@@ -27,11 +29,11 @@ Multiple LLMs working together, each specialized for different aspects of a comp
 
 These building blocks can be combined with workflow patterns that help manage complexity:
 
-- Sequential Processing - Steps executed in order
-- Parallel Processing - Independent tasks run simultaneously
-- Evaluation/Feedback Loops - Results checked and improved iteratively
-- Orchestration - Coordinating multiple components
-- Routing - Directing work based on context
+- [Sequential Processing](#sequential-processing-chains) - Steps executed in order
+- [Parallel Processing](#parallel-processing) - Independent tasks run simultaneously
+- [Evaluation/Feedback Loops](#evaluator-optimizer) - Results checked and improved iteratively
+- [Orchestration](#orchestrator-worker) - Coordinating multiple components
+- [Routing](#routing) - Directing work based on context
 
 ## Choosing Your Approach
 
@@ -51,7 +53,7 @@ The key factors to consider:
 
 Let's look at examples of these patterns in action.
 
-## Patterns
+## Patterns with Examples
 
 The following patterns, adapted from [Anthropic's guide on building effective agents](https://www.anthropic.com/research/building-effective-agents), serve as building blocks that can be combined to create comprehensive workflows. Each pattern addresses specific aspects of task execution, and by combining them thoughtfully, you can build reliable solutions for complex problems.
 
@@ -389,11 +391,9 @@ async function translateWithFeedback(text: string, targetLanguage: string) {
 }
 ```
 
-## Agent Patterns
+## Multi-Step Tool Usage
 
-If your use case involves solving problems where the solution path is poorly defined or too complex to map out as a workflow in advance, you may want to build an agent.
-
-To implement agents, you need to call an LLM in a loop until a task is complete. The AI SDK makes this simple with the `maxSteps` parameter.
+If your use case involves solving problems where the solution path is poorly defined or too complex to map out as a workflow in advance, you may want to provide the LLM with a set of lower-level tools and allow it to break down the task into small pieces that it can solve on its own iteratively, without discrete instructions. To implement this kind of agentic pattern, you need to call an LLM in a loop until a task is complete. The AI SDK makes this simple with the `maxSteps` parameter.
 
 With `maxSteps`, the AI SDK automatically triggers an additional request to the model after every tool result (each request is considered a "step"). If the model does not generate a tool call or the `maxSteps` threshold has been met, the generation is complete.
 
@@ -439,13 +439,9 @@ const { text: answer } = await generateText({
 console.log(`ANSWER: ${answer}`);
 ```
 
-## Structured Answers
+### Structured Answers
 
-You can use an **answer tool** and the `toolChoice: 'required'` setting to force
-the LLM to answer with a structured output that matches the schema of the answer tool.
-The answer tool has no `execute` function, so invoking it will terminate the agent.
-
-### Example
+When building an agent for tasks like mathematical analysis or report generation, it's often useful to have the agent's final output structured in a consistent format that your application can process. You can use an **answer tool** and the `toolChoice: 'required'` setting to force the LLM to answer with a structured output that matches the schema of the answer tool. The answer tool has no `execute` function, so invoking it will terminate the agent.
 
 ```ts highlight="6,16-29,31,45"
 import { openai } from '@ai-sdk/openai';
@@ -501,7 +497,7 @@ console.log(`FINAL TOOL CALLS: ${JSON.stringify(toolCalls, null, 2)}`);
   setting for `generateText` to generate structured outputs.
 </Note>
 
-## Accessing all steps
+### Accessing all steps
 
 Calling `generateText` with `maxSteps` can result in several calls to the LLM (steps).
 You can access information from all steps by using the `steps` property of the response.
@@ -519,7 +515,7 @@ const { steps } = await generateText({
 const allToolCalls = steps.flatMap(step => step.toolCalls);
 ```
 
-## Getting notified on each completed step
+### Getting notified on each completed step
 
 You can use the `onStepFinish` callback to get notified on each completed step.
 It is triggered when a step is finished,
