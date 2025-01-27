@@ -1,5 +1,13 @@
 # @ai-sdk/ui-utils
 
+## 1.1.6
+
+### Patch Changes
+
+- 3a602ca: chore (core): rename CoreTool to Tool
+- Updated dependencies [3a602ca]
+  - @ai-sdk/provider-utils@2.1.5
+
 ## 1.1.5
 
 ### Patch Changes

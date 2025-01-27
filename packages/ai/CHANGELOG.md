@@ -1,5 +1,15 @@
 # ai
 
+## 4.1.9
+
+### Patch Changes
+
+- 3a602ca: chore (core): rename CoreTool to Tool
+- Updated dependencies [3a602ca]
+  - @ai-sdk/provider-utils@2.1.5
+  - @ai-sdk/ui-utils@1.1.6
+  - @ai-sdk/react@1.1.6
+
 ## 4.1.8
 
 ### Patch Changes
