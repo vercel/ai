@@ -55,6 +55,18 @@ const { reasoning, text } = await generateText({
 });
 ```
 
+The unified interface also means that you can easily switch between providers by changing just two lines of code. For example, to use DeepSeek R1 via Fireworks:
+
+```ts
+import { fireworks } from '@ai-sdk/fireworks';
+import { generateText } from 'ai';
+
+const { reasoning, text } = await generateText({
+  model: fireworks('accounts/fireworks/models/deepseek-r1'),
+  prompt: 'Explain quantum entanglement.',
+});
+```
+
 ### Building Interactive Interfaces
 
 AI SDK Core can be paired with [AI SDK UI](/docs/ai-sdk-ui/overview), another powerful component of the AI SDK, to streamline the process of building chat, completion, and assistant interfaces with popular frameworks like Next.js, Nuxt, SvelteKit, and SolidStart.
