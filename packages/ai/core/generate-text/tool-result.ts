@@ -2,7 +2,7 @@ import { Tool } from '../tool';
 import { inferParameters } from '../tool/tool';
 import { ValueOf } from '../util/value-of';
 
-export type { ToolResult } from '@ai-sdk/provider-utils';
+export type { CoreToolResult, ToolResult } from '@ai-sdk/provider-utils';
 
 // limits the tools to those with an execute value
 type ToToolsWithExecute<TOOLS extends Record<string, Tool>> = {
@@ -29,6 +29,13 @@ type ToToolResultObject<TOOLS extends Record<string, Tool>> = ValueOf<{
 
 export type ToolResultUnion<TOOLS extends Record<string, Tool>> =
   ToToolResultObject<ToToolsWithDefinedExecute<ToToolsWithExecute<TOOLS>>>;
+
+/**
+ * @deprecated Use `ToolResultUnion` instead.
+ */
+// TODO remove in v5
+export type CoreToolResultUnion<TOOLS extends Record<string, Tool>> =
+  ToolResultUnion<TOOLS>;
 
 export type ToolResultArray<TOOLS extends Record<string, Tool>> = Array<
   ToolResultUnion<TOOLS>
