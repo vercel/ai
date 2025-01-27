@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.8
+
+### Patch Changes
+
+- 92f5f36: feat (core): add extractReasoningMiddleware
+
 ## 4.1.7
 
 ### Patch Changes
