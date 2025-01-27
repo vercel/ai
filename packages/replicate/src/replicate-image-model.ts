@@ -55,25 +55,39 @@ export class ReplicateImageModel implements ImageModelV1 {
   > {
     const warnings: Array<ImageModelV1CallWarning> = [];
 
+    const isVersionedModel = this.modelId.includes(":");
+    
+    const url = isVersionedModel ?
+      // https://replicate.com/docs/reference/http#predictions.create
+      `${this.config.baseURL}/predictions` :
+      // https://replicate.com/docs/reference/http#models.predictions.create
+      `${this.config.baseURL}/models/${this.modelId}/predictions`;
+
+    const body = {
+      input: {
+        prompt,
+        aspect_ratio: aspectRatio,
+        size,
+        seed,
+        num_outputs: n,
+        ...(providerOptions.replicate ?? {}),
+      }
+    };
+
+    if (isVersionedModel) {
+      body.version = this.modelId.split(":")[1];
+    }
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const {
       value: { output },
       responseHeaders,
     } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}/predictions`,
+      url,
       headers: combineHeaders(await resolve(this.config.headers), headers, {
         prefer: 'wait',
       }),
-      body: {
-        input: {
-          prompt,
-          aspect_ratio: aspectRatio,
-          size,
-          seed,
-          num_outputs: n,
-          ...(providerOptions.replicate ?? {}),
-        },
-      },
+      body,
       failedResponseHandler: replicateFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         replicateImageResponseSchema,
