@@ -165,5 +165,108 @@ describe('extractReasoningMiddleware', () => {
         },
       ]);
     });
+
+    it('should extract reasoning from single chunk with multiple <think> tags', async () => {
+      const mockModel = new MockLanguageModelV1({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'text-delta',
+                textDelta:
+                  '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: '', rawSettings: {} },
+          };
+        },
+      });
+
+      const result = streamText({
+        model: experimental_wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.fullStream),
+      ).toStrictEqual([
+        {
+          messageId: 'msg-0',
+          request: {},
+          type: 'step-start',
+          warnings: [],
+        },
+        {
+          type: 'reasoning',
+          textDelta: 'analyzing the request',
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'Here is the response',
+        },
+        {
+          type: 'reasoning',
+          textDelta: '\nthinking about the response',
+        },
+        {
+          type: 'text-delta',
+          textDelta: '\nmore',
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'stop',
+          isContinued: false,
+          logprobs: undefined,
+          messageId: 'msg-0',
+          request: {},
+          response: {
+            headers: undefined,
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          type: 'step-finish',
+          usage: {
+            completionTokens: 10,
+            promptTokens: 3,
+            totalTokens: 13,
+          },
+          warnings: undefined,
+        },
+        {
+          experimental_providerMetadata: undefined,
+          finishReason: 'stop',
+          logprobs: undefined,
+          response: {
+            headers: undefined,
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          type: 'finish',
+          usage: {
+            completionTokens: 10,
+            promptTokens: 3,
+            totalTokens: 13,
+          },
+        },
+      ]);
+    });
   });
 });

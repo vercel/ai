@@ -58,6 +58,9 @@ export function extractReasoningMiddleware({
     wrapStream: async ({ doStream }) => {
       const { stream, ...rest } = await doStream();
 
+      let isFirstReasoning = true;
+      let isFirstText = true;
+      let afterSwitch = false;
       let isReasoning: boolean = false;
       let buffer = '';
 
@@ -77,10 +80,23 @@ export function extractReasoningMiddleware({
 
               function publish(text: string) {
                 if (text.length > 0) {
+                  const prefix =
+                    afterSwitch &&
+                    (isReasoning ? !isFirstReasoning : !isFirstText)
+                      ? separator
+                      : '';
+
                   controller.enqueue({
                     type: isReasoning ? 'reasoning' : 'text-delta',
-                    textDelta: text,
+                    textDelta: prefix + text,
                   });
+                  afterSwitch = false;
+
+                  if (isReasoning) {
+                    isFirstReasoning = false;
+                  } else {
+                    isFirstText = false;
+                  }
                 }
               }
 
@@ -104,6 +120,7 @@ export function extractReasoningMiddleware({
                 if (foundFullMatch) {
                   buffer = buffer.slice(startIndex + nextTag.length);
                   isReasoning = !isReasoning;
+                  afterSwitch = true;
                 } else {
                   buffer = buffer.slice(startIndex);
                   break;
