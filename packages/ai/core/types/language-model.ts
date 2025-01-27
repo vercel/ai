@@ -66,7 +66,7 @@ Tool choice for the generation. It supports the following settings:
 - `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
  */
 // TODO 4.1 rename to ToolChoice
-export type CoreToolChoice<TOOLS extends Record<string, unknown>> =
+export type ToolChoice<TOOLS extends Record<string, unknown>> =
   | 'auto'
   | 'none'
   | 'required'

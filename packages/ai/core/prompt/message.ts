@@ -101,7 +101,7 @@ export type AssistantContent = string | Array<TextPart | ToolCallPart>;
 /**
 A tool message. It contains the result of one or more tool calls.
  */
-export type CoreToolMessage = {
+export type ToolMessage = {
   role: 'tool';
   content: ToolContent;
 
@@ -113,7 +113,7 @@ functionality that can be fully encapsulated in the provider.
   experimental_providerMetadata?: ProviderMetadata;
 };
 
-export const coreToolMessageSchema: z.ZodType<CoreToolMessage> = z.object({
+export const coreToolMessageSchema: z.ZodType<ToolMessage> = z.object({
   role: z.literal('tool'),
   content: z.array(toolResultPartSchema),
   experimental_providerMetadata: providerMetadataSchema.optional(),
@@ -132,7 +132,7 @@ export type CoreMessage =
   | CoreSystemMessage
   | CoreUserMessage
   | CoreAssistantMessage
-  | CoreToolMessage;
+  | ToolMessage;
 
 export const coreMessageSchema: z.ZodType<CoreMessage> = z.union([
   coreSystemMessageSchema,

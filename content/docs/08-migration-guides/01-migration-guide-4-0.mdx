@@ -347,7 +347,7 @@ The following types have been removed:
 - `ExperimentalMessage` (use `CoreMessage` instead)
 - `ExperimentalUserMessage` (use `CoreUserMessage` instead)
 - `ExperimentalAssistantMessage` (use `CoreAssistantMessage` instead)
-- `ExperimentalToolMessage` (use `CoreToolMessage` instead)
+- `ExperimentalToolMessage` (use `ToolMessage` instead)
 
 ```ts filename="AI SDK 3.4"
 import {
@@ -363,20 +363,20 @@ import {
   CoreMessage,
   CoreUserMessage,
   CoreAssistantMessage,
-  CoreToolMessage,
+  ToolMessage,
 } from 'ai';
 ```
 
 ### Removed `ExperimentalTool` type
 
-The `ExperimentalTool` type has been removed. Please use the `CoreTool` type instead.
+The `ExperimentalTool` type has been removed. Please use the `Tool` type instead.
 
 ```ts filename="AI SDK 3.4"
 import { ExperimentalTool } from 'ai';
 ```
 
 ```ts filename="AI SDK 4.0"
-import { CoreTool } from 'ai';
+import { Tool } from 'ai';
 ```
 
 ### Removed experimental AI function exports

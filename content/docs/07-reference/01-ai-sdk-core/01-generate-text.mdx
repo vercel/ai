@@ -51,7 +51,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'messages',
-      type: 'Array<CoreSystemMessage | CoreUserMessage | CoreAssistantMessage | CoreToolMessage> | Array<UIMessage>',
+      type: 'Array<CoreSystemMessage | CoreUserMessage | CoreAssistantMessage | ToolMessage> | Array<UIMessage>',
       description:
         'A list of messages that represent a conversation. Automatically converts UI messages from the useChat hook.',
       properties: [
@@ -205,7 +205,7 @@ To see `generateText` in action, check out [these examples](#examples).
           ],
         },
         {
-          type: 'CoreToolMessage',
+          type: 'ToolMessage',
           parameters: [
             {
               name: 'role',
@@ -260,12 +260,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'tools',
-      type: 'Record<string, CoreTool>',
+      type: 'Record<string, Tool>',
       description:
         'Tools that are accessible to and can be called by the model. The model needs to support calling tools.',
       properties: [
         {
-          type: 'CoreTool',
+          type: 'Tool',
           parameters: [
             {
               name: 'description',

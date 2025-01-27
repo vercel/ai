@@ -1,8 +1,8 @@
 import { ServerResponse } from 'node:http';
 import { StreamData } from '../../streams/stream-data';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
-import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
-import { CoreTool } from '../tool';
+import { CoreAssistantMessage, ToolMessage } from '../prompt/message';
+import { Tool } from '../tool';
 import {
   CallWarning,
   FinishReason,
@@ -21,7 +21,7 @@ import { ToolResultUnion } from './tool-result';
 A result object for accessing different stream types and additional information.
  */
 export interface StreamTextResult<
-  TOOLS extends Record<string, CoreTool>,
+  TOOLS extends Record<string, Tool>,
   PARTIAL_OUTPUT,
 > {
   /**
@@ -104,7 +104,7 @@ When there are tool results, there is an additional tool message with the tool r
 If there are tools that do not have execute functions, they are not included in the tool results and
 need to be added separately.
        */
-      messages: Array<CoreAssistantMessage | CoreToolMessage>;
+      messages: Array<CoreAssistantMessage | ToolMessage>;
     }
   >;
 
@@ -224,7 +224,7 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
-export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
+export type TextStreamPart<TOOLS extends Record<string, Tool>> =
   | {
       type: 'text-delta';
       textDelta: string;

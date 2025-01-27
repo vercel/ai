@@ -9,7 +9,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     ExperimentalMessage: 'CoreMessage',
     ExperimentalUserMessage: 'CoreUserMessage',
     ExperimentalAssistantMessage: 'CoreAssistantMessage',
-    ExperimentalToolMessage: 'CoreToolMessage',
+    ExperimentalToolMessage: 'ToolMessage',
   };
 
   // Replace imports

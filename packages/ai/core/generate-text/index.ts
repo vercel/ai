@@ -10,10 +10,10 @@ export type { ToolCallRepairFunction } from './tool-call-repair';
 
 // TODO 4.1: rename to ToolCall and ToolResult, deprecate old names
 export type {
-  ToolCall as CoreToolCall,
-  ToolCallUnion as CoreToolCallUnion,
+  ToolCall as ToolCall,
+  ToolCallUnion as ToolCallUnion,
 } from './tool-call';
 export type {
-  ToolResult as CoreToolResult,
-  ToolResultUnion as CoreToolResultUnion,
+  ToolResult as ToolResult,
+  ToolResultUnion as ToolResultUnion,
 } from './tool-result';

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { CoreMessage, CoreUserMessage, CoreAssistantMessage, CoreToolMessage } from 'ai';
+import { CoreMessage, CoreUserMessage, CoreAssistantMessage, ToolMessage } from 'ai';
 
 function processMessage(message: CoreMessage) {
   console.log(message);
@@ -14,4 +14,4 @@ const assistant: CoreAssistantMessage = {
   content: 'Hello'
 };
 
-type ToolHandler = (msg: CoreToolMessage) => void;
+type ToolHandler = (msg: ToolMessage) => void;

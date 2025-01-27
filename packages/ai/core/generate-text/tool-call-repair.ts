@@ -2,7 +2,7 @@ import { JSONSchema7, LanguageModelV1FunctionToolCall } from '@ai-sdk/provider';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { CoreMessage } from '../prompt';
-import { CoreTool } from '../tool';
+import { Tool } from '../tool';
 
 /**
  * A function that attempts to repair a tool call that failed to parse.
@@ -17,7 +17,7 @@ import { CoreTool } from '../tool';
  * @param options.parameterSchema - A function that returns the JSON Schema for a tool.
  * @param options.error - The error that occurred while parsing the tool call.
  */
-export type ToolCallRepairFunction<TOOLS extends Record<string, CoreTool>> =
+export type ToolCallRepairFunction<TOOLS extends Record<string, Tool>> =
   (options: {
     system: string | undefined;
     messages: CoreMessage[];

@@ -60,12 +60,12 @@ type AssistantContent = string | Array<TextPart | ToolCallPart>;
 
 You can access the Zod schema for `CoreAssistantMessage` with the `coreAssistantMessageSchema` export.
 
-### `CoreToolMessage`
+### `ToolMessage`
 
 A tool message that contains the result of one or more tool calls.
 
 ```typescript
-type CoreToolMessage = {
+type ToolMessage = {
   role: 'tool';
   content: ToolContent;
 };
@@ -73,7 +73,7 @@ type CoreToolMessage = {
 type ToolContent = Array<ToolResultPart>;
 ```
 
-You can access the Zod schema for `CoreToolMessage` with the `coreToolMessageSchema` export.
+You can access the Zod schema for `ToolMessage` with the `coreToolMessageSchema` export.
 
 ## `CoreMessage` Parts
 

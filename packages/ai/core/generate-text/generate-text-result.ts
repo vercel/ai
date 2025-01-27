@@ -1,5 +1,5 @@
-import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
-import { CoreTool } from '../tool/tool';
+import { CoreAssistantMessage, ToolMessage } from '../prompt';
+import { Tool } from '../tool/tool';
 import {
   CallWarning,
   FinishReason,
@@ -18,7 +18,7 @@ The result of a `generateText` call.
 It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
  */
 export interface GenerateTextResult<
-  TOOLS extends Record<string, CoreTool>,
+  TOOLS extends Record<string, Tool>,
   OUTPUT,
 > {
   /**
@@ -86,7 +86,7 @@ When there are tool results, there is an additional tool message with the tool r
 If there are tools that do not have execute functions, they are not included in the tool results and
 need to be added separately.
        */
-    messages: Array<CoreAssistantMessage | CoreToolMessage>;
+    messages: Array<CoreAssistantMessage | ToolMessage>;
   };
 
   /**

@@ -6,7 +6,7 @@ export type {
 export type { ImageModelResponseMetadata } from './image-model-response-metadata';
 export type {
   CallWarning,
-  CoreToolChoice,
+  ToolChoice,
   FinishReason,
   LanguageModel,
   LanguageModelV1,

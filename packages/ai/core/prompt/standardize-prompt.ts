@@ -6,7 +6,7 @@ import { Prompt } from './prompt';
 import { detectPromptType } from './detect-prompt-type';
 import { convertToCoreMessages } from './convert-to-core-messages';
 import { UIMessage } from './ui-message';
-import { CoreTool } from '../tool/tool';
+import { Tool } from '../tool/tool';
 
 export type StandardizedPrompt = {
   /**
@@ -26,7 +26,7 @@ export type StandardizedPrompt = {
   messages: CoreMessage[];
 };
 
-export function standardizePrompt<TOOLS extends Record<string, CoreTool>>({
+export function standardizePrompt<TOOLS extends Record<string, Tool>>({
   prompt,
   tools,
 }: {

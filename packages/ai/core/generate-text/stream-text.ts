@@ -22,9 +22,9 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { CoreTool } from '../tool';
+import { Tool } from '../tool';
 import {
-  CoreToolChoice,
+  ToolChoice,
   FinishReason,
   LanguageModel,
   LogProbs,
@@ -71,7 +71,7 @@ A transformation that is applied to the stream.
 @param stopStream - A function that stops the source stream.
 @param tools - The tools that are accessible to and can be called by the model. The model needs to support calling tools.
  */
-export type StreamTextTransform<TOOLS extends Record<string, CoreTool>> =
+export type StreamTextTransform<TOOLS extends Record<string, Tool>> =
   (options: {
     tools: TOOLS; // for type inference
     stopStream: () => void;
@@ -126,7 +126,7 @@ If set and supported by the model, calls will generate deterministic results.
 A result object for accessing different stream types and additional information.
  */
 export function streamText<
-  TOOLS extends Record<string, CoreTool>,
+  TOOLS extends Record<string, Tool>,
   OUTPUT = never,
   PARTIAL_OUTPUT = never,
 >({
@@ -174,7 +174,7 @@ The tools that the model can call. The model needs to support calling tools.
     /**
 The tool choice strategy. Default: 'auto'.
      */
-    toolChoice?: CoreToolChoice<TOOLS>;
+    toolChoice?: ToolChoice<TOOLS>;
 
     /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
@@ -321,16 +321,13 @@ Internal. For test use only. May change without notice.
   });
 }
 
-type EnrichedStreamPart<
-  TOOLS extends Record<string, CoreTool>,
-  PARTIAL_OUTPUT,
-> = {
+type EnrichedStreamPart<TOOLS extends Record<string, Tool>, PARTIAL_OUTPUT> = {
   part: TextStreamPart<TOOLS>;
   partialOutput: PARTIAL_OUTPUT | undefined;
 };
 
 function createOutputTransformStream<
-  TOOLS extends Record<string, CoreTool>,
+  TOOLS extends Record<string, Tool>,
   OUTPUT,
   PARTIAL_OUTPUT,
 >(
@@ -407,7 +404,7 @@ function createOutputTransformStream<
 }
 
 class DefaultStreamTextResult<
-  TOOLS extends Record<string, CoreTool>,
+  TOOLS extends Record<string, Tool>,
   OUTPUT,
   PARTIAL_OUTPUT,
 > implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
@@ -496,7 +493,7 @@ class DefaultStreamTextResult<
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
     tools: TOOLS | undefined;
-    toolChoice: CoreToolChoice<TOOLS> | undefined;
+    toolChoice: ToolChoice<TOOLS> | undefined;
     toolCallStreaming: boolean;
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: Array<keyof TOOLS> | undefined;

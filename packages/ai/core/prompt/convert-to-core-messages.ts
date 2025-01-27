@@ -1,5 +1,5 @@
 import { CoreMessage, ToolCallPart, ToolResultPart } from '../prompt';
-import { CoreTool } from '../tool/tool';
+import { Tool } from '../tool/tool';
 import { attachmentsToParts } from './attachments-to-parts';
 import { MessageConversionError } from './message-conversion-error';
 import { UIMessage } from './ui-message';
@@ -9,7 +9,7 @@ Converts an array of messages from useChat into an array of CoreMessages that ca
 with the AI core functions (e.g. `streamText`).
  */
 export function convertToCoreMessages<
-  TOOLS extends Record<string, CoreTool> = never,
+  TOOLS extends Record<string, Tool> = never,
 >(messages: Array<UIMessage>, options?: { tools?: TOOLS }) {
   const tools = options?.tools ?? ({} as TOOLS);
   const coreMessages: CoreMessage[] = [];

@@ -1,5 +1,5 @@
 import { ToolResultPart } from '../prompt';
-import { CoreTool } from '../tool/tool';
+import { Tool } from '../tool/tool';
 import { ResponseMessage } from './step-result';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
@@ -7,7 +7,7 @@ import { ToolResultArray } from './tool-result';
 /**
 Converts the result of a `generateText` call to a list of response messages.
  */
-export function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
+export function toResponseMessages<TOOLS extends Record<string, Tool>>({
   text = '',
   tools,
   toolCalls,

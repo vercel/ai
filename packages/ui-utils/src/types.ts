@@ -1,7 +1,7 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 import {
-  ToolCall as CoreToolCall,
-  ToolResult as CoreToolResult,
+  ToolCall as ToolCall,
+  ToolResult as ToolResult,
   FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from './duplicated/usage';
@@ -16,9 +16,9 @@ there is one tool invocation. While the call is in progress, the invocation is a
 Once the call is complete, the invocation is a tool result.
  */
 export type ToolInvocation =
-  | ({ state: 'partial-call' } & CoreToolCall<string, any>)
-  | ({ state: 'call' } & CoreToolCall<string, any>)
-  | ({ state: 'result' } & CoreToolResult<string, any, any>);
+  | ({ state: 'partial-call' } & ToolCall<string, any>)
+  | ({ state: 'call' } & ToolCall<string, any>)
+  | ({ state: 'result' } & ToolResult<string, any, any>);
 
 /**
  * An attachment that can be sent along with a message.
@@ -193,7 +193,7 @@ either synchronously or asynchronously.
   onToolCall?: ({
     toolCall,
   }: {
-    toolCall: CoreToolCall<string, unknown>;
+    toolCall: ToolCall<string, unknown>;
   }) => void | Promise<unknown> | unknown;
 
   /**

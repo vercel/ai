@@ -7,7 +7,7 @@ import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { CoreTool } from '../tool';
+import { Tool } from '../tool';
 import {
   FinishReason,
   LanguageModelUsage,
@@ -20,9 +20,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 
-export type SingleRequestTextStreamPart<
-  TOOLS extends Record<string, CoreTool>,
-> =
+export type SingleRequestTextStreamPart<TOOLS extends Record<string, Tool>> =
   | {
       type: 'text-delta';
       textDelta: string;
@@ -66,7 +64,7 @@ export type SingleRequestTextStreamPart<
       error: unknown;
     };
 
-export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
+export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
   tools,
   generatorStream,
   toolCallStreaming,

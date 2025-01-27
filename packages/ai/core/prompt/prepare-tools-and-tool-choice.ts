@@ -4,19 +4,17 @@ import {
   LanguageModelV1ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/ui-utils';
-import { CoreTool } from '../tool/tool';
-import { CoreToolChoice } from '../types/language-model';
+import { Tool } from '../tool/tool';
+import { ToolChoice } from '../types/language-model';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
 
-export function prepareToolsAndToolChoice<
-  TOOLS extends Record<string, CoreTool>,
->({
+export function prepareToolsAndToolChoice<TOOLS extends Record<string, Tool>>({
   tools,
   toolChoice,
   activeTools,
 }: {
   tools: TOOLS | undefined;
-  toolChoice: CoreToolChoice<TOOLS> | undefined;
+  toolChoice: ToolChoice<TOOLS> | undefined;
   activeTools: Array<keyof TOOLS> | undefined;
 }): {
   tools:

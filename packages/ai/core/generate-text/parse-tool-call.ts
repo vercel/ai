@@ -4,13 +4,13 @@ import { Schema, asSchema } from '@ai-sdk/ui-utils';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { CoreMessage } from '../prompt';
-import { CoreTool } from '../tool';
+import { Tool } from '../tool';
 import { inferParameters } from '../tool/tool';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolCallRepairError } from '../../errors/tool-call-repair-error';
 
-export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
+export async function parseToolCall<TOOLS extends Record<string, Tool>>({
   toolCall,
   tools,
   repairToolCall,
@@ -68,7 +68,7 @@ export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
   }
 }
 
-async function doParseToolCall<TOOLS extends Record<string, CoreTool>>({
+async function doParseToolCall<TOOLS extends Record<string, Tool>>({
   toolCall,
   tools,
 }: {
