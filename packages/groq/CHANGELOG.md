@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 1.1.5
+
+### Patch Changes
+
+- 3864284: feat (provider/groq): add deepseek r1
+
 ## 1.1.4
 
 ### Patch Changes
