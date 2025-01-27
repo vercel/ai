@@ -1,7 +1,7 @@
 import { ServerResponse } from 'node:http';
 import { StreamData } from '../../streams/stream-data';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
-import { CoreAssistantMessage, ToolMessage } from '../prompt/message';
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import { Tool } from '../tool';
 import {
   CallWarning,
@@ -104,7 +104,7 @@ When there are tool results, there is an additional tool message with the tool r
 If there are tools that do not have execute functions, they are not included in the tool results and
 need to be added separately.
        */
-      messages: Array<CoreAssistantMessage | ToolMessage>;
+      messages: Array<CoreAssistantMessage | CoreToolMessage>;
     }
   >;
 

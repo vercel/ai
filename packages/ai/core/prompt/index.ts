@@ -21,7 +21,7 @@ export type {
   CoreAssistantMessage,
   CoreMessage,
   CoreSystemMessage,
-  ToolMessage,
+  CoreToolMessage,
   CoreUserMessage,
   ToolContent,
   UserContent,

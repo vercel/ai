@@ -1,4 +1,4 @@
-import { CoreAssistantMessage, ToolMessage } from '../prompt';
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { Tool } from '../tool/tool';
 import {
   CallWarning,
@@ -86,7 +86,7 @@ When there are tool results, there is an additional tool message with the tool r
 If there are tools that do not have execute functions, they are not included in the tool results and
 need to be added separately.
        */
-    messages: Array<CoreAssistantMessage | ToolMessage>;
+    messages: Array<CoreAssistantMessage | CoreToolMessage>;
   };
 
   /**
