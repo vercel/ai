@@ -2,8 +2,10 @@ import { Experimental_LanguageModelV1Middleware } from './language-model-v1-midd
 
 export function extractReasoningMiddleware({
   tagName,
+  separator = '\n',
 }: {
   tagName: string;
+  separator?: string;
 }): Experimental_LanguageModelV1Middleware {
   return {
     wrapGenerate: async ({ doGenerate, params, model }) => {
@@ -13,13 +15,18 @@ export function extractReasoningMiddleware({
         return result;
       }
 
-      const regexp = new RegExp(`<${tagName}>(.*?)<\/${tagName}>`, 's');
+      const regexp = new RegExp(`<${tagName}>(.*?)<\/${tagName}>`, 'gs');
+      const matches = Array.from(result.text.matchAll(regexp));
 
-      const match = result.text.match(regexp);
+      if (matches.length > 0) {
+        // Combine all reasoning parts with the specified separator
+        result.reasoning = matches.map(match => match[1]).join(separator);
 
-      if (match) {
-        result.reasoning = match[1];
-        result.text = result.text.replace(match[0], '').trim();
+        // Remove all reasoning tags from the text and join remaining parts with separator
+        const parts = result.text
+          .split(new RegExp(`<${tagName}>.*?<\/${tagName}>`, 'gs'))
+          .filter(part => part.trim().length > 0);
+        result.text = parts.join(separator).trim();
       }
 
       return result;
