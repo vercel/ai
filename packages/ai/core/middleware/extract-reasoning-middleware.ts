@@ -8,7 +8,7 @@ export function extractReasoningMiddleware({
   separator?: string;
 }): Experimental_LanguageModelV1Middleware {
   return {
-    wrapGenerate: async ({ doGenerate, params, model }) => {
+    wrapGenerate: async ({ doGenerate }) => {
       const result = await doGenerate();
 
       if (result.text == null) {
@@ -18,16 +18,28 @@ export function extractReasoningMiddleware({
       const regexp = new RegExp(`<${tagName}>(.*?)<\/${tagName}>`, 'gs');
       const matches = Array.from(result.text.matchAll(regexp));
 
-      if (matches.length > 0) {
-        // Combine all reasoning parts with the specified separator
-        result.reasoning = matches.map(match => match[1]).join(separator);
-
-        // Remove all reasoning tags from the text and join remaining parts with separator
-        const parts = result.text
-          .split(new RegExp(`<${tagName}>.*?<\/${tagName}>`, 'gs'))
-          .filter(part => part.trim().length > 0);
-        result.text = parts.join(separator).trim();
+      if (!matches.length) {
+        return result;
       }
+
+      result.reasoning = matches.map(match => match[1]).join(separator);
+
+      let textWithoutReasoning = result.text;
+      for (let i = matches.length - 1; i >= 0; i--) {
+        const match = matches[i];
+
+        const beforeMatch = textWithoutReasoning.slice(0, match.index);
+        const afterMatch = textWithoutReasoning.slice(
+          match.index! + match[0].length,
+        );
+
+        textWithoutReasoning =
+          beforeMatch +
+          (beforeMatch.length > 0 && afterMatch.length > 0 ? separator : '') +
+          afterMatch;
+      }
+
+      result.text = textWithoutReasoning;
 
       return result;
     },
