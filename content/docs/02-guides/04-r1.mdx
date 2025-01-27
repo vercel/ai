@@ -46,13 +46,13 @@ The AI SDK abstracts away the differences between model providers, eliminates bo
 At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call DeepSeek R1 with the AI SDK:
 
 ```tsx
-import { deepseek } from '@ai-sdk/deepseek'
-import { generateText } from 'ai'
+import { deepseek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
 
 const { reasoning, text } = await generateText({
   model: deepseek('deepseek-reasoner'),
-  prompt: 'Explain quantum entanglement.'
-})
+  prompt: 'Explain quantum entanglement.',
+});
 ```
 
 ### Building Interactive Interfaces
@@ -72,35 +72,37 @@ In a new Next.js application, first install the AI SDK and the DeepSeek provider
 Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
-import { deepseek } from '@ai-sdk/deepseek'
-import { streamText } from 'ai'
+import { deepseek } from '@ai-sdk/deepseek';
+import { streamText } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const result = streamText({
     model: deepseek('deepseek-reasoner'),
-    messages
-  })
+    messages,
+  });
 
   return result.toDataStreamResponse({
-    sendReasoning: true
-  })
+    sendReasoning: true,
+  });
 }
 ```
+
 <Note>
-    You can forward the model's reasoning tokens to the client with `sendReasoning: true` in the `toDataStreamResponse` method.
+  You can forward the model's reasoning tokens to the client with
+  `sendReasoning: true` in the `toDataStreamResponse` method.
 </Note>
 
 Finally, update the root page (`app/page.tsx`) to use the `useChat` hook:
 
 ```tsx filename="app/page.tsx"
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit, error } = useChat()
+  const { messages, input, handleInputChange, handleSubmit, error } = useChat();
 
   return (
     <>
@@ -116,13 +118,14 @@ export default function Page() {
         <button type="submit">Submit</button>
       </form>
     </>
-  )
+  );
 }
 ```
-<Note>
-    You can access the model's reasoning tokens with the `reasoning` property on the `message` object.
-</Note>
 
+<Note>
+  You can access the model's reasoning tokens with the `reasoning` property on
+  the `message` object.
+</Note>
 
 The useChat hook on your root page (`app/page.tsx`) will make a request to your AI provider endpoint (`app/api/chat/route.ts`) whenever the user submits a message. The messages are then displayed in the chat UI.
 
