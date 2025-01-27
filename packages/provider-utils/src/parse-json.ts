@@ -70,6 +70,7 @@ export type ParseResult<T> =
 export function safeParseJSON(options: {
   text: string;
   schema?: undefined;
+  tryMutipleBraceVariations?: boolean;
 }): ParseResult<JSONValue>;
 /**
  * Safely parses a JSON string into a strongly-typed object, using a provided schema to validate the object.
@@ -82,25 +83,54 @@ export function safeParseJSON(options: {
 export function safeParseJSON<T>(options: {
   text: string;
   schema: ZodSchema<T> | Validator<T>;
+  tryMutipleBraceVariations?: boolean;
 }): ParseResult<T>;
 export function safeParseJSON<T>({
   text,
   schema,
+  tryMutipleBraceVariations,
 }: {
   text: string;
   schema?: ZodSchema<T> | Validator<T>;
+  tryMutipleBraceVariations?: boolean;
 }): ParseResult<T> {
-  try {
-    const value = SecureJSON.parse(text);
+  const numberOfBraceVariations = tryMutipleBraceVariations ? 5 : 0;
 
-    if (schema == null) {
-      return { success: true, value: value as T, rawValue: value };
+  const values: { success: boolean; json?: unknown; error?: unknown }[] = [];
+  for (const maybeJson of generateJSONBraceVariations(
+    text,
+    numberOfBraceVariations,
+  )) {
+    try {
+      values.push({
+        success: true,
+        json: SecureJSON.parse(maybeJson),
+      } as const);
+      break;
+    } catch (error) {
+      values.push({ success: false, error } as const);
     }
+  }
 
-    const validationResult = safeValidateTypes({ value, schema });
+  const value = values.find(v => v.success);
+  if (value == null) {
+    const error = values[0].error; // the one with the original number of braces
+    return {
+      success: false,
+      error: JSONParseError.isInstance(error)
+        ? error
+        : new JSONParseError({ text, cause: error }),
+    };
+  }
+
+  if (schema == null) {
+    return { success: true, value: value.json as T, rawValue: value.json };
+  }
+  try {
+    const validationResult = safeValidateTypes({ value: value.json, schema });
 
     return validationResult.success
-      ? { ...validationResult, rawValue: value }
+      ? { ...validationResult, rawValue: value.json }
       : validationResult;
   } catch (error) {
     return {
@@ -119,4 +149,34 @@ export function isParsableJson(input: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Generates variations of a potentially incomplete JSON string by adding or removing closing braces.
+ * Useful for attempting to fix malformed JSON that might be missing closing braces or have too many.
+ *
+ * @param incompleteJSON The potentially malformed JSON string
+ * @param n The number of braces to add/remove in each direction
+ * @returns Array of strings with different numbers of closing braces, centered around the original string
+ *
+ * Example:
+ * Input: `generateJSONBraceVariations(1, '{"foo": "bar"')`
+ * Output: `[
+ *   '{"foo": "bar"',    // +0 brace (original)
+ *   '{"foo": "bar',     // -1 brace
+ *   '{"foo": "bar"}',   // +1 brace (might be valid JSON)
+ * ]`
+ */
+function generateJSONBraceVariations(
+  incompleteJSON: string,
+  n: number,
+): string[] {
+  const result: string[] = [incompleteJSON];
+  for (let i = n; i > 0; i--) {
+    result.push(incompleteJSON.slice(0, -i));
+  }
+  for (let i = 1; i <= n; i++) {
+    result.push(incompleteJSON + '}'.repeat(i));
+  }
+  return result;
 }

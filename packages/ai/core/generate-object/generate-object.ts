@@ -675,7 +675,10 @@ export async function generateObject<SCHEMA, RESULT>({
         }
       }
 
-      const parseResult = safeParseJSON({ text: result });
+      const parseResult = safeParseJSON({
+        text: result,
+        tryMutipleBraceVariations: true,
+      });
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
