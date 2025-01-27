@@ -9,12 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/deepseek": "0.1.5",
-    "@ai-sdk/openai": "1.1.4",
-    "@ai-sdk/ui-utils": "1.1.5",
-    "@ai-sdk/react": "1.1.5",
+    "@ai-sdk/deepseek": "0.1.6",
+    "@ai-sdk/openai": "1.1.5",
+    "@ai-sdk/ui-utils": "1.1.6",
+    "@ai-sdk/react": "1.1.6",
     "@vercel/blob": "^0.26.0",
-    "ai": "4.1.8",
+    "ai": "4.1.9",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",
