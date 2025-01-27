@@ -6,8 +6,8 @@ tags: ['node', 'structured data', 'reasoning']
 
 # Generate Object with a Reasoning Model
 
-Reasoning models, like DeepSeek's R1, are gaining popularity due to their ability to understand and generate better responses to complex queries than non-reasoning models.
-You may want to use these models to generate structured data. However, most (like R1 and OpenAI's o1) do not support tool-calling or structured outputs.
+Reasoning models, like [DeepSeek's](/providers/ai-sdk-providers/deepseek) R1, are gaining popularity due to their ability to understand and generate better responses to complex queries than non-reasoning models.
+You may want to use these models to generate structured data. However, most (like R1 and [OpenAI's](/providers/ai-sdk-providers/openai) o1) do not support tool-calling or structured outputs.
 
 One solution is to pass the output from a reasoning model through a smaller model that can output structured data (like gpt-4o-mini). These lightweight models can efficiently extract the structured data while adding very little overhead in terms of speed and cost.
 
