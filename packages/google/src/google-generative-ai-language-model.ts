@@ -471,7 +471,7 @@ function getTextFromParts({
 }) {
   const textParts = (parts ?? []).filter(
     (part): part is GoogleGenerativeAIContentPart & { text: string } =>
-      'text' in part && (part.thought ?? false) !== isThought,
+      'text' in part && (part.thought ?? false) === isThought,
   );
 
   return textParts.length === 0
