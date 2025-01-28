@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.10
+
+### Patch Changes
+
+- bf2c9c6: feat (core): move middleware to stable
+
 ## 4.1.9
 
 ### Patch Changes
