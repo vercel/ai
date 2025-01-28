@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 1.1.7
+
+### Patch Changes
+
+- 5d7a3b6: feat (ui/svelte): experimental attachment support
+
 ## 1.1.6
 
 ### Patch Changes
