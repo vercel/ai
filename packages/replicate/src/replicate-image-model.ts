@@ -67,9 +67,11 @@ export class ReplicateImageModel implements ImageModelV1 {
         version != null
           ? `${this.config.baseURL}/predictions`
           : `${this.config.baseURL}/models/${modelId}/predictions`,
+
       headers: combineHeaders(await resolve(this.config.headers), headers, {
         prefer: 'wait',
       }),
+
       body: {
         input: {
           prompt,
@@ -82,6 +84,7 @@ export class ReplicateImageModel implements ImageModelV1 {
         // for versioned models, include the version in the body:
         ...(version != null ? { version } : {}),
       },
+
       failedResponseHandler: replicateFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         replicateImageResponseSchema,
