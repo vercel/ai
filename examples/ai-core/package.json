@@ -20,7 +20,7 @@
     "@ai-sdk/openai-compatible": "0.1.6",
     "@ai-sdk/perplexity": "0.0.4",
     "@ai-sdk/provider": "1.0.6",
-    "@ai-sdk/replicate": "0.1.5",
+    "@ai-sdk/replicate": "0.1.6",
     "@ai-sdk/togetherai": "0.1.6",
     "@ai-sdk/xai": "1.1.6",
     "@opentelemetry/sdk-node": "0.54.2",

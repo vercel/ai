@@ -108,7 +108,7 @@ importers:
         specifier: 1.0.6
         version: link:../../packages/provider
       '@ai-sdk/replicate':
-        specifier: 0.1.5
+        specifier: 0.1.6
         version: link:../../packages/replicate
       '@ai-sdk/togetherai':
         specifier: 0.1.6
