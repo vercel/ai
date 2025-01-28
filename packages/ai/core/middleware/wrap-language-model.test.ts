@@ -10,7 +10,9 @@ it('should pass through model properties', () => {
       defaultObjectGenerationMode: 'json',
       supportsStructuredOutputs: true,
     }),
-    middleware: {},
+    middleware: {
+      middlewareVersion: 'v1',
+    },
   });
 
   expect(wrappedModel.provider).toBe('test-provider');
@@ -22,7 +24,9 @@ it('should pass through model properties', () => {
 it('should override provider and modelId if provided', () => {
   const wrappedModel = experimental_wrapLanguageModel({
     model: new MockLanguageModelV1(),
-    middleware: {},
+    middleware: {
+      middlewareVersion: 'v1',
+    },
     providerId: 'override-provider',
     modelId: 'override-model',
   });
@@ -42,7 +46,10 @@ it('should call transformParams middleware for doGenerate', async () => {
 
   const wrappedModel = experimental_wrapLanguageModel({
     model: mockModel,
-    middleware: { transformParams },
+    middleware: {
+      middlewareVersion: 'v1',
+      transformParams,
+    },
   });
 
   const params: LanguageModelV1CallOptions = {
@@ -74,7 +81,10 @@ it('should call wrapGenerate middleware', async () => {
 
   const wrappedModel = experimental_wrapLanguageModel({
     model: mockModel,
-    middleware: { wrapGenerate },
+    middleware: {
+      middlewareVersion: 'v1',
+      wrapGenerate,
+    },
   });
 
   const params: LanguageModelV1CallOptions = {
@@ -103,7 +113,10 @@ it('should call transformParams middleware for doStream', async () => {
 
   const wrappedModel = experimental_wrapLanguageModel({
     model: mockModel,
-    middleware: { transformParams },
+    middleware: {
+      middlewareVersion: 'v1',
+      transformParams,
+    },
   });
 
   const params: LanguageModelV1CallOptions = {
@@ -132,7 +145,10 @@ it('should call wrapStream middleware', async () => {
 
   const wrappedModel = experimental_wrapLanguageModel({
     model: mockModel,
-    middleware: { wrapStream },
+    middleware: {
+      middlewareVersion: 'v1',
+      wrapStream,
+    },
   });
 
   const params: LanguageModelV1CallOptions = {
@@ -157,7 +173,9 @@ it('should pass through empty supportsUrl', async () => {
 
   const wrappedModel = experimental_wrapLanguageModel({
     model: mockModel,
-    middleware: {},
+    middleware: {
+      middlewareVersion: 'v1',
+    },
   });
 
   expect(wrappedModel.supportsUrl).toBeUndefined();
@@ -171,7 +189,9 @@ it('should pass through supportsUrl when it is defined on the model', async () =
 
   const wrappedModel = experimental_wrapLanguageModel({
     model: mockModel,
-    middleware: {},
+    middleware: {
+      middlewareVersion: 'v1',
+    },
   });
 
   expect(

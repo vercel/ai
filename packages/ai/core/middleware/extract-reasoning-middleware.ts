@@ -20,6 +20,7 @@ export function extractReasoningMiddleware({
   const closingTag = `<\/${tagName}>`;
 
   return {
+    middlewareVersion: 'v1',
     wrapGenerate: async ({ doGenerate }) => {
       const { text, ...rest } = await doGenerate();
 

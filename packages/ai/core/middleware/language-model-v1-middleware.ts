@@ -7,6 +7,11 @@ import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
  */
 export type Experimental_LanguageModelV1Middleware = {
   /**
+   * Middleware specification version.
+   */
+  middlewareVersion: 'v1';
+
+  /**
    * Transforms the parameters before they are passed to the language model.
    * @param options - Object containing the type of operation and the parameters.
    * @param options.type - The type of operation ('generate' or 'stream').
