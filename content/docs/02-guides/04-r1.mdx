@@ -127,7 +127,7 @@ export default function Page() {
       {messages.map(message => (
         <div key={message.id}>
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {m.reasoning && <pre>{m.reasoning}</pre>}
+          {message.reasoning && <pre>{message.reasoning}</pre>}
           {message.content}
         </div>
       ))}
