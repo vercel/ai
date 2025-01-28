@@ -954,7 +954,7 @@ describe('doStream', () => {
     groundingMetadata,
     url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
   }: {
-    content: string[];
+    content: Array<{ text: string; thought?: boolean }>;
     headers?: Record<string, string>;
     groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
     url?: string;
@@ -962,11 +962,11 @@ describe('doStream', () => {
     url,
     type: 'stream-values',
     content: content.map(
-      (text, index) =>
+      (part, index) =>
         `data: ${JSON.stringify({
           candidates: [
             {
-              content: { parts: [{ text }], role: 'model' },
+              content: { parts: [part], role: 'model' },
               finishReason: 'STOP',
               index: 0,
               safetyRatings: SAFETY_RATINGS,
@@ -990,7 +990,7 @@ describe('doStream', () => {
     'should expose grounding metadata in provider metadata on finish',
     withTestServer(
       prepareStreamResponse({
-        content: ['test'],
+        content: [{ text: 'test' }],
         groundingMetadata: {
           webSearchQueries: ["What's the weather in Chicago this weekend?"],
           searchEntryPoint: {
@@ -1068,7 +1068,9 @@ describe('doStream', () => {
   it(
     'should stream text deltas',
     withTestServer(
-      prepareStreamResponse({ content: ['Hello', ', ', 'world!'] }),
+      prepareStreamResponse({
+        content: [{ text: 'Hello' }, { text: ', ' }, { text: 'world!' }],
+      }),
       async () => {
         const { stream } = await model.doStream({
           inputFormat: 'prompt',
@@ -1143,7 +1145,7 @@ describe('doStream', () => {
   it(
     'should pass the messages',
     withTestServer(
-      prepareStreamResponse({ content: [''] }),
+      prepareStreamResponse({ content: [{ text: '' }] }),
       async ({ call }) => {
         await model.doStream({
           inputFormat: 'prompt',
@@ -1167,7 +1169,7 @@ describe('doStream', () => {
   it(
     'should set streaming mode search param',
     withTestServer(
-      prepareStreamResponse({ content: [''] }),
+      prepareStreamResponse({ content: [{ text: '' }] }),
       async ({ call }) => {
         await model.doStream({
           inputFormat: 'prompt',
@@ -1184,7 +1186,7 @@ describe('doStream', () => {
   it(
     'should pass headers',
     withTestServer(
-      prepareStreamResponse({ content: [''] }),
+      prepareStreamResponse({ content: [{ text: '' }] }),
       async ({ call }) => {
         const provider = createGoogleGenerativeAI({
           apiKey: 'test-api-key',
@@ -1216,17 +1218,20 @@ describe('doStream', () => {
 
   it(
     'should send request body',
-    withTestServer(prepareStreamResponse({ content: [''] }), async () => {
-      const { request } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-      });
+    withTestServer(
+      prepareStreamResponse({ content: [{ text: '' }] }),
+      async () => {
+        const { request } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
 
-      expect(request).toStrictEqual({
-        body: '{"generationConfig":{},"contents":[{"role":"user","parts":[{"text":"Hello"}]}]}',
-      });
-    }),
+        expect(request).toStrictEqual({
+          body: '{"generationConfig":{},"contents":[{"role":"user","parts":[{"text":"Hello"}]}]}',
+        });
+      },
+    ),
   );
 
   it(
@@ -1336,7 +1341,7 @@ describe('doStream', () => {
       'should use googleSearch for gemini-2.0-pro',
       withTestServer(
         prepareStreamResponse({
-          content: [''],
+          content: [{ text: '' }],
           url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:streamGenerateContent',
         }),
         async ({ call }) => {
@@ -1360,7 +1365,7 @@ describe('doStream', () => {
       'should use googleSearch for gemini-2.0-flash-exp',
       withTestServer(
         prepareStreamResponse({
-          content: [''],
+          content: [{ text: '' }],
           url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:streamGenerateContent',
         }),
         async ({ call }) => {
@@ -1384,7 +1389,7 @@ describe('doStream', () => {
       'should use googleSearchRetrieval for non-gemini-2 models',
       withTestServer(
         prepareStreamResponse({
-          content: [''],
+          content: [{ text: '' }],
           url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:streamGenerateContent',
         }),
         async ({ call }) => {
@@ -1400,6 +1405,93 @@ describe('doStream', () => {
           expect(await call(0).getRequestBodyJson()).toMatchObject({
             tools: { googleSearchRetrieval: {} },
           });
+        },
+      ),
+    );
+  });
+
+  describe('reasoning models', () => {
+    it(
+      'should call v1alpha api and add thinking setting',
+      withTestServer(
+        prepareStreamResponse({
+          content: [{ text: '' }],
+          url: 'https://generativelanguage.googleapis.com/v1alpha/models/gemini-2.0-flash-thinking-exp:streamGenerateContent',
+        }),
+        async ({ call }) => {
+          const model = provider.languageModel('gemini-2.0-flash-thinking-exp');
+
+          await model.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toStrictEqual({
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: 'Hello' }],
+              },
+            ],
+            generationConfig: {
+              thinking_config: {
+                include_thoughts: true,
+              },
+            },
+          });
+        },
+      ),
+    );
+
+    it(
+      'should include thoughts in the response',
+      withTestServer(
+        prepareStreamResponse({
+          content: [{ text: 't1', thought: true }, { text: 'v1' }],
+          url: 'https://generativelanguage.googleapis.com/v1alpha/models/gemini-2.0-flash-thinking-exp:streamGenerateContent',
+        }),
+        async () => {
+          const model = provider.languageModel('gemini-2.0-flash-thinking-exp');
+
+          const { stream } = await model.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+            { type: 'reasoning', textDelta: 't1' },
+            { type: 'text-delta', textDelta: 'v1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              providerMetadata: {
+                google: {
+                  groundingMetadata: null,
+                  safetyRatings: [
+                    {
+                      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                      probability: 'NEGLIGIBLE',
+                    },
+                    {
+                      category: 'HARM_CATEGORY_HATE_SPEECH',
+                      probability: 'NEGLIGIBLE',
+                    },
+                    {
+                      category: 'HARM_CATEGORY_HARASSMENT',
+                      probability: 'NEGLIGIBLE',
+                    },
+                    {
+                      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                      probability: 'NEGLIGIBLE',
+                    },
+                  ],
+                },
+              },
+              usage: { promptTokens: 294, completionTokens: 233 },
+            },
+          ]);
         },
       ),
     );
