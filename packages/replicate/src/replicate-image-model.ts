@@ -3,7 +3,9 @@ import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
   combineHeaders,
+  createBinaryResponseHandler,
   createJsonResponseHandler,
+  getFromApi,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
@@ -97,8 +99,14 @@ export class ReplicateImageModel implements ImageModelV1 {
     const outputArray = Array.isArray(output) ? output : [output];
     const images = await Promise.all(
       outputArray.map(async url => {
-        const response = await fetch(url);
-        return new Uint8Array(await response.arrayBuffer());
+        const { value: image } = await getFromApi({
+          url,
+          fetch: this.config.fetch,
+          successfulResponseHandler: createBinaryResponseHandler(),
+          failedResponseHandler: replicateFailedResponseHandler,
+          abortSignal,
+        });
+        return image;
       }),
     );
 
