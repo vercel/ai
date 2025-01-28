@@ -5,7 +5,7 @@ import 'dotenv/config';
 async function main() {
   const result = streamText({
     model: deepseek('deepseek-reasoner'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    prompt: 'How many "r"s are in the word "strawberry"?',
   });
 
   let enteredReasoning = false;

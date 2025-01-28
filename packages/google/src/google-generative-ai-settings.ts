@@ -1,5 +1,6 @@
 // https://ai.google.dev/models/gemini
 export type GoogleGenerativeAIModelId =
+  | 'gemini-2.0-flash-thinking-exp'
   | 'gemini-2.0-flash-exp'
   | 'gemini-1.5-flash'
   | 'gemini-1.5-flash-latest'
