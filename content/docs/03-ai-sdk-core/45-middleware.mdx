@@ -23,7 +23,7 @@ It takes a language model and a language model middleware and returns a new
 language model that incorporates the middleware.
 
 ```ts
-import { experimental_wrapLanguageModel as wrapLanguageModel } from 'ai';
+import { wrapLanguageModel } from 'ai';
 
 const wrappedLanguageModel = wrapLanguageModel({
   model: yourModel,
@@ -50,10 +50,7 @@ e.g. &lt;think&gt; and &lt;/think&gt;.
 The `extractReasoningMiddleware` function can be used to extract this reasoning information and expose it as a `reasoning` property on the result.
 
 ```ts
-import {
-  experimental_wrapLanguageModel as wrapLanguageModel,
-  extractReasoningMiddleware,
-} from 'ai';
+import { wrapLanguageModel, extractReasoningMiddleware } from 'ai';
 
 const model = wrapLanguageModel({
   model: yourModel,

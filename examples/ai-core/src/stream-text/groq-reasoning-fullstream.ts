@@ -1,14 +1,10 @@
 import { groq } from '@ai-sdk/groq';
-import {
-  experimental_wrapLanguageModel,
-  extractReasoningMiddleware,
-  streamText,
-} from 'ai';
+import { extractReasoningMiddleware, streamText, wrapLanguageModel } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: experimental_wrapLanguageModel({
+    model: wrapLanguageModel({
       model: groq('deepseek-r1-distill-llama-70b'),
       middleware: extractReasoningMiddleware({ tagName: 'think' }),
     }),

@@ -1,5 +1,5 @@
 import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
-import { Experimental_LanguageModelV1Middleware } from './language-model-v1-middleware';
+import { LanguageModelV1Middleware } from './language-model-v1-middleware';
 
 /**
  * Wraps a LanguageModelV1 instance with middleware functionality.
@@ -13,14 +13,14 @@ import { Experimental_LanguageModelV1Middleware } from './language-model-v1-midd
  * @param options.providerId - Optional custom provider ID to override the original model's provider.
  * @returns A new LanguageModelV1 instance with middleware applied.
  */
-export const experimental_wrapLanguageModel = ({
+export const wrapLanguageModel = ({
   model,
   middleware: { transformParams, wrapGenerate, wrapStream },
   modelId,
   providerId,
 }: {
   model: LanguageModelV1;
-  middleware: Experimental_LanguageModelV1Middleware;
+  middleware: LanguageModelV1Middleware;
   modelId?: string;
   providerId?: string;
 }): LanguageModelV1 => {
@@ -66,3 +66,9 @@ export const experimental_wrapLanguageModel = ({
     },
   };
 };
+
+/**
+ * @deprecated Use `wrapLanguageModel` instead.
+ */
+// TODO remove in v5
+export const experimental_wrapLanguageModel = wrapLanguageModel;

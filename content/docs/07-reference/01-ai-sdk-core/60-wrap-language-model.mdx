@@ -5,16 +5,12 @@ description: Function for wrapping a language model with middleware (API Referen
 
 # `wrapLanguageModel()`
 
-<Note type="warning">
-  Language model middleware is an experimental feature.
-</Note>
-
-The `experimental_wrapLanguageModel` function provides a way to enhance the behavior of language models
+The `wrapLanguageModel` function provides a way to enhance the behavior of language models
 by wrapping them with middleware.
 See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more information on middleware.
 
 ```ts
-import { experimental_wrapLanguageModel as wrapLanguageModel } from 'ai';
+import { wrapLanguageModel } from 'ai';
 
 const wrappedLanguageModel = wrapLanguageModel({
   model: yourModel,
@@ -24,10 +20,7 @@ const wrappedLanguageModel = wrapLanguageModel({
 
 ## Import
 
-<Snippet
-  text={`import { experimental_wrapLanguageModel as wrapLanguageModel } from "ai"`}
-  prompt={false}
-/>
+<Snippet text={`import { wrapLanguageModel } from "ai"`} prompt={false} />
 
 ## API Signature
 
