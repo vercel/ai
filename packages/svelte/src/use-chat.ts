@@ -122,19 +122,19 @@ const getStreamedResponse = async (
         ({
           role,
           content,
+          experimental_attachments,
           data,
           annotations,
           toolInvocations,
-          experimental_attachments,
         }) => ({
           role,
           content,
-          ...(data !== undefined && { data }),
-          ...(annotations !== undefined && { annotations }),
-          ...(toolInvocations !== undefined && { toolInvocations }),
           ...(experimental_attachments !== undefined && {
             experimental_attachments,
           }),
+          ...(data !== undefined && { data }),
+          ...(annotations !== undefined && { annotations }),
+          ...(toolInvocations !== undefined && { toolInvocations }),
         }),
       );
 
