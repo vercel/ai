@@ -2061,6 +2061,15 @@ importers:
         specifier: 7.34.1
         version: 7.34.1(eslint@8.57.1)
 
+  tools/generate-llms-txt:
+    devDependencies:
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+
   tools/tsconfig: {}
 
 packages:
