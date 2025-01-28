@@ -24,13 +24,17 @@ interface FalImageModelConfig {
 
 // Validation error has a particular payload to inform the exact property that is invalid
 const falValidationErrorSchema = z.object({
-  detail: z.array(
-    z.object({
-      loc: z.array(z.string()),
-      msg: z.string(),
-      type: z.string(),
-    }),
-  ),
+  name: z.literal('ValidationError'),
+  status: z.literal(422),
+  body: z.object({
+    detail: z.array(
+      z.object({
+        loc: z.array(z.string()),
+        msg: z.string(),
+        type: z.string(),
+      }),
+    ),
+  }),
 });
 
 type ValidationError = z.infer<typeof falValidationErrorSchema>;
@@ -41,7 +45,13 @@ function isValidationError(error: unknown): error is ValidationError {
 
 // Other errors have a message property
 const falHttpErrorSchema = z.object({
-  message: z.string(),
+  name: z.string(),
+  status: z.number(),
+  body: z
+    .object({
+      message: z.string(),
+    })
+    .optional(),
 });
 
 const falErrorSchema = z.union([falValidationErrorSchema, falHttpErrorSchema]);
@@ -50,11 +60,12 @@ const falFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: falErrorSchema,
   errorToMessage: error => {
     if (isValidationError(error)) {
-      return error.detail
+      return error.body.detail
         .map(detail => `${detail.loc.join('.')}: ${detail.msg}`)
         .join('\n');
     }
-    return error.message ?? 'Unknown fal error';
+    const body = error.body || ({} as any);
+    return body.message ?? 'Unknown fal error';
   },
 });
 
@@ -155,7 +166,9 @@ export class FalImageModel implements ImageModelV1 {
     >({
       url: `${this.config.baseURL}/${this.modelId}`,
       headers: combineHeaders(await resolve(this.config.headers), headers),
-      body: convertToFalImageInput(input),
+      body: {
+        input: convertToFalImageInput(input),
+      },
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         falImageResponseSchema,
