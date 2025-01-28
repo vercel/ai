@@ -8,7 +8,11 @@ import type {
   Message,
   UseChatOptions as SharedUseChatOptions,
 } from '@ai-sdk/ui-utils';
-import { callChatApi, generateId as generateIdFunc } from '@ai-sdk/ui-utils';
+import {
+  callChatApi,
+  generateId as generateIdFunc,
+  prepareAttachmentsForRequest,
+} from '@ai-sdk/ui-utils';
 import { useSWR } from 'sswr';
 import { Readable, Writable, derived, get, writable } from 'svelte/store';
 export type { CreateMessage, Message };
@@ -115,9 +119,19 @@ const getStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({ role, content, data, annotations, toolInvocations }) => ({
+        ({
           role,
           content,
+          experimental_attachments,
+          data,
+          annotations,
+          toolInvocations,
+        }) => ({
+          role,
+          content,
+          ...(experimental_attachments !== undefined && {
+            experimental_attachments,
+          }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
@@ -330,14 +344,22 @@ export function useChat({
 
   const append: UseChatHelpers['append'] = async (
     message: Message | CreateMessage,
-    { data, headers, body }: ChatRequestOptions = {},
+    { data, headers, body, experimental_attachments }: ChatRequestOptions = {},
   ) => {
     if (!message.id) {
       message.id = generateId();
     }
 
+    const attachmentsForRequest = await prepareAttachmentsForRequest(
+      experimental_attachments,
+    );
+
     return triggerRequest({
-      messages: get(messages).concat(message as Message),
+      messages: get(messages).concat({
+        ...message,
+        experimental_attachments:
+          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+      } as Message),
       headers,
       body,
       data,
@@ -399,16 +421,18 @@ export function useChat({
 
   const input = writable(initialInput);
 
-  const handleSubmit = (
+  const handleSubmit = async (
     event?: { preventDefault?: () => void },
     options: ChatRequestOptions = {},
   ) => {
     event?.preventDefault?.();
     const inputValue = get(input);
 
-    if (!inputValue && !options.allowEmptySubmit) {
-      return;
-    }
+    if (!inputValue && !options.allowEmptySubmit) return;
+
+    const attachmentsForRequest = await prepareAttachmentsForRequest(
+      options.experimental_attachments,
+    );
 
     triggerRequest({
       messages:
@@ -419,6 +443,10 @@ export function useChat({
               content: inputValue,
               role: 'user',
               createdAt: new Date(),
+              experimental_attachments:
+                attachmentsForRequest.length > 0
+                  ? attachmentsForRequest
+                  : undefined,
             } as Message),
       body: options.body,
       headers: options.headers,
