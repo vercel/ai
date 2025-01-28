@@ -1,6 +1,7 @@
 // https://console.groq.com/docs/models
 // production models
 export type GroqChatModelId =
+  | 'deepseek-r1-distill-llama-70b'
   | 'gemma2-9b-it'
   | 'gemma-7b-it'
   | 'llama-3.3-70b-versatile'

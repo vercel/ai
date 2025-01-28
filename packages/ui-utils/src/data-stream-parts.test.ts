@@ -1,6 +1,6 @@
 import {
-  ToolCall as CoreToolCall,
-  ToolResult as CoreToolResult,
+  ToolCall as ToolCall,
+  ToolResult as ToolResult,
 } from '@ai-sdk/provider-utils';
 import { formatDataStreamPart, parseDataStreamPart } from './data-stream-parts';
 
@@ -63,7 +63,7 @@ describe('data-stream-parts', () => {
 
 describe('tool_call stream part', () => {
   it('should format a tool_call stream part', () => {
-    const toolCall: CoreToolCall<string, any> = {
+    const toolCall: ToolCall<string, any> = {
       toolCallId: 'tc_0',
       toolName: 'example_tool',
       args: { test: 'value' },
@@ -75,7 +75,7 @@ describe('tool_call stream part', () => {
   });
 
   it('should parse a tool_call stream part', () => {
-    const toolCall: CoreToolCall<string, any> = {
+    const toolCall: ToolCall<string, any> = {
       toolCallId: 'tc_0',
       toolName: 'example_tool',
       args: { test: 'value' },
@@ -93,7 +93,7 @@ describe('tool_call stream part', () => {
 describe('tool_result stream part', () => {
   it('should format a tool_result stream part', () => {
     const toolResult: Omit<
-      CoreToolResult<string, any, any>,
+      ToolResult<string, any, any>,
       'args' | 'toolName'
     > = {
       toolCallId: 'tc_0',

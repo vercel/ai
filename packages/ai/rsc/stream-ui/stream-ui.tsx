@@ -11,7 +11,7 @@ import { Prompt } from '../../core/prompt/prompt';
 import { standardizePrompt } from '../../core/prompt/standardize-prompt';
 import {
   CallWarning,
-  CoreToolChoice,
+  ToolChoice,
   FinishReason,
   ProviderMetadata,
 } from '../../core/types';
@@ -115,7 +115,7 @@ export async function streamUI<
     /**
      * The tool choice strategy. Default: 'auto'.
      */
-    toolChoice?: CoreToolChoice<TOOLS>;
+    toolChoice?: ToolChoice<TOOLS>;
 
     text?: RenderText;
     initial?: ReactNode;

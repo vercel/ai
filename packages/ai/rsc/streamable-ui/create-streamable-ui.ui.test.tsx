@@ -1,4 +1,4 @@
-import { delay } from '../../util/delay';
+import { delay } from '@ai-sdk/provider-utils';
 import { createStreamableUI } from './create-streamable-ui';
 
 // This is a workaround to render the Flight response in a test environment.

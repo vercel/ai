@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     },
     {
       name: 'options',
-      type: '{ tools?: Record<string, Tool> }',
+      type: '{ tools?: ToolSet }',
       description:
         'Optional configuration object. Provide tools to enable multi-modal tool responses.',
     },

@@ -1,11 +1,11 @@
-import { CoreTool } from '../tool';
 import { inferParameters } from '../tool/tool';
 import { ValueOf } from '../util/value-of';
+import { ToolSet } from './tool-set';
 
-export type { ToolCall } from '@ai-sdk/provider-utils';
+export type { CoreToolCall, ToolCall } from '@ai-sdk/provider-utils';
 
 // transforms the tools into a tool call union
-export type ToolCallUnion<TOOLS extends Record<string, CoreTool>> = ValueOf<{
+export type ToolCallUnion<TOOLS extends ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: {
     type: 'tool-call';
     toolCallId: string;
@@ -14,6 +14,10 @@ export type ToolCallUnion<TOOLS extends Record<string, CoreTool>> = ValueOf<{
   };
 }>;
 
-export type ToolCallArray<TOOLS extends Record<string, CoreTool>> = Array<
-  ToolCallUnion<TOOLS>
->;
+/**
+ * @deprecated Use `ToolCallUnion` instead.
+ */
+// TODO remove in v5
+export type CoreToolCallUnion<TOOLS extends ToolSet> = ToolCallUnion<ToolSet>;
+
+export type ToolCallArray<TOOLS extends ToolSet> = Array<ToolCallUnion<TOOLS>>;
