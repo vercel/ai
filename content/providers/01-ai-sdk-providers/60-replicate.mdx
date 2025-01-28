@@ -94,6 +94,10 @@ The following image models are currently supported by the Replicate provider:
 - [stability-ai/stable-diffusion-3.5-large](https://replicate.com/stability-ai/stable-diffusion-3.5-large)
 - [stability-ai/stable-diffusion-3.5-medium](https://replicate.com/stability-ai/stable-diffusion-3.5-medium)
 
+You can also use [versioned models](https://replicate.com/docs/topics/models/versions).
+The id for versioned models is the Replicate model id followed by a colon and the version ID (`$modelId:$versionId`), e.g.
+`bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637`.
+
 ### Basic Usage
 
 ```ts
@@ -127,6 +131,20 @@ const { image } = await generateImage({
       style: 'realistic_image',
     },
   },
+});
+```
+
+### Versioned Models
+
+```ts
+import { replicate } from '@ai-sdk/replicate';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: replicate.image(
+    'bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637',
+  ),
+  prompt: 'The Loch Ness Monster getting a manicure',
 });
 ```
 
