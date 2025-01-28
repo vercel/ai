@@ -3,7 +3,7 @@ import {
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
 import { generateText, streamText } from '../generate-text';
-import { experimental_wrapLanguageModel } from '../middleware/wrap-language-model';
+import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { mockId } from '../test/mock-id';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
@@ -23,7 +23,7 @@ describe('extractReasoningMiddleware', () => {
       });
 
       const result = await generateText({
-        model: experimental_wrapLanguageModel({
+        model: wrapLanguageModel({
           model: mockModel,
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
@@ -47,7 +47,7 @@ describe('extractReasoningMiddleware', () => {
       });
 
       const result = await generateText({
-        model: experimental_wrapLanguageModel({
+        model: wrapLanguageModel({
           model: mockModel,
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
@@ -92,7 +92,7 @@ describe('extractReasoningMiddleware', () => {
       });
 
       const result = streamText({
-        model: experimental_wrapLanguageModel({
+        model: wrapLanguageModel({
           model: mockModel,
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
@@ -195,7 +195,7 @@ describe('extractReasoningMiddleware', () => {
       });
 
       const result = streamText({
-        model: experimental_wrapLanguageModel({
+        model: wrapLanguageModel({
           model: mockModel,
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),

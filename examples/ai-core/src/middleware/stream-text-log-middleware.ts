@@ -1,8 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import {
-  streamText,
-  experimental_wrapLanguageModel as wrapLanguageModel,
-} from 'ai';
+import { streamText, wrapLanguageModel } from 'ai';
 import 'dotenv/config';
 import { yourLogMiddleware } from './your-log-middleware';
 

@@ -1,9 +1,9 @@
 import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
-import { experimental_wrapLanguageModel } from '../middleware/wrap-language-model';
+import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 
 it('should pass through model properties', () => {
-  const wrappedModel = experimental_wrapLanguageModel({
+  const wrappedModel = wrapLanguageModel({
     model: new MockLanguageModelV1({
       provider: 'test-provider',
       modelId: 'test-model',
@@ -22,7 +22,7 @@ it('should pass through model properties', () => {
 });
 
 it('should override provider and modelId if provided', () => {
-  const wrappedModel = experimental_wrapLanguageModel({
+  const wrappedModel = wrapLanguageModel({
     model: new MockLanguageModelV1(),
     middleware: {
       middlewareVersion: 'v1',
@@ -44,7 +44,7 @@ it('should call transformParams middleware for doGenerate', async () => {
     transformed: true,
   }));
 
-  const wrappedModel = experimental_wrapLanguageModel({
+  const wrappedModel = wrapLanguageModel({
     model: mockModel,
     middleware: {
       middlewareVersion: 'v1',
@@ -79,7 +79,7 @@ it('should call wrapGenerate middleware', async () => {
     .fn()
     .mockImplementation(({ doGenerate }) => doGenerate());
 
-  const wrappedModel = experimental_wrapLanguageModel({
+  const wrappedModel = wrapLanguageModel({
     model: mockModel,
     middleware: {
       middlewareVersion: 'v1',
@@ -111,7 +111,7 @@ it('should call transformParams middleware for doStream', async () => {
     transformed: true,
   }));
 
-  const wrappedModel = experimental_wrapLanguageModel({
+  const wrappedModel = wrapLanguageModel({
     model: mockModel,
     middleware: {
       middlewareVersion: 'v1',
@@ -143,7 +143,7 @@ it('should call wrapStream middleware', async () => {
   });
   const wrapStream = vi.fn().mockImplementation(({ doStream }) => doStream());
 
-  const wrappedModel = experimental_wrapLanguageModel({
+  const wrappedModel = wrapLanguageModel({
     model: mockModel,
     middleware: {
       middlewareVersion: 'v1',
@@ -171,7 +171,7 @@ it('should pass through empty supportsUrl', async () => {
     doGenerate: vi.fn().mockResolvedValue('mock result'),
   });
 
-  const wrappedModel = experimental_wrapLanguageModel({
+  const wrappedModel = wrapLanguageModel({
     model: mockModel,
     middleware: {
       middlewareVersion: 'v1',
@@ -187,7 +187,7 @@ it('should pass through supportsUrl when it is defined on the model', async () =
     supportsUrl: vi.fn().mockReturnValue(true),
   });
 
-  const wrappedModel = experimental_wrapLanguageModel({
+  const wrappedModel = wrapLanguageModel({
     model: mockModel,
     middleware: {
       middlewareVersion: 'v1',

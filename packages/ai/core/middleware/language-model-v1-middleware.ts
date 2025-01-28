@@ -5,11 +5,11 @@ import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
  * This type defines the structure for middleware that can be used to modify
  * the behavior of LanguageModelV1 operations.
  */
-export type Experimental_LanguageModelV1Middleware = {
+export type LanguageModelV1Middleware = {
   /**
-   * Middleware specification version.
+   * Middleware specification version. Use `v1` for the current version.
    */
-  middlewareVersion: 'v1';
+  middlewareVersion?: 'v1' | undefined; // backwards compatibility
 
   /**
    * Transforms the parameters before they are passed to the language model.
@@ -53,3 +53,9 @@ export type Experimental_LanguageModelV1Middleware = {
     model: LanguageModelV1;
   }) => PromiseLike<Awaited<ReturnType<LanguageModelV1['doStream']>>>;
 };
+
+/**
+ * @deprecated Use `LanguageModelV1Middleware` instead.
+ */
+// TODO remove in v5
+export type Experimental_LanguageModelV1Middleware = LanguageModelV1Middleware;

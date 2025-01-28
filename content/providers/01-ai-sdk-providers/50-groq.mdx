@@ -82,10 +82,7 @@ You can use the `extractReasoningMiddleware` to extract this reasoning and expos
 
 ```ts
 import { groq } from '@ai-sdk/groq';
-import {
-  experimental_wrapLanguageModel as wrapLanguageModel,
-  extractReasoningMiddleware,
-} from 'ai';
+import { wrapLanguageModel, extractReasoningMiddleware } from 'ai';
 
 const enhancedModel = wrapLanguageModel({
   model: groq('deepseek-r1-distill-llama-70b'),
