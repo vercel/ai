@@ -270,9 +270,9 @@ describe('doGenerate', () => {
 
   it('should set version in request body for versioned models', async () => {
     prepareResponse();
-    
+
     const versionedModel = provider.image(
-      'bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637'
+      'bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637',
     );
 
     await versionedModel.doGenerate({
@@ -286,7 +286,7 @@ describe('doGenerate', () => {
 
     expect(server.calls[0].requestMethod).toStrictEqual('POST');
     expect(server.calls[0].requestUrl).toStrictEqual(
-      'https://api.replicate.com/v1/predictions'
+      'https://api.replicate.com/v1/predictions',
     );
     expect(await server.calls[0].requestBody).toStrictEqual({
       input: {
@@ -296,7 +296,8 @@ describe('doGenerate', () => {
         size: undefined,
         seed: undefined,
       },
-      version: '5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637'
+      version:
+        '5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637',
     });
   });
 });

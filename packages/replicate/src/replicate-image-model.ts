@@ -55,13 +55,13 @@ export class ReplicateImageModel implements ImageModelV1 {
   > {
     const warnings: Array<ImageModelV1CallWarning> = [];
 
-    const isVersionedModel = this.modelId.includes(":");
-    
-    const url = isVersionedModel ?
-      // https://replicate.com/docs/reference/http#predictions.create
-      `${this.config.baseURL}/predictions` :
-      // https://replicate.com/docs/reference/http#models.predictions.create
-      `${this.config.baseURL}/models/${this.modelId}/predictions`;
+    const isVersionedModel = this.modelId.includes(':');
+
+    const url = isVersionedModel
+      ? // https://replicate.com/docs/reference/http#predictions.create
+        `${this.config.baseURL}/predictions`
+      : // https://replicate.com/docs/reference/http#models.predictions.create
+        `${this.config.baseURL}/models/${this.modelId}/predictions`;
 
     const body = {
       input: {
@@ -71,11 +71,11 @@ export class ReplicateImageModel implements ImageModelV1 {
         seed,
         num_outputs: n,
         ...(providerOptions.replicate ?? {}),
-      }
+      },
     };
 
     if (isVersionedModel) {
-      body.version = this.modelId.split(":")[1];
+      body.version = this.modelId.split(':')[1];
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
