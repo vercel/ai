@@ -17,8 +17,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { CoreTool } from '../tool/tool';
-import { CoreToolChoice, LanguageModel, ProviderMetadata } from '../types';
+import { LanguageModel, ProviderMetadata, ToolChoice } from '../types';
 import {
   addLanguageModelUsage,
   calculateLanguageModelUsage,
@@ -33,6 +32,7 @@ import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
+import { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -92,7 +92,7 @@ If set and supported by the model, calls will generate deterministic results.
 A result object that contains the generated text, the results of the tool calls, and additional information.
  */
 export async function generateText<
-  TOOLS extends Record<string, CoreTool>,
+  TOOLS extends ToolSet,
   OUTPUT = never,
   OUTPUT_PARTIAL = never,
 >({
@@ -134,7 +134,7 @@ The tools that the model can call. The model needs to support calling tools.
     /**
 The tool choice strategy. Default: 'auto'.
      */
-    toolChoice?: CoreToolChoice<TOOLS>;
+    toolChoice?: ToolChoice<TOOLS>;
 
     /**
 Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
@@ -191,7 +191,7 @@ A function that attempts to repair a tool call that failed to parse.
     onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
 
     /**
-     * Internal. For test use only. May change without notice.
+     * @internal For test use only. May change without notice.
      */
     _internal?: {
       generateId?: IDGenerator;
@@ -560,7 +560,7 @@ A function that attempts to repair a tool call that failed to parse.
   });
 }
 
-async function executeTools<TOOLS extends Record<string, CoreTool>>({
+async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
   tools,
   tracer,
@@ -653,7 +653,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   );
 }
 
-class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>, OUTPUT>
+class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
   readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];

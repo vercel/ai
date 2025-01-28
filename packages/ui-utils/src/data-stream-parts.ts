@@ -1,7 +1,7 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 import {
-  ToolCall as CoreToolCall,
-  ToolResult as CoreToolResult,
+  ToolCall as ToolCall,
+  ToolResult as ToolResult,
 } from '@ai-sdk/provider-utils';
 import { JSONValue } from './types';
 
@@ -71,7 +71,7 @@ const messageAnnotationsStreamPart: DataStreamPart<
 const toolCallStreamPart: DataStreamPart<
   '9',
   'tool_call',
-  CoreToolCall<string, any>
+  ToolCall<string, any>
 > = {
   code: '9',
   name: 'tool_call',
@@ -93,7 +93,7 @@ const toolCallStreamPart: DataStreamPart<
 
     return {
       type: 'tool_call',
-      value: value as unknown as CoreToolCall<string, any>,
+      value: value as unknown as ToolCall<string, any>,
     };
   },
 };
@@ -101,7 +101,7 @@ const toolCallStreamPart: DataStreamPart<
 const toolResultStreamPart: DataStreamPart<
   'a',
   'tool_result',
-  Omit<CoreToolResult<string, any, any>, 'args' | 'toolName'>
+  Omit<ToolResult<string, any, any>, 'args' | 'toolName'>
 > = {
   code: 'a',
   name: 'tool_result',
@@ -121,7 +121,7 @@ const toolResultStreamPart: DataStreamPart<
     return {
       type: 'tool_result',
       value: value as unknown as Omit<
-        CoreToolResult<string, any, any>,
+        ToolResult<string, any, any>,
         'args' | 'toolName'
       >,
     };

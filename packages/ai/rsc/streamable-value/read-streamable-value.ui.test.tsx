@@ -1,4 +1,4 @@
-import { delay } from '../../util/delay';
+import { delay } from '@ai-sdk/provider-utils';
 import { createStreamableValue } from './create-streamable-value';
 import { readStreamableValue } from './read-streamable-value';
 

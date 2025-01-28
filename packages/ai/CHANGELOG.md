@@ -1,5 +1,40 @@
 # ai
 
+## 4.1.9
+
+### Patch Changes
+
+- 3a602ca: chore (core): rename CoreTool to Tool
+- Updated dependencies [3a602ca]
+  - @ai-sdk/provider-utils@2.1.5
+  - @ai-sdk/ui-utils@1.1.6
+  - @ai-sdk/react@1.1.6
+
+## 4.1.8
+
+### Patch Changes
+
+- 92f5f36: feat (core): add extractReasoningMiddleware
+
+## 4.1.7
+
+### Patch Changes
+
+- 066206e: feat (provider-utils): move delay to provider-utils from ai
+- Updated dependencies [066206e]
+  - @ai-sdk/provider-utils@2.1.4
+  - @ai-sdk/react@1.1.5
+  - @ai-sdk/ui-utils@1.1.5
+
+## 4.1.6
+
+### Patch Changes
+
+- Updated dependencies [39e5c1f]
+  - @ai-sdk/provider-utils@2.1.3
+  - @ai-sdk/react@1.1.4
+  - @ai-sdk/ui-utils@1.1.4
+
 ## 4.1.5
 
 ### Patch Changes

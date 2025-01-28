@@ -304,18 +304,18 @@ To enable this, the AI SDK provides several helper types for tools, tool calls, 
 You can use them to strongly type your variables, function parameters, and return types
 in parts of the code that are not directly related to `streamText` or `generateText`.
 
-Each tool call is typed with `CoreToolCall<NAME extends string, ARGS>`, depending
+Each tool call is typed with `ToolCall<NAME extends string, ARGS>`, depending
 on the tool that has been invoked.
-Similarly, the tool results are typed with `CoreToolResult<NAME extends string, ARGS, RESULT>`.
+Similarly, the tool results are typed with `ToolResult<NAME extends string, ARGS, RESULT>`.
 
-The tools in `streamText` and `generateText` are defined as a `Record<string, CoreTool>`.
-The type inference helpers `CoreToolCallUnion<TOOLS extends Record<string, CoreTool>>`
-and `CoreToolResultUnion<TOOLS extends Record<string, CoreTool>>` can be used to
+The tools in `streamText` and `generateText` are defined as a `ToolSet`.
+The type inference helpers `ToolCallUnion<TOOLS extends ToolSet>`
+and `ToolResultUnion<TOOLS extends ToolSet>` can be used to
 extract the tool call and tool result types from the tools.
 
 ```ts highlight="18-19,23-24"
 import { openai } from '@ai-sdk/openai';
-import { CoreToolCallUnion, CoreToolResultUnion, generateText, tool } from 'ai';
+import { ToolCallUnion, ToolResultUnion, generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const myToolSet = {
@@ -331,8 +331,8 @@ const myToolSet = {
   }),
 };
 
-type MyToolCall = CoreToolCallUnion<typeof myToolSet>;
-type MyToolResult = CoreToolResultUnion<typeof myToolSet>;
+type MyToolCall = ToolCallUnion<typeof myToolSet>;
+type MyToolResult = ToolResultUnion<typeof myToolSet>;
 
 async function generateSomething(prompt: string): Promise<{
   text: string;

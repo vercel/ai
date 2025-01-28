@@ -1,4 +1,4 @@
-import { CoreToolChoice, LanguageModel, Schema } from 'ai';
+import { ToolChoice, LanguageModel, Schema } from 'ai';
 import { z } from 'zod';
 
 type Parameters = z.ZodTypeAny | Schema<any>;
@@ -79,14 +79,14 @@ export class Agent<CONTEXT = any> {
   readonly model: LanguageModel | undefined;
   readonly system: ((context: CONTEXT) => string) | string | undefined;
   readonly tools: Record<string, AgentTool<CONTEXT>> | undefined;
-  readonly toolChoice: CoreToolChoice<any> | undefined;
+  readonly toolChoice: ToolChoice<any> | undefined;
 
   constructor(options: {
     name: string;
     system?: ((context: CONTEXT) => string) | string | undefined;
     model?: LanguageModel;
     tools?: Record<string, AgentTool>;
-    toolChoice?: CoreToolChoice<any>;
+    toolChoice?: ToolChoice<any>;
   }) {
     this.name = options.name;
     this.model = options.model;

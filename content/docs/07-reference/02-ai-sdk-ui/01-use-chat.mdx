@@ -432,15 +432,86 @@ Allows you to easily create a conversational user interface for your chatbot app
               type: 'JSONValue',
               description: 'Additional data to be sent to the API endpoint.',
             },
+            {
+              name: 'experimental_attachments',
+              type: 'FileList | Array<Attachment>',
+              isOptional: true,
+              description:
+                'An array of attachments to be sent to the API endpoint.',
+              properties: [
+                {
+                  type: 'FileList',
+                  parameters: [
+                    {
+                      name: '',
+                      type: '',
+                      description:
+                        "A list of files that have been selected by the user using an <input type='file'> element. It's also used for a list of files dropped into web content when using the drag and drop API.",
+                    },
+                  ],
+                },
+                {
+                  type: 'Attachment',
+                  description:
+                    'An attachment object that can be used to describe the metadata of the file.',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'The name of the attachment, usually the file name.',
+                    },
+                    {
+                      name: 'contentType',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'A string indicating the media type of the file.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description:
+                        'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
     },
     {
       name: 'reload',
-      type: '() => Promise<string | undefined>',
+      type: '(options?: ChatRequestOptions) => Promise<string | undefined>',
       description:
         "Function to reload the last AI chat response for the given chat history. If the last message isn't from the assistant, it will request the API to generate a new response.",
+      properties: [
+        {
+          type: 'ChatRequestOptions',
+          parameters: [
+            {
+              name: 'headers',
+              type: 'Record<string, string> | Headers',
+              description:
+                'Additional headers that should be to be passed to the API endpoint.',
+            },
+            {
+              name: 'body',
+              type: 'object',
+              description:
+                'Additional body JSON properties that should be sent to the API endpoint.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              description: 'Additional data to be sent to the API endpoint.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'stop',

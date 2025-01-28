@@ -1,7 +1,7 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
-import { delay as originalDelay } from '../../util/delay';
-import { CoreTool } from '../tool/tool';
+import { delay as originalDelay } from '@ai-sdk/provider-utils';
 import { TextStreamPart } from './stream-text-result';
+import { ToolSet } from './tool-set';
 
 const CHUNKING_REGEXPS = {
   word: /\s*\S+\s+/m,
@@ -16,7 +16,7 @@ const CHUNKING_REGEXPS = {
  *
  * @returns A transform stream that smooths text streaming output.
  */
-export function smoothStream<TOOLS extends Record<string, CoreTool>>({
+export function smoothStream<TOOLS extends ToolSet>({
   delayInMs = 10,
   chunking = 'word',
   _internal: { delay = originalDelay } = {},
@@ -24,7 +24,7 @@ export function smoothStream<TOOLS extends Record<string, CoreTool>>({
   delayInMs?: number | null;
   chunking?: 'word' | 'line' | RegExp;
   /**
-   * Internal. For test use only. May change without notice.
+   * @internal For test use only. May change without notice.
    */
   _internal?: {
     delay?: (delayInMs: number | null) => Promise<void>;

@@ -1,8 +1,9 @@
 import { z } from 'zod';
-import { CoreTool, tool } from '../tool/tool';
+import { ToolSet } from '../generate-text/tool-set';
+import { Tool, tool } from '../tool/tool';
 import { prepareToolsAndToolChoice } from './prepare-tools-and-tool-choice';
 
-const mockTools: Record<string, CoreTool> = {
+const mockTools: ToolSet = {
   tool1: tool({
     description: 'Tool 1 description',
     parameters: z.object({}),
@@ -13,14 +14,14 @@ const mockTools: Record<string, CoreTool> = {
   }),
 };
 
-const mockProviderDefinedTool: CoreTool = {
+const mockProviderDefinedTool: Tool = {
   type: 'provider-defined',
   id: 'provider.tool-id',
   args: { key: 'value' },
   parameters: z.object({}),
 };
 
-const mockToolsWithProviderDefined: Record<string, CoreTool> = {
+const mockToolsWithProviderDefined: ToolSet = {
   ...mockTools,
   providerTool: mockProviderDefinedTool,
 };

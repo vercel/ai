@@ -1,11 +1,11 @@
 import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
+import { delay } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { z } from 'zod';
 import { NoSuchToolError } from '../../errors';
-import { delay } from '../../util/delay';
 import { MockTracer } from '../test/mock-tracer';
 import { runToolsTransformation } from './run-tools-transformation';
 

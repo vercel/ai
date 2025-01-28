@@ -2,7 +2,6 @@ import { ServerResponse } from 'node:http';
 import { StreamData } from '../../streams/stream-data';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
-import { CoreTool } from '../tool';
 import {
   CallWarning,
   FinishReason,
@@ -16,14 +15,12 @@ import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
+import { ToolSet } from './tool-set';
 
 /**
 A result object for accessing different stream types and additional information.
  */
-export interface StreamTextResult<
-  TOOLS extends Record<string, CoreTool>,
-  PARTIAL_OUTPUT,
-> {
+export interface StreamTextResult<TOOLS extends ToolSet, PARTIAL_OUTPUT> {
   /**
 Warnings from the model provider (e.g. unsupported settings) for the first step.
      */
@@ -224,7 +221,7 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
-export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
+export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'text-delta';
       textDelta: string;

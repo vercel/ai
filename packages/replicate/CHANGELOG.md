@@ -1,5 +1,32 @@
 # @ai-sdk/replicate
 
+## 0.1.6
+
+### Patch Changes
+
+- 0ca7969: feat (provider/replicate): support versioned models
+
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [3a602ca]
+  - @ai-sdk/provider-utils@2.1.5
+
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [066206e]
+  - @ai-sdk/provider-utils@2.1.4
+
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [39e5c1f]
+  - @ai-sdk/provider-utils@2.1.3
+
 ## 0.1.2
 
 ### Patch Changes

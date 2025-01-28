@@ -1,8 +1,8 @@
+import { delay } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { MockLanguageModelV1 } from '../../core/test/mock-language-model-v1';
 import { streamUI } from './stream-ui';
 import { z } from 'zod';
-import { delay } from '../../util/delay';
 
 async function recursiveResolve(val: any): Promise<any> {
   if (val && typeof val === 'object' && typeof val.then === 'function') {

@@ -273,7 +273,7 @@ const result = await generateText({
 Assistant messages are messages that have a role of `assistant`.
 They are typically previous responses from the assistant and can contain text and tool call parts.
 
-#### Example: Assistant message with text
+#### Example: Assistant message with text content
 
 ```ts highlight="5"
 const result = await generateText({
@@ -285,7 +285,22 @@ const result = await generateText({
 });
 ```
 
-#### Example: Assistant message with tool call
+#### Example: Assistant message with text content in array
+
+```ts highlight="5"
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    { role: 'user', content: 'Hi!' },
+    {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Hello, how can I help?' }],
+    },
+  ],
+});
+```
+
+#### Example: Assistant message with tool call content
 
 ```ts highlight="5-10"
 const result = await generateText({
@@ -293,10 +308,15 @@ const result = await generateText({
   messages: [
     { role: 'user', content: 'How many calories are in this block of cheese?' },
     {
-      type: 'tool-call',
-      toolCallId: '12345',
-      toolName: 'get-nutrition-data',
-      args: { cheese: 'Roquefort' },
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: '12345',
+          toolName: 'get-nutrition-data',
+          args: { cheese: 'Roquefort' },
+        },
+      ],
     },
   ],
 });

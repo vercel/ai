@@ -3,14 +3,14 @@ import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
 import { Schema, asSchema } from '@ai-sdk/ui-utils';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
+import { ToolCallRepairError } from '../../errors/tool-call-repair-error';
 import { CoreMessage } from '../prompt';
-import { CoreTool } from '../tool';
 import { inferParameters } from '../tool/tool';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
-import { ToolCallRepairError } from '../../errors/tool-call-repair-error';
+import { ToolSet } from './tool-set';
 
-export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
+export async function parseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
   repairToolCall,
@@ -68,7 +68,7 @@ export async function parseToolCall<TOOLS extends Record<string, CoreTool>>({
   }
 }
 
-async function doParseToolCall<TOOLS extends Record<string, CoreTool>>({
+async function doParseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
 }: {

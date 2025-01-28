@@ -1,5 +1,23 @@
 # @ai-sdk/provider-utils
 
+## 2.1.5
+
+### Patch Changes
+
+- 3a602ca: chore (core): rename CoreTool to Tool
+
+## 2.1.4
+
+### Patch Changes
+
+- 066206e: feat (provider-utils): move delay to provider-utils from ai
+
+## 2.1.3
+
+### Patch Changes
+
+- 39e5c1f: feat (provider-utils): add getFromApi and response handlers for binary responses and status-code errors
+
 ## 2.1.2
 
 ### Patch Changes
