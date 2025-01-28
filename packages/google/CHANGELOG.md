@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.1.6
+
+### Patch Changes
+
+- e012cd8: feat (provider/google): add reasoning support
+
 ## 1.1.5
 
 ### Patch Changes
