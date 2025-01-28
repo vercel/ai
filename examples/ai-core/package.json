@@ -10,6 +10,7 @@
     "@ai-sdk/cohere": "1.1.5",
     "@ai-sdk/deepseek": "0.1.6",
     "@ai-sdk/deepinfra": "0.1.6",
+    "@ai-sdk/fal": "0.1.0",
     "@ai-sdk/fireworks": "0.1.6",
     "@ai-sdk/google": "1.1.5",
     "@ai-sdk/google-vertex": "2.1.5",
