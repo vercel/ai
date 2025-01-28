@@ -87,10 +87,10 @@ export class ReplicateImageModel implements ImageModelV1 {
         ...(version != null ? { version } : {}),
       },
 
-      failedResponseHandler: replicateFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         replicateImageResponseSchema,
       ),
+      failedResponseHandler: replicateFailedResponseHandler,
       abortSignal,
       fetch: this.config.fetch,
     });
@@ -101,10 +101,10 @@ export class ReplicateImageModel implements ImageModelV1 {
       outputArray.map(async url => {
         const { value: image } = await getFromApi({
           url,
-          fetch: this.config.fetch,
           successfulResponseHandler: createBinaryResponseHandler(),
           failedResponseHandler: replicateFailedResponseHandler,
           abortSignal,
+          fetch: this.config.fetch,
         });
         return image;
       }),
