@@ -3,7 +3,9 @@ import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
   combineHeaders,
+  createBinaryResponseHandler,
   createJsonResponseHandler,
+  getFromApi,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
@@ -55,15 +57,23 @@ export class ReplicateImageModel implements ImageModelV1 {
   > {
     const warnings: Array<ImageModelV1CallWarning> = [];
 
+    const [modelId, version] = this.modelId.split(':');
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const {
       value: { output },
       responseHeaders,
     } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}/predictions`,
+      url:
+        // different endpoints for versioned vs unversioned models:
+        version != null
+          ? `${this.config.baseURL}/predictions`
+          : `${this.config.baseURL}/models/${modelId}/predictions`,
+
       headers: combineHeaders(await resolve(this.config.headers), headers, {
         prefer: 'wait',
       }),
+
       body: {
         input: {
           prompt,
@@ -73,11 +83,14 @@ export class ReplicateImageModel implements ImageModelV1 {
           num_outputs: n,
           ...(providerOptions.replicate ?? {}),
         },
+        // for versioned models, include the version in the body:
+        ...(version != null ? { version } : {}),
       },
-      failedResponseHandler: replicateFailedResponseHandler,
+
       successfulResponseHandler: createJsonResponseHandler(
         replicateImageResponseSchema,
       ),
+      failedResponseHandler: replicateFailedResponseHandler,
       abortSignal,
       fetch: this.config.fetch,
     });
@@ -86,8 +99,14 @@ export class ReplicateImageModel implements ImageModelV1 {
     const outputArray = Array.isArray(output) ? output : [output];
     const images = await Promise.all(
       outputArray.map(async url => {
-        const response = await fetch(url);
-        return new Uint8Array(await response.arrayBuffer());
+        const { value: image } = await getFromApi({
+          url,
+          successfulResponseHandler: createBinaryResponseHandler(),
+          failedResponseHandler: replicateFailedResponseHandler,
+          abortSignal,
+          fetch: this.config.fetch,
+        });
+        return image;
       }),
     );
 
