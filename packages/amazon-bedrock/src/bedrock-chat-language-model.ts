@@ -122,7 +122,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     const baseArgs: ConverseCommandInput = {
       modelId: this.modelId,
       system: system ? [{ text: system }] : undefined,
-      additionalModelRequestFields: this.settings.additionalModelRequestFields,
+      ...this.settings.additionalModelRequestFields,
       inferenceConfig: {
         maxTokens,
         temperature,
