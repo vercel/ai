@@ -19,13 +19,36 @@ async function getAllFiles(dir: string): Promise<string[]> {
   return files;
 }
 
+const exclusionPrefixes = [
+  'cookbook/20-rsc',
+  'docs/01-introduction',
+  'docs/02-foundations',
+  'docs/02-guides',
+  'docs/05-ai-sdk-rsc',
+  'docs/07-reference/03-ai-sdk-rsc',
+  'docs/07-reference/04-stream-helpers',
+  'docs/08-migration-guides',
+  'providers/03-community-providers',
+  'providers/04-adapters',
+  'providers/05-observability',
+];
+
 async function main() {
   try {
     const contentDir = join(process.cwd(), '../../content');
     const files = await getAllFiles(contentDir);
 
+    const filteredFiles = files.filter(file => {
+      for (const prefix of exclusionPrefixes) {
+        if (file.includes(prefix)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
     let fullContent = '';
-    for (const file of files) {
+    for (const file of filteredFiles) {
       const content = await readFile(file, 'utf-8');
 
       fullContent += content;
