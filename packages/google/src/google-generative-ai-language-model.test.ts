@@ -175,7 +175,7 @@ describe('doGenerate', () => {
     groundingMetadata,
     url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
   }: {
-    content?: string;
+    content?: string | Array<{ text: string; thought?: boolean }>;
     usage?: {
       promptTokenCount: number;
       candidatesTokenCount: number;
@@ -191,7 +191,7 @@ describe('doGenerate', () => {
       candidates: [
         {
           content: {
-            parts: [{ text: content }],
+            parts: Array.isArray(content) ? content : [{ text: content }],
             role: 'model',
           },
           finishReason: 'STOP',
@@ -945,6 +945,63 @@ describe('doGenerate', () => {
       ),
     );
   });
+
+  describe('reasoning models', () => {
+    it(
+      'should call v1alpha api and add thinking setting',
+      withTestServer(
+        prepareJsonResponse({
+          content: [{ text: '' }],
+          url: 'https://generativelanguage.googleapis.com/v1alpha/models/gemini-2.0-flash-thinking-exp:generateContent',
+        }),
+        async ({ call }) => {
+          const model = provider.languageModel('gemini-2.0-flash-thinking-exp');
+
+          await model.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toStrictEqual({
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: 'Hello' }],
+              },
+            ],
+            generationConfig: {
+              thinking_config: {
+                include_thoughts: true,
+              },
+            },
+          });
+        },
+      ),
+    );
+
+    it(
+      'should include reasoning chunks in the response',
+      withTestServer(
+        prepareJsonResponse({
+          content: [{ text: 't1', thought: true }, { text: 'v1' }],
+          url: 'https://generativelanguage.googleapis.com/v1alpha/models/gemini-2.0-flash-thinking-exp:streamGenerateContent',
+        }),
+        async () => {
+          const model = provider.languageModel('gemini-2.0-flash-thinking-exp');
+
+          const { text, reasoning } = await model.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(reasoning).toStrictEqual('t1');
+          expect(text).toStrictEqual('v1');
+        },
+      ),
+    );
+  });
 });
 
 describe('doStream', () => {
@@ -1445,7 +1502,7 @@ describe('doStream', () => {
     );
 
     it(
-      'should include thoughts in the response',
+      'should include reasoning chunks in the response',
       withTestServer(
         prepareStreamResponse({
           content: [{ text: 't1', thought: true }, { text: 'v1' }],
