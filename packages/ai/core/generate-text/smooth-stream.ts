@@ -24,7 +24,7 @@ export function smoothStream<TOOLS extends ToolSet>({
   delayInMs?: number | null;
   chunking?: 'word' | 'line' | RegExp;
   /**
-   * Internal. For test use only. May change without notice.
+   * @internal For test use only. May change without notice.
    */
   _internal?: {
     delay?: (delayInMs: number | null) => Promise<void>;
