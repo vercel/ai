@@ -28,7 +28,7 @@ import {
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
-type GoogleGenerativeAIConfig = {
+export type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;

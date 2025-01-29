@@ -15,7 +15,12 @@ import {
   GoogleVertexEmbeddingSettings,
 } from './google-vertex-embedding-settings';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import {
+  GoogleGenerativeAILanguageModel,
+  GoogleGenerativeAIModelId,
+  InternalGoogleGenerativeAISetting,
+  GoogleGenerativeAIConfig,
+} from '@ai-sdk/google/internal';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import {
   GoogleVertexImageModelId,
@@ -83,9 +88,9 @@ Base URL for the Google Vertex API calls.
 
 export class GoogleVertexLanguageModel extends GoogleGenerativeAILanguageModel {
   constructor(
-    modelId: GoogleVertexModelId,
-    settings: GoogleVertexSettings,
-    config: GoogleVertexConfig
+    modelId: GoogleGenerativeAIModelId,
+    settings: InternalGoogleGenerativeAISetting,
+    config: GoogleGenerativeAIConfig,
   ) {
     super(modelId, settings, config);
   }
@@ -140,7 +145,11 @@ export function createVertex(
     modelId: GoogleVertexModelId,
     settings: GoogleVertexSettings = {},
   ) => {
-    return new GoogleVertexLanguageModel(modelId, settings, createConfig('chat'));
+    return new GoogleVertexLanguageModel(
+      modelId,
+      settings,
+      createConfig('chat'),
+    );
   };
 
   const createEmbeddingModel = (
