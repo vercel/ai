@@ -227,7 +227,10 @@ export async function processChatResponse({
       step += 1;
     },
     onStartStepPart(value) {
-      message.id = value.messageId;
+      // keep message id stable when we are updating an existing message:
+      if (!replaceLastMessage) {
+        message.id = value.messageId;
+      }
     },
     onFinishMessagePart(value) {
       finishReason = value.finishReason;

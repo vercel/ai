@@ -263,6 +263,200 @@ describe('scenario: server-side tool roundtrip', () => {
   });
 });
 
+describe('scenario: server-side tool roundtrip with existing assistant message', () => {
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatDataStreamPart('start_step', { messageId: 'step_123' }),
+      formatDataStreamPart('tool_call', {
+        toolCallId: 'tool-call-id',
+        toolName: 'tool-name',
+        args: { city: 'London' },
+      }),
+      formatDataStreamPart('tool_result', {
+        toolCallId: 'tool-call-id',
+        result: { weather: 'sunny' },
+      }),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'tool-calls',
+        usage: { completionTokens: 5, promptTokens: 10 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('text', 'The weather in London is sunny.'),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'stop',
+        usage: { completionTokens: 2, promptTokens: 4 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 7, promptTokens: 14 },
+      }),
+    ]);
+
+    await processChatResponse({
+      stream,
+      update,
+      onFinish,
+      generateId: mockId(),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: {
+        role: 'assistant',
+        id: 'original-id',
+        createdAt: new Date('2023-01-02T00:00:00.000Z'),
+        content: '',
+        toolInvocations: [
+          {
+            args: {},
+            result: { location: 'Berlin' },
+            state: 'result',
+            step: 0,
+            toolCallId: 'tool-call-id-original',
+            toolName: 'tool-name-original',
+          },
+        ],
+      },
+    });
+  });
+
+  it('should call the update function with the correct arguments', async () => {
+    expect(updateCalls).toStrictEqual([
+      {
+        message: {
+          id: 'original-id',
+          revisionId: 'id-0',
+          role: 'assistant',
+          content: '',
+          createdAt: new Date('2023-01-02T00:00:00.000Z'),
+          toolInvocations: [
+            {
+              args: {},
+              result: { location: 'Berlin' },
+              state: 'result',
+              step: 0,
+              toolCallId: 'tool-call-id-original',
+              toolName: 'tool-name-original',
+            },
+            {
+              args: {
+                city: 'London',
+              },
+              state: 'call',
+              toolCallId: 'tool-call-id',
+              toolName: 'tool-name',
+              step: 1,
+            },
+          ],
+        },
+        data: [],
+        replaceLastMessage: true,
+      },
+      {
+        message: {
+          id: 'original-id',
+          revisionId: 'id-1',
+          role: 'assistant',
+          content: '',
+          createdAt: new Date('2023-01-02T00:00:00.000Z'),
+          toolInvocations: [
+            {
+              args: {},
+              result: { location: 'Berlin' },
+              state: 'result',
+              step: 0,
+              toolCallId: 'tool-call-id-original',
+              toolName: 'tool-name-original',
+            },
+            {
+              args: {
+                city: 'London',
+              },
+              result: {
+                weather: 'sunny',
+              },
+              state: 'result',
+              toolCallId: 'tool-call-id',
+              toolName: 'tool-name',
+              step: 1,
+            },
+          ],
+        },
+        data: [],
+        replaceLastMessage: true,
+      },
+      {
+        message: {
+          id: 'original-id',
+          revisionId: 'id-2',
+          role: 'assistant',
+          content: 'The weather in London is sunny.',
+          createdAt: new Date('2023-01-02T00:00:00.000Z'),
+          toolInvocations: [
+            {
+              args: {},
+              result: { location: 'Berlin' },
+              state: 'result',
+              step: 0,
+              toolCallId: 'tool-call-id-original',
+              toolName: 'tool-name-original',
+            },
+            {
+              args: {
+                city: 'London',
+              },
+              result: {
+                weather: 'sunny',
+              },
+              state: 'result',
+              toolCallId: 'tool-call-id',
+              toolName: 'tool-name',
+              step: 1,
+            },
+          ],
+        },
+        data: [],
+        replaceLastMessage: true,
+      },
+    ]);
+  });
+
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toStrictEqual([
+      {
+        message: {
+          id: 'original-id',
+          role: 'assistant',
+          content: 'The weather in London is sunny.',
+          createdAt: new Date('2023-01-02T00:00:00.000Z'),
+          toolInvocations: [
+            {
+              args: {},
+              result: { location: 'Berlin' },
+              state: 'result',
+              step: 0,
+              toolCallId: 'tool-call-id-original',
+              toolName: 'tool-name-original',
+            },
+            {
+              args: { city: 'London' },
+              result: { weather: 'sunny' },
+              state: 'result',
+              step: 1,
+              toolCallId: 'tool-call-id',
+              toolName: 'tool-name',
+            },
+          ],
+        },
+        finishReason: 'stop',
+        usage: {
+          completionTokens: 7,
+          promptTokens: 14,
+          totalTokens: 21,
+        },
+      },
+    ]);
+  });
+});
+
 describe('scenario: server-side continue roundtrip', () => {
   beforeEach(async () => {
     const stream = createDataProtocolStream([
