@@ -309,7 +309,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           onFinish,
           generateId,
           fetch,
-          lastMessage: previousMessages[previousMessages.length - 1],
+          lastMessage: chatRequest.messages[chatRequest.messages.length - 1],
         });
 
         abortControllerRef.current = null;
@@ -333,9 +333,10 @@ By default, it's set to 1, which means that only a single LLM call is made.
       // and assistant has not answered yet
       const messages = messagesRef.current;
       const lastMessage = messages[messages.length - 1];
+      console.log('X', structuredClone(messages));
       if (
         // ensure we actually have new messages (to prevent infinite loops in case of errors):
-        messages.length > messageCount &&
+        // messages.length > messageCount && TODO find other way
         // ensure there is a last message:
         lastMessage != null &&
         // check if the feature is enabled:
@@ -347,6 +348,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         // limit the number of automatic steps:
         countTrailingAssistantMessages(messages) < maxSteps
       ) {
+        console.log('Y');
         await triggerRequest({ messages });
       }
     },
