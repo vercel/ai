@@ -1,9 +1,7 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
-  IdGenerator,
   JSONValue,
   Message,
   UseChatOptions,
@@ -14,7 +12,7 @@ import {
   prepareAttachmentsForRequest,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useSWR, { KeyedMutator } from 'swr';
+import useSWR from 'swr';
 import { throttle } from './throttle';
 
 export type { CreateMessage, Message, UseChatOptions };
