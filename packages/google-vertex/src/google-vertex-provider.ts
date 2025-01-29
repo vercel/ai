@@ -145,11 +145,10 @@ export function createVertex(
     modelId: GoogleVertexModelId,
     settings: GoogleVertexSettings = {},
   ) => {
-    return new GoogleVertexLanguageModel(
-      modelId,
-      settings,
-      createConfig('chat'),
-    );
+    return new GoogleVertexLanguageModel(modelId, settings, {
+      ...createConfig('chat'),
+      generateId: options.generateId ?? generateId,
+    });
   };
 
   const createEmbeddingModel = (
