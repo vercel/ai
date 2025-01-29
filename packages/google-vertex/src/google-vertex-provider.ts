@@ -81,6 +81,21 @@ Base URL for the Google Vertex API calls.
   baseURL?: string;
 }
 
+export class GoogleVertexLanguageModel extends GoogleGenerativeAILanguageModel {
+  constructor(
+    modelId: GoogleVertexModelId,
+    settings: GoogleVertexSettings,
+    config: GoogleVertexConfig
+  ) {
+    super(modelId, settings, config);
+  }
+
+  // https://firebase.google.com/docs/vertex-ai/input-file-requirements#provide-file-using-url
+  supportsUrl() {
+    return true;
+  }
+}
+
 /**
 Create a Google Vertex AI provider instance.
  */
@@ -125,10 +140,7 @@ export function createVertex(
     modelId: GoogleVertexModelId,
     settings: GoogleVertexSettings = {},
   ) => {
-    return new GoogleGenerativeAILanguageModel(modelId, settings, {
-      ...createConfig('chat'),
-      generateId: options.generateId ?? generateId,
-    });
+    return new GoogleVertexLanguageModel(modelId, settings, createConfig('chat'));
   };
 
   const createEmbeddingModel = (
