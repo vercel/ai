@@ -176,6 +176,7 @@ export async function processChatResponse({
           // store the result in the tool invocation
           message.toolInvocations![message.toolInvocations!.length - 1] = {
             state: 'result',
+            step,
             ...value,
             result,
           };
