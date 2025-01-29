@@ -15,9 +15,14 @@ export async function processChatResponse({
   onFinish,
   generateId = generateIdFunction,
   getCurrentDate = () => new Date(),
+  lastMessage,
 }: {
   stream: ReadableStream<Uint8Array>;
-  update: (newMessages: Message[], data: JSONValue[] | undefined) => void;
+  update: (options: {
+    message: Message;
+    data: JSONValue[] | undefined;
+    replaceLastMessage: boolean;
+  }) => void;
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (options: {
     message: Message | undefined;
@@ -26,14 +31,23 @@ export async function processChatResponse({
   }) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
+  lastMessage: Message | undefined;
 }) {
-  let step = 0;
-  const message: Message = {
-    id: generateId(),
-    createdAt: getCurrentDate(),
-    role: 'assistant',
-    content: '',
-  };
+  const replaceLastMessage = lastMessage?.role === 'assistant';
+  let step = replaceLastMessage
+    ? // find max step in existing tool invocations:
+      lastMessage.toolInvocations?.reduce((max, toolInvocation) => {
+        return Math.max(max, toolInvocation.step ?? 0);
+      }, 0) ?? 0
+    : 0;
+  const message: Message = replaceLastMessage
+    ? structuredClone(lastMessage)
+    : {
+        id: generateId(),
+        createdAt: getCurrentDate(),
+        role: 'assistant',
+        content: '',
+      };
 
   const data: JSONValue[] = [];
 
@@ -75,7 +89,11 @@ export async function processChatResponse({
       revisionId: generateId(),
     } as Message;
 
-    update([copiedMessage], copiedData);
+    update({
+      message: copiedMessage,
+      data: copiedData,
+      replaceLastMessage,
+    });
   }
 
   await processDataStream({

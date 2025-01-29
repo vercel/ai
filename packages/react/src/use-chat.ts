@@ -169,8 +169,17 @@ const processResponseStream = async (
       }
     },
     onResponse,
-    onUpdate(merged, data) {
-      mutate([...chatRequest.messages, ...merged], false);
+    onUpdate({ message, data, replaceLastMessage }) {
+      mutate(
+        [
+          ...(replaceLastMessage
+            ? chatRequest.messages.slice(0, chatRequest.messages.length - 1)
+            : chatRequest.messages),
+          message,
+        ],
+        false,
+      );
+
       if (data?.length) {
         mutateStreamData([...(existingData ?? []), ...data], false);
       }
@@ -179,6 +188,7 @@ const processResponseStream = async (
     onFinish,
     generateId,
     fetch,
+    lastMessage: previousMessages[previousMessages.length - 1],
   });
 };
 
