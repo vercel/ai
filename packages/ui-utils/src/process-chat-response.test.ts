@@ -7,12 +7,17 @@ import { JSONValue, Message } from './types';
 import { LanguageModelUsage } from './duplicated/usage';
 
 let updateCalls: Array<{
-  newMessages: Message[];
+  message: Message;
   data: JSONValue[] | undefined;
+  replaceLastMessage: boolean;
 }> = [];
-const update = (newMessages: Message[], data: JSONValue[] | undefined) => {
+const update = (options: {
+  message: Message;
+  data: JSONValue[] | undefined;
+  replaceLastMessage: boolean;
+}) => {
   // clone to preserve the original object
-  updateCalls.push({ newMessages, data });
+  updateCalls.push(structuredClone(options));
 };
 
 let finishCalls: Array<{
@@ -61,34 +66,33 @@ describe('scenario: simple text response', () => {
       onFinish,
       generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
     });
   });
 
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
-        newMessages: [
-          {
-            content: 'Hello, ',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-1',
-            role: 'assistant',
-          },
-        ],
+        message: {
+          content: 'Hello, ',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-1',
+          role: 'assistant',
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            content: 'Hello, world!',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-2',
-            role: 'assistant',
-          },
-        ],
+        message: {
+          content: 'Hello, world!',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-2',
+          role: 'assistant',
+        },
         data: [],
+        replaceLastMessage: false,
       },
     ]);
   });
@@ -148,88 +152,83 @@ describe('scenario: server-side tool roundtrip', () => {
       onFinish,
       generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
     });
   });
 
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
-        newMessages: [
-          {
-            id: 'id-0',
-            revisionId: 'id-1',
-            role: 'assistant',
-            content: '',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            toolInvocations: [
-              {
-                args: {
-                  city: 'London',
-                },
-                state: 'call',
-                toolCallId: 'tool-call-id',
-                toolName: 'tool-name',
+        message: {
+          id: 'id-0',
+          revisionId: 'id-1',
+          role: 'assistant',
+          content: '',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          toolInvocations: [
+            {
+              args: {
+                city: 'London',
               },
-            ],
-          },
-        ],
+              state: 'call',
+              toolCallId: 'tool-call-id',
+              toolName: 'tool-name',
+              step: 0,
+            },
+          ],
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            id: 'id-0',
-            revisionId: 'id-2',
-            role: 'assistant',
-            content: '',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            toolInvocations: [
-              {
-                args: {
-                  city: 'London',
-                },
-                result: {
-                  weather: 'sunny',
-                },
-                state: 'result',
-                toolCallId: 'tool-call-id',
-                toolName: 'tool-name',
+        message: {
+          id: 'id-0',
+          revisionId: 'id-2',
+          role: 'assistant',
+          content: '',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          toolInvocations: [
+            {
+              args: {
+                city: 'London',
               },
-            ],
-          },
-        ],
+              result: {
+                weather: 'sunny',
+              },
+              state: 'result',
+              toolCallId: 'tool-call-id',
+              toolName: 'tool-name',
+              step: 0,
+            },
+          ],
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            content: '',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            role: 'assistant',
-            toolInvocations: [
-              {
-                args: {
-                  city: 'London',
-                },
-                result: {
-                  weather: 'sunny',
-                },
-                state: 'result',
-                toolCallId: 'tool-call-id',
-                toolName: 'tool-name',
+        message: {
+          id: 'id-0',
+          revisionId: 'id-3',
+          role: 'assistant',
+          content: 'The weather in London is sunny.',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          toolInvocations: [
+            {
+              args: {
+                city: 'London',
               },
-            ],
-          },
-          {
-            id: 'id-3',
-            revisionId: 'id-4',
-            role: 'assistant',
-            content: 'The weather in London is sunny.',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-          },
-        ],
+              result: {
+                weather: 'sunny',
+              },
+              state: 'result',
+              toolCallId: 'tool-call-id',
+              toolName: 'tool-name',
+              step: 0,
+            },
+          ],
+        },
         data: [],
+        replaceLastMessage: false,
       },
     ]);
   });
@@ -238,10 +237,20 @@ describe('scenario: server-side tool roundtrip', () => {
     expect(finishCalls).toStrictEqual([
       {
         message: {
-          id: 'id-3',
+          id: 'id-0',
           role: 'assistant',
           content: 'The weather in London is sunny.',
           createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          toolInvocations: [
+            {
+              args: { city: 'London' },
+              result: { weather: 'sunny' },
+              state: 'result',
+              step: 0,
+              toolCallId: 'tool-call-id',
+              toolName: 'tool-name',
+            },
+          ],
         },
         finishReason: 'stop',
         usage: {
@@ -281,34 +290,33 @@ describe('scenario: server-side continue roundtrip', () => {
       onFinish,
       generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
     });
   });
 
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
-        newMessages: [
-          {
-            id: 'id-0',
-            revisionId: 'id-1',
-            role: 'assistant',
-            content: 'The weather in London ',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-          },
-        ],
+        message: {
+          id: 'id-0',
+          revisionId: 'id-1',
+          role: 'assistant',
+          content: 'The weather in London ',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            id: 'id-0',
-            revisionId: 'id-2',
-            role: 'assistant',
-            content: 'The weather in London is sunny.',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-          },
-        ],
+        message: {
+          id: 'id-0',
+          revisionId: 'id-2',
+          role: 'assistant',
+          content: 'The weather in London is sunny.',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+        },
         data: [],
+        replaceLastMessage: false,
       },
     ]);
   });
@@ -360,35 +368,34 @@ describe('scenario: delayed message annotations in onFinish', () => {
       onFinish,
       generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
     });
   });
 
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
-        newMessages: [
-          {
-            content: 'text',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-1',
-            role: 'assistant',
-          },
-        ],
+        message: {
+          content: 'text',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-1',
+          role: 'assistant',
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            content: 'text',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-2',
-            role: 'assistant',
-            annotations: [{ example: 'annotation' }],
-          },
-        ],
+        message: {
+          content: 'text',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-2',
+          role: 'assistant',
+          annotations: [{ example: 'annotation' }],
+        },
         data: [],
+        replaceLastMessage: false,
       },
     ]);
   });
@@ -438,53 +445,59 @@ describe('scenario: message annotations in onChunk', () => {
       onFinish,
       generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
     });
   });
 
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
-        newMessages: [],
+        message: {
+          content: '',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-1',
+          role: 'assistant',
+          annotations: ['annotation1'],
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            content: 't1',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-1',
-            role: 'assistant',
-            annotations: ['annotation1'],
-          },
-        ],
+        message: {
+          content: 't1',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-2',
+          role: 'assistant',
+          annotations: ['annotation1'],
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            content: 't1',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-2',
-            role: 'assistant',
-            annotations: ['annotation1', 'annotation2'],
-          },
-        ],
+        message: {
+          content: 't1',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-3',
+          role: 'assistant',
+          annotations: ['annotation1', 'annotation2'],
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            content: 't1t2',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-3',
-            role: 'assistant',
-            annotations: ['annotation1', 'annotation2'],
-          },
-        ],
+        message: {
+          content: 't1t2',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-4',
+          role: 'assistant',
+          annotations: ['annotation1', 'annotation2'],
+        },
         data: [],
+        replaceLastMessage: false,
       },
     ]);
   });
@@ -551,118 +564,117 @@ describe('scenario: tool call streaming', () => {
       onFinish,
       generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
     });
   });
 
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
-        newMessages: [
-          {
-            content: '',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-1',
-            role: 'assistant',
-            toolInvocations: [
-              {
-                state: 'partial-call',
-                toolCallId: 'tool-call-0',
-                toolName: 'test-tool',
-              },
-            ],
-          },
-        ],
+        message: {
+          content: '',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-1',
+          role: 'assistant',
+          toolInvocations: [
+            {
+              state: 'partial-call',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              args: undefined,
+            },
+          ],
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            content: '',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-2',
-            role: 'assistant',
-            toolInvocations: [
-              {
-                args: {
-                  testArg: 't',
-                },
-                state: 'partial-call',
-                toolCallId: 'tool-call-0',
-                toolName: 'test-tool',
+        message: {
+          content: '',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-2',
+          role: 'assistant',
+          toolInvocations: [
+            {
+              args: {
+                testArg: 't',
               },
-            ],
-          },
-        ],
+              state: 'partial-call',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+            },
+          ],
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            content: '',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-3',
-            role: 'assistant',
-            toolInvocations: [
-              {
-                args: {
-                  testArg: 'test-value',
-                },
-                state: 'partial-call',
-                toolCallId: 'tool-call-0',
-                toolName: 'test-tool',
+        message: {
+          content: '',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-3',
+          role: 'assistant',
+          toolInvocations: [
+            {
+              args: {
+                testArg: 'test-value',
               },
-            ],
-          },
-        ],
+              state: 'partial-call',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+            },
+          ],
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            content: '',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-4',
-            role: 'assistant',
-            toolInvocations: [
-              {
-                args: {
-                  testArg: 'test-value',
-                },
-                state: 'call',
-                toolCallId: 'tool-call-0',
-                toolName: 'test-tool',
+        message: {
+          content: '',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-4',
+          role: 'assistant',
+          toolInvocations: [
+            {
+              args: {
+                testArg: 'test-value',
               },
-            ],
-          },
-        ],
+              state: 'call',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              step: 0,
+            },
+          ],
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            content: '',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'id-0',
-            revisionId: 'id-5',
-            role: 'assistant',
-            toolInvocations: [
-              {
-                args: {
-                  testArg: 'test-value',
-                },
-                result: 'test-result',
-                state: 'result',
-                toolCallId: 'tool-call-0',
-                toolName: 'test-tool',
+        message: {
+          content: '',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'id-0',
+          revisionId: 'id-5',
+          role: 'assistant',
+          toolInvocations: [
+            {
+              args: {
+                testArg: 'test-value',
               },
-            ],
-          },
-        ],
+              result: 'test-result',
+              state: 'result',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              step: 0,
+            },
+          ],
+        },
         data: [],
+        replaceLastMessage: false,
       },
     ]);
   });
@@ -684,6 +696,7 @@ describe('scenario: tool call streaming', () => {
               state: 'result',
               toolCallId: 'tool-call-0',
               toolName: 'test-tool',
+              step: 0,
             },
           ],
         },
@@ -721,34 +734,33 @@ describe('scenario: server provides message ids', () => {
       onFinish,
       generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
     });
   });
 
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
-        newMessages: [
-          {
-            content: 'Hello, ',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'step_123',
-            revisionId: 'id-0',
-            role: 'assistant',
-          },
-        ],
+        message: {
+          content: 'Hello, ',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'step_123',
+          revisionId: 'id-1',
+          role: 'assistant',
+        },
         data: [],
+        replaceLastMessage: false,
       },
       {
-        newMessages: [
-          {
-            content: 'Hello, world!',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'step_123',
-            revisionId: 'id-1',
-            role: 'assistant',
-          },
-        ],
+        message: {
+          content: 'Hello, world!',
+          createdAt: new Date('2023-01-01T00:00:00.000Z'),
+          id: 'step_123',
+          revisionId: 'id-2',
+          role: 'assistant',
+        },
         data: [],
+        replaceLastMessage: false,
       },
     ]);
   });
@@ -803,6 +815,7 @@ describe('scenario: server provides reasoning', () => {
       onFinish,
       generateId: mockId(),
       getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
     });
   });
 
