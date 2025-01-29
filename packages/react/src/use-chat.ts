@@ -133,7 +133,8 @@ Default is undefined, which disables throttling.
   experimental_throttle?: number;
 
   /**
-Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
+Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
+Must be at least 1.
 
 A maximum number is required to prevent infinite loops in the case of misconfigured tools.
 
@@ -265,7 +266,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
             requestData: chatRequest.data,
             requestBody: chatRequest.body,
           }) ?? {
-            id,
+            id: chatId,
             messages: constructedMessagesPayload,
             data: chatRequest.data,
             ...extraMetadataRef.current.body,
@@ -345,7 +346,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         // check that assistant has not answered yet:
         !lastMessage.content && // empty string or undefined
         // limit the number of automatic steps:
-        countTrailingAssistantMessages(messages) < maxSteps
+        extractMaxStep(lastMessage) < maxSteps
       ) {
         await triggerRequest({ messages });
       }
@@ -573,26 +574,26 @@ Check if the message is an assistant message with completed tool calls.
 The message must have at least one tool invocation and all tool invocations
 must have a result.
  */
-function isAssistantMessageWithCompletedToolCalls(message: Message) {
+function isAssistantMessageWithCompletedToolCalls(
+  message: Message,
+): message is Message & {
+  role: 'assistant';
+} {
   return (
     message.role === 'assistant' &&
-    message.toolInvocations &&
+    message.toolInvocations != null &&
     message.toolInvocations.length > 0 &&
     message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
   );
 }
 
 /**
-Returns the number of trailing assistant messages in the array.
+Returns the maximum step from the tool invocations in the message.
  */
-function countTrailingAssistantMessages(messages: Message[]) {
-  let count = 0;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'assistant') {
-      count++;
-    } else {
-      break;
-    }
-  }
-  return count;
+function extractMaxStep(message: Message & { role: 'assistant' }): number {
+  return (
+    message.toolInvocations?.reduce((max, toolInvocation) => {
+      return Math.max(max, toolInvocation.step ?? 0);
+    }, 0) ?? 0
+  );
 }
