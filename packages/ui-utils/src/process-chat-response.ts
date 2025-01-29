@@ -35,11 +35,13 @@ export async function processChatResponse({
 }) {
   const replaceLastMessage = lastMessage?.role === 'assistant';
   let step = replaceLastMessage
-    ? // find max step in existing tool invocations:
-      lastMessage.toolInvocations?.reduce((max, toolInvocation) => {
+    ? 1 +
+      // find max step in existing tool invocations:
+      (lastMessage.toolInvocations?.reduce((max, toolInvocation) => {
         return Math.max(max, toolInvocation.step ?? 0);
-      }, 0) ?? 0
+      }, 0) ?? 0)
     : 0;
+
   const message: Message = replaceLastMessage
     ? structuredClone(lastMessage)
     : {

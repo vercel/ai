@@ -87,111 +87,6 @@ export type UseChatHelpers = {
   id: string;
 };
 
-const processResponseStream = async (
-  api: string,
-  chatRequest: ChatRequest,
-  mutate: KeyedMutator<Message[]>,
-  mutateStreamData: KeyedMutator<JSONValue[] | undefined>,
-  existingDataRef: React.MutableRefObject<JSONValue[] | undefined>,
-  extraMetadataRef: React.MutableRefObject<any>,
-  messagesRef: React.MutableRefObject<Message[]>,
-  abortControllerRef: React.MutableRefObject<AbortController | null>,
-  generateId: IdGenerator,
-  streamProtocol: UseChatOptions['streamProtocol'],
-  onFinish: UseChatOptions['onFinish'],
-  onResponse: ((response: Response) => void | Promise<void>) | undefined,
-  onToolCall: UseChatOptions['onToolCall'] | undefined,
-  sendExtraMessageFields: boolean | undefined,
-  experimental_prepareRequestBody:
-    | ((options: {
-        id: string;
-        messages: Message[];
-        requestData?: JSONValue;
-        requestBody?: object;
-      }) => unknown)
-    | undefined,
-  fetch: FetchFunction | undefined,
-  keepLastMessageOnError: boolean,
-  id: string,
-) => {
-  // Do an optimistic update to the chat state to show the updated messages immediately:
-  const previousMessages = messagesRef.current;
-  mutate(chatRequest.messages, false);
-
-  const constructedMessagesPayload = sendExtraMessageFields
-    ? chatRequest.messages
-    : chatRequest.messages.map(
-        ({
-          role,
-          content,
-          experimental_attachments,
-          data,
-          annotations,
-          toolInvocations,
-        }) => ({
-          role,
-          content,
-          ...(experimental_attachments !== undefined && {
-            experimental_attachments,
-          }),
-          ...(data !== undefined && { data }),
-          ...(annotations !== undefined && { annotations }),
-          ...(toolInvocations !== undefined && { toolInvocations }),
-        }),
-      );
-
-  const existingData = existingDataRef.current;
-
-  return await callChatApi({
-    api,
-    body: experimental_prepareRequestBody?.({
-      id,
-      messages: chatRequest.messages,
-      requestData: chatRequest.data,
-      requestBody: chatRequest.body,
-    }) ?? {
-      id,
-      messages: constructedMessagesPayload,
-      data: chatRequest.data,
-      ...extraMetadataRef.current.body,
-      ...chatRequest.body,
-    },
-    streamProtocol,
-    credentials: extraMetadataRef.current.credentials,
-    headers: {
-      ...extraMetadataRef.current.headers,
-      ...chatRequest.headers,
-    },
-    abortController: () => abortControllerRef.current,
-    restoreMessagesOnFailure() {
-      if (!keepLastMessageOnError) {
-        mutate(previousMessages, false);
-      }
-    },
-    onResponse,
-    onUpdate({ message, data, replaceLastMessage }) {
-      mutate(
-        [
-          ...(replaceLastMessage
-            ? chatRequest.messages.slice(0, chatRequest.messages.length - 1)
-            : chatRequest.messages),
-          message,
-        ],
-        false,
-      );
-
-      if (data?.length) {
-        mutateStreamData([...(existingData ?? []), ...data], false);
-      }
-    },
-    onToolCall,
-    onFinish,
-    generateId,
-    fetch,
-    lastMessage: previousMessages[previousMessages.length - 1],
-  });
-};
-
 export function useChat({
   api = '/api/chat',
   id,
@@ -328,27 +223,94 @@ By default, it's set to 1, which means that only a single LLM call is made.
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
-        await processResponseStream(
-          api,
-          chatRequest,
-          // throttle streamed ui updates:
-          throttle(mutate, throttleWaitMs),
-          throttle(mutateStreamData, throttleWaitMs),
-          streamDataRef,
-          extraMetadataRef,
-          messagesRef,
-          abortControllerRef,
-          generateId,
-          streamProtocol,
-          onFinish,
-          onResponse,
-          onToolCall,
-          sendExtraMessageFields,
-          experimental_prepareRequestBody,
-          fetch,
-          keepLastMessageOnError,
-          chatId,
+        const throttledMutate = throttle(mutate, throttleWaitMs);
+        const throttledMutateStreamData = throttle(
+          mutateStreamData,
+          throttleWaitMs,
         );
+
+        // Do an optimistic update to the chat state to show the updated messages immediately:
+        const previousMessages = messagesRef.current;
+        throttledMutate(chatRequest.messages, false);
+
+        const constructedMessagesPayload = sendExtraMessageFields
+          ? chatRequest.messages
+          : chatRequest.messages.map(
+              ({
+                role,
+                content,
+                experimental_attachments,
+                data,
+                annotations,
+                toolInvocations,
+              }) => ({
+                role,
+                content,
+                ...(experimental_attachments !== undefined && {
+                  experimental_attachments,
+                }),
+                ...(data !== undefined && { data }),
+                ...(annotations !== undefined && { annotations }),
+                ...(toolInvocations !== undefined && { toolInvocations }),
+              }),
+            );
+
+        const existingData = streamDataRef.current;
+
+        await callChatApi({
+          api,
+          body: experimental_prepareRequestBody?.({
+            id: chatId,
+            messages: chatRequest.messages,
+            requestData: chatRequest.data,
+            requestBody: chatRequest.body,
+          }) ?? {
+            id,
+            messages: constructedMessagesPayload,
+            data: chatRequest.data,
+            ...extraMetadataRef.current.body,
+            ...chatRequest.body,
+          },
+          streamProtocol,
+          credentials: extraMetadataRef.current.credentials,
+          headers: {
+            ...extraMetadataRef.current.headers,
+            ...chatRequest.headers,
+          },
+          abortController: () => abortControllerRef.current,
+          restoreMessagesOnFailure() {
+            if (!keepLastMessageOnError) {
+              throttledMutate(previousMessages, false);
+            }
+          },
+          onResponse,
+          onUpdate({ message, data, replaceLastMessage }) {
+            throttledMutate(
+              [
+                ...(replaceLastMessage
+                  ? chatRequest.messages.slice(
+                      0,
+                      chatRequest.messages.length - 1,
+                    )
+                  : chatRequest.messages),
+                message,
+              ],
+              false,
+            );
+
+            if (data?.length) {
+              throttledMutateStreamData(
+                [...(existingData ?? []), ...data],
+                false,
+              );
+            }
+          },
+          onToolCall,
+          onFinish,
+          generateId,
+          fetch,
+          lastMessage: previousMessages[previousMessages.length - 1],
+        });
 
         abortControllerRef.current = null;
       } catch (err) {
