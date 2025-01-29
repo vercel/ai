@@ -357,7 +357,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
         mutateLoading(false);
       }
 
-      // auto-submit when all tool calls in the last assistant message have results:
+      // auto-submit when all tool calls in the last assistant message have results
+      // and assistant has not answered yet
       const messages = messagesRef.current;
       const lastMessage = messages[messages.length - 1];
       if (
@@ -369,6 +370,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
         maxSteps > 1 &&
         // check that next step is possible:
         isAssistantMessageWithCompletedToolCalls(lastMessage) &&
+        // check that assistant has not answered yet:
+        !lastMessage.content && // empty string or undefined
         // limit the number of automatic steps:
         countTrailingAssistantMessages(messages) < maxSteps
       ) {

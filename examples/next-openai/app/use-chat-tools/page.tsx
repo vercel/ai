@@ -23,12 +23,13 @@ export default function Chat() {
       },
     });
 
+  console.log(structuredClone(messages));
+
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages?.map((m: Message) => (
         <div key={m.id} className="whitespace-pre-wrap">
           <strong>{`${m.role}: `}</strong>
-          {m.content}
           {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
             const toolCallId = toolInvocation.toolCallId;
 
@@ -92,6 +93,7 @@ export default function Chat() {
               </div>
             );
           })}
+          {m.content}
           <br />
           <br />
         </div>
