@@ -336,7 +336,7 @@ async function translateWithFeedback(text: string, targetLanguage: string) {
   while (iterations < MAX_ITERATIONS) {
     // Evaluate current translation
     const { object: evaluation } = await generateObject({
-      model,
+      model: openai('gpt-4o'), // use a larger model to evaluate
       schema: z.object({
         qualityScore: z.number().min(1).max(10),
         preservesTone: z.boolean(),
