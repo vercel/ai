@@ -17,7 +17,8 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ProviderMetadata, ToolChoice } from '../types';
+import { LanguageModel, ToolChoice } from '../types';
+import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import {
   addLanguageModelUsage,
   calculateLanguageModelUsage,
@@ -110,7 +111,8 @@ export async function generateText<
   experimental_output: output,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
-  experimental_providerMetadata: providerMetadata,
+  experimental_providerMetadata,
+  providerOptions = experimental_providerMetadata,
   experimental_activeTools: activeTools,
   experimental_repairToolCall: repairToolCall,
   _internal: {
@@ -163,10 +165,15 @@ Optional telemetry configuration (experimental).
     experimental_telemetry?: TelemetrySettings;
 
     /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+    providerOptions?: ProviderOptions;
+
+    /**
+@deprecated Use `providerOptions` instead.
+     */
     experimental_providerMetadata?: ProviderMetadata;
 
     /**
@@ -334,7 +341,7 @@ A function that attempts to repair a tool call that failed to parse.
                 inputFormat: promptFormat,
                 responseFormat: output?.responseFormat({ model }),
                 prompt: promptMessages,
-                providerMetadata,
+                providerMetadata: providerOptions,
                 abortSignal,
                 headers,
               });

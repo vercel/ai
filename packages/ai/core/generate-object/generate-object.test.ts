@@ -635,8 +635,8 @@ describe('output = "object"', () => {
     });
   });
 
-  describe('options.providerMetadata', () => {
-    it('should pass provider metadata to model in json mode', async () => {
+  describe('options.providerOptions', () => {
+    it('should pass provider options to model in json mode', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV1({
           doGenerate: async ({ providerMetadata }) => {
@@ -653,7 +653,7 @@ describe('output = "object"', () => {
         schema: z.object({ content: z.string() }),
         mode: 'json',
         prompt: 'prompt',
-        experimental_providerMetadata: {
+        providerOptions: {
           aProvider: { someKey: 'someValue' },
         },
       });
@@ -663,7 +663,7 @@ describe('output = "object"', () => {
       });
     });
 
-    it('should pass provider metadata to model in tool mode', async () => {
+    it('should pass provider options to model in tool mode', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV1({
           doGenerate: async ({ providerMetadata }) => {
@@ -687,7 +687,7 @@ describe('output = "object"', () => {
         schema: z.object({ content: z.string() }),
         mode: 'tool',
         prompt: 'prompt',
-        experimental_providerMetadata: {
+        providerOptions: {
           aProvider: { someKey: 'someValue' },
         },
       });

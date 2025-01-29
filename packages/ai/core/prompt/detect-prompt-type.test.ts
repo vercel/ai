@@ -62,12 +62,12 @@ it('should detect core messages with array content', () => {
   expect(detectPromptType(messages)).toBe('messages');
 });
 
-it('should detect core messages with experimental_providerMetadata', () => {
+it('should detect core messages with providerOptions', () => {
   const messages: CoreMessage[] = [
     {
       role: 'system',
       content: 'System prompt',
-      experimental_providerMetadata: { provider: { test: 'value' } },
+      providerOptions: { provider: { test: 'value' } },
     },
   ];
   expect(detectPromptType(messages)).toBe('messages');
@@ -96,7 +96,7 @@ it('should detect mixed core messages and simple messages as valid messages', ()
     {
       role: 'system',
       content: 'System prompt',
-      experimental_providerMetadata: { provider: 'test' },
+      providerOptions: { provider: 'test' },
     },
     {
       role: 'user',

@@ -21,7 +21,7 @@ async function main() {
           {
             type: 'text',
             text: `Error message: ${errorMessage}`,
-            experimental_providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },

@@ -180,6 +180,7 @@ Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
      */
+    // TODO language model v2 rename to providerOptions
     providerMetadata?: LanguageModelV1ProviderMetadata;
 
     /**
@@ -188,6 +189,7 @@ Logprobs for the completion.
 
 @deprecated will be changed into a provider-specific extension in v2
      */
+    // TODO change in language model v2
     logprobs?: LanguageModelV1LogProbs;
   }>;
 

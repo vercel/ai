@@ -848,8 +848,8 @@ describe('options.headers', () => {
   });
 });
 
-describe('options.providerMetadata', () => {
-  it('should pass provider metadata to model', async () => {
+describe('options.providerOptions', () => {
+  it('should pass provider options to model', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async ({ providerMetadata }) => {
@@ -861,7 +861,7 @@ describe('options.providerMetadata', () => {
         },
       }),
       prompt: 'test-input',
-      experimental_providerMetadata: {
+      providerOptions: {
         aProvider: { someKey: 'someValue' },
       },
     });
