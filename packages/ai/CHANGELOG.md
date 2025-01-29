@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.11
+
+### Patch Changes
+
+- 4c58da5: chore (core): move providerOptions to stable
+
 ## 4.1.10
 
 ### Patch Changes
