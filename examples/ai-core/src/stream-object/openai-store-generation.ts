@@ -19,7 +19,7 @@ async function main() {
     }),
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: {
         store: true,
         metadata: {
