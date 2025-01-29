@@ -9,7 +9,7 @@ async function main() {
       'Invent a new fake holiday and describe its traditions. ' +
       'You are a comedian and should insult the audience as much as possible.',
 
-    experimental_providerMetadata: {
+    providerOptions: {
       bedrock: {
         guardrailConfig: {
           guardrailIdentifier: '<your-guardrail-identifier>',
