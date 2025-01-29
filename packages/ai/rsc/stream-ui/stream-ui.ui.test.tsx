@@ -292,7 +292,7 @@ describe('options.providerMetadata', () => {
         },
       }),
       prompt: '',
-      experimental_providerMetadata: {
+      providerOptions: {
         aProvider: { someKey: 'someValue' },
       },
     });

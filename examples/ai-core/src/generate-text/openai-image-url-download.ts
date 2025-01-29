@@ -18,8 +18,8 @@ async function main() {
             image:
               'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
 
-            // OpenAI specific extension - image detail:
-            experimental_providerMetadata: {
+            // OpenAI specific option - image detail:
+            providerOptions: {
               openai: { imageDetail: 'low' },
             },
           },

@@ -57,7 +57,7 @@ export default function Home() {
 
 ## Server
 
-On the server side, we need to implement the `generate` function, which will call the `streamText` function. The `streamText` function will generate text based on the input prompt. In order to stream the text generation to the client, we will use `createStreamableValue` that can wrap any changable value and stream it to the client.
+On the server side, we need to implement the `generate` function, which will call the `streamText` function. The `streamText` function will generate text based on the input prompt. In order to stream the text generation to the client, we will use `createStreamableValue` that can wrap any changeable value and stream it to the client.
 
 Using DevTools, we can see the text generation being streamed to the client in real-time.
 

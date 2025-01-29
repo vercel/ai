@@ -144,7 +144,7 @@ function createCompletion() {
         content: `What book is the following text from?: <text>${longPrompt}</text>`,
       },
     ],
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: { maxCompletionTokens: 100 },
     },
     onFinish: ({ usage, experimental_providerMetadata }) => {

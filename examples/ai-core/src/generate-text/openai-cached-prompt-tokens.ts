@@ -144,7 +144,7 @@ const runCompletion = async () =>
         content: `What book is the following text from?: <text>${longPrompt}</text>`,
       },
     ],
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: { maxCompletionTokens: 100 },
     },
   });
@@ -155,7 +155,7 @@ async function main() {
   let end = performance.now();
 
   console.log(
-    `PLEASE NOTE caching behavior is transparent and difficult to test. 
+    `PLEASE NOTE caching behavior is transparent and difficult to test.
     If you don't get a cache hit the first time, try several additional times.`,
   );
 

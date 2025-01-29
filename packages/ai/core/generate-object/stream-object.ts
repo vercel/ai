@@ -35,7 +35,7 @@ import {
 } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata } from '../types/provider-metadata';
+import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import {
   LanguageModelUsage,
   calculateLanguageModelUsage,
@@ -83,11 +83,16 @@ Warnings from the model provider (e.g. unsupported settings).
   warnings?: CallWarning[];
 
   /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
+Additional provider-specific options. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  providerOptions?: ProviderOptions;
+
+  /**
+@deprecated Use `providerOptions` instead.
 */
-  experimental_providerMetadata: ProviderMetadata | undefined;
+  experimental_providerMetadata?: ProviderMetadata;
 }) => Promise<void> | void;
 
 /**
@@ -148,10 +153,15 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+      providerOptions?: ProviderOptions;
+
+      /**
+@deprecated Use `providerOptions` instead.
+*/
       experimental_providerMetadata?: ProviderMetadata;
 
       /**
@@ -227,10 +237,15 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+      providerOptions?: ProviderOptions;
+
+      /**
+@deprecated Use `providerOptions` instead.
+*/
       experimental_providerMetadata?: ProviderMetadata;
 
       /**
@@ -281,10 +296,15 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+      providerOptions?: ProviderOptions;
+
+      /**
+@deprecated Use `providerOptions` instead.
+*/
       experimental_providerMetadata?: ProviderMetadata;
 
       /**
@@ -316,7 +336,8 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
-  experimental_providerMetadata: providerMetadata,
+  experimental_providerMetadata,
+  providerOptions = experimental_providerMetadata,
   onFinish,
   _internal: {
     generateId = originalGenerateId,
@@ -343,6 +364,7 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
+    providerOptions?: ProviderOptions;
     experimental_providerMetadata?: ProviderMetadata;
     onFinish?: OnFinishCallback<RESULT>;
     _internal?: {
@@ -379,7 +401,7 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     messages,
     schemaName,
     schemaDescription,
-    inputProviderMetadata: providerMetadata,
+    providerOptions,
     mode,
     onFinish,
     generateId,
@@ -426,7 +448,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     messages,
     schemaName,
     schemaDescription,
-    inputProviderMetadata,
+    providerOptions,
     mode,
     onFinish,
     generateId,
@@ -445,7 +467,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     messages: Prompt['messages'];
     schemaName: string | undefined;
     schemaDescription: string | undefined;
-    inputProviderMetadata: ProviderMetadata | undefined;
+    providerOptions: ProviderOptions | undefined;
     mode: 'auto' | 'json' | 'tool' | undefined;
     onFinish: OnFinishCallback<RESULT> | undefined;
     generateId: () => string;
@@ -537,7 +559,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 modelSupportsImageUrls: model.supportsImageUrls,
                 modelSupportsUrl: model.supportsUrl,
               }),
-              providerMetadata: inputProviderMetadata,
+              providerMetadata: providerOptions,
               abortSignal,
               headers,
             };
@@ -584,7 +606,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 modelSupportsImageUrls: model.supportsImageUrls,
                 modelSupportsUrl: model.supportsUrl,
               }),
-              providerMetadata: inputProviderMetadata,
+              providerMetadata: providerOptions,
               abortSignal,
               headers,
             };

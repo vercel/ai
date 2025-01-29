@@ -83,9 +83,10 @@ const { text } = await generateText({
 
 ### Refining Reasoning Effort
 
-You can control the amount of reasoning effort expended by o1 through the `reasoningEffort` parameter. This parameter can be set to `'low'`, `'medium'`, or `'high'` to adjust how much time and computation the model spends on internal reasoning before producing a response.
+You can control the amount of reasoning effort expended by o1 through the `reasoningEffort` parameter.
+This parameter can be set to `'low'`, `'medium'`, or `'high'` to adjust how much time and computation the model spends on internal reasoning before producing a response.
 
-```tsx
+```tsx highlight="9"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -93,10 +94,8 @@ import { openai } from '@ai-sdk/openai';
 const { text } = await generateText({
   model: openai('o1'),
   prompt: 'Explain quantum entanglement briefly.',
-  experimental_providerMetadata: {
-    openai: {
-      reasoningEffort: 'low',
-    },
+  providerOptions: {
+    openai: { reasoningEffort: 'low' },
   },
 });
 ```

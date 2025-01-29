@@ -805,8 +805,8 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
   documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude-prompt-caching).
 </Note>
 
-In the messages and message parts, you can use the `experimental_providerMetadata` property to set cache control breakpoints.
-You need to set the `anthropic` property in the `experimental_providerMetadata` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
+In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
+You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
 The cache creation input tokens are then returned in the `experimental_providerMetadata` object
 for `generateText` and `generateObject`, again under the `anthropic` property.
@@ -830,7 +830,7 @@ const result = await generateText({
         {
           type: 'text',
           text: `Error message: ${errorMessage}`,
-          experimental_providerMetadata: {
+          providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
         },
@@ -854,7 +854,7 @@ const result = await generateText({
     {
       role: 'system',
       content: 'Cached system message part',
-      experimental_providerMetadata: {
+      providerOptions: {
         anthropic: { cacheControl: { type: 'ephemeral' } },
       },
     },

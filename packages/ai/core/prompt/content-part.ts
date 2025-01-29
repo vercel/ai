@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   ProviderMetadata,
   providerMetadataSchema,
+  ProviderOptions,
 } from '../types/provider-metadata';
 import { DataContent, dataContentSchema } from './data-content';
 import {
@@ -25,6 +26,11 @@ Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+  providerOptions?: ProviderOptions;
+
+  /**
+@deprecated Use `providerOptions` instead.
+ */
   experimental_providerMetadata?: ProviderMetadata;
 }
 
@@ -34,6 +40,7 @@ functionality that can be fully encapsulated in the provider.
 export const textPartSchema: z.ZodType<TextPart> = z.object({
   type: z.literal('text'),
   text: z.string(),
+  providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional(),
 });
 
@@ -61,6 +68,11 @@ Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+  providerOptions?: ProviderOptions;
+
+  /**
+@deprecated Use `providerOptions` instead.
+ */
   experimental_providerMetadata?: ProviderMetadata;
 }
 
@@ -71,6 +83,7 @@ export const imagePartSchema: z.ZodType<ImagePart> = z.object({
   type: z.literal('image'),
   image: z.union([dataContentSchema, z.instanceof(URL)]),
   mimeType: z.string().optional(),
+  providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional(),
 });
 
@@ -98,6 +111,11 @@ Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+  providerOptions?: ProviderOptions;
+
+  /**
+@deprecated Use `providerOptions` instead.
+ */
   experimental_providerMetadata?: ProviderMetadata;
 }
 
@@ -108,6 +126,7 @@ export const filePartSchema: z.ZodType<FilePart> = z.object({
   type: z.literal('file'),
   data: z.union([dataContentSchema, z.instanceof(URL)]),
   mimeType: z.string(),
+  providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional(),
 });
 
@@ -137,6 +156,11 @@ Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+  providerOptions?: ProviderOptions;
+
+  /**
+@deprecated Use `providerOptions` instead.
+ */
   experimental_providerMetadata?: ProviderMetadata;
 }
 
@@ -148,6 +172,8 @@ export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
   toolCallId: z.string(),
   toolName: z.string(),
   args: z.unknown(),
+  providerOptions: providerMetadataSchema.optional(),
+  experimental_providerMetadata: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolCallPart>; // necessary bc args is optional on Zod type
 
 /**
@@ -186,6 +212,11 @@ Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+  providerOptions?: ProviderOptions;
+
+  /**
+@deprecated Use `providerOptions` instead.
+ */
   experimental_providerMetadata?: ProviderMetadata;
 }
 
@@ -199,5 +230,6 @@ export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   result: z.unknown(),
   content: toolResultContentSchema.optional(),
   isError: z.boolean().optional(),
+  providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type
