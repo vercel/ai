@@ -40,10 +40,7 @@ export function appendResponseMessages({
           toolInvocations: (typeof message.content === 'string'
             ? []
             : message.content.filter(part => part.type === 'tool-call')
-          ).map(call => ({
-            state: 'call',
-            ...call,
-          })),
+          ).map(call => ({ state: 'call', ...call })),
         });
 
         break;
