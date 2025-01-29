@@ -1,4 +1,4 @@
-import { JSONValue } from '@ai-sdk/provider';
+import { JSONParseError, JSONValue } from '@ai-sdk/provider';
 import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
@@ -86,6 +86,14 @@ Default and recommended: 'auto' (best mode for the model).
       mode?: 'auto' | 'json' | 'tool';
 
       /**
+Utility function that can be used to repair a response that could not be parsed into a valid JSON.
+       */
+      repairResponse?: (args: {
+        brokenJson: string;
+        error: JSONParseError;
+      }) => string;
+
+      /**
 Optional telemetry configuration (experimental).
        */
 
@@ -160,6 +168,14 @@ Default and recommended: 'auto' (best mode for the model).
       mode?: 'auto' | 'json' | 'tool';
 
       /**
+Utility function that can be used to repair a response that could not be parsed into a valid JSON.
+       */
+      repairResponse?: (args: {
+        brokenJson: string;
+        error: JSONParseError;
+      }) => string;
+
+      /**
 Optional telemetry configuration (experimental).
      */
       experimental_telemetry?: TelemetrySettings;
@@ -219,6 +235,14 @@ Default and recommended: 'auto' (best mode for the model).
       mode?: 'auto' | 'json' | 'tool';
 
       /**
+Utility function that can be used to repair a response that could not be parsed into a valid JSON.
+       */
+      repairResponse?: (args: {
+        brokenJson: string;
+        error: JSONParseError;
+      }) => string;
+
+      /**
 Optional telemetry configuration (experimental).
      */
       experimental_telemetry?: TelemetrySettings;
@@ -263,6 +287,14 @@ The mode to use for object generation. Must be "json" for no-schema output.
       mode?: 'json';
 
       /**
+Utility function that can be used to repair a response that could not be parsed into a valid JSON.
+       */
+      repairResponse?: (args: {
+        brokenJson: string;
+        error: JSONParseError;
+      }) => string;
+
+      /**
 Optional telemetry configuration (experimental).
        */
       experimental_telemetry?: TelemetrySettings;
@@ -290,6 +322,7 @@ export async function generateObject<SCHEMA, RESULT>({
   schemaName,
   schemaDescription,
   mode,
+  repairResponse,
   output = 'object',
   system,
   prompt,
@@ -323,6 +356,10 @@ export async function generateObject<SCHEMA, RESULT>({
     schemaName?: string;
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
+    repairResponse?: (args: {
+      brokenJson: string;
+      error: JSONParseError;
+    }) => string;
     experimental_telemetry?: TelemetrySettings;
     experimental_providerMetadata?: ProviderMetadata;
 
@@ -675,7 +712,17 @@ export async function generateObject<SCHEMA, RESULT>({
         }
       }
 
-      const parseResult = safeParseJSON({ text: result });
+      const tmpParseResult = safeParseJSON({ text: result });
+
+      const parseResult =
+        tmpParseResult.success || !repairResponse
+          ? tmpParseResult
+          : safeParseJSON({
+              text: repairResponse({
+                brokenJson: result,
+                error: tmpParseResult.error as JSONParseError,
+              }),
+            });
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({

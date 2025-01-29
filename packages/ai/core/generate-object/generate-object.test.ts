@@ -6,6 +6,7 @@ import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } 
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
+import { JSONParseError } from '@ai-sdk/provider';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -635,6 +636,32 @@ describe('output = "object"', () => {
     });
   });
 
+  describe('options.repairResponse', () => {
+    it('should be able to repair a malformed JSON response', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({}) => {
+            return {
+              ...dummyResponseValues,
+              text: `{ "content": "provider metadata test" `,
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        repairResponse: ({ brokenJson, error }) => {
+          expect(error).toBeInstanceOf(JSONParseError);
+          return brokenJson + '}';
+        },
+      });
+
+      expect(result.object).toStrictEqual({
+        content: 'provider metadata test',
+      });
+    });
+  });
+
   describe('options.providerMetadata', () => {
     it('should pass provider metadata to model in json mode', async () => {
       const result = await generateObject({
@@ -810,6 +837,29 @@ describe('output = "object"', () => {
           schema: z.object({ content: z.string() }),
           mode: 'json',
           prompt: 'prompt',
+        });
+
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: could not parse the response.',
+        });
+      }
+    });
+
+    it('should throw NoObjectGeneratedError when parsing fails in json model also with repairResponse', async () => {
+      try {
+        await generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              text: '{ broken json',
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+          repairResponse: ({ brokenJson }) => brokenJson + '{',
         });
 
         fail('must throw error');
