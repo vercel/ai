@@ -23,8 +23,6 @@ export default function Chat() {
       },
     });
 
-  console.log(structuredClone(messages));
-
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages?.map((m: Message) => (

@@ -33,8 +33,6 @@ export async function processChatResponse({
   getCurrentDate?: () => Date;
   lastMessage: Message | undefined;
 }) {
-  console.log('LAST MESSAGE', structuredClone(lastMessage));
-
   const replaceLastMessage = lastMessage?.role === 'assistant';
   let step = replaceLastMessage
     ? 1 +
