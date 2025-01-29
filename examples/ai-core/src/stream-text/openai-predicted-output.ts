@@ -39,7 +39,7 @@ async function main() {
         content: code,
       },
     ],
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: {
         prediction: {
           type: 'content',

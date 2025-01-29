@@ -29,7 +29,7 @@ import {
   ToolChoice,
 } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata } from '../types/provider-metadata';
+import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import {
   AsyncIterableStream,
@@ -143,7 +143,8 @@ export function streamText<
   experimental_output: output,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
-  experimental_providerMetadata: providerMetadata,
+  experimental_providerMetadata,
+  providerOptions = experimental_providerMetadata,
   experimental_toolCallStreaming = false,
   toolCallStreaming = experimental_toolCallStreaming,
   experimental_activeTools: activeTools,
@@ -202,9 +203,14 @@ Optional telemetry configuration (experimental).
     experimental_telemetry?: TelemetrySettings;
 
     /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
+ */
+    providerOptions?: ProviderOptions;
+
+    /**
+@deprecated Use `providerOptions` instead.
  */
     experimental_providerMetadata?: ProviderMetadata;
 
@@ -309,7 +315,7 @@ Callback that is called when each step (LLM call) is finished, including interme
     maxSteps,
     output,
     continueSteps,
-    providerMetadata,
+    providerOptions,
     onChunk,
     onFinish,
     onStepFinish,
@@ -470,7 +476,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     maxSteps,
     output,
     continueSteps,
-    providerMetadata,
+    providerOptions,
     onChunk,
     onFinish,
     onStepFinish,
@@ -497,7 +503,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     maxSteps: number;
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     continueSteps: boolean;
-    providerMetadata: ProviderMetadata | undefined;
+    providerOptions: ProviderOptions | undefined;
     onChunk:
       | undefined
       | ((event: {
@@ -922,7 +928,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   inputFormat: promptFormat,
                   responseFormat: output?.responseFormat({ model }),
                   prompt: promptMessages,
-                  providerMetadata,
+                  providerMetadata: providerOptions,
                   abortSignal,
                   headers,
                 }),

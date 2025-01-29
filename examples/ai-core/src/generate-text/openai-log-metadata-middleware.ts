@@ -17,7 +17,7 @@ async function main() {
       model: openai('gpt-4o'),
       middleware: logProviderMetadataMiddleware,
     }),
-    experimental_providerMetadata: {
+    providerOptions: {
       myMiddleware: {
         example: 'value',
       },

@@ -9,7 +9,7 @@ async function main() {
     temperature: 0.3,
     maxRetries: 5,
     prompt: 'Invent a new holiday and describe its traditions.',
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: {
         store: true,
         metadata: {

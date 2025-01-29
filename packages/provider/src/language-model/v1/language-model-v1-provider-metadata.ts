@@ -19,6 +19,7 @@ import { JSONValue } from '../../json-value/json-value';
  * }
  * ```
  */
+// TODO language model v2 separate provider metadata (output) from provider options (input)
 export type LanguageModelV1ProviderMetadata = Record<
   string,
   Record<string, JSONValue>
