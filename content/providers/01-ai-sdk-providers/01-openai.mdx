@@ -216,7 +216,7 @@ The following optional settings are available for OpenAI chat models:
 - **reasoningEffort** _'low' | 'medium' | 'high'_
 
   Reasoning effort for reasoning models. Defaults to `medium`. If you use
-  `experimental_providerMetadata` to set the `reasoningEffort` option, this
+  `providerOptions` to set the `reasoningEffort` option, this
   model setting will be ignored.
 
 #### Structured Outputs
@@ -267,7 +267,7 @@ You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 OpenAI supports [predicted outputs](https://platform.openai.com/docs/guides/latency-optimization#use-predicted-outputs) for `gpt-4o` and `gpt-4o-mini`.
 Predicted outputs help you reduce latency by allowing you to specify a base text that the model should modify.
-You can enable predicted outputs by adding the `prediction` option to the `experimental_providerMetadata.openai` object:
+You can enable predicted outputs by adding the `prediction` option to the `providerOptions.openai` object:
 
 ```ts highlight="15-18"
 const result = streamText({
@@ -311,7 +311,7 @@ const rejectedPredictionTokens = openaiMetadata?.rejectedPredictionTokens;
 
 #### Image Detail
 
-You can use the `openai` provider metadata to set the [image generation detail](https://platform.openai.com/docs/guides/vision/low-or-high-fidelity-image-understanding) to `high`, `low`, or `auto`:
+You can use the `openai` provider option to set the [image generation detail](https://platform.openai.com/docs/guides/vision/low-or-high-fidelity-image-understanding) to `high`, `low`, or `auto`:
 
 ```ts highlight="13-16"
 const result = await generateText({
@@ -326,8 +326,8 @@ const result = await generateText({
           image:
             'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
 
-          // OpenAI specific extension - image detail:
-          experimental_providerMetadata: {
+          // OpenAI specific options - image detail:
+          providerOptions: {
             openai: { imageDetail: 'low' },
           },
         },
@@ -339,7 +339,9 @@ const result = await generateText({
 
 #### Distillation
 
-OpenAI supports model distillation for some models. If you want to store a generation for use in the distillation process, you can add the `store` option to the `experimental_providerMetadata.openai` object. This will save the generation to the OpenAI platform for later use in distillation.
+OpenAI supports model distillation for some models.
+If you want to store a generation for use in the distillation process, you can add the `store` option to the `providerOptions.openai` object.
+This will save the generation to the OpenAI platform for later use in distillation.
 
 ```typescript highlight="9-16"
 import { openai } from '@ai-sdk/openai';
@@ -350,7 +352,7 @@ async function main() {
   const { text, usage } = await generateText({
     model: openai('gpt-4o-mini'),
     prompt: 'Who worked on the original macintosh?',
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: {
         store: true,
         metadata: {
@@ -377,7 +379,7 @@ Reasoning models currently only generate text, have several limitations, and are
 
 Reasoning models support additional settings and response metadata:
 
-- You can use `experimental_providerMetadata` to set
+- You can use `providerOptions` to set
 
   - the `reasoningEffort` option (or alternatively the `reasoningEffort` model setting), which determines the amount of reasoning the model performs.
 
@@ -390,7 +392,7 @@ import { generateText } from 'ai';
 const { text, usage, experimental_providerMetadata } = await generateText({
   model: openai('o1-mini'),
   prompt: 'Invent a new holiday and describe its traditions.',
-  experimental_providerMetadata: {
+  providerOptions: {
     openai: {
       reasoningEffort: 'low',
     },
