@@ -11,6 +11,7 @@ Tool invocations are either tool calls or tool results. For each assistant tool 
 there is one tool invocation. While the call is in progress, the invocation is a tool call.
 Once the call is complete, the invocation is a tool result.
  */
+// TODO
 export type ToolInvocation =
   | ({ state: 'partial-call' } & ToolCall<string, any>)
   | ({ state: 'call' } & ToolCall<string, any>)
