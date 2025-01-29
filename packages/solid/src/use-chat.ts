@@ -8,10 +8,10 @@ import type {
   Message,
   UseChatOptions as SharedUseChatOptions,
 } from '@ai-sdk/ui-utils';
-import { 
-  callChatApi, 
+import {
+  callChatApi,
   generateId as generateIdFunc,
-  prepareAttachmentsForRequest
+  prepareAttachmentsForRequest,
 } from '@ai-sdk/ui-utils';
 import {
   Accessor,
@@ -141,7 +141,14 @@ const processStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({ role, content, experimental_attachments, data, annotations, toolInvocations }) => ({
+        ({
+          role,
+          content,
+          experimental_attachments,
+          data,
+          annotations,
+          toolInvocations,
+        }) => ({
           role,
           content,
           ...(experimental_attachments !== undefined && {
@@ -152,7 +159,7 @@ const processStreamedResponse = async (
           ...(toolInvocations !== undefined && { toolInvocations }),
         }),
       );
-  
+
   return await callChatApi({
     api,
     body: {
@@ -327,19 +334,17 @@ export function useChat(
     message,
     { data, headers, body, experimental_attachments } = {},
   ) => {
-
     const attachmentsForRequest = await prepareAttachmentsForRequest(
-      experimental_attachments
+      experimental_attachments,
     );
 
     const newMessage = {
       ...message,
       id: message.id ?? generateId()(),
-      experimental_attachments: attachmentsForRequest.length > 0 
-        ? attachmentsForRequest 
-        : undefined,
+      experimental_attachments:
+        attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
     };
-  
+
     return triggerRequest({
       messages: messagesRef.concat(newMessage as Message),
       headers,
@@ -416,9 +421,9 @@ export function useChat(
     if (!inputValue && !options.allowEmptySubmit) return;
 
     const attachmentsForRequest = await prepareAttachmentsForRequest(
-      options.experimental_attachments
+      options.experimental_attachments,
     );
-  
+
     if (metadata) {
       extraMetadata = {
         ...extraMetadata,
@@ -435,9 +440,10 @@ export function useChat(
               role: 'user',
               content: inputValue,
               createdAt: new Date(),
-              experimental_attachments: attachmentsForRequest.length > 0
-                ? attachmentsForRequest
-                : undefined,
+              experimental_attachments:
+                attachmentsForRequest.length > 0
+                  ? attachmentsForRequest
+                  : undefined,
             }),
       headers: options.headers,
       body: options.body,
