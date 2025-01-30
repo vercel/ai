@@ -1,0 +1,134 @@
+---
+title: Fal
+description: Learn how to use Fal AI models with the AI SDK.
+---
+
+# Fal Provider
+
+[Fal AI](https://fal.ai/) provides a generative media platform for developers with lightning-fast inference capabilities. Their platform offers optimized performance for running diffusion models, with speeds up to 4x faster than alternatives.
+
+## Setup
+
+The Fal provider is available via the `@ai-sdk/fal` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/fal" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/fal" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/fal" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `fal` from `@ai-sdk/fal`:
+
+```ts
+import { fal } from '@ai-sdk/fal';
+```
+
+If you need a customized setup, you can import `createFal` and create a provider instance with your settings:
+
+```ts
+import { createFal } from '@ai-sdk/fal';
+
+const fal = createFal({
+  apiKey: 'your-api-key', // optional, defaults to FAL_API_KEY environment variable
+  baseURL: 'custom-url', // optional
+  headers: {
+    /* custom headers */
+  }, // optional
+});
+```
+
+You can use the following optional settings to customize the Fal provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://fal.run`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `FAL_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Image Models
+
+You can create Fal image models using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+### Basic Usage
+
+```ts
+import { fal } from '@ai-sdk/fal';
+import { experimental_generateImage as generateImage } from 'ai';
+import fs from 'fs';
+
+const { image } = await generateImage({
+  model: fal.image('fast-sdxl'),
+  prompt: 'A serene mountain landscape at sunset',
+});
+
+const filename = `image-${Date.now()}.png`;
+fs.writeFileSync(filename, image.uint8Array);
+console.log(`Image saved to ${filename}`);
+```
+
+### Model Capabilities
+
+Fal offers many models optimized for different use cases. Here are a few popular examples. For a full list of models, see the [Fal AI documentation](https://fal.ai/models).
+
+| Model                        | Description                                                                            |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| `fast-sdxl`                  | High-speed SDXL model optimized for quick inference with up to 4x faster speeds        |
+| `flux-pro/v1.1-ultra`        | Professional-grade image generation with up to 2K resolution and enhanced photorealism |
+| `ideogram/v2`                | Specialized for high-quality posters and logos with exceptional typography handling    |
+| `recraft-v3`                 | SOTA in image generation with vector art and brand style capabilities                  |
+| `stable-diffusion-3.5-large` | Advanced MMDiT model with improved typography and complex prompt understanding         |
+| `hyper-sdxl`                 | Performance-optimized SDXL variant with enhanced creative capabilities                 |
+
+Fal models support the following aspect ratios:
+
+- 1:1 (square HD)
+- 16:9 (landscape)
+- 9:16 (portrait)
+- 4:3 (landscape)
+- 3:4 (portrait)
+- 16:10 (1280x800)
+- 10:16 (800x1280)
+- 21:9 (2560x1080)
+- 9:21 (1080x2560)
+
+Key features of Fal models include:
+
+- Up to 4x faster inference speeds compared to alternatives
+- Optimized by the Fal Inference Engine™
+- Support for real-time infrastructure
+- Cost-effective scaling with pay-per-use pricing
+- LoRA training capabilities for model personalization
+
+### Advanced Features
+
+Fal's platform offers several advanced capabilities:
+
+- **Private Model Inference**: Run your own diffusion transformer models with up to 50% faster inference
+- **LoRA Training**: Train and personalize models in under 5 minutes
+- **Real-time Infrastructure**: Enable new user experiences with fast inference times
+- **Scalable Architecture**: Scale to thousands of GPUs when needed
+
+For more details about Fal's capabilities and features, visit the [Fal AI documentation](https://fal.ai/docs).
