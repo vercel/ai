@@ -20,79 +20,95 @@ interface FalImageModelConfig {
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
+  _internal?: {
+    currentDate?: () => Date;
+  };
 }
 
-// Validation error has a particular payload to inform the exact property that is invalid
-const falValidationErrorSchema = z.object({
-  name: z.literal('ValidationError'),
-  status: z.literal(422),
-  body: z.object({
-    detail: z.array(
-      z.object({
-        loc: z.array(z.string()),
-        msg: z.string(),
-        type: z.string(),
-      }),
-    ),
-  }),
-});
+export class FalImageModel implements ImageModelV1 {
+  readonly specificationVersion = 'v1';
 
-type ValidationError = z.infer<typeof falValidationErrorSchema>;
+  get provider(): string {
+    return this.config.provider;
+  }
 
-function isValidationError(error: unknown): error is ValidationError {
-  return falValidationErrorSchema.safeParse(error).success;
-}
+  get maxImagesPerCall(): number {
+    return this.settings.maxImagesPerCall ?? 1;
+  }
 
-// Other errors have a message property
-const falHttpErrorSchema = z.object({
-  name: z.string(),
-  status: z.number(),
-  body: z
-    .object({
-      message: z.string(),
-    })
-    .optional(),
-});
+  constructor(
+    readonly modelId: FalImageModelId,
+    private readonly settings: FalImageSettings,
+    private readonly config: FalImageModelConfig,
+  ) {}
 
-const falErrorSchema = z.union([falValidationErrorSchema, falHttpErrorSchema]);
+  async doGenerate({
+    prompt,
+    n,
+    size,
+    aspectRatio,
+    seed,
+    providerOptions,
+    headers,
+    abortSignal,
+  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  > {
+    const warnings: Array<ImageModelV1CallWarning> = [];
 
-const falFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: falErrorSchema,
-  errorToMessage: error => {
-    if (isValidationError(error)) {
-      return error.body.detail
-        .map(detail => `${detail.loc.join('.')}: ${detail.msg}`)
-        .join('\n');
+    let imageSize: FalImageSize | undefined;
+    if (size) {
+      const [width, height] = size.split('x').map(Number);
+      imageSize = { width, height };
+    } else if (aspectRatio) {
+      imageSize = convertAspectRatioToSize(aspectRatio);
     }
-    const body = error.body || ({} as any);
-    return body.message ?? 'Unknown fal error';
-  },
-});
 
-const falImageSchema = z.object({
-  url: z.string(),
-  width: z.number(),
-  height: z.number(),
-  content_type: z.string(),
-});
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { value, responseHeaders } = await postJsonToApi({
+      url: `${this.config.baseURL}/${this.modelId}`,
+      headers: combineHeaders(await resolve(this.config.headers), headers),
+      body: {
+        prompt,
+        seed,
+        image_size: imageSize,
+        num_images: n,
+        ...providerOptions,
+      },
+      failedResponseHandler: falFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        falImageResponseSchema,
+      ),
+      abortSignal,
+      fetch: this.config.fetch,
+    });
 
-const falImageResponseSchema = z.union([
-  z.object({
-    images: z.array(falImageSchema),
-  }),
-  z.object({
-    image: falImageSchema,
-  }),
-]);
+    // download the images:
+    const result = 'images' in value ? value.images : [value.image];
+    const images = await Promise.all(
+      result.map(async image => {
+        // TODO: use getFromApi instead, follow luma downloadImage.
+        const response = await fetch(image.url);
+        return new Uint8Array(await response.arrayBuffer());
+      }),
+    );
 
-type ImageModelV1Parameters = Parameters<ImageModelV1['doGenerate']>[0];
-
-type ImageModelV1Response = Awaited<ReturnType<ImageModelV1['doGenerate']>>;
+    return {
+      images,
+      warnings,
+      response: {
+        modelId: this.modelId,
+        timestamp: currentDate,
+        headers: responseHeaders,
+      },
+    };
+  }
+}
 
 /**
- * Convert an aspect ratio to an image size compatible with fal.ai APIs.
- * @param aspectRatio - The aspect ratio to convert.
- * @returns The image size.
+Converts an aspect ratio to an image size compatible with fal.ai APIs.
+@param aspectRatio - The aspect ratio to convert.
+@returns The image size.
  */
 function convertAspectRatioToSize(
   aspectRatio: `${number}:${number}`,
@@ -120,81 +136,54 @@ function convertAspectRatioToSize(
   return undefined;
 }
 
-function convertToFalImageInput(
-  params: Omit<ImageModelV1Parameters, 'headers' | 'abortSignal'>,
-) {
-  let imageSize: FalImageSize | undefined;
-  if (params.size) {
-    const [width, height] = params.size.split('x').map(Number);
-    imageSize = { width, height };
-  } else if (params.aspectRatio) {
-    imageSize = convertAspectRatioToSize(params.aspectRatio);
-  }
-  return {
-    prompt: params.prompt,
-    seed: params.seed,
-    image_size: imageSize,
-    num_images: params.n,
-    ...params.providerOptions,
-  };
+// Validation error has a particular payload to inform the exact property that is invalid
+const falValidationErrorSchema = z.object({
+  detail: z.array(
+    z.object({
+      loc: z.array(z.string()),
+      msg: z.string(),
+      type: z.string(),
+    }),
+  ),
+});
+
+type ValidationError = z.infer<typeof falValidationErrorSchema>;
+
+// Other errors have a message property
+const falHttpErrorSchema = z.object({
+  message: z.string(),
+});
+
+const falErrorSchema = z.union([falValidationErrorSchema, falHttpErrorSchema]);
+
+const falImageSchema = z.object({
+  url: z.string(),
+  width: z.number(),
+  height: z.number(),
+  content_type: z.string(),
+});
+
+const falImageResponseSchema = z.union([
+  z.object({
+    images: z.array(falImageSchema),
+  }),
+  z.object({
+    image: falImageSchema,
+  }),
+]);
+
+function isValidationError(error: unknown): error is ValidationError {
+  return falValidationErrorSchema.safeParse(error).success;
 }
 
-export class FalImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
-
-  get provider(): string {
-    return this.config.provider;
-  }
-
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
-  constructor(
-    readonly modelId: FalImageModelId,
-    private readonly settings: FalImageSettings,
-    private readonly config: FalImageModelConfig,
-  ) {}
-
-  async doGenerate(
-    params: ImageModelV1Parameters,
-  ): Promise<ImageModelV1Response> {
-    const warnings: Array<ImageModelV1CallWarning> = [];
-    const { headers, abortSignal, ...input } = params;
-    const { value, responseHeaders } = await postJsonToApi<
-      z.infer<typeof falImageResponseSchema>
-    >({
-      url: `${this.config.baseURL}/${this.modelId}`,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
-      body: {
-        input: convertToFalImageInput(input),
-      },
-      failedResponseHandler: falFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        falImageResponseSchema,
-      ),
-      abortSignal,
-      fetch: this.config.fetch,
-    });
-    const currentDate = new Date();
-
-    // download the images:
-    const result = 'images' in value ? value.images : [value.image];
-    const images = await Promise.all(
-      result.map(async image => {
-        const response = await fetch(image.url);
-        return new Uint8Array(await response.arrayBuffer());
-      }),
-    );
-
-    return {
-      images,
-      warnings,
-      response: {
-        timestamp: currentDate,
-        modelId: this.modelId,
-        headers: responseHeaders,
-      },
-    };
-  }
-}
+const falFailedResponseHandler = createJsonErrorResponseHandler({
+  errorSchema: falErrorSchema,
+  errorToMessage: error => {
+    if (isValidationError(error)) {
+      return error.detail
+        .map(detail => `${detail.loc.join('.')}: ${detail.msg}`)
+        .join('\n');
+    }
+    return error.message ?? 'Unknown fal error';
+  },
+});

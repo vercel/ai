@@ -1,3 +1,4 @@
+// https://fal.ai/models
 export type FalImageModelId =
   | 'fal-ai/aura-flow'
   | 'fal-ai/aura-sr'
@@ -64,7 +65,7 @@ export type FalImageSize =
 
 export interface FalImageSettings {
   /**
-   * Override the maximum number of images per call (default 1)
+Override the maximum number of images per call (default 1).
    */
   maxImagesPerCall?: number;
 }
