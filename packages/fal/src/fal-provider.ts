@@ -1,3 +1,4 @@
+import { ImageModelV1 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { FalImageModel } from './fal-image-model';
@@ -32,7 +33,7 @@ export interface FalProvider {
   /**
 Creates a model for image generation.
    */
-  image(modelId: FalImageModelId, settings?: FalImageSettings): FalImageModel;
+  image(modelId: FalImageModelId, settings?: FalImageSettings): ImageModelV1;
 }
 
 const defaultBaseURL = 'https://fal.run';

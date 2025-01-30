@@ -3,8 +3,11 @@ import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
   combineHeaders,
+  createBinaryResponseHandler,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createStatusCodeErrorResponseHandler,
+  getFromApi,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
@@ -73,7 +76,7 @@ export class FalImageModel implements ImageModelV1 {
         seed,
         image_size: imageSize,
         num_images: n,
-        ...providerOptions,
+        ...(providerOptions.fal ?? {}),
       },
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -84,17 +87,13 @@ export class FalImageModel implements ImageModelV1 {
     });
 
     // download the images:
-    const result = 'images' in value ? value.images : [value.image];
-    const images = await Promise.all(
-      result.map(async image => {
-        // TODO: use getFromApi instead, follow luma downloadImage.
-        const response = await fetch(image.url);
-        return new Uint8Array(await response.arrayBuffer());
-      }),
+    const targetImages = 'images' in value ? value.images : [value.image];
+    const downloadedImages = await Promise.all(
+      targetImages.map(image => this.downloadImage(image.url, abortSignal)),
     );
 
     return {
-      images,
+      images: downloadedImages,
       warnings,
       response: {
         modelId: this.modelId,
@@ -102,6 +101,22 @@ export class FalImageModel implements ImageModelV1 {
         headers: responseHeaders,
       },
     };
+  }
+
+  private async downloadImage(
+    url: string,
+    abortSignal: AbortSignal | undefined,
+  ): Promise<Uint8Array> {
+    const { value: response } = await getFromApi({
+      url,
+      // No specific headers should be needed for this request as it's a
+      // generated image provided by fal.ai.
+      abortSignal,
+      failedResponseHandler: createStatusCodeErrorResponseHandler(),
+      successfulResponseHandler: createBinaryResponseHandler(),
+      fetch: this.config.fetch,
+    });
+    return response;
   }
 }
 
