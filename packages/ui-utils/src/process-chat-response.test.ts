@@ -774,6 +774,7 @@ describe('scenario: tool call streaming', () => {
           toolInvocations: [
             {
               state: 'partial-call',
+              step: 0,
               toolCallId: 'tool-call-0',
               toolName: 'test-tool',
               args: undefined,
@@ -796,6 +797,7 @@ describe('scenario: tool call streaming', () => {
                 testArg: 't',
               },
               state: 'partial-call',
+              step: 0,
               toolCallId: 'tool-call-0',
               toolName: 'test-tool',
             },
@@ -817,6 +819,7 @@ describe('scenario: tool call streaming', () => {
                 testArg: 'test-value',
               },
               state: 'partial-call',
+              step: 0,
               toolCallId: 'tool-call-0',
               toolName: 'test-tool',
             },

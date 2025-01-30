@@ -59,7 +59,7 @@ export async function processChatResponse({
   // keep track of partial tool calls
   const partialToolCalls: Record<
     string,
-    { text: string; index: number; toolName: string }
+    { text: string; step: number; index: number; toolName: string }
   > = {};
 
   let usage: LanguageModelUsage = {
@@ -116,12 +116,14 @@ export async function processChatResponse({
       // add the partial tool call to the map
       partialToolCalls[value.toolCallId] = {
         text: '',
+        step,
         toolName: value.toolName,
         index: message.toolInvocations.length,
       };
 
       message.toolInvocations.push({
         state: 'partial-call',
+        step,
         toolCallId: value.toolCallId,
         toolName: value.toolName,
         args: undefined,
@@ -138,6 +140,7 @@ export async function processChatResponse({
 
       message.toolInvocations![partialToolCall.index] = {
         state: 'partial-call',
+        step: partialToolCall.step,
         toolCallId: value.toolCallId,
         toolName: partialToolCall.toolName,
         args: partialArgs,
