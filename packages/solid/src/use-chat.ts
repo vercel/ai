@@ -425,15 +425,12 @@ export function useChat(
     }
 
     triggerRequest({
-      messages:
-        !inputValue && options.allowEmptySubmit
-          ? messagesRef
-          : messagesRef.concat({
-              id: generateId()(),
-              role: 'user',
-              content: inputValue,
-              createdAt: new Date(),
-            }),
+      messages: messagesRef.concat({
+        id: generateId()(),
+        role: 'user',
+        content: inputValue,
+        createdAt: new Date(),
+      }),
       headers: options.headers,
       body: options.body,
       data: options.data,
