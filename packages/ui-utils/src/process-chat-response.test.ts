@@ -717,6 +717,88 @@ describe('scenario: message annotations in onChunk', () => {
   });
 });
 
+describe('scenario: message annotations with existing assistant lastMessage', () => {
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatDataStreamPart('message_annotations', ['annotation1']),
+      formatDataStreamPart('text', 't1'),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+      }),
+    ]);
+
+    await processChatResponse({
+      stream,
+      update,
+      onFinish,
+      generateId: mockId(),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: {
+        role: 'assistant',
+        id: 'original-id',
+        createdAt: new Date('2023-01-02T00:00:00.000Z'),
+        content: '',
+        annotations: ['annotation0'],
+      },
+    });
+  });
+
+  it('should call the update function with the correct arguments', async () => {
+    expect(updateCalls).toStrictEqual([
+      {
+        message: {
+          content: '',
+          createdAt: new Date('2023-01-02T00:00:00.000Z'),
+          id: 'original-id',
+          revisionId: 'id-0',
+          role: 'assistant',
+          annotations: ['annotation0', 'annotation1'],
+        },
+        data: [],
+        replaceLastMessage: true,
+      },
+      {
+        message: {
+          content: 't1',
+          createdAt: new Date('2023-01-02T00:00:00.000Z'),
+          id: 'original-id',
+          revisionId: 'id-1',
+          role: 'assistant',
+          annotations: ['annotation0', 'annotation1'],
+        },
+        data: [],
+        replaceLastMessage: true,
+      },
+    ]);
+  });
+
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toStrictEqual([
+      {
+        message: {
+          content: 't1',
+          createdAt: new Date('2023-01-02T00:00:00.000Z'),
+          id: 'original-id',
+          role: 'assistant',
+          annotations: ['annotation0', 'annotation1'],
+        },
+        finishReason: 'stop',
+        usage: {
+          completionTokens: 5,
+          promptTokens: 10,
+          totalTokens: 15,
+        },
+      },
+    ]);
+  });
+});
+
 describe('scenario: tool call streaming', () => {
   beforeEach(async () => {
     const stream = createDataProtocolStream([

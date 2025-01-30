@@ -54,7 +54,9 @@ export async function processChatResponse({
   const data: JSONValue[] = [];
 
   // keep list of current message annotations for message
-  let messageAnnotations: JSONValue[] | undefined = undefined;
+  let messageAnnotations: JSONValue[] | undefined = replaceLastMessage
+    ? lastMessage?.annotations
+    : undefined;
 
   // keep track of partial tool calls
   const partialToolCalls: Record<
