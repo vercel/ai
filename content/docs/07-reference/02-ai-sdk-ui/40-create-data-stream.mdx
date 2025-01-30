@@ -46,6 +46,11 @@ const stream = createDataStream({
           type: 'DataStreamWriter',
           parameters: [
             {
+              name: 'write',
+              type: '(data: DataStreamString) => void',
+              description: 'Appends a data part to the stream.',
+            },
+            {
               name: 'writeData',
               type: '(value: JSONValue) => void',
               description: 'Appends a data part to the stream.',
