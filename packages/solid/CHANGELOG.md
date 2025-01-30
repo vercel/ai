@@ -1,5 +1,11 @@
 # @ai-sdk/solid
 
+## 1.1.7
+
+### Patch Changes
+
+- c73423e: feat (ui/solid): experimental attachment support
+
 ## 1.1.6
 
 ### Patch Changes

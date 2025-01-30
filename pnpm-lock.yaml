@@ -937,7 +937,7 @@ importers:
         specifier: 1.1.5
         version: link:../../packages/openai
       '@ai-sdk/solid':
-        specifier: 1.1.6
+        specifier: 1.1.7
         version: link:../../packages/solid
       '@ai-sdk/ui-utils':
         specifier: 1.1.6
