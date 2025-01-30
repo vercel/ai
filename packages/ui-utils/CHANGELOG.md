@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.1.7
+
+### Patch Changes
+
+- 0d2d9bf: fix (ui): single assistant message with multiple tool steps
+
 ## 1.1.6
 
 ### Patch Changes
