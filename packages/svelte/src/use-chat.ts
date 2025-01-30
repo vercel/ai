@@ -10,6 +10,7 @@ import type {
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
+  extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   prepareAttachmentsForRequest,
 } from '@ai-sdk/ui-utils';
@@ -160,8 +161,13 @@ const getStreamedResponse = async (
       }
     },
     onResponse,
-    onUpdate(merged, data) {
-      mutate([...chatRequest.messages, ...merged]);
+    onUpdate({ message, data, replaceLastMessage }) {
+      mutate([
+        ...(replaceLastMessage
+          ? chatRequest.messages.slice(0, chatRequest.messages.length - 1)
+          : chatRequest.messages),
+        message,
+      ]);
       if (data?.length) {
         mutateStreamData([...(existingData ?? []), ...data]);
       }
@@ -170,10 +176,9 @@ const getStreamedResponse = async (
     generateId,
     onToolCall,
     fetch,
+    lastMessage: chatRequest.messages[chatRequest.messages.length - 1],
   });
 };
-
-let uniqueId = 0;
 
 const store: Record<string, Message[] | undefined> = {};
 
@@ -189,22 +194,6 @@ function isAssistantMessageWithCompletedToolCalls(message: Message) {
     message.toolInvocations.length > 0 &&
     message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
   );
-}
-
-/**
-Returns the number of trailing assistant messages in the array.
- */
-function countTrailingAssistantMessages(messages: Message[]) {
-  let count = 0;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'assistant') {
-      count++;
-    } else {
-      break;
-    }
-  }
-
-  return count;
 }
 
 export function useChat({
@@ -278,6 +267,9 @@ export function useChat({
   async function triggerRequest(chatRequest: ChatRequest) {
     const messagesSnapshot = get(messages);
     const messageCount = messagesSnapshot.length;
+    const maxStep = extractMaxToolInvocationStep(
+      chatRequest.messages[chatRequest.messages.length - 1]?.toolInvocations,
+    );
 
     try {
       error.set(undefined);
@@ -327,16 +319,21 @@ export function useChat({
 
     const lastMessage = newMessagesSnapshot[newMessagesSnapshot.length - 1];
     if (
-      // ensure we actually have new messages (to prevent infinite loops in case of errors):
-      newMessagesSnapshot.length > messageCount &&
       // ensure there is a last message:
       lastMessage != null &&
+      // ensure we actually have new messages (to prevent infinite loops in case of errors):
+      (newMessagesSnapshot.length > messageCount ||
+        extractMaxToolInvocationStep(lastMessage.toolInvocations) !==
+          maxStep) &&
       // check if the feature is enabled:
       maxSteps > 1 &&
       // check that next step is possible:
       isAssistantMessageWithCompletedToolCalls(lastMessage) &&
+      // check that assistant has not answered yet:
+      !lastMessage.content && // empty string or undefined
       // limit the number of automatic steps:
-      countTrailingAssistantMessages(newMessagesSnapshot) < maxSteps
+      (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) <
+        maxSteps
     ) {
       await triggerRequest({ messages: newMessagesSnapshot });
     }
@@ -435,19 +432,14 @@ export function useChat({
     );
 
     triggerRequest({
-      messages:
-        !inputValue && options.allowEmptySubmit
-          ? get(messages)
-          : get(messages).concat({
-              id: generateId(),
-              content: inputValue,
-              role: 'user',
-              createdAt: new Date(),
-              experimental_attachments:
-                attachmentsForRequest.length > 0
-                  ? attachmentsForRequest
-                  : undefined,
-            } as Message),
+      messages: get(messages).concat({
+        id: generateId(),
+        content: inputValue,
+        role: 'user',
+        createdAt: new Date(),
+        experimental_attachments:
+          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+      } as Message),
       body: options.body,
       headers: options.headers,
       data: options.data,

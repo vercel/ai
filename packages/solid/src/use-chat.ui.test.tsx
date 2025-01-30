@@ -668,7 +668,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool"}',
+            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool"}',
           );
         });
 
@@ -681,7 +681,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
+            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
           );
         });
 
@@ -694,7 +694,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -708,7 +708,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -722,7 +722,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+            '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
           );
         });
       },
@@ -746,7 +746,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -760,7 +760,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+            '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
           );
         });
       },
@@ -788,7 +788,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -796,7 +796,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+            '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
           );
         });
       },
@@ -862,8 +862,8 @@ describe('maxSteps', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      await screen.findByTestId('message-2');
-      expect(screen.getByTestId('message-2')).toHaveTextContent('final result');
+      await screen.findByTestId('message-1');
+      expect(screen.getByTestId('message-1')).toHaveTextContent('final result');
     });
   });
 
@@ -1098,7 +1098,10 @@ describe('form actions (with options)', () => {
     await userEvent.keyboard('{Enter}');
 
     await screen.findByTestId('message-2');
-    expect(screen.getByTestId('message-2')).toHaveTextContent(
+    expect(screen.getByTestId('message-2')).toHaveTextContent('User:');
+
+    await screen.findByTestId('message-3');
+    expect(screen.getByTestId('message-3')).toHaveTextContent(
       'AI: How can I help you?',
     );
 
@@ -1112,13 +1115,13 @@ describe('form actions (with options)', () => {
     await userEvent.type(input, 'what color is the sky?');
     await userEvent.keyboard('{Enter}');
 
-    await screen.findByTestId('message-3');
-    expect(screen.getByTestId('message-3')).toHaveTextContent(
+    await screen.findByTestId('message-4');
+    expect(screen.getByTestId('message-4')).toHaveTextContent(
       'User: what color is the sky?',
     );
 
-    await screen.findByTestId('message-4');
-    expect(screen.getByTestId('message-4')).toHaveTextContent(
+    await screen.findByTestId('message-5');
+    expect(screen.getByTestId('message-5')).toHaveTextContent(
       'AI: The sky is blue.',
     );
   });

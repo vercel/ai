@@ -10,11 +10,15 @@ export type IdGenerator = () => string;
 Tool invocations are either tool calls or tool results. For each assistant tool call,
 there is one tool invocation. While the call is in progress, the invocation is a tool call.
 Once the call is complete, the invocation is a tool result.
+
+The step is used to track how to map an assistant UI message with many tool invocations
+back to a sequence of LLM assistant/tool result message pairs.
+It is optional for backwards compatibility.
  */
 export type ToolInvocation =
-  | ({ state: 'partial-call' } & ToolCall<string, any>)
-  | ({ state: 'call' } & ToolCall<string, any>)
-  | ({ state: 'result' } & ToolResult<string, any, any>);
+  | ({ state: 'partial-call'; step?: number } & ToolCall<string, any>)
+  | ({ state: 'call'; step?: number } & ToolCall<string, any>)
+  | ({ state: 'result'; step?: number } & ToolResult<string, any, any>);
 
 /**
  * An attachment that can be sent along with a message.

@@ -1834,7 +1834,7 @@ importers:
         specifier: ^6.6.3
         version: 6.6.3
       '@testing-library/user-event':
-        specifier: ^14.5.1
+        specifier: ^14.5.2
         version: 14.5.2(@testing-library/dom@10.4.0)
       '@types/node':
         specifier: ^18
@@ -1866,6 +1866,9 @@ importers:
       vite-plugin-solid:
         specifier: 2.7.2
         version: 2.7.2(solid-js@1.8.7)
+      vitest:
+        specifier: 2.1.4
+        version: 2.1.4(@edge-runtime/vm@5.0.0)(@types/node@18.18.9)(jsdom@24.0.0)(msw@2.6.4(@types/node@18.18.9)(typescript@5.6.3))(terser@5.31.3)
 
   packages/svelte:
     dependencies:

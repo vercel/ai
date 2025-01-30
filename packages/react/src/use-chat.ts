@@ -1,20 +1,19 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
-  IdGenerator,
   JSONValue,
   Message,
   UseChatOptions,
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
+  extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   prepareAttachmentsForRequest,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useSWR, { KeyedMutator } from 'swr';
+import useSWR from 'swr';
 import { throttle } from './throttle';
 
 export type { CreateMessage, Message, UseChatOptions };
@@ -87,101 +86,6 @@ export type UseChatHelpers = {
   id: string;
 };
 
-const processResponseStream = async (
-  api: string,
-  chatRequest: ChatRequest,
-  mutate: KeyedMutator<Message[]>,
-  mutateStreamData: KeyedMutator<JSONValue[] | undefined>,
-  existingDataRef: React.MutableRefObject<JSONValue[] | undefined>,
-  extraMetadataRef: React.MutableRefObject<any>,
-  messagesRef: React.MutableRefObject<Message[]>,
-  abortControllerRef: React.MutableRefObject<AbortController | null>,
-  generateId: IdGenerator,
-  streamProtocol: UseChatOptions['streamProtocol'],
-  onFinish: UseChatOptions['onFinish'],
-  onResponse: ((response: Response) => void | Promise<void>) | undefined,
-  onToolCall: UseChatOptions['onToolCall'] | undefined,
-  sendExtraMessageFields: boolean | undefined,
-  experimental_prepareRequestBody:
-    | ((options: {
-        id: string;
-        messages: Message[];
-        requestData?: JSONValue;
-        requestBody?: object;
-      }) => unknown)
-    | undefined,
-  fetch: FetchFunction | undefined,
-  keepLastMessageOnError: boolean,
-  id: string,
-) => {
-  // Do an optimistic update to the chat state to show the updated messages immediately:
-  const previousMessages = messagesRef.current;
-  mutate(chatRequest.messages, false);
-
-  const constructedMessagesPayload = sendExtraMessageFields
-    ? chatRequest.messages
-    : chatRequest.messages.map(
-        ({
-          role,
-          content,
-          experimental_attachments,
-          data,
-          annotations,
-          toolInvocations,
-        }) => ({
-          role,
-          content,
-          ...(experimental_attachments !== undefined && {
-            experimental_attachments,
-          }),
-          ...(data !== undefined && { data }),
-          ...(annotations !== undefined && { annotations }),
-          ...(toolInvocations !== undefined && { toolInvocations }),
-        }),
-      );
-
-  const existingData = existingDataRef.current;
-
-  return await callChatApi({
-    api,
-    body: experimental_prepareRequestBody?.({
-      id,
-      messages: chatRequest.messages,
-      requestData: chatRequest.data,
-      requestBody: chatRequest.body,
-    }) ?? {
-      id,
-      messages: constructedMessagesPayload,
-      data: chatRequest.data,
-      ...extraMetadataRef.current.body,
-      ...chatRequest.body,
-    },
-    streamProtocol,
-    credentials: extraMetadataRef.current.credentials,
-    headers: {
-      ...extraMetadataRef.current.headers,
-      ...chatRequest.headers,
-    },
-    abortController: () => abortControllerRef.current,
-    restoreMessagesOnFailure() {
-      if (!keepLastMessageOnError) {
-        mutate(previousMessages, false);
-      }
-    },
-    onResponse,
-    onUpdate(merged, data) {
-      mutate([...chatRequest.messages, ...merged], false);
-      if (data?.length) {
-        mutateStreamData([...(existingData ?? []), ...data], false);
-      }
-    },
-    onToolCall,
-    onFinish,
-    generateId,
-    fetch,
-  });
-};
-
 export function useChat({
   api = '/api/chat',
   id,
@@ -228,7 +132,8 @@ Default is undefined, which disables throttling.
   experimental_throttle?: number;
 
   /**
-Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
+Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
+Must be at least 1.
 
 A maximum number is required to prevent infinite loops in the case of misconfigured tools.
 
@@ -309,7 +214,10 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
-      const messageCount = messagesRef.current.length;
+      const messageCount = chatRequest.messages.length;
+      const maxStep = extractMaxToolInvocationStep(
+        chatRequest.messages[chatRequest.messages.length - 1]?.toolInvocations,
+      );
 
       try {
         mutateLoading(true);
@@ -318,27 +226,94 @@ By default, it's set to 1, which means that only a single LLM call is made.
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
-        await processResponseStream(
-          api,
-          chatRequest,
-          // throttle streamed ui updates:
-          throttle(mutate, throttleWaitMs),
-          throttle(mutateStreamData, throttleWaitMs),
-          streamDataRef,
-          extraMetadataRef,
-          messagesRef,
-          abortControllerRef,
-          generateId,
-          streamProtocol,
-          onFinish,
-          onResponse,
-          onToolCall,
-          sendExtraMessageFields,
-          experimental_prepareRequestBody,
-          fetch,
-          keepLastMessageOnError,
-          chatId,
+        const throttledMutate = throttle(mutate, throttleWaitMs);
+        const throttledMutateStreamData = throttle(
+          mutateStreamData,
+          throttleWaitMs,
         );
+
+        // Do an optimistic update to the chat state to show the updated messages immediately:
+        const previousMessages = messagesRef.current;
+        throttledMutate(chatRequest.messages, false);
+
+        const constructedMessagesPayload = sendExtraMessageFields
+          ? chatRequest.messages
+          : chatRequest.messages.map(
+              ({
+                role,
+                content,
+                experimental_attachments,
+                data,
+                annotations,
+                toolInvocations,
+              }) => ({
+                role,
+                content,
+                ...(experimental_attachments !== undefined && {
+                  experimental_attachments,
+                }),
+                ...(data !== undefined && { data }),
+                ...(annotations !== undefined && { annotations }),
+                ...(toolInvocations !== undefined && { toolInvocations }),
+              }),
+            );
+
+        const existingData = streamDataRef.current;
+
+        await callChatApi({
+          api,
+          body: experimental_prepareRequestBody?.({
+            id: chatId,
+            messages: chatRequest.messages,
+            requestData: chatRequest.data,
+            requestBody: chatRequest.body,
+          }) ?? {
+            id: chatId,
+            messages: constructedMessagesPayload,
+            data: chatRequest.data,
+            ...extraMetadataRef.current.body,
+            ...chatRequest.body,
+          },
+          streamProtocol,
+          credentials: extraMetadataRef.current.credentials,
+          headers: {
+            ...extraMetadataRef.current.headers,
+            ...chatRequest.headers,
+          },
+          abortController: () => abortControllerRef.current,
+          restoreMessagesOnFailure() {
+            if (!keepLastMessageOnError) {
+              throttledMutate(previousMessages, false);
+            }
+          },
+          onResponse,
+          onUpdate({ message, data, replaceLastMessage }) {
+            throttledMutate(
+              [
+                ...(replaceLastMessage
+                  ? chatRequest.messages.slice(
+                      0,
+                      chatRequest.messages.length - 1,
+                    )
+                  : chatRequest.messages),
+                message,
+              ],
+              false,
+            );
+
+            if (data?.length) {
+              throttledMutateStreamData(
+                [...(existingData ?? []), ...data],
+                false,
+              );
+            }
+          },
+          onToolCall,
+          onFinish,
+          generateId,
+          fetch,
+          lastMessage: chatRequest.messages[chatRequest.messages.length - 1],
+        });
 
         abortControllerRef.current = null;
       } catch (err) {
@@ -357,20 +332,26 @@ By default, it's set to 1, which means that only a single LLM call is made.
         mutateLoading(false);
       }
 
-      // auto-submit when all tool calls in the last assistant message have results:
+      // auto-submit when all tool calls in the last assistant message have results
+      // and assistant has not answered yet
       const messages = messagesRef.current;
       const lastMessage = messages[messages.length - 1];
       if (
-        // ensure we actually have new messages (to prevent infinite loops in case of errors):
-        messages.length > messageCount &&
         // ensure there is a last message:
         lastMessage != null &&
+        // ensure we actually have new steps (to prevent infinite loops in case of errors):
+        (messages.length > messageCount ||
+          extractMaxToolInvocationStep(lastMessage.toolInvocations) !==
+            maxStep) &&
         // check if the feature is enabled:
         maxSteps > 1 &&
         // check that next step is possible:
         isAssistantMessageWithCompletedToolCalls(lastMessage) &&
+        // check that assistant has not answered yet:
+        !lastMessage.content && // empty string or undefined
         // limit the number of automatic steps:
-        countTrailingAssistantMessages(messages) < maxSteps
+        (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) <
+          maxSteps
       ) {
         await triggerRequest({ messages });
       }
@@ -509,19 +490,14 @@ By default, it's set to 1, which means that only a single LLM call is made.
         options.experimental_attachments,
       );
 
-      const messages =
-        !input && !attachmentsForRequest.length && options.allowEmptySubmit
-          ? messagesRef.current
-          : messagesRef.current.concat({
-              id: generateId(),
-              createdAt: new Date(),
-              role: 'user',
-              content: input,
-              experimental_attachments:
-                attachmentsForRequest.length > 0
-                  ? attachmentsForRequest
-                  : undefined,
-            });
+      const messages = messagesRef.current.concat({
+        id: generateId(),
+        createdAt: new Date(),
+        role: 'user',
+        content: input,
+        experimental_attachments:
+          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+      });
 
       const chatRequest: ChatRequest = {
         messages,
@@ -598,26 +574,15 @@ Check if the message is an assistant message with completed tool calls.
 The message must have at least one tool invocation and all tool invocations
 must have a result.
  */
-function isAssistantMessageWithCompletedToolCalls(message: Message) {
+function isAssistantMessageWithCompletedToolCalls(
+  message: Message,
+): message is Message & {
+  role: 'assistant';
+} {
   return (
     message.role === 'assistant' &&
-    message.toolInvocations &&
+    message.toolInvocations != null &&
     message.toolInvocations.length > 0 &&
     message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
   );
-}
-
-/**
-Returns the number of trailing assistant messages in the array.
- */
-function countTrailingAssistantMessages(messages: Message[]) {
-  let count = 0;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'assistant') {
-      count++;
-    } else {
-      break;
-    }
-  }
-  return count;
 }

@@ -19,6 +19,7 @@ export async function callChatApi({
   onToolCall,
   generateId,
   fetch = getOriginalFetch(),
+  lastMessage,
 }: {
   api: string;
   body: Record<string, any>;
@@ -28,11 +29,16 @@ export async function callChatApi({
   abortController: (() => AbortController | null) | undefined;
   restoreMessagesOnFailure: () => void;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
-  onUpdate: (newMessages: Message[], data: JSONValue[] | undefined) => void;
+  onUpdate: (options: {
+    message: Message;
+    data: JSONValue[] | undefined;
+    replaceLastMessage: boolean;
+  }) => void;
   onFinish: UseChatOptions['onFinish'];
   onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
+  lastMessage: Message | undefined;
 }) {
   const response = await fetch(api, {
     method: 'POST',
@@ -69,7 +75,7 @@ export async function callChatApi({
 
   switch (streamProtocol) {
     case 'text': {
-      const resultMessage = {
+      const resultMessage: Message = {
         id: generateId(),
         createdAt: new Date(),
         role: 'assistant' as const,
@@ -82,7 +88,11 @@ export async function callChatApi({
           resultMessage.content += chunk;
 
           // note: creating a new message object is required for Solid.js streaming
-          onUpdate([{ ...resultMessage }], []);
+          onUpdate({
+            message: { ...resultMessage },
+            data: [],
+            replaceLastMessage: false,
+          });
         },
       });
 
@@ -98,6 +108,7 @@ export async function callChatApi({
       await processChatResponse({
         stream: response.body,
         update: onUpdate,
+        lastMessage,
         onToolCall,
         onFinish({ message, finishReason, usage }) {
           if (onFinish && message != null) {

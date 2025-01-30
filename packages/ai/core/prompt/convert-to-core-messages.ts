@@ -47,55 +47,72 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
           break;
         }
 
-        // assistant message with tool calls
-        coreMessages.push({
-          role: 'assistant',
-          content: [
-            { type: 'text', text: content },
-            ...toolInvocations.map(
-              ({ toolCallId, toolName, args }): ToolCallPart => ({
-                type: 'tool-call' as const,
-                toolCallId,
-                toolName,
-                args,
-              }),
-            ),
-          ],
-        });
+        const maxStep = toolInvocations.reduce((max, toolInvocation) => {
+          return Math.max(max, toolInvocation.step ?? 0);
+        }, 0);
 
-        // tool message with tool results
-        coreMessages.push({
-          role: 'tool',
-          content: toolInvocations.map((toolInvocation): ToolResultPart => {
-            if (!('result' in toolInvocation)) {
-              throw new MessageConversionError({
-                originalMessage: message,
-                message:
-                  'ToolInvocation must have a result: ' +
-                  JSON.stringify(toolInvocation),
-              });
-            }
+        for (let i = 0; i <= maxStep; i++) {
+          const stepInvocations = toolInvocations.filter(
+            toolInvocation => (toolInvocation.step ?? 0) === i,
+          );
 
-            const { toolCallId, toolName, result } = toolInvocation;
+          if (stepInvocations.length === 0) {
+            continue;
+          }
 
-            const tool = tools[toolName];
-            return tool?.experimental_toToolResultContent != null
-              ? {
-                  type: 'tool-result',
+          // assistant message with tool calls
+          coreMessages.push({
+            role: 'assistant',
+            content: [
+              ...stepInvocations.map(
+                ({ toolCallId, toolName, args }): ToolCallPart => ({
+                  type: 'tool-call' as const,
                   toolCallId,
                   toolName,
-                  result: tool.experimental_toToolResultContent(result),
-                  experimental_content:
-                    tool.experimental_toToolResultContent(result),
-                }
-              : {
-                  type: 'tool-result',
-                  toolCallId,
-                  toolName,
-                  result,
-                };
-          }),
-        });
+                  args,
+                }),
+              ),
+            ],
+          });
+
+          // tool message with tool results
+          coreMessages.push({
+            role: 'tool',
+            content: stepInvocations.map((toolInvocation): ToolResultPart => {
+              if (!('result' in toolInvocation)) {
+                throw new MessageConversionError({
+                  originalMessage: message,
+                  message:
+                    'ToolInvocation must have a result: ' +
+                    JSON.stringify(toolInvocation),
+                });
+              }
+
+              const { toolCallId, toolName, result } = toolInvocation;
+
+              const tool = tools[toolName];
+              return tool?.experimental_toToolResultContent != null
+                ? {
+                    type: 'tool-result',
+                    toolCallId,
+                    toolName,
+                    result: tool.experimental_toToolResultContent(result),
+                    experimental_content:
+                      tool.experimental_toToolResultContent(result),
+                  }
+                : {
+                    type: 'tool-result',
+                    toolCallId,
+                    toolName,
+                    result,
+                  };
+            }),
+          });
+        }
+
+        if (content) {
+          coreMessages.push({ role: 'assistant', content });
+        }
 
         break;
       }
