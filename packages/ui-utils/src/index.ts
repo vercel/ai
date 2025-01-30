@@ -19,6 +19,7 @@ export { formatDataStreamPart, parseDataStreamPart } from './data-stream-parts';
 export type { DataStreamPart, DataStreamString } from './data-stream-parts';
 export { getTextFromDataUrl } from './data-url';
 export type { DeepPartial } from './deep-partial';
+export { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 export { isDeepEqualData } from './is-deep-equal-data';
 export { parsePartialJson } from './parse-partial-json';
 export { prepareAttachmentsForRequest } from './prepare-attachments-for-request';

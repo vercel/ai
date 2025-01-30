@@ -8,6 +8,7 @@ import type {
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
+  extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   prepareAttachmentsForRequest,
 } from '@ai-sdk/ui-utils';
@@ -344,7 +345,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
         // check that assistant has not answered yet:
         !lastMessage.content && // empty string or undefined
         // limit the number of automatic steps:
-        extractMaxStep(lastMessage) < maxSteps
+        (extractMaxToolInvocationStep(lastMessage?.toolInvocations) ?? 0) <
+          maxSteps
       ) {
         await triggerRequest({ messages });
       }
@@ -582,16 +584,5 @@ function isAssistantMessageWithCompletedToolCalls(
     message.toolInvocations != null &&
     message.toolInvocations.length > 0 &&
     message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
-  );
-}
-
-/**
-Returns the maximum step from the tool invocations in the message.
- */
-function extractMaxStep(message: Message & { role: 'assistant' }): number {
-  return (
-    message.toolInvocations?.reduce((max, toolInvocation) => {
-      return Math.max(max, toolInvocation.step ?? 0);
-    }, 0) ?? 0
   );
 }
