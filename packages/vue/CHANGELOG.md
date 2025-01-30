@@ -1,5 +1,14 @@
 # @ai-sdk/vue
 
+## 1.1.7
+
+### Patch Changes
+
+- 0d2d9bf: fix (ui): empty submits (with allowEmptySubmit) create user messages
+- 0d2d9bf: fix (ui): single assistant message with multiple tool steps
+- Updated dependencies [0d2d9bf]
+  - @ai-sdk/ui-utils@1.1.7
+
 ## 1.1.6
 
 ### Patch Changes

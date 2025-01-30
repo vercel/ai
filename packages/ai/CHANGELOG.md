@@ -1,5 +1,15 @@
 # ai
 
+## 4.1.12
+
+### Patch Changes
+
+- 0d2d9bf: fix (ui): single assistant message with multiple tool steps
+- Updated dependencies [0d2d9bf]
+- Updated dependencies [0d2d9bf]
+  - @ai-sdk/react@1.1.7
+  - @ai-sdk/ui-utils@1.1.7
+
 ## 4.1.11
 
 ### Patch Changes

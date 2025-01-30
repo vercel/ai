@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "1.1.5",
-    "@ai-sdk/react": "1.1.6",
-    "ai": "4.1.11",
+    "@ai-sdk/react": "1.1.7",
+    "ai": "4.1.12",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",
