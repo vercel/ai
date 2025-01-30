@@ -19,15 +19,18 @@ import { perplexityMetadataExtractor } from './perplexity-metadata-extractor';
 
 // Add error schema and structure
 const perplexityErrorSchema = z.object({
-  code: z.string(),
-  error: z.string(),
+  error: z.object({
+    code: z.number(),
+    message: z.string().nullish(),
+    type: z.string().nullish(),
+  }),
 });
 
 export type PerplexityErrorData = z.infer<typeof perplexityErrorSchema>;
 
 const perplexityErrorStructure: ProviderErrorStructure<PerplexityErrorData> = {
   errorSchema: perplexityErrorSchema,
-  errorToMessage: data => data.error,
+  errorToMessage: data => data.error.message ?? data.error.type ?? '',
 };
 
 export interface PerplexityProvider extends ProviderV1 {

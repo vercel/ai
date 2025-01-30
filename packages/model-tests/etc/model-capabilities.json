@@ -1,0 +1,620 @@
+{
+  "models": [
+    {
+      "provider": "cerebras",
+      "modelId": "no-such-model",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "languageModelErrorHandling"
+      ]
+    },
+    {
+      "provider": "cerebras",
+      "modelId": "llama3.1-8b",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "cerebras",
+      "modelId": "llama-3.3-70b",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "deepinfra",
+      "modelId": "no-such-model",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "languageModelErrorHandling"
+      ]
+    },
+    {
+      "provider": "deepinfra",
+      "modelId": "meta-llama/Llama-2-70b-chat-hf",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls",
+        "pdfInput"
+      ]
+    },
+    {
+      "provider": "deepinfra",
+      "modelId": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls",
+        "pdfInput"
+      ]
+    },
+    {
+      "provider": "deepinfra",
+      "modelId": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls",
+        "pdfInput"
+      ]
+    },
+    {
+      "provider": "deepinfra",
+      "modelId": "google/gemma-2-27b-it",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls",
+        "pdfInput"
+      ]
+    },
+    {
+      "provider": "deepinfra",
+      "modelId": "mistralai/Mistral-7B-Instruct-v0.3",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls",
+        "pdfInput"
+      ]
+    },
+    {
+      "provider": "deepinfra",
+      "modelId": "BAAI/bge-base-en-v1.5",
+      "modelType": "embedding",
+      "expectedCapabilities": [
+        "embedding"
+      ]
+    },
+    {
+      "provider": "deepinfra",
+      "modelId": "intfloat/e5-base-v2",
+      "modelType": "embedding",
+      "expectedCapabilities": [
+        "embedding"
+      ]
+    },
+    {
+      "provider": "deepinfra",
+      "modelId": "sentence-transformers/all-mpnet-base-v2",
+      "modelType": "embedding",
+      "expectedCapabilities": [
+        "embedding"
+      ]
+    },
+    {
+      "provider": "fireworks",
+      "modelId": "no-such-model",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "languageModelErrorHandling"
+      ]
+    },
+    {
+      "provider": "fireworks",
+      "modelId": "accounts/fireworks/models/llama-v3p3-70b-instruct",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "fireworks",
+      "modelId": "accounts/fireworks/models/llama-v3p2-11b-vision-instruct",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion"
+      ]
+    },
+    {
+      "provider": "fireworks",
+      "modelId": "nomic-ai/nomic-embed-text-v1.5",
+      "modelType": "embedding",
+      "expectedCapabilities": [
+        "embedding"
+      ]
+    },
+    {
+      "provider": "fireworks",
+      "modelId": "accounts/fireworks/models/flux-1-dev-fp8",
+      "modelType": "image",
+      "expectedCapabilities": [
+        "imageGeneration"
+      ]
+    },
+    {
+      "provider": "google",
+      "modelId": "no-such-model",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "languageModelErrorHandling"
+      ]
+    },
+    {
+      "provider": "google",
+      "modelId": "gemini-2.0-flash-exp",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "searchGrounding",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "google",
+      "modelId": "gemini-1.5-flash-002",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "searchGrounding",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "google",
+      "modelId": "embedding-001",
+      "modelType": "embedding",
+      "expectedCapabilities": [
+        "embedding"
+      ]
+    },
+    {
+      "provider": "google-vertex",
+      "modelId": "no-such-model",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "languageModelErrorHandling"
+      ]
+    },
+    {
+      "provider": "google-vertex",
+      "modelId": "gemini-1.5-pro-001",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "searchGrounding",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "google-vertex",
+      "modelId": "gemini-1.0-pro-001",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "searchGrounding",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "google-vertex",
+      "modelId": "gemini-2.0-flash-exp",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "searchGrounding",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "google-vertex",
+      "modelId": "gemini-1.5-flash",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "searchGrounding",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "google-vertex",
+      "modelId": "textembedding-gecko",
+      "modelType": "embedding",
+      "expectedCapabilities": [
+        "embedding"
+      ]
+    },
+    {
+      "provider": "google-vertex",
+      "modelId": "textembedding-gecko-multilingual",
+      "modelType": "embedding",
+      "expectedCapabilities": [
+        "embedding"
+      ]
+    },
+    {
+      "provider": "google-vertex",
+      "modelId": "imagen-3.0-fast-generate-001",
+      "modelType": "image",
+      "expectedCapabilities": [
+        "imageGeneration"
+      ]
+    },
+    {
+      "provider": "google-vertex",
+      "modelId": "imagen-3.0-generate-001",
+      "modelType": "image",
+      "expectedCapabilities": [
+        "imageGeneration"
+      ]
+    },
+    {
+      "provider": "google-vertex-anthropic",
+      "modelId": "no-such-model",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "languageModelErrorHandling"
+      ]
+    },
+    {
+      "provider": "google-vertex-anthropic",
+      "modelId": "claude-3-5-sonnet-v2@20241022",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "google-vertex-anthropic",
+      "modelId": "claude-3-5-haiku@20241022",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "google-vertex-anthropic",
+      "modelId": "claude-3-5-sonnet@20240620",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "luma",
+      "modelId": "no-such-model",
+      "modelType": "image",
+      "expectedCapabilities": [
+        "imageModelErrorHandling"
+      ]
+    },
+    {
+      "provider": "luma",
+      "modelId": "photon-flash-1",
+      "modelType": "image",
+      "expectedCapabilities": [
+        "imageGeneration"
+      ]
+    },
+    {
+      "provider": "luma",
+      "modelId": "photon-1",
+      "modelType": "image",
+      "expectedCapabilities": [
+        "imageGeneration"
+      ]
+    },
+    {
+      "provider": "openai",
+      "modelId": "invalid-model-id",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "languageModelErrorHandling"
+      ]
+    },
+    {
+      "provider": "openai",
+      "modelId": "o1-mini",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "openai",
+      "modelId": "gpt-4o",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "openai",
+      "modelId": "gpt-4o-mini",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "openai",
+      "modelId": "gpt-3.5-turbo",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "openai",
+      "modelId": "gpt-4-turbo",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "audioInput",
+        "imageInput",
+        "objectGeneration",
+        "pdfInput",
+        "textCompletion",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "openai",
+      "modelId": "text-embedding-3-small",
+      "modelType": "embedding",
+      "expectedCapabilities": [
+        "embedding"
+      ]
+    },
+    {
+      "provider": "perplexity",
+      "modelId": "no-such-model",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "languageModelE rrorHandling"
+      ]
+    },
+    {
+      "provider": "perplexity",
+      "modelId": "sonar-pro",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "perplexity",
+      "modelId": "sonar",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "no-such-model",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "languageModelErrorHandling"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "deepseek-ai/DeepSeek-V3",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "mistralai/Mistral-7B-Instruct-v0.1",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "google/gemma-2b-it",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "Qwen/Qwen2.5-72B-Instruct-Turbo",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "databricks/dbrx-instruct",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "Qwen/Qwen2.5-Coder-32B-Instruct",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "togethercomputer/m2-bert-80M-8k-retrieval",
+      "modelType": "embedding",
+      "expectedCapabilities": [
+        "embedding"
+      ]
+    },
+    {
+      "provider": "togetherai",
+      "modelId": "BAAI/bge-base-en-v1.5",
+      "modelType": "embedding",
+      "expectedCapabilities": [
+        "embedding"
+      ]
+    },
+    {
+      "provider": "xai",
+      "modelId": "no-such-model",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "languageModelErrorHandling"
+      ]
+    },
+    {
+      "provider": "xai",
+      "modelId": "grok-2-1212",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls"
+      ]
+    },
+    {
+      "provider": "xai",
+      "modelId": "grok-2-vision-1212",
+      "modelType": "language",
+      "expectedCapabilities": [
+        "textCompletion",
+        "objectGeneration",
+        "toolCalls",
+        "imageInput"
+      ]
+    }
+  ]
+}
