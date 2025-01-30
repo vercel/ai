@@ -214,7 +214,10 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
-      const messageCount = messagesRef.current.length;
+      const messageCount = chatRequest.messages.length;
+      const maxStep = extractMaxToolInvocationStep(
+        chatRequest.messages[chatRequest.messages.length - 1]?.toolInvocations,
+      );
 
       try {
         mutateLoading(true);
@@ -334,10 +337,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
       const messages = messagesRef.current;
       const lastMessage = messages[messages.length - 1];
       if (
-        // ensure we actually have new messages (to prevent infinite loops in case of errors):
-        // messages.length > messageCount && TODO find other way
         // ensure there is a last message:
         lastMessage != null &&
+        // ensure we actually have new steps (to prevent infinite loops in case of errors):
+        (messages.length > messageCount ||
+          extractMaxToolInvocationStep(lastMessage.toolInvocations) !==
+            maxStep) &&
         // check if the feature is enabled:
         maxSteps > 1 &&
         // check that next step is possible:
@@ -345,7 +350,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         // check that assistant has not answered yet:
         !lastMessage.content && // empty string or undefined
         // limit the number of automatic steps:
-        (extractMaxToolInvocationStep(lastMessage?.toolInvocations) ?? 0) <
+        (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) <
           maxSteps
       ) {
         await triggerRequest({ messages });
