@@ -432,19 +432,14 @@ export function useChat({
     );
 
     triggerRequest({
-      messages:
-        !inputValue && options.allowEmptySubmit
-          ? get(messages)
-          : get(messages).concat({
-              id: generateId(),
-              content: inputValue,
-              role: 'user',
-              createdAt: new Date(),
-              experimental_attachments:
-                attachmentsForRequest.length > 0
-                  ? attachmentsForRequest
-                  : undefined,
-            } as Message),
+      messages: get(messages).concat({
+        id: generateId(),
+        content: inputValue,
+        role: 'user',
+        createdAt: new Date(),
+        experimental_attachments:
+          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+      } as Message),
       body: options.body,
       headers: options.headers,
       data: options.data,

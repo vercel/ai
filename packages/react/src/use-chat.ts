@@ -490,19 +490,14 @@ By default, it's set to 1, which means that only a single LLM call is made.
         options.experimental_attachments,
       );
 
-      const messages =
-        !input && !attachmentsForRequest.length && options.allowEmptySubmit
-          ? messagesRef.current
-          : messagesRef.current.concat({
-              id: generateId(),
-              createdAt: new Date(),
-              role: 'user',
-              content: input,
-              experimental_attachments:
-                attachmentsForRequest.length > 0
-                  ? attachmentsForRequest
-                  : undefined,
-            });
+      const messages = messagesRef.current.concat({
+        id: generateId(),
+        createdAt: new Date(),
+        role: 'user',
+        content: input,
+        experimental_attachments:
+          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+      });
 
       const chatRequest: ChatRequest = {
         messages,

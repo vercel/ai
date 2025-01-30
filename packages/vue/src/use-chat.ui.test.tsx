@@ -385,7 +385,7 @@ describe('form actions (with options)', () => {
   it('should show streamed response using handleSubmit', async () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
-      chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
+      chunks: ['Hello', ',', ' world', '.'].map(token =>
         formatDataStreamPart('text', token),
       ),
     });
@@ -399,6 +399,24 @@ describe('form actions (with options)', () => {
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
+        formatDataStreamPart('text', token),
+      ),
+    });
+
+    const secondInput = screen.getByTestId('do-input');
+    await userEvent.type(secondInput, '{Enter}');
+
+    await screen.findByTestId('message-2');
+    expect(screen.getByTestId('message-2')).toHaveTextContent('User:');
+
+    await screen.findByTestId('message-3');
+    expect(screen.getByTestId('message-3')).toHaveTextContent(
       'AI: How can I help you?',
     );
 
@@ -413,13 +431,13 @@ describe('form actions (with options)', () => {
     await userEvent.type(thirdInput, 'what color is the sky?');
     await userEvent.keyboard('{Enter}');
 
-    await screen.findByTestId('message-2');
-    expect(screen.getByTestId('message-2')).toHaveTextContent(
+    await screen.findByTestId('message-4');
+    expect(screen.getByTestId('message-4')).toHaveTextContent(
       'User: what color is the sky?',
     );
 
-    await screen.findByTestId('message-3');
-    expect(screen.getByTestId('message-3')).toHaveTextContent(
+    await screen.findByTestId('message-5');
+    expect(screen.getByTestId('message-5')).toHaveTextContent(
       'AI: The sky is blue.',
     );
   });
