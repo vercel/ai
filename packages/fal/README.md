@@ -54,4 +54,7 @@ const { image } = await generateImage({
 ## Documentation
 
 Please check out the **[fal provider](https://sdk.vercel.ai/providers/ai-sdk-providers/fal)** for more information.
+
+```
+
 ```
