@@ -1069,8 +1069,8 @@ describe('maxSteps', () => {
 
           expect(onToolCallInvoked).toBe(true);
 
-          await screen.findByTestId('message-2');
-          expect(screen.getByTestId('message-2')).toHaveTextContent(
+          await screen.findByTestId('message-1');
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
             'final result',
           );
         },
