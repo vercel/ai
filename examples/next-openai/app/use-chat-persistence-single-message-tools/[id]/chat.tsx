@@ -102,7 +102,12 @@ export default function Chat({
                 Calling {toolInvocation.toolName}...
               </div>
             );
-          })}
+          })}{' '}
+          {m.annotations && (
+            <pre className="p-4 text-sm bg-gray-100">
+              {JSON.stringify(m.annotations, null, 2)}
+            </pre>
+          )}
           {m.content}
           <br />
           <br />
