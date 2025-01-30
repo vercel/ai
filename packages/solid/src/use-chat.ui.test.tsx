@@ -14,6 +14,141 @@ import userEvent from '@testing-library/user-event';
 import { createSignal, For } from 'solid-js';
 import { useChat } from './use-chat';
 
+describe('file attachments with data url', () => {
+  const TestComponent = () => {
+    const {
+      messages,
+      handleSubmit,
+      handleInputChange,
+      isLoading,
+      input,
+      setInput,
+    } = useChat();
+
+    const [attachments, setAttachments] = createSignal<FileList | undefined>();
+    let fileInputRef: HTMLInputElement | undefined;
+
+    return (
+      <div>
+        <For each={messages()}>
+          {(m, idx) => (
+            <div data-testid={`message-${idx()}`}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+              <For each={m.experimental_attachments ?? []}>
+                {attachment =>
+                  attachment.contentType?.startsWith('text/') ? (
+                    <div data-testid={`attachment-${idx()}`}>
+                      {atob(attachment.url.split(',')[1])}
+                    </div>
+                  ) : null
+                }
+              </For>
+            </div>
+          )}
+        </For>
+
+        <form
+          onSubmit={e => {
+            handleSubmit(e, {
+              experimental_attachments: attachments(),
+            });
+            setAttachments(undefined);
+            if (fileInputRef) fileInputRef.value = '';
+          }}
+          data-testid="chat-form"
+        >
+          <input
+            type="file"
+            onChange={e => setAttachments(e.currentTarget.files || undefined)}
+            multiple
+            ref={fileInputRef}
+            data-testid="file-input"
+          />
+          <input
+            value={input()}
+            onInput={handleInputChange}
+            disabled={isLoading()}
+            data-testid="message-input"
+          />
+          <button type="submit" data-testid="submit-button">
+            Send
+          </button>
+        </form>
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(() => <TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'should handle text file attachment and submission',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Response to message with text attachment"\n'],
+      },
+      async ({ call }) => {
+        const file = new File(['test file content'], 'test.txt', {
+          type: 'text/plain',
+        });
+
+        const fileInput = screen.getByTestId('file-input');
+        await userEvent.upload(fileInput, file);
+
+        const messageInput = screen.getByTestId('message-input');
+        await userEvent.type(messageInput, 'Message with text attachment');
+
+        const submitButton = screen.getByTestId('submit-button');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-0')).toHaveTextContent(
+            'User: Message with text attachment',
+          );
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('attachment-0')).toHaveTextContent(
+            'test file content',
+          );
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            'AI: Response to message with text attachment',
+          );
+        });
+
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          id: expect.any(String),
+          messages: [
+            {
+              role: 'user',
+              content: 'Message with text attachment',
+              experimental_attachments: [
+                {
+                  name: 'test.txt',
+                  contentType: 'text/plain',
+                  url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
+                },
+              ],
+            },
+          ],
+        });
+      },
+    ),
+  );
+});
+
 describe('data protocol stream', () => {
   let onFinishCalls: Array<{
     message: Message;

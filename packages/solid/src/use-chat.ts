@@ -12,6 +12,7 @@ import {
   callChatApi,
   extractMaxToolInvocationStep,
   generateId as generateIdFunc,
+  prepareAttachmentsForRequest,
 } from '@ai-sdk/ui-utils';
 import {
   Accessor,
@@ -140,9 +141,19 @@ const processStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({ role, content, data, annotations, toolInvocations }) => ({
+        ({
           role,
           content,
+          experimental_attachments,
+          data,
+          annotations,
+          toolInvocations,
+        }) => ({
+          role,
+          content,
+          ...(experimental_attachments !== undefined && {
+            experimental_attachments,
+          }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
@@ -336,14 +347,21 @@ export function useChat(
 
   const append: UseChatHelpers['append'] = async (
     message,
-    { data, headers, body } = {},
+    { data, headers, body, experimental_attachments } = {},
   ) => {
-    if (!message.id) {
-      message.id = generateId()();
-    }
+    const attachmentsForRequest = await prepareAttachmentsForRequest(
+      experimental_attachments,
+    );
+
+    const newMessage = {
+      ...message,
+      id: message.id ?? generateId()(),
+      experimental_attachments:
+        attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+    };
 
     return triggerRequest({
-      messages: messagesRef.concat(message as Message),
+      messages: messagesRef.concat(newMessage as Message),
       headers,
       body,
       data,
@@ -407,7 +425,7 @@ export function useChat(
     useChatOptions().initialInput?.() || '',
   );
 
-  const handleSubmit: UseChatHelpers['handleSubmit'] = (
+  const handleSubmit: UseChatHelpers['handleSubmit'] = async (
     event,
     options = {},
     metadata?: Object,
@@ -416,6 +434,10 @@ export function useChat(
     const inputValue = input();
 
     if (!inputValue && !options.allowEmptySubmit) return;
+
+    const attachmentsForRequest = await prepareAttachmentsForRequest(
+      options.experimental_attachments,
+    );
 
     if (metadata) {
       extraMetadata = {
@@ -430,6 +452,8 @@ export function useChat(
         role: 'user',
         content: inputValue,
         createdAt: new Date(),
+        experimental_attachments:
+          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
       }),
       headers: options.headers,
       body: options.body,
