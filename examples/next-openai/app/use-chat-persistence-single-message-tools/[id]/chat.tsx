@@ -40,7 +40,6 @@ export default function Chat({
       {messages?.map((m: Message) => (
         <div key={m.id} className="whitespace-pre-wrap">
           <strong>{`${m.role}: `}</strong>
-          {m.content}
           {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
             const toolCallId = toolInvocation.toolCallId;
 
@@ -104,6 +103,7 @@ export default function Chat({
               </div>
             );
           })}
+          {m.content}
           <br />
           <br />
         </div>
