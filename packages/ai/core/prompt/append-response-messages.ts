@@ -39,26 +39,29 @@ export function appendResponseMessages({
                 .map(part => part.text)
                 .join('');
 
+        function getToolInvocations(step: number) {
+          return (
+            typeof message.content === 'string'
+              ? []
+              : message.content.filter(part => part.type === 'tool-call')
+          ).map(call => ({
+            state: 'call' as const,
+            step,
+            args: call.args,
+            toolCallId: call.toolCallId,
+            toolName: call.toolName,
+          }));
+        }
+
         if (isLastMessageAssistant) {
           const maxStep = extractMaxToolInvocationStep(
             lastMessage.toolInvocations,
           );
-          const step = maxStep === undefined ? 0 : maxStep + 1;
-          lastMessage.content = textContent;
 
-          // separate tool calls from the content:
+          lastMessage.content = textContent;
           lastMessage.toolInvocations = [
             ...(lastMessage.toolInvocations ?? []),
-            ...(typeof message.content === 'string'
-              ? []
-              : message.content.filter(part => part.type === 'tool-call')
-            ).map(call => ({
-              state: 'call' as const,
-              step,
-              args: call.args,
-              toolCallId: call.toolCallId,
-              toolName: call.toolName,
-            })),
+            ...getToolInvocations(maxStep === undefined ? 0 : maxStep + 1),
           ];
         } else {
           // last message was a user message, add the assistant message:
@@ -67,18 +70,7 @@ export function appendResponseMessages({
             id: message.id,
             createdAt: new Date(), // generate a createdAt date for the message, will be overridden by the client
             content: textContent,
-
-            // separate tool calls from the content:
-            toolInvocations: (typeof message.content === 'string'
-              ? []
-              : message.content.filter(part => part.type === 'tool-call')
-            ).map(call => ({
-              state: 'call',
-              step: 0,
-              args: call.args,
-              toolCallId: call.toolCallId,
-              toolName: call.toolName,
-            })),
+            toolInvocations: getToolInvocations(0),
           });
         }
 
