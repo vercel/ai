@@ -8,6 +8,7 @@ import type {
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
+  extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   prepareAttachmentsForRequest,
 } from '@ai-sdk/ui-utils';
@@ -154,6 +155,9 @@ export function useChat(
     { data, headers, body }: ChatRequestOptions = {},
   ) {
     const messageCount = messages.value.length;
+    const maxStep = extractMaxToolInvocationStep(
+      messages.value[messages.value.length - 1]?.toolInvocations,
+    );
 
     try {
       error.value = undefined;
@@ -214,8 +218,13 @@ export function useChat(
         abortController: () => abortController,
         credentials,
         onResponse,
-        onUpdate(merged, data) {
-          mutate([...chatRequest.messages, ...merged]);
+        onUpdate({ message, data, replaceLastMessage }) {
+          mutate([
+            ...(replaceLastMessage
+              ? chatRequest.messages.slice(0, chatRequest.messages.length - 1)
+              : chatRequest.messages),
+            message,
+          ]);
           if (data?.length) {
             streamData.value = [...existingData, ...data];
           }
@@ -230,6 +239,7 @@ export function useChat(
         generateId,
         onToolCall,
         fetch,
+        lastMessage: chatRequest.messages[chatRequest.messages.length - 1],
       });
     } catch (err) {
       // Ignore abort errors as they are expected.
@@ -251,17 +261,22 @@ export function useChat(
     // auto-submit when all tool calls in the last assistant message have results:
     const lastMessage = messages.value[messages.value.length - 1];
     if (
-      // ensure we actually have new messages (to prevent infinite loops in case of errors):
-      messages.value.length > messageCount &&
       // ensure there is a last message:
       lastMessage != null &&
+      // ensure we actually have new messages (to prevent infinite loops in case of errors):
+      (messages.value.length > messageCount ||
+        extractMaxToolInvocationStep(lastMessage.toolInvocations) !==
+          maxStep) &&
       // check if the feature is enabled:
       maxSteps &&
       maxSteps > 1 &&
       // check that next step is possible:
       isAssistantMessageWithCompletedToolCalls(lastMessage) &&
+      // check that assistant has not answered yet:
+      !lastMessage.content && // empty string or undefined
       // limit the number of automatic steps:
-      countTrailingAssistantMessages(messages.value) <= maxSteps
+      (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) <
+        maxSteps
     ) {
       await triggerRequest(messages.value);
     }
@@ -427,19 +442,4 @@ function isAssistantMessageWithCompletedToolCalls(message: Message) {
     message.toolInvocations.length > 0 &&
     message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
   );
-}
-
-/**
-Returns the number of trailing assistant messages in the array.
- */
-function countTrailingAssistantMessages(messages: Message[]) {
-  let count = 0;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'assistant') {
-      count++;
-    } else {
-      break;
-    }
-  }
-  return count;
 }

@@ -196,22 +196,6 @@ function isAssistantMessageWithCompletedToolCalls(message: Message) {
   );
 }
 
-/**
-Returns the number of trailing assistant messages in the array.
- */
-function countTrailingAssistantMessages(messages: Message[]) {
-  let count = 0;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'assistant') {
-      count++;
-    } else {
-      break;
-    }
-  }
-
-  return count;
-}
-
 export function useChat({
   api = '/api/chat',
   id,
