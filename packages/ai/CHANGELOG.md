@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.13
+
+### Patch Changes
+
+- 999085e: feat (ai/core): add write function to DataStreamWriter
+
 ## 4.1.12
 
 ### Patch Changes

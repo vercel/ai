@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [999085e]
+  - ai@4.1.13
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [0d2d9bf]
   - ai@4.1.12
 
