@@ -10,6 +10,7 @@ import type {
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
+  extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   prepareAttachmentsForRequest,
 } from '@ai-sdk/ui-utils';
@@ -160,8 +161,13 @@ const getStreamedResponse = async (
       }
     },
     onResponse,
-    onUpdate(merged, data) {
-      mutate([...chatRequest.messages, ...merged]);
+    onUpdate({ message, data, replaceLastMessage }) {
+      mutate([
+        ...(replaceLastMessage
+          ? chatRequest.messages.slice(0, chatRequest.messages.length - 1)
+          : chatRequest.messages),
+        message,
+      ]);
       if (data?.length) {
         mutateStreamData([...(existingData ?? []), ...data]);
       }
@@ -170,10 +176,9 @@ const getStreamedResponse = async (
     generateId,
     onToolCall,
     fetch,
+    lastMessage: chatRequest.messages[chatRequest.messages.length - 1],
   });
 };
-
-let uniqueId = 0;
 
 const store: Record<string, Message[] | undefined> = {};
 
@@ -278,6 +283,9 @@ export function useChat({
   async function triggerRequest(chatRequest: ChatRequest) {
     const messagesSnapshot = get(messages);
     const messageCount = messagesSnapshot.length;
+    const maxStep = extractMaxToolInvocationStep(
+      chatRequest.messages[chatRequest.messages.length - 1]?.toolInvocations,
+    );
 
     try {
       error.set(undefined);
@@ -327,16 +335,21 @@ export function useChat({
 
     const lastMessage = newMessagesSnapshot[newMessagesSnapshot.length - 1];
     if (
-      // ensure we actually have new messages (to prevent infinite loops in case of errors):
-      newMessagesSnapshot.length > messageCount &&
       // ensure there is a last message:
       lastMessage != null &&
+      // ensure we actually have new messages (to prevent infinite loops in case of errors):
+      (newMessagesSnapshot.length > messageCount ||
+        extractMaxToolInvocationStep(lastMessage.toolInvocations) !==
+          maxStep) &&
       // check if the feature is enabled:
       maxSteps > 1 &&
       // check that next step is possible:
       isAssistantMessageWithCompletedToolCalls(lastMessage) &&
+      // check that assistant has not answered yet:
+      !lastMessage.content && // empty string or undefined
       // limit the number of automatic steps:
-      countTrailingAssistantMessages(newMessagesSnapshot) < maxSteps
+      (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) <
+        maxSteps
     ) {
       await triggerRequest({ messages: newMessagesSnapshot });
     }
