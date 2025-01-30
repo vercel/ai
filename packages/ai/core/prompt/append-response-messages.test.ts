@@ -293,6 +293,107 @@ describe('appendResponseMessages', () => {
     ]);
   });
 
+  it('adds chain of assistant messages and tool results', () => {
+    const result = appendResponseMessages({
+      messages: [
+        {
+          role: 'user',
+          id: '1',
+          content: 'User wants a tool invocation',
+          createdAt: new Date(123),
+        },
+      ],
+      responseMessages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolName: 'some-tool',
+              toolCallId: 'call-1',
+              args: { query: 'some query' },
+            },
+          ],
+          id: '2',
+        },
+        {
+          role: 'tool',
+          id: '3',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'some-tool',
+              result: { answer: 'Tool result data' },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolName: 'some-tool',
+              toolCallId: 'call-2',
+              args: { query: 'another query' },
+            },
+          ],
+          id: '4',
+        },
+        {
+          role: 'tool',
+          id: '5',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-2',
+              toolName: 'some-tool',
+              result: { answer: 'another result' },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: 'response',
+          id: '6',
+        },
+      ],
+    });
+
+    expect(result).toStrictEqual([
+      {
+        role: 'user',
+        id: '1',
+        content: 'User wants a tool invocation',
+        createdAt: new Date(123),
+      },
+      {
+        role: 'assistant',
+        content: 'response',
+        id: '2',
+        createdAt: expect.any(Date),
+        toolInvocations: [
+          {
+            state: 'result',
+            toolCallId: 'call-1',
+            toolName: 'some-tool',
+            args: { query: 'some query' },
+            result: { answer: 'Tool result data' },
+            step: 0,
+          },
+          {
+            state: 'result',
+            toolCallId: 'call-2',
+            toolName: 'some-tool',
+            args: { query: 'another query' },
+            result: { answer: 'another result' },
+            step: 1,
+          },
+        ],
+      },
+    ]);
+  });
+
   it('throws an error if a tool result follows a non-assistant message', () => {
     expect(() =>
       appendResponseMessages({

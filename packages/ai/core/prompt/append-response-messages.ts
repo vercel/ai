@@ -21,12 +21,12 @@ export function appendResponseMessages({
 }): Message[] {
   const clonedMessages = structuredClone(messages);
 
-  // check if the last message is an assistant message:
-  const lastMessage = clonedMessages[clonedMessages.length - 1];
-  const isLastMessageAssistant = lastMessage.role === 'assistant';
-
   for (const message of responseMessages) {
     const role = message.role;
+
+    // check if the last message is an assistant message:
+    const lastMessage = clonedMessages[clonedMessages.length - 1];
+    const isLastMessageAssistant = lastMessage.role === 'assistant';
 
     switch (role) {
       case 'assistant': {
