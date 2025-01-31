@@ -33,6 +33,7 @@ export class AwsSigV4Signer {
   async signRequest(
     request: SigningRequest,
   ): Promise<Record<string, string | undefined>> {
+    console.log('signRequest: request=', JSON.stringify(request, null, 2));
     const signer = new AwsV4Signer({
       url: request.url,
       method: request.method,
@@ -43,6 +44,7 @@ export class AwsSigV4Signer {
       ...this.options.credentials,
       service: this.options.service,
       region: this.options.region,
+      allHeaders: true,
     });
     const result = await signer.sign();
     const headers: Record<string, string | undefined> = {};

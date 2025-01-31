@@ -158,13 +158,14 @@ export const createJsonResponseHandler =
   <T>(responseSchema: ZodSchema<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
-
+    console.log('createJsonResponseHandler: responseBody', responseBody);
     const parsedResult = safeParseJSON({
       text: responseBody,
       schema: responseSchema,
     });
 
     const responseHeaders = extractResponseHeaders(response);
+    console.log('createJsonResponseHandler: responseHeaders', responseHeaders);
 
     if (!parsedResult.success) {
       throw new APICallError({

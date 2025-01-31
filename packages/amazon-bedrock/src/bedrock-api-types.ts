@@ -8,7 +8,7 @@ export type BedrockHeadersFunction = (args: {
 }) => Resolvable<Record<string, string | undefined>>;
 
 export interface BedrockConverseInput {
-  modelId: string;
+  // modelId: string;
   system?: Array<{ text: string }>;
   messages: Array<{
     role: string;
@@ -16,7 +16,7 @@ export interface BedrockConverseInput {
   }>;
   toolConfig?: BedrockToolConfiguration;
   inferenceConfig?: {
-    maxTokens?: number;
+    max_new_tokens?: number;
     temperature?: number;
     topP?: number;
     stopSequences?: string[];

@@ -101,7 +101,8 @@ export function createAmazonBedrock(
       url,
       headers: {
         ...headers,
-        'X-Amz-Target': target,
+        // 'X-Amz-Target': target,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
     });
@@ -111,7 +112,8 @@ export function createAmazonBedrock(
     settings: BedrockChatSettings = {},
   ) =>
     new BedrockChatLanguageModel(modelId, settings, {
-      baseUrl: 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      // TODO: make baseURL fn-providable so we can load region from env var
+      baseUrl: 'https://bedrock-runtime.us-east-2.amazonaws.com',
       headers: getHeaders,
       generateId,
     });

@@ -123,14 +123,14 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     const { system, messages } = convertToBedrockChatMessages(prompt);
 
     const inferenceConfig = {
-      ...(maxTokens != null && { maxTokens }),
+      ...(maxTokens != null && { max_new_tokens: maxTokens }),
       ...(temperature != null && { temperature }),
       ...(topP != null && { topP }),
       ...(stopSequences != null && { stopSequences }),
     };
 
     const baseArgs: BedrockConverseInput = {
-      modelId: this.modelId,
+      // modelId: this.modelId,
       system: system ? [{ text: system }] : undefined,
       additionalModelRequestFields: this.settings.additionalModelRequestFields,
       ...(Object.keys(inferenceConfig).length > 0 && { inferenceConfig }),
@@ -189,8 +189,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     }
   }
 
-  private getUrl(modelId: string): string {
-    return `${this.config.baseUrl}/model/${modelId}/converse`;
+  private getUrl(modelId: string) {
+    const encodedModelId = encodeURIComponent(modelId);
+    return `${this.config.baseUrl}/model/${encodedModelId}/converse`;
   }
 
   private getStreamUrl(modelId: string): string {
@@ -216,7 +217,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
+        errorToMessage: error => `${error.message ?? 'Unknown error'}`,
       }),
       successfulResponseHandler: createJsonResponseHandler(
         BedrockResponseSchema,
@@ -227,16 +228,16 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
-    const providerMetadata = response.trace
-      ? { bedrock: { trace: response.trace as JSONObject } }
+    const providerMetadata = response.Trace
+      ? { bedrock: { trace: response.Trace as JSONObject } }
       : undefined;
 
     return {
       text:
-        response.output?.message?.content
+        response.Output?.message?.content
           ?.map(part => part.text ?? '')
           .join('') ?? undefined,
-      toolCalls: response.output?.message?.content
+      toolCalls: response.Output?.message?.content
         ?.filter(part => !!part.toolUse)
         ?.map(part => ({
           toolCallType: 'function',
@@ -430,7 +431,8 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const BedrockResponseSchema = z.object({
-  output: z.object({
+  Output: z.object({
+    __type: z.string().optional(),
     message: z
       .object({
         content: z.array(
@@ -448,12 +450,15 @@ const BedrockResponseSchema = z.object({
       })
       .nullish(),
   }),
-  stopReason: z.string(),
-  usage: z.object({
-    inputTokens: z.number().nullish(),
-    outputTokens: z.number().nullish(),
-  }),
-  trace: z.any(),
+  stopReason: z.string().nullish(),
+  usage: z
+    .object({
+      inputTokens: z.number().nullish(),
+      outputTokens: z.number().nullish(),
+    })
+    .nullish(),
+  Trace: z.any().nullish(),
+  Version: z.string(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation

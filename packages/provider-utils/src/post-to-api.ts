@@ -28,7 +28,8 @@ export const postJsonToApi = async <T>({
   postToApi({
     url,
     headers: {
-      'Content-Type': 'application/json',
+      // 'Content-Type': 'application/json',
+      'Content-Length': Buffer.from(JSON.stringify(body)).length.toString(),
       ...headers,
     },
     body: {
@@ -61,6 +62,12 @@ export const postToApi = async <T>({
   abortSignal?: AbortSignal;
   fetch?: FetchFunction;
 }) => {
+  console.log('postToApi: url=', url);
+  console.log(
+    'postToApi: headers=',
+    JSON.stringify(removeUndefinedEntries(headers), null, 2),
+  );
+  console.log('postToApi: body=', body.content);
   try {
     const response = await fetch(url, {
       method: 'POST',
