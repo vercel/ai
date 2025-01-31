@@ -1,11 +1,14 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { xai } from '@ai-sdk/xai';
+import { fal } from '@ai-sdk/fal';
 import { groq } from '@ai-sdk/groq';
+import { luma } from '@ai-sdk/luma';
 import { mistral } from '@ai-sdk/mistral';
 import { openai } from '@ai-sdk/openai';
+import { replicate } from '@ai-sdk/replicate';
+import { xai } from '@ai-sdk/xai';
 import {
   experimental_createProviderRegistry as createProviderRegistry,
-  experimental_customProvider as customProvider,
+  customProvider,
 } from 'ai';
 import 'dotenv/config';
 
@@ -36,4 +39,12 @@ export const registry = createProviderRegistry({
   openai: myOpenAI,
   xai,
   groq,
+});
+
+export const myImageModels = customProvider({
+  imageModels: {
+    recraft: fal.imageModel('recraft-v3'),
+    photon: luma.imageModel('photon-flash-1'),
+    flux: replicate.imageModel('black-forest-labs/flux-schnell'),
+  },
 });

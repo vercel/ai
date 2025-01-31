@@ -95,6 +95,14 @@ Creates a model for image generation.
     modelId: OpenAIImageModelId,
     settings?: OpenAIImageSettings,
   ): ImageModelV1;
+
+  /**
+Creates a model for image generation.
+   */
+  imageModel(
+    modelId: OpenAIImageModelId,
+    settings?: OpenAIImageSettings,
+  ): ImageModelV1;
 }
 
 export interface OpenAIProviderSettings {
@@ -246,7 +254,9 @@ export function createOpenAI(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+
   provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
   return provider as OpenAIProvider;
 }

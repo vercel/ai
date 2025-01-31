@@ -1,5 +1,14 @@
 # @ai-sdk/luma
 
+## 0.0.4
+
+### Patch Changes
+
+- d89c3b9: feat (provider): add image model support to provider specification
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+
 ## 0.0.3
 
 ### Patch Changes

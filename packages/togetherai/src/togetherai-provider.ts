@@ -1,4 +1,8 @@
-import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  EmbeddingModelV1,
+  ProviderV1,
+} from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
@@ -42,7 +46,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface TogetherAIProvider {
+export interface TogetherAIProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
 */
@@ -55,6 +59,14 @@ Creates a model for text generation.
 Creates a chat model for text generation.
 */
   chatModel(
+    modelId: TogetherAIChatModelId,
+    settings?: TogetherAIChatSettings,
+  ): LanguageModelV1;
+
+  /**
+Creates a chat model for text generation.
+*/
+  languageModel(
     modelId: TogetherAIChatModelId,
     settings?: TogetherAIChatSettings,
   ): LanguageModelV1;
@@ -142,6 +154,7 @@ export function createTogetherAI(
   ) => createChatModel(modelId, settings);
 
   provider.completionModel = createCompletionModel;
+  provider.languageModel = createChatModel;
   provider.chatModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
 
