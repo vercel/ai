@@ -2,199 +2,201 @@ import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 
-it('should pass through model properties', () => {
-  const wrappedModel = wrapLanguageModel({
-    model: new MockLanguageModelV1({
-      provider: 'test-provider',
-      modelId: 'test-model',
-      defaultObjectGenerationMode: 'json',
-      supportsStructuredOutputs: true,
-    }),
-    middleware: {
-      middlewareVersion: 'v1',
-    },
+describe('wrapLanguageModel', () => {
+  it('should pass through model properties', () => {
+    const wrappedModel = wrapLanguageModel({
+      model: new MockLanguageModelV1({
+        provider: 'test-provider',
+        modelId: 'test-model',
+        defaultObjectGenerationMode: 'json',
+        supportsStructuredOutputs: true,
+      }),
+      middleware: {
+        middlewareVersion: 'v1',
+      },
+    });
+
+    expect(wrappedModel.provider).toBe('test-provider');
+    expect(wrappedModel.modelId).toBe('test-model');
+    expect(wrappedModel.defaultObjectGenerationMode).toBe('json');
+    expect(wrappedModel.supportsStructuredOutputs).toBe(true);
   });
 
-  expect(wrappedModel.provider).toBe('test-provider');
-  expect(wrappedModel.modelId).toBe('test-model');
-  expect(wrappedModel.defaultObjectGenerationMode).toBe('json');
-  expect(wrappedModel.supportsStructuredOutputs).toBe(true);
-});
+  it('should override provider and modelId if provided', () => {
+    const wrappedModel = wrapLanguageModel({
+      model: new MockLanguageModelV1(),
+      middleware: {
+        middlewareVersion: 'v1',
+      },
+      providerId: 'override-provider',
+      modelId: 'override-model',
+    });
 
-it('should override provider and modelId if provided', () => {
-  const wrappedModel = wrapLanguageModel({
-    model: new MockLanguageModelV1(),
-    middleware: {
-      middlewareVersion: 'v1',
-    },
-    providerId: 'override-provider',
-    modelId: 'override-model',
+    expect(wrappedModel.provider).toBe('override-provider');
+    expect(wrappedModel.modelId).toBe('override-model');
   });
 
-  expect(wrappedModel.provider).toBe('override-provider');
-  expect(wrappedModel.modelId).toBe('override-model');
-});
+  it('should call transformParams middleware for doGenerate', async () => {
+    const mockModel = new MockLanguageModelV1({
+      doGenerate: vi.fn().mockResolvedValue('mock result'),
+    });
+    const transformParams = vi.fn().mockImplementation(({ params }) => ({
+      ...params,
+      transformed: true,
+    }));
 
-it('should call transformParams middleware for doGenerate', async () => {
-  const mockModel = new MockLanguageModelV1({
-    doGenerate: vi.fn().mockResolvedValue('mock result'),
-  });
-  const transformParams = vi.fn().mockImplementation(({ params }) => ({
-    ...params,
-    transformed: true,
-  }));
+    const wrappedModel = wrapLanguageModel({
+      model: mockModel,
+      middleware: {
+        middlewareVersion: 'v1',
+        transformParams,
+      },
+    });
 
-  const wrappedModel = wrapLanguageModel({
-    model: mockModel,
-    middleware: {
-      middlewareVersion: 'v1',
-      transformParams,
-    },
-  });
+    const params: LanguageModelV1CallOptions = {
+      inputFormat: 'messages',
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      mode: { type: 'regular' },
+    };
 
-  const params: LanguageModelV1CallOptions = {
-    inputFormat: 'messages',
-    prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-    mode: { type: 'regular' },
-  };
+    await wrappedModel.doGenerate(params);
 
-  await wrappedModel.doGenerate(params);
+    expect(transformParams).toHaveBeenCalledWith({
+      params,
+      type: 'generate',
+    });
 
-  expect(transformParams).toHaveBeenCalledWith({
-    params,
-    type: 'generate',
-  });
-
-  expect(mockModel.doGenerate).toHaveBeenCalledWith({
-    ...params,
-    transformed: true,
-  });
-});
-
-it('should call wrapGenerate middleware', async () => {
-  const mockModel = new MockLanguageModelV1({
-    doGenerate: vi.fn().mockResolvedValue('mock result'),
-  });
-  const wrapGenerate = vi
-    .fn()
-    .mockImplementation(({ doGenerate }) => doGenerate());
-
-  const wrappedModel = wrapLanguageModel({
-    model: mockModel,
-    middleware: {
-      middlewareVersion: 'v1',
-      wrapGenerate,
-    },
+    expect(mockModel.doGenerate).toHaveBeenCalledWith({
+      ...params,
+      transformed: true,
+    });
   });
 
-  const params: LanguageModelV1CallOptions = {
-    inputFormat: 'messages',
-    prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-    mode: { type: 'regular' },
-  };
+  it('should call wrapGenerate middleware', async () => {
+    const mockModel = new MockLanguageModelV1({
+      doGenerate: vi.fn().mockResolvedValue('mock result'),
+    });
+    const wrapGenerate = vi
+      .fn()
+      .mockImplementation(({ doGenerate }) => doGenerate());
 
-  await wrappedModel.doGenerate(params);
+    const wrappedModel = wrapLanguageModel({
+      model: mockModel,
+      middleware: {
+        middlewareVersion: 'v1',
+        wrapGenerate,
+      },
+    });
 
-  expect(wrapGenerate).toHaveBeenCalledWith({
-    doGenerate: expect.any(Function),
-    params,
-    model: mockModel,
-  });
-});
+    const params: LanguageModelV1CallOptions = {
+      inputFormat: 'messages',
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      mode: { type: 'regular' },
+    };
 
-it('should call transformParams middleware for doStream', async () => {
-  const mockModel = new MockLanguageModelV1({
-    doStream: vi.fn().mockResolvedValue('mock stream'),
-  });
-  const transformParams = vi.fn().mockImplementation(({ params }) => ({
-    ...params,
-    transformed: true,
-  }));
+    await wrappedModel.doGenerate(params);
 
-  const wrappedModel = wrapLanguageModel({
-    model: mockModel,
-    middleware: {
-      middlewareVersion: 'v1',
-      transformParams,
-    },
-  });
-
-  const params: LanguageModelV1CallOptions = {
-    inputFormat: 'messages',
-    prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-    mode: { type: 'regular' },
-  };
-
-  await wrappedModel.doStream(params);
-
-  expect(transformParams).toHaveBeenCalledWith({
-    params,
-    type: 'stream',
-  });
-  expect(mockModel.doStream).toHaveBeenCalledWith({
-    ...params,
-    transformed: true,
-  });
-});
-
-it('should call wrapStream middleware', async () => {
-  const mockModel = new MockLanguageModelV1({
-    doStream: vi.fn().mockResolvedValue('mock stream'),
-  });
-  const wrapStream = vi.fn().mockImplementation(({ doStream }) => doStream());
-
-  const wrappedModel = wrapLanguageModel({
-    model: mockModel,
-    middleware: {
-      middlewareVersion: 'v1',
-      wrapStream,
-    },
+    expect(wrapGenerate).toHaveBeenCalledWith({
+      doGenerate: expect.any(Function),
+      params,
+      model: mockModel,
+    });
   });
 
-  const params: LanguageModelV1CallOptions = {
-    inputFormat: 'messages',
-    prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-    mode: { type: 'regular' },
-  };
+  it('should call transformParams middleware for doStream', async () => {
+    const mockModel = new MockLanguageModelV1({
+      doStream: vi.fn().mockResolvedValue('mock stream'),
+    });
+    const transformParams = vi.fn().mockImplementation(({ params }) => ({
+      ...params,
+      transformed: true,
+    }));
 
-  await wrappedModel.doStream(params);
+    const wrappedModel = wrapLanguageModel({
+      model: mockModel,
+      middleware: {
+        middlewareVersion: 'v1',
+        transformParams,
+      },
+    });
 
-  expect(wrapStream).toHaveBeenCalledWith({
-    doStream: expect.any(Function),
-    params,
-    model: mockModel,
-  });
-});
+    const params: LanguageModelV1CallOptions = {
+      inputFormat: 'messages',
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      mode: { type: 'regular' },
+    };
 
-it('should pass through empty supportsUrl', async () => {
-  const mockModel = new MockLanguageModelV1({
-    doGenerate: vi.fn().mockResolvedValue('mock result'),
-  });
+    await wrappedModel.doStream(params);
 
-  const wrappedModel = wrapLanguageModel({
-    model: mockModel,
-    middleware: {
-      middlewareVersion: 'v1',
-    },
-  });
-
-  expect(wrappedModel.supportsUrl).toBeUndefined();
-});
-
-it('should pass through supportsUrl when it is defined on the model', async () => {
-  const mockModel = new MockLanguageModelV1({
-    doGenerate: vi.fn().mockResolvedValue('mock result'),
-    supportsUrl: vi.fn().mockReturnValue(true),
-  });
-
-  const wrappedModel = wrapLanguageModel({
-    model: mockModel,
-    middleware: {
-      middlewareVersion: 'v1',
-    },
+    expect(transformParams).toHaveBeenCalledWith({
+      params,
+      type: 'stream',
+    });
+    expect(mockModel.doStream).toHaveBeenCalledWith({
+      ...params,
+      transformed: true,
+    });
   });
 
-  expect(
-    wrappedModel.supportsUrl?.(new URL('https://example.com/test.jpg')),
-  ).toBe(true);
+  it('should call wrapStream middleware', async () => {
+    const mockModel = new MockLanguageModelV1({
+      doStream: vi.fn().mockResolvedValue('mock stream'),
+    });
+    const wrapStream = vi.fn().mockImplementation(({ doStream }) => doStream());
+
+    const wrappedModel = wrapLanguageModel({
+      model: mockModel,
+      middleware: {
+        middlewareVersion: 'v1',
+        wrapStream,
+      },
+    });
+
+    const params: LanguageModelV1CallOptions = {
+      inputFormat: 'messages',
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      mode: { type: 'regular' },
+    };
+
+    await wrappedModel.doStream(params);
+
+    expect(wrapStream).toHaveBeenCalledWith({
+      doStream: expect.any(Function),
+      params,
+      model: mockModel,
+    });
+  });
+
+  it('should pass through empty supportsUrl', async () => {
+    const mockModel = new MockLanguageModelV1({
+      doGenerate: vi.fn().mockResolvedValue('mock result'),
+    });
+
+    const wrappedModel = wrapLanguageModel({
+      model: mockModel,
+      middleware: {
+        middlewareVersion: 'v1',
+      },
+    });
+
+    expect(wrappedModel.supportsUrl).toBeUndefined();
+  });
+
+  it('should pass through supportsUrl when it is defined on the model', async () => {
+    const mockModel = new MockLanguageModelV1({
+      doGenerate: vi.fn().mockResolvedValue('mock result'),
+      supportsUrl: vi.fn().mockReturnValue(true),
+    });
+
+    const wrappedModel = wrapLanguageModel({
+      model: mockModel,
+      middleware: {
+        middlewareVersion: 'v1',
+      },
+    });
+
+    expect(
+      wrappedModel.supportsUrl?.(new URL('https://example.com/test.jpg')),
+    ).toBe(true);
+  });
 });
