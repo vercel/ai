@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.1.7
+
+### Patch Changes
+
+- d399f25: feat (provider/google-vertex): support public file urls in messages
+
 ## 1.1.6
 
 ### Patch Changes
