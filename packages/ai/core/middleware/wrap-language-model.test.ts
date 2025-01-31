@@ -199,4 +199,206 @@ describe('wrapLanguageModel', () => {
       wrappedModel.supportsUrl?.(new URL('https://example.com/test.jpg')),
     ).toBe(true);
   });
+
+  describe('wrapLanguageModel with multiple middlewares', () => {
+    it('should call multiple transformParams middlewares in sequence for doGenerate', async () => {
+      const mockModel = new MockLanguageModelV1({
+        doGenerate: vi.fn().mockResolvedValue('final result'),
+      });
+
+      const transformParams1 = vi.fn().mockImplementation(({ params }) => ({
+        ...params,
+        transformationStep1: true,
+      }));
+      const transformParams2 = vi.fn().mockImplementation(({ params }) => ({
+        ...params,
+        transformationStep2: true,
+      }));
+
+      const wrappedModel = wrapLanguageModel({
+        model: mockModel,
+        middleware: [
+          {
+            middlewareVersion: 'v1',
+            transformParams: transformParams1,
+          },
+          {
+            middlewareVersion: 'v1',
+            transformParams: transformParams2,
+          },
+        ],
+      });
+
+      const params: LanguageModelV1CallOptions = {
+        inputFormat: 'messages',
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+        mode: { type: 'regular' },
+      };
+
+      await wrappedModel.doGenerate(params);
+
+      expect(transformParams1).toHaveBeenCalledWith({
+        params,
+        type: 'generate',
+      });
+
+      expect(transformParams2).toHaveBeenCalledWith({
+        params: { ...params, transformationStep1: true },
+        type: 'generate',
+      });
+
+      expect(mockModel.doGenerate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transformationStep1: true,
+          transformationStep2: true,
+        }),
+      );
+    });
+
+    it('should call multiple transformParams middlewares in sequence for doStream', async () => {
+      const mockModel = new MockLanguageModelV1({
+        doStream: vi.fn().mockResolvedValue('final stream'),
+      });
+
+      const transformParams1 = vi.fn().mockImplementation(({ params }) => ({
+        ...params,
+        transformationStep1: true,
+      }));
+      const transformParams2 = vi.fn().mockImplementation(({ params }) => ({
+        ...params,
+        transformationStep2: true,
+      }));
+
+      const wrappedModel = wrapLanguageModel({
+        model: mockModel,
+        middleware: [
+          {
+            middlewareVersion: 'v1',
+            transformParams: transformParams1,
+          },
+          {
+            middlewareVersion: 'v1',
+            transformParams: transformParams2,
+          },
+        ],
+      });
+
+      const params: LanguageModelV1CallOptions = {
+        inputFormat: 'messages',
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+        mode: { type: 'regular' },
+      };
+
+      await wrappedModel.doStream(params);
+
+      expect(transformParams1).toHaveBeenCalledWith({
+        params,
+        type: 'stream',
+      });
+      expect(transformParams2).toHaveBeenCalledWith({
+        params: expect.objectContaining({ transformationStep1: true }),
+        type: 'stream',
+      });
+      expect(mockModel.doStream).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transformationStep1: true,
+          transformationStep2: true,
+        }),
+      );
+    });
+
+    it('should chain multiple wrapGenerate middlewares in the correct order', async () => {
+      const mockModel = new MockLanguageModelV1({
+        doGenerate: vi.fn().mockResolvedValue('final generate result'),
+      });
+
+      const wrapGenerate1 = vi
+        .fn()
+        .mockImplementation(async ({ doGenerate, params, model }) => {
+          const result = await doGenerate();
+          return `wrapGenerate1(${result})`;
+        });
+      const wrapGenerate2 = vi
+        .fn()
+        .mockImplementation(async ({ doGenerate, params, model }) => {
+          const result = await doGenerate();
+          return `wrapGenerate2(${result})`;
+        });
+
+      const wrappedModel = wrapLanguageModel({
+        model: mockModel,
+        middleware: [
+          {
+            middlewareVersion: 'v1',
+            wrapGenerate: wrapGenerate1,
+          },
+          {
+            middlewareVersion: 'v1',
+            wrapGenerate: wrapGenerate2,
+          },
+        ],
+      });
+
+      const params: LanguageModelV1CallOptions = {
+        inputFormat: 'messages',
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+        mode: { type: 'regular' },
+      };
+
+      const result = await wrappedModel.doGenerate(params);
+
+      // The middlewares should wrap in order, applying wrapGenerate2 last
+      expect(result).toBe(
+        'wrapGenerate1(wrapGenerate2(final generate result))',
+      );
+      expect(wrapGenerate1).toHaveBeenCalled();
+      expect(wrapGenerate2).toHaveBeenCalled();
+    });
+
+    it('should chain multiple wrapStream middlewares in the correct order', async () => {
+      const mockModel = new MockLanguageModelV1({
+        doStream: vi.fn().mockResolvedValue('final stream result'),
+      });
+
+      const wrapStream1 = vi
+        .fn()
+        .mockImplementation(async ({ doStream, params, model }) => {
+          const result = await doStream();
+          return `wrapStream1(${result})`;
+        });
+      const wrapStream2 = vi
+        .fn()
+        .mockImplementation(async ({ doStream, params, model }) => {
+          const result = await doStream();
+          return `wrapStream2(${result})`;
+        });
+
+      const wrappedModel = wrapLanguageModel({
+        model: mockModel,
+        middleware: [
+          {
+            middlewareVersion: 'v1',
+            wrapStream: wrapStream1,
+          },
+          {
+            middlewareVersion: 'v1',
+            wrapStream: wrapStream2,
+          },
+        ],
+      });
+
+      const params: LanguageModelV1CallOptions = {
+        inputFormat: 'messages',
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+        mode: { type: 'regular' },
+      };
+
+      const result = await wrappedModel.doStream(params);
+
+      // The middlewares should wrap in order, applying wrapStream2 last
+      expect(result).toBe('wrapStream1(wrapStream2(final stream result))');
+      expect(wrapStream1).toHaveBeenCalled();
+      expect(wrapStream2).toHaveBeenCalled();
+    });
+  });
 });
