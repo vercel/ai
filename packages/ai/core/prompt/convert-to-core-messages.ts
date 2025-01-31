@@ -15,7 +15,9 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
   const tools = options?.tools ?? ({} as TOOLS);
   const coreMessages: CoreMessage[] = [];
 
-  for (const message of messages) {
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i];
+    const isLastMessage = i === messages.length - 1;
     const { role, content, toolInvocations, experimental_attachments } =
       message;
 
@@ -64,6 +66,9 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
           coreMessages.push({
             role: 'assistant',
             content: [
+              ...(isLastMessage && content && i === 0
+                ? [{ type: 'text' as const, text: content }]
+                : []),
               ...stepInvocations.map(
                 ({ toolCallId, toolName, args }): ToolCallPart => ({
                   type: 'tool-call' as const,
@@ -110,7 +115,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
           });
         }
 
-        if (content) {
+        if (content && !isLastMessage) {
           coreMessages.push({ role: 'assistant', content });
         }
 

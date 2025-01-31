@@ -231,6 +231,10 @@ describe('assistant message', () => {
         role: 'assistant',
         content: [
           {
+            type: 'text',
+            text: 'Let me calculate that for you.',
+          },
+          {
             type: 'tool-call',
             toolCallId: 'call1',
             toolName: 'calculator',
@@ -248,10 +252,6 @@ describe('assistant message', () => {
             result: '3',
           },
         ],
-      },
-      {
-        role: 'assistant',
-        content: 'Let me calculate that for you.',
       },
     ]);
   });
@@ -291,6 +291,10 @@ describe('assistant message', () => {
         role: 'assistant',
         content: [
           {
+            type: 'text',
+            text: 'Let me calculate that for you.',
+          },
+          {
             type: 'tool-call',
             toolCallId: 'call1',
             toolName: 'screenshot',
@@ -309,10 +313,6 @@ describe('assistant message', () => {
             experimental_content: [{ type: 'image', data: 'imgbase64' }],
           },
         ],
-      },
-      {
-        role: 'assistant',
-        content: 'Let me calculate that for you.',
       },
     ]);
   });
@@ -401,6 +401,193 @@ describe('assistant message', () => {
         role: 'assistant',
         content: [
           {
+            type: 'text',
+            text: 'response',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'screenshot',
+            args: { value: 'value-1' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'screenshot',
+            result: 'result-1',
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'screenshot',
+            args: { value: 'value-2' },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-3',
+            toolName: 'screenshot',
+            args: { value: 'value-3' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-2',
+            toolName: 'screenshot',
+            result: 'result-2',
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-3',
+            toolName: 'screenshot',
+            result: 'result-3',
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-4',
+            toolName: 'screenshot',
+            args: { value: 'value-4' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-4',
+            toolName: 'screenshot',
+            result: 'result-4',
+          },
+        ],
+      },
+    ]);
+  });
+});
+
+describe('multiple messages', () => {
+  it('should handle a conversation with multiple messages', () => {
+    const result = convertToCoreMessages([
+      { role: 'user', content: "What's the weather like?" },
+      { role: 'assistant', content: "I'll check that for you." },
+      { role: 'user', content: 'Thanks!' },
+    ]);
+
+    expect(result).toEqual([
+      { role: 'user', content: "What's the weather like?" },
+      { role: 'assistant', content: "I'll check that for you." },
+      { role: 'user', content: 'Thanks!' },
+    ]);
+  });
+
+  it('should convert fully typed Message[]', () => {
+    const messages: Message[] = [
+      {
+        id: '1',
+        role: 'user',
+        content: 'What is the weather in Tokyo?',
+      },
+      {
+        id: '2',
+        role: 'assistant',
+        content: 'It is sunny in Tokyo.',
+      },
+    ];
+
+    const result = convertToCoreMessages(messages);
+
+    expect(result).toStrictEqual([
+      {
+        role: 'user',
+        content: 'What is the weather in Tokyo?',
+      },
+      {
+        role: 'assistant',
+        content: 'It is sunny in Tokyo.',
+      },
+    ]);
+  });
+
+  it('should handle conversation with multiple tool invocations and user message at the end', () => {
+    const tools = {
+      screenshot: tool({
+        parameters: z.object({ value: z.string() }),
+        execute: async () => 'imgbase64',
+      }),
+    };
+
+    const result = convertToCoreMessages(
+      [
+        {
+          role: 'assistant',
+          content: 'response',
+          toolInvocations: [
+            {
+              state: 'result',
+              toolCallId: 'call-1',
+              toolName: 'screenshot',
+              args: { value: 'value-1' },
+              result: 'result-1',
+              step: 0,
+            },
+            {
+              state: 'result',
+              toolCallId: 'call-2',
+              toolName: 'screenshot',
+              args: { value: 'value-2' },
+              result: 'result-2',
+              step: 1,
+            },
+
+            {
+              state: 'result',
+              toolCallId: 'call-3',
+              toolName: 'screenshot',
+              args: { value: 'value-3' },
+              result: 'result-3',
+              step: 1,
+            },
+            {
+              state: 'result',
+              toolCallId: 'call-4',
+              toolName: 'screenshot',
+              args: { value: 'value-4' },
+              result: 'result-4',
+              step: 2,
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: 'Thanks!',
+        },
+      ],
+      { tools }, // separate tools to ensure that types are inferred correctly
+    );
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
             type: 'tool-call',
             toolCallId: 'call-1',
             toolName: 'screenshot',
@@ -479,49 +666,9 @@ describe('assistant message', () => {
         role: 'assistant',
         content: 'response',
       },
-    ]);
-  });
-});
-
-describe('multiple messages', () => {
-  it('should handle a conversation with multiple messages', () => {
-    const result = convertToCoreMessages([
-      { role: 'user', content: "What's the weather like?" },
-      { role: 'assistant', content: "I'll check that for you." },
-      { role: 'user', content: 'Thanks!' },
-    ]);
-
-    expect(result).toEqual([
-      { role: 'user', content: "What's the weather like?" },
-      { role: 'assistant', content: "I'll check that for you." },
-      { role: 'user', content: 'Thanks!' },
-    ]);
-  });
-
-  it('should convert fully typed Message[]', () => {
-    const messages: Message[] = [
-      {
-        id: '1',
-        role: 'user',
-        content: 'What is the weather in Tokyo?',
-      },
-      {
-        id: '2',
-        role: 'assistant',
-        content: 'It is sunny in Tokyo.',
-      },
-    ];
-
-    const result = convertToCoreMessages(messages);
-
-    expect(result).toStrictEqual([
       {
         role: 'user',
-        content: 'What is the weather in Tokyo?',
-      },
-      {
-        role: 'assistant',
-        content: 'It is sunny in Tokyo.',
+        content: 'Thanks!',
       },
     ]);
   });
