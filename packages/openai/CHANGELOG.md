@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.1.8
+
+### Patch Changes
+
+- 161be90: fix (provider/openai): fix model id typo
+
 ## 1.1.7
 
 ### Patch Changes
