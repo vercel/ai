@@ -3,4 +3,4 @@
 '@ai-sdk/google': patch
 ---
 
-feat (provider/google-vertex): support vertex-ai-defined public file urls in messages
+feat (provider/google-vertex): support public file urls in messages
