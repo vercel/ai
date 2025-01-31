@@ -114,6 +114,14 @@ Creates a model for image generation.
     modelId: FireworksImageModelId,
     settings?: FireworksImageSettings,
   ): ImageModelV1;
+
+  /**
+Creates a model for image generation.
+*/
+  imageModel(
+    modelId: FireworksImageModelId,
+    settings?: FireworksImageSettings,
+  ): ImageModelV1;
 }
 
 const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';
@@ -193,7 +201,7 @@ export function createFireworks(
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
   provider.image = createImageModel;
-
+  provider.imageModel = createImageModel;
   return provider as FireworksProvider;
 }
 

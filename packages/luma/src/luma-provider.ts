@@ -1,4 +1,4 @@
-import { ImageModelV1 } from '@ai-sdk/provider';
+import { ImageModelV1, NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -28,11 +28,19 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface LumaProvider {
+export interface LumaProvider extends ProviderV1 {
   /**
 Creates a model for image generation.
   */
   image(modelId: LumaImageModelId, settings?: LumaImageSettings): ImageModelV1;
+
+  /**
+Creates a model for image generation.
+   */
+  imageModel(
+    modelId: LumaImageModelId,
+    settings?: LumaImageSettings,
+  ): ImageModelV1;
 }
 
 const defaultBaseURL = 'https://api.lumalabs.ai';
@@ -59,12 +67,22 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
       fetch: options.fetch,
     });
 
-  const provider = (modelId: LumaImageModelId, settings?: LumaImageSettings) =>
-    createImageModel(modelId, settings);
-
-  provider.image = createImageModel;
-
-  return provider as LumaProvider;
+  return {
+    image: createImageModel,
+    imageModel: createImageModel,
+    languageModel: () => {
+      throw new NoSuchModelError({
+        modelId: 'languageModel',
+        modelType: 'languageModel',
+      });
+    },
+    textEmbeddingModel: () => {
+      throw new NoSuchModelError({
+        modelId: 'textEmbeddingModel',
+        modelType: 'textEmbeddingModel',
+      });
+    },
+  };
 }
 
 export const luma = createLuma();
