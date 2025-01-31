@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.1.7
+
+### Patch Changes
+
+- 0a2f026: feat (provider/openai): add o3-mini
+
 ## 1.1.6
 
 ### Patch Changes
