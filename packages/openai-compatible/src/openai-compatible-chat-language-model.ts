@@ -240,10 +240,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    console.log(
-      'doGenerate',
-      JSON.stringify(options.providerMetadata, null, 2),
-    );
     const { args, warnings } = this.getArgs({ ...options });
 
     const body = JSON.stringify(args);
