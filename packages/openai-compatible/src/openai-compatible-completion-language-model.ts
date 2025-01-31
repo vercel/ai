@@ -72,6 +72,11 @@ export class OpenAICompatibleCompletionLanguageModel
     return this.config.provider;
   }
 
+  private get providerOptionsName(): string {
+    const baseName = this.config.provider.split('.')[0].trim();
+    return baseName.length > 0 ? baseName : 'openaiCompatible';
+  }
+
   private getArgs({
     mode,
     inputFormat,
@@ -85,6 +90,7 @@ export class OpenAICompatibleCompletionLanguageModel
     stopSequences: userStopSequences,
     responseFormat,
     seed,
+    providerMetadata,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -127,6 +133,7 @@ export class OpenAICompatibleCompletionLanguageModel
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
       seed,
+      ...providerMetadata?.[this.providerOptionsName],
 
       // prompt:
       prompt: completionPrompt,

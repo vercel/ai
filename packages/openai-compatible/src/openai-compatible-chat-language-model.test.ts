@@ -22,6 +22,50 @@ const provider = createOpenAICompatible({
 
 const model = provider('grok-beta');
 
+describe('config', () => {
+  it('should extract base name from provider string', () => {
+    const model = new OpenAICompatibleChatLanguageModel(
+      'gpt-4',
+      {},
+      {
+        provider: 'anthropic.beta',
+        url: () => '',
+        headers: () => ({}),
+      },
+    );
+
+    expect(model['providerOptionsName']).toBe('anthropic');
+  });
+
+  it('should handle provider without dot notation', () => {
+    const model = new OpenAICompatibleChatLanguageModel(
+      'gpt-4',
+      {},
+      {
+        provider: 'openai',
+        url: () => '',
+        headers: () => ({}),
+      },
+    );
+
+    expect(model['providerOptionsName']).toBe('openai');
+  });
+
+  it('should return default for empty provider', () => {
+    const model = new OpenAICompatibleChatLanguageModel(
+      'gpt-4',
+      {},
+      {
+        provider: '',
+        url: () => '',
+        headers: () => ({}),
+      },
+    );
+
+    expect(model['providerOptionsName']).toBe('openaiCompatible');
+  });
+});
+
 describe('doGenerate', () => {
   const server = new JsonTestServer('https://my.api.com/v1/chat/completions');
 
@@ -273,6 +317,47 @@ describe('doGenerate', () => {
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
       user: 'test-user-id',
+    });
+  });
+
+  it('should include provider-specific options', async () => {
+    prepareJsonResponse();
+
+    await provider('grok-beta').doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      providerMetadata: {
+        'test-provider': {
+          someCustomOption: 'test-value',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'grok-beta',
+      messages: [{ role: 'user', content: 'Hello' }],
+      someCustomOption: 'test-value',
+    });
+  });
+
+  it('should not include provider-specific options for different provider', async () => {
+    prepareJsonResponse();
+
+    await provider('grok-beta').doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      providerMetadata: {
+        notThisProviderName: {
+          someCustomOption: 'test-value',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'grok-beta',
+      messages: [{ role: 'user', content: 'Hello' }],
     });
   });
 
@@ -1460,6 +1545,49 @@ describe('doStream', () => {
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
+    });
+  });
+
+  it('should include provider-specific options', async () => {
+    prepareStreamResponse({ content: [] });
+
+    await provider('grok-beta').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      providerMetadata: {
+        'test-provider': {
+          someCustomOption: 'test-value',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      stream: true,
+      model: 'grok-beta',
+      messages: [{ role: 'user', content: 'Hello' }],
+      someCustomOption: 'test-value',
+    });
+  });
+
+  it('should not include provider-specific options for different provider', async () => {
+    prepareStreamResponse({ content: [] });
+
+    await provider('grok-beta').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      providerMetadata: {
+        notThisProviderName: {
+          someCustomOption: 'test-value',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      stream: true,
+      model: 'grok-beta',
+      messages: [{ role: 'user', content: 'Hello' }],
     });
   });
 

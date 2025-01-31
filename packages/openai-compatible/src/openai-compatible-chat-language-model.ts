@@ -95,6 +95,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
+  private get providerOptionsName(): string {
+    const baseName = this.config.provider.split('.')[0].trim();
+    return baseName.length > 0 ? baseName : 'openaiCompatible';
+  }
+
   private getArgs({
     mode,
     prompt,
@@ -104,6 +109,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    providerMetadata,
     stopSequences,
     responseFormat,
     seed,
@@ -162,6 +168,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
       stop: stopSequences,
       seed,
+      ...providerMetadata?.[this.providerOptionsName],
 
       // messages:
       messages: convertToOpenAICompatibleChatMessages(prompt),
@@ -233,6 +240,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    console.log(
+      'doGenerate',
+      JSON.stringify(options.providerMetadata, null, 2),
+    );
     const { args, warnings } = this.getArgs({ ...options });
 
     const body = JSON.stringify(args);
