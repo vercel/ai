@@ -241,14 +241,16 @@ By default, it's set to 1, which means that only a single LLM call is made.
 export function useChat(
   rawUseChatOptions: UseChatOptions | Accessor<UseChatOptions> = {},
 ): UseChatHelpers {
+  const resolvedOptions = createMemo(() => convertToAccessorOptions(rawUseChatOptions));
+  const prepareFn = createMemo(() => {
+    const opts = resolvedOptions();
+    return opts.experimental_prepareRequestBody?.();
+  });
   const useChatOptions = createMemo(() => ({
-    ...convertToAccessorOptions(rawUseChatOptions),
-    // avoid awkward double invocation syntax so add it here.
-    experimental_prepareRequestBody: () => {
-      const options = convertToAccessorOptions(rawUseChatOptions);
-      return options.experimental_prepareRequestBody?.();
-    },
+    ...resolvedOptions(),
+    experimental_prepareRequestBody: prepareFn,
   }));
+
   const api = createMemo(() => useChatOptions().api?.() ?? '/api/chat');
   const generateId = createMemo(
     () => useChatOptions().generateId?.() ?? generateIdFunc,
