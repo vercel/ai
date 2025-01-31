@@ -1,5 +1,18 @@
 # ai
 
+## 4.1.15
+
+### Patch Changes
+
+- d89c3b9: feat (provider): add image model support to provider specification
+- d89c3b9: feat (core): type ahead for model ids with custom provider
+- 08f54fc: chore (ai/core): move custom provider to stable
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+  - @ai-sdk/ui-utils@1.1.8
+  - @ai-sdk/react@1.1.8
+
 ## 4.1.14
 
 ### Patch Changes
