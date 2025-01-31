@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.1.9
+
+### Patch Changes
+
+- c55b81a: fix (provider/openai): fix o3-mini streaming
+
 ## 1.1.8
 
 ### Patch Changes
