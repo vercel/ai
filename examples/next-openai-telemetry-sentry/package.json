@@ -12,7 +12,7 @@
     "@ai-sdk/openai": "1.1.9",
     "@ai-sdk/react": "1.1.8",
     "@opentelemetry/api-logs": "0.55.0",
-    "@opentelemetry/instrumentation": "0.52.1",
+    "@opentelemetry/instrumentation": "0.57.1",
     "@opentelemetry/sdk-logs": "0.55.0",
     "@sentry/nextjs": "^8.42.0",
     "@sentry/opentelemetry": "8.22.0",
