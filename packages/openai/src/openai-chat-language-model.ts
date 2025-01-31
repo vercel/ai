@@ -969,4 +969,12 @@ const reasoningModels = {
     systemMessageMode: 'remove',
     simulateStreamingByDefault: false,
   },
+  'o3-mini': {
+    systemMessageMode: 'developer',
+    simulateStreamingByDefault: false,
+  },
+  'o3-mini-2025-01-31': {
+    systemMessageMode: 'developer',
+    simulateStreamingByDefault: false,
+  },
 } as const;
