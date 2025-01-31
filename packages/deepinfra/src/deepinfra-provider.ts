@@ -1,4 +1,8 @@
-import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  EmbeddingModelV1,
+  ProviderV1,
+} from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
@@ -42,7 +46,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface DeepInfraProvider {
+export interface DeepInfraProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
 */
@@ -55,6 +59,14 @@ Creates a model for text generation.
 Creates a chat model for text generation.
 */
   chatModel(
+    modelId: DeepInfraChatModelId,
+    settings?: DeepInfraChatSettings,
+  ): LanguageModelV1;
+
+  /**
+Creates a chat model for text generation.
+*/
+  languageModel(
     modelId: DeepInfraChatModelId,
     settings?: DeepInfraChatSettings,
   ): LanguageModelV1;
@@ -142,6 +154,7 @@ export function createDeepInfra(
 
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
+  provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
 
   return provider as DeepInfraProvider;
