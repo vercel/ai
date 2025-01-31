@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.1.8",
+    "@ai-sdk/openai": "1.1.9",
     "@ai-sdk/react": "1.1.8",
     "@opentelemetry/api-logs": "0.55.0",
     "@opentelemetry/sdk-logs": "0.55.0",
