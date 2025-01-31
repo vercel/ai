@@ -32,8 +32,9 @@ type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
-  generateId: () => string;
   fetch?: FetchFunction;
+  generateId: () => string;
+  isSupportedUrl: (url: URL) => boolean;
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
@@ -199,9 +200,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   }
 
   supportsUrl(url: URL): boolean {
-    return url
-      .toString()
-      .startsWith('https://generativelanguage.googleapis.com/v1beta/files/');
+    return this.config.isSupportedUrl(url);
   }
 
   async doGenerate(

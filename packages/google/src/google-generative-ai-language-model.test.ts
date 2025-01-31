@@ -41,20 +41,26 @@ const provider = createGoogleGenerativeAI({
 const model = provider.chat('gemini-pro');
 
 describe('supportsUrl', () => {
-  it('should return false if it is not a Gemini files URL', () => {
-    expect(
-      model.supportsUrl?.(new URL('https://example.com/foo/bar')),
-    ).toStrictEqual(false);
-  });
+  it('should use the isSupportedUrl function from config', () => {
+    const customModel = new GoogleGenerativeAILanguageModel(
+      'gemini-pro',
+      {},
+      {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: {},
+        generateId: () => 'test-id',
+        isSupportedUrl: url => url.hostname === 'custom.example.com',
+      },
+    );
 
-  it('should return true if it is a Gemini files URL', () => {
     expect(
-      model.supportsUrl?.(
-        new URL(
-          'https://generativelanguage.googleapis.com/v1beta/files/00000000-00000000-00000000-00000000',
-        ),
-      ),
+      customModel.supportsUrl(new URL('https://custom.example.com/test')),
     ).toStrictEqual(true);
+
+    expect(
+      customModel.supportsUrl(new URL('https://other.example.com/test')),
+    ).toStrictEqual(false);
   });
 });
 
@@ -663,6 +669,7 @@ describe('doGenerate', () => {
               'X-Common': 'config-value',
             }),
             generateId: () => 'test-id',
+            isSupportedUrl: () => true,
           },
         );
 
@@ -699,6 +706,7 @@ describe('doGenerate', () => {
               'X-Promise-Header': 'promise-value',
             }),
             generateId: () => 'test-id',
+            isSupportedUrl: () => true,
           },
         );
 
@@ -729,6 +737,7 @@ describe('doGenerate', () => {
               'X-Async-Header': 'async-value',
             }),
             generateId: () => 'test-id',
+            isSupportedUrl: () => true,
           },
         );
 

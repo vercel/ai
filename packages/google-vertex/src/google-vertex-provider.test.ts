@@ -183,15 +183,4 @@ describe('google-vertex-provider', () => {
       }),
     );
   });
-
-  it('should return true for public URLs', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
-    });
-    const model = provider.languageModel('test-model-id');
-    expect(
-      model.supportsUrl?.(new URL('https://example.com/foo/bar')),
-    ).toStrictEqual(true);
-  });
 });
