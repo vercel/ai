@@ -7,12 +7,99 @@ import {
   findByText,
   render,
   screen,
+  fireEvent,
   waitFor,
 } from '@solidjs/testing-library';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { createSignal, For } from 'solid-js';
 import { useChat } from './use-chat';
+
+describe('prepareRequestBody', () => {
+  let bodyOptions: any;
+
+  const TestComponent = () => {
+    const { messages, append, isLoading } = useChat({
+      experimental_prepareRequestBody: options => {
+        bodyOptions = options;
+        return 'test-request-body';
+      },
+    });
+
+    return (
+      <div>
+        <div data-testid="loading">{isLoading().toString()}</div>
+        <For each={messages()}>
+          {(m, idx) => (
+            <div data-testid={`message-${idx()}`}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          )}
+        </For>
+
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append(
+              { role: 'user', content: 'hi' },
+              {
+                data: { 'test-data-key': 'test-data-value' },
+                body: { 'request-body-key': 'request-body-value' },
+              },
+            );
+          }}
+        />
+      </div>
+    );
+  };
+
+  beforeEach(async () => {
+    await render(() => <TestComponent />);
+  });
+
+  afterEach(() => {
+    bodyOptions = undefined;
+    vi.restoreAllMocks();
+  });
+
+  it('should use prepared request body', () =>
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      },
+      async ({ call }) => {
+        fireEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+        expect(bodyOptions).toStrictEqual({
+          id: expect.any(String),
+          messages: [
+            {
+              role: 'user',
+              content: 'hi',
+              id: expect.any(String),
+              experimental_attachments: undefined,
+              createdAt: expect.any(Date),
+            },
+          ],
+          requestData: { 'test-data-key': 'test-data-value' },
+          requestBody: { 'request-body-key': 'request-body-value' },
+        });
+
+        expect(await call(0).getRequestBodyJson()).toBe('test-request-body');
+
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: Hello, world.',
+        );
+      },
+    ));
+});
 
 describe('file attachments with data url', () => {
   const TestComponent = () => {
