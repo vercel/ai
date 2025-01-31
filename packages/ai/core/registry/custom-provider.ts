@@ -18,7 +18,7 @@ import { NoSuchModelError } from '@ai-sdk/provider';
  *
  * @throws {NoSuchModelError} Throws when a requested model is not found and no fallback provider is available.
  */
-export function experimental_customProvider<
+export function customProvider<
   LANGUAGE_MODELS extends Record<string, LanguageModelV1>,
   EMBEDDING_MODELS extends Record<string, EmbeddingModelV1<string>>,
   IMAGE_MODELS extends Record<string, ImageModelV1>,
@@ -79,6 +79,11 @@ export function experimental_customProvider<
     },
   };
 }
+
+/**
+ * @deprecated Use `customProvider` instead.
+ */
+export const experimental_customProvider = customProvider;
 
 type ExtractModelId<MODELS extends Record<string, unknown>> = Extract<
   keyof MODELS,
