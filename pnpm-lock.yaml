@@ -66,28 +66,28 @@ importers:
         specifier: 1.1.5
         version: link:../../packages/azure
       '@ai-sdk/cerebras':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../../packages/cerebras
       '@ai-sdk/cohere':
         specifier: 1.1.5
         version: link:../../packages/cohere
       '@ai-sdk/deepinfra':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../../packages/deepinfra
       '@ai-sdk/deepseek':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../../packages/deepseek
       '@ai-sdk/fal':
         specifier: 0.0.1
         version: link:../../packages/fal
       '@ai-sdk/fireworks':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 1.1.6
+        specifier: 1.1.7
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 2.1.6
+        specifier: 2.1.7
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 1.1.6
@@ -102,10 +102,10 @@ importers:
         specifier: 1.1.5
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../../packages/openai-compatible
       '@ai-sdk/perplexity':
-        specifier: 0.0.4
+        specifier: 0.0.5
         version: link:../../packages/perplexity
       '@ai-sdk/provider':
         specifier: 1.0.6
@@ -114,10 +114,10 @@ importers:
         specifier: 0.1.6
         version: link:../../packages/replicate
       '@ai-sdk/togetherai':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../../packages/togetherai
       '@ai-sdk/xai':
-        specifier: 1.1.6
+        specifier: 1.1.7
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
@@ -381,7 +381,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 2.1.6
+        specifier: 2.1.7
         version: link:../../packages/google-vertex
       ai:
         specifier: 4.1.13
@@ -482,7 +482,7 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/deepseek':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../../packages/deepseek
       '@ai-sdk/openai':
         specifier: 1.1.5
@@ -1032,10 +1032,10 @@ importers:
         specifier: 1.1.5
         version: link:../../packages/anthropic
       '@ai-sdk/google':
-        specifier: 1.1.6
+        specifier: 1.1.7
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 2.1.6
+        specifier: 2.1.7
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 1.1.6
@@ -1244,7 +1244,7 @@ importers:
   packages/cerebras:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.6
@@ -1346,7 +1346,7 @@ importers:
   packages/deepinfra:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.6
@@ -1374,7 +1374,7 @@ importers:
   packages/deepseek:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.6
@@ -1427,7 +1427,7 @@ importers:
   packages/fireworks:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.6
@@ -1483,7 +1483,7 @@ importers:
         specifier: 1.1.5
         version: link:../anthropic
       '@ai-sdk/google':
-        specifier: 1.1.6
+        specifier: 1.1.7
         version: link:../google
       '@ai-sdk/provider':
         specifier: 1.0.6
@@ -1639,7 +1639,7 @@ importers:
   packages/perplexity:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.6
@@ -1929,7 +1929,7 @@ importers:
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.6
@@ -2046,7 +2046,7 @@ importers:
   packages/xai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.6
+        specifier: 0.1.7
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.6
