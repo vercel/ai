@@ -38,6 +38,11 @@ export interface AmazonBedrockProviderSettings {
 
   // for testing
   generateId?: () => string;
+
+  /**
+   * Middleware to modify the BedrockRuntimeClient instance.
+   */
+  bedrockMiddleware?: (client: BedrockRuntimeClient) => BedrockRuntimeClient;
 }
 
 export interface AmazonBedrockProvider extends ProviderV1 {
@@ -63,8 +68,8 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const createBedrockRuntimeClient = () =>
-    new BedrockRuntimeClient(
+  const createBedrockRuntimeClient = () => {
+    const client = new BedrockRuntimeClient(
       options.bedrockOptions ?? {
         region: loadSetting({
           settingValue: options.region,
@@ -92,6 +97,13 @@ export function createAmazonBedrock(
         },
       },
     );
+
+    if (options.bedrockMiddleware) {
+      return options.bedrockMiddleware(client);
+    }
+
+    return client;
+  };
 
   const createChatModel = (
     modelId: BedrockChatModelId,
