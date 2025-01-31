@@ -8,7 +8,7 @@ import { replicate } from '@ai-sdk/replicate';
 import { xai } from '@ai-sdk/xai';
 import {
   experimental_createProviderRegistry as createProviderRegistry,
-  experimental_customProvider as customProvider,
+  customProvider,
 } from 'ai';
 import 'dotenv/config';
 

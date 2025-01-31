@@ -5,8 +5,6 @@ description: Custom provider that uses models from a different provider (API Ref
 
 # `customProvider()`
 
-<Note type="warning">Provider management is an experimental feature.</Note>
-
 With a custom provider, you can map ids to any model.
 This allows you to set up custom model configurations, alias names, and more.
 The custom provider also supports a fallback provider, which is useful for
@@ -18,7 +16,7 @@ You can create a custom provider using `experiental_createCustomProvider`.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { experimental_customProvider as customProvider } from 'ai';
+import { customProvider } from 'ai';
 
 // custom provider with different model settings:
 export const myOpenAI = customProvider({
@@ -34,10 +32,7 @@ export const myOpenAI = customProvider({
 
 ## Import
 
-<Snippet
-  text={`import { experimental_customProvider as customProvider } from "ai"`}
-  prompt={false}
-/>
+<Snippet text={`import {  customProvider } from "ai"`} prompt={false} />
 
 ## API Signature
 
