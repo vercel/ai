@@ -4,8 +4,13 @@ import { streamText } from 'ai';
 
 async function main() {
   const result = await streamText({
-    model: perplexity('sonar-pro', { returnImages: true }),
+    model: perplexity('sonar-pro'),
     prompt: 'Write the biography of Sirius Black from the Harry Potter series.',
+    providerOptions: {
+      perplexity: {
+        return_images: true,
+      },
+    },
   });
 
   for await (const textPart of result.textStream) {

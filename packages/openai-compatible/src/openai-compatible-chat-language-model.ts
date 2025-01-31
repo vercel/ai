@@ -148,7 +148,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       max_tokens: maxTokens,
       temperature,
       top_p: topP,
-      return_images: this.settings.returnImages,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
       response_format:
