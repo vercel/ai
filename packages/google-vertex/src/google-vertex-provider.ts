@@ -45,6 +45,14 @@ Creates a model for text generation.
     modelId: GoogleVertexImageModelId,
     settings?: GoogleVertexImageSettings,
   ): ImageModelV1;
+
+  /**
+Creates a model for image generation.
+   */
+  imageModel(
+    modelId: GoogleVertexImageModelId,
+    settings?: GoogleVertexImageSettings,
+  ): ImageModelV1;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -164,6 +172,7 @@ export function createVertex(
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
   return provider as GoogleVertexProvider;
 }

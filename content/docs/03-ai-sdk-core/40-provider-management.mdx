@@ -136,3 +136,18 @@ const { embedding } = await embed({
   value: 'sunny day at the beach',
 });
 ```
+
+### Example: Use image models
+
+You can access image models by using the `imageModel` method on the registry.
+The provider id will become the prefix of the model id: `providerId:modelId`.
+
+```ts highlight={"5"}
+import { generateImage } from 'ai';
+import { registry } from './registry';
+
+const { image } = await generateImage({
+  model: registry.imageModel('openai:dall-e-3'),
+  prompt: 'A beautiful sunset over a calm ocean',
+});
+```
