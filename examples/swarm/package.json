@@ -8,7 +8,7 @@
     "@ai-sdk/google-vertex": "2.1.8",
     "@ai-sdk/groq": "1.1.7",
     "@ai-sdk/mistral": "1.1.6",
-    "@ai-sdk/openai": "1.1.7",
+    "@ai-sdk/openai": "1.1.8",
     "@ai-sdk/swarm": "0.1.16",
     "ai": "4.1.16",
     "dotenv": "16.4.5",

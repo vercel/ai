@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/deepseek": "0.1.8",
-    "@ai-sdk/openai": "1.1.7",
+    "@ai-sdk/openai": "1.1.8",
     "@ai-sdk/ui-utils": "1.1.8",
     "@ai-sdk/react": "1.1.8",
     "@vercel/blob": "^0.26.0",
