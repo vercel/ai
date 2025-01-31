@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.16
+
+### Patch Changes
+
+- 7e299a4: feat (ai/core): wrapLanguageModel can apply multiple middlewares
+
 ## 4.1.15
 
 ### Patch Changes
