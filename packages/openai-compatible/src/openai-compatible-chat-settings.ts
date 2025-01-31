@@ -14,4 +14,11 @@ Enable this if the model that you are using does not support streaming.
 Defaults to `false`.
    */
   simulateStreaming?: boolean;
+
+  /**
+  Whether to return images in the response.
+
+  Defaults to `false`.
+   */
+  returnImages?: boolean;
 }

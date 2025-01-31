@@ -4,12 +4,21 @@ import { z } from 'zod';
 
 const buildPerplexityMetadata = (
   citations: string[] | undefined,
+  images: z.infer<typeof perplexityImageSchema>[] | undefined,
   usage: z.infer<typeof perplexityUsageSchema> | undefined,
 ) => {
-  return citations || usage
+  return citations || images || usage
     ? {
         perplexity: {
           ...(citations && { citations }),
+          ...(images && {
+            images: images.map(image => ({
+              imageUrl: image.image_url,
+              originUrl: image.origin_url,
+              height: image.height,
+              width: image.width,
+            })),
+          }),
           ...(usage && {
             usage: {
               citationTokens: usage.citation_tokens ?? NaN,
@@ -32,12 +41,14 @@ export const perplexityMetadataExtractor: MetadataExtractor = {
       ? undefined
       : buildPerplexityMetadata(
           parsed.value.citations ?? undefined,
+          parsed.value.images ?? undefined,
           parsed.value.usage ?? undefined,
         );
   },
 
   createStreamExtractor: () => {
     let citations: string[] | undefined;
+    let images: z.infer<typeof perplexityImageSchema>[] | undefined;
     let usage: z.infer<typeof perplexityUsageSchema> | undefined;
 
     return {
@@ -52,18 +63,28 @@ export const perplexityMetadataExtractor: MetadataExtractor = {
           if (parsed.value.citations) {
             citations = parsed.value.citations;
           }
+          if (parsed.value.images) {
+            images = parsed.value.images;
+          }
           if (parsed.value.usage) {
             usage = parsed.value.usage;
           }
         }
       },
-      buildMetadata: () => buildPerplexityMetadata(citations, usage),
+      buildMetadata: () => buildPerplexityMetadata(citations, images, usage),
     };
   },
 };
 
 // Schema for citations
 const perplexityCitationSchema = z.array(z.string());
+
+const perplexityImageSchema = z.object({
+  image_url: z.string(),
+  origin_url: z.string(),
+  height: z.number(),
+  width: z.number(),
+});
 
 const perplexityUsageSchema = z.object({
   citation_tokens: z.number().nullish(),
@@ -73,6 +94,7 @@ const perplexityUsageSchema = z.object({
 // Update response schema to include usage
 const perplexityResponseSchema = z.object({
   citations: perplexityCitationSchema.nullish(),
+  images: z.array(perplexityImageSchema).nullish(),
   usage: perplexityUsageSchema.nullish(),
 });
 
@@ -92,5 +114,6 @@ const perplexityStreamChunkSchema = z.object({
     )
     .nullish(),
   citations: perplexityCitationSchema.nullish(),
+  images: z.array(perplexityImageSchema).nullish(),
   usage: perplexityUsageSchema.nullish(),
 });
