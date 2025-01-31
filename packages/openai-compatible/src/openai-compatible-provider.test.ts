@@ -33,18 +33,6 @@ describe('OpenAICompatibleProvider', () => {
   });
 
   describe('createOpenAICompatible', () => {
-    it('should throw error if baseURL is not provided', () => {
-      expect(() => createOpenAICompatible({ name: 'test-provider' })).toThrow(
-        'Base URL is required',
-      );
-    });
-
-    it('should throw error if name is not provided', () => {
-      expect(() =>
-        createOpenAICompatible({ baseURL: 'https://api.example.com' }),
-      ).toThrow('Provider name is required');
-    });
-
     it('should create provider with correct configuration', () => {
       const options = {
         baseURL: 'https://api.example.com',

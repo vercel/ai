@@ -73,8 +73,7 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 
   private get providerOptionsName(): string {
-    const baseName = this.config.provider.split('.')[0].trim();
-    return baseName.length > 0 ? baseName : 'openaiCompatible';
+    return this.config.provider.split('.')[0].trim();
   }
 
   private getArgs({

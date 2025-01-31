@@ -50,7 +50,7 @@ describe('config', () => {
     expect(model['providerOptionsName']).toBe('openai');
   });
 
-  it('should return default for empty provider', () => {
+  it('should return empty for empty provider', () => {
     const model = new OpenAICompatibleChatLanguageModel(
       'gpt-4',
       {},
@@ -61,7 +61,7 @@ describe('config', () => {
       },
     );
 
-    expect(model['providerOptionsName']).toBe('openaiCompatible');
+    expect(model['providerOptionsName']).toBe('');
   });
 });
 
