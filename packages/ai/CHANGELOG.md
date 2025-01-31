@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.14
+
+### Patch Changes
+
+- ca89615: fix (ai/core): only append assistant response at the end when there is a final user message
+
 ## 4.1.13
 
 ### Patch Changes
