@@ -92,11 +92,7 @@ export function createOpenAICompatible<
   COMPLETION_MODEL_IDS,
   EMBEDDING_MODEL_IDS
 > {
-  if (!options.baseURL) {
-    throw new Error('Base URL is required');
-  }
   const baseURL = withoutTrailingSlash(options.baseURL);
-
   const providerName = options.name;
 
   interface CommonModelConfig {
