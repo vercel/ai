@@ -7,11 +7,9 @@ import {
   generateId,
   loadOptionalSetting,
   loadSetting,
+  withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  BedrockRuntimeClient,
-  BedrockRuntimeClientConfig,
-} from '@aws-sdk/client-bedrock-runtime';
+import { BedrockHeadersFunction } from './bedrock-api-types';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import {
   BedrockChatModelId,
@@ -22,6 +20,7 @@ import {
   BedrockEmbeddingModelId,
   BedrockEmbeddingSettings,
 } from './bedrock-embedding-settings';
+import { AwsSigV4Signer } from './bedrock-sigv4-signer';
 
 export interface AmazonBedrockProviderSettings {
   region?: string;
@@ -30,11 +29,16 @@ export interface AmazonBedrockProviderSettings {
   sessionToken?: string;
 
   /**
-   * Complete Bedrock configuration for setting advanced authentication and
-   * other options. When this is provided, the region, accessKeyId, and
-   * secretAccessKey settings are ignored.
+Complete Bedrock configuration for setting advanced authentication and other
+options. When this is provided, the region, accessKeyId, and secretAccessKey
+settings are ignored.
    */
-  bedrockOptions?: BedrockRuntimeClientConfig;
+  // bedrockOptions?: BedrockRuntimeClientConfig;
+
+  /**
+Base URL for the Bedrock API calls.
+   */
+  baseURL?: string;
 
   // for testing
   generateId?: () => string;
@@ -63,42 +67,63 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const createBedrockRuntimeClient = () =>
-    new BedrockRuntimeClient(
-      options.bedrockOptions ?? {
-        region: loadSetting({
+  const createSigner = () =>
+    new AwsSigV4Signer({
+      region: loadSetting({
+        settingValue: options.region,
+        settingName: 'region',
+        environmentVariableName: 'AWS_REGION',
+        description: 'AWS region',
+      }),
+      service: 'bedrock',
+      credentials: {
+        accessKeyId: loadSetting({
+          settingValue: options.accessKeyId,
+          settingName: 'accessKeyId',
+          environmentVariableName: 'AWS_ACCESS_KEY_ID',
+          description: 'AWS access key ID',
+        }),
+        secretAccessKey: loadSetting({
+          settingValue: options.secretAccessKey,
+          settingName: 'secretAccessKey',
+          environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
+          description: 'AWS secret access key',
+        }),
+        sessionToken: loadOptionalSetting({
+          settingValue: options.sessionToken,
+          environmentVariableName: 'AWS_SESSION_TOKEN',
+        }),
+      },
+    });
+
+  const getHeaders: BedrockHeadersFunction = async ({ url, headers, body }) =>
+    createSigner().signRequest({
+      method: 'POST',
+      url,
+      headers,
+      // TODO: explore avoiding the below stringify since we do it again at
+      // post-time and the content could be large with attachments.
+      body: JSON.stringify(body),
+    });
+
+  const getBaseUrl = (): string =>
+    withoutTrailingSlash(
+      options.baseURL ??
+        `https://bedrock-runtime.${loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        }),
-        credentials: {
-          accessKeyId: loadSetting({
-            settingValue: options.accessKeyId,
-            settingName: 'accessKeyId',
-            environmentVariableName: 'AWS_ACCESS_KEY_ID',
-            description: 'AWS access key ID',
-          }),
-          secretAccessKey: loadSetting({
-            settingValue: options.secretAccessKey,
-            settingName: 'secretAccessKey',
-            environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-            description: 'AWS secret access key',
-          }),
-          sessionToken: loadOptionalSetting({
-            settingValue: options.sessionToken,
-            environmentVariableName: 'AWS_SESSION_TOKEN',
-          }),
-        },
-      },
-    );
+        })}.amazonaws.com`,
+    ) ?? '';
 
   const createChatModel = (
     modelId: BedrockChatModelId,
     settings: BedrockChatSettings = {},
   ) =>
     new BedrockChatLanguageModel(modelId, settings, {
-      client: createBedrockRuntimeClient(),
+      baseUrl: getBaseUrl,
+      headers: getHeaders,
       generateId,
     });
 
@@ -120,7 +145,8 @@ export function createAmazonBedrock(
     settings: BedrockEmbeddingSettings = {},
   ) =>
     new BedrockEmbeddingModel(modelId, settings, {
-      client: createBedrockRuntimeClient(),
+      baseUrl: getBaseUrl,
+      headers: getHeaders,
     });
 
   provider.languageModel = createChatModel;

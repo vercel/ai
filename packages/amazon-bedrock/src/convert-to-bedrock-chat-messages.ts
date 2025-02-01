@@ -4,7 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
-import { DocumentFormat, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockDocumentFormat, BedrockImageFormat } from './bedrock-api-types';
 import {
   BedrockAssistantMessage,
   BedrockMessagesPrompt,
@@ -67,9 +67,13 @@ export function convertToBedrockChatMessages(
 
                     bedrockContent.push({
                       image: {
-                        format: part.mimeType?.split('/')?.[1] as ImageFormat,
+                        format: part.mimeType?.split(
+                          '/',
+                        )?.[1] as BedrockImageFormat,
                         source: {
-                          bytes: part.image ?? (part.image as Uint8Array),
+                          bytes: Buffer.from(
+                            part.image ?? (part.image as Uint8Array),
+                          ).toString('base64'),
                         },
                       },
                     });
@@ -88,10 +92,10 @@ export function convertToBedrockChatMessages(
                       document: {
                         format: part.mimeType?.split(
                           '/',
-                        )?.[1] as DocumentFormat,
+                        )?.[1] as BedrockDocumentFormat,
                         name: generateFileId(),
                         source: {
-                          bytes: Buffer.from(part.data, 'base64'),
+                          bytes: part.data,
                         },
                       },
                     });

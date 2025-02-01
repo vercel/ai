@@ -4,8 +4,10 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: bedrock(
+      'arn:aws:bedrock:us-east-2:474668406012:inference-profile/us.anthropic.claude-3-5-sonnet-20240620-v1:0',
+    ),
+    prompt: 'Give me an overview of the New Zealand Fiordland National Park.',
   });
 
   for await (const textPart of result.textStream) {

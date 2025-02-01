@@ -51,14 +51,16 @@ describe('user messages', () => {
           {
             image: {
               format: 'png',
-              source: { bytes: new Uint8Array([0, 1, 2, 3]) },
+              source: { bytes: 'AAECAw==' },
             },
           },
           {
             document: {
               format: 'pdf',
               name: expect.any(String),
-              source: { bytes: Buffer.from(fileData) },
+              source: {
+                bytes: 'AAECAw==',
+              },
             },
           },
         ],
