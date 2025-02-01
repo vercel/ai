@@ -67,12 +67,15 @@ export const createEventSourceResponseHandler =
                     controller.enqueue(parsedDataResult);
                     break;
                   }
+
                   // The `p` field appears to be padding or some other non-functional field.
                   delete (parsedDataResult.value as any).p;
                   wrappedData = {
                     [decoded.headers[':event-type']?.value as string]:
                       parsedDataResult.value,
                   };
+
+                  // Re-parse with the expected schema.
                   const parsedWrappedData = safeParseJSON({
                     text: JSON.stringify(wrappedData),
                     schema: chunkSchema,
@@ -81,6 +84,7 @@ export const createEventSourceResponseHandler =
                     controller.enqueue(parsedWrappedData);
                     break;
                   }
+
                   controller.enqueue({
                     success: true,
                     value: parsedWrappedData.value,

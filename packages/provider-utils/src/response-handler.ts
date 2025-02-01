@@ -94,28 +94,14 @@ export const createEventSourceResponseHandler =
       throw new EmptyResponseBodyError({});
     }
 
-    console.log(
-      'createEventSourceResponseHandler: responseHeaders',
-      responseHeaders,
-    );
-    console.log('createEventSourceResponseHandler: response', response);
     return {
       responseHeaders,
       value: response.body
         .pipeThrough(new TextDecoderStream())
         .pipeThrough(new EventSourceParserStream())
-        // .pipeThrough(
-        //   new TransformStream({
-        //     transform(chunk, controller) {
-        //       console.log('Raw chunk:', chunk);
-        //       controller.enqueue(chunk);
-        //     },
-        //   }),
-        // )
         .pipeThrough(
           new TransformStream<EventSourceMessage, ParseResult<T>>({
             transform({ data }, controller) {
-              console.log('createEventSourceResponseHandler: data', data);
               // ignore the 'DONE' event that e.g. OpenAI sends:
               if (data === '[DONE]') {
                 return;
@@ -172,14 +158,12 @@ export const createJsonResponseHandler =
   <T>(responseSchema: ZodSchema<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
-    console.log('createJsonResponseHandler: responseBody', responseBody);
     const parsedResult = safeParseJSON({
       text: responseBody,
       schema: responseSchema,
     });
 
     const responseHeaders = extractResponseHeaders(response);
-    console.log('createJsonResponseHandler: responseHeaders', responseHeaders);
 
     if (!parsedResult.success) {
       throw new APICallError({

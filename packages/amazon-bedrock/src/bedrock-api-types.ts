@@ -89,7 +89,7 @@ export interface ImageBlock {
   image: {
     format: ImageFormat;
     source: {
-      bytes: Uint8Array;
+      bytes: string;
     };
   };
 }

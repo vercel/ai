@@ -69,7 +69,9 @@ export function convertToBedrockChatMessages(
                       image: {
                         format: part.mimeType?.split('/')?.[1] as ImageFormat,
                         source: {
-                          bytes: part.image ?? (part.image as Uint8Array),
+                          bytes: Buffer.from(
+                            part.image ?? (part.image as Uint8Array),
+                          ).toString('base64'),
                         },
                       },
                     });
