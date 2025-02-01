@@ -6,8 +6,12 @@ async function main() {
   const result = streamText({
     model: perplexity('sonar-pro'),
     prompt:
-      'List the top 5 San Francisco news from the past week.' +
-      'You must include the date of each article.',
+      'Tell me about the earliest cave drawings known and include images.',
+    providerOptions: {
+      perplexity: {
+        return_images: true,
+      },
+    },
   });
 
   for await (const textPart of result.textStream) {
