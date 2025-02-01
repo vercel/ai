@@ -1,12 +1,13 @@
-import { EventStreamCodec } from '@smithy/eventstream-codec';
-import { toUtf8, fromUtf8 } from '@smithy/util-utf8';
-import { ZodSchema } from 'zod';
 import { EmptyResponseBodyError } from '@ai-sdk/provider';
-import { ParseResult, safeParseJSON } from '@ai-sdk/provider-utils';
 import {
+  ParseResult,
+  safeParseJSON,
   extractResponseHeaders,
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
+import { EventStreamCodec } from '@smithy/eventstream-codec';
+import { toUtf8, fromUtf8 } from '@smithy/util-utf8';
+import { ZodSchema } from 'zod';
 
 // https://docs.aws.amazon.com/lexv2/latest/dg/event-stream-encoding.html
 export const createEventSourceResponseHandler =
@@ -93,7 +94,6 @@ export const createEventSourceResponseHandler =
                 }
               } catch (e) {
                 // If we can't decode a complete message, wait for more data
-                console.log('error', e);
                 break;
               }
             }
