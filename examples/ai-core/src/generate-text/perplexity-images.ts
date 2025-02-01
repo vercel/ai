@@ -1,11 +1,12 @@
 import 'dotenv/config';
 import { perplexity } from '@ai-sdk/perplexity';
-import { streamText } from 'ai';
+import { generateText } from 'ai';
 
 async function main() {
-  const result = await streamText({
+  const result = await generateText({
     model: perplexity('sonar-pro'),
-    prompt: 'Write the biography of Sirius Black from the Harry Potter series.',
+    prompt:
+      'Tell me about the earliest cave drawings known and include images.',
     providerOptions: {
       perplexity: {
         return_images: true,
@@ -13,10 +14,7 @@ async function main() {
     },
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
-
+  console.log(result.text);
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
