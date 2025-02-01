@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, MockInstance } from 'vitest';
+import { EmptyResponseBodyError } from '@ai-sdk/provider';
 import { createEventSourceResponseHandler } from './bedrock-eventstream-codec';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { z } from 'zod';
-import { EmptyResponseBodyError } from '@ai-sdk/provider';
+import { describe, it, expect, vi, MockInstance } from 'vitest';
 
 // Helper that constructs a properly framed message.
 // The first 4 bytes will contain the frame total length (big-endian).

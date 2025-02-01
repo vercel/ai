@@ -8,10 +8,10 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   ParseResult,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
@@ -19,9 +19,9 @@ import {
   BedrockConverseInput,
   BedrockGuardrailConfiguration,
   BedrockGuardrailStreamConfiguration,
-  BedrockToolInputSchema,
-  BedrockStopReason,
   BedrockHeadersFunction,
+  BedrockStopReason,
+  BedrockToolInputSchema,
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,

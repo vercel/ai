@@ -1,14 +1,14 @@
 import { EmbeddingModelV1, EmbeddingModelV1Embedding } from '@ai-sdk/provider';
 import {
-  BedrockEmbeddingModelId,
-  BedrockEmbeddingSettings,
-} from './bedrock-embedding-settings';
-import {
+  FetchFunction,
   createJsonErrorResponseHandler,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  BedrockEmbeddingModelId,
+  BedrockEmbeddingSettings,
+} from './bedrock-embedding-settings';
 import { BedrockErrorSchema } from './bedrock-error';
 import { BedrockHeadersFunction } from './bedrock-api-types';
 
