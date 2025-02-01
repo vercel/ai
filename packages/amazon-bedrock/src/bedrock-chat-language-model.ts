@@ -7,10 +7,7 @@ import {
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
-  createJsonStreamResponseHandler,
-  ParseResult,
-} from '@ai-sdk/provider-utils';
+import { ParseResult } from '@ai-sdk/provider-utils';
 import {
   BedrockChatModelId,
   BedrockChatSettings,
@@ -35,6 +32,7 @@ import {
   BedrockHeadersFunction,
 } from './bedrock-api-types';
 import { BedrockErrorSchema } from './bedrock-error';
+import { createEventSourceResponseHandler } from './bedrock-eventstream-codec';
 
 type BedrockChatConfig = {
   baseUrl: string;
@@ -125,17 +123,19 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     const inferenceConfig = {
       ...(maxTokens != null && { max_new_tokens: maxTokens }),
       ...(temperature != null && { temperature }),
-      ...(topP != null && { topP }),
-      ...(stopSequences != null && { stopSequences }),
+      ...(topP != null && { top_p: topP }),
+      ...(stopSequences != null && { stop_sequences: stopSequences }),
     };
 
     const baseArgs: BedrockConverseInput = {
-      // modelId: this.modelId,
       system: system ? [{ text: system }] : undefined,
-      additionalModelRequestFields: this.settings.additionalModelRequestFields,
-      ...(Object.keys(inferenceConfig).length > 0 && { inferenceConfig }),
+      additional_model_request_fields:
+        this.settings.additionalModelRequestFields,
+      ...(Object.keys(inferenceConfig).length > 0 && {
+        inference_config: inferenceConfig,
+      }),
       messages,
-      guardrailConfig: providerMetadata?.bedrock?.guardrailConfig as
+      guardrail_config: providerMetadata?.bedrock?.guardrailConfig as
         | GuardrailConfiguration
         | GuardrailStreamConfiguration
         | undefined,
@@ -163,19 +163,19 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         return {
           command: {
             ...baseArgs,
-            toolConfig: {
+            tool_config: {
               tools: [
                 {
-                  toolSpec: {
+                  tool_spec: {
                     name: mode.tool.name,
                     description: mode.tool.description,
-                    inputSchema: {
+                    input_schema: {
                       json: mode.tool.parameters,
                     } as BedrockToolInputSchema,
                   },
                 },
               ],
-              toolChoice: { tool: { name: mode.tool.name } },
+              tool_choice: { tool: { name: mode.tool.name } },
             },
           },
           warnings,
@@ -195,7 +195,8 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   }
 
   private getStreamUrl(modelId: string): string {
-    return `${this.config.baseUrl}/model/${modelId}/converse-stream`;
+    const encodedModelId = encodeURIComponent(modelId);
+    return `${this.config.baseUrl}/model/${encodedModelId}/converse-stream`;
   }
 
   async doGenerate(
@@ -228,16 +229,16 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
-    const providerMetadata = response.Trace
-      ? { bedrock: { trace: response.Trace as JSONObject } }
+    const providerMetadata = response.trace
+      ? { bedrock: { trace: response.trace as JSONObject } }
       : undefined;
 
     return {
       text:
-        response.Output?.message?.content
+        response.output?.message?.content
           ?.map(part => part.text ?? '')
           .join('') ?? undefined,
-      toolCalls: response.Output?.message?.content
+      toolCalls: response.output?.message?.content
         ?.filter(part => !!part.toolUse)
         ?.map(part => ({
           toolCallType: 'function',
@@ -278,7 +279,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         errorToMessage: error => `${error.type}: ${error.message}`,
       }),
       successfulResponseHandler:
-        createJsonStreamResponseHandler(BedrockStreamSchema),
+        createEventSourceResponseHandler(BedrockStreamSchema),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
@@ -306,6 +307,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       stream: response.pipeThrough(
         new TransformStream<ParseResult<any>, LanguageModelV1StreamPart>({
           transform(chunk, controller) {
+            // console.log('chunk', chunk);
             function enqueueError(error: Error) {
               finishReason = 'error';
               controller.enqueue({ type: 'error', error });
@@ -431,34 +433,33 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const BedrockResponseSchema = z.object({
-  Output: z.object({
-    __type: z.string().optional(),
-    message: z
-      .object({
-        content: z.array(
-          z.object({
-            text: z.string().nullish(),
-            toolUse: z
-              .object({
-                toolUseId: z.string(),
-                name: z.string(),
-                input: z.any(),
-              })
-              .nullish(),
-          }),
-        ),
-      })
-      .nullish(),
+  metrics: z.object({
+    latencyMs: z.number(),
   }),
-  stopReason: z.string().nullish(),
-  usage: z
-    .object({
-      inputTokens: z.number().nullish(),
-      outputTokens: z.number().nullish(),
-    })
-    .nullish(),
-  Trace: z.any().nullish(),
-  Version: z.string(),
+  output: z.object({
+    message: z.object({
+      content: z.array(
+        z.object({
+          text: z.string().optional(),
+          toolUse: z
+            .object({
+              toolUseId: z.string(),
+              name: z.string(),
+              input: z.any(),
+            })
+            .optional(),
+        }),
+      ),
+      role: z.string(),
+    }),
+  }),
+  stopReason: z.string(),
+  trace: z.any().nullish(),
+  usage: z.object({
+    inputTokens: z.number(),
+    outputTokens: z.number(),
+    totalTokens: z.number(),
+  }),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation

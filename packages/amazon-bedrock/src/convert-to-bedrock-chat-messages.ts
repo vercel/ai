@@ -108,8 +108,8 @@ export function convertToBedrockChatMessages(
                 const part = content[i];
 
                 bedrockContent.push({
-                  toolResult: {
-                    toolUseId: part.toolCallId,
+                  tool_result: {
+                    tool_use_id: part.toolCallId,
                     content: [{ text: JSON.stringify(part.result) }],
                   },
                 });
@@ -158,8 +158,8 @@ export function convertToBedrockChatMessages(
 
               case 'tool-call': {
                 bedrockContent.push({
-                  toolUse: {
-                    toolUseId: part.toolCallId,
+                  tool_use: {
+                    tool_use_id: part.toolCallId,
                     name: part.toolName,
                     input: part.args as any,
                   },

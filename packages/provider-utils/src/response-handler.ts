@@ -94,14 +94,28 @@ export const createEventSourceResponseHandler =
       throw new EmptyResponseBodyError({});
     }
 
+    console.log(
+      'createEventSourceResponseHandler: responseHeaders',
+      responseHeaders,
+    );
+    console.log('createEventSourceResponseHandler: response', response);
     return {
       responseHeaders,
       value: response.body
         .pipeThrough(new TextDecoderStream())
         .pipeThrough(new EventSourceParserStream())
+        // .pipeThrough(
+        //   new TransformStream({
+        //     transform(chunk, controller) {
+        //       console.log('Raw chunk:', chunk);
+        //       controller.enqueue(chunk);
+        //     },
+        //   }),
+        // )
         .pipeThrough(
           new TransformStream<EventSourceMessage, ParseResult<T>>({
             transform({ data }, controller) {
+              console.log('createEventSourceResponseHandler: data', data);
               // ignore the 'DONE' event that e.g. OpenAI sends:
               if (data === '[DONE]') {
                 return;

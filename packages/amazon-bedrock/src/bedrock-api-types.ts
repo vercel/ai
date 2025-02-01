@@ -14,15 +14,15 @@ export interface BedrockConverseInput {
     role: string;
     content: Array<ContentBlock>;
   }>;
-  toolConfig?: BedrockToolConfiguration;
-  inferenceConfig?: {
+  tool_config?: BedrockToolConfiguration;
+  inference_config?: {
     max_new_tokens?: number;
     temperature?: number;
-    topP?: number;
-    stopSequences?: string[];
+    top_p?: number;
+    stop_sequences?: string[];
   };
-  additionalModelRequestFields?: Record<string, any>;
-  guardrailConfig?: any;
+  additional_model_request_fields?: Record<string, any>;
+  guardrail_config?: any;
 }
 
 export interface GuardrailConfiguration {
@@ -40,16 +40,16 @@ export interface BedrockToolInputSchema {
 }
 
 export interface BedrockTool {
-  toolSpec: {
+  tool_spec: {
     name: string;
     description?: string;
-    inputSchema: { json: any };
+    input_schema: { json: any };
   };
 }
 
 export interface BedrockToolConfiguration {
   tools?: BedrockTool[];
-  toolChoice?:
+  tool_choice?:
     | { tool: { name: string } }
     | { auto: {} }
     | { any: {} }
@@ -82,7 +82,7 @@ export interface DocumentBlock {
 }
 
 export interface GuardrailConverseContentBlock {
-  guardContent: any;
+  guard_content: any;
 }
 
 export interface ImageBlock {
@@ -95,15 +95,15 @@ export interface ImageBlock {
 }
 
 export interface ToolResultBlock {
-  toolResult: {
-    toolUseId: string;
+  tool_result: {
+    tool_use_id: string;
     content: Array<{ text: string }>;
   };
 }
 
 export interface ToolUseBlock {
-  toolUse: {
-    toolUseId: string;
+  tool_use: {
+    tool_use_id: string;
     name: string;
     input: Record<string, any>;
   };

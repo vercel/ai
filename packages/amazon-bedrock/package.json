@@ -32,6 +32,8 @@
   "dependencies": {
     "@ai-sdk/provider": "1.0.7",
     "@ai-sdk/provider-utils": "2.1.6",
+    "@smithy/eventstream-codec": "^4.0.1",
+    "@smithy/util-utf8": "^4.0.0",
     "aws4fetch": "^1.0.20"
   },
   "devDependencies": {
