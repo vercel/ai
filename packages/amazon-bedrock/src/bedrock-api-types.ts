@@ -10,7 +10,7 @@ export interface BedrockConverseInput {
   system?: Array<{ text: string }>;
   messages: Array<{
     role: string;
-    content: Array<ContentBlock>;
+    content: Array<BedrockContentBlock>;
   }>;
   toolConfig?: BedrockToolConfiguration;
   inferenceConfig?: {
@@ -23,7 +23,7 @@ export interface BedrockConverseInput {
   guardrailConfig?: any;
 }
 
-export interface GuardrailConfiguration {
+export interface BedrockGuardrailConfiguration {
   guardrails?: Array<{
     name: string;
     description?: string;
@@ -31,7 +31,7 @@ export interface GuardrailConfiguration {
   }>;
 }
 
-export type GuardrailStreamConfiguration = GuardrailConfiguration;
+export type BedrockGuardrailStreamConfiguration = BedrockGuardrailConfiguration;
 
 export interface BedrockToolInputSchema {
   json: Record<string, any>;
@@ -54,7 +54,7 @@ export interface BedrockToolConfiguration {
     | undefined;
 }
 
-export type StopReason =
+export type BedrockStopReason =
   | 'stop'
   | 'stop_sequence'
   | 'end_turn'
@@ -66,12 +66,12 @@ export type StopReason =
   | 'tool-calls'
   | 'tool_use';
 
-export type ImageFormat = 'jpeg' | 'png' | 'gif';
-export type DocumentFormat = 'pdf' | 'txt' | 'md';
+export type BedrockImageFormat = 'jpeg' | 'png' | 'gif';
+export type BedrockDocumentFormat = 'pdf' | 'txt' | 'md';
 
-export interface DocumentBlock {
+export interface BedrockDocumentBlock {
   document: {
-    format: DocumentFormat;
+    format: BedrockDocumentFormat;
     name: string;
     source: {
       bytes: string;
@@ -79,27 +79,27 @@ export interface DocumentBlock {
   };
 }
 
-export interface GuardrailConverseContentBlock {
+export interface BedrockGuardrailConverseContentBlock {
   guardContent: any;
 }
 
-export interface ImageBlock {
+export interface BedrockImageBlock {
   image: {
-    format: ImageFormat;
+    format: BedrockImageFormat;
     source: {
       bytes: string;
     };
   };
 }
 
-export interface ToolResultBlock {
+export interface BedrockToolResultBlock {
   toolResult: {
     toolUseId: string;
     content: Array<{ text: string }>;
   };
 }
 
-export interface ToolUseBlock {
+export interface BedrockToolUseBlock {
   toolUse: {
     toolUseId: string;
     name: string;
@@ -107,24 +107,14 @@ export interface ToolUseBlock {
   };
 }
 
-export interface VideoBlock {
-  video: {
-    format: string;
-    source: {
-      bytes: Uint8Array;
-    };
-  };
-}
-
-export interface TextBlock {
+export interface BedrockTextBlock {
   text: string;
 }
 
-export type ContentBlock =
-  | DocumentBlock
-  | GuardrailConverseContentBlock
-  | ImageBlock
-  | TextBlock
-  | ToolResultBlock
-  | ToolUseBlock
-  | VideoBlock;
+export type BedrockContentBlock =
+  | BedrockDocumentBlock
+  | BedrockGuardrailConverseContentBlock
+  | BedrockImageBlock
+  | BedrockTextBlock
+  | BedrockToolResultBlock
+  | BedrockToolUseBlock;

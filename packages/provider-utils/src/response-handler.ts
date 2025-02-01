@@ -158,6 +158,7 @@ export const createJsonResponseHandler =
   <T>(responseSchema: ZodSchema<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
+
     const parsedResult = safeParseJSON({
       text: responseBody,
       schema: responseSchema,

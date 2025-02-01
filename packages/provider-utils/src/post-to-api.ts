@@ -61,14 +61,6 @@ export const postToApi = async <T>({
   abortSignal?: AbortSignal;
   fetch?: FetchFunction;
 }) => {
-  if (process.env.AI_SDK_DEBUG) {
-    console.log('postToApi: url=', url);
-    console.log(
-      'postToApi: headers=',
-      JSON.stringify(removeUndefinedEntries(headers), null, 2),
-    );
-    console.log('postToApi: body=', body.content);
-  }
   try {
     const response = await fetch(url, {
       method: 'POST',

@@ -7,8 +7,6 @@ async function main() {
     model: bedrock(
       'arn:aws:bedrock:us-east-2:474668406012:inference-profile/us.anthropic.claude-3-5-sonnet-20240620-v1:0',
     ),
-    maxTokens: 1000,
-    temperature: 0.5,
     prompt: 'Give me an overview of the New Zealand Fiordland National Park.',
   });
 

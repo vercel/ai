@@ -33,9 +33,6 @@ export class AwsSigV4Signer {
   async signRequest(
     request: SigningRequest,
   ): Promise<Record<string, string | undefined>> {
-    if (process.env.AI_SDK_DEBUG) {
-      console.log('signRequest: request=', JSON.stringify(request, null, 2));
-    }
     const signer = new AwsV4Signer({
       url: request.url,
       method: request.method,

@@ -17,10 +17,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   BedrockConverseInput,
-  GuardrailConfiguration,
-  GuardrailStreamConfiguration,
+  BedrockGuardrailConfiguration,
+  BedrockGuardrailStreamConfiguration,
   BedrockToolInputSchema,
-  StopReason,
+  BedrockStopReason,
   BedrockHeadersFunction,
 } from './bedrock-api-types';
 import {
@@ -135,8 +135,8 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       }),
       messages,
       guardrailConfig: providerMetadata?.bedrock?.guardrailConfig as
-        | GuardrailConfiguration
-        | GuardrailStreamConfiguration
+        | BedrockGuardrailConfiguration
+        | BedrockGuardrailStreamConfiguration
         | undefined,
     };
 
@@ -244,7 +244,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
           toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
           args: JSON.stringify(part.toolUse?.input ?? ''),
         })),
-      finishReason: mapBedrockFinishReason(response.stopReason as StopReason),
+      finishReason: mapBedrockFinishReason(
+        response.stopReason as BedrockStopReason,
+      ),
       usage: {
         promptTokens: response.usage?.inputTokens ?? Number.NaN,
         completionTokens: response.usage?.outputTokens ?? Number.NaN,

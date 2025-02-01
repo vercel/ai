@@ -1,4 +1,4 @@
-import { ContentBlock } from './bedrock-api-types';
+import { BedrockContentBlock } from './bedrock-api-types';
 
 export type BedrockMessagesPrompt = {
   system?: string;
@@ -11,10 +11,10 @@ export type BedrockMessage = BedrockUserMessage | BedrockAssistantMessage;
 
 export interface BedrockUserMessage {
   role: 'user';
-  content: Array<ContentBlock>;
+  content: Array<BedrockContentBlock>;
 }
 
 export interface BedrockAssistantMessage {
   role: 'assistant';
-  content: Array<ContentBlock>;
+  content: Array<BedrockContentBlock>;
 }
