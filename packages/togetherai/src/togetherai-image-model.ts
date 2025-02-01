@@ -102,24 +102,20 @@ export class TogetherAIImageModel implements ImageModelV1 {
   }
 }
 
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
 const togetheraiImageResponseSchema = z.object({
-  id: z.string(),
   data: z.array(
     z.object({
-      index: z.number(),
       b64_json: z.string(),
     }),
   ),
-  model: z.string(),
-  object: z.literal('list'),
 });
 
-type TogetherAIImageResponse = z.infer<typeof togetheraiImageResponseSchema>;
-
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
 const togetheraiErrorSchema = z.object({
   error: z.object({
     message: z.string(),
   }),
 });
-
-type TogetherAIError = z.infer<typeof togetheraiErrorSchema>;
