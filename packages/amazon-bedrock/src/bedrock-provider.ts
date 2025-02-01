@@ -7,7 +7,9 @@ import {
   generateId,
   loadOptionalSetting,
   loadSetting,
+  withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
+import { BedrockHeadersFunction } from './bedrock-api-types';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import {
   BedrockChatModelId,
@@ -19,7 +21,6 @@ import {
   BedrockEmbeddingSettings,
 } from './bedrock-embedding-settings';
 import { AwsSigV4Signer } from './bedrock-sigv4-signer';
-import { BedrockHeadersFunction } from './bedrock-api-types';
 
 export interface AmazonBedrockProviderSettings {
   region?: string;
@@ -28,11 +29,16 @@ export interface AmazonBedrockProviderSettings {
   sessionToken?: string;
 
   /**
-   * Complete Bedrock configuration for setting advanced authentication and
-   * other options. When this is provided, the region, accessKeyId, and
-   * secretAccessKey settings are ignored.
+Complete Bedrock configuration for setting advanced authentication and other
+options. When this is provided, the region, accessKeyId, and secretAccessKey
+settings are ignored.
    */
   // bedrockOptions?: BedrockRuntimeClientConfig;
+
+  /**
+Base URL for the Bedrock API calls.
+   */
+  baseURL?: string;
 
   // for testing
   generateId?: () => string;
@@ -90,30 +96,33 @@ export function createAmazonBedrock(
       },
     });
 
-  const getHeaders: BedrockHeadersFunction = async ({
-    url,
-    target,
-    headers,
-    body,
-  }) =>
+  const getHeaders: BedrockHeadersFunction = async ({ url, headers, body }) =>
     createSigner().signRequest({
       method: 'POST',
       url,
-      headers: {
-        ...headers,
-        // 'X-Amz-Target': target,
-        'Content-Type': 'application/json',
-      },
+      headers,
+      // TODO: explore avoiding the below stringify since we do it again at
+      // post-time and the content could be large with attachments.
       body: JSON.stringify(body),
     });
+
+  const getBaseUrl = (): string =>
+    withoutTrailingSlash(
+      options.baseURL ??
+        `https://bedrock-runtime.${loadSetting({
+          settingValue: options.region,
+          settingName: 'region',
+          environmentVariableName: 'AWS_REGION',
+          description: 'AWS region',
+        })}.amazonaws.com`,
+    ) ?? '';
 
   const createChatModel = (
     modelId: BedrockChatModelId,
     settings: BedrockChatSettings = {},
   ) =>
     new BedrockChatLanguageModel(modelId, settings, {
-      // TODO: make baseURL fn-providable so we can load region from env var
-      baseUrl: 'https://bedrock-runtime.us-east-2.amazonaws.com',
+      baseUrl: getBaseUrl,
       headers: getHeaders,
       generateId,
     });
@@ -136,7 +145,7 @@ export function createAmazonBedrock(
     settings: BedrockEmbeddingSettings = {},
   ) =>
     new BedrockEmbeddingModel(modelId, settings, {
-      baseUrl: 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      baseUrl: getBaseUrl,
       headers: getHeaders,
     });
 

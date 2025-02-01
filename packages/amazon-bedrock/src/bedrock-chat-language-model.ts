@@ -7,22 +7,14 @@ import {
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { ParseResult } from '@ai-sdk/provider-utils';
 import {
-  BedrockChatModelId,
-  BedrockChatSettings,
-} from './bedrock-chat-settings';
-import { prepareTools } from './bedrock-prepare-tools';
-import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
-import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
-import {
+  ParseResult,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
 import {
   BedrockConverseInput,
   GuardrailConfiguration,
@@ -31,11 +23,19 @@ import {
   StopReason,
   BedrockHeadersFunction,
 } from './bedrock-api-types';
+import {
+  BedrockChatModelId,
+  BedrockChatSettings,
+} from './bedrock-chat-settings';
 import { BedrockErrorSchema } from './bedrock-error';
 import { createEventSourceResponseHandler } from './bedrock-eventstream-codec';
+import { prepareTools } from './bedrock-prepare-tools';
+import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
+import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
+import { z } from 'zod';
 
 type BedrockChatConfig = {
-  baseUrl: string;
+  baseUrl: () => string;
   headers: BedrockHeadersFunction;
   fetch?: FetchFunction;
   generateId: () => string;
@@ -121,21 +121,20 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     const { system, messages } = convertToBedrockChatMessages(prompt);
 
     const inferenceConfig = {
-      ...(maxTokens != null && { max_new_tokens: maxTokens }),
+      ...(maxTokens != null && { maxTokens }),
       ...(temperature != null && { temperature }),
-      ...(topP != null && { top_p: topP }),
-      ...(stopSequences != null && { stop_sequences: stopSequences }),
+      ...(topP != null && { topP }),
+      ...(stopSequences != null && { stopSequences }),
     };
 
     const baseArgs: BedrockConverseInput = {
       system: system ? [{ text: system }] : undefined,
-      additional_model_request_fields:
-        this.settings.additionalModelRequestFields,
+      additionalModelRequestFields: this.settings.additionalModelRequestFields,
       ...(Object.keys(inferenceConfig).length > 0 && {
-        inference_config: inferenceConfig,
+        inferenceConfig,
       }),
       messages,
-      guardrail_config: providerMetadata?.bedrock?.guardrailConfig as
+      guardrailConfig: providerMetadata?.bedrock?.guardrailConfig as
         | GuardrailConfiguration
         | GuardrailStreamConfiguration
         | undefined,
@@ -163,19 +162,19 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         return {
           command: {
             ...baseArgs,
-            tool_config: {
+            toolConfig: {
               tools: [
                 {
-                  tool_spec: {
+                  toolSpec: {
                     name: mode.tool.name,
                     description: mode.tool.description,
-                    input_schema: {
+                    inputSchema: {
                       json: mode.tool.parameters,
                     } as BedrockToolInputSchema,
                   },
                 },
               ],
-              tool_choice: { tool: { name: mode.tool.name } },
+              toolChoice: { tool: { name: mode.tool.name } },
             },
           },
           warnings,
@@ -191,12 +190,12 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
   private getUrl(modelId: string) {
     const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl}/model/${encodedModelId}/converse`;
+    return `${this.config.baseUrl()}/model/${encodedModelId}/converse`;
   }
 
   private getStreamUrl(modelId: string): string {
     const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl}/model/${encodedModelId}/converse-stream`;
+    return `${this.config.baseUrl()}/model/${encodedModelId}/converse-stream`;
   }
 
   async doGenerate(
@@ -210,7 +209,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       headers: await resolve(
         this.config.headers({
           url,
-          target: 'BedrockRuntimeService.Converse',
           headers: options.headers ?? {},
           body: args,
         }),
@@ -268,7 +266,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       headers: await resolve(
         this.config.headers({
           url,
-          target: 'BedrockRuntimeService.ConverseStream',
           headers: options.headers ?? {},
           body: args,
         }),
@@ -307,7 +304,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       stream: response.pipeThrough(
         new TransformStream<ParseResult<any>, LanguageModelV1StreamPart>({
           transform(chunk, controller) {
-            // console.log('chunk', chunk);
             function enqueueError(error: Error) {
               finishReason = 'error';
               controller.enqueue({ type: 'error', error });
@@ -433,9 +429,11 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const BedrockResponseSchema = z.object({
-  metrics: z.object({
-    latencyMs: z.number(),
-  }),
+  metrics: z
+    .object({
+      latencyMs: z.number(),
+    })
+    .nullish(),
   output: z.object({
     message: z.object({
       content: z.array(

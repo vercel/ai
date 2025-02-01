@@ -4,6 +4,33 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
+import { vi } from 'vitest';
+
+// Mock the eventstream codec module
+vi.mock('./bedrock-eventstream-codec', () => ({
+  createEventSourceResponseHandler: (schema: any) => {
+    return async ({ response }: { response: Response }) => {
+      const text = await response.text();
+      const chunks = text
+        .split('\n')
+        .filter(Boolean)
+        .map(chunk => ({
+          success: true,
+          value: JSON.parse(chunk),
+        }));
+
+      return {
+        responseHeaders: {},
+        value: new ReadableStream({
+          start(controller) {
+            chunks.forEach(chunk => controller.enqueue(chunk));
+            controller.close();
+          },
+        }),
+      };
+    };
+  },
+}));
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'system', content: 'System Prompt' },
@@ -40,8 +67,10 @@ const mockTrace = {
 const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
 const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
 
-const streamUrl = `${baseUrl}/model/${modelId}/converse-stream`;
-const generateUrl = `${baseUrl}/model/${modelId}/converse`;
+const streamUrl = `${baseUrl}/model/${encodeURIComponent(
+  modelId,
+)}/converse-stream`;
+const generateUrl = `${baseUrl}/model/${encodeURIComponent(modelId)}/converse`;
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -63,7 +92,7 @@ const model = new BedrockChatLanguageModel(
   modelId,
   {},
   {
-    baseUrl,
+    baseUrl: () => baseUrl,
     headers: () => ({
       'x-amz-auth': 'test-auth',
     }),
@@ -411,7 +440,6 @@ describe('doStream', () => {
     });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
-      modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
     });
@@ -440,7 +468,6 @@ describe('doStream', () => {
     });
 
     expect(await server.calls[0].requestBody).toMatchObject({
-      modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
       guardrailConfig: {
@@ -525,7 +552,7 @@ describe('doGenerate', () => {
     stopReason?: string;
     trace?: typeof mockTrace;
   }) {
-    server.urls[`${baseUrl}/model/${modelId}/converse`].response = {
+    server.urls[generateUrl].response = {
       type: 'json-value',
       body: {
         output: {
@@ -612,7 +639,6 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
-      modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
     });

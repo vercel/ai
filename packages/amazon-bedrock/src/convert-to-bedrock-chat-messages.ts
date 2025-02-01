@@ -93,7 +93,7 @@ export function convertToBedrockChatMessages(
                         )?.[1] as DocumentFormat,
                         name: generateFileId(),
                         source: {
-                          bytes: Buffer.from(part.data, 'base64'),
+                          bytes: part.data,
                         },
                       },
                     });
@@ -110,8 +110,8 @@ export function convertToBedrockChatMessages(
                 const part = content[i];
 
                 bedrockContent.push({
-                  tool_result: {
-                    tool_use_id: part.toolCallId,
+                  toolResult: {
+                    toolUseId: part.toolCallId,
                     content: [{ text: JSON.stringify(part.result) }],
                   },
                 });
@@ -160,8 +160,8 @@ export function convertToBedrockChatMessages(
 
               case 'tool-call': {
                 bedrockContent.push({
-                  tool_use: {
-                    tool_use_id: part.toolCallId,
+                  toolUse: {
+                    toolUseId: part.toolCallId,
                     name: part.toolName,
                     input: part.args as any,
                   },

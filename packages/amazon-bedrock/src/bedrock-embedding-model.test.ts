@@ -14,23 +14,26 @@ const mockEmbeddings = [
 
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
+const embedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+  'amazon.titan-embed-text-v2:0',
+)}/invoke`;
+
 describe('doEmbed', () => {
   const server = createTestServer({
-    'https://bedrock-runtime.us-east-1.amazonaws.com/model/amazon.titan-embed-text-v2:0/invoke':
-      {
-        response: {
-          type: 'binary',
-          headers: {
-            'content-type': 'application/json',
-          },
-          body: Buffer.from(
-            JSON.stringify({
-              embedding: mockEmbeddings[0],
-              inputTextTokenCount: 8,
-            }),
-          ),
+    [embedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
         },
+        body: Buffer.from(
+          JSON.stringify({
+            embedding: mockEmbeddings[0],
+            inputTextTokenCount: 8,
+          }),
+        ),
       },
+    },
   });
 
   const provider = createAmazonBedrock({
@@ -44,9 +47,7 @@ describe('doEmbed', () => {
 
   beforeEach(() => {
     callCount = 0;
-    server.urls[
-      'https://bedrock-runtime.us-east-1.amazonaws.com/model/amazon.titan-embed-text-v2:0/invoke'
-    ].response = {
+    server.urls[embedUrl].response = {
       type: 'binary',
       headers: {
         'content-type': 'application/json',

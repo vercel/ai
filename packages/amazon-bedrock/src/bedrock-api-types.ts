@@ -2,27 +2,25 @@ import { Resolvable } from '@ai-sdk/provider-utils';
 
 export type BedrockHeadersFunction = (args: {
   url: string;
-  target: string;
   headers: Record<string, string | undefined>;
   body: unknown;
 }) => Resolvable<Record<string, string | undefined>>;
 
 export interface BedrockConverseInput {
-  // modelId: string;
   system?: Array<{ text: string }>;
   messages: Array<{
     role: string;
     content: Array<ContentBlock>;
   }>;
-  tool_config?: BedrockToolConfiguration;
-  inference_config?: {
-    max_new_tokens?: number;
+  toolConfig?: BedrockToolConfiguration;
+  inferenceConfig?: {
+    maxTokens?: number;
     temperature?: number;
-    top_p?: number;
-    stop_sequences?: string[];
+    topP?: number;
+    stopSequences?: string[];
   };
-  additional_model_request_fields?: Record<string, any>;
-  guardrail_config?: any;
+  additionalModelRequestFields?: Record<string, any>;
+  guardrailConfig?: any;
 }
 
 export interface GuardrailConfiguration {
@@ -40,16 +38,16 @@ export interface BedrockToolInputSchema {
 }
 
 export interface BedrockTool {
-  tool_spec: {
+  toolSpec: {
     name: string;
     description?: string;
-    input_schema: { json: any };
+    inputSchema: { json: any };
   };
 }
 
 export interface BedrockToolConfiguration {
   tools?: BedrockTool[];
-  tool_choice?:
+  toolChoice?:
     | { tool: { name: string } }
     | { auto: {} }
     | { any: {} }
@@ -76,13 +74,13 @@ export interface DocumentBlock {
     format: DocumentFormat;
     name: string;
     source: {
-      bytes: Buffer;
+      bytes: string;
     };
   };
 }
 
 export interface GuardrailConverseContentBlock {
-  guard_content: any;
+  guardContent: any;
 }
 
 export interface ImageBlock {
@@ -95,15 +93,15 @@ export interface ImageBlock {
 }
 
 export interface ToolResultBlock {
-  tool_result: {
-    tool_use_id: string;
+  toolResult: {
+    toolUseId: string;
     content: Array<{ text: string }>;
   };
 }
 
 export interface ToolUseBlock {
-  tool_use: {
-    tool_use_id: string;
+  toolUse: {
+    toolUseId: string;
     name: string;
     input: Record<string, any>;
   };

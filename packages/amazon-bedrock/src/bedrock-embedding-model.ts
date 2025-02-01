@@ -13,7 +13,7 @@ import { BedrockErrorSchema } from './bedrock-error';
 import { BedrockHeadersFunction } from './bedrock-api-types';
 
 type BedrockEmbeddingConfig = {
-  baseUrl: string;
+  baseUrl: () => string;
   headers: BedrockHeadersFunction;
   fetch?: FetchFunction;
 };
@@ -33,7 +33,8 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
   ) {}
 
   private getUrl(modelId: string): string {
-    return `${this.config.baseUrl}/model/${modelId}/invoke`;
+    const encodedModelId = encodeURIComponent(modelId);
+    return `${this.config.baseUrl()}/model/${encodedModelId}/invoke`;
   }
 
   async doEmbed({
@@ -56,7 +57,6 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
         headers: await resolve(
           this.config.headers({
             url,
-            target: 'BedrockRuntimeService.InvokeModel',
             headers: headers ?? {},
             body: args,
           }),
