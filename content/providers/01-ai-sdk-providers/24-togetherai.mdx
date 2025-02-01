@@ -124,7 +124,19 @@ import { experimental_generateImage as generateImage } from 'ai';
 const { images } = await generateImage({
   model: togetherai.image('black-forest-labs/FLUX.1-dev'),
   prompt: 'A delighted resplendent quetzal mid flight amidst raindrops',
-  size: '1024x1024',
+});
+```
+
+You can pass optional provider-specific request parameters using the `providerOptions` argument.
+
+```ts
+import { togetherai } from '@ai-sdk/togetherai';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: togetherai.image('black-forest-labs/FLUX.1-dev'),
+  prompt: 'A delighted resplendent quetzal mid flight amidst raindrops',
+  size: '512x512',
   // Optional additional provider-specific request parameters
   providerOptions: {
     togetherai: {
@@ -133,6 +145,8 @@ const { images } = await generateImage({
   },
 });
 ```
+
+For a complete list of available provider-specific options, see the [Together.ai Image Generation API Reference](https://docs.together.ai/reference/post_images-generations).
 
 ### Model Capabilities
 
