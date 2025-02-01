@@ -6,8 +6,8 @@ describe('buildMetadataFromResponse', () => {
       citations: ['source1', 'source2'],
       images: [
         {
-          image_url: 'https://image.com',
-          origin_url: 'https://origin.url',
+          image_url: 'https://images.com/image1.jpg',
+          origin_url: 'https://elsewhere.com/page1',
           height: 100,
           width: 100,
         },
@@ -27,8 +27,8 @@ describe('buildMetadataFromResponse', () => {
         citations: ['source1', 'source2'],
         images: [
           {
-            imageUrl: 'https://image.com',
-            originUrl: 'https://origin.url',
+            imageUrl: 'https://images.com/image1.jpg',
+            originUrl: 'https://elsewhere.com/page1',
             height: 100,
             width: 100,
           },
@@ -61,8 +61,8 @@ describe('buildMetadataFromResponse', () => {
     const response = {
       images: [
         {
-          image_url: 'https://image.com',
-          origin_url: 'https://origin.url',
+          image_url: 'https://images.com/image1.jpg',
+          origin_url: 'https://elsewhere.com/page1',
           height: 100,
           width: 100,
         },
@@ -77,8 +77,8 @@ describe('buildMetadataFromResponse', () => {
       perplexity: {
         images: [
           {
-            imageUrl: 'https://image.com',
-            originUrl: 'https://origin.url',
+            imageUrl: 'https://images.com/image1.jpg',
+            originUrl: 'https://elsewhere.com/page1',
             height: 100,
             width: 100,
           },
@@ -148,8 +148,8 @@ describe('streaming metadata extractor', () => {
       choices: [{ delta: { role: 'assistant', content: 'content' } }],
       images: [
         {
-          image_url: 'https://image.com',
-          origin_url: 'https://origin.url',
+          image_url: 'https://images.com/image1.jpg',
+          origin_url: 'https://elsewhere.com/page1',
           height: 100,
           width: 100,
         },
@@ -172,8 +172,8 @@ describe('streaming metadata extractor', () => {
         citations: ['source1', 'source2'],
         images: [
           {
-            imageUrl: 'https://image.com',
-            originUrl: 'https://origin.url',
+            imageUrl: 'https://images.com/image1.jpg',
+            originUrl: 'https://elsewhere.com/page1',
             height: 100,
             width: 100,
           },
@@ -194,8 +194,8 @@ describe('streaming metadata extractor', () => {
       citations: ['source1'],
       images: [
         {
-          image_url: 'https://image-1.com',
-          origin_url: 'https://origin-1.url',
+          image_url: 'https://images.com/image1.jpg',
+          origin_url: 'https://elsewhere.com/page1',
           height: 100,
           width: 100,
         },
@@ -211,14 +211,14 @@ describe('streaming metadata extractor', () => {
       citations: ['source1', 'source2'],
       images: [
         {
-          image_url: 'https://image-1.com',
-          origin_url: 'https://origin-1.url',
+          image_url: 'https://images.com/image1.jpg',
+          origin_url: 'https://elsewhere.com/page1',
           height: 100,
           width: 100,
         },
         {
-          image_url: 'https://image-2.com',
-          origin_url: 'https://origin-2.url',
+          image_url: 'https://images.com/image2.jpg',
+          origin_url: 'https://elsewhere.com/page2',
           height: 200,
           width: 200,
         },
@@ -236,14 +236,14 @@ describe('streaming metadata extractor', () => {
         citations: ['source1', 'source2'],
         images: [
           {
-            imageUrl: 'https://image-1.com',
-            originUrl: 'https://origin-1.url',
+            imageUrl: 'https://images.com/image1.jpg',
+            originUrl: 'https://elsewhere.com/page1',
             height: 100,
             width: 100,
           },
           {
-            imageUrl: 'https://image-2.com',
-            originUrl: 'https://origin-2.url',
+            imageUrl: 'https://images.com/image2.jpg',
+            originUrl: 'https://elsewhere.com/page2',
             height: 200,
             width: 200,
           },
