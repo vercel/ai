@@ -1,5 +1,56 @@
 # @ai-sdk/openai-compatible
 
+## 0.1.8
+
+### Patch Changes
+
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+
+## 0.1.7
+
+### Patch Changes
+
+- f2c6c37: feat (provider/openai-compatible): support providerOptions in generateText/streamText
+
+## 0.1.6
+
+### Patch Changes
+
+- Updated dependencies [3a602ca]
+  - @ai-sdk/provider-utils@2.1.5
+
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [066206e]
+  - @ai-sdk/provider-utils@2.1.4
+
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [39e5c1f]
+  - @ai-sdk/provider-utils@2.1.3
+
+## 0.1.3
+
+### Patch Changes
+
+- 361fd08: chore: update a few add'l processor references to extractor
+
+## 0.1.2
+
+### Patch Changes
+
+- ed012d2: feat (provider): add metadata extraction mechanism to openai-compatible providers
+- Updated dependencies [ed012d2]
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/provider-utils@2.1.2
+  - @ai-sdk/provider@1.0.6
+
 ## 0.1.1
 
 ### Patch Changes

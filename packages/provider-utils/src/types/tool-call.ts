@@ -18,3 +18,9 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
    */
   args: ARGS;
 }
+
+/**
+ * @deprecated Use `ToolCall` instead.
+ */
+// TODO remove in v5
+export type CoreToolCall<NAME extends string, ARGS> = ToolCall<NAME, ARGS>;

@@ -104,8 +104,8 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
   longer needed and will be removed in a future release.
 </Note>
 
-In the messages and message parts, you can use the `experimental_providerMetadata` property to set cache control breakpoints.
-You need to set the `anthropic` property in the `experimental_providerMetadata` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
+In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
+You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
 The cache creation input tokens are then returned in the `experimental_providerMetadata` object
 for `generateText` and `generateObject`, again under the `anthropic` property.
@@ -129,7 +129,7 @@ const result = await generateText({
         {
           type: 'text',
           text: `Error message: ${errorMessage}`,
-          experimental_providerMetadata: {
+          providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
         },
@@ -146,14 +146,14 @@ console.log(result.experimental_providerMetadata?.anthropic);
 
 You can also use cache control on system messages by providing multiple system messages at the head of your messages array:
 
-```ts highlight="3,9-11"
+```ts highlight="3,7-9"
 const result = await generateText({
   model: anthropic('claude-3-5-sonnet-20240620'),
   messages: [
     {
       role: 'system',
       content: 'Cached system message part',
-      experimental_providerMetadata: {
+      providerOptions: {
         anthropic: { cacheControl: { type: 'ephemeral' } },
       },
     },

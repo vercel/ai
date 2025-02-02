@@ -11,7 +11,6 @@ Below we focus on the general setup and provider instance creation. You can also
 
 We provide detailed documentation for the following OpenAI compatible providers:
 
-- [Perplexity](/providers/openai-compatible-providers/perplexity)
 - [LM Studio](/providers/openai-compatible-providers/lmstudio)
 - [Baseten](/providers/openai-compatible-providers/baseten)
 
@@ -170,3 +169,120 @@ const provider = createOpenAICompatible({
 
 For example, with the above configuration, API requests would include the query parameter in the URL like:
 `https://api.provider.com/v1/chat/completions?api-version=1.0.0`.
+
+## Provider-specific options
+
+The OpenAI Compatible provider supports adding provider-specific options to the request body. These are specified with the `providerOptions` field in the request body.
+
+For example, if you create a provider instance with the name `provider-name`, you can add a `custom-option` field to the request body like this:
+
+```ts
+const provider = createOpenAICompatible({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+});
+
+const { text } = await generateText({
+  model: provider('model-id'),
+  prompt: 'Hello',
+  providerOptions: {
+    'provider-name': { customOption: 'magic-value' },
+  },
+});
+```
+
+The request body sent to the provider will include the `customOption` field with the value `magic-value`. This gives you an easy way to add provider-specific options to requests without having to modify the provider or AI SDK code.
+
+## Custom Metadata Extraction
+
+The OpenAI Compatible provider supports extracting provider-specific metadata from API responses through metadata extractors.
+These extractors allow you to capture additional information returned by the provider beyond the standard response format.
+
+Metadata extractors receive the raw, unprocessed response data from the provider, giving you complete flexibility
+to extract any custom fields or experimental features that the provider may include.
+This is particularly useful when:
+
+- Working with providers that include non-standard response fields
+- Experimenting with beta or preview features
+- Capturing provider-specific metrics or debugging information
+- Supporting rapid provider API evolution without SDK changes
+
+Metadata extractors work with both streaming and non-streaming chat completions and consist of two main components:
+
+1. A function to extract metadata from complete responses
+2. A streaming extractor that can accumulate metadata across chunks in a streaming response
+
+Here's an example metadata extractor that captures both standard and custom provider data:
+
+```typescript
+const myMetadataExtractor: MetadataExtractor = {
+  // Process complete, non-streaming responses
+  extractMetadata: ({ parsedBody }) => {
+    // You have access to the complete raw response
+    // Extract any fields the provider includes
+    return {
+      myProvider: {
+        standardUsage: parsedBody.usage,
+        experimentalFeatures: parsedBody.beta_features,
+        customMetrics: {
+          processingTime: parsedBody.server_timing?.total_ms,
+          modelVersion: parsedBody.model_version,
+          // ... any other provider-specific data
+        },
+      },
+    };
+  },
+
+  // Process streaming responses
+  createStreamExtractor: () => {
+    let accumulatedData = {
+      timing: [],
+      customFields: {},
+    };
+
+    return {
+      // Process each chunk's raw data
+      processChunk: parsedChunk => {
+        if (parsedChunk.server_timing) {
+          accumulatedData.timing.push(parsedChunk.server_timing);
+        }
+        if (parsedChunk.custom_data) {
+          Object.assign(accumulatedData.customFields, parsedChunk.custom_data);
+        }
+      },
+      // Build final metadata from accumulated data
+      buildMetadata: () => ({
+        myProvider: {
+          streamTiming: accumulatedData.timing,
+          customData: accumulatedData.customFields,
+        },
+      }),
+    };
+  },
+};
+```
+
+You can provide a metadata extractor when creating your provider instance:
+
+```typescript
+const provider = createOpenAICompatible({
+  name: 'my-provider',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+  metadataExtractor: myMetadataExtractor,
+});
+```
+
+The extracted metadata will be included in the response under the `providerMetadata` field:
+
+```typescript
+const { text, providerMetadata } = await generateText({
+  model: provider('model-id'),
+  prompt: 'Hello',
+});
+
+console.log(providerMetadata.myProvider.customMetric);
+```
+
+This allows you to access provider-specific information while maintaining a consistent interface across different providers.

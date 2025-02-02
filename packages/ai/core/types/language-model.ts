@@ -9,8 +9,21 @@ import {
 export type {
   LanguageModelV1,
   LanguageModelV1CallOptions,
+  LanguageModelV1CallWarning,
+  LanguageModelV1FilePart,
+  LanguageModelV1FinishReason,
+  LanguageModelV1FunctionToolCall,
+  LanguageModelV1ImagePart,
+  LanguageModelV1Message,
+  LanguageModelV1ObjectGenerationMode,
   LanguageModelV1Prompt,
+  LanguageModelV1ProviderDefinedTool,
+  LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
+  LanguageModelV1TextPart,
+  LanguageModelV1ToolCallPart,
+  LanguageModelV1ToolChoice,
+  LanguageModelV1ToolResultPart,
 } from '@ai-sdk/provider';
 
 /**
@@ -52,9 +65,15 @@ Tool choice for the generation. It supports the following settings:
 - `none`: the model must not call tools
 - `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
  */
-// TODO 4.1 rename to ToolChoice
-export type CoreToolChoice<TOOLS extends Record<string, unknown>> =
+export type ToolChoice<TOOLS extends Record<string, unknown>> =
   | 'auto'
   | 'none'
   | 'required'
   | { type: 'tool'; toolName: keyof TOOLS };
+
+/**
+ * @deprecated Use `ToolChoice` instead.
+ */
+// TODO remove in v5
+export type CoreToolChoice<TOOLS extends Record<string, unknown>> =
+  ToolChoice<TOOLS>;

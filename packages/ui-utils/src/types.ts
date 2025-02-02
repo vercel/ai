@@ -1,9 +1,5 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
-import {
-  ToolCall as CoreToolCall,
-  ToolResult as CoreToolResult,
-  FetchFunction,
-} from '@ai-sdk/provider-utils';
+import { ToolCall, ToolResult, FetchFunction } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from './duplicated/usage';
 
 export * from './use-assistant-types';
@@ -14,11 +10,15 @@ export type IdGenerator = () => string;
 Tool invocations are either tool calls or tool results. For each assistant tool call,
 there is one tool invocation. While the call is in progress, the invocation is a tool call.
 Once the call is complete, the invocation is a tool result.
+
+The step is used to track how to map an assistant UI message with many tool invocations
+back to a sequence of LLM assistant/tool result message pairs.
+It is optional for backwards compatibility.
  */
 export type ToolInvocation =
-  | ({ state: 'partial-call' } & CoreToolCall<string, any>)
-  | ({ state: 'call' } & CoreToolCall<string, any>)
-  | ({ state: 'result' } & CoreToolResult<string, any, any>);
+  | ({ state: 'partial-call'; step?: number } & ToolCall<string, any>)
+  | ({ state: 'call'; step?: number } & ToolCall<string, any>)
+  | ({ state: 'result'; step?: number } & ToolResult<string, any, any>);
 
 /**
  * An attachment that can be sent along with a message.
@@ -59,6 +59,11 @@ The timestamp of the message.
 Text content of the message.
    */
   content: string;
+
+  /**
+Reasoning for the message.
+   */
+  reasoning?: string;
 
   /**
    * Additional attachments to be sent along with the message.
@@ -188,7 +193,7 @@ either synchronously or asynchronously.
   onToolCall?: ({
     toolCall,
   }: {
-    toolCall: CoreToolCall<string, unknown>;
+    toolCall: ToolCall<string, unknown>;
   }) => void | Promise<unknown> | unknown;
 
   /**

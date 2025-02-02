@@ -75,6 +75,29 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
   `providerOptions.replicate`.
 </Note>
 
+### Supported Image Models
+
+The following image models are currently supported by the Replicate provider:
+
+- [black-forest-labs/flux-1.1-pro-ultra](https://replicate.com/black-forest-labs/flux-1.1-pro-ultra)
+- [black-forest-labs/flux-1.1-pro](https://replicate.com/black-forest-labs/flux-1.1-pro)
+- [black-forest-labs/flux-dev](https://replicate.com/black-forest-labs/flux-dev)
+- [black-forest-labs/flux-pro](https://replicate.com/black-forest-labs/flux-pro)
+- [black-forest-labs/flux-schnell](https://replicate.com/black-forest-labs/flux-schnell)
+- [ideogram-ai/ideogram-v2-turbo](https://replicate.com/ideogram-ai/ideogram-v2-turbo)
+- [ideogram-ai/ideogram-v2](https://replicate.com/ideogram-ai/ideogram-v2)
+- [luma/photon-flash](https://replicate.com/luma/photon-flash)
+- [luma/photon](https://replicate.com/luma/photon)
+- [recraft-ai/recraft-v3-svg](https://replicate.com/recraft-ai/recraft-v3-svg)
+- [recraft-ai/recraft-v3](https://replicate.com/recraft-ai/recraft-v3)
+- [stability-ai/stable-diffusion-3.5-large-turbo](https://replicate.com/stability-ai/stable-diffusion-3.5-large-turbo)
+- [stability-ai/stable-diffusion-3.5-large](https://replicate.com/stability-ai/stable-diffusion-3.5-large)
+- [stability-ai/stable-diffusion-3.5-medium](https://replicate.com/stability-ai/stable-diffusion-3.5-medium)
+
+You can also use [versioned models](https://replicate.com/docs/topics/models/versions).
+The id for versioned models is the Replicate model id followed by a colon and the version ID (`$modelId:$versionId`), e.g.
+`bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637`.
+
 ### Basic Usage
 
 ```ts
@@ -108,6 +131,20 @@ const { image } = await generateImage({
       style: 'realistic_image',
     },
   },
+});
+```
+
+### Versioned Models
+
+```ts
+import { replicate } from '@ai-sdk/replicate';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: replicate.image(
+    'bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637',
+  ),
+  prompt: 'The Loch Ness Monster getting a manicure',
 });
 ```
 

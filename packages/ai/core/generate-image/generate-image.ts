@@ -106,7 +106,7 @@ Only applicable for HTTP-based providers.
   headers?: Record<string, string>;
 
   /**
-   * Internal. For test use only. May change without notice.
+   * @internal For test use only. May change without notice.
    */
   _internal?: {
     currentDate?: () => Date;

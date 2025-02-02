@@ -1,5 +1,70 @@
 # @ai-sdk/google-vertex
 
+## 2.1.8
+
+### Patch Changes
+
+- d89c3b9: feat (provider): add image model support to provider specification
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/anthropic@1.1.6
+  - @ai-sdk/google@1.1.8
+  - @ai-sdk/provider-utils@2.1.6
+
+## 2.1.7
+
+### Patch Changes
+
+- d399f25: feat (provider/google-vertex): support public file urls in messages
+- Updated dependencies [d399f25]
+  - @ai-sdk/google@1.1.7
+
+## 2.1.6
+
+### Patch Changes
+
+- Updated dependencies [e012cd8]
+  - @ai-sdk/google@1.1.6
+
+## 2.1.5
+
+### Patch Changes
+
+- Updated dependencies [3a602ca]
+  - @ai-sdk/provider-utils@2.1.5
+  - @ai-sdk/anthropic@1.1.5
+  - @ai-sdk/google@1.1.5
+
+## 2.1.4
+
+### Patch Changes
+
+- Updated dependencies [066206e]
+  - @ai-sdk/provider-utils@2.1.4
+  - @ai-sdk/anthropic@1.1.4
+  - @ai-sdk/google@1.1.4
+
+## 2.1.3
+
+### Patch Changes
+
+- Updated dependencies [39e5c1f]
+  - @ai-sdk/provider-utils@2.1.3
+  - @ai-sdk/anthropic@1.1.3
+  - @ai-sdk/google@1.1.3
+
+## 2.1.2
+
+### Patch Changes
+
+- 3a58a2e: feat (ai/core): throw NoImageGeneratedError from generateImage when no predictions are returned.
+- Updated dependencies [ed012d2]
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/provider-utils@2.1.2
+  - @ai-sdk/provider@1.0.6
+  - @ai-sdk/anthropic@1.1.2
+  - @ai-sdk/google@1.1.2
+
 ## 2.1.1
 
 ### Patch Changes

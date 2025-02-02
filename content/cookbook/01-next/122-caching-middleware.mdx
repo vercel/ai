@@ -66,7 +66,7 @@ You can control the initial delay and delay between chunks by adjusting the `ini
 import { Redis } from '@upstash/redis';
 import type {
   LanguageModelV1,
-  Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware,
+  LanguageModelV1Middleware,
   LanguageModelV1StreamPart,
   simulateReadableStream,
 } from 'ai';
@@ -165,11 +165,7 @@ Finally, you will create an API route for `api/chat` to handle the assistant's m
 ```tsx filename='app/api/chat/route.ts'
 import { cacheMiddleware } from '@/ai/middleware';
 import { openai } from '@ai-sdk/openai';
-import {
-  experimental_wrapLanguageModel as wrapLanguageModel,
-  streamText,
-  tool,
-} from 'ai';
+import { wrapLanguageModel, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 const wrappedModel = wrapLanguageModel({

@@ -460,7 +460,7 @@ describe('convertToLanguageModelPrompt', () => {
                     text: 'hello, world!',
                   },
                 ],
-                experimental_providerMetadata: {
+                providerOptions: {
                   'test-provider': {
                     'key-a': 'test-value-1',
                     'key-b': 'test-value-2',
@@ -711,7 +711,7 @@ describe('convertToLanguageModelMessage', () => {
                 toolName: 'toolName',
                 toolCallId: 'toolCallId',
                 args: {},
-                experimental_providerMetadata: {
+                providerOptions: {
                   'test-provider': {
                     'key-a': 'test-value-1',
                     'key-b': 'test-value-2',
@@ -784,7 +784,7 @@ describe('convertToLanguageModelMessage', () => {
               toolName: 'toolName',
               toolCallId: 'toolCallId',
               result: { some: 'result' },
-              experimental_providerMetadata: {
+              providerOptions: {
                 'test-provider': {
                   'key-a': 'test-value-1',
                   'key-b': 'test-value-2',

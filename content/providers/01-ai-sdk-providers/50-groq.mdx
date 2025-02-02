@@ -75,6 +75,23 @@ The first argument is the model id, e.g. `gemma2-9b-it`.
 const model = groq('gemma2-9b-it');
 ```
 
+### Reasoning Models
+
+Groq exposes the thinking of `deepseek-r1-distill-llama-70b` in the generated text using the `<think>` tag.
+You can use the `extractReasoningMiddleware` to extract this reasoning and expose it as a `reasoning` property on the result:
+
+```ts
+import { groq } from '@ai-sdk/groq';
+import { wrapLanguageModel, extractReasoningMiddleware } from 'ai';
+
+const enhancedModel = wrapLanguageModel({
+  model: groq('deepseek-r1-distill-llama-70b'),
+  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+});
+```
+
+You can then use that enhanced model in functions like `generateText` and `streamText`.
+
 ### Example
 
 You can use Groq language models to generate text with the `generateText` function:
@@ -91,15 +108,16 @@ const { text } = await generateText({
 
 ## Model Capabilities
 
-| Model                     | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `llama-3.3-70b-versatile` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `llama-3.1-8b-instant`    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemma2-9b-it`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mixtral-8x7b-32768`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `deepseek-r1-distill-llama-70b` | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `llama-3.3-70b-versatile`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama-3.1-8b-instant`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemma2-9b-it`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mixtral-8x7b-32768`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
-  The table above lists popular models. Please see the [Grop
+  The table above lists popular models. Please see the [Groq
   docs](https://console.groq.com/docs/models) for a full list of available
   models. The table above lists popular models. You can also pass any available
   provider model ID as a string if needed.

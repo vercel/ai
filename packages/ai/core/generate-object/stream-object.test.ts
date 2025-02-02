@@ -1091,8 +1091,8 @@ describe('streamObject', () => {
       });
     });
 
-    describe('options.providerMetadata', () => {
-      it('should pass provider metadata to model in json mode', async () => {
+    describe('options.providerOptions', () => {
+      it('should pass provider options to model in json mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ providerMetadata }) => {
@@ -1119,7 +1119,7 @@ describe('streamObject', () => {
           schema: z.object({ content: z.string() }),
           mode: 'json',
           prompt: 'prompt',
-          experimental_providerMetadata: {
+          providerOptions: {
             aProvider: { someKey: 'someValue' },
           },
         });
@@ -1129,7 +1129,7 @@ describe('streamObject', () => {
         ).toStrictEqual([{ content: 'provider metadata test' }]);
       });
 
-      it('should pass provider metadata to model in tool mode', async () => {
+      it('should pass provider options to model in tool mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ providerMetadata }) => {
@@ -1159,7 +1159,7 @@ describe('streamObject', () => {
           schema: z.object({ content: z.string() }),
           mode: 'tool',
           prompt: 'prompt',
-          experimental_providerMetadata: {
+          providerOptions: {
             aProvider: { someKey: 'someValue' },
           },
         });

@@ -260,12 +260,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'tools',
-      type: 'Record<string, CoreTool>',
+      type: 'ToolSet',
       description:
         'Tools that are accessible to and can be called by the model. The model needs to support calling tools.',
       properties: [
         {
-          type: 'CoreTool',
+          type: 'Tool',
           parameters: [
             {
               name: 'description',
@@ -468,11 +468,11 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_providerMetadata',
+      name: 'providerOptions',
       type: 'Record<string,Record<string,JSONValue>> | undefined',
       isOptional: true,
       description:
-        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+        'Provider-specific options. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
       name: 'experimental_activeTools',

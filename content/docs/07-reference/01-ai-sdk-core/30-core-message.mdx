@@ -8,6 +8,8 @@ description: Message types for AI SDK Core (API Reference)
 `CoreMessage` represents the fundamental message structure used with AI SDK Core functions.
 It encompasses various message types that can be used in the `messages` field of any AI SDK Core functions.
 
+You can access the Zod schema for `CoreMessage` with the `coreMessageSchema` export.
+
 ## `CoreMessage` Types
 
 ### `CoreSystemMessage`
@@ -20,6 +22,8 @@ type CoreSystemMessage = {
   content: string;
 };
 ```
+
+You can access the Zod schema for `CoreSystemMessage` with the `coreSystemMessageSchema` export.
 
 <Note>
   Using the "system" property instead of a system message is recommended to
@@ -39,6 +43,8 @@ type CoreUserMessage = {
 type UserContent = string | Array<TextPart | ImagePart | FilePart>;
 ```
 
+You can access the Zod schema for `CoreUserMessage` with the `coreUserMessageSchema` export.
+
 ### `CoreAssistantMessage`
 
 An assistant message that can contain text, tool calls, or a combination of both.
@@ -52,6 +58,8 @@ type CoreAssistantMessage = {
 type AssistantContent = string | Array<TextPart | ToolCallPart>;
 ```
 
+You can access the Zod schema for `CoreAssistantMessage` with the `coreAssistantMessageSchema` export.
+
 ### `CoreToolMessage`
 
 A tool message that contains the result of one or more tool calls.
@@ -64,6 +72,8 @@ type CoreToolMessage = {
 
 type ToolContent = Array<ToolResultPart>;
 ```
+
+You can access the Zod schema for `CoreToolMessage` with the `coreToolMessageSchema` export.
 
 ## `CoreMessage` Parts
 

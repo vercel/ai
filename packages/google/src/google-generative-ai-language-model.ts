@@ -32,8 +32,9 @@ type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
-  generateId: () => string;
   fetch?: FetchFunction;
+  generateId: () => string;
+  isSupportedUrl: (url: URL) => boolean;
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
@@ -111,6 +112,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           : undefined,
       ...(this.settings.audioTimestamp && {
         audioTimestamp: this.settings.audioTimestamp,
+      }),
+
+      // reasoning models:
+      ...(isReasoningModel(this.modelId) && {
+        thinking_config: { include_thoughts: true },
       }),
     };
 
@@ -194,9 +200,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   }
 
   supportsUrl(url: URL): boolean {
-    return url
-      .toString()
-      .startsWith('https://generativelanguage.googleapis.com/v1beta/files/');
+    return this.config.isSupportedUrl(url);
   }
 
   async doGenerate(
@@ -210,10 +214,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       options.headers,
     );
 
+    let url = `${this.config.baseURL}/${getModelPath(
+      this.modelId,
+    )}:generateContent`;
+
+    // reasoning models are only available in the alpha version of the API:
+    if (isReasoningModel(this.modelId)) {
+      url = url.replace('v1beta', 'v1alpha');
+    }
+
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:generateContent`,
+      url,
       headers: mergedHeaders,
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
@@ -233,7 +244,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const usageMetadata = response.usageMetadata;
 
     return {
-      text: getTextFromParts(candidate.content?.parts ?? []),
+      text: getTextFromParts({
+        parts: candidate.content?.parts,
+        isThought: false,
+      }),
+      reasoning: getTextFromParts({
+        parts: candidate.content?.parts,
+        isThought: true,
+      }),
       toolCalls,
       finishReason: mapGoogleGenerativeAIFinishReason({
         finishReason: candidate.finishReason,
@@ -267,10 +285,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       options.headers,
     );
 
+    let url = `${this.config.baseURL}/${getModelPath(
+      this.modelId,
+    )}:streamGenerateContent?alt=sse`;
+
+    if (isReasoningModel(this.modelId)) {
+      url = url.replace('v1beta', 'v1alpha');
+    }
+
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:streamGenerateContent?alt=sse`,
+      url,
       headers,
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
@@ -342,11 +366,27 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               return;
             }
 
-            const deltaText = getTextFromParts(content.parts);
+            const deltaText = getTextFromParts({
+              parts: content.parts,
+              isThought: false,
+            });
+
             if (deltaText != null) {
               controller.enqueue({
                 type: 'text-delta',
                 textDelta: deltaText,
+              });
+            }
+
+            const reasoningText = getTextFromParts({
+              parts: content.parts,
+              isThought: true,
+            });
+
+            if (reasoningText != null) {
+              controller.enqueue({
+                type: 'reasoning',
+                textDelta: reasoningText,
               });
             }
 
@@ -421,10 +461,17 @@ function getToolCallsFromParts({
       }));
 }
 
-function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts.filter(part => 'text' in part) as Array<
-    GoogleGenerativeAIContentPart & { text: string }
-  >;
+function getTextFromParts({
+  parts,
+  isThought,
+}: {
+  parts: z.infer<typeof contentSchema>['parts'] | undefined;
+  isThought: boolean;
+}) {
+  const textParts = (parts ?? []).filter(
+    (part): part is GoogleGenerativeAIContentPart & { text: string } =>
+      'text' in part && (part.thought ?? false) === isThought,
+  );
 
   return textParts.length === 0
     ? undefined
@@ -437,6 +484,7 @@ const contentSchema = z.object({
     z.union([
       z.object({
         text: z.string(),
+        thought: z.boolean().nullish(),
       }),
       z.object({
         functionCall: z.object({
@@ -551,3 +599,7 @@ const chunkSchema = z.object({
     })
     .nullish(),
 });
+
+function isReasoningModel(modelId: string) {
+  return modelId === 'gemini-2.0-flash-thinking-exp';
+}

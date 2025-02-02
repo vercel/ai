@@ -1,7 +1,4 @@
-import type {
-  Experimental_LanguageModelV1Middleware as LanguageModelV1Middleware,
-  LanguageModelV1StreamPart,
-} from 'ai';
+import type { LanguageModelV1Middleware, LanguageModelV1StreamPart } from 'ai';
 
 export const yourLogMiddleware: LanguageModelV1Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {

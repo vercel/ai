@@ -8,13 +8,17 @@ import type {
   Message,
   UseChatOptions as SharedUseChatOptions,
 } from '@ai-sdk/ui-utils';
-import { callChatApi, generateId as generateIdFunc } from '@ai-sdk/ui-utils';
+import {
+  callChatApi,
+  extractMaxToolInvocationStep,
+  generateId as generateIdFunc,
+  prepareAttachmentsForRequest,
+} from '@ai-sdk/ui-utils';
 import {
   Accessor,
   createEffect,
   createMemo,
   createSignal,
-  createUniqueId,
   JSX,
   Setter,
 } from 'solid-js';
@@ -137,9 +141,19 @@ const processStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({ role, content, data, annotations, toolInvocations }) => ({
+        ({
           role,
           content,
+          experimental_attachments,
+          data,
+          annotations,
+          toolInvocations,
+        }) => ({
+          role,
+          content,
+          ...(experimental_attachments !== undefined && {
+            experimental_attachments,
+          }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
@@ -168,8 +182,14 @@ const processStreamedResponse = async (
       }
     },
     onResponse,
-    onUpdate(merged, data) {
-      mutate([...chatRequest.messages, ...merged]);
+    onUpdate({ message, data, replaceLastMessage }) {
+      mutate([
+        ...(replaceLastMessage
+          ? chatRequest.messages.slice(0, chatRequest.messages.length - 1)
+          : chatRequest.messages),
+        message,
+      ]);
+
       if (data?.length) {
         setStreamData([...existingStreamData, ...data]);
       }
@@ -178,6 +198,7 @@ const processStreamedResponse = async (
     onFinish,
     generateId,
     fetch,
+    lastMessage: chatRequest.messages[chatRequest.messages.length - 1],
   });
 };
 
@@ -250,6 +271,9 @@ export function useChat(
 
   const triggerRequest = async (chatRequest: ChatRequest) => {
     const messageCount = messagesRef.length;
+    const maxStep = extractMaxToolInvocationStep(
+      chatRequest.messages[chatRequest.messages.length - 1]?.toolInvocations,
+    );
 
     try {
       setError(undefined);
@@ -301,16 +325,21 @@ export function useChat(
     const messages = messagesRef;
     const lastMessage = messages[messages.length - 1];
     if (
-      // ensure we actually have new messages (to prevent infinite loops in case of errors):
-      messages.length > messageCount &&
       // ensure there is a last message:
       lastMessage != null &&
+      // ensure we actually have new steps (to prevent infinite loops in case of errors):
+      (messages.length > messageCount ||
+        extractMaxToolInvocationStep(lastMessage.toolInvocations) !==
+          maxStep) &&
       // check if the feature is enabled:
       maxSteps > 1 &&
       // check that next step is possible:
       isAssistantMessageWithCompletedToolCalls(lastMessage) &&
+      // check that assistant has not answered yet:
+      !lastMessage.content && // empty string or undefined
       // limit the number of automatic steps:
-      countTrailingAssistantMessages(messages) < maxSteps
+      (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) <
+        maxSteps
     ) {
       await triggerRequest({ messages });
     }
@@ -318,14 +347,21 @@ export function useChat(
 
   const append: UseChatHelpers['append'] = async (
     message,
-    { data, headers, body } = {},
+    { data, headers, body, experimental_attachments } = {},
   ) => {
-    if (!message.id) {
-      message.id = generateId()();
-    }
+    const attachmentsForRequest = await prepareAttachmentsForRequest(
+      experimental_attachments,
+    );
+
+    const newMessage = {
+      ...message,
+      id: message.id ?? generateId()(),
+      experimental_attachments:
+        attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+    };
 
     return triggerRequest({
-      messages: messagesRef.concat(message as Message),
+      messages: messagesRef.concat(newMessage as Message),
       headers,
       body,
       data,
@@ -389,7 +425,7 @@ export function useChat(
     useChatOptions().initialInput?.() || '',
   );
 
-  const handleSubmit: UseChatHelpers['handleSubmit'] = (
+  const handleSubmit: UseChatHelpers['handleSubmit'] = async (
     event,
     options = {},
     metadata?: Object,
@@ -399,6 +435,10 @@ export function useChat(
 
     if (!inputValue && !options.allowEmptySubmit) return;
 
+    const attachmentsForRequest = await prepareAttachmentsForRequest(
+      options.experimental_attachments,
+    );
+
     if (metadata) {
       extraMetadata = {
         ...extraMetadata,
@@ -407,15 +447,14 @@ export function useChat(
     }
 
     triggerRequest({
-      messages:
-        !inputValue && options.allowEmptySubmit
-          ? messagesRef
-          : messagesRef.concat({
-              id: generateId()(),
-              role: 'user',
-              content: inputValue,
-              createdAt: new Date(),
-            }),
+      messages: messagesRef.concat({
+        id: generateId()(),
+        role: 'user',
+        content: inputValue,
+        createdAt: new Date(),
+        experimental_attachments:
+          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+      }),
       headers: options.headers,
       body: options.body,
       data: options.data,
@@ -498,19 +537,4 @@ function isAssistantMessageWithCompletedToolCalls(message: Message) {
     message.toolInvocations.length > 0 &&
     message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
   );
-}
-
-/**
-Returns the number of trailing assistant messages in the array.
- */
-function countTrailingAssistantMessages(messages: Message[]) {
-  let count = 0;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'assistant') {
-      count++;
-    } else {
-      break;
-    }
-  }
-  return count;
 }

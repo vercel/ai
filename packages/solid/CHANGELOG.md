@@ -1,5 +1,66 @@
 # @ai-sdk/solid
 
+## 1.1.9
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@2.1.6
+- @ai-sdk/ui-utils@1.1.8
+
+## 1.1.8
+
+### Patch Changes
+
+- 0d2d9bf: fix (ui): empty submits (with allowEmptySubmit) create user messages
+- 0d2d9bf: fix (ui): single assistant message with multiple tool steps
+- Updated dependencies [0d2d9bf]
+  - @ai-sdk/ui-utils@1.1.7
+
+## 1.1.7
+
+### Patch Changes
+
+- c73423e: feat (ui/solid): experimental attachment support
+
+## 1.1.6
+
+### Patch Changes
+
+- Updated dependencies [3a602ca]
+  - @ai-sdk/provider-utils@2.1.5
+  - @ai-sdk/ui-utils@1.1.6
+
+## 1.1.5
+
+### Patch Changes
+
+- Updated dependencies [066206e]
+  - @ai-sdk/provider-utils@2.1.4
+  - @ai-sdk/ui-utils@1.1.5
+
+## 1.1.4
+
+### Patch Changes
+
+- Updated dependencies [39e5c1f]
+  - @ai-sdk/provider-utils@2.1.3
+  - @ai-sdk/ui-utils@1.1.4
+
+## 1.1.3
+
+### Patch Changes
+
+- Updated dependencies [9ce598c]
+  - @ai-sdk/ui-utils@1.1.3
+
+## 1.1.2
+
+### Patch Changes
+
+- Updated dependencies [ed012d2]
+  - @ai-sdk/provider-utils@2.1.2
+  - @ai-sdk/ui-utils@1.1.2
+
 ## 1.1.1
 
 ### Patch Changes

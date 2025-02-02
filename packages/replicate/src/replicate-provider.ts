@@ -1,3 +1,4 @@
+import { NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { ReplicateImageModel } from './replicate-image-model';
@@ -31,11 +32,19 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface ReplicateProvider {
+export interface ReplicateProvider extends ProviderV1 {
   /**
    * Creates a Replicate image generation model.
    */
   image(
+    modelId: ReplicateImageModelId,
+    settings?: ReplicateImageSettings,
+  ): ReplicateImageModel;
+
+  /**
+   * Creates a Replicate image generation model.
+   */
+  imageModel(
     modelId: ReplicateImageModelId,
     settings?: ReplicateImageSettings,
   ): ReplicateImageModel;
@@ -47,24 +56,39 @@ export interface ReplicateProvider {
 export function createReplicate(
   options: ReplicateProviderSettings = {},
 ): ReplicateProvider {
+  const createImageModel = (
+    modelId: ReplicateImageModelId,
+    settings?: ReplicateImageSettings,
+  ) =>
+    new ReplicateImageModel(modelId, settings ?? {}, {
+      provider: 'replicate',
+      baseURL: options.baseURL ?? 'https://api.replicate.com/v1',
+      headers: {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiToken,
+          environmentVariableName: 'REPLICATE_API_TOKEN',
+          description: 'Replicate',
+        })}`,
+        ...options.headers,
+      },
+      fetch: options.fetch,
+    });
+
   return {
-    image: (
-      modelId: ReplicateImageModelId,
-      settings?: ReplicateImageSettings,
-    ) =>
-      new ReplicateImageModel(modelId, settings ?? {}, {
-        provider: 'replicate',
-        baseURL: options.baseURL ?? 'https://api.replicate.com/v1',
-        headers: {
-          Authorization: `Bearer ${loadApiKey({
-            apiKey: options.apiToken,
-            environmentVariableName: 'REPLICATE_API_TOKEN',
-            description: 'Replicate',
-          })}`,
-          ...options.headers,
-        },
-        fetch: options.fetch,
-      }),
+    image: createImageModel,
+    imageModel: createImageModel,
+    languageModel: () => {
+      throw new NoSuchModelError({
+        modelId: 'languageModel',
+        modelType: 'languageModel',
+      });
+    },
+    textEmbeddingModel: () => {
+      throw new NoSuchModelError({
+        modelId: 'textEmbeddingModel',
+        modelType: 'textEmbeddingModel',
+      });
+    },
   };
 }
 

@@ -1,5 +1,66 @@
 # @ai-sdk/fireworks
 
+## 0.1.8
+
+### Patch Changes
+
+- caf7d6f: fix (provider): extends providerv1 spec
+- d89c3b9: feat (provider): add image model support to provider specification
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/openai-compatible@0.1.8
+  - @ai-sdk/provider-utils@2.1.6
+
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [f2c6c37]
+  - @ai-sdk/openai-compatible@0.1.7
+
+## 0.1.6
+
+### Patch Changes
+
+- Updated dependencies [3a602ca]
+  - @ai-sdk/provider-utils@2.1.5
+  - @ai-sdk/openai-compatible@0.1.6
+
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [066206e]
+  - @ai-sdk/provider-utils@2.1.4
+  - @ai-sdk/openai-compatible@0.1.5
+
+## 0.1.4
+
+### Patch Changes
+
+- 39e5c1f: feat (provider-utils): add getFromApi and response handlers for binary responses and status-code errors
+- Updated dependencies [39e5c1f]
+  - @ai-sdk/provider-utils@2.1.3
+  - @ai-sdk/openai-compatible@0.1.4
+
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [361fd08]
+  - @ai-sdk/openai-compatible@0.1.3
+
+## 0.1.2
+
+### Patch Changes
+
+- 3a58a2e: feat (ai/core): throw NoImageGeneratedError from generateImage when no predictions are returned.
+- Updated dependencies [ed012d2]
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/openai-compatible@0.1.2
+  - @ai-sdk/provider-utils@2.1.2
+  - @ai-sdk/provider@1.0.6
+
 ## 0.1.1
 
 ### Patch Changes

@@ -1,0 +1,98 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`scenario: server provides reasoning > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "content": "Hello, world!",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+      "role": "assistant",
+    },
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 10,
+      "totalTokens": 15,
+    },
+  },
+]
+`;
+
+exports[`scenario: server provides reasoning > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "reasoning": "I will open the conversation",
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "reasoning": "I will open the conversation with witty banter. ",
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed,",
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+      "revisionId": "id-4",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "Hello, ",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+      "revisionId": "id-5",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "Hello, world!",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+      "revisionId": "id-6",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;

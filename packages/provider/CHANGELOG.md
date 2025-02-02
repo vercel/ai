@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 1.0.7
+
+### Patch Changes
+
+- d89c3b9: feat (provider): add image model support to provider specification
+
+## 1.0.6
+
+### Patch Changes
+
+- 3a58a2e: feat (ai/core): throw NoImageGeneratedError from generateImage when no predictions are returned.
+
 ## 1.0.5
 
 ### Patch Changes

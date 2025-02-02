@@ -215,12 +215,12 @@ const result = await generateText({
 
 ### Guardrails
 
-You can use the `bedrock` provider metadata to utilize [Amazon Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/):
+You can use the `bedrock` provider options to utilize [Amazon Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/):
 
 ```ts
 const result = await generateText({
   bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
-  experimental_providerMetadata: {
+  providerOptions: {
     bedrock: {
       guardrailConfig: {
         guardrailIdentifier: '1abcd2ef34gh',

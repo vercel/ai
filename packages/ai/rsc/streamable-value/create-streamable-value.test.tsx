@@ -1,5 +1,5 @@
+import { delay } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { delay } from '../../util/delay';
 import { createStreamableValue } from './create-streamable-value';
 import { STREAMABLE_VALUE_TYPE, StreamableValue } from './streamable-value';
 

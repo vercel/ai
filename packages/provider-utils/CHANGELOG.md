@@ -1,5 +1,38 @@
 # @ai-sdk/provider-utils
 
+## 2.1.6
+
+### Patch Changes
+
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+
+## 2.1.5
+
+### Patch Changes
+
+- 3a602ca: chore (core): rename CoreTool to Tool
+
+## 2.1.4
+
+### Patch Changes
+
+- 066206e: feat (provider-utils): move delay to provider-utils from ai
+
+## 2.1.3
+
+### Patch Changes
+
+- 39e5c1f: feat (provider-utils): add getFromApi and response handlers for binary responses and status-code errors
+
+## 2.1.2
+
+### Patch Changes
+
+- ed012d2: feat (provider): add metadata extraction mechanism to openai-compatible providers
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/provider@1.0.6
+
 ## 2.1.1
 
 ### Patch Changes

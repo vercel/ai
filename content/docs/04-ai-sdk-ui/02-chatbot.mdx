@@ -486,11 +486,43 @@ export default function Chat() {
 }
 ```
 
-## Attachments (Experimental)
+## Reasoning
 
-<Note type="warning">
-  The attachments feature is currently only available for React and Vue.js.
-</Note>
+Some models such as as DeepSeek `deepseek-reasoner` support reasoning tokens.
+These tokens are typically sent before the message content.
+You can forward them to the client with the `sendReasoning` option:
+
+```ts filename="app/api/chat/route.ts" highlight="13"
+import { deepseek } from '@ai-sdk/deepseek';
+import { streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: deepseek('deepseek-reasoner'),
+    messages,
+  });
+
+  return result.toDataStreamResponse({
+    sendReasoning: true,
+  });
+}
+```
+
+On the client side, you can access the reasoning text with the `reasoning` property on the message object:
+
+```tsx filename="app/page.tsx" highlight="4"
+messages.map(m => (
+  <div key={m.id}>
+    {m.role === 'user' ? 'User: ' : 'AI: '}
+    {m.reasoning && <pre>{m.reasoning}</pre>}
+    {m.content}
+  </div>
+));
+```
+
+## Attachments (Experimental)
 
 The `useChat` hook supports sending attachments along with a message as well as rendering them on the client. This can be useful for building applications that involve sending images, files, or other media content to the AI provider.
 

@@ -1,4 +1,4 @@
-import { delay as delayFunction } from '../../util/delay';
+import { delay as delayFunction } from '@ai-sdk/provider-utils';
 
 /**
  * Creates a ReadableStream that emits the provided values with an optional delay between each value.
@@ -18,6 +18,9 @@ export function simulateReadableStream<T>({
   chunks: T[];
   initialDelayInMs?: number | null;
   chunkDelayInMs?: number | null;
+  /**
+   * @internal For test use only. May change without notice.
+   */
   _internal?: {
     delay?: (ms: number | null) => Promise<void>;
   };

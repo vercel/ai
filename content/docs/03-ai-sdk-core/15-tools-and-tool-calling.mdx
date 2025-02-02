@@ -304,18 +304,18 @@ To enable this, the AI SDK provides several helper types for tools, tool calls, 
 You can use them to strongly type your variables, function parameters, and return types
 in parts of the code that are not directly related to `streamText` or `generateText`.
 
-Each tool call is typed with `CoreToolCall<NAME extends string, ARGS>`, depending
+Each tool call is typed with `ToolCall<NAME extends string, ARGS>`, depending
 on the tool that has been invoked.
-Similarly, the tool results are typed with `CoreToolResult<NAME extends string, ARGS, RESULT>`.
+Similarly, the tool results are typed with `ToolResult<NAME extends string, ARGS, RESULT>`.
 
-The tools in `streamText` and `generateText` are defined as a `Record<string, CoreTool>`.
-The type inference helpers `CoreToolCallUnion<TOOLS extends Record<string, CoreTool>>`
-and `CoreToolResultUnion<TOOLS extends Record<string, CoreTool>>` can be used to
+The tools in `streamText` and `generateText` are defined as a `ToolSet`.
+The type inference helpers `ToolCallUnion<TOOLS extends ToolSet>`
+and `ToolResultUnion<TOOLS extends ToolSet>` can be used to
 extract the tool call and tool result types from the tools.
 
 ```ts highlight="18-19,23-24"
 import { openai } from '@ai-sdk/openai';
-import { CoreToolCallUnion, CoreToolResultUnion, generateText, tool } from 'ai';
+import { ToolCallUnion, ToolResultUnion, generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const myToolSet = {
@@ -331,8 +331,8 @@ const myToolSet = {
   }),
 };
 
-type MyToolCall = CoreToolCallUnion<typeof myToolSet>;
-type MyToolResult = CoreToolResultUnion<typeof myToolSet>;
+type MyToolCall = ToolCallUnion<typeof myToolSet>;
+type MyToolResult = ToolResultUnion<typeof myToolSet>;
 
 async function generateSomething(prompt: string): Promise<{
   text: string;
@@ -422,6 +422,8 @@ You can use different strategies to repair the tool call:
 - Send the messages, system prompt, and tool schema to a stronger model to generate the arguments.
 - Provide more specific repair instructions based on which tool was called.
 
+### Example: Use a model with structured outputs for repair
+
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
@@ -431,15 +433,11 @@ const result = await generateText({
   tools,
   prompt,
 
-  // example approach: use a model with structured outputs for repair.
-  // (you can use other strategies as well)
   experimental_repairToolCall: async ({
     toolCall,
     tools,
     parameterSchema,
     error,
-    messages,
-    system,
   }) => {
     if (NoSuchToolError.isInstance(error)) {
       return null; // do not attempt to fix invalid tool names
@@ -461,6 +459,71 @@ const result = await generateText({
     });
 
     return { ...toolCall, args: JSON.stringify(repairedArgs) };
+  },
+});
+```
+
+### Example: Use the re-ask strategy for repair
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
+
+const result = await generateText({
+  model,
+  tools,
+  prompt,
+
+  experimental_repairToolCall: async ({
+    toolCall,
+    tools,
+    error,
+    messages,
+    system,
+  }) => {
+    const result = await generateText({
+      model,
+      system,
+      messages: [
+        ...messages,
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+              args: toolCall.args,
+            },
+          ],
+        },
+        {
+          role: 'tool' as const,
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+              result: error.message,
+            },
+          ],
+        },
+      ],
+      tools,
+    });
+
+    const newToolCall = result.toolCalls.find(
+      newToolCall => newToolCall.toolName === toolCall.toolName,
+    );
+
+    return newToolCall != null
+      ? {
+          toolCallType: 'function' as const,
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          args: JSON.stringify(newToolCall.args),
+        }
+      : null;
   },
 });
 ```

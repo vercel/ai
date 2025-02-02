@@ -99,7 +99,7 @@ Instead of sending a text in the `content` property, you can send an array of pa
 Text content is the most common type of content. It is a string that is passed to the model.
 
 If you only need to send text content in a message, the `content` property can be a string,
-but you can also use the `parts` property to send multiple parts of content.
+but you can also use it to send multiple content parts.
 
 ```ts highlight="7-10"
 const result = await generateText({
@@ -273,7 +273,7 @@ const result = await generateText({
 Assistant messages are messages that have a role of `assistant`.
 They are typically previous responses from the assistant and can contain text and tool call parts.
 
-#### Example: Assistant message with text
+#### Example: Assistant message with text content
 
 ```ts highlight="5"
 const result = await generateText({
@@ -285,7 +285,22 @@ const result = await generateText({
 });
 ```
 
-#### Example: Assistant message with tool call
+#### Example: Assistant message with text content in array
+
+```ts highlight="5"
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    { role: 'user', content: 'Hi!' },
+    {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Hello, how can I help?' }],
+    },
+  ],
+});
+```
+
+#### Example: Assistant message with tool call content
 
 ```ts highlight="5-10"
 const result = await generateText({
@@ -293,10 +308,15 @@ const result = await generateText({
   messages: [
     { role: 'user', content: 'How many calories are in this block of cheese?' },
     {
-      type: 'tool-call',
-      toolCallId: '12345',
-      toolName: 'get-nutrition-data',
-      args: { cheese: 'Roquefort' },
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: '12345',
+          toolName: 'get-nutrition-data',
+          args: { cheese: 'Roquefort' },
+        },
+      ],
     },
   ],
 });

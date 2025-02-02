@@ -1,5 +1,130 @@
 # ai
 
+## 4.1.16
+
+### Patch Changes
+
+- 7e299a4: feat (ai/core): wrapLanguageModel can apply multiple middlewares
+
+## 4.1.15
+
+### Patch Changes
+
+- d89c3b9: feat (provider): add image model support to provider specification
+- d89c3b9: feat (core): type ahead for model ids with custom provider
+- 08f54fc: chore (ai/core): move custom provider to stable
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+  - @ai-sdk/ui-utils@1.1.8
+  - @ai-sdk/react@1.1.8
+
+## 4.1.14
+
+### Patch Changes
+
+- ca89615: fix (ai/core): only append assistant response at the end when there is a final user message
+
+## 4.1.13
+
+### Patch Changes
+
+- 999085e: feat (ai/core): add write function to DataStreamWriter
+
+## 4.1.12
+
+### Patch Changes
+
+- 0d2d9bf: fix (ui): single assistant message with multiple tool steps
+- Updated dependencies [0d2d9bf]
+- Updated dependencies [0d2d9bf]
+  - @ai-sdk/react@1.1.7
+  - @ai-sdk/ui-utils@1.1.7
+
+## 4.1.11
+
+### Patch Changes
+
+- 4c58da5: chore (core): move providerOptions to stable
+
+## 4.1.10
+
+### Patch Changes
+
+- bf2c9c6: feat (core): move middleware to stable
+
+## 4.1.9
+
+### Patch Changes
+
+- 3a602ca: chore (core): rename CoreTool to Tool
+- Updated dependencies [3a602ca]
+  - @ai-sdk/provider-utils@2.1.5
+  - @ai-sdk/ui-utils@1.1.6
+  - @ai-sdk/react@1.1.6
+
+## 4.1.8
+
+### Patch Changes
+
+- 92f5f36: feat (core): add extractReasoningMiddleware
+
+## 4.1.7
+
+### Patch Changes
+
+- 066206e: feat (provider-utils): move delay to provider-utils from ai
+- Updated dependencies [066206e]
+  - @ai-sdk/provider-utils@2.1.4
+  - @ai-sdk/react@1.1.5
+  - @ai-sdk/ui-utils@1.1.5
+
+## 4.1.6
+
+### Patch Changes
+
+- Updated dependencies [39e5c1f]
+  - @ai-sdk/provider-utils@2.1.3
+  - @ai-sdk/react@1.1.4
+  - @ai-sdk/ui-utils@1.1.4
+
+## 4.1.5
+
+### Patch Changes
+
+- 9ce598c: feat (ai/ui): add reasoning support to useChat
+- Updated dependencies [9ce598c]
+  - @ai-sdk/ui-utils@1.1.3
+  - @ai-sdk/react@1.1.3
+
+## 4.1.4
+
+### Patch Changes
+
+- caaad11: feat (ai/core): re-export languagemodelv1 types for middleware implementations
+- caaad11: feat (ai/core): expose TelemetrySettings type
+
+## 4.1.3
+
+### Patch Changes
+
+- 7f30a77: feat (core): export core message schemas
+- 4298996: feat (core): add helper for merging single client message
+
+## 4.1.2
+
+### Patch Changes
+
+- 3c5fafa: chore (ai/core): move streamText toolCallStreaming option to stable
+- 3a58a2e: feat (ai/core): throw NoImageGeneratedError from generateImage when no predictions are returned.
+- Updated dependencies [ed012d2]
+- Updated dependencies [6f4d063]
+- Updated dependencies [3a58a2e]
+  - @ai-sdk/provider-utils@2.1.2
+  - @ai-sdk/react@1.1.2
+  - @ai-sdk/provider@1.0.6
+  - @ai-sdk/ui-utils@1.1.2
+
 ## 4.1.1
 
 ### Patch Changes

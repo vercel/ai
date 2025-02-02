@@ -251,6 +251,8 @@ const {
 On the server, you can then load the previous messages and append the new message to the previous messages:
 
 ```tsx filename="app/api/chat/route.ts" highlight="2-9"
+import { appendClientMessage } from 'ai';
+
 export async function POST(req: Request) {
   // get the last message from the client:
   const { message, id } = await req.json();
@@ -259,7 +261,10 @@ export async function POST(req: Request) {
   const previousMessages = await loadChat(id);
 
   // append the new message to the previous messages:
-  const messages = [...previousMessages, message];
+  const messages = appendClientMessage({
+    messages: previousMessages,
+    message,
+  });
 
   const result = streamText({
     // ...

@@ -1,9 +1,11 @@
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
+export * from './delay';
 export * from './extract-response-headers';
 export * from './fetch-function';
 export { createIdGenerator, generateId } from './generate-id';
 export * from './get-error-message';
+export * from './get-from-api';
 export * from './is-abort-error';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
@@ -18,5 +20,5 @@ export * from './validator';
 export * from './without-trailing-slash';
 
 export type { IDGenerator } from './generate-id';
-export type { ToolCall } from './types/tool-call';
-export type { ToolResult } from './types/tool-result';
+export type { CoreToolCall, ToolCall } from './types/tool-call';
+export type { CoreToolResult, ToolResult } from './types/tool-result';

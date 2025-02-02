@@ -13,6 +13,7 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
   response: Response;
 }) => PromiseLike<{
   value: RETURN_TYPE;
+  rawValue?: unknown;
   responseHeaders?: Record<string, string>;
 }>;
 
@@ -180,5 +181,60 @@ export const createJsonResponseHandler =
     return {
       responseHeaders,
       value: parsedResult.value,
+      rawValue: parsedResult.rawValue,
+    };
+  };
+
+export const createBinaryResponseHandler =
+  (): ResponseHandler<Uint8Array> =>
+  async ({ response, url, requestBodyValues }) => {
+    const responseHeaders = extractResponseHeaders(response);
+
+    if (!response.body) {
+      throw new APICallError({
+        message: 'Response body is empty',
+        url,
+        requestBodyValues,
+        statusCode: response.status,
+        responseHeaders,
+        responseBody: undefined,
+      });
+    }
+
+    try {
+      const buffer = await response.arrayBuffer();
+      return {
+        responseHeaders,
+        value: new Uint8Array(buffer),
+      };
+    } catch (error) {
+      throw new APICallError({
+        message: 'Failed to read response as array buffer',
+        url,
+        requestBodyValues,
+        statusCode: response.status,
+        responseHeaders,
+        responseBody: undefined,
+        cause: error,
+      });
+    }
+  };
+
+export const createStatusCodeErrorResponseHandler =
+  (): ResponseHandler<APICallError> =>
+  async ({ response, url, requestBodyValues }) => {
+    const responseHeaders = extractResponseHeaders(response);
+    const responseBody = await response.text();
+
+    return {
+      responseHeaders,
+      value: new APICallError({
+        message: response.statusText,
+        url,
+        requestBodyValues: requestBodyValues as Record<string, unknown>,
+        statusCode: response.status,
+        responseHeaders,
+        responseBody,
+      }),
     };
   };

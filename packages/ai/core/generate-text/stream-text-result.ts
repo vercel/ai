@@ -2,7 +2,6 @@ import { ServerResponse } from 'node:http';
 import { StreamData } from '../../streams/stream-data';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
-import { CoreTool } from '../tool';
 import {
   CallWarning,
   FinishReason,
@@ -16,14 +15,12 @@ import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
+import { ToolSet } from './tool-set';
 
 /**
 A result object for accessing different stream types and additional information.
  */
-export interface StreamTextResult<
-  TOOLS extends Record<string, CoreTool>,
-  PARTIAL_OUTPUT,
-> {
+export interface StreamTextResult<TOOLS extends ToolSet, PARTIAL_OUTPUT> {
   /**
 Warnings from the model provider (e.g. unsupported settings) for the first step.
      */
@@ -134,21 +131,30 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   @param data an optional StreamData object that will be merged into the stream.
   @param getErrorMessage an optional function that converts an error to an error message.
   @param sendUsage whether to send the usage information to the client. Defaults to true.
-
+  @param sendReasoning whether to send the reasoning information to the client. Defaults to false.
   @return A data stream.
      */
   toDataStream(options?: {
     data?: StreamData;
     getErrorMessage?: (error: unknown) => string;
-    sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+    sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
+    sendReasoning?: boolean; // default to false
   }): ReadableStream<Uint8Array>;
 
   /**
    * Merges the result as a data stream into another data stream.
    *
    * @param dataStream A data stream writer.
+   * @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
+   * @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
    */
-  mergeIntoDataStream(dataStream: DataStreamWriter): void;
+  mergeIntoDataStream(
+    dataStream: DataStreamWriter,
+    options?: {
+      sendUsage?: boolean;
+      sendReasoning?: boolean;
+    },
+  ): void;
 
   /**
   Writes data stream output to a Node.js response-like object.
@@ -160,13 +166,15 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   @param options.data The stream data.
   @param options.getErrorMessage An optional function that converts an error to an error message.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
+  @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
      */
   pipeDataStreamToResponse(
     response: ServerResponse,
     options?: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+      sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
+      sendReasoning?: boolean; // default to false
     },
   ): void;
 
@@ -190,6 +198,7 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   @param options.data The stream data.
   @param options.getErrorMessage An optional function that converts an error to an error message.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
+  @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
 
   @return A response object.
      */
@@ -197,7 +206,8 @@ A stream of partial outputs. It uses the `experimental_output` specification.
     options?: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (change to false in v4: secure by default)
+      sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
+      sendReasoning?: boolean; // default to false
     },
   ): Response;
 
@@ -211,7 +221,7 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
-export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
+export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'text-delta';
       textDelta: string;
