@@ -94,9 +94,17 @@ Creates a text embedding model for text generation.
   ): EmbeddingModelV1<string>;
 
   /**
-   * Creates a model for image generation.
+  Creates a model for image generation.
    */
   image(
+    modelId: TogetherAIImageModelId,
+    settings?: TogetherAIImageSettings,
+  ): ImageModelV1;
+
+  /**
+  Creates a model for image generation.
+   */
+  imageModel(
     modelId: TogetherAIImageModelId,
     settings?: TogetherAIImageSettings,
   ): ImageModelV1;
@@ -180,6 +188,7 @@ export function createTogetherAI(
   provider.chatModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
   provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
   return provider as TogetherAIProvider;
 }
