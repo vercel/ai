@@ -440,7 +440,8 @@ export function useChat({
         createdAt: new Date(),
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-      } as Message),
+        parts: [{ type: 'text', text: inputValue }],
+      }),
       body: options.body,
       headers: options.headers,
       data: options.data,

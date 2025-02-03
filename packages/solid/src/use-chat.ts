@@ -13,6 +13,7 @@ import {
   extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   prepareAttachmentsForRequest,
+  updateToolCallResult,
 } from '@ai-sdk/ui-utils';
 import {
   Accessor,
@@ -454,6 +455,7 @@ export function useChat(
         createdAt: new Date(),
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+        parts: [{ type: 'text', text: inputValue }],
       }),
       headers: options.headers,
       body: options.body,
@@ -476,32 +478,18 @@ export function useChat(
   }) => {
     const messagesSnapshot = _messages() ?? [];
 
-    const updatedMessages = messagesSnapshot.map((message, index, arr) =>
-      // update the tool calls in the last assistant message:
-      index === arr.length - 1 &&
-      message.role === 'assistant' &&
-      message.toolInvocations
-        ? {
-            ...message,
-            toolInvocations: message.toolInvocations.map(toolInvocation =>
-              toolInvocation.toolCallId === toolCallId
-                ? {
-                    ...toolInvocation,
-                    result,
-                    state: 'result' as const,
-                  }
-                : toolInvocation,
-            ),
-          }
-        : message,
-    );
+    updateToolCallResult({
+      messages: messagesSnapshot,
+      toolCallId,
+      toolResult: result,
+    });
 
-    mutate(updatedMessages);
+    mutate(messagesSnapshot);
 
     // auto-submit when all tool calls in the last assistant message have results:
-    const lastMessage = updatedMessages[updatedMessages.length - 1];
+    const lastMessage = messagesSnapshot[messagesSnapshot.length - 1];
     if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      triggerRequest({ messages: updatedMessages });
+      triggerRequest({ messages: messagesSnapshot });
     }
   };
 
