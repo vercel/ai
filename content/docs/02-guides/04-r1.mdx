@@ -105,6 +105,17 @@ const { reasoning, text } = await generateText({
   tokens from the model's output.
 </Note>
 
+## Model Provider Comparison
+
+You can use DeepSeek R1 with the AI SDK through various providers. Here's a comparison of the providers that support DeepSeek R1:
+
+| Provider                                           | Model ID                                                                                                          | Reasoning Tokens    |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------- |
+| [DeepSeek](/providers/ai-sdk-providers/deepseek)   | [`deepseek-reasoner`](https://api-docs.deepseek.com/guides/reasoning_model)                                       | <Check size={18} /> |
+| [Fireworks](/providers/ai-sdk-providers/fireworks) | [`accounts/fireworks/models/deepseek-r1`](https://fireworks.ai/models/fireworks/deepseek-r1)                      | Requires Middleware |
+| [Groq](/providers/ai-sdk-providers/groq)           | [`deepseek-r1-distill-llama-70b`](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-70B)               | Requires Middleware |
+| [Azure](/providers/ai-sdk-providers/azure)         | [`DeepSeek-R1`](https://ai.azure.com/explore/models/DeepSeek-R1/version/1/registry/azureml-deepseek#code-samples) | Requires Middleware |
+
 ### Building Interactive Interfaces
 
 AI SDK Core can be paired with [AI SDK UI](/docs/ai-sdk-ui/overview), another powerful component of the AI SDK, to streamline the process of building chat, completion, and assistant interfaces with popular frameworks like Next.js, Nuxt, SvelteKit, and SolidStart.
