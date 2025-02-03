@@ -1,10 +1,10 @@
-import { Message, ToolInvocationUIPart } from './types';
+import { ToolInvocationUIPart, UIMessage } from './types';
 
 /**
  * Updates the result of a specific tool invocation in the last message of the given messages array.
  *
  * @param {object} params - The parameters object.
- * @param {Message[]} params.messages - An array of messages, from which the last one is updated.
+ * @param {UIMessage[]} params.messages - An array of messages, from which the last one is updated.
  * @param {string} params.toolCallId - The unique identifier for the tool invocation to update.
  * @param {unknown} params.toolResult - The result object to attach to the tool invocation.
  * @returns {void} This function does not return anything.
@@ -14,7 +14,7 @@ export function updateToolCallResult({
   toolCallId,
   toolResult: result,
 }: {
-  messages: Message[];
+  messages: UIMessage[];
   toolCallId: string;
   toolResult: unknown;
 }) {

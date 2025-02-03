@@ -4,6 +4,10 @@ import type {
   CreateMessage,
   JSONValue,
   Message,
+  ReasoningUIPart,
+  TextUIPart,
+  ToolInvocationUIPart,
+  UIMessage,
   UseChatOptions,
 } from '@ai-sdk/ui-utils';
 import {
@@ -21,7 +25,7 @@ export type { CreateMessage, Message, UseChatOptions };
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
-  messages: Message[];
+  messages: UIMessage[];
   /** The error object of the API request */
   error: undefined | Error;
   /**
@@ -163,14 +167,19 @@ By default, it's set to 1, which means that only a single LLM call is made.
   const [initialMessagesFallback] = useState([]);
 
   // Store the chat state in SWR, using the chatId as the key to share states.
-  const { data: messages, mutate } = useSWR<Message[]>(
+  const { data: messages, mutate } = useSWR<UIMessage[]>(
     [chatKey, 'messages'],
     null,
-    { fallbackData: initialMessages ?? initialMessagesFallback },
+    {
+      fallbackData:
+        initialMessages != null
+          ? fillInUIMessageParts(initialMessages)
+          : initialMessagesFallback,
+    },
   );
 
   // Keep the latest messages in a ref.
-  const messagesRef = useRef<Message[]>(messages || []);
+  const messagesRef = useRef<UIMessage[]>(messages || []);
   useEffect(() => {
     messagesRef.current = messages || [];
   }, [messages]);
@@ -215,9 +224,11 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
-      const messageCount = chatRequest.messages.length;
+      const chatMessages = fillInUIMessageParts(chatRequest.messages);
+
+      const messageCount = chatMessages.length;
       const maxStep = extractMaxToolInvocationStep(
-        chatRequest.messages[chatRequest.messages.length - 1]?.toolInvocations,
+        chatMessages[chatMessages.length - 1]?.toolInvocations,
       );
 
       try {
@@ -235,11 +246,11 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
         // Do an optimistic update to the chat state to show the updated messages immediately:
         const previousMessages = messagesRef.current;
-        throttledMutate(chatRequest.messages, false);
+        throttledMutate(chatMessages, false);
 
         const constructedMessagesPayload = sendExtraMessageFields
-          ? chatRequest.messages
-          : chatRequest.messages.map(
+          ? chatMessages
+          : chatMessages.map(
               ({
                 role,
                 content,
@@ -265,7 +276,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           api,
           body: experimental_prepareRequestBody?.({
             id: chatId,
-            messages: chatRequest.messages,
+            messages: chatMessages,
             requestData: chatRequest.data,
             requestBody: chatRequest.body,
           }) ?? {
@@ -292,11 +303,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
             throttledMutate(
               [
                 ...(replaceLastMessage
-                  ? chatRequest.messages.slice(
-                      0,
-                      chatRequest.messages.length - 1,
-                    )
-                  : chatRequest.messages),
+                  ? chatMessages.slice(0, chatMessages.length - 1)
+                  : chatMessages),
                 message,
               ],
               false,
@@ -313,7 +321,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           onFinish,
           generateId,
           fetch,
-          lastMessage: chatRequest.messages[chatRequest.messages.length - 1],
+          lastMessage: chatMessages[chatMessages.length - 1],
         });
 
         abortControllerRef.current = null;
@@ -403,6 +411,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         createdAt: message.createdAt ?? new Date(),
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+        parts: getMessageParts(message),
       });
 
       return triggerRequest({ messages, headers, body, data });
@@ -444,8 +453,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
         messages = messages(messagesRef.current);
       }
 
-      mutate(messages, false);
-      messagesRef.current = messages;
+      const messagesWithParts = fillInUIMessageParts(messages);
+      mutate(messagesWithParts, false);
+      messagesRef.current = messagesWithParts;
     },
     [mutate],
   );
@@ -572,5 +582,33 @@ function isAssistantMessageWithCompletedToolCalls(
     message.toolInvocations != null &&
     message.toolInvocations.length > 0 &&
     message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
+  );
+}
+
+function fillInUIMessageParts(messages: Message[]): UIMessage[] {
+  return messages.map(message => ({
+    ...message,
+    parts: getMessageParts(message),
+  }));
+}
+
+function getMessageParts(
+  message: Message | CreateMessage | UIMessage,
+): (TextUIPart | ReasoningUIPart | ToolInvocationUIPart)[] {
+  return (
+    message.parts ?? [
+      ...(message.reasoning
+        ? [{ type: 'reasoning' as const, reasoning: message.reasoning }]
+        : []),
+      ...(message.content
+        ? [{ type: 'text' as const, text: message.content }]
+        : []),
+      ...(message.toolInvocations
+        ? message.toolInvocations.map(toolInvocation => ({
+            type: 'tool-invocation' as const,
+            toolInvocation,
+          }))
+        : []),
+    ]
   );
 }

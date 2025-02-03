@@ -716,6 +716,7 @@ describe('prepareRequestBody', () => {
               id: expect.any(String),
               experimental_attachments: undefined,
               createdAt: expect.any(Date),
+              parts: [{ type: 'text', text: 'hi' }],
             },
           ],
           requestData: { 'test-data-key': 'test-data-value' },

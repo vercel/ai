@@ -1,7 +1,7 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { processTextStream } from './process-text-stream';
-import { Message, TextUIPart, UseChatOptions } from './types';
+import { TextUIPart, UIMessage, UseChatOptions } from './types';
 
 export async function processChatTextResponse({
   stream,
@@ -12,7 +12,7 @@ export async function processChatTextResponse({
 }: {
   stream: ReadableStream<Uint8Array>;
   update: (options: {
-    message: Message;
+    message: UIMessage;
     data: JSONValue[] | undefined;
     replaceLastMessage: boolean;
   }) => void;
@@ -22,7 +22,7 @@ export async function processChatTextResponse({
 }) {
   const textPart: TextUIPart = { type: 'text', text: '' };
 
-  const resultMessage: Message = {
+  const resultMessage: UIMessage = {
     id: generateId(),
     createdAt: getCurrentDate(),
     role: 'assistant' as const,

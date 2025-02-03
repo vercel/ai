@@ -16,14 +16,8 @@ import { useChat } from './use-chat';
 
 describe('file attachments with data url', () => {
   const TestComponent = () => {
-    const {
-      messages,
-      handleSubmit,
-      handleInputChange,
-      isLoading,
-      input,
-      setInput,
-    } = useChat();
+    const { messages, handleSubmit, handleInputChange, isLoading, input } =
+      useChat();
 
     const [attachments, setAttachments] = createSignal<FileList | undefined>();
     let fileInputRef: HTMLInputElement | undefined;

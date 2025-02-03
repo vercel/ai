@@ -3,11 +3,11 @@ import { parsePartialJson } from './parse-partial-json';
 import { processDataStream } from './process-data-stream';
 import type {
   JSONValue,
-  Message,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
+  UIMessage,
   UseChatOptions,
 } from './types';
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
@@ -27,19 +27,19 @@ export async function processChatResponse({
 }: {
   stream: ReadableStream<Uint8Array>;
   update: (options: {
-    message: Message;
+    message: UIMessage;
     data: JSONValue[] | undefined;
     replaceLastMessage: boolean;
   }) => void;
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (options: {
-    message: Message | undefined;
+    message: UIMessage | undefined;
     finishReason: LanguageModelV1FinishReason;
     usage: LanguageModelUsage;
   }) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
-  lastMessage: Message | undefined;
+  lastMessage: UIMessage | undefined;
 }) {
   const replaceLastMessage = lastMessage?.role === 'assistant';
   let step = replaceLastMessage
@@ -50,7 +50,7 @@ export async function processChatResponse({
       }, 0) ?? 0)
     : 0;
 
-  const message: Message = replaceLastMessage
+  const message: UIMessage = replaceLastMessage
     ? structuredClone(lastMessage)
     : {
         id: generateId(),
@@ -123,7 +123,7 @@ export async function processChatResponse({
       // is updated with SWR (without it, the changes get stuck in SWR and are not
       // forwarded to rendering):
       revisionId: generateId(),
-    } as Message;
+    } as UIMessage;
 
     update({
       message: copiedMessage,

@@ -85,8 +85,13 @@ that the assistant made as part of this message.
    */
   toolInvocations?: Array<ToolInvocation>;
 
-  parts: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
+  // note: optional on the Message type (which serves as input)
+  parts?: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
 }
+
+export type UIMessage = Message & {
+  parts: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
+};
 
 export type TextUIPart = {
   type: 'text';
