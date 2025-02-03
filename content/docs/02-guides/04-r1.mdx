@@ -59,18 +59,50 @@ The unified interface also means that you can easily switch between providers by
 
 ```ts
 import { fireworks } from '@ai-sdk/fireworks';
-import { generateText } from 'ai';
+import {
+  generateText,
+  wraplanguagemodel,
+  extractreasoningmiddleware,
+} from 'ai';
+
+// middleware to extract reasoning tokens
+const enhancedModel = wrapLanguageModel({
+  model: fireworks('accounts/fireworks/models/deepseek-r1'),
+  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+});
 
 const { reasoning, text } = await generateText({
-  model: fireworks('accounts/fireworks/models/deepseek-r1'),
+  model: enhancedModel,
+  prompt: 'Explain quantum entanglement.',
+});
+```
+
+Or to use Groq's `deepseek-r1-distill-llama-70b` model:
+
+```ts
+import { groq } from '@ai-sdk/groq';
+import {
+  generateText,
+  wraplanguagemodel,
+  extractreasoningmiddleware,
+} from 'ai';
+
+// middleware to extract reasoning tokens
+const enhancedModel = wrapLanguageModel({
+  model: groq('deepseek-r1-distill-llama-70b'),
+  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+});
+
+const { reasoning, text } = await generateText({
+  model: enhancedModel,
   prompt: 'Explain quantum entanglement.',
 });
 ```
 
 <Note>
-  Groq also provides a distilled version of DeepSeek R1 which is optimized for
-  performance. To learn more about using it with the AI SDK, check out the [Groq
-  provider](/providers/ai-sdk-providers/groq#reasoning-models).
+  The AI SDK provides a [middleware](/docs/ai-sdk-core/middleware)
+  (`extractReasoningMiddleware`) that can be used to extract the reasoning
+  tokens from the model's output.
 </Note>
 
 ### Building Interactive Interfaces
