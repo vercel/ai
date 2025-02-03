@@ -13,6 +13,7 @@ import {
   extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   prepareAttachmentsForRequest,
+  updateToolCallResult,
 } from '@ai-sdk/ui-utils';
 import { useSWR } from 'sswr';
 import { Readable, Writable, derived, get, writable } from 'svelte/store';
@@ -463,33 +464,20 @@ export function useChat({
     result: any;
   }) => {
     const messagesSnapshot = get(messages) ?? [];
-    const updatedMessages = messagesSnapshot.map((message, index, arr) =>
-      // update the tool calls in the last assistant message:
-      index === arr.length - 1 &&
-      message.role === 'assistant' &&
-      message.toolInvocations
-        ? {
-            ...message,
-            toolInvocations: message.toolInvocations.map(toolInvocation =>
-              toolInvocation.toolCallId === toolCallId
-                ? {
-                    ...toolInvocation,
-                    result,
-                    state: 'result' as const,
-                  }
-                : toolInvocation,
-            ),
-          }
-        : message,
-    );
 
-    messages.set(updatedMessages);
+    updateToolCallResult({
+      messages: messagesSnapshot,
+      toolCallId,
+      toolResult: result,
+    });
+
+    messages.set(messagesSnapshot);
 
     // auto-submit when all tool calls in the last assistant message have results:
-    const lastMessage = updatedMessages[updatedMessages.length - 1];
+    const lastMessage = messagesSnapshot[messagesSnapshot.length - 1];
 
     if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      triggerRequest({ messages: updatedMessages });
+      triggerRequest({ messages: messagesSnapshot });
     }
   };
 
