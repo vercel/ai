@@ -4,16 +4,15 @@ import type {
   CreateMessage,
   JSONValue,
   Message,
-  ReasoningUIPart,
-  TextUIPart,
-  ToolInvocationUIPart,
   UIMessage,
   UseChatOptions,
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
   extractMaxToolInvocationStep,
+  fillMessageParts,
   generateId as generateIdFunc,
+  getMessageParts,
   prepareAttachmentsForRequest,
   updateToolCallResult,
 } from '@ai-sdk/ui-utils';
@@ -173,7 +172,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     {
       fallbackData:
         initialMessages != null
-          ? fillInUIMessageParts(initialMessages)
+          ? fillMessageParts(initialMessages)
           : initialMessagesFallback,
     },
   );
@@ -224,7 +223,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
-      const chatMessages = fillInUIMessageParts(chatRequest.messages);
+      const chatMessages = fillMessageParts(chatRequest.messages);
 
       const messageCount = chatMessages.length;
       const maxStep = extractMaxToolInvocationStep(
@@ -453,7 +452,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         messages = messages(messagesRef.current);
       }
 
-      const messagesWithParts = fillInUIMessageParts(messages);
+      const messagesWithParts = fillMessageParts(messages);
       mutate(messagesWithParts, false);
       messagesRef.current = messagesWithParts;
     },
@@ -549,7 +548,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
   );
 
   return {
-    messages: messages || [],
+    messages: messages ?? [],
     id: chatId,
     setMessages,
     data: streamData,
@@ -582,33 +581,5 @@ function isAssistantMessageWithCompletedToolCalls(
     message.toolInvocations != null &&
     message.toolInvocations.length > 0 &&
     message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
-  );
-}
-
-function fillInUIMessageParts(messages: Message[]): UIMessage[] {
-  return messages.map(message => ({
-    ...message,
-    parts: getMessageParts(message),
-  }));
-}
-
-function getMessageParts(
-  message: Message | CreateMessage | UIMessage,
-): (TextUIPart | ReasoningUIPart | ToolInvocationUIPart)[] {
-  return (
-    message.parts ?? [
-      ...(message.reasoning
-        ? [{ type: 'reasoning' as const, reasoning: message.reasoning }]
-        : []),
-      ...(message.content
-        ? [{ type: 'text' as const, text: message.content }]
-        : []),
-      ...(message.toolInvocations
-        ? message.toolInvocations.map(toolInvocation => ({
-            type: 'tool-invocation' as const,
-            toolInvocation,
-          }))
-        : []),
-    ]
   );
 }
