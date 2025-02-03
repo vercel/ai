@@ -495,3 +495,42 @@ describe('scenario: server provides reasoning', () => {
     expect(finishCalls).toMatchSnapshot();
   });
 });
+
+describe('scenario: onToolCall is executed', () => {
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatDataStreamPart('tool_call', {
+        toolCallId: 'tool-call-id',
+        toolName: 'tool-name',
+        args: { city: 'London' },
+      }),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'tool-calls',
+        usage: { completionTokens: 5, promptTokens: 10 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+      }),
+    ]);
+
+    await processChatResponse({
+      stream,
+      update,
+      onFinish,
+      generateId: mockId(),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
+      onToolCall: vi.fn().mockResolvedValue('test-result'),
+    });
+  });
+
+  it('should call the update function with the correct arguments', async () => {
+    expect(updateCalls).toMatchSnapshot();
+  });
+
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toMatchSnapshot();
+  });
+});
