@@ -2276,5 +2276,54 @@ describe('streamObject', () => {
         { content: 'Hello, world!' },
       ]);
     });
+
+    it('should support models that use "this" context in supportsUrl', async () => {
+      let supportsUrlCalled = false;
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV1 {
+        readonly supportsImageUrls = false;
+
+        constructor() {
+          super({
+            supportsUrl(url: URL) {
+              supportsUrlCalled = true;
+              // Reference 'this' to verify context
+              return this.modelId === 'mock-model-id';
+            },
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'text-delta',
+                  textDelta: '{ "content": "Hello, world!" }',
+                },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            }),
+          });
+        }
+      }
+
+      const model = new MockLanguageModelWithImageSupport();
+
+      const result = streamObject({
+        model,
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'image', image: 'https://example.com/test.jpg' }],
+          },
+        ],
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.textStream);
+      expect(chunks.join('')).toBe('{ "content": "Hello, world!" }');
+      expect(supportsUrlCalled).toBe(true);
+    });
   });
 });
