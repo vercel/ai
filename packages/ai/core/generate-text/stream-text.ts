@@ -865,7 +865,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               messages: stepInputMessages,
             },
             modelSupportsImageUrls: model.supportsImageUrls,
-            modelSupportsUrl: model.supportsUrl,
+            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
           });
 
           const mode = {

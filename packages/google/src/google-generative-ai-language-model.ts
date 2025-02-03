@@ -200,6 +200,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   }
 
   supportsUrl(url: URL): boolean {
+    console.log('supportsUrl');
+    console.log(this);
+    console.log(this.config);
     return this.config.isSupportedUrl(url);
   }
 

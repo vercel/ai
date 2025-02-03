@@ -451,7 +451,7 @@ export async function generateObject<SCHEMA, RESULT>({
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
-            modelSupportsUrl: model.supportsUrl,
+            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
           });
 
           const generateResult = await retry(() =>
@@ -570,7 +570,7 @@ export async function generateObject<SCHEMA, RESULT>({
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
-            modelSupportsUrl: model.supportsUrl,
+            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context,
           });
           const inputFormat = standardizedPrompt.type;
 

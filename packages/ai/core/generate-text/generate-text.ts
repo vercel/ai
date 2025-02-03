@@ -292,7 +292,7 @@ A function that attempts to repair a tool call that failed to parse.
             messages: stepInputMessages,
           },
           modelSupportsImageUrls: model.supportsImageUrls,
-          modelSupportsUrl: model.supportsUrl,
+          modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
         });
 
         currentModelResponse = await retry(() =>
