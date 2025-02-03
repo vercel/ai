@@ -271,6 +271,7 @@ describe('data protocol stream', () => {
               createdAt: expect.any(Date),
               role: 'assistant',
               content: 'Hello, world.',
+              parts: [{ text: 'Hello, world.', type: 'text' }],
             },
             options: {
               finishReason: 'stop',
@@ -453,6 +454,7 @@ describe('text stream', () => {
               createdAt: expect.any(Date),
               role: 'assistant',
               content: 'Hello, world.',
+              parts: [{ text: 'Hello, world.', type: 'text' }],
             },
             options: {
               finishReason: 'unknown',
