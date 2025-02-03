@@ -6,7 +6,12 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
     "content": "ABCDE",
     "createdAt": 2023-01-01T00:00:00.000Z,
     "id": "test-id",
-    "parts": [],
+    "parts": [
+      {
+        "text": "ABCDE",
+        "type": "text",
+      },
+    ],
     "role": "assistant",
   },
 ]
@@ -20,7 +25,12 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
       "content": "A",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
-      "parts": [],
+      "parts": [
+        {
+          "text": "A",
+          "type": "text",
+        },
+      ],
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -31,7 +41,12 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
       "content": "AB",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
-      "parts": [],
+      "parts": [
+        {
+          "text": "AB",
+          "type": "text",
+        },
+      ],
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -42,7 +57,12 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
       "content": "ABC",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
-      "parts": [],
+      "parts": [
+        {
+          "text": "ABC",
+          "type": "text",
+        },
+      ],
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -53,7 +73,12 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
       "content": "ABCD",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
-      "parts": [],
+      "parts": [
+        {
+          "text": "ABCD",
+          "type": "text",
+        },
+      ],
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -64,7 +89,12 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
       "content": "ABCDE",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
-      "parts": [],
+      "parts": [
+        {
+          "text": "ABCDE",
+          "type": "text",
+        },
+      ],
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -78,7 +108,12 @@ exports[`processChatTextResponse > scenario: no text chunks > should call the on
     "content": "",
     "createdAt": 2023-01-01T00:00:00.000Z,
     "id": "test-id",
-    "parts": [],
+    "parts": [
+      {
+        "text": "",
+        "type": "text",
+      },
+    ],
     "role": "assistant",
   },
 ]
@@ -92,7 +127,12 @@ exports[`processChatTextResponse > scenario: simple text response > should call 
     "content": "Hello, world!",
     "createdAt": 2023-01-01T00:00:00.000Z,
     "id": "test-id",
-    "parts": [],
+    "parts": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
     "role": "assistant",
   },
 ]
@@ -106,7 +146,12 @@ exports[`processChatTextResponse > scenario: simple text response > should call 
       "content": "Hello, ",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
-      "parts": [],
+      "parts": [
+        {
+          "text": "Hello, ",
+          "type": "text",
+        },
+      ],
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -117,7 +162,12 @@ exports[`processChatTextResponse > scenario: simple text response > should call 
       "content": "Hello, world!",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
-      "parts": [],
+      "parts": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
       "role": "assistant",
     },
     "replaceLastMessage": false,

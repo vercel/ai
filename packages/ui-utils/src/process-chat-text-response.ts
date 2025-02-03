@@ -1,7 +1,7 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { processTextStream } from './process-text-stream';
-import { Message, UseChatOptions } from './types';
+import { Message, TextUIPart, UseChatOptions } from './types';
 
 export async function processChatTextResponse({
   stream,
@@ -20,18 +20,21 @@ export async function processChatTextResponse({
   getCurrentDate?: () => Date;
   generateId?: () => string;
 }) {
+  const textPart: TextUIPart = { type: 'text', text: '' };
+
   const resultMessage: Message = {
     id: generateId(),
     createdAt: getCurrentDate(),
     role: 'assistant' as const,
     content: '',
-    parts: [],
+    parts: [textPart],
   };
 
   await processTextStream({
     stream,
     onTextPart: chunk => {
       resultMessage.content += chunk;
+      textPart.text += chunk;
 
       // note: creating a new message object is required for Solid.js streaming
       update({
