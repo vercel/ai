@@ -557,7 +557,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               prompt: await convertToLanguageModelPrompt({
                 prompt: standardizedPrompt,
                 modelSupportsImageUrls: model.supportsImageUrls,
-                modelSupportsUrl: model.supportsUrl,
+                modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
               }),
               providerMetadata: providerOptions,
               abortSignal,
@@ -604,7 +604,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               prompt: await convertToLanguageModelPrompt({
                 prompt: standardizedPrompt,
                 modelSupportsImageUrls: model.supportsImageUrls,
-                modelSupportsUrl: model.supportsUrl,
+                modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context,
               }),
               providerMetadata: providerOptions,
               abortSignal,
