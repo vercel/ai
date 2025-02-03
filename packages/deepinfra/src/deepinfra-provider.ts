@@ -78,6 +78,14 @@ Creates a model for image generation.
   ): ImageModelV1;
 
   /**
+Creates a model for image generation.
+  */
+  imageModel(
+    modelId: DeepInfraImageModelId,
+    settings?: DeepInfraImageSettings,
+  ): ImageModelV1;
+
+  /**
 Creates a chat model for text generation.
 */
   languageModel(
@@ -180,6 +188,7 @@ export function createDeepInfra(
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
   provider.image = createImageModel;
+  provider.imageModel = createImageModel;
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
 
