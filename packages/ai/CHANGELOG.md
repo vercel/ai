@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.17
+
+### Patch Changes
+
+- 5af8cdb: fix (ai/core): support this reference in model.supportsUrl implementations
+
 ## 4.1.16
 
 ### Patch Changes
