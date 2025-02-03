@@ -1,3 +1,4 @@
+import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
@@ -9,7 +10,8 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    // model: openai('gpt-4o'),
+    model: anthropic('claude-3-5-sonnet-latest'),
     messages,
     toolCallStreaming: true,
     maxSteps: 5, // multi-steps for server-side tools

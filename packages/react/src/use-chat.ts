@@ -349,7 +349,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         // check that next step is possible:
         isAssistantMessageWithCompletedToolCalls(lastMessage) &&
         // check that assistant has not answered yet:
-        !lastMessage.content && // empty string or undefined
+        lastMessage.parts[lastMessage.parts.length - 1].type !== 'text' && // TODO brittle, should check for text after last tool invocation
         // limit the number of automatic steps:
         (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) <
           maxSteps
