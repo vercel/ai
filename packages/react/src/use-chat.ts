@@ -4,7 +4,6 @@ import type {
   CreateMessage,
   JSONValue,
   Message,
-  ToolInvocationUIPart,
   UseChatOptions,
 } from '@ai-sdk/ui-utils';
 import {
@@ -12,6 +11,7 @@ import {
   extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   prepareAttachmentsForRequest,
+  updateToolCallResult,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -521,36 +521,16 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const addToolResult = useCallback(
     ({ toolCallId, result }: { toolCallId: string; result: any }) => {
-      const lastMessage = messagesRef.current[messagesRef.current.length - 1];
-
-      const invocationPart = lastMessage.parts.find(
-        (part): part is ToolInvocationUIPart =>
-          part.type === 'tool-invocation' &&
-          part.toolInvocation.toolCallId === toolCallId,
-      );
-
-      if (invocationPart == null) {
-        return;
-      }
-
-      const toolResult = {
-        ...invocationPart.toolInvocation,
-        state: 'result' as const,
-        result,
-      };
-
-      invocationPart.toolInvocation = toolResult;
-
-      lastMessage.toolInvocations = lastMessage.toolInvocations?.map(
-        toolInvocation =>
-          toolInvocation.toolCallId === toolCallId
-            ? toolResult
-            : toolInvocation,
-      );
+      updateToolCallResult({
+        messages: messagesRef.current,
+        toolCallId,
+        toolResult: result,
+      });
 
       mutate(messagesRef.current, false);
 
       // auto-submit when all tool calls in the last assistant message have results:
+      const lastMessage = messagesRef.current[messagesRef.current.length - 1];
       if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
         triggerRequest({ messages: messagesRef.current });
       }

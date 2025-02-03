@@ -28,4 +28,5 @@ export { processDataStream } from './process-data-stream';
 export { processTextStream } from './process-text-stream';
 export { asSchema, jsonSchema } from './schema';
 export type { Schema } from './schema';
+export { updateToolCallResult } from './update-tool-call-result';
 export { zodSchema } from './zod-schema';
