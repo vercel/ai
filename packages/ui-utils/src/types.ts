@@ -84,7 +84,24 @@ Tool invocations (that can be tool calls or tool results, depending on whether o
 that the assistant made as part of this message.
    */
   toolInvocations?: Array<ToolInvocation>;
+
+  parts: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
 }
+
+export type TextUIPart = {
+  type: 'text';
+  text: string;
+};
+
+export type ReasoningUIPart = {
+  type: 'reasoning';
+  reasoning: string;
+};
+
+export type ToolInvocationUIPart = {
+  type: 'tool-invocation';
+  toolInvocation: ToolInvocation;
+};
 
 export type CreateMessage = Omit<Message, 'id'> & {
   id?: Message['id'];
