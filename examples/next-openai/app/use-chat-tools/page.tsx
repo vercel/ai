@@ -28,71 +28,76 @@ export default function Chat() {
       {messages?.map((m: Message) => (
         <div key={m.id} className="whitespace-pre-wrap">
           <strong>{`${m.role}: `}</strong>
-          {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
-            const toolCallId = toolInvocation.toolCallId;
+          {m.parts.map(p => {
+            switch (p.type) {
+              case 'text':
+                return p.text;
+              case 'tool-invocation': {
+                const toolInvocation = p.toolInvocation;
+                const toolCallId = toolInvocation.toolCallId;
 
-            // example of pre-rendering streaming tool calls
-            if (toolInvocation.state === 'partial-call') {
-              return (
-                <pre key={toolCallId}>
-                  {JSON.stringify(toolInvocation, null, 2)}
-                </pre>
-              );
-            }
+                // example of pre-rendering streaming tool calls
+                if (toolInvocation.state === 'partial-call') {
+                  return (
+                    <pre key={toolCallId}>
+                      {JSON.stringify(toolInvocation, null, 2)}
+                    </pre>
+                  );
+                }
 
-            // render confirmation tool (client-side tool with user interaction)
-            if (toolInvocation.toolName === 'askForConfirmation') {
-              return (
-                <div key={toolCallId} className="text-gray-500">
-                  {toolInvocation.args.message}
-                  <div className="flex gap-2">
-                    {'result' in toolInvocation ? (
-                      <b>{toolInvocation.result}</b>
-                    ) : (
-                      <>
-                        <button
-                          className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
-                          onClick={() =>
-                            addToolResult({
-                              toolCallId,
-                              result: 'Yes, confirmed.',
-                            })
-                          }
-                        >
-                          Yes
-                        </button>
-                        <button
-                          className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
-                          onClick={() =>
-                            addToolResult({
-                              toolCallId,
-                              result: 'No, denied',
-                            })
-                          }
-                        >
-                          No
-                        </button>
-                      </>
-                    )}
+                // render confirmation tool (client-side tool with user interaction)
+                if (toolInvocation.toolName === 'askForConfirmation') {
+                  return (
+                    <div key={toolCallId} className="text-gray-500">
+                      {toolInvocation.args.message}
+                      <div className="flex gap-2">
+                        {'result' in toolInvocation ? (
+                          <b>{toolInvocation.result}</b>
+                        ) : (
+                          <>
+                            <button
+                              className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
+                              onClick={() =>
+                                addToolResult({
+                                  toolCallId,
+                                  result: 'Yes, confirmed.',
+                                })
+                              }
+                            >
+                              Yes
+                            </button>
+                            <button
+                              className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
+                              onClick={() =>
+                                addToolResult({
+                                  toolCallId,
+                                  result: 'No, denied',
+                                })
+                              }
+                            >
+                              No
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // other tools:
+                return 'result' in toolInvocation ? (
+                  <div key={toolCallId} className="text-gray-500">
+                    Tool call {`${toolInvocation.toolName}: `}
+                    {toolInvocation.result}
                   </div>
-                </div>
-              );
+                ) : (
+                  <div key={toolCallId} className="text-gray-500">
+                    Calling {toolInvocation.toolName}...
+                  </div>
+                );
+              }
             }
-
-            // other tools:
-            return 'result' in toolInvocation ? (
-              <div key={toolCallId} className="text-gray-500">
-                Tool call {`${toolInvocation.toolName}: `}
-                {toolInvocation.result}
-              </div>
-            ) : (
-              <div key={toolCallId} className="text-gray-500">
-                Calling {toolInvocation.toolName}...
-              </div>
-            );
           })}
-          {m.content}
-          <br />
           <br />
         </div>
       ))}

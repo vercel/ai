@@ -80,6 +80,7 @@ export async function callChatApi({
         createdAt: new Date(),
         role: 'assistant' as const,
         content: '',
+        parts: [],
       };
 
       await processTextStream({
