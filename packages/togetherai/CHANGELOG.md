@@ -1,5 +1,11 @@
 # @ai-sdk/togetherai
 
+## 0.1.9
+
+### Patch Changes
+
+- c7b6c0c: feat (provider/togetherai): add image generation support
+
 ## 0.1.8
 
 ### Patch Changes

@@ -72,7 +72,7 @@ importers:
         specifier: 1.1.6
         version: link:../../packages/cohere
       '@ai-sdk/deepinfra':
-        specifier: 0.1.8
+        specifier: 0.1.9
         version: link:../../packages/deepinfra
       '@ai-sdk/deepseek':
         specifier: 0.1.8
@@ -114,7 +114,7 @@ importers:
         specifier: 0.1.7
         version: link:../../packages/replicate
       '@ai-sdk/togetherai':
-        specifier: 0.1.8
+        specifier: 0.1.9
         version: link:../../packages/togetherai
       '@ai-sdk/xai':
         specifier: 1.1.8

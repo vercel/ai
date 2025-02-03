@@ -109,3 +109,69 @@ DeepInfra language models can also be used in the `streamText` and `streamUI` fu
   docs](https://deepinfra.com) for a full list of available models. You can also
   pass any available provider model ID as a string if needed.
 </Note>
+
+## Image Models
+
+You can create DeepInfra image models using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+```ts
+import { deepinfra } from '@ai-sdk/deepinfra';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: deepinfra.image('stabilityai/sd3.5'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
+});
+```
+
+<Note>
+  Model support for `size` and `aspectRatio` parameters varies by model. Please
+  check the individual model documentation on [DeepInfra's models
+  page](https://deepinfra.com/models/text-to-image) for supported options and
+  additional parameters.
+</Note>
+
+### Model-specific options
+
+You can pass model-specific parameters using the `providerOptions.deepinfra` field:
+
+```ts
+import { deepinfra } from '@ai-sdk/deepinfra';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: deepinfra.image('stabilityai/sd3.5'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
+  providerOptions: {
+    deepinfra: {
+      num_inference_steps: 30, // Control the number of denoising steps (1-50)
+    },
+  },
+});
+```
+
+### Model Capabilities
+
+For models supporting aspect ratios, the following ratios are typically supported:
+`1:1 (default), 16:9, 1:9, 3:2, 2:3, 4:5, 5:4, 9:16, 9:21`
+
+For models supporting size parameters, dimensions must typically be:
+
+- Multiples of 32
+- Width and height between 256 and 1440 pixels
+- Default size is 1024x1024
+
+| Model                              | Dimensions Specification | Notes                                                    |
+| ---------------------------------- | ------------------------ | -------------------------------------------------------- |
+| `stabilityai/sd3.5`                | Aspect Ratio             | Premium quality base model, 8B parameters                |
+| `black-forest-labs/FLUX-1.1-pro`   | Size                     | Latest state-of-art model with superior prompt following |
+| `black-forest-labs/FLUX-1-schnell` | Size                     | Fast generation in 1-4 steps                             |
+| `black-forest-labs/FLUX-1-dev`     | Size                     | Optimized for anatomical accuracy                        |
+| `black-forest-labs/FLUX-pro`       | Size                     | Flagship Flux model                                      |
+| `stabilityai/sd3.5-medium`         | Aspect Ratio             | Balanced 2.5B parameter model                            |
+| `stabilityai/sdxl-turbo`           | Aspect Ratio             | Optimized for fast generation                            |
+
+For more details and pricing information, see the [DeepInfra text-to-image models page](https://deepinfra.com/models/text-to-image).

@@ -111,3 +111,62 @@ The Together.ai provider also supports [completion models](https://docs.together
   available models. You can also pass any available provider model ID as a
   string if needed.
 </Note>
+
+## Image Models
+
+You can create Together.ai image models using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+```ts
+import { togetherai } from '@ai-sdk/togetherai';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: togetherai.image('black-forest-labs/FLUX.1-dev'),
+  prompt: 'A delighted resplendent quetzal mid flight amidst raindrops',
+});
+```
+
+You can pass optional provider-specific request parameters using the `providerOptions` argument.
+
+```ts
+import { togetherai } from '@ai-sdk/togetherai';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: togetherai.image('black-forest-labs/FLUX.1-dev'),
+  prompt: 'A delighted resplendent quetzal mid flight amidst raindrops',
+  size: '512x512',
+  // Optional additional provider-specific request parameters
+  providerOptions: {
+    togetherai: {
+      steps: 40,
+    },
+  },
+});
+```
+
+For a complete list of available provider-specific options, see the [Together.ai Image Generation API Reference](https://docs.together.ai/reference/post_images-generations).
+
+### Model Capabilities
+
+Together.ai image models support various image dimensions that vary by model. Common sizes include 512x512, 768x768, and 1024x1024, with some models supporting up to 1792x1792. The default size is 1024x1024.
+
+| Available Models                           |
+| ------------------------------------------ |
+| `stabilityai/stable-diffusion-xl-base-1.0` |
+| `black-forest-labs/FLUX.1-dev`             |
+| `black-forest-labs/FLUX.1-dev-lora`        |
+| `black-forest-labs/FLUX.1-schnell`         |
+| `black-forest-labs/FLUX.1-canny`           |
+| `black-forest-labs/FLUX.1-depth`           |
+| `black-forest-labs/FLUX.1-redux`           |
+| `black-forest-labs/FLUX.1.1-pro`           |
+| `black-forest-labs/FLUX.1-pro`             |
+| `black-forest-labs/FLUX.1-schnell-Free`    |
+
+<Note>
+  Please see the [Together.ai models
+  page](https://docs.together.ai/docs/serverless-models#image-models) for a full
+  list of available image models and their capabilities.
+</Note>
