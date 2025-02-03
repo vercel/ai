@@ -530,18 +530,20 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const addToolResult = useCallback(
     ({ toolCallId, result }: { toolCallId: string; result: any }) => {
+      const currentMessages = messagesRef.current;
+
       updateToolCallResult({
-        messages: messagesRef.current,
+        messages: currentMessages,
         toolCallId,
         toolResult: result,
       });
 
-      mutate(messagesRef.current, false);
+      mutate(currentMessages, false);
 
       // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = messagesRef.current[messagesRef.current.length - 1];
+      const lastMessage = currentMessages[currentMessages.length - 1];
       if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-        triggerRequest({ messages: messagesRef.current });
+        triggerRequest({ messages: currentMessages });
       }
     },
     [mutate, triggerRequest],
