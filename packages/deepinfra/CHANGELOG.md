@@ -1,5 +1,11 @@
 # @ai-sdk/deepinfra
 
+## 0.1.9
+
+### Patch Changes
+
+- 96da7f6: feat (provider/deepinfra): add image support
+
 ## 0.1.8
 
 ### Patch Changes
