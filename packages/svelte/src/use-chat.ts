@@ -15,7 +15,9 @@ import {
   fillMessageParts,
   generateId as generateIdFunc,
   getMessageParts,
+  isAssistantMessageWithCompletedToolCalls,
   prepareAttachmentsForRequest,
+  shouldResubmitMessages,
   updateToolCallResult,
 } from '@ai-sdk/ui-utils';
 import { useSWR } from 'sswr';
@@ -188,20 +190,6 @@ const getStreamedResponse = async (
 
 const store: Record<string, UIMessage[] | undefined> = {};
 
-/**
-Check if the message is an assistant message with completed tool calls.
-The message must have at least one tool invocation and all tool invocations
-must have a result.
- */
-function isAssistantMessageWithCompletedToolCalls(message: Message) {
-  return (
-    message.role === 'assistant' &&
-    message.toolInvocations &&
-    message.toolInvocations.length > 0 &&
-    message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
-  );
-}
-
 export function useChat({
   api = '/api/chat',
   id,
@@ -322,24 +310,13 @@ export function useChat({
 
     // auto-submit when all tool calls in the last assistant message have results:
     const newMessagesSnapshot = get(messages);
-
-    const lastMessage = newMessagesSnapshot[newMessagesSnapshot.length - 1];
     if (
-      // ensure there is a last message:
-      lastMessage != null &&
-      // ensure we actually have new messages (to prevent infinite loops in case of errors):
-      (newMessagesSnapshot.length > messageCount ||
-        extractMaxToolInvocationStep(lastMessage.toolInvocations) !==
-          maxStep) &&
-      // check if the feature is enabled:
-      maxSteps > 1 &&
-      // check that next step is possible:
-      isAssistantMessageWithCompletedToolCalls(lastMessage) &&
-      // check that assistant has not answered yet:
-      !lastMessage.content && // empty string or undefined
-      // limit the number of automatic steps:
-      (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) <
-        maxSteps
+      shouldResubmitMessages({
+        originalMaxToolInvocationStep: maxStep,
+        originalMessageCount: messageCount,
+        maxSteps,
+        messages: newMessagesSnapshot,
+      })
     ) {
       await triggerRequest({ messages: newMessagesSnapshot });
     }
