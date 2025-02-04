@@ -188,6 +188,7 @@ export function useChat(
               data,
               annotations,
               toolInvocations,
+              parts,
             }) => ({
               role,
               content,
@@ -197,6 +198,7 @@ export function useChat(
               ...(data !== undefined && { data }),
               ...(annotations !== undefined && { annotations }),
               ...(toolInvocations !== undefined && { toolInvocations }),
+              ...(parts !== undefined && { parts }),
             }),
           );
 
