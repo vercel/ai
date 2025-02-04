@@ -13,7 +13,9 @@ import {
   fillMessageParts,
   generateId as generateIdFunc,
   getMessageParts,
+  isAssistantMessageWithCompletedToolCalls,
   prepareAttachmentsForRequest,
+  shouldResubmitMessages,
   updateToolCallResult,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -343,23 +345,13 @@ By default, it's set to 1, which means that only a single LLM call is made.
       // auto-submit when all tool calls in the last assistant message have results
       // and assistant has not answered yet
       const messages = messagesRef.current;
-      const lastMessage = messages[messages.length - 1];
       if (
-        // ensure there is a last message:
-        lastMessage != null &&
-        // ensure we actually have new steps (to prevent infinite loops in case of errors):
-        (messages.length > messageCount ||
-          extractMaxToolInvocationStep(lastMessage.toolInvocations) !==
-            maxStep) &&
-        // check if the feature is enabled:
-        maxSteps > 1 &&
-        // check that next step is possible:
-        isAssistantMessageWithCompletedToolCalls(lastMessage) &&
-        // check that assistant has not answered yet:
-        lastMessage.parts[lastMessage.parts.length - 1].type !== 'text' && // TODO brittle, should check for text after last tool invocation
-        // limit the number of automatic steps:
-        (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) <
-          maxSteps
+        shouldResubmitMessages({
+          originalMaxToolInvocationStep: maxStep,
+          originalMessageCount: messageCount,
+          maxSteps,
+          messages,
+        })
       ) {
         await triggerRequest({ messages });
       }
@@ -566,22 +558,4 @@ By default, it's set to 1, which means that only a single LLM call is made.
     isLoading,
     addToolResult,
   };
-}
-
-/**
-Check if the message is an assistant message with completed tool calls.
-The message must have at least one tool invocation and all tool invocations
-must have a result.
- */
-function isAssistantMessageWithCompletedToolCalls(
-  message: Message,
-): message is Message & {
-  role: 'assistant';
-} {
-  return (
-    message.role === 'assistant' &&
-    message.toolInvocations != null &&
-    message.toolInvocations.length > 0 &&
-    message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
-  );
 }

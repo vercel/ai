@@ -30,5 +30,9 @@ export { processDataStream } from './process-data-stream';
 export { processTextStream } from './process-text-stream';
 export { asSchema, jsonSchema } from './schema';
 export type { Schema } from './schema';
+export {
+  isAssistantMessageWithCompletedToolCalls,
+  shouldResubmitMessages,
+} from './should-resubmit-messages';
 export { updateToolCallResult } from './update-tool-call-result';
 export { zodSchema } from './zod-schema';
