@@ -7,11 +7,14 @@ import type {
   JSONValue,
   Message,
   UseChatOptions as SharedUseChatOptions,
+  UIMessage,
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
   extractMaxToolInvocationStep,
+  fillMessageParts,
   generateId as generateIdFunc,
+  getMessageParts,
   prepareAttachmentsForRequest,
   updateToolCallResult,
 } from '@ai-sdk/ui-utils';
@@ -94,7 +97,7 @@ export type UseChatHelpers = {
 const getStreamedResponse = async (
   api: string,
   chatRequest: ChatRequest,
-  mutate: (messages: Message[]) => void,
+  mutate: (messages: UIMessage[]) => void,
   mutateStreamData: (data: JSONValue[] | undefined) => void,
   existingData: JSONValue[] | undefined,
   extraMetadata: {
@@ -102,7 +105,7 @@ const getStreamedResponse = async (
     headers?: Record<string, string> | Headers;
     body?: any;
   },
-  previousMessages: Message[],
+  previousMessages: UIMessage[],
   abortControllerRef: AbortController | null,
   generateId: IdGenerator,
   streamProtocol: UseChatOptions['streamProtocol'],
@@ -116,11 +119,13 @@ const getStreamedResponse = async (
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
-  mutate(chatRequest.messages);
+  const chatMessages = fillMessageParts(chatRequest.messages);
+
+  mutate(chatMessages);
 
   const constructedMessagesPayload = sendExtraMessageFields
-    ? chatRequest.messages
-    : chatRequest.messages.map(
+    ? chatMessages
+    : chatMessages.map(
         ({
           role,
           content,
@@ -165,8 +170,8 @@ const getStreamedResponse = async (
     onUpdate({ message, data, replaceLastMessage }) {
       mutate([
         ...(replaceLastMessage
-          ? chatRequest.messages.slice(0, chatRequest.messages.length - 1)
-          : chatRequest.messages),
+          ? chatMessages.slice(0, chatMessages.length - 1)
+          : chatMessages),
         message,
       ]);
       if (data?.length) {
@@ -177,11 +182,11 @@ const getStreamedResponse = async (
     generateId,
     onToolCall,
     fetch,
-    lastMessage: chatRequest.messages[chatRequest.messages.length - 1],
+    lastMessage: chatMessages[chatMessages.length - 1],
   });
 };
 
-const store: Record<string, Message[] | undefined> = {};
+const store: Record<string, UIMessage[] | undefined> = {};
 
 /**
 Check if the message is an assistant message with completed tool calls.
@@ -232,9 +237,9 @@ export function useChat({
     data,
     mutate: originalMutate,
     isLoading: isSWRLoading,
-  } = useSWR<Message[]>(key, {
-    fetcher: () => store[key] || initialMessages,
-    fallbackData: initialMessages,
+  } = useSWR<UIMessage[]>(key, {
+    fetcher: () => store[key] ?? fillMessageParts(initialMessages),
+    fallbackData: fillMessageParts(initialMessages),
   });
 
   const streamData = writable<JSONValue[] | undefined>(undefined);
@@ -242,15 +247,15 @@ export function useChat({
   const loading = writable<boolean>(false);
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
-  data.set(initialMessages);
+  data.set(fillMessageParts(initialMessages));
 
-  const mutate = (data: Message[]) => {
+  const mutate = (data: UIMessage[]) => {
     store[key] = data;
     return originalMutate(data);
   };
 
   // Because of the `fallbackData` option, the `data` will never be `undefined`.
-  const messages = data as Writable<Message[]>;
+  const messages = data as Writable<UIMessage[]>;
 
   // Abort controller to cancel the current API call.
   let abortController: AbortController | null = null;
@@ -344,10 +349,6 @@ export function useChat({
     message: Message | CreateMessage,
     { data, headers, body, experimental_attachments }: ChatRequestOptions = {},
   ) => {
-    if (!message.id) {
-      message.id = generateId();
-    }
-
     const attachmentsForRequest = await prepareAttachmentsForRequest(
       experimental_attachments,
     );
@@ -355,9 +356,12 @@ export function useChat({
     return triggerRequest({
       messages: get(messages).concat({
         ...message,
+        id: message.id ?? generateId(),
+        createdAt: message.createdAt ?? new Date(),
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-      } as Message),
+        parts: getMessageParts(message),
+      } as UIMessage),
       headers,
       body,
       data,
@@ -401,7 +405,7 @@ export function useChat({
       messagesArg = messagesArg(get(messages));
     }
 
-    mutate(messagesArg);
+    mutate(fillMessageParts(messagesArg));
   };
 
   const setData = (
