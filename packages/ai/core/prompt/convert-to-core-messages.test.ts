@@ -190,6 +190,18 @@ describe('convertToCoreMessages', () => {
       expect(result).toEqual([{ role: 'assistant', content: 'Hello, human!' }]);
     });
 
+    it('should convert a simple assistant message with parts', () => {
+      const result = convertToCoreMessages([
+        {
+          role: 'assistant',
+          content: '', // empty content
+          parts: [{ type: 'text', text: 'Hello, human!' }],
+        },
+      ]);
+
+      expect(result).toEqual([{ role: 'assistant', content: 'Hello, human!' }]);
+    });
+
     it('should handle assistant message with tool invocations', () => {
       const result = convertToCoreMessages([
         {

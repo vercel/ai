@@ -43,6 +43,18 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
       }
 
       case 'assistant': {
+        if (message.parts != null) {
+          for (const part of message.parts) {
+            switch (part.type) {
+              case 'text': {
+                coreMessages.push({ role: 'assistant', content: part.text });
+                break;
+              }
+            }
+          }
+          break;
+        }
+
         const toolInvocations = message.toolInvocations;
 
         if (toolInvocations == null || toolInvocations.length === 0) {
