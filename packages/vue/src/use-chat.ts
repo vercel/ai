@@ -19,7 +19,7 @@ import {
 } from '@ai-sdk/ui-utils';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
-import { ref, unref } from 'vue';
+import { ref, toRaw, unref } from 'vue';
 
 export type { CreateMessage, Message, UIMessage, UseChatOptions };
 
@@ -173,7 +173,7 @@ export function useChat(
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
       const previousMessages = fillMessageParts(messagesSnapshot);
-      const chatMessages = fillMessageParts(messagesSnapshot);
+      const chatMessages = previousMessages;
       mutate(chatMessages);
 
       const existingData = (streamData.value ?? []) as JSONValue[];
@@ -240,7 +240,8 @@ export function useChat(
         generateId,
         onToolCall,
         fetch,
-        lastMessage: chatMessages[chatMessages.length - 1],
+        // enabled use of structured clone in processChatResponse:
+        lastMessage: recursiveToRaw(chatMessages[chatMessages.length - 1]),
       });
     } catch (err) {
       // Ignore abort errors as they are expected.
@@ -403,4 +404,19 @@ export function useChat(
     setData,
     addToolResult,
   };
+}
+
+// required for use of structured clone
+function recursiveToRaw<T>(inputValue: T): T {
+  if (Array.isArray(inputValue)) {
+    return [...inputValue.map(recursiveToRaw)] as T;
+  } else if (typeof inputValue === 'object' && inputValue !== null) {
+    const clone: any = {};
+    for (const [key, value] of Object.entries(inputValue)) {
+      clone[key] = recursiveToRaw(value);
+    }
+    return clone;
+  } else {
+    return inputValue;
+  }
 }
