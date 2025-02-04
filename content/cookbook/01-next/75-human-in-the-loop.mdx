@@ -1,0 +1,299 @@
+---
+title: Human-in-the-Loop
+description: Learn how to create a human-in-the-loop experience using the AI SDK and Next.js // FIX
+tags: ['next', 'agents', 'tool use']
+---
+
+# Human-in-the-Loop with Next.js
+
+When building agentic systems, it's important to add human-in-the-loop (HITL) functionality to ensure that users can approve actions before the system executes them. To understand how to implement this functionality, let's look at how tool calling works in a simple Next.js chatbot application with the AI SDK.
+
+On the frontend, use the `useChat` hook to manage the message state and user interaction (including input and form submission handlers).
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      <div className="space-y-4">
+        {messages.map(m => (
+          <div key={m.id} className="whitespace-pre-wrap">
+            <div>
+              <div className="font-bold">{m.role}</div>
+              <p>{m.content}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+On the backend, create an route handler (API Route) that returns a `DateStreamResponse`. Within the execute function, call streamText, passing in the messages (sent from the client), finally merge the resulting generation into the data stream.
+
+```ts filename="api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { createDataStreamResponse, streamText, tool } from 'ai';
+import { z } from 'zod';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  return createDataStreamResponse({
+    execute: async dataStream => {
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages,
+        tools: {
+          getWeatherInformation: tool({
+            description: 'show the weather in a given city to the user',
+            parameters: z.object({ city: z.string() }),
+            execute: async ({}: { city: string }) => {
+              const weatherOptions = [
+                'sunny',
+                'cloudy',
+                'rainy',
+                'snowy',
+                'windy',
+              ];
+              return weatherOptions[
+                Math.floor(Math.random() * weatherOptions.length)
+              ];
+            },
+          }),
+        },
+      });
+
+      result.mergeIntoDataStream(dataStream);
+    },
+  });
+}
+```
+
+What happens if you ask the LLM for the weather in New York? The LLM has one tool available, `weather`, which requires a `location` in order to run and will, as stated in the tool's `description`, "show the weather in a given city to the user". If the LLM decides that the `weather` tool could answer the user's query, it would generate a `ToolCall`, extracting the `location` from the context. The AI SDK would then run the associated `execute` function, passing in the `location` parameter, and finally returning a `ToolResult`.
+
+To introduce a HITL step you will add a confirmation step to this process in between the `ToolCall` and the `ToolResult`.
+
+## Solution
+
+### Forward Tool Call To The Client
+
+To implement HITL functionality, you start by omitting the `execute` function from the tool definition. This allows the frontend to intercept the tool call and handle the responsibility of adding the final tool result to the tool call.
+
+```ts filename="api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { createDataStreamResponse, streamText, tool } from 'ai';
+import { z } from 'zod';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  return createDataStreamResponse({
+    execute: async dataStream => {
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages,
+        tools: {
+          getWeatherInformation: tool({
+            description: 'show the weather in a given city to the user',
+            parameters: z.object({ city: z.string() }),
+          }),
+        },
+      });
+
+      result.mergeIntoDataStream(dataStream);
+    },
+  });
+}
+```
+
+<Note>
+  Each tool call must have a corresponding tool result. If you do not add a tool
+  result, all subsequent generations will fail.
+</Note>
+
+### Intercept Tool Call
+
+On the frontend, you map through the messages, either rendering the message content or checking for tool invocations and rendering custom UI. You can check if the tool requiring confirmation has been called and, if so, present options to either confirm or deny the proposed tool call. This confirmation is done using the `addToolResult` function to create a tool result and append it to the associated tool call. This will trigger a call to your API route.
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { ToolInvocation } from 'ai';
+import { Message, useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit, addToolResult } =
+    useChat({});
+
+  return (
+    <div>
+      {messages?.map((m: Message) => (
+        <div key={m.id}>
+          <strong>{`${m.role}: `}</strong>
+          {m.content}
+          {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
+            const toolCallId = toolInvocation.toolCallId;
+
+            // render confirmation tool (client-side tool with user interaction)
+            if (
+              toolInvocation.toolName === 'getWeatherInformation' &&
+              toolInvocation.state === 'call'
+            ) {
+              return (
+                <div key={toolCallId}>
+                  Get weather information for {toolInvocation.args.city}?
+                  <div>
+                    <button
+                      onClick={() =>
+                        addToolResult({
+                          toolCallId,
+                          result: 'Yes, confirmed.',
+                        })
+                      }
+                    >
+                      Yes
+                    </button>
+                    <button
+                      onClick={() =>
+                        addToolResult({
+                          toolCallId,
+                          result: 'No, denied.',
+                        })
+                      }
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+          })}
+          <br />
+        </div>
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+### Handle Confirmation Response
+
+Adding a tool result will trigger another call to your route handler. Before sending the new messages to the language model, you check the last message to see if it's the name of the tool that required confirmation and verify it's in a result state. You then switch over the tool result state (the data you set on the frontend with the `addToolResult` function).
+
+```ts filename="api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import {
+  createDataStreamResponse,
+  formatDataStreamPart,
+  streamText,
+  tool,
+  ToolInvocation,
+} from 'ai';
+import { z } from 'zod';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  return createDataStreamResponse({
+    execute: async dataStream => {
+      const lastMessage = messages[messages.length - 1];
+      lastMessage.toolInvocations = await Promise.all(
+        lastMessage.toolInvocations?.map(
+          async (toolInvocation: ToolInvocation) => {
+            if (
+              toolInvocation.toolName !== 'getWeatherInformation' ||
+              toolInvocation.state !== 'result'
+            ) {
+              return toolInvocation;
+            }
+
+            switch (toolInvocation.result) {
+              case 'Yes, confirmed.': {
+                const result = await executeWeatherTool(toolInvocation.args);
+
+                // forward updated tool result to the client:
+                dataStream.write(
+                  formatDataStreamPart('tool_result', {
+                    toolCallId: toolInvocation.toolCallId,
+                    result,
+                  }),
+                );
+
+                // update the messages:
+                return { ...toolInvocation, result };
+              }
+              case 'No, denied.': {
+                const result =
+                  'Error: User denied access to weather information';
+
+                // forward updated tool result to the client:
+                dataStream.write(
+                  formatDataStreamPart('tool_result', {
+                    toolCallId: toolInvocation.toolCallId,
+                    result,
+                  }),
+                );
+
+                // update the messages:
+                return { ...toolInvocation, result };
+              }
+              default:
+                return toolInvocation;
+            }
+          },
+        ) ?? [],
+      );
+
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages,
+        tools: {
+          getWeatherInformation: tool({
+            description: 'show the weather in a given city to the user',
+            parameters: z.object({ city: z.string() }),
+          }),
+        },
+      });
+
+      result.mergeIntoDataStream(dataStream);
+    },
+  });
+}
+
+async function executeWeatherTool({}: { city: string }) {
+  const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
+  return weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
+}
+```
+
+In this implementation, you use simple strings like "Yes, the user confirmed" or "No, the user declined" as states. If confirmed, you execute the tool. If declined, you do not execute the tool. In both cases, you update the tool result from the arbitrary data you sent with the `addToolResult` function to either the result of the execute function or an "Execution declined" statement. You send the updated tool result back to the frontend to maintain state synchronization.
+
+After handling the tool result, your API route continues. This triggers another generation with the updated tool result, allowing the LLM to continue attempting to solve the query.
+
+## Full Example
+
+To see this code in action, check out the [`next-openai` example](https://github.com/vercel/ai/tree/main/examples/next-openai) in the AI SDK repository. Navigate to the `/use-chat-human-in-the-loop` page and associated route handler.
