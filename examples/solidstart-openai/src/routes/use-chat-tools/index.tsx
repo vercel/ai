@@ -1,10 +1,6 @@
 /* eslint-disable react/jsx-key */
 import { useChat } from '@ai-sdk/solid';
-import {
-  TextUIPart,
-  ToolInvocation,
-  ToolInvocationUIPart,
-} from '@ai-sdk/ui-utils';
+import { TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import { For, Show } from 'solid-js';
 
 export default function Chat() {
