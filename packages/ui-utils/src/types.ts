@@ -56,9 +56,7 @@ The timestamp of the message.
   createdAt?: Date;
 
   /**
-Text content of the message.
-
-@deprecated Use `parts` instead.
+Text content of the message. Use parts when possible.
    */
   content: string;
 
