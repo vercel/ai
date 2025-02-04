@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`assistant message > should handle assistant message with tool invocations 1`] = `
+exports[`convertToCoreMessages > assistant message > should handle assistant message with tool invocations 1`] = `
 [
   {
     "content": [
@@ -37,7 +37,7 @@ exports[`assistant message > should handle assistant message with tool invocatio
 ]
 `;
 
-exports[`assistant message > should handle assistant message with tool invocations that have multi-part responses 1`] = `
+exports[`convertToCoreMessages > assistant message > should handle assistant message with tool invocations that have multi-part responses 1`] = `
 [
   {
     "content": [
@@ -79,7 +79,7 @@ exports[`assistant message > should handle assistant message with tool invocatio
 ]
 `;
 
-exports[`assistant message > should handle conversation with an assistant message that has empty tool invocations 1`] = `
+exports[`convertToCoreMessages > assistant message > should handle conversation with an assistant message that has empty tool invocations 1`] = `
 [
   {
     "content": "text1",
@@ -92,7 +92,7 @@ exports[`assistant message > should handle conversation with an assistant messag
 ]
 `;
 
-exports[`assistant message > should handle conversation with multiple tool invocations that have step information 1`] = `
+exports[`convertToCoreMessages > assistant message > should handle conversation with multiple tool invocations that have step information 1`] = `
 [
   {
     "content": [
@@ -187,7 +187,7 @@ exports[`assistant message > should handle conversation with multiple tool invoc
 ]
 `;
 
-exports[`multiple messages > should convert fully typed Message[] 1`] = `
+exports[`convertToCoreMessages > multiple messages > should convert fully typed Message[] 1`] = `
 [
   {
     "content": "What is the weather in Tokyo?",
@@ -200,7 +200,7 @@ exports[`multiple messages > should convert fully typed Message[] 1`] = `
 ]
 `;
 
-exports[`multiple messages > should handle conversation with multiple tool invocations and user message at the end 1`] = `
+exports[`convertToCoreMessages > multiple messages > should handle conversation with multiple tool invocations and user message at the end 1`] = `
 [
   {
     "content": [
@@ -299,7 +299,7 @@ exports[`multiple messages > should handle conversation with multiple tool invoc
 ]
 `;
 
-exports[`user message > should handle user message with attachment URLs (file) 1`] = `
+exports[`convertToCoreMessages > user message > should handle user message with attachment URLs (file) 1`] = `
 [
   {
     "content": [
@@ -318,7 +318,7 @@ exports[`user message > should handle user message with attachment URLs (file) 1
 ]
 `;
 
-exports[`user message > should handle user message with attachment URLs 1`] = `
+exports[`convertToCoreMessages > user message > should handle user message with attachment URLs 1`] = `
 [
   {
     "content": [
