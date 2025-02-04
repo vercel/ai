@@ -1,9 +1,17 @@
 import { perplexityMetadataExtractor } from './perplexity-metadata-extractor';
 
 describe('buildMetadataFromResponse', () => {
-  it('should extract metadata from complete response with citations and usage', () => {
+  it('should extract metadata from complete response with citations, images and usage', () => {
     const response = {
       citations: ['source1', 'source2'],
+      images: [
+        {
+          image_url: 'https://images.com/image1.jpg',
+          origin_url: 'https://elsewhere.com/page1',
+          height: 100,
+          width: 100,
+        },
+      ],
       usage: {
         citation_tokens: 100,
         num_search_queries: 5,
@@ -17,6 +25,14 @@ describe('buildMetadataFromResponse', () => {
     expect(metadata).toEqual({
       perplexity: {
         citations: ['source1', 'source2'],
+        images: [
+          {
+            imageUrl: 'https://images.com/image1.jpg',
+            originUrl: 'https://elsewhere.com/page1',
+            height: 100,
+            width: 100,
+          },
+        ],
         usage: {
           citationTokens: 100,
           numSearchQueries: 5,
@@ -37,6 +53,36 @@ describe('buildMetadataFromResponse', () => {
     expect(metadata).toEqual({
       perplexity: {
         citations: ['source1', 'source2'],
+      },
+    });
+  });
+
+  it('should extract metadata with only images', () => {
+    const response = {
+      images: [
+        {
+          image_url: 'https://images.com/image1.jpg',
+          origin_url: 'https://elsewhere.com/page1',
+          height: 100,
+          width: 100,
+        },
+      ],
+    };
+
+    const metadata = perplexityMetadataExtractor.extractMetadata({
+      parsedBody: response,
+    });
+
+    expect(metadata).toEqual({
+      perplexity: {
+        images: [
+          {
+            imageUrl: 'https://images.com/image1.jpg',
+            originUrl: 'https://elsewhere.com/page1',
+            height: 100,
+            width: 100,
+          },
+        ],
       },
     });
   });
@@ -97,6 +143,19 @@ describe('streaming metadata extractor', () => {
       citations: ['source1', 'source2'],
     });
 
+    // Process chunk with images
+    extractor.processChunk({
+      choices: [{ delta: { role: 'assistant', content: 'content' } }],
+      images: [
+        {
+          image_url: 'https://images.com/image1.jpg',
+          origin_url: 'https://elsewhere.com/page1',
+          height: 100,
+          width: 100,
+        },
+      ],
+    });
+
     // Process chunk with usage
     extractor.processChunk({
       choices: [{ delta: { role: 'assistant', content: 'content' } }],
@@ -111,6 +170,14 @@ describe('streaming metadata extractor', () => {
     expect(finalMetadata).toEqual({
       perplexity: {
         citations: ['source1', 'source2'],
+        images: [
+          {
+            imageUrl: 'https://images.com/image1.jpg',
+            originUrl: 'https://elsewhere.com/page1',
+            height: 100,
+            width: 100,
+          },
+        ],
         usage: {
           citationTokens: 100,
           numSearchQueries: 5,
@@ -125,6 +192,14 @@ describe('streaming metadata extractor', () => {
     // Process initial chunk
     extractor.processChunk({
       citations: ['source1'],
+      images: [
+        {
+          image_url: 'https://images.com/image1.jpg',
+          origin_url: 'https://elsewhere.com/page1',
+          height: 100,
+          width: 100,
+        },
+      ],
       usage: {
         citation_tokens: 50,
         num_search_queries: 2,
@@ -134,6 +209,20 @@ describe('streaming metadata extractor', () => {
     // Process chunk with updated data
     extractor.processChunk({
       citations: ['source1', 'source2'],
+      images: [
+        {
+          image_url: 'https://images.com/image1.jpg',
+          origin_url: 'https://elsewhere.com/page1',
+          height: 100,
+          width: 100,
+        },
+        {
+          image_url: 'https://images.com/image2.jpg',
+          origin_url: 'https://elsewhere.com/page2',
+          height: 200,
+          width: 200,
+        },
+      ],
       usage: {
         citation_tokens: 100,
         num_search_queries: 5,
@@ -145,6 +234,20 @@ describe('streaming metadata extractor', () => {
     expect(finalMetadata).toEqual({
       perplexity: {
         citations: ['source1', 'source2'],
+        images: [
+          {
+            imageUrl: 'https://images.com/image1.jpg',
+            originUrl: 'https://elsewhere.com/page1',
+            height: 100,
+            width: 100,
+          },
+          {
+            imageUrl: 'https://images.com/image2.jpg',
+            originUrl: 'https://elsewhere.com/page2',
+            height: 200,
+            width: 200,
+          },
+        ],
         usage: {
           citationTokens: 100,
           numSearchQueries: 5,
