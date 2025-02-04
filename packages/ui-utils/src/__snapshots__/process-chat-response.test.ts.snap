@@ -1082,6 +1082,563 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
 ]
 `;
 
+exports[`scenario: server-side tool roundtrip with multiple assistant reasoning > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "content": "The weather in London is sunny.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+      ],
+      "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "usage": {
+      "completionTokens": 7,
+      "promptTokens": 14,
+      "totalTokens": 21,
+    },
+  },
+]
+`;
+
+exports[`scenario: server-side tool roundtrip with multiple assistant reasoning > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "reasoning": "I will",
+          "type": "reasoning",
+        },
+      ],
+      "reasoning": "I will",
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "reasoning": "I willuse a tool to get the weather in London.",
+          "type": "reasoning",
+        },
+      ],
+      "reasoning": "I willuse a tool to get the weather in London.",
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "reasoning": "I willuse a tool to get the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "state": "call",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "reasoning": "I willuse a tool to get the weather in London.",
+      "revisionId": "id-3",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "state": "call",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "reasoning": "I willuse a tool to get the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "reasoning": "I willuse a tool to get the weather in London.",
+      "revisionId": "id-4",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+      "revisionId": "id-5",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "The weather in London is sunny.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+      ],
+      "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+      "revisionId": "id-6",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`scenario: server-side tool roundtrip with multiple assistant texts > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "content": "I willuse a tool to get the weather in London.The weather in Londonis sunny.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I willuse a tool to get the weather in London.The weather in Londonis sunny.",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "usage": {
+      "completionTokens": 7,
+      "promptTokens": 14,
+      "totalTokens": 21,
+    },
+  },
+]
+`;
+
+exports[`scenario: server-side tool roundtrip with multiple assistant texts > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "content": "I will",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I will",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "I willuse a tool to get the weather in London.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I willuse a tool to get the weather in London.",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "I willuse a tool to get the weather in London.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I willuse a tool to get the weather in London.",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "state": "call",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "state": "call",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "I willuse a tool to get the weather in London.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I willuse a tool to get the weather in London.",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-4",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "I willuse a tool to get the weather in London.The weather in London",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I willuse a tool to get the weather in London.The weather in London",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-5",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "I willuse a tool to get the weather in London.The weather in Londonis sunny.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I willuse a tool to get the weather in London.The weather in Londonis sunny.",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-6",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
 exports[`scenario: simple text response > should call the onFinish function with the correct arguments 1`] = `
 [
   {

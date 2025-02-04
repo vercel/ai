@@ -204,6 +204,111 @@ describe('scenario: server-side tool roundtrip with existing assistant message',
   });
 });
 
+describe('scenario: server-side tool roundtrip with multiple assistant texts', () => {
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatDataStreamPart('text', 'I will'),
+      formatDataStreamPart('text', 'use a tool to get the weather in London.'),
+      formatDataStreamPart('tool_call', {
+        toolCallId: 'tool-call-id',
+        toolName: 'tool-name',
+        args: { city: 'London' },
+      }),
+      formatDataStreamPart('tool_result', {
+        toolCallId: 'tool-call-id',
+        result: { weather: 'sunny' },
+      }),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'tool-calls',
+        usage: { completionTokens: 5, promptTokens: 10 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('text', 'The weather in London'),
+      formatDataStreamPart('text', 'is sunny.'),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'stop',
+        usage: { completionTokens: 2, promptTokens: 4 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 7, promptTokens: 14 },
+      }),
+    ]);
+
+    await processChatResponse({
+      stream,
+      update,
+      onFinish,
+      generateId: mockId(),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
+    });
+  });
+
+  it('should call the update function with the correct arguments', async () => {
+    expect(updateCalls).toMatchSnapshot();
+  });
+
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toMatchSnapshot();
+  });
+});
+
+describe('scenario: server-side tool roundtrip with multiple assistant reasoning', () => {
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatDataStreamPart('reasoning', 'I will'),
+      formatDataStreamPart(
+        'reasoning',
+        'use a tool to get the weather in London.',
+      ),
+      formatDataStreamPart('tool_call', {
+        toolCallId: 'tool-call-id',
+        toolName: 'tool-name',
+        args: { city: 'London' },
+      }),
+      formatDataStreamPart('tool_result', {
+        toolCallId: 'tool-call-id',
+        result: { weather: 'sunny' },
+      }),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'tool-calls',
+        usage: { completionTokens: 5, promptTokens: 10 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('reasoning', 'I know know the weather in London.'),
+      formatDataStreamPart('text', 'The weather in London is sunny.'),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'stop',
+        usage: { completionTokens: 2, promptTokens: 4 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 7, promptTokens: 14 },
+      }),
+    ]);
+
+    await processChatResponse({
+      stream,
+      update,
+      onFinish,
+      generateId: mockId(),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
+    });
+  });
+
+  it('should call the update function with the correct arguments', async () => {
+    expect(updateCalls).toMatchSnapshot();
+  });
+
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toMatchSnapshot();
+  });
+});
+
 describe('scenario: server-side continue roundtrip', () => {
   beforeEach(async () => {
     const stream = createDataProtocolStream([
