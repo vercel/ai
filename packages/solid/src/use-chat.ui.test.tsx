@@ -135,6 +135,7 @@ describe('file attachments with data url', () => {
                   url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
                 },
               ],
+              parts: [{ text: 'Message with text attachment', type: 'text' }],
             },
           ],
         });
@@ -1196,7 +1197,13 @@ describe('reload', () => {
 
         expect(await call(1).getRequestBodyJson()).toStrictEqual({
           id: expect.any(String),
-          messages: [{ content: 'hi', role: 'user' }],
+          messages: [
+            {
+              content: 'hi',
+              role: 'user',
+              parts: [{ text: 'hi', type: 'text' }],
+            },
+          ],
           data: { 'test-data-key': 'test-data-value' },
           'request-body-key': 'request-body-value',
         });
