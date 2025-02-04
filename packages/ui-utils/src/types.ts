@@ -92,6 +92,12 @@ that the assistant made as part of this message.
    */
   toolInvocations?: Array<ToolInvocation>;
 
+  /**
+   * The parts of the message. Use this for rendering the message in the UI.
+   *
+   * Assistant messages can have text, reasoning and tool invocation parts.
+   * User messages can have text parts.
+   */
   // note: optional on the Message type (which serves as input)
   parts?: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
 }
@@ -99,22 +105,46 @@ that the assistant made as part of this message.
 export type UIMessage = Message & {
   /**
    * The parts of the message. Use this for rendering the message in the UI.
+   *
+   * Assistant messages can have text, reasoning and tool invocation parts.
+   * User messages can have text parts.
    */
   parts: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
 };
 
+/**
+ * A text part of a message.
+ */
 export type TextUIPart = {
   type: 'text';
+
+  /**
+   * The text content.
+   */
   text: string;
 };
 
+/**
+ * A reasoning part of a message.
+ */
 export type ReasoningUIPart = {
   type: 'reasoning';
+
+  /**
+   * The reasoning text.
+   */
   reasoning: string;
 };
 
+/**
+ * A tool invocation part of a message.
+ */
 export type ToolInvocationUIPart = {
   type: 'tool-invocation';
+
+  /**
+   * The tool invocation.
+   */
   toolInvocation: ToolInvocation;
 };
 
