@@ -14,7 +14,7 @@
     "@ai-sdk/ui-utils": "1.1.8",
     "@ai-sdk/react": "1.1.8",
     "@vercel/blob": "^0.26.0",
-    "ai": "4.1.17",
+    "ai": "4.1.18",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",
