@@ -75,6 +75,7 @@ export default function Chat() {
                           </div>
                         );
                     }
+                    break;
                   }
 
                   case 'getLocation': {
@@ -92,6 +93,7 @@ export default function Chat() {
                           </div>
                         );
                     }
+                    break;
                   }
 
                   case 'getWeatherInformation': {
@@ -118,6 +120,7 @@ export default function Chat() {
                           </div>
                         );
                     }
+                    break;
                   }
                 }
               }
