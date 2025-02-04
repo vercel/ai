@@ -301,7 +301,13 @@ describe('data protocol stream', () => {
 
           expect(await call(0).getRequestBodyJson()).toStrictEqual({
             id: screen.getByTestId('id').textContent,
-            messages: [{ role: 'user', content: 'hi' }],
+            messages: [
+              {
+                role: 'user',
+                content: 'hi',
+                parts: [{ text: 'hi', type: 'text' }],
+              },
+            ],
           });
         },
       ),
@@ -1304,6 +1310,7 @@ describe('file attachments with data url', () => {
                   url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
                 },
               ],
+              parts: [{ text: 'Message with text attachment', type: 'text' }],
             },
           ],
         });
@@ -1362,6 +1369,7 @@ describe('file attachments with data url', () => {
                   url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
                 },
               ],
+              parts: [{ text: 'Message with image attachment', type: 'text' }],
             },
           ],
         });
@@ -1486,6 +1494,7 @@ describe('file attachments with url', () => {
                   url: 'https://example.com/image.png',
                 },
               ],
+              parts: [{ text: 'Message with image attachment', type: 'text' }],
             },
           ],
         });
@@ -1584,6 +1593,7 @@ describe('attachments with empty submit', () => {
                   url: 'https://example.com/image.png',
                 },
               ],
+              parts: [{ text: '', type: 'text' }],
             },
           ],
         });
@@ -1691,6 +1701,7 @@ describe('should append message with attachments', () => {
                   url: 'https://example.com/image.png',
                 },
               ],
+              parts: [{ text: 'Message with image attachment', type: 'text' }],
             },
           ],
         });
@@ -1770,7 +1781,13 @@ describe('reload', () => {
 
         expect(await call(1).getRequestBodyJson()).toStrictEqual({
           id: expect.any(String),
-          messages: [{ content: 'hi', role: 'user' }],
+          messages: [
+            {
+              content: 'hi',
+              role: 'user',
+              parts: [{ text: 'hi', type: 'text' }],
+            },
+          ],
           data: { 'test-data-key': 'test-data-value' },
           'request-body-key': 'request-body-value',
         });
@@ -1848,6 +1865,7 @@ describe('test sending additional fields during message submission', () => {
               role: 'user',
               content: 'hi',
               annotations: ['this is an annotation'],
+              parts: [{ text: 'hi', type: 'text' }],
             },
           ],
         });
