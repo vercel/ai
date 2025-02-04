@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { vi } from 'vitest';
+import { createEventSourceResponseHandler } from './bedrock-eventstream-codec';
 
 // Mock the eventstream codec module
 vi.mock('./bedrock-eventstream-codec', () => ({
@@ -19,8 +20,13 @@ vi.mock('./bedrock-eventstream-codec', () => ({
           value: JSON.parse(chunk),
         }));
 
+      const headers: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+
       return {
-        responseHeaders: {},
+        responseHeaders: headers,
         value: new ReadableStream({
           start(controller) {
             chunks.forEach(chunk => controller.enqueue(chunk));
@@ -524,6 +530,43 @@ describe('doStream', () => {
       },
     ]);
   });
+
+  it('should include response headers in rawResponse', async () => {
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        'x-amzn-trace-id': 'test-trace-id',
+      },
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const response = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response.rawResponse?.headers).toEqual({
+      'cache-control': 'no-cache',
+      connection: 'keep-alive',
+      'content-type': 'text/event-stream',
+      'x-amzn-requestid': 'test-request-id',
+      'x-amzn-trace-id': 'test-trace-id',
+    });
+  });
 });
 
 describe('doGenerate', () => {
@@ -750,6 +793,43 @@ describe('doGenerate', () => {
     });
 
     expect(response.providerMetadata?.bedrock.trace).toMatchObject(mockTrace);
+  });
+
+  it('should include response headers in rawResponse', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        'x-amzn-trace-id': 'test-trace-id',
+      },
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: 'Testing' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+        },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const response = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response.rawResponse?.headers).toEqual({
+      'x-amzn-requestid': 'test-request-id',
+      'x-amzn-trace-id': 'test-trace-id',
+      'content-type': 'application/json',
+      'content-length': '164',
+    });
   });
 
   it('should pass tools and tool choice correctly', async () => {

@@ -204,7 +204,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     const { command: args, warnings } = this.getArgs(options);
 
     const url = this.getUrl(this.modelId);
-    const { value: response } = await postJsonToApi({
+    const { value: response, responseHeaders } = await postJsonToApi({
       url,
       headers: await resolve(
         this.config.headers({
@@ -252,6 +252,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage?.outputTokens ?? Number.NaN,
       },
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings,
       ...(providerMetadata && { providerMetadata }),
     };
@@ -263,7 +264,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     const { command: args, warnings } = this.getArgs(options);
     const url = this.getStreamUrl(this.modelId);
 
-    const { value: response } = await postJsonToApi({
+    const { value: response, responseHeaders } = await postJsonToApi({
       url,
       headers: await resolve(
         this.config.headers({
@@ -423,6 +424,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings,
     };
   }
