@@ -1,5 +1,5 @@
 import { EmptyResponseBodyError } from '@ai-sdk/provider';
-import { createEventSourceResponseHandler } from './bedrock-eventstream-codec';
+import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { z } from 'zod';
 import { describe, it, expect, vi, MockInstance } from 'vitest';
@@ -29,7 +29,7 @@ describe('createEventSourceResponseHandler', () => {
 
   it('throws EmptyResponseBodyError when response body is null', async () => {
     const response = new Response(null);
-    const handler = createEventSourceResponseHandler(testSchema);
+    const handler = createBedrockEventStreamResponseHandler(testSchema);
 
     await expect(
       handler({
@@ -71,7 +71,7 @@ describe('createEventSourceResponseHandler', () => {
     });
 
     const response = new Response(stream);
-    const handler = createEventSourceResponseHandler(testSchema);
+    const handler = createBedrockEventStreamResponseHandler(testSchema);
     const result = await handler({
       response,
       url: 'test-url',
@@ -115,7 +115,7 @@ describe('createEventSourceResponseHandler', () => {
     });
 
     const response = new Response(stream);
-    const handler = createEventSourceResponseHandler(testSchema);
+    const handler = createBedrockEventStreamResponseHandler(testSchema);
     const result = await handler({
       response,
       url: 'test-url',
@@ -157,7 +157,7 @@ describe('createEventSourceResponseHandler', () => {
     });
 
     const response = new Response(stream);
-    const handler = createEventSourceResponseHandler(testSchema);
+    const handler = createBedrockEventStreamResponseHandler(testSchema);
     const result = await handler({
       response,
       url: 'test-url',
@@ -213,7 +213,7 @@ describe('createEventSourceResponseHandler', () => {
     });
 
     const response = new Response(stream);
-    const handler = createEventSourceResponseHandler(testSchema);
+    const handler = createBedrockEventStreamResponseHandler(testSchema);
     const result = await handler({
       response,
       url: 'test-url',

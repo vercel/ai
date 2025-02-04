@@ -10,7 +10,7 @@ import { toUtf8, fromUtf8 } from '@smithy/util-utf8';
 import { ZodSchema } from 'zod';
 
 // https://docs.aws.amazon.com/lexv2/latest/dg/event-stream-encoding.html
-export const createEventSourceResponseHandler =
+export const createBedrockEventStreamResponseHandler =
   <T>(
     chunkSchema: ZodSchema<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>

@@ -28,7 +28,7 @@ import {
   BedrockChatSettings,
 } from './bedrock-chat-settings';
 import { BedrockErrorSchema } from './bedrock-error';
-import { createEventSourceResponseHandler } from './bedrock-eventstream-codec';
+import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
@@ -279,7 +279,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         errorToMessage: error => `${error.type}: ${error.message}`,
       }),
       successfulResponseHandler:
-        createEventSourceResponseHandler(BedrockStreamSchema),
+        createBedrockEventStreamResponseHandler(BedrockStreamSchema),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });

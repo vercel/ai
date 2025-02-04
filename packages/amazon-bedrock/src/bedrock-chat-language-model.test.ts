@@ -5,11 +5,11 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { vi } from 'vitest';
-import { createEventSourceResponseHandler } from './bedrock-eventstream-codec';
+import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 
 // Mock the eventstream codec module
-vi.mock('./bedrock-eventstream-codec', () => ({
-  createEventSourceResponseHandler: (schema: any) => {
+vi.mock('./bedrock-event-stream-response-handler', () => ({
+  createBedrockEventStreamResponseHandler: (schema: any) => {
     return async ({ response }: { response: Response }) => {
       const text = await response.text();
       const chunks = text
