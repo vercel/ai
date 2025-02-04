@@ -321,7 +321,13 @@ describe('custom metadata', () => {
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
           id: expect.any(String),
-          messages: [{ content: 'custom metadata component', role: 'user' }],
+          messages: [
+            {
+              content: 'custom metadata component',
+              role: 'user',
+              parts: [{ text: 'custom metadata component', type: 'text' }],
+            },
+          ],
           body1: 'value1',
           body2: 'value2',
         });
@@ -483,7 +489,13 @@ describe('reload', () => {
 
         expect(await call(1).getRequestBodyJson()).toStrictEqual({
           id: expect.any(String),
-          messages: [{ content: 'hi', role: 'user' }],
+          messages: [
+            {
+              content: 'hi',
+              role: 'user',
+              parts: [{ text: 'hi', type: 'text' }],
+            },
+          ],
           data: { 'test-data-key': 'test-data-value' },
           'request-body-key': 'request-body-value',
         });
