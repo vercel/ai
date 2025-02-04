@@ -12,6 +12,7 @@ import {
   fillMessageParts,
   generateId as generateIdFunc,
   getMessageParts,
+  isAssistantMessageWithCompletedToolCalls,
   prepareAttachmentsForRequest,
   shouldResubmitMessages,
   updateToolCallResult,
@@ -20,11 +21,11 @@ import swrv from 'swrv';
 import type { Ref } from 'vue';
 import { ref, unref } from 'vue';
 
-export type { CreateMessage, Message, UseChatOptions };
+export type { CreateMessage, Message, UIMessage, UseChatOptions };
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
-  messages: Ref<Message[]>;
+  messages: Ref<UIMessage[]>;
   /** The error object of the API request */
   error: Ref<undefined | Error>;
   /**
@@ -366,7 +367,7 @@ export function useChat(
     result,
   }: {
     toolCallId: string;
-    result: any;
+    result: unknown;
   }) => {
     const currentMessages = messages.value;
 
@@ -400,18 +401,4 @@ export function useChat(
     setData,
     addToolResult,
   };
-}
-
-/**
-Check if the message is an assistant message with completed tool calls.
-The message must have at least one tool invocation and all tool invocations
-must have a result.
- */
-function isAssistantMessageWithCompletedToolCalls(message: Message) {
-  return (
-    message.role === 'assistant' &&
-    message.toolInvocations &&
-    message.toolInvocations.length > 0 &&
-    message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
-  );
 }

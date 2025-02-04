@@ -32,18 +32,15 @@ export default function Chat() {
               case 'text':
                 return part.text;
               case 'tool-invocation': {
-                const invocation = part.toolInvocation;
-                const callId = invocation.toolCallId;
+                const callId = part.toolInvocation.toolCallId;
 
-                switch (invocation.toolName) {
+                switch (part.toolInvocation.toolName) {
                   case 'askForConfirmation': {
-                    switch (invocation.state) {
-                      case 'partial-call':
-                        return undefined;
+                    switch (part.toolInvocation.state) {
                       case 'call':
                         return (
                           <div key={callId} className="text-gray-500">
-                            {invocation.args.message}
+                            {part.toolInvocation.args.message}
                             <div className="flex gap-2">
                               <button
                                 className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
@@ -73,16 +70,15 @@ export default function Chat() {
                       case 'result':
                         return (
                           <div key={callId} className="text-gray-500">
-                            Location access allowed: {invocation.result}
+                            Location access allowed:{' '}
+                            {part.toolInvocation.result}
                           </div>
                         );
                     }
                   }
 
                   case 'getLocation': {
-                    switch (invocation.state) {
-                      case 'partial-call':
-                        return undefined;
+                    switch (part.toolInvocation.state) {
                       case 'call':
                         return (
                           <div key={callId} className="text-gray-500">
@@ -92,33 +88,33 @@ export default function Chat() {
                       case 'result':
                         return (
                           <div key={callId} className="text-gray-500">
-                            Location: {invocation.result}
+                            Location: {part.toolInvocation.result}
                           </div>
                         );
                     }
                   }
 
                   case 'getWeatherInformation': {
-                    switch (invocation.state) {
+                    switch (part.toolInvocation.state) {
                       // example of pre-rendering streaming tool calls:
                       case 'partial-call':
                         return (
                           <pre key={callId}>
-                            {JSON.stringify(invocation, null, 2)}
+                            {JSON.stringify(part.toolInvocation, null, 2)}
                           </pre>
                         );
                       case 'call':
                         return (
                           <div key={callId} className="text-gray-500">
                             Getting weather information for{' '}
-                            {invocation.args.city}...
+                            {part.toolInvocation.args.city}...
                           </div>
                         );
                       case 'result':
                         return (
                           <div key={callId} className="text-gray-500">
-                            Weather in {invocation.args.city}:{' '}
-                            {invocation.result}
+                            Weather in {part.toolInvocation.args.city}:{' '}
+                            {part.toolInvocation.result}
                           </div>
                         );
                     }

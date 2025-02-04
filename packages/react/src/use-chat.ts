@@ -521,7 +521,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
   };
 
   const addToolResult = useCallback(
-    ({ toolCallId, result }: { toolCallId: string; result: any }) => {
+    ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
       const currentMessages = messagesRef.current;
 
       updateToolCallResult({
