@@ -1,16 +1,19 @@
 import type {
-  ChatRequest,
   ChatRequestOptions,
   CreateMessage,
   JSONValue,
   Message,
+  UIMessage,
   UseChatOptions,
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
   extractMaxToolInvocationStep,
+  fillMessageParts,
   generateId as generateIdFunc,
+  getMessageParts,
   prepareAttachmentsForRequest,
+  shouldResubmitMessages,
 } from '@ai-sdk/ui-utils';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
@@ -85,7 +88,7 @@ export type UseChatHelpers = {
 
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv;
-const store: Record<string, Message[] | undefined> = {};
+const store: Record<string, UIMessage[] | undefined> = {};
 
 export function useChat(
   {
@@ -105,7 +108,7 @@ export function useChat(
     onToolCall,
     fetch,
     keepLastMessageOnError = true,
-    maxSteps,
+    maxSteps = 1,
   }: UseChatOptions & {
     /**
      * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
@@ -121,9 +124,9 @@ export function useChat(
   const chatId = id ?? generateId();
 
   const key = `${api}|${chatId}`;
-  const { data: messagesData, mutate: originalMutate } = useSWRV<Message[]>(
+  const { data: messagesData, mutate: originalMutate } = useSWRV<UIMessage[]>(
     key,
-    () => store[key] || initialMessages,
+    () => store[key] ?? fillMessageParts(initialMessages),
   );
 
   const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
@@ -134,15 +137,15 @@ export function useChat(
   isLoading.value ??= false;
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
-  messagesData.value ??= initialMessages;
+  messagesData.value ??= fillMessageParts(initialMessages);
 
-  const mutate = (data?: Message[]) => {
+  const mutate = (data?: UIMessage[]) => {
     store[key] = data;
     return originalMutate();
   };
 
   // Because of the `initialData` option, the `data` will never be `undefined`.
-  const messages = messagesData as Ref<Message[]>;
+  const messages = messagesData as Ref<UIMessage[]>;
 
   const error = ref<undefined | Error>(undefined);
   // cannot use JSONValue[] in ref because of infinite Typescript recursion:
@@ -167,21 +170,15 @@ export function useChat(
 
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
-      const previousMessages = messagesSnapshot;
-      mutate(messagesSnapshot);
-
-      const chatRequest: ChatRequest = {
-        messages: messagesSnapshot,
-        body,
-        headers,
-        data,
-      };
+      const previousMessages = fillMessageParts(messagesSnapshot);
+      const chatMessages = fillMessageParts(messagesSnapshot);
+      mutate(chatMessages);
 
       const existingData = (streamData.value ?? []) as JSONValue[];
 
       const constructedMessagesPayload = sendExtraMessageFields
-        ? chatRequest.messages
-        : chatRequest.messages.map(
+        ? chatMessages
+        : chatMessages.map(
             ({
               role,
               content,
@@ -206,7 +203,7 @@ export function useChat(
         body: {
           id: chatId,
           messages: constructedMessagesPayload,
-          data: chatRequest.data,
+          data,
           ...unref(metadataBody), // Use unref to unwrap the ref value
           ...body,
         },
@@ -221,8 +218,8 @@ export function useChat(
         onUpdate({ message, data, replaceLastMessage }) {
           mutate([
             ...(replaceLastMessage
-              ? chatRequest.messages.slice(0, chatRequest.messages.length - 1)
-              : chatRequest.messages),
+              ? chatMessages.slice(0, chatMessages.length - 1)
+              : chatMessages),
             message,
           ]);
           if (data?.length) {
@@ -239,7 +236,7 @@ export function useChat(
         generateId,
         onToolCall,
         fetch,
-        lastMessage: chatRequest.messages[chatRequest.messages.length - 1],
+        lastMessage: chatMessages[chatMessages.length - 1],
       });
     } catch (err) {
       // Ignore abort errors as they are expected.
@@ -259,24 +256,13 @@ export function useChat(
     }
 
     // auto-submit when all tool calls in the last assistant message have results:
-    const lastMessage = messages.value[messages.value.length - 1];
     if (
-      // ensure there is a last message:
-      lastMessage != null &&
-      // ensure we actually have new messages (to prevent infinite loops in case of errors):
-      (messages.value.length > messageCount ||
-        extractMaxToolInvocationStep(lastMessage.toolInvocations) !==
-          maxStep) &&
-      // check if the feature is enabled:
-      maxSteps &&
-      maxSteps > 1 &&
-      // check that next step is possible:
-      isAssistantMessageWithCompletedToolCalls(lastMessage) &&
-      // check that assistant has not answered yet:
-      !lastMessage.content && // empty string or undefined
-      // limit the number of automatic steps:
-      (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) <
-        maxSteps
+      shouldResubmitMessages({
+        originalMaxToolInvocationStep: maxStep,
+        originalMessageCount: messageCount,
+        maxSteps,
+        messages: messages.value,
+      })
     ) {
       await triggerRequest(messages.value);
     }
@@ -294,6 +280,7 @@ export function useChat(
         createdAt: message.createdAt ?? new Date(),
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+        parts: getMessageParts(message),
       }),
       options,
     );
@@ -325,7 +312,7 @@ export function useChat(
       messagesArg = messagesArg(messages.value);
     }
 
-    mutate(messagesArg);
+    mutate(fillMessageParts(messagesArg));
   };
 
   const setData = (
@@ -365,6 +352,7 @@ export function useChat(
         role: 'user',
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+        parts: [{ type: 'text', text: inputValue }],
       }),
       options,
     );
