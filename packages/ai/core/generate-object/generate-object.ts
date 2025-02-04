@@ -183,7 +183,7 @@ functionality that can be fully encapsulated in the provider.
       experimental_providerMetadata?: ProviderMetadata;
 
       /**
-       * @internal For test use only. May change without notice.
+       * Internal. For test use only. May change without notice.
        */
       _internal?: {
         generateId?: () => string;
