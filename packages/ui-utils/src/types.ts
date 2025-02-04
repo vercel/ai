@@ -57,11 +57,15 @@ The timestamp of the message.
 
   /**
 Text content of the message.
+
+@deprecated Use `parts` instead.
    */
   content: string;
 
   /**
 Reasoning for the message.
+
+@deprecated Use `parts` instead.
    */
   reasoning?: string;
 
@@ -70,6 +74,9 @@ Reasoning for the message.
    */
   experimental_attachments?: Attachment[];
 
+  /**
+The 'data' role is deprecated.
+   */
   role: 'system' | 'user' | 'assistant' | 'data';
 
   data?: JSONValue;
@@ -82,6 +89,8 @@ Reasoning for the message.
   /**
 Tool invocations (that can be tool calls or tool results, depending on whether or not the invocation has finished)
 that the assistant made as part of this message.
+
+@deprecated Use `parts` instead.
    */
   toolInvocations?: Array<ToolInvocation>;
 
@@ -90,6 +99,14 @@ that the assistant made as part of this message.
 }
 
 export type UIMessage = Message & {
+  /**
+   * The timestamp of the message.
+   */
+  createdAt: Date;
+
+  /**
+   * The parts of the message. Use this for rendering the message in the UI.
+   */
   parts: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
 };
 
