@@ -416,6 +416,75 @@ describe('convertToCoreMessages', () => {
 
       expect(result).toMatchSnapshot();
     });
+
+    it('should handle conversation with multiple tool invocations that have step information (parts)', () => {
+      const tools = {
+        screenshot: tool({
+          parameters: z.object({ value: z.string() }),
+          execute: async () => 'imgbase64',
+        }),
+      };
+
+      const result = convertToCoreMessages(
+        [
+          {
+            role: 'assistant',
+            content: '', // empty content
+            toolInvocations: [], // empty invocations
+            parts: [
+              { type: 'text', text: 'response' },
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call-1',
+                  toolName: 'screenshot',
+                  args: { value: 'value-1' },
+                  result: 'result-1',
+                  step: 0,
+                },
+              },
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call-2',
+                  toolName: 'screenshot',
+                  args: { value: 'value-2' },
+                  result: 'result-2',
+                  step: 1,
+                },
+              },
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call-3',
+                  toolName: 'screenshot',
+                  args: { value: 'value-3' },
+                  result: 'result-3',
+                  step: 1,
+                },
+              },
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call-4',
+                  toolName: 'screenshot',
+                  args: { value: 'value-4' },
+                  result: 'result-4',
+                  step: 2,
+                },
+              },
+            ],
+          },
+        ],
+        { tools }, // separate tools to ensure that types are inferred correctly
+      );
+
+      expect(result).toMatchSnapshot();
+    });
   });
 
   describe('multiple messages', () => {

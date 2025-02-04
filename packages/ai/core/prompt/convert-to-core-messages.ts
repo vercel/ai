@@ -146,12 +146,11 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                 break;
               }
               case 'tool-invocation': {
-                if (part.toolInvocation.step === currentStep) {
-                  block.push(part);
-                  blockHasToolInvocations = true;
-                } else {
+                if ((part.toolInvocation.step ?? 0) !== currentStep) {
                   processBlock();
                 }
+                block.push(part);
+                blockHasToolInvocations = true;
                 break;
               }
             }
