@@ -37,7 +37,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
-  messages: Readable<Message[]>;
+  messages: Readable<UIMessage[]>;
   /** The error object of the API request */
   error: Readable<undefined | Error>;
   /**
