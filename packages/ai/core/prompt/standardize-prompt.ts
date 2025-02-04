@@ -1,12 +1,12 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
+import { Message } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { ToolSet } from '../generate-text/tool-set';
 import { convertToCoreMessages } from './convert-to-core-messages';
 import { detectPromptType } from './detect-prompt-type';
 import { CoreMessage, coreMessageSchema } from './message';
 import { Prompt } from './prompt';
-import { InternalUIMessage } from './ui-message';
 
 export type StandardizedPrompt = {
   /**
@@ -90,7 +90,7 @@ export function standardizePrompt<TOOLS extends ToolSet>({
 
     const messages: CoreMessage[] =
       promptType === 'ui-messages'
-        ? convertToCoreMessages(prompt.messages as InternalUIMessage[], {
+        ? convertToCoreMessages(prompt.messages as Omit<Message, 'id'>[], {
             tools,
           })
         : (prompt.messages as CoreMessage[]);

@@ -1,5 +1,5 @@
+import { Message } from '@ai-sdk/ui-utils';
 import { detectPromptType } from './detect-prompt-type';
-import type { InternalUIMessage } from './ui-message';
 import type { CoreMessage } from './message';
 
 it('should return "other" for invalid inputs', () => {
@@ -13,7 +13,7 @@ it('should return "messages" for empty arrays', () => {
 });
 
 it('should detect UI messages with data role', () => {
-  const messages: InternalUIMessage[] = [
+  const messages: Omit<Message, 'id'>[] = [
     {
       role: 'data',
       content: 'some data',
@@ -23,7 +23,7 @@ it('should detect UI messages with data role', () => {
 });
 
 it('should detect UI messages with toolInvocations', () => {
-  const messages: InternalUIMessage[] = [
+  const messages: Omit<Message, 'id'>[] = [
     {
       role: 'assistant',
       content: 'Hello',
@@ -42,7 +42,7 @@ it('should detect UI messages with toolInvocations', () => {
 });
 
 it('should detect UI messages with experimental_attachments', () => {
-  const messages: InternalUIMessage[] = [
+  const messages: Omit<Message, 'id'>[] = [
     {
       role: 'user',
       content: 'Check this file',
