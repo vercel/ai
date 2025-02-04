@@ -155,6 +155,7 @@ const processStreamedResponse = async (
           data,
           annotations,
           toolInvocations,
+          parts,
         }) => ({
           role,
           content,
@@ -164,6 +165,7 @@ const processStreamedResponse = async (
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
+          ...(parts !== undefined && { parts }),
         }),
       );
 
