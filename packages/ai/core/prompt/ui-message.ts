@@ -1,10 +1,20 @@
-import { Attachment, ToolInvocation } from '@ai-sdk/ui-utils';
+import {
+  Attachment,
+  ReasoningUIPart,
+  TextUIPart,
+  ToolInvocation,
+  ToolInvocationUIPart,
+} from '@ai-sdk/ui-utils';
 
-// only for internal use - should be removed when we fully migrate to core messages
-export type UIMessage = {
+/**
+ * @internal
+ */
+export type InternalUIMessage = {
   role: 'system' | 'user' | 'assistant' | 'data';
 
   content: string;
   toolInvocations?: ToolInvocation[];
   experimental_attachments?: Attachment[];
+
+  parts?: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
 };

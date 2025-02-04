@@ -6,7 +6,7 @@ import { convertToCoreMessages } from './convert-to-core-messages';
 import { detectPromptType } from './detect-prompt-type';
 import { CoreMessage, coreMessageSchema } from './message';
 import { Prompt } from './prompt';
-import { UIMessage } from './ui-message';
+import { InternalUIMessage } from './ui-message';
 
 export type StandardizedPrompt = {
   /**
@@ -90,7 +90,7 @@ export function standardizePrompt<TOOLS extends ToolSet>({
 
     const messages: CoreMessage[] =
       promptType === 'ui-messages'
-        ? convertToCoreMessages(prompt.messages as UIMessage[], {
+        ? convertToCoreMessages(prompt.messages as InternalUIMessage[], {
             tools,
           })
         : (prompt.messages as CoreMessage[]);

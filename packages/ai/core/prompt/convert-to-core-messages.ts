@@ -1,15 +1,16 @@
+import { ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import { ToolSet } from '../generate-text/tool-set';
 import { CoreMessage, ToolCallPart, ToolResultPart } from '../prompt';
 import { attachmentsToParts } from './attachments-to-parts';
 import { MessageConversionError } from './message-conversion-error';
-import { UIMessage } from './ui-message';
+import { InternalUIMessage } from './ui-message';
 
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
 with the AI core functions (e.g. `streamText`).
  */
 export function convertToCoreMessages<TOOLS extends ToolSet = never>(
-  messages: Array<UIMessage>,
+  messages: Array<InternalUIMessage>,
   options?: { tools?: TOOLS },
 ) {
   const tools = options?.tools ?? ({} as TOOLS);
@@ -18,8 +19,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
     const isLastMessage = i === messages.length - 1;
-    const { role, content, toolInvocations, experimental_attachments } =
-      message;
+    const { role, content, experimental_attachments } = message;
 
     switch (role) {
       case 'system': {
@@ -44,6 +44,8 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
       }
 
       case 'assistant': {
+        const toolInvocations = message.toolInvocations;
+
         if (toolInvocations == null || toolInvocations.length === 0) {
           coreMessages.push({ role: 'assistant', content });
           break;
