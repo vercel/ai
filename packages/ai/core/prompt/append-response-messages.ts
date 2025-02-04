@@ -87,7 +87,7 @@ export function appendResponseMessages({
               toolInvocation: call,
             }))
             .forEach(part => {
-              lastMessage.parts.push(part);
+              lastMessage.parts!.push(part);
             });
         } else {
           // last message was a user message, add the assistant message:
@@ -120,6 +120,8 @@ export function appendResponseMessages({
             `Tool result must follow an assistant message: ${lastMessage.role}`,
           );
         }
+
+        lastMessage.parts ??= [];
 
         for (const contentPart of message.content) {
           // find the tool call in the previous message:
