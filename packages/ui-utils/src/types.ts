@@ -100,11 +100,6 @@ that the assistant made as part of this message.
 
 export type UIMessage = Message & {
   /**
-   * The timestamp of the message.
-   */
-  createdAt: Date;
-
-  /**
    * The parts of the message. Use this for rendering the message in the UI.
    */
   parts: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
