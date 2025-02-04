@@ -502,6 +502,35 @@ describe('convertToCoreMessages', () => {
       ]);
     });
 
+    it('should handle a conversation with multiple messages (parts)', () => {
+      const result = convertToCoreMessages([
+        {
+          role: 'user',
+          content: "What's the weather like?",
+          parts: [{ type: 'text', text: "What's the weather like?" }],
+        },
+        {
+          role: 'assistant',
+          content: '',
+          parts: [{ type: 'text', text: "I'll check that for you." }],
+        },
+        {
+          role: 'user',
+          content: 'Thanks!',
+          parts: [{ type: 'text', text: 'Thanks!' }],
+        },
+      ]);
+
+      expect(result).toEqual([
+        { role: 'user', content: "What's the weather like?" },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: "I'll check that for you." }],
+        },
+        { role: 'user', content: 'Thanks!' },
+      ]);
+    });
+
     it('should convert fully typed Message[]', () => {
       const messages: Message[] = [
         {
@@ -573,6 +602,81 @@ describe('convertToCoreMessages', () => {
           {
             role: 'user',
             content: 'Thanks!',
+          },
+        ],
+        { tools }, // separate tools to ensure that types are inferred correctly
+      );
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should handle conversation with multiple tool invocations and user message at the end (parts)', () => {
+      const tools = {
+        screenshot: tool({
+          parameters: z.object({ value: z.string() }),
+          execute: async () => 'imgbase64',
+        }),
+      };
+
+      const result = convertToCoreMessages(
+        [
+          {
+            role: 'assistant',
+            content: '',
+            toolInvocations: [],
+            parts: [
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call-1',
+                  toolName: 'screenshot',
+                  args: { value: 'value-1' },
+                  result: 'result-1',
+                  step: 0,
+                },
+              },
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call-2',
+                  toolName: 'screenshot',
+                  args: { value: 'value-2' },
+                  result: 'result-2',
+                  step: 1,
+                },
+              },
+
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call-3',
+                  toolName: 'screenshot',
+                  args: { value: 'value-3' },
+                  result: 'result-3',
+                  step: 1,
+                },
+              },
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call-4',
+                  toolName: 'screenshot',
+                  args: { value: 'value-4' },
+                  result: 'result-4',
+                  step: 2,
+                },
+              },
+              { type: 'text', text: 'response' },
+            ],
+          },
+          {
+            role: 'user',
+            content: 'Thanks!',
+            parts: [{ type: 'text', text: 'Thanks!' }],
           },
         ],
         { tools }, // separate tools to ensure that types are inferred correctly
