@@ -22,7 +22,7 @@ export function appendResponseMessages({
   responseMessages: ResponseMessage[];
 
   /**
-@internal For test use only. May change without notice.
+Internal. For test use only. May change without notice.
      */
   _internal?: {
     currentDate?: () => Date;
