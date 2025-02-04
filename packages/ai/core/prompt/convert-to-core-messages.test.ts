@@ -286,6 +286,45 @@ describe('convertToCoreMessages', () => {
       expect(result).toMatchSnapshot();
     });
 
+    it('should handle assistant message with tool invocations that have multi-part responses (parts)', () => {
+      const tools = {
+        screenshot: tool({
+          parameters: z.object({}),
+          execute: async () => 'imgbase64',
+          experimental_toToolResultContent: result => [
+            { type: 'image', data: result },
+          ],
+        }),
+      };
+
+      const result = convertToCoreMessages(
+        [
+          {
+            role: 'assistant',
+            content: '', // empty content
+            toolInvocations: [], // empty invocations
+            parts: [
+              { type: 'text', text: 'Let me calculate that for you.' },
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call1',
+                  toolName: 'screenshot',
+                  args: {},
+                  result: 'imgbase64',
+                  step: 0,
+                },
+              },
+            ],
+          },
+        ],
+        { tools }, // separate tools to ensure that types are inferred correctly
+      );
+
+      expect(result).toMatchSnapshot();
+    });
+
     it('should handle conversation with an assistant message that has empty tool invocations', () => {
       const result = convertToCoreMessages([
         {
@@ -297,6 +336,25 @@ describe('convertToCoreMessages', () => {
           role: 'assistant',
           content: 'text2',
           toolInvocations: [],
+        },
+      ]);
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should handle conversation with an assistant message that has empty tool invocations (parts)', () => {
+      const result = convertToCoreMessages([
+        {
+          role: 'user',
+          content: 'text1',
+          toolInvocations: [],
+          parts: [{ type: 'text', text: 'text1' }],
+        },
+        {
+          role: 'assistant',
+          content: '', // empty content
+          toolInvocations: [],
+          parts: [{ type: 'text', text: 'text2' }],
         },
       ]);
 
