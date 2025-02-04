@@ -34,7 +34,10 @@ const messageList = computed(() => messages.value); // computer property for typ
             v-if="part.toolInvocation.toolName === 'askForConfirmation'"
           >
             <template v-if="part.toolInvocation.state === 'call'">
-              <div key="{callId}" className="text-gray-500">
+              <div
+                :key="part.toolInvocation.toolCallId"
+                className="text-gray-500"
+              >
                 {{ part.toolInvocation.args.message }}
                 <div className="flex gap-2">
                   <button
@@ -63,7 +66,10 @@ const messageList = computed(() => messages.value); // computer property for typ
               </div>
             </template>
             <template v-if="part.toolInvocation.state === 'result'">
-              <div key="{callId}" className="text-gray-500">
+              <div
+                :key="part.toolInvocation.toolCallId"
+                className="text-gray-500"
+              >
                 Location access allowed: {{ part.toolInvocation.result }}
               </div>
             </template>
@@ -71,10 +77,20 @@ const messageList = computed(() => messages.value); // computer property for typ
 
           <template v-if="part.toolInvocation.toolName === 'getLocation'">
             <template v-if="part.toolInvocation.state === 'call'">
-              Getting location...
+              <div
+                :key="part.toolInvocation.toolCallId"
+                className="text-gray-500"
+              >
+                Getting location...
+              </div>
             </template>
             <template v-if="part.toolInvocation.state === 'result'">
-              Location: {{ part.toolInvocation.result }}
+              <div
+                :key="part.toolInvocation.toolCallId"
+                className="text-gray-500"
+              >
+                Location: {{ part.toolInvocation.result }}
+              </div>
             </template>
           </template>
 
@@ -82,18 +98,31 @@ const messageList = computed(() => messages.value); // computer property for typ
             v-if="part.toolInvocation.toolName === 'getWeatherInformation'"
           >
             <template v-if="part.toolInvocation.state === 'partial-call'">
-              {{ JSON.stringify(part.toolInvocation, null, 2) }}
+              <pre :key="part.toolInvocation.toolCallId">
+                {{ JSON.stringify(part.toolInvocation, null, 2) }}
+              </pre>
             </template>
             <template v-if="part.toolInvocation.state === 'call'">
-              Getting weather information for
-              {{ part.toolInvocation.args.city }}...
+              <div
+                :key="part.toolInvocation.toolCallId"
+                className="text-gray-500"
+              >
+                Getting weather information for
+                {{ part.toolInvocation.args.city }}...
+              </div>
             </template>
             <template v-if="part.toolInvocation.state === 'result'">
-              Weather in {{ part.toolInvocation.args.city }}:
-              {{ part.toolInvocation.result }}
+              <div
+                :key="part.toolInvocation.toolCallId"
+                className="text-gray-500"
+              >
+                Weather in {{ part.toolInvocation.args.city }}:
+                {{ part.toolInvocation.result }}
+              </div>
             </template>
           </template>
         </template>
+        <br />
       </template>
     </div>
 
