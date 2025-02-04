@@ -1,5 +1,42 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`convertToCoreMessages > assistant message > should handle assistant message with tool invocations (parts) 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "Let me calculate that for you.",
+        "type": "text",
+      },
+      {
+        "args": {
+          "numbers": [
+            1,
+            2,
+          ],
+          "operation": "add",
+        },
+        "toolCallId": "call1",
+        "toolName": "calculator",
+        "type": "tool-call",
+      },
+    ],
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "result": "3",
+        "toolCallId": "call1",
+        "toolName": "calculator",
+        "type": "tool-result",
+      },
+    ],
+    "role": "tool",
+  },
+]
+`;
+
 exports[`convertToCoreMessages > assistant message > should handle assistant message with tool invocations 1`] = `
 [
   {

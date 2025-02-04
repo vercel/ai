@@ -190,7 +190,7 @@ describe('convertToCoreMessages', () => {
       expect(result).toEqual([{ role: 'assistant', content: 'Hello, human!' }]);
     });
 
-    it('should convert a simple assistant message with parts', () => {
+    it('should convert a simple assistant message (parts)', () => {
       const result = convertToCoreMessages([
         {
           role: 'assistant',
@@ -199,7 +199,12 @@ describe('convertToCoreMessages', () => {
         },
       ]);
 
-      expect(result).toEqual([{ role: 'assistant', content: 'Hello, human!' }]);
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello, human!' }],
+        },
+      ]);
     });
 
     it('should handle assistant message with tool invocations', () => {
@@ -214,6 +219,32 @@ describe('convertToCoreMessages', () => {
               toolName: 'calculator',
               args: { operation: 'add', numbers: [1, 2] },
               result: '3',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should handle assistant message with tool invocations (parts)', () => {
+      const result = convertToCoreMessages([
+        {
+          role: 'assistant',
+          content: '', // empty content
+          toolInvocations: [], // empty invocations
+          parts: [
+            { type: 'text', text: 'Let me calculate that for you.' },
+            {
+              type: 'tool-invocation',
+              toolInvocation: {
+                state: 'result',
+                toolCallId: 'call1',
+                toolName: 'calculator',
+                args: { operation: 'add', numbers: [1, 2] },
+                result: '3',
+                step: 0,
+              },
             },
           ],
         },
