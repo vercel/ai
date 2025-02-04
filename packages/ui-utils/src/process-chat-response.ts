@@ -300,6 +300,10 @@ export async function processChatResponse({
     },
     onFinishStepPart(value) {
       step += 1;
+
+      // reset the current text and reasoning parts
+      currentTextPart = value.isContinued ? currentTextPart : undefined;
+      currentReasoningPart = undefined;
     },
     onStartStepPart(value) {
       // keep message id stable when we are updating an existing message:

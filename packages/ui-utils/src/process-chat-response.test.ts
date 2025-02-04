@@ -207,7 +207,7 @@ describe('scenario: server-side tool roundtrip with existing assistant message',
 describe('scenario: server-side tool roundtrip with multiple assistant texts', () => {
   beforeEach(async () => {
     const stream = createDataProtocolStream([
-      formatDataStreamPart('text', 'I will'),
+      formatDataStreamPart('text', 'I will '),
       formatDataStreamPart('text', 'use a tool to get the weather in London.'),
       formatDataStreamPart('tool_call', {
         toolCallId: 'tool-call-id',
@@ -223,7 +223,7 @@ describe('scenario: server-side tool roundtrip with multiple assistant texts', (
         usage: { completionTokens: 5, promptTokens: 10 },
         isContinued: false,
       }),
-      formatDataStreamPart('text', 'The weather in London'),
+      formatDataStreamPart('text', 'The weather in London '),
       formatDataStreamPart('text', 'is sunny.'),
       formatDataStreamPart('finish_step', {
         finishReason: 'stop',
@@ -258,7 +258,7 @@ describe('scenario: server-side tool roundtrip with multiple assistant texts', (
 describe('scenario: server-side tool roundtrip with multiple assistant reasoning', () => {
   beforeEach(async () => {
     const stream = createDataProtocolStream([
-      formatDataStreamPart('reasoning', 'I will'),
+      formatDataStreamPart('reasoning', 'I will '),
       formatDataStreamPart(
         'reasoning',
         'use a tool to get the weather in London.',

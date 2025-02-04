@@ -1092,7 +1092,7 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
         {
@@ -1111,11 +1111,15 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
         {
+          "reasoning": "I know know the weather in London.",
+          "type": "reasoning",
+        },
+        {
           "text": "The weather in London is sunny.",
           "type": "text",
         },
       ],
-      "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+      "reasoning": "I will use a tool to get the weather in London.I know know the weather in London.",
       "role": "assistant",
       "toolInvocations": [
         {
@@ -1151,11 +1155,11 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I will",
+          "reasoning": "I will ",
           "type": "reasoning",
         },
       ],
-      "reasoning": "I will",
+      "reasoning": "I will ",
       "revisionId": "id-1",
       "role": "assistant",
     },
@@ -1169,11 +1173,11 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I willuse a tool to get the weather in London.",
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
       ],
-      "reasoning": "I willuse a tool to get the weather in London.",
+      "reasoning": "I will use a tool to get the weather in London.",
       "revisionId": "id-2",
       "role": "assistant",
     },
@@ -1187,7 +1191,7 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I willuse a tool to get the weather in London.",
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
         {
@@ -1203,7 +1207,7 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
       ],
-      "reasoning": "I willuse a tool to get the weather in London.",
+      "reasoning": "I will use a tool to get the weather in London.",
       "revisionId": "id-3",
       "role": "assistant",
       "toolInvocations": [
@@ -1228,7 +1232,7 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I willuse a tool to get the weather in London.",
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
         {
@@ -1247,7 +1251,7 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
       ],
-      "reasoning": "I willuse a tool to get the weather in London.",
+      "reasoning": "I will use a tool to get the weather in London.",
       "revisionId": "id-4",
       "role": "assistant",
       "toolInvocations": [
@@ -1275,7 +1279,7 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
         {
@@ -1293,8 +1297,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           },
           "type": "tool-invocation",
         },
+        {
+          "reasoning": "I know know the weather in London.",
+          "type": "reasoning",
+        },
       ],
-      "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+      "reasoning": "I will use a tool to get the weather in London.I know know the weather in London.",
       "revisionId": "id-5",
       "role": "assistant",
       "toolInvocations": [
@@ -1322,7 +1330,7 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
         {
@@ -1341,11 +1349,15 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
         {
+          "reasoning": "I know know the weather in London.",
+          "type": "reasoning",
+        },
+        {
           "text": "The weather in London is sunny.",
           "type": "text",
         },
       ],
-      "reasoning": "I willuse a tool to get the weather in London.I know know the weather in London.",
+      "reasoning": "I will use a tool to get the weather in London.I know know the weather in London.",
       "revisionId": "id-6",
       "role": "assistant",
       "toolInvocations": [
@@ -1373,12 +1385,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
   {
     "finishReason": "stop",
     "message": {
-      "content": "I willuse a tool to get the weather in London.The weather in Londonis sunny.",
+      "content": "I will use a tool to get the weather in London.The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
         {
-          "text": "I willuse a tool to get the weather in London.The weather in Londonis sunny.",
+          "text": "I will use a tool to get the weather in London.",
           "type": "text",
         },
         {
@@ -1395,6 +1407,10 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
             "toolName": "tool-name",
           },
           "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
         },
       ],
       "role": "assistant",
@@ -1427,12 +1443,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
   {
     "data": [],
     "message": {
-      "content": "I will",
+      "content": "I will ",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
         {
-          "text": "I will",
+          "text": "I will ",
           "type": "text",
         },
       ],
@@ -1444,12 +1460,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
   {
     "data": [],
     "message": {
-      "content": "I willuse a tool to get the weather in London.",
+      "content": "I will use a tool to get the weather in London.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
         {
-          "text": "I willuse a tool to get the weather in London.",
+          "text": "I will use a tool to get the weather in London.",
           "type": "text",
         },
       ],
@@ -1461,12 +1477,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
   {
     "data": [],
     "message": {
-      "content": "I willuse a tool to get the weather in London.",
+      "content": "I will use a tool to get the weather in London.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
         {
-          "text": "I willuse a tool to get the weather in London.",
+          "text": "I will use a tool to get the weather in London.",
           "type": "text",
         },
         {
@@ -1501,12 +1517,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
   {
     "data": [],
     "message": {
-      "content": "I willuse a tool to get the weather in London.",
+      "content": "I will use a tool to get the weather in London.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
         {
-          "text": "I willuse a tool to get the weather in London.",
+          "text": "I will use a tool to get the weather in London.",
           "type": "text",
         },
         {
@@ -1547,12 +1563,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
   {
     "data": [],
     "message": {
-      "content": "I willuse a tool to get the weather in London.The weather in London",
+      "content": "I will use a tool to get the weather in London.The weather in London ",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
         {
-          "text": "I willuse a tool to get the weather in London.The weather in London",
+          "text": "I will use a tool to get the weather in London.",
           "type": "text",
         },
         {
@@ -1569,6 +1585,10 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
             "toolName": "tool-name",
           },
           "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London ",
+          "type": "text",
         },
       ],
       "revisionId": "id-5",
@@ -1593,12 +1613,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
   {
     "data": [],
     "message": {
-      "content": "I willuse a tool to get the weather in London.The weather in Londonis sunny.",
+      "content": "I will use a tool to get the weather in London.The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
         {
-          "text": "I willuse a tool to get the weather in London.The weather in Londonis sunny.",
+          "text": "I will use a tool to get the weather in London.",
           "type": "text",
         },
         {
@@ -1615,6 +1635,10 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
             "toolName": "tool-name",
           },
           "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
         },
       ],
       "revisionId": "id-6",
