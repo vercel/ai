@@ -14,6 +14,7 @@ import {
   getMessageParts,
   prepareAttachmentsForRequest,
   shouldResubmitMessages,
+  updateToolCallResult,
 } from '@ai-sdk/ui-utils';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
@@ -367,33 +368,20 @@ export function useChat(
     toolCallId: string;
     result: any;
   }) => {
-    const updatedMessages = messages.value.map((message, index, arr) =>
-      // update the tool calls in the last assistant message:
-      index === arr.length - 1 &&
-      message.role === 'assistant' &&
-      message.toolInvocations
-        ? {
-            ...message,
-            toolInvocations: message.toolInvocations.map(toolInvocation =>
-              toolInvocation.toolCallId === toolCallId
-                ? {
-                    ...toolInvocation,
-                    result,
-                    state: 'result' as const,
-                  }
-                : toolInvocation,
-            ),
-          }
-        : message,
-    );
+    const currentMessages = messages.value;
 
-    mutate(updatedMessages);
+    updateToolCallResult({
+      messages: currentMessages,
+      toolCallId,
+      toolResult: result,
+    });
+
+    mutate(currentMessages);
 
     // auto-submit when all tool calls in the last assistant message have results:
-    const lastMessage = updatedMessages[updatedMessages.length - 1];
-
+    const lastMessage = currentMessages[currentMessages.length - 1];
     if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      triggerRequest(updatedMessages);
+      triggerRequest(currentMessages);
     }
   };
 
