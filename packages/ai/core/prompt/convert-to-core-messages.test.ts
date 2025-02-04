@@ -90,15 +90,7 @@ describe('user message', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Check this image' },
-          { type: 'image', image: new Uint8Array([116, 101, 115, 116]) },
-        ],
-      },
-    ]);
+    expect(result).toMatchSnapshot();
   });
 
   it('should handle user message with attachment URLs (file)', () => {
@@ -115,19 +107,7 @@ describe('user message', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Check this document' },
-          {
-            type: 'file',
-            data: 'dGVzdA==',
-            mimeType: 'application/pdf',
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchSnapshot();
   });
 
   it('should throw an error for invalid attachment URLs', () => {
@@ -226,34 +206,7 @@ describe('assistant message', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'text',
-            text: 'Let me calculate that for you.',
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call1',
-            toolName: 'calculator',
-            args: { operation: 'add', numbers: [1, 2] },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call1',
-            toolName: 'calculator',
-            result: '3',
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchSnapshot();
   });
 
   it('should handle assistant message with tool invocations that have multi-part responses', () => {
@@ -286,35 +239,7 @@ describe('assistant message', () => {
       { tools }, // separate tools to ensure that types are inferred correctly
     );
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'text',
-            text: 'Let me calculate that for you.',
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call1',
-            toolName: 'screenshot',
-            args: {},
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call1',
-            toolName: 'screenshot',
-            result: [{ type: 'image', data: 'imgbase64' }],
-            experimental_content: [{ type: 'image', data: 'imgbase64' }],
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchSnapshot();
   });
 
   it('should handle conversation with an assistant message that has empty tool invocations', () => {
@@ -331,16 +256,7 @@ describe('assistant message', () => {
       },
     ]);
 
-    expect(result).toEqual([
-      {
-        role: 'user',
-        content: 'text1',
-      },
-      {
-        role: 'assistant',
-        content: 'text2',
-      },
-    ]);
+    expect(result).toMatchSnapshot();
   });
 
   it('should handle conversation with multiple tool invocations that have step information', () => {
@@ -396,90 +312,7 @@ describe('assistant message', () => {
       { tools }, // separate tools to ensure that types are inferred correctly
     );
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'text',
-            text: 'response',
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'screenshot',
-            args: { value: 'value-1' },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call-1',
-            toolName: 'screenshot',
-            result: 'result-1',
-          },
-        ],
-      },
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'tool-call',
-            toolCallId: 'call-2',
-            toolName: 'screenshot',
-            args: { value: 'value-2' },
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-3',
-            toolName: 'screenshot',
-            args: { value: 'value-3' },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call-2',
-            toolName: 'screenshot',
-            result: 'result-2',
-          },
-          {
-            type: 'tool-result',
-            toolCallId: 'call-3',
-            toolName: 'screenshot',
-            result: 'result-3',
-          },
-        ],
-      },
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'tool-call',
-            toolCallId: 'call-4',
-            toolName: 'screenshot',
-            args: { value: 'value-4' },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call-4',
-            toolName: 'screenshot',
-            result: 'result-4',
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchSnapshot();
   });
 });
 
@@ -514,16 +347,7 @@ describe('multiple messages', () => {
 
     const result = convertToCoreMessages(messages);
 
-    expect(result).toStrictEqual([
-      {
-        role: 'user',
-        content: 'What is the weather in Tokyo?',
-      },
-      {
-        role: 'assistant',
-        content: 'It is sunny in Tokyo.',
-      },
-    ]);
+    expect(result).toMatchSnapshot();
   });
 
   it('should handle conversation with multiple tool invocations and user message at the end', () => {
@@ -583,94 +407,7 @@ describe('multiple messages', () => {
       { tools }, // separate tools to ensure that types are inferred correctly
     );
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'screenshot',
-            args: { value: 'value-1' },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call-1',
-            toolName: 'screenshot',
-            result: 'result-1',
-          },
-        ],
-      },
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'tool-call',
-            toolCallId: 'call-2',
-            toolName: 'screenshot',
-            args: { value: 'value-2' },
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-3',
-            toolName: 'screenshot',
-            args: { value: 'value-3' },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call-2',
-            toolName: 'screenshot',
-            result: 'result-2',
-          },
-          {
-            type: 'tool-result',
-            toolCallId: 'call-3',
-            toolName: 'screenshot',
-            result: 'result-3',
-          },
-        ],
-      },
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'tool-call',
-            toolCallId: 'call-4',
-            toolName: 'screenshot',
-            args: { value: 'value-4' },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call-4',
-            toolName: 'screenshot',
-            result: 'result-4',
-          },
-        ],
-      },
-      {
-        role: 'assistant',
-        content: 'response',
-      },
-      {
-        role: 'user',
-        content: 'Thanks!',
-      },
-    ]);
+    expect(result).toMatchSnapshot();
   });
 });
 

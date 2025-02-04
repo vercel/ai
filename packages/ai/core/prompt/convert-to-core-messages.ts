@@ -1,4 +1,3 @@
-import { ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import { ToolSet } from '../generate-text/tool-set';
 import { CoreMessage, ToolCallPart, ToolResultPart } from '../prompt';
 import { attachmentsToParts } from './attachments-to-parts';
