@@ -21,14 +21,17 @@ export default function Chat() {
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.parts.map(part => {
+          {message.parts.map((part, index) => {
             if (part.type === 'text') {
-              return part.text;
+              return <div key={index}>{part.text}</div>;
             }
 
             if (part.type === 'reasoning') {
               return (
-                <pre className="italic text-gray-500 whitespace-pre-wrap">
+                <pre
+                  key={index}
+                  className="italic text-gray-500 whitespace-pre-wrap"
+                >
                   {part.reasoning}
                 </pre>
               );
