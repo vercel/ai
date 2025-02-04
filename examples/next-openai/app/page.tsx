@@ -24,7 +24,7 @@ export default function Chat() {
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.parts.map(p => (p.type === 'text' ? p.text : undefined))}
+          {m.content}
         </div>
       ))}
 
