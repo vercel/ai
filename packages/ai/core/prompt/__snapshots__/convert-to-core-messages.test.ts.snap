@@ -189,6 +189,114 @@ exports[`convertToCoreMessages > assistant message > should handle conversation 
 ]
 `;
 
+exports[`convertToCoreMessages > assistant message > should handle conversation with mix of tool invocations and text (parts) 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "i am gonna use tool1",
+        "type": "text",
+      },
+      {
+        "args": {
+          "value": "value-1",
+        },
+        "toolCallId": "call-1",
+        "toolName": "screenshot",
+        "type": "tool-call",
+      },
+    ],
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "result": "result-1",
+        "toolCallId": "call-1",
+        "toolName": "screenshot",
+        "type": "tool-result",
+      },
+    ],
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "text": "i am gonna use tool2 and tool3",
+        "type": "text",
+      },
+      {
+        "args": {
+          "value": "value-2",
+        },
+        "toolCallId": "call-2",
+        "toolName": "screenshot",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "value-3",
+        },
+        "toolCallId": "call-3",
+        "toolName": "screenshot",
+        "type": "tool-call",
+      },
+    ],
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "result": "result-2",
+        "toolCallId": "call-2",
+        "toolName": "screenshot",
+        "type": "tool-result",
+      },
+      {
+        "result": "result-3",
+        "toolCallId": "call-3",
+        "toolName": "screenshot",
+        "type": "tool-result",
+      },
+    ],
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "args": {
+          "value": "value-4",
+        },
+        "toolCallId": "call-4",
+        "toolName": "screenshot",
+        "type": "tool-call",
+      },
+    ],
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "result": "result-4",
+        "toolCallId": "call-4",
+        "toolName": "screenshot",
+        "type": "tool-result",
+      },
+    ],
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "text": "final response",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+  },
+]
+`;
+
 exports[`convertToCoreMessages > assistant message > should handle conversation with multiple tool invocations that have step information (parts) 1`] = `
 [
   {
