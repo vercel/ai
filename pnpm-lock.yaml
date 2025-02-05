@@ -69,7 +69,7 @@ importers:
         specifier: 0.1.8
         version: link:../../packages/cerebras
       '@ai-sdk/cohere':
-        specifier: 1.1.6
+        specifier: 1.1.7
         version: link:../../packages/cohere
       '@ai-sdk/deepinfra':
         specifier: 0.1.9
@@ -87,7 +87,7 @@ importers:
         specifier: 1.1.10
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 2.1.10
+        specifier: 2.1.11
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 1.1.7
@@ -381,7 +381,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 2.1.10
+        specifier: 2.1.11
         version: link:../../packages/google-vertex
       ai:
         specifier: 4.1.21
@@ -1038,7 +1038,7 @@ importers:
         specifier: 1.1.10
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 2.1.10
+        specifier: 2.1.11
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 1.1.7
