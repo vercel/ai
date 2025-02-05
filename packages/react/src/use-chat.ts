@@ -126,7 +126,7 @@ export function useChat({
    */
   experimental_prepareRequestBody?: (options: {
     id: string;
-    messages: Message[];
+    messages: UIMessage[];
     requestData?: JSONValue;
     requestBody?: object;
   }) => unknown;
