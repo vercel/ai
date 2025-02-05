@@ -15,44 +15,53 @@ export default function Chat() {
       {messages?.map((m: Message) => (
         <div key={m.id} className="whitespace-pre-wrap">
           <strong>{`${m.role}: `}</strong>
-          {m.content}
-          {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
-            const toolCallId = toolInvocation.toolCallId;
-
-            // render confirmation tool (client-side tool with user interaction)
-            if (
-              toolInvocation.toolName === 'getWeatherInformation' &&
-              toolInvocation.state === 'call'
-            ) {
-              return (
-                <div key={toolCallId} className="text-gray-500">
-                  Get weather information for {toolInvocation.args.city}?
-                  <div className="flex gap-2">
-                    <button
-                      className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
-                      onClick={() =>
-                        addToolResult({
-                          toolCallId,
-                          result: 'Yes, confirmed.',
-                        })
-                      }
-                    >
-                      Yes
-                    </button>
-                    <button
-                      className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
-                      onClick={() =>
-                        addToolResult({
-                          toolCallId,
-                          result: 'No, denied.',
-                        })
-                      }
-                    >
-                      No
-                    </button>
+          {m.parts?.map((part, i) => {
+            switch (part.type) {
+              case 'text':
+                return (
+                  <div key={i} className="text-gray-500">
+                    {part.text}
                   </div>
-                </div>
-              );
+                );
+              case 'tool-invocation':
+                const toolInvocation = part.toolInvocation;
+                const toolCallId = toolInvocation.toolCallId;
+
+                // render confirmation tool (client-side tool with user interaction)
+                if (
+                  toolInvocation.toolName === 'getWeatherInformation' &&
+                  toolInvocation.state === 'call'
+                ) {
+                  return (
+                    <div key={toolCallId} className="text-gray-500">
+                      Get weather information for {toolInvocation.args.city}?
+                      <div className="flex gap-2">
+                        <button
+                          className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
+                          onClick={() =>
+                            addToolResult({
+                              toolCallId,
+                              result: 'Yes, confirmed.',
+                            })
+                          }
+                        >
+                          Yes
+                        </button>
+                        <button
+                          className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
+                          onClick={() =>
+                            addToolResult({
+                              toolCallId,
+                              result: 'No, denied.',
+                            })
+                          }
+                        >
+                          No
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
             }
           })}
           <br />
