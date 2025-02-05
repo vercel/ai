@@ -1,13 +1,13 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-export const getWeatherInformation = tool({
+const getWeatherInformation = tool({
   description: 'show the weather in a given city to the user',
   parameters: z.object({ city: z.string() }),
   // no execute function, we want human in the loop
 });
 
-export const getLocalTime = tool({
+const getLocalTime = tool({
   description: 'get the local time for a specified location',
   parameters: z.object({ location: z.string() }),
   // including execute function -> no confirmation required
