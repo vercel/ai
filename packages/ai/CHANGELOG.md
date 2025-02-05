@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.21
+
+### Patch Changes
+
+- d387989: feat (ai/core): re-export zodSchema
+
 ## 4.1.20
 
 ### Patch Changes
