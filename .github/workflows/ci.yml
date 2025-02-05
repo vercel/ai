@@ -31,17 +31,11 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
 
-      - name: Clear pnpm store
-        run: pnpm store prune
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --no-cache
+        run: pnpm install --frozen-lockfile
 
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
 
-      - name: Debug Installed Dependencies
-        run: pnpm why react react-dom
-
       - name: Run tests
-        run: pnpm test -- -- --silent=false --reporter=verbose
+        run: pnpm test
