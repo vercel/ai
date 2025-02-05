@@ -12,6 +12,7 @@ export async function POST(req: Request) {
   return createDataStreamResponse({
     execute: async dataStream => {
       // Utility function to handle tools that require human confirmation
+      // Checks for confirmation in last message and then runs associated tool
       const processedMessages = await processToolCalls(
         {
           messages,
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
           tools,
         },
         {
+          // type-safe object for tools without an execute function
           getWeatherInformation: async ({ city }) => {
             const conditions = ['sunny', 'cloudy', 'rainy', 'snowy'];
             return `The weather in ${city} is ${
