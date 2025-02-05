@@ -18,9 +18,6 @@ export function simulateReadableStream<T>({
   chunks: T[];
   initialDelayInMs?: number | null;
   chunkDelayInMs?: number | null;
-  /**
-   * @internal For test use only. May change without notice.
-   */
   _internal?: {
     delay?: (ms: number | null) => Promise<void>;
   };

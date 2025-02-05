@@ -483,6 +483,46 @@ This multi-step approach allows the model to gather information and use it to pr
 
 This simple example demonstrates how tools can expand your model's capabilities. You can create more complex tools to integrate with real APIs, databases, or any other external systems, allowing the model to access and process real-world data in real-time. Tools bridge the gap between the model's knowledge cutoff and current information.
 
+## Polyfills
+
+Several functions that are internally used by the AI SDK might not available in the Expo runtime depending on your configuration and the target platform.
+
+You can use the following polyfills to ensure that the AI SDK works as expected:
+
+```ts filename="polyfills.js"
+import { Platform } from 'react-native';
+import structuredClone from '@ungap/structured-clone';
+
+if (Platform.OS !== 'web') {
+  const setupPolyfills = async () => {
+    const { polyfillGlobal } = await import(
+      'react-native/Libraries/Utilities/PolyfillFunctions'
+    );
+
+    const { TextEncoderStream, TextDecoderStream } = await import(
+      '@stardazed/streams-text-encoding'
+    );
+
+    if (!('structuredClone' in global)) {
+      polyfillGlobal('structuredClone', () => structuredClone);
+    }
+
+    polyfillGlobal('TextEncoderStream', () => TextEncoderStream);
+    polyfillGlobal('TextDecoderStream', () => TextDecoderStream);
+  };
+
+  setupPolyfills();
+}
+
+export {};
+```
+
+Then at your root `_layout.tsx`, import it at the top like this:
+
+```ts filename="_layout.tsx"
+import '@/polyfills';
+```
+
 ## Where to Next?
 
 You've built an AI chatbot using the AI SDK! From here, you have several paths to explore:

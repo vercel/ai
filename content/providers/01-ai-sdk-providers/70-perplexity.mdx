@@ -88,6 +88,11 @@ The Perplexity provider includes additional experimental metadata in the respons
 const result = await generateText({
   model: perplexity('sonar-pro'),
   prompt: 'What are the latest developments in quantum computing?',
+  providerOptions: {
+    perplexity: {
+      return_images: true, // Enable image responses (Tier-2 Perplexity users only)
+    },
+  },
 });
 
 console.log(result.experimental_providerMetadata);
@@ -99,6 +104,10 @@ console.log(result.experimental_providerMetadata);
 //       'https://www.cbsnews.com/sanfrancisco/',
 //     ],
 //     usage: { citationTokens: 5286, numSearchQueries: 1 },
+//     images: [
+//       { imageUrl: "https://example.com/image1.jpg", originUrl: "https://elsewhere.com/page1", height: 1280, width: 720 },
+//       { imageUrl: "https://example.com/image2.jpg", originUrl: "https://elsewhere.com/page2", height: 1280, width: 720 }
+//     ]
 //   },
 // }
 ```
@@ -107,9 +116,12 @@ The metadata includes:
 
 - `citations`: Array of URLs used as sources for the response
 - `usage`: Object containing `citationTokens` and `numSearchQueries` metrics
+- `images`: Array of image URLs when `return_images` is enabled (Tier-2 users only)
+
+You can enable image responses by setting `return_images: true` in the provider options. This feature is only available to Perplexity Tier-2 users and above.
 
 <Note>
-  For more details about Perplexity's citations see the [Perplexity chat
+  For more details about Perplexity's capabilities, see the [Perplexity chat
   completion docs](https://docs.perplexity.ai/api-reference/chat-completions).
 </Note>
 

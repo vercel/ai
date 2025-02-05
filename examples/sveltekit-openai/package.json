@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "1.1.9",
-    "@ai-sdk/svelte": "1.1.9",
-    "ai": "4.1.17",
+    "@ai-sdk/svelte": "1.1.10",
+    "ai": "4.1.19",
     "openai": "4.52.6",
     "zod": "^3.23.8"
   },
@@ -24,10 +24,10 @@
     "@sveltejs/vite-plugin-svelte": "^3",
     "@types/cookie": "^1.0.0",
     "svelte": "^5",
-    "svelte-check": "^4.1",
+    "svelte-check": "^4.0",
     "tslib": "^2.6.0",
     "typescript": "5.6.3",
-    "vite": "^6"
+    "vite": "^5"
   },
   "type": "module"
 }
