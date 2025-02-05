@@ -61,11 +61,5 @@
     "singleQuote": true,
     "arrowParens": "avoid",
     "trailingComma": "all"
-  },
-  "pnpm": {
-    "overrides": {
-      "react": "*",
-      "react-dom": "*"
-    }
   }
 }
