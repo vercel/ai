@@ -1,5 +1,13 @@
 # ai
 
+## 4.1.19
+
+### Patch Changes
+
+- Updated dependencies [6b8cc14]
+  - @ai-sdk/ui-utils@1.1.9
+  - @ai-sdk/react@1.1.9
+
 ## 4.1.18
 
 ### Patch Changes
