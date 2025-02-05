@@ -1,5 +1,13 @@
 # @ai-sdk/solid
 
+## 1.1.11
+
+### Patch Changes
+
+- bcc61d4: feat (ui): introduce message parts for useChat
+- Updated dependencies [bcc61d4]
+  - @ai-sdk/ui-utils@1.1.10
+
 ## 1.1.10
 
 ### Patch Changes

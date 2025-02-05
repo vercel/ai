@@ -189,6 +189,7 @@ export function useAssistant({
               id: value.id,
               content: value.content[0].text.value,
               role: value.role,
+              parts: [],
             },
           ];
         },
@@ -220,6 +221,7 @@ export function useAssistant({
               role: 'data',
               content: '',
               data: value.data,
+              parts: [],
             },
           ]);
         },
@@ -261,6 +263,7 @@ export function useAssistant({
       {
         role: 'user',
         content: input.value,
+        parts: [],
       },
       requestOptions,
     );

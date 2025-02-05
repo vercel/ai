@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [bcc61d4]
+  - ai@4.1.20
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@4.1.19
 
 ## 0.0.1

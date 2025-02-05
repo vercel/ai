@@ -1,5 +1,6 @@
 /* eslint-disable react/jsx-key */
 import { useChat } from '@ai-sdk/solid';
+import { TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import { For, Show } from 'solid-js';
 
 export default function Chat() {
@@ -24,81 +25,171 @@ export default function Chat() {
 
   return (
     <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      <For each={messages()} fallback={<div>No messages</div>}>
+      <For each={messages()}>
         {message => (
           <div class="whitespace-pre-wrap">
             <strong>{`${message.role}: `}</strong>
-            {message.content}
-            <For each={message.toolInvocations || []}>
-              {toolInvocation => (
-                <Show
-                  fallback={
-                    <Show
-                      when={'result' in toolInvocation && toolInvocation}
-                      keyed
-                      fallback={
-                        <div class="text-gray-500">
-                          Calling {toolInvocation.toolName}...
-                        </div>
-                      }
-                    >
-                      {toolInvocation => (
-                        <div class="text-gray-500">
-                          Tool call {`${toolInvocation.toolName}: `}
-                          {toolInvocation.result}
-                        </div>
-                      )}
-                    </Show>
-                  }
-                  when={
-                    toolInvocation.toolName === 'askForConfirmation' &&
-                    toolInvocation
-                  }
-                  keyed
-                >
-                  {toolInvocation => (
-                    <div class="text-gray-500">
-                      {toolInvocation.args.message}
-                      <div class="flex gap-2">
+            <For each={message.parts}>
+              {part => (
+                <>
+                  <Show when={part.type === 'text'}>
+                    {(part as TextUIPart).text}
+                  </Show>
+                  <Show when={part.type === 'tool-invocation'}>
+                    {
+                      <>
                         <Show
-                          fallback={
-                            <>
-                              <button
-                                class="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
-                                onClick={() =>
-                                  addToolResult({
-                                    toolCallId: toolInvocation.toolCallId,
-                                    result: 'Yes, confirmed.',
-                                  })
-                                }
-                              >
-                                Yes
-                              </button>
-                              <button
-                                class="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
-                                onClick={() =>
-                                  addToolResult({
-                                    toolCallId: toolInvocation.toolCallId,
-                                    result: 'No, denied',
-                                  })
-                                }
-                              >
-                                No
-                              </button>
-                            </>
+                          when={
+                            (part as ToolInvocationUIPart).toolInvocation
+                              .toolName === 'askForConfirmation'
                           }
-                          when={'result' in toolInvocation && toolInvocation}
-                          keyed
                         >
-                          {toolInvocation => <b>{toolInvocation.result}</b>}
+                          <Show
+                            when={
+                              (part as ToolInvocationUIPart).toolInvocation
+                                .state === 'call'
+                            }
+                          >
+                            <div
+                              data-key={
+                                (part as ToolInvocationUIPart).toolInvocation
+                                  .toolCallId
+                              }
+                              class="text-gray-500"
+                            >
+                              {
+                                (part as ToolInvocationUIPart).toolInvocation
+                                  .args.message
+                              }
+                              <div class="flex gap-2">
+                                <button
+                                  class="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
+                                  onClick={() =>
+                                    addToolResult({
+                                      toolCallId: (part as ToolInvocationUIPart)
+                                        .toolInvocation.toolCallId,
+                                      result: 'Yes, confirmed.',
+                                    })
+                                  }
+                                >
+                                  Yes
+                                </button>
+                                <button
+                                  class="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
+                                  onClick={() =>
+                                    addToolResult({
+                                      toolCallId: (part as ToolInvocationUIPart)
+                                        .toolInvocation.toolCallId,
+                                      result: 'No, denied',
+                                    })
+                                  }
+                                >
+                                  No
+                                </button>
+                              </div>
+                            </div>
+                          </Show>
+                          <Show
+                            when={
+                              (part as ToolInvocationUIPart).toolInvocation
+                                .state === 'result'
+                            }
+                          >
+                            <div
+                              data-key={
+                                (part as ToolInvocationUIPart).toolInvocation
+                                  .toolCallId
+                              }
+                              class="text-gray-500"
+                            >
+                              Location access allowed:{' '}
+                              {(part as any).toolInvocation.result}
+                            </div>
+                          </Show>
                         </Show>
-                      </div>
-                    </div>
-                  )}
-                </Show>
+
+                        <Show
+                          when={
+                            (part as ToolInvocationUIPart).toolInvocation
+                              .toolName === 'getLocation'
+                          }
+                        >
+                          <Show
+                            when={
+                              (part as ToolInvocationUIPart).toolInvocation
+                                .state === 'call'
+                            }
+                          >
+                            <div class="text-gray-500">Getting location...</div>
+                          </Show>
+                          <Show
+                            when={
+                              (part as ToolInvocationUIPart).toolInvocation
+                                .state === 'result' &&
+                              (part as any).toolInvocation.result
+                            }
+                          >
+                            <div class="text-gray-500">
+                              Location: {(part as any).toolInvocation.result}
+                            </div>
+                          </Show>
+                        </Show>
+
+                        <Show
+                          when={
+                            (part as ToolInvocationUIPart).toolInvocation
+                              .toolName === 'getWeatherInformation'
+                          }
+                        >
+                          <Show
+                            when={
+                              (part as ToolInvocationUIPart).toolInvocation
+                                .state === 'partial-call'
+                            }
+                          >
+                            <pre>
+                              {JSON.stringify(
+                                (part as ToolInvocationUIPart).toolInvocation,
+                                null,
+                                2,
+                              )}
+                            </pre>
+                          </Show>
+                          <Show
+                            when={
+                              (part as ToolInvocationUIPart).toolInvocation
+                                .state === 'call'
+                            }
+                          >
+                            <div class="text-gray-500">
+                              Getting weather information for{' '}
+                              {
+                                (part as ToolInvocationUIPart).toolInvocation
+                                  .args.city
+                              }
+                              ...
+                            </div>
+                          </Show>
+
+                          <Show
+                            when={
+                              (part as ToolInvocationUIPart).toolInvocation
+                                .state === 'result'
+                            }
+                          >
+                            <div class="text-gray-500">
+                              Weather in{' '}
+                              {(part as any).toolInvocation.args.city}:{' '}
+                              {(part as any).toolInvocation.result}
+                            </div>
+                          </Show>
+                        </Show>
+                      </>
+                    }
+                  </Show>
+                </>
               )}
             </For>
-            <br />
             <br />
           </div>
         )}
