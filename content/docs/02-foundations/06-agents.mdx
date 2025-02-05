@@ -148,7 +148,7 @@ async function handleCustomerQuery(query: string) {
     model:
       classification.complexity === 'simple'
         ? openai('gpt-4o-mini')
-        : openai('o1-mini'),
+        : openai('o3-mini'),
     system: {
       general:
         'You are an expert customer service agent handling general inquiries.',
@@ -250,7 +250,7 @@ import { z } from 'zod';
 async function implementFeature(featureRequest: string) {
   // Orchestrator: Plan the implementation
   const { object: implementationPlan } = await generateObject({
-    model: openai('o1'),
+    model: openai('o3-mini'),
     schema: z.object({
       files: z.array(
         z.object({

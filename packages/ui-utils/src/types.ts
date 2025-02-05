@@ -56,12 +56,14 @@ The timestamp of the message.
   createdAt?: Date;
 
   /**
-Text content of the message.
+Text content of the message. Use parts when possible.
    */
   content: string;
 
   /**
 Reasoning for the message.
+
+@deprecated Use `parts` instead.
    */
   reasoning?: string;
 
@@ -70,8 +72,16 @@ Reasoning for the message.
    */
   experimental_attachments?: Attachment[];
 
+  /**
+The 'data' role is deprecated.
+   */
   role: 'system' | 'user' | 'assistant' | 'data';
 
+  /**
+For data messages.
+
+@deprecated Data messages will be removed.
+   */
   data?: JSONValue;
 
   /**
@@ -82,9 +92,66 @@ Reasoning for the message.
   /**
 Tool invocations (that can be tool calls or tool results, depending on whether or not the invocation has finished)
 that the assistant made as part of this message.
+
+@deprecated Use `parts` instead.
    */
   toolInvocations?: Array<ToolInvocation>;
+
+  /**
+   * The parts of the message. Use this for rendering the message in the UI.
+   *
+   * Assistant messages can have text, reasoning and tool invocation parts.
+   * User messages can have text parts.
+   */
+  // note: optional on the Message type (which serves as input)
+  parts?: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
 }
+
+export type UIMessage = Message & {
+  /**
+   * The parts of the message. Use this for rendering the message in the UI.
+   *
+   * Assistant messages can have text, reasoning and tool invocation parts.
+   * User messages can have text parts.
+   */
+  parts: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
+};
+
+/**
+ * A text part of a message.
+ */
+export type TextUIPart = {
+  type: 'text';
+
+  /**
+   * The text content.
+   */
+  text: string;
+};
+
+/**
+ * A reasoning part of a message.
+ */
+export type ReasoningUIPart = {
+  type: 'reasoning';
+
+  /**
+   * The reasoning text.
+   */
+  reasoning: string;
+};
+
+/**
+ * A tool invocation part of a message.
+ */
+export type ToolInvocationUIPart = {
+  type: 'tool-invocation';
+
+  /**
+   * The tool invocation.
+   */
+  toolInvocation: ToolInvocation;
+};
 
 export type CreateMessage = Omit<Message, 'id'> & {
   id?: Message['id'];

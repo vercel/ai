@@ -59,19 +59,63 @@ The unified interface also means that you can easily switch between providers by
 
 ```ts
 import { fireworks } from '@ai-sdk/fireworks';
-import { generateText } from 'ai';
+import {
+  generateText,
+  wrapLanguageModel,
+  extractReasoningMiddleware,
+} from 'ai';
+
+// middleware to extract reasoning tokens
+const enhancedModel = wrapLanguageModel({
+  model: fireworks('accounts/fireworks/models/deepseek-r1'),
+  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+});
 
 const { reasoning, text } = await generateText({
-  model: fireworks('accounts/fireworks/models/deepseek-r1'),
+  model: enhancedModel,
+  prompt: 'Explain quantum entanglement.',
+});
+```
+
+Or to use Groq's `deepseek-r1-distill-llama-70b` model:
+
+```ts
+import { groq } from '@ai-sdk/groq';
+import {
+  generateText,
+  wrapLanguageModel,
+  extractReasoningMiddleware,
+} from 'ai';
+
+// middleware to extract reasoning tokens
+const enhancedModel = wrapLanguageModel({
+  model: groq('deepseek-r1-distill-llama-70b'),
+  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+});
+
+const { reasoning, text } = await generateText({
+  model: enhancedModel,
   prompt: 'Explain quantum entanglement.',
 });
 ```
 
 <Note>
-  Groq also provides a distilled version of DeepSeek R1 which is optimized for
-  performance. To learn more about using it with the AI SDK, check out the [Groq
-  provider](/providers/ai-sdk-providers/groq#reasoning-models).
+  The AI SDK provides a [middleware](/docs/ai-sdk-core/middleware)
+  (`extractReasoningMiddleware`) that can be used to extract the reasoning
+  tokens from the model's output.
 </Note>
+
+### Model Provider Comparison
+
+You can use DeepSeek R1 with the AI SDK through various providers. Here's a comparison of the providers that support DeepSeek R1:
+
+| Provider                                              | Model ID                                                                                                          | Reasoning Tokens    |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------- |
+| [DeepSeek](/providers/ai-sdk-providers/deepseek)      | [`deepseek-reasoner`](https://api-docs.deepseek.com/guides/reasoning_model)                                       | <Check size={18} /> |
+| [Fireworks](/providers/ai-sdk-providers/fireworks)    | [`accounts/fireworks/models/deepseek-r1`](https://fireworks.ai/models/fireworks/deepseek-r1)                      | Requires Middleware |
+| [Groq](/providers/ai-sdk-providers/groq)              | [`deepseek-r1-distill-llama-70b`](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-70B)               | Requires Middleware |
+| [Azure](/providers/ai-sdk-providers/azure)            | [`DeepSeek-R1`](https://ai.azure.com/explore/models/DeepSeek-R1/version/1/registry/azureml-deepseek#code-samples) | Requires Middleware |
+| [Together AI](/providers/ai-sdk-providers/togetherai) | [`deepseek-ai/DeepSeek-R1`](https://www.together.ai/models/deepseek-r1)                                           | Requires Middleware |
 
 ### Building Interactive Interfaces
 

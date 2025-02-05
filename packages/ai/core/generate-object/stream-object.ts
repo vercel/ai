@@ -170,7 +170,7 @@ Callback that is called when the LLM response and the final object validation ar
       onFinish?: OnFinishCallback<OBJECT>;
 
       /**
-       * @internal For test use only. May change without notice.
+       * Internal. For test use only. May change without notice.
        */
       _internal?: {
         generateId?: () => string;
@@ -557,7 +557,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               prompt: await convertToLanguageModelPrompt({
                 prompt: standardizedPrompt,
                 modelSupportsImageUrls: model.supportsImageUrls,
-                modelSupportsUrl: model.supportsUrl,
+                modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
               }),
               providerMetadata: providerOptions,
               abortSignal,
@@ -604,7 +604,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               prompt: await convertToLanguageModelPrompt({
                 prompt: standardizedPrompt,
                 modelSupportsImageUrls: model.supportsImageUrls,
-                modelSupportsUrl: model.supportsUrl,
+                modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context,
               }),
               providerMetadata: providerOptions,
               abortSignal,

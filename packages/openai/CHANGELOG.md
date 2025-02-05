@@ -1,5 +1,32 @@
 # @ai-sdk/openai
 
+## 1.1.9
+
+### Patch Changes
+
+- c55b81a: fix (provider/openai): fix o3-mini streaming
+
+## 1.1.8
+
+### Patch Changes
+
+- 161be90: fix (provider/openai): fix model id typo
+
+## 1.1.7
+
+### Patch Changes
+
+- 0a2f026: feat (provider/openai): add o3-mini
+
+## 1.1.6
+
+### Patch Changes
+
+- d89c3b9: feat (provider): add image model support to provider specification
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+
 ## 1.1.5
 
 ### Patch Changes

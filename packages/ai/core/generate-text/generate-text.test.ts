@@ -1223,6 +1223,42 @@ describe('options.messages', () => {
 
     expect(result.text).toStrictEqual('Hello, world!');
   });
+
+  it('should support models that use "this" context in supportsUrl', async () => {
+    let supportsUrlCalled = false;
+    class MockLanguageModelWithImageSupport extends MockLanguageModelV1 {
+      readonly supportsImageUrls = false;
+
+      constructor() {
+        super({
+          supportsUrl(url: URL) {
+            supportsUrlCalled = true;
+            // Reference 'this' to verify context
+            return this.modelId === 'mock-model-id';
+          },
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            text: 'Hello, world!',
+          }),
+        });
+      }
+    }
+
+    const model = new MockLanguageModelWithImageSupport();
+
+    const result = await generateText({
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'image', image: 'https://example.com/test.jpg' }],
+        },
+      ],
+    });
+
+    expect(result.text).toStrictEqual('Hello, world!');
+    expect(supportsUrlCalled).toBe(true);
+  });
 });
 
 describe('options.output', () => {

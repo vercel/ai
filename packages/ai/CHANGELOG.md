@@ -1,5 +1,53 @@
 # ai
 
+## 4.1.20
+
+### Patch Changes
+
+- bcc61d4: feat (ui): introduce message parts for useChat
+- Updated dependencies [bcc61d4]
+  - @ai-sdk/ui-utils@1.1.10
+  - @ai-sdk/react@1.1.10
+
+## 4.1.19
+
+### Patch Changes
+
+- Updated dependencies [6b8cc14]
+  - @ai-sdk/ui-utils@1.1.9
+  - @ai-sdk/react@1.1.9
+
+## 4.1.18
+
+### Patch Changes
+
+- 6a1acfe: fix (ai/core): revert '@internal' tag on function definitions due to build impacts
+
+## 4.1.17
+
+### Patch Changes
+
+- 5af8cdb: fix (ai/core): support this reference in model.supportsUrl implementations
+
+## 4.1.16
+
+### Patch Changes
+
+- 7e299a4: feat (ai/core): wrapLanguageModel can apply multiple middlewares
+
+## 4.1.15
+
+### Patch Changes
+
+- d89c3b9: feat (provider): add image model support to provider specification
+- d89c3b9: feat (core): type ahead for model ids with custom provider
+- 08f54fc: chore (ai/core): move custom provider to stable
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+  - @ai-sdk/ui-utils@1.1.8
+  - @ai-sdk/react@1.1.8
+
 ## 4.1.14
 
 ### Patch Changes

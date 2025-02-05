@@ -7,12 +7,18 @@ import type {
   JSONValue,
   Message,
   UseChatOptions as SharedUseChatOptions,
+  UIMessage,
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
   extractMaxToolInvocationStep,
+  fillMessageParts,
   generateId as generateIdFunc,
+  getMessageParts,
+  isAssistantMessageWithCompletedToolCalls,
   prepareAttachmentsForRequest,
+  shouldResubmitMessages,
+  updateToolCallResult,
 } from '@ai-sdk/ui-utils';
 import {
   Accessor,
@@ -32,7 +38,7 @@ export type UseChatHelpers = {
   /**
    * Current messages in the chat as a SolidJS store.
    */
-  messages: () => Store<Message[]>;
+  messages: () => Store<UIMessage[]>;
 
   /** The error object of the API request */
   error: Accessor<undefined | Error>;
@@ -114,11 +120,11 @@ or to provide a custom fetch implementation for e.g. testing.
 const processStreamedResponse = async (
   api: string,
   chatRequest: ChatRequest,
-  mutate: (data: Message[]) => void,
+  mutate: (data: UIMessage[]) => void,
   setStreamData: Setter<JSONValue[] | undefined>,
   streamData: Accessor<JSONValue[] | undefined>,
   extraMetadata: any,
-  messagesRef: Message[],
+  messagesRef: UIMessage[],
   abortController: AbortController | null,
   generateId: IdGenerator,
   streamProtocol: UseChatOptions['streamProtocol'] = 'data',
@@ -134,14 +140,15 @@ const processStreamedResponse = async (
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
   const previousMessages = messagesRef;
+  const chatMessages = fillMessageParts(chatRequest.messages);
 
-  mutate(chatRequest.messages);
+  mutate(chatMessages);
 
   const existingStreamData = streamData() ?? [];
 
   const constructedMessagesPayload = sendExtraMessageFields
-    ? chatRequest.messages
-    : chatRequest.messages.map(
+    ? chatMessages
+    : chatMessages.map(
         ({
           role,
           content,
@@ -149,6 +156,7 @@ const processStreamedResponse = async (
           data,
           annotations,
           toolInvocations,
+          parts,
         }) => ({
           role,
           content,
@@ -158,6 +166,7 @@ const processStreamedResponse = async (
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
+          ...(parts !== undefined && { parts }),
         }),
       );
 
@@ -191,8 +200,8 @@ const processStreamedResponse = async (
     onUpdate({ message, data, replaceLastMessage }) {
       mutate([
         ...(replaceLastMessage
-          ? chatRequest.messages.slice(0, chatRequest.messages.length - 1)
-          : chatRequest.messages),
+          ? chatMessages.slice(0, chatMessages.length - 1)
+          : chatMessages),
         message,
       ]);
 
@@ -204,7 +213,7 @@ const processStreamedResponse = async (
     onFinish,
     generateId,
     fetch,
-    lastMessage: chatRequest.messages[chatRequest.messages.length - 1],
+    lastMessage: chatMessages[chatMessages.length - 1],
   });
 };
 
@@ -265,12 +274,14 @@ export function useChat(
       chatCache.get(chatKey()) ?? useChatOptions().initialMessages?.() ?? [],
   );
 
-  const [messagesStore, setMessagesStore] = createStore<Message[]>(_messages());
+  const [messagesStore, setMessagesStore] = createStore<UIMessage[]>(
+    fillMessageParts(_messages()),
+  );
   createEffect(() => {
-    setMessagesStore(reconcile(_messages(), { merge: true }));
+    setMessagesStore(reconcile(fillMessageParts(_messages()), { merge: true }));
   });
 
-  const mutate = (messages: Message[]) => {
+  const mutate = (messages: UIMessage[]) => {
     chatCache.set(chatKey(), messages);
   };
 
@@ -280,9 +291,9 @@ export function useChat(
   );
   const [isLoading, setIsLoading] = createSignal(false);
 
-  let messagesRef: Message[] = _messages() || [];
+  let messagesRef: UIMessage[] = fillMessageParts(_messages()) || [];
   createEffect(() => {
-    messagesRef = _messages() || [];
+    messagesRef = fillMessageParts(_messages()) || [];
   });
 
   let abortController: AbortController | null = null;
@@ -355,23 +366,13 @@ export function useChat(
 
     // auto-submit when all tool calls in the last assistant message have results:
     const messages = messagesRef;
-    const lastMessage = messages[messages.length - 1];
     if (
-      // ensure there is a last message:
-      lastMessage != null &&
-      // ensure we actually have new steps (to prevent infinite loops in case of errors):
-      (messages.length > messageCount ||
-        extractMaxToolInvocationStep(lastMessage.toolInvocations) !==
-          maxStep) &&
-      // check if the feature is enabled:
-      maxSteps > 1 &&
-      // check that next step is possible:
-      isAssistantMessageWithCompletedToolCalls(lastMessage) &&
-      // check that assistant has not answered yet:
-      !lastMessage.content && // empty string or undefined
-      // limit the number of automatic steps:
-      (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) <
-        maxSteps
+      shouldResubmitMessages({
+        originalMaxToolInvocationStep: maxStep,
+        originalMessageCount: messageCount,
+        maxSteps,
+        messages,
+      })
     ) {
       await triggerRequest({ messages });
     }
@@ -385,15 +386,17 @@ export function useChat(
       experimental_attachments,
     );
 
-    const newMessage = {
+    const messages = messagesRef.concat({
       ...message,
       id: message.id ?? generateId()(),
+      createdAt: message.createdAt ?? new Date(),
       experimental_attachments:
         attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-    };
+      parts: getMessageParts(message),
+    });
 
     return triggerRequest({
-      messages: messagesRef.concat(newMessage as Message),
+      messages,
       headers,
       body,
       data,
@@ -436,8 +439,9 @@ export function useChat(
       messagesArg = messagesArg(messagesRef);
     }
 
-    mutate(messagesArg);
-    messagesRef = messagesArg;
+    const messagesWithParts = fillMessageParts(messagesArg);
+    mutate(messagesWithParts);
+    messagesRef = messagesWithParts;
   };
 
   const setData = (
@@ -486,6 +490,7 @@ export function useChat(
         createdAt: new Date(),
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+        parts: [{ type: 'text', text: inputValue }],
       }),
       headers: options.headers,
       body: options.body,
@@ -506,34 +511,20 @@ export function useChat(
     toolCallId: string;
     result: any;
   }) => {
-    const messagesSnapshot = _messages() ?? [];
+    const currentMessages = messagesRef ?? [];
 
-    const updatedMessages = messagesSnapshot.map((message, index, arr) =>
-      // update the tool calls in the last assistant message:
-      index === arr.length - 1 &&
-      message.role === 'assistant' &&
-      message.toolInvocations
-        ? {
-            ...message,
-            toolInvocations: message.toolInvocations.map(toolInvocation =>
-              toolInvocation.toolCallId === toolCallId
-                ? {
-                    ...toolInvocation,
-                    result,
-                    state: 'result' as const,
-                  }
-                : toolInvocation,
-            ),
-          }
-        : message,
-    );
+    updateToolCallResult({
+      messages: currentMessages,
+      toolCallId,
+      toolResult: result,
+    });
 
-    mutate(updatedMessages);
+    mutate(currentMessages);
 
     // auto-submit when all tool calls in the last assistant message have results:
-    const lastMessage = updatedMessages[updatedMessages.length - 1];
+    const lastMessage = currentMessages[currentMessages.length - 1];
     if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      triggerRequest({ messages: updatedMessages });
+      triggerRequest({ messages: currentMessages });
     }
   };
 
@@ -555,18 +546,4 @@ export function useChat(
     setData,
     addToolResult,
   };
-}
-
-/**
-Check if the message is an assistant message with completed tool calls.
-The message must have at least one tool invocation and all tool invocations
-must have a result.
- */
-function isAssistantMessageWithCompletedToolCalls(message: Message) {
-  return (
-    message.role === 'assistant' &&
-    message.toolInvocations &&
-    message.toolInvocations.length > 0 &&
-    message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
-  );
 }

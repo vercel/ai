@@ -4,8 +4,7 @@ import { DataStreamString } from '../data-stream-parts';
 export function createDataProtocolStream(
   dataPartTexts: DataStreamString[],
 ): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
-  return convertArrayToReadableStream(
-    dataPartTexts.map(part => encoder.encode(part)),
+  return convertArrayToReadableStream(dataPartTexts).pipeThrough(
+    new TextEncoderStream(),
   );
 }

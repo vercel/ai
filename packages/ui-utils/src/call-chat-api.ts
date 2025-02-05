@@ -1,6 +1,6 @@
 import { processChatResponse } from './process-chat-response';
-import { processTextStream } from './process-text-stream';
-import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
+import { processChatTextResponse } from './process-chat-text-response';
+import { IdGenerator, JSONValue, UIMessage, UseChatOptions } from './types';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -30,7 +30,7 @@ export async function callChatApi({
   restoreMessagesOnFailure: () => void;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onUpdate: (options: {
-    message: Message;
+    message: UIMessage;
     data: JSONValue[] | undefined;
     replaceLastMessage: boolean;
   }) => void;
@@ -38,7 +38,7 @@ export async function callChatApi({
   onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
-  lastMessage: Message | undefined;
+  lastMessage: UIMessage | undefined;
 }) {
   const response = await fetch(api, {
     method: 'POST',
@@ -75,31 +75,11 @@ export async function callChatApi({
 
   switch (streamProtocol) {
     case 'text': {
-      const resultMessage: Message = {
-        id: generateId(),
-        createdAt: new Date(),
-        role: 'assistant' as const,
-        content: '',
-      };
-
-      await processTextStream({
+      await processChatTextResponse({
         stream: response.body,
-        onTextPart: chunk => {
-          resultMessage.content += chunk;
-
-          // note: creating a new message object is required for Solid.js streaming
-          onUpdate({
-            message: { ...resultMessage },
-            data: [],
-            replaceLastMessage: false,
-          });
-        },
-      });
-
-      // in text mode, we don't have usage information or finish reason:
-      onFinish?.(resultMessage, {
-        usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
-        finishReason: 'unknown',
+        update: onUpdate,
+        onFinish,
+        generateId,
       });
       return;
     }

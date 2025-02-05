@@ -1,4 +1,4 @@
-import { ImageModelV1 } from '@ai-sdk/provider';
+import { ImageModelV1, NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { FalImageModel } from './fal-image-model';
@@ -29,11 +29,19 @@ requests, or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface FalProvider {
+export interface FalProvider extends ProviderV1 {
   /**
 Creates a model for image generation.
    */
   image(modelId: FalImageModelId, settings?: FalImageSettings): ImageModelV1;
+
+  /**
+Creates a model for image generation.
+   */
+  imageModel(
+    modelId: FalImageModelId,
+    settings?: FalImageSettings,
+  ): ImageModelV1;
 }
 
 const defaultBaseURL = 'https://fal.run';
@@ -63,12 +71,22 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       fetch: options.fetch,
     });
 
-  const provider = (modelId: FalImageModelId, settings?: FalImageSettings) =>
-    createImageModel(modelId, settings);
-
-  provider.image = createImageModel;
-
-  return provider as FalProvider;
+  return {
+    image: createImageModel,
+    imageModel: createImageModel,
+    languageModel: () => {
+      throw new NoSuchModelError({
+        modelId: 'languageModel',
+        modelType: 'languageModel',
+      });
+    },
+    textEmbeddingModel: () => {
+      throw new NoSuchModelError({
+        modelId: 'textEmbeddingModel',
+        modelType: 'textEmbeddingModel',
+      });
+    },
+  };
 }
 
 /**

@@ -1,5 +1,19 @@
 # @ai-sdk/google
 
+## 1.1.9
+
+### Patch Changes
+
+- b2573de: fix (provider/google): remove reasoning text following removal from Gemini API
+
+## 1.1.8
+
+### Patch Changes
+
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+
 ## 1.1.7
 
 ### Patch Changes
