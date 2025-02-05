@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.1.10
+
+### Patch Changes
+
+- e5567f7: feat (provider/google): update model ids
+
 ## 1.1.9
 
 ### Patch Changes
