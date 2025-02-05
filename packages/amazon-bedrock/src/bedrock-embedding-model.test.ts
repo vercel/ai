@@ -41,6 +41,7 @@ describe('doEmbed', () => {
     accessKeyId: 'test-access-key',
     secretAccessKey: 'test-secret-key',
     sessionToken: 'test-token-key',
+    signingFunction: () => ({}),
   });
 
   let callCount = 0;
