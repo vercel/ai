@@ -236,6 +236,11 @@ With that, you have built everything you need for your chatbot! To start your ap
 
 Head to your browser and open http://localhost:8081. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time! The AI SDK makes it fast and easy to build AI chat interfaces with Expo.
 
+<Note>
+  If you experience "Property `structuredClone` doesn't exist" errors on mobile,
+  add the [polyfills described below](#polyfills).
+</Note>
+
 ## Enhance Your Chatbot with Tools
 
 While large language models (LLMs) have incredible generation capabilities, they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather). This is where [tools](/docs/ai-sdk-core/tools-and-tool-calling) come in.
@@ -487,7 +492,32 @@ This simple example demonstrates how tools can expand your model's capabilities.
 
 Several functions that are internally used by the AI SDK might not available in the Expo runtime depending on your configuration and the target platform.
 
-You can use the following polyfills to ensure that the AI SDK works as expected:
+First, install the following packages:
+
+<div className="my-4">
+  <Tabs items={['pnpm', 'npm', 'yarn']}>
+    <Tab>
+      <Snippet
+        text="pnpm add @ungap/structured-clone @stardazed/streams-text-encoding"
+        dark
+      />
+    </Tab>
+    <Tab>
+      <Snippet
+        text="npm install @ungap/structured-clone @stardazed/streams-text-encoding"
+        dark
+      />
+    </Tab>
+    <Tab>
+      <Snippet
+        text="yarn add @ungap/structured-clone @stardazed/streams-text-encoding"
+        dark
+      />
+    </Tab>
+  </Tabs>
+</div>
+
+Then create a new file in the root of your project with the following polyfills:
 
 ```ts filename="polyfills.js"
 import { Platform } from 'react-native';
@@ -517,7 +547,7 @@ if (Platform.OS !== 'web') {
 export {};
 ```
 
-Then at your root `_layout.tsx`, import it at the top like this:
+Finally, import the polyfills in your root `_layout.tsx`:
 
 ```ts filename="_layout.tsx"
 import '@/polyfills';
