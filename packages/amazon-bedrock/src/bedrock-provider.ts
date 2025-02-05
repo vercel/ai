@@ -6,11 +6,10 @@ import {
 import {
   FetchFunction,
   generateId,
-  loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { BedrockHeadersFunction } from './bedrock-api-types';
+import { BedrockSigningFunction } from './bedrock-api-types';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import {
   BedrockChatModelId,
@@ -21,7 +20,7 @@ import {
   BedrockEmbeddingModelId,
   BedrockEmbeddingSettings,
 } from './bedrock-embedding-settings';
-import { AwsSigV4Signer } from './bedrock-sigv4-signer';
+import { createSigV4SigningFunction } from './bedrock-sigv4-signing-function';
 
 export interface AmazonBedrockProviderSettings {
   /**
@@ -54,6 +53,19 @@ settings are ignored.
   // bedrockOptions?: BedrockRuntimeClientConfig;
 
   /**
+   * Custom function to generate authentication headers for Bedrock API requests.
+   * If not provided, a default signing function will be created using the AWS credentials
+   * (region, accessKeyId, secretAccessKey, sessionToken) specified in the provider settings.
+   *
+   * This can be useful for:
+   * - Implementing custom authentication logic
+   * - Using alternative credential providers
+   * - Testing and mocking authentication
+   * - Integrating with custom authentication systems
+   */
+  signingFunction?: BedrockSigningFunction;
+
+  /**
 Base URL for the Bedrock API calls.
    */
   baseURL?: string;
@@ -61,6 +73,7 @@ Base URL for the Bedrock API calls.
   /**
 Custom headers to include in the requests.
    */
+  // TODO: integrate this where appropriate.
   headers?: Record<string, string>;
 
   /**
@@ -96,44 +109,12 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const createSigner = () =>
-    new AwsSigV4Signer({
-      region: loadSetting({
-        settingValue: options.region,
-        settingName: 'region',
-        environmentVariableName: 'AWS_REGION',
-        description: 'AWS region',
-      }),
-      service: 'bedrock',
-      credentials: {
-        accessKeyId: loadSetting({
-          settingValue: options.accessKeyId,
-          settingName: 'accessKeyId',
-          environmentVariableName: 'AWS_ACCESS_KEY_ID',
-          description: 'AWS access key ID',
-        }),
-        secretAccessKey: loadSetting({
-          settingValue: options.secretAccessKey,
-          settingName: 'secretAccessKey',
-          environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-          description: 'AWS secret access key',
-        }),
-        sessionToken: loadOptionalSetting({
-          settingValue: options.sessionToken,
-          environmentVariableName: 'AWS_SESSION_TOKEN',
-        }),
-      },
-    });
-
-  const getHeaders: BedrockHeadersFunction = async ({ url, headers, body }) =>
-    createSigner().signRequest({
-      method: 'POST',
-      url,
-      headers,
-      // TODO: explore avoiding the below stringify since we do it again at
-      // post-time and the content could be large with attachments.
-      body: JSON.stringify(body),
-    });
+  const getHeaders: BedrockSigningFunction = createSigV4SigningFunction({
+    region: options.region,
+    accessKeyId: options.accessKeyId,
+    secretAccessKey: options.secretAccessKey,
+    sessionToken: options.sessionToken,
+  });
 
   const getBaseUrl = (): string =>
     withoutTrailingSlash(

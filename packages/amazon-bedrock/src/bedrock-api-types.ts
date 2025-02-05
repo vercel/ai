@@ -1,6 +1,6 @@
 import { Resolvable } from '@ai-sdk/provider-utils';
 
-export type BedrockHeadersFunction = (args: {
+export type BedrockSigningFunction = (args: {
   url: string;
   headers: Record<string, string | undefined>;
   body: unknown;

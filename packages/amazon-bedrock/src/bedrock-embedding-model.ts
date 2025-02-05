@@ -10,11 +10,11 @@ import {
   BedrockEmbeddingSettings,
 } from './bedrock-embedding-settings';
 import { BedrockErrorSchema } from './bedrock-error';
-import { BedrockHeadersFunction } from './bedrock-api-types';
+import { BedrockSigningFunction } from './bedrock-api-types';
 
 type BedrockEmbeddingConfig = {
   baseUrl: () => string;
-  headers: BedrockHeadersFunction;
+  headers: BedrockSigningFunction;
   fetch?: FetchFunction;
 };
 

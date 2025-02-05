@@ -19,7 +19,7 @@ import {
   BedrockConverseInput,
   BedrockGuardrailConfiguration,
   BedrockGuardrailStreamConfiguration,
-  BedrockHeadersFunction,
+  BedrockSigningFunction,
   BedrockStopReason,
   BedrockToolInputSchema,
 } from './bedrock-api-types';
@@ -36,7 +36,7 @@ import { z } from 'zod';
 
 type BedrockChatConfig = {
   baseUrl: () => string;
-  headers: BedrockHeadersFunction;
+  headers: BedrockSigningFunction;
   fetch?: FetchFunction;
   generateId: () => string;
 };
