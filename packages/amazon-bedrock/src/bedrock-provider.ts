@@ -109,12 +109,14 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const getHeaders: BedrockSigningFunction = createSigV4SigningFunction({
-    region: options.region,
-    accessKeyId: options.accessKeyId,
-    secretAccessKey: options.secretAccessKey,
-    sessionToken: options.sessionToken,
-  });
+  const signingFunction =
+    options.signingFunction ??
+    createSigV4SigningFunction({
+      region: options.region,
+      accessKeyId: options.accessKeyId,
+      secretAccessKey: options.secretAccessKey,
+      sessionToken: options.sessionToken,
+    });
 
   const getBaseUrl = (): string =>
     withoutTrailingSlash(
@@ -133,7 +135,8 @@ export function createAmazonBedrock(
   ) =>
     new BedrockChatLanguageModel(modelId, settings, {
       baseUrl: getBaseUrl,
-      headers: getHeaders,
+      // TODO: likely need to rename the config key below to match the value
+      headers: signingFunction,
       generateId,
       fetch: options.fetch,
     });
@@ -157,7 +160,7 @@ export function createAmazonBedrock(
   ) =>
     new BedrockEmbeddingModel(modelId, settings, {
       baseUrl: getBaseUrl,
-      headers: getHeaders,
+      headers: signingFunction,
       fetch: options.fetch,
     });
 
