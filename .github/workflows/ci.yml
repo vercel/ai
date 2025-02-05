@@ -41,7 +41,7 @@ jobs:
         run: pnpm exec playwright install --with-deps
 
       - name: Debug Installed Dependencies
-        run: pnpm list react react-dom --depth=10
+        run: pnpm why react react-dom
 
       - name: Run tests
         run: pnpm test
