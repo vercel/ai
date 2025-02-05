@@ -288,7 +288,7 @@ Callback that is called when each step (LLM call) is finished, including interme
     onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
 
     /**
-@internal For test use only. May change without notice.
+Internal. For test use only. May change without notice.
      */
     _internal?: {
       now?: () => number;

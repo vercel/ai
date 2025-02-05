@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.18
+
+### Patch Changes
+
+- 6a1acfe: fix (ai/core): revert '@internal' tag on function definitions due to build impacts
+
 ## 4.1.17
 
 ### Patch Changes
