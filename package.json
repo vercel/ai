@@ -64,8 +64,8 @@
   },
   "pnpm": {
     "overrides": {
-      "react": "19.0.0-rc-cc1ec60d0d-20240607",
-      "react-dom": "19.0.0-rc-cc1ec60d0d-20240607"
+      "react": "*",
+      "react-dom": "*"
     }
   }
 }
