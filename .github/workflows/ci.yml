@@ -44,4 +44,4 @@ jobs:
         run: pnpm why react react-dom
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test -- --silent=false --reporter=verbose
