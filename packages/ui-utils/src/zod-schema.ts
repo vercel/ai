@@ -5,10 +5,22 @@ import { jsonSchema, Schema } from './schema';
 
 export function zodSchema<OBJECT>(
   zodSchema: z.Schema<OBJECT, z.ZodTypeDef, any>,
+  options?: {
+    /**
+     * Enables support for references in the schema.
+     * This is required for recursive schemas, e.g. with `z.lazy`.
+     * However, not all language models and providers support such references.
+     * Defaults to `false`.
+     */
+    useReferences?: boolean;
+  },
 ): Schema<OBJECT> {
+  // default to no references (to support openapi conversion for google)
+  const useReferences = options?.useReferences ?? false;
+
   return jsonSchema(
     zodToJsonSchema(zodSchema, {
-      $refStrategy: 'none', // no references (to support openapi conversion for google)
+      $refStrategy: useReferences ? 'root' : 'none',
       target: 'jsonSchema7', // note: openai mode breaks various gemini conversions
     }) as JSONSchema7,
     {
