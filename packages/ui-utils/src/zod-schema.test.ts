@@ -77,7 +77,7 @@ describe('zodSchema', () => {
       expect(schema.jsonSchema).toMatchSnapshot();
     });
 
-    it('should duplicate referenced schemas (and not use references)', () => {
+    it('should duplicate referenced schemas (and not use references) by default', () => {
       const Inner = z.object({
         text: z.string(),
         number: z.number(),
@@ -88,6 +88,46 @@ describe('zodSchema', () => {
           group1: z.array(Inner),
           group2: z.array(Inner),
         }),
+      );
+
+      expect(schema.jsonSchema).toMatchSnapshot();
+    });
+
+    it('should use references when useReferences is true', () => {
+      const Inner = z.object({
+        text: z.string(),
+        number: z.number(),
+      });
+
+      const schema = zodSchema(
+        z.object({
+          group1: z.array(Inner),
+          group2: z.array(Inner),
+        }),
+        { useReferences: true },
+      );
+
+      expect(schema.jsonSchema).toMatchSnapshot();
+    });
+
+    it('should use recursive references with z.lazy when useReferences is true', () => {
+      const baseCategorySchema = z.object({
+        name: z.string(),
+      });
+
+      type Category = z.infer<typeof baseCategorySchema> & {
+        subcategories: Category[];
+      };
+
+      const categorySchema: z.ZodType<Category> = baseCategorySchema.extend({
+        subcategories: z.lazy(() => categorySchema.array()),
+      });
+
+      const schema = zodSchema(
+        z.object({
+          category: categorySchema,
+        }),
+        { useReferences: true },
       );
 
       expect(schema.jsonSchema).toMatchSnapshot();

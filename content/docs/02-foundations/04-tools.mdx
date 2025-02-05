@@ -43,9 +43,11 @@ using [multi-step calls](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-cal
 
 Schemas are used to define the parameters for tools and to validate the [tool calls](/docs/ai-sdk-core/tools-and-tool-calling).
 
-The AI SDK supports both raw JSON schemas (using the `jsonSchema` function) and [Zod](https://zod.dev/) schemas.
-[Zod](https://zod.dev/) is the most popular JavaScript schema validation library.
-You can install Zod with:
+The AI SDK supports both raw JSON schemas (using the [`jsonSchema` function](/docs/reference/ai-sdk-core/json-schema))
+and [Zod](https://zod.dev/) schemas (either directly or using the [`zodSchema` function](/docs/reference/ai-sdk-core/zod-schema)).
+
+[Zod](https://zod.dev/) is a popular TypeScript schema validation library.
+You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
