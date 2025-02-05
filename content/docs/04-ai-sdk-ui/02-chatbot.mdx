@@ -65,6 +65,14 @@ export async function POST(req: Request) {
 }
 ```
 
+<Note>
+  The UI messages have a new `parts` property that contains the message parts.
+  We recommend rendering the messages using the `parts` property instead of the
+  `content` property. The parts property supports different message types,
+  including text, tool invocation, and tool result, and allows for more flexible
+  and complex chat UIs.
+</Note>
+
 In the `Page` component, the `useChat` hook will request to your AI provider endpoint whenever the user submits a message.
 The messages are then streamed back in real-time and displayed in the chat UI.
 
@@ -510,14 +518,23 @@ export async function POST(req: Request) {
 }
 ```
 
-On the client side, you can access the reasoning text with the `reasoning` property on the message object:
+On the client side, you can access the reasoning parts of the message object:
 
-```tsx filename="app/page.tsx" highlight="4"
-messages.map(m => (
-  <div key={m.id}>
-    {m.role === 'user' ? 'User: ' : 'AI: '}
-    {m.reasoning && <pre>{m.reasoning}</pre>}
-    {m.content}
+```tsx filename="app/page.tsx"
+messages.map(message => (
+  <div key={message.id} className="whitespace-pre-wrap">
+    {message.role === 'user' ? 'User: ' : 'AI: '}
+    {message.parts.map((part, index) => {
+      // text parts:
+      if (part.type === 'text') {
+        return <div key={index}>{part.text}</div>;
+      }
+
+      // reasoning parts:
+      if (part.type === 'reasoning') {
+        return <pre key={index}>{part.reasoning}</pre>;
+      }
+    })}
   </div>
 ));
 ```
