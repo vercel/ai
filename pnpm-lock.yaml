@@ -481,6 +481,9 @@ importers:
 
   examples/next-openai:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: 1.1.6
+        version: link:../../packages/anthropic
       '@ai-sdk/deepseek':
         specifier: 0.1.8
         version: link:../../packages/deepseek

@@ -2,19 +2,14 @@ import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   AssistantStatus,
   CreateMessage,
-  Message,
-  UseAssistantOptions,
   generateId,
+  Message,
   processAssistantStream,
+  UseAssistantOptions,
 } from '@ai-sdk/ui-utils';
 import { Accessor, createMemo, createSignal, JSX, Setter } from 'solid-js';
+import { createStore, SetStoreFunction, Store } from 'solid-js/store';
 import { convertToAccessorOptions } from './utils/convert-to-accessor-options';
-import {
-  createStore,
-  SetStoreFunction,
-  Store,
-  StoreSetter,
-} from 'solid-js/store';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -189,6 +184,7 @@ export function useAssistant(
               id: value.id,
               role: value.role,
               content: value.content[0].text.value,
+              parts: [],
             },
           ]);
         },
@@ -202,6 +198,7 @@ export function useAssistant(
                 id: lastMessage.id,
                 role: lastMessage.role,
                 content: lastMessage.content + value,
+                parts: lastMessage.parts,
               },
             ];
           });
@@ -224,6 +221,7 @@ export function useAssistant(
               role: 'data',
               content: '',
               data: value.data,
+              parts: [],
             },
           ]);
         },
@@ -262,7 +260,7 @@ export function useAssistant(
       return;
     }
 
-    append({ role: 'user', content: input() }, requestOptions);
+    append({ role: 'user', content: input(), parts: [] }, requestOptions);
   };
 
   const setThreadId = (threadId: string | undefined) => {

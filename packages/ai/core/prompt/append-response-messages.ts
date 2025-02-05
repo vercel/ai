@@ -2,6 +2,7 @@ import {
   extractMaxToolInvocationStep,
   Message,
   ToolInvocation,
+  ToolInvocationUIPart,
 } from '@ai-sdk/ui-utils';
 import { ResponseMessage } from '../generate-text/step-result';
 
@@ -15,9 +16,17 @@ import { ResponseMessage } from '../generate-text/step-result';
 export function appendResponseMessages({
   messages,
   responseMessages,
+  _internal: { currentDate = () => new Date() } = {},
 }: {
   messages: Message[];
   responseMessages: ResponseMessage[];
+
+  /**
+Internal. For test use only. May change without notice.
+     */
+  _internal?: {
+    currentDate?: () => Date;
+  };
 }): Message[] {
   const clonedMessages = structuredClone(messages);
 
@@ -29,8 +38,7 @@ export function appendResponseMessages({
     const isLastMessageAssistant = lastMessage.role === 'assistant';
 
     switch (role) {
-      case 'assistant': {
-        // only include text in the content:
+      case 'assistant': // only include text in the content:
         const textContent =
           typeof message.content === 'string'
             ? message.content
@@ -58,24 +66,50 @@ export function appendResponseMessages({
             lastMessage.toolInvocations,
           );
 
+          lastMessage.parts ??= [];
+
           lastMessage.content = textContent;
+          if (textContent.length > 0) {
+            lastMessage.parts.push({
+              type: 'text' as const,
+              text: textContent,
+            });
+          }
+
           lastMessage.toolInvocations = [
             ...(lastMessage.toolInvocations ?? []),
             ...getToolInvocations(maxStep === undefined ? 0 : maxStep + 1),
           ];
+
+          getToolInvocations(maxStep === undefined ? 0 : maxStep + 1)
+            .map(call => ({
+              type: 'tool-invocation' as const,
+              toolInvocation: call,
+            }))
+            .forEach(part => {
+              lastMessage.parts!.push(part);
+            });
         } else {
           // last message was a user message, add the assistant message:
           clonedMessages.push({
             role: 'assistant',
             id: message.id,
-            createdAt: new Date(), // generate a createdAt date for the message, will be overridden by the client
+            createdAt: currentDate(), // generate a createdAt date for the message, will be overridden by the client
             content: textContent,
             toolInvocations: getToolInvocations(0),
+            parts: [
+              ...(textContent.length > 0
+                ? [{ type: 'text' as const, text: textContent }]
+                : []),
+              ...getToolInvocations(0).map(call => ({
+                type: 'tool-invocation' as const,
+                toolInvocation: call,
+              })),
+            ],
           });
         }
 
         break;
-      }
 
       case 'tool': {
         // for tool call results, add the result to previous message:
@@ -87,11 +121,19 @@ export function appendResponseMessages({
           );
         }
 
-        for (const part of message.content) {
+        lastMessage.parts ??= [];
+
+        for (const contentPart of message.content) {
           // find the tool call in the previous message:
           const toolCall = lastMessage.toolInvocations.find(
-            call => call.toolCallId === part.toolCallId,
+            call => call.toolCallId === contentPart.toolCallId,
           );
+          const toolCallPart: ToolInvocationUIPart | undefined =
+            lastMessage.parts.find(
+              (part): part is ToolInvocationUIPart =>
+                part.type === 'tool-invocation' &&
+                part.toolInvocation.toolCallId === contentPart.toolCallId,
+            );
 
           if (!toolCall) {
             throw new Error('Tool call not found in previous message');
@@ -100,7 +142,16 @@ export function appendResponseMessages({
           // add the result to the tool call:
           toolCall.state = 'result';
           const toolResult = toolCall as ToolInvocation & { state: 'result' };
-          toolResult.result = part.result;
+          toolResult.result = contentPart.result;
+
+          if (toolCallPart) {
+            toolCallPart.toolInvocation = toolResult;
+          } else {
+            lastMessage.parts.push({
+              type: 'tool-invocation' as const,
+              toolInvocation: toolResult,
+            });
+          }
         }
 
         break;
