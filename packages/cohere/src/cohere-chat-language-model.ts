@@ -205,9 +205,6 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
     const { messages, ...rawSettings } = args;
     let text = response.message.content?.[0]?.text ?? '';
-    if (!text) {
-      text = response.message.tool_plan ?? '';
-    }
 
     return {
       text,
@@ -298,14 +295,6 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                 controller.enqueue({
                   type: 'text-delta',
                   textDelta: value.delta.message.content.text,
-                });
-                return;
-              }
-
-              case 'tool-plan-delta': {
-                controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: value.delta.message.tool_plan,
                 });
                 return;
               }
