@@ -35,10 +35,13 @@ jobs:
         run: pnpm store prune
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --no-cache
 
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
+
+      - name: Debug Installed Dependencies
+        run: pnpm list react react-dom --depth=10
 
       - name: Run tests
         run: pnpm test
