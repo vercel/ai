@@ -1,5 +1,8 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { createStreamableUI } from './create-streamable-ui';
+import ReactDOM from 'react-dom';
+console.log('ReactDOM Version:', ReactDOM.version);
+console.log('ReactDOM Path:', require.resolve('react-dom'));
 
 // This is a workaround to render the Flight response in a test environment.
 async function flightRender(node: React.ReactNode, byChunk?: boolean) {
