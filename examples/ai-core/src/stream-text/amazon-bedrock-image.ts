@@ -6,7 +6,7 @@ import fs from 'node:fs';
 async function main() {
   const result = streamText({
     model: bedrock(
-      'arn:aws:bedrock:us-east-2:474668406012:inference-profile/us.anthropic.claude-3-5-sonnet-20240620-v1:0',
+      `arn:aws:bedrock:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:inference-profile/us.anthropic.claude-3-5-sonnet-20240620-v1:0`,
     ),
     maxTokens: 512,
     messages: [

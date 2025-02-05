@@ -6,7 +6,9 @@ import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = streamText({
-    model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+    model: bedrock(
+      `arn:aws:bedrock:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:inference-profile/us.anthropic.claude-3-5-sonnet-20240620-v1:0`,
+    ),
     tools: {
       weather: weatherTool,
       cityAttractions: {
