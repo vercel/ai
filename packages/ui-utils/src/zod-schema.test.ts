@@ -132,6 +132,18 @@ describe('zodSchema', () => {
 
       expect(schema.jsonSchema).toMatchSnapshot();
     });
+
+    describe('nullable', () => {
+      it('should support nullable', () => {
+        const schema = zodSchema(
+          z.object({
+            location: z.string().nullable(),
+          }),
+        );
+
+        expect(schema.jsonSchema).toMatchSnapshot();
+      });
+    });
   });
 
   describe('output validation', () => {

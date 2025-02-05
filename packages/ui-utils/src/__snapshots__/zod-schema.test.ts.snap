@@ -1,5 +1,24 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`zodSchema > json schema conversion > nullable > should support nullable 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "location": {
+      "type": [
+        "string",
+        "null",
+      ],
+    },
+  },
+  "required": [
+    "location",
+  ],
+  "type": "object",
+}
+`;
+
 exports[`zodSchema > json schema conversion > should create a schema with simple types 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
