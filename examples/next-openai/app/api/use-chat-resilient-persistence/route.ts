@@ -27,6 +27,9 @@ export async function POST(req: Request) {
   // consume full stream in separate promise (thread)
   // to ensure it runs to completion even if the response is aborted
   // (e.g. when the tab is closed)
+  //
+  // Note: backpressure from the client is not applied when
+  // consuming the stream with this approach
   (async () => {
     for await (const part of result.fullStream) {
       // noop
