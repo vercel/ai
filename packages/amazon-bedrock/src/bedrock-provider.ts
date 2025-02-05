@@ -4,6 +4,7 @@ import {
   ProviderV1,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   generateId,
   loadOptionalSetting,
   loadSetting,
@@ -23,9 +24,24 @@ import {
 import { AwsSigV4Signer } from './bedrock-sigv4-signer';
 
 export interface AmazonBedrockProviderSettings {
+  /**
+The AWS region to use for the Bedrock provider.
+   */
   region?: string;
+
+  /**
+The AWS access key ID to use for the Bedrock provider.
+   */
   accessKeyId?: string;
+
+  /**
+The AWS secret access key to use for the Bedrock provider.
+   */
   secretAccessKey?: string;
+
+  /**
+The AWS session token to use for the Bedrock provider.
+   */
   sessionToken?: string;
 
   /**
@@ -33,12 +49,25 @@ Complete Bedrock configuration for setting advanced authentication and other
 options. When this is provided, the region, accessKeyId, and secretAccessKey
 settings are ignored.
    */
+  // TODO: review this for backwards-compatibility.
+  // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-client-bedrock-runtime/TypeAlias/BedrockRuntimeClientConfigType/
   // bedrockOptions?: BedrockRuntimeClientConfig;
 
   /**
 Base URL for the Bedrock API calls.
    */
   baseURL?: string;
+
+  /**
+Custom headers to include in the requests.
+   */
+  headers?: Record<string, string>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+*/
+  fetch?: FetchFunction;
 
   // for testing
   generateId?: () => string;
@@ -125,6 +154,7 @@ export function createAmazonBedrock(
       baseUrl: getBaseUrl,
       headers: getHeaders,
       generateId,
+      fetch: options.fetch,
     });
 
   const provider = function (
@@ -147,6 +177,7 @@ export function createAmazonBedrock(
     new BedrockEmbeddingModel(modelId, settings, {
       baseUrl: getBaseUrl,
       headers: getHeaders,
+      fetch: options.fetch,
     });
 
   provider.languageModel = createChatModel;
