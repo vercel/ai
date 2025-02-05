@@ -3,7 +3,6 @@ import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
-  IdGenerator,
   JSONValue,
   Message,
   UseChatOptions as SharedUseChatOptions,
@@ -117,106 +116,6 @@ or to provide a custom fetch implementation for e.g. testing.
   id: string;
 };
 
-const processStreamedResponse = async (
-  api: string,
-  chatRequest: ChatRequest,
-  mutate: (data: UIMessage[]) => void,
-  setStreamData: Setter<JSONValue[] | undefined>,
-  streamData: Accessor<JSONValue[] | undefined>,
-  extraMetadata: any,
-  messagesRef: UIMessage[],
-  abortController: AbortController | null,
-  generateId: IdGenerator,
-  streamProtocol: UseChatOptions['streamProtocol'] = 'data',
-  onFinish: UseChatOptions['onFinish'],
-  onResponse: UseChatOptions['onResponse'] | undefined,
-  onToolCall: UseChatOptions['onToolCall'] | undefined,
-  sendExtraMessageFields: boolean | undefined,
-  fetch: FetchFunction | undefined,
-  keepLastMessageOnError: boolean,
-  chatId: string,
-  experimental_prepareRequestBody: UseChatOptions['experimental_prepareRequestBody'],
-) => {
-  // Do an optimistic update to the chat state to show the updated messages
-  // immediately.
-  const previousMessages = messagesRef;
-  const chatMessages = fillMessageParts(chatRequest.messages);
-
-  mutate(chatMessages);
-
-  const existingStreamData = streamData() ?? [];
-
-  const constructedMessagesPayload = sendExtraMessageFields
-    ? chatMessages
-    : chatMessages.map(
-        ({
-          role,
-          content,
-          experimental_attachments,
-          data,
-          annotations,
-          toolInvocations,
-          parts,
-        }) => ({
-          role,
-          content,
-          ...(experimental_attachments !== undefined && {
-            experimental_attachments,
-          }),
-          ...(data !== undefined && { data }),
-          ...(annotations !== undefined && { annotations }),
-          ...(toolInvocations !== undefined && { toolInvocations }),
-          ...(parts !== undefined && { parts }),
-        }),
-      );
-
-  return await callChatApi({
-    api,
-    body: experimental_prepareRequestBody?.({
-      id: chatId,
-      messages: chatRequest.messages,
-      requestData: chatRequest.data,
-      requestBody: chatRequest.body,
-    }) ?? {
-      id: chatId,
-      messages: constructedMessagesPayload,
-      data: chatRequest.data,
-      ...extraMetadata.body,
-      ...chatRequest.body,
-    },
-    streamProtocol,
-    credentials: extraMetadata.credentials,
-    headers: {
-      ...extraMetadata.headers,
-      ...chatRequest.headers,
-    },
-    abortController: () => abortController,
-    restoreMessagesOnFailure() {
-      if (!keepLastMessageOnError) {
-        mutate(previousMessages);
-      }
-    },
-    onResponse,
-    onUpdate({ message, data, replaceLastMessage }) {
-      mutate([
-        ...(replaceLastMessage
-          ? chatMessages.slice(0, chatMessages.length - 1)
-          : chatMessages),
-        message,
-      ]);
-
-      if (data?.length) {
-        setStreamData([...existingStreamData, ...data]);
-      }
-    },
-    onToolCall,
-    onFinish,
-    generateId,
-    fetch,
-    lastMessage: chatMessages[chatMessages.length - 1],
-  });
-};
-
 const chatCache = new ReactiveLRU<string, Message[]>();
 
 export type UseChatOptions = SharedUseChatOptions & {
@@ -241,7 +140,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
    */
   experimental_prepareRequestBody?: (options: {
     id: string;
-    messages: Message[];
+    messages: UIMessage[];
     requestData?: JSONValue;
     requestBody?: object;
   }) => unknown;
@@ -323,26 +222,99 @@ export function useChat(
 
       abortController = new AbortController();
 
-      await processStreamedResponse(
-        api(),
-        chatRequest,
-        mutate,
-        setStreamData,
-        streamData,
-        extraMetadata,
-        messagesRef,
-        abortController,
-        generateId(),
-        useChatOptions().streamProtocol?.(),
-        useChatOptions().onFinish?.(),
-        useChatOptions().onResponse?.(),
-        useChatOptions().onToolCall?.(),
-        useChatOptions().sendExtraMessageFields?.(),
-        useChatOptions().fetch?.(),
-        useChatOptions().keepLastMessageOnError?.() ?? true,
-        chatId(),
-        useChatOptions().experimental_prepareRequestBody?.(),
-      );
+      const streamProtocol = useChatOptions().streamProtocol?.() ?? 'data';
+
+      const onFinish = useChatOptions().onFinish?.();
+      const onResponse = useChatOptions().onResponse?.();
+      const onToolCall = useChatOptions().onToolCall?.();
+
+      const sendExtraMessageFields =
+        useChatOptions().sendExtraMessageFields?.();
+
+      const keepLastMessageOnError =
+        useChatOptions().keepLastMessageOnError?.() ?? true;
+
+      const experimental_prepareRequestBody =
+        useChatOptions().experimental_prepareRequestBody?.();
+
+      // Do an optimistic update to the chat state to show the updated messages
+      // immediately.
+      const previousMessages = messagesRef;
+      const chatMessages = fillMessageParts(chatRequest.messages);
+
+      mutate(chatMessages);
+
+      const existingStreamData = streamData() ?? [];
+
+      const constructedMessagesPayload = sendExtraMessageFields
+        ? chatMessages
+        : chatMessages.map(
+            ({
+              role,
+              content,
+              experimental_attachments,
+              data,
+              annotations,
+              toolInvocations,
+              parts,
+            }) => ({
+              role,
+              content,
+              ...(experimental_attachments !== undefined && {
+                experimental_attachments,
+              }),
+              ...(data !== undefined && { data }),
+              ...(annotations !== undefined && { annotations }),
+              ...(toolInvocations !== undefined && { toolInvocations }),
+              ...(parts !== undefined && { parts }),
+            }),
+          );
+
+      await callChatApi({
+        api: api(),
+        body: experimental_prepareRequestBody?.({
+          id: chatId(),
+          messages: chatMessages,
+          requestData: chatRequest.data,
+          requestBody: chatRequest.body,
+        }) ?? {
+          id: chatId(),
+          messages: constructedMessagesPayload,
+          data: chatRequest.data,
+          ...extraMetadata.body,
+          ...chatRequest.body,
+        },
+        streamProtocol,
+        credentials: extraMetadata.credentials,
+        headers: {
+          ...extraMetadata.headers,
+          ...chatRequest.headers,
+        },
+        abortController: () => abortController,
+        restoreMessagesOnFailure() {
+          if (!keepLastMessageOnError) {
+            mutate(previousMessages);
+          }
+        },
+        onResponse,
+        onUpdate({ message, data, replaceLastMessage }) {
+          mutate([
+            ...(replaceLastMessage
+              ? chatMessages.slice(0, chatMessages.length - 1)
+              : chatMessages),
+            message,
+          ]);
+
+          if (data?.length) {
+            setStreamData([...existingStreamData, ...data]);
+          }
+        },
+        onToolCall,
+        onFinish,
+        generateId: generateId(),
+        fetch: useChatOptions().fetch?.(),
+        lastMessage: chatMessages[chatMessages.length - 1],
+      });
 
       abortController = null;
     } catch (err) {
