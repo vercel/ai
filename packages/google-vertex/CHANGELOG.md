@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 2.1.11
+
+### Patch Changes
+
+- 4da908a: feat (provider/google-vertex): add new gemini models
+
 ## 2.1.10
 
 ### Patch Changes
