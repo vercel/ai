@@ -170,7 +170,7 @@ Callback that is called when the LLM response and the final object validation ar
       onFinish?: OnFinishCallback<OBJECT>;
 
       /**
-       * @internal For test use only. May change without notice.
+       * Internal. For test use only. May change without notice.
        */
       _internal?: {
         generateId?: () => string;

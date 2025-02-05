@@ -198,7 +198,7 @@ A function that attempts to repair a tool call that failed to parse.
     onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
 
     /**
-     * @internal For test use only. May change without notice.
+     * Internal. For test use only. May change without notice.
      */
     _internal?: {
       generateId?: IDGenerator;

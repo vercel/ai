@@ -300,3 +300,53 @@ describe('options.providerMetadata', () => {
     expect(await simulateFlightServerRender(result.value)).toMatchSnapshot();
   });
 });
+
+describe('model.supportsUrl binding', () => {
+  it('should support models that use "this" context in supportsUrl', async () => {
+    let supportsUrlCalled = false;
+
+    class MockLanguageModelWithImageSupport extends MockLanguageModelV1 {
+      readonly supportsImageUrls = false;
+
+      constructor() {
+        super({
+          supportsUrl(url: URL) {
+            supportsUrlCalled = true;
+            // Reference 'this' to verify context
+            return this.modelId === 'mock-model-id';
+          },
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: 'world!' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          }),
+        });
+      }
+    }
+
+    const model = new MockLanguageModelWithImageSupport();
+    const result = await streamUI({
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'image', image: 'https://example.com/test.jpg' }],
+        },
+      ],
+    });
+
+    // Consume the stream to ensure all processing happens
+    await simulateFlightServerRender(result.value);
+
+    expect(supportsUrlCalled).toBe(true);
+  });
+});

@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 0.0.7
+
+### Patch Changes
+
+- 18713a5: feat (provider/perplexity): add support for return_images
+
 ## 0.0.6
 
 ### Patch Changes
