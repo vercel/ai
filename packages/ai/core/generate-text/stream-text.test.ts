@@ -184,7 +184,7 @@ describe('streamText', () => {
       );
     });
 
-    it('should re-throw error in doStream', async () => {
+    it('should swallow error to prevent server crash', async () => {
       const result = streamText({
         model: new MockLanguageModelV1({
           doStream: async () => {
@@ -194,9 +194,9 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      await expect(async () => {
-        await convertAsyncIterableToArray(result.textStream);
-      }).rejects.toThrow('test error');
+      expect(
+        await convertAsyncIterableToArray(result.textStream),
+      ).toStrictEqual([]);
     });
   });
 
