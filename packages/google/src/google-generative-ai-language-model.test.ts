@@ -654,6 +654,43 @@ describe('doGenerate', () => {
     }),
   );
 
+  it(
+    'should extract sources from grounding metadata',
+    withTestServer(
+      prepareJsonResponse({
+        content: 'test response',
+        groundingMetadata: {
+          groundingChunks: [
+            {
+              web: { uri: 'https://source.example.com', title: 'Source Title' },
+            },
+            {
+              retrievedContext: {
+                uri: 'https://not-a-source.example.com',
+                title: 'Not a Source',
+              },
+            },
+          ],
+        },
+      }),
+      async () => {
+        const { sources } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(sources).toEqual([
+          {
+            sourceType: 'url',
+            url: 'https://source.example.com',
+            title: 'Source Title',
+          },
+        ]);
+      },
+    ),
+  );
+
   describe('async headers handling', () => {
     it(
       'merges async config headers with sync request headers',
