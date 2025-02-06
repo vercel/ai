@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.23
+
+### Patch Changes
+
+- b08f7c1: fix (ai/core): suppress errors in textStream
+
 ## 4.1.22
 
 ### Patch Changes
