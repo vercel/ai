@@ -117,6 +117,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param experimental_generateMessageId - Generate a unique ID for each message.
 
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
+@param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
 @param onFinish - Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
@@ -151,6 +152,7 @@ export function streamText<
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   onChunk,
+  onError,
   onFinish,
   onStepFinish,
   _internal: {
@@ -268,6 +270,11 @@ Callback that is called for each chunk of the stream. The stream processing will
     }) => Promise<void> | void;
 
     /**
+Callback that is invoked when an error occurs during streaming. You can use it to log errors.
+     */
+    onError?: (event: { error: unknown }) => Promise<void> | void;
+
+    /**
 Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
 
@@ -317,6 +324,7 @@ Internal. For test use only. May change without notice.
     continueSteps,
     providerOptions,
     onChunk,
+    onError,
     onFinish,
     onStepFinish,
     now,
@@ -478,6 +486,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     continueSteps,
     providerOptions,
     onChunk,
+    onError,
     onFinish,
     onStepFinish,
     now,
@@ -520,6 +529,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             }
           >;
         }) => Promise<void> | void);
+    onError: undefined | ((event: { error: unknown }) => Promise<void> | void);
     onFinish:
       | undefined
       | ((
@@ -586,6 +596,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           part.type === 'tool-call-delta'
         ) {
           await onChunk?.({ chunk: part });
+        }
+
+        if (part.type === 'error') {
+          await onError?.({ error: part.error });
         }
 
         if (part.type === 'text-delta') {
