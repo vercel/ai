@@ -1410,8 +1410,6 @@ However, the LLM results are expected to be small enough to not cause issues.
           transform({ part }, controller) {
             if (part.type === 'text-delta') {
               controller.enqueue(part.textDelta);
-            } else if (part.type === 'error') {
-              controller.error(part.error);
             }
           },
         }),
