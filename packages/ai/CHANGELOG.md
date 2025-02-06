@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.22
+
+### Patch Changes
+
+- 2bec72a: feat (ai/core): add onError callback to streamText
+
 ## 4.1.21
 
 ### Patch Changes
