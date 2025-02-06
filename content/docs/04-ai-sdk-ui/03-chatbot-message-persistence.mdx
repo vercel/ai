@@ -274,3 +274,54 @@ export async function POST(req: Request) {
   // ...
 }
 ```
+
+## Handling client disconnects
+
+By default, the AI SDK `streamText` function uses backpressure to the language model provider to prevent
+the consumption of tokens that are not yet requested.
+
+However, this means that when the client disconnects, e.g. by closing the browser tab or because of a network issue,
+the stream from the LLM will be aborted and the conversation may end up in a broken state.
+
+Assuming that you have a storage solution in place, you can use the `consumeStream` method to consume the stream on the backend,
+and then save the result as usual.
+`consumeStream` effectively removes the backpressure,
+meaning that the result is stored even when the client has already disconnected.
+
+```tsx filename="app/api/chat/route.ts" highlight="21-23"
+import { appendResponseMessages, streamText } from 'ai';
+import { saveChat } from '@tools/chat-store';
+
+export async function POST(req: Request) {
+  const { messages, id } = await req.json();
+
+  const result = streamText({
+    model,
+    messages,
+    async onFinish({ response }) {
+      await saveChat({
+        id,
+        messages: appendResponseMessages({
+          messages,
+          responseMessages: response.messages,
+        }),
+      });
+    },
+  });
+
+  // consume the stream to ensure it runs to completion & triggers onFinish
+  // even when the client response is aborted:
+  result.consumeStream(); // no await
+
+  return result.toDataStreamResponse();
+}
+```
+
+When the client reloads the page after a disconnect, the chat will be restored from the storage solution.
+
+<Note>
+  In production applications, you would also track the state of the request (in
+  progress, complete) in your stored messages and use it on the client to cover
+  the case where the client reloads the page after a disconnection, but the
+  streaming is not yet complete.
+</Note>
