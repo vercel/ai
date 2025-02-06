@@ -3,6 +3,7 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
+  LanguageModelV1Source,
 } from '@ai-sdk/provider';
 
 // Re-export LanguageModelV1 types for the middleware:
@@ -56,6 +57,11 @@ Warning from the model provider for this call. The call will proceed, but e.g.
 some settings might not be supported, which can lead to suboptimal results.
 */
 export type CallWarning = LanguageModelV1CallWarning;
+
+/**
+A source that has been used as input to generate the response.
+*/
+export type Source = LanguageModelV1Source;
 
 /**
 Tool choice for the generation. It supports the following settings:

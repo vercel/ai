@@ -1,4 +1,3 @@
-import { LanguageModelV1Source } from '@ai-sdk/provider';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import {
   CallWarning,
@@ -6,6 +5,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
@@ -102,6 +102,8 @@ results that can be fully encapsulated in the provider.
    */
   readonly experimental_providerMetadata: ProviderMetadata | undefined;
 
-  // TODO different type
-  readonly sources: LanguageModelV1Source[] | undefined;
+  /**
+Sources that have been used as input to generate the response.
+   */
+  readonly sources: Source[] | undefined;
 }
