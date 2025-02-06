@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 1.1.8
+
+### Patch Changes
+
+- 0c324f7: fix (provider/cohere): deal gracefully with tools with no parameters
+
 ## 1.1.7
 
 ### Patch Changes
