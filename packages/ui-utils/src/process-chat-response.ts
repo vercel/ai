@@ -1,7 +1,15 @@
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { parsePartialJson } from './parse-partial-json';
 import { processDataStream } from './process-data-stream';
-import type { JSONValue, Message, UseChatOptions } from './types';
+import type {
+  JSONValue,
+  ReasoningUIPart,
+  TextUIPart,
+  ToolInvocation,
+  ToolInvocationUIPart,
+  UIMessage,
+  UseChatOptions,
+} from './types';
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 import {
   calculateLanguageModelUsage,
@@ -19,19 +27,19 @@ export async function processChatResponse({
 }: {
   stream: ReadableStream<Uint8Array>;
   update: (options: {
-    message: Message;
+    message: UIMessage;
     data: JSONValue[] | undefined;
     replaceLastMessage: boolean;
   }) => void;
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (options: {
-    message: Message | undefined;
+    message: UIMessage | undefined;
     finishReason: LanguageModelV1FinishReason;
     usage: LanguageModelUsage;
   }) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
-  lastMessage: Message | undefined;
+  lastMessage: UIMessage | undefined;
 }) {
   const replaceLastMessage = lastMessage?.role === 'assistant';
   let step = replaceLastMessage
@@ -42,14 +50,38 @@ export async function processChatResponse({
       }, 0) ?? 0)
     : 0;
 
-  const message: Message = replaceLastMessage
+  const message: UIMessage = replaceLastMessage
     ? structuredClone(lastMessage)
     : {
         id: generateId(),
         createdAt: getCurrentDate(),
         role: 'assistant',
         content: '',
+        parts: [],
       };
+
+  let currentTextPart: TextUIPart | undefined = undefined;
+  let currentReasoningPart: ReasoningUIPart | undefined = undefined;
+
+  function updateToolInvocationPart(
+    toolCallId: string,
+    invocation: ToolInvocation,
+  ) {
+    const part = message.parts.find(
+      part =>
+        part.type === 'tool-invocation' &&
+        part.toolInvocation.toolCallId === toolCallId,
+    ) as ToolInvocationUIPart | undefined;
+
+    if (part != null) {
+      part.toolInvocation = invocation;
+    } else {
+      message.parts.push({
+        type: 'tool-invocation',
+        toolInvocation: invocation,
+      });
+    }
+  }
 
   const data: JSONValue[] = [];
 
@@ -91,7 +123,7 @@ export async function processChatResponse({
       // is updated with SWR (without it, the changes get stuck in SWR and are not
       // forwarded to rendering):
       revisionId: generateId(),
-    } as Message;
+    } as UIMessage;
 
     update({
       message: copiedMessage,
@@ -103,10 +135,30 @@ export async function processChatResponse({
   await processDataStream({
     stream,
     onTextPart(value) {
+      if (currentTextPart == null) {
+        currentTextPart = {
+          type: 'text',
+          text: value,
+        };
+        message.parts.push(currentTextPart);
+      } else {
+        currentTextPart.text += value;
+      }
+
       message.content += value;
       execUpdate();
     },
     onReasoningPart(value) {
+      if (currentReasoningPart == null) {
+        currentReasoningPart = {
+          type: 'reasoning',
+          reasoning: value,
+        };
+        message.parts.push(currentReasoningPart);
+      } else {
+        currentReasoningPart.reasoning += value;
+      }
+
       message.reasoning = (message.reasoning ?? '') + value;
       execUpdate();
     },
@@ -123,13 +175,17 @@ export async function processChatResponse({
         index: message.toolInvocations.length,
       };
 
-      message.toolInvocations.push({
+      const invocation = {
         state: 'partial-call',
         step,
         toolCallId: value.toolCallId,
         toolName: value.toolName,
         args: undefined,
-      });
+      } as const;
+
+      message.toolInvocations.push(invocation);
+
+      updateToolInvocationPart(value.toolCallId, invocation);
 
       execUpdate();
     },
@@ -140,35 +196,40 @@ export async function processChatResponse({
 
       const { value: partialArgs } = parsePartialJson(partialToolCall.text);
 
-      message.toolInvocations![partialToolCall.index] = {
+      const invocation = {
         state: 'partial-call',
         step: partialToolCall.step,
         toolCallId: value.toolCallId,
         toolName: partialToolCall.toolName,
         args: partialArgs,
-      };
+      } as const;
+
+      message.toolInvocations![partialToolCall.index] = invocation;
+
+      updateToolInvocationPart(value.toolCallId, invocation);
 
       execUpdate();
     },
     async onToolCallPart(value) {
+      const invocation = {
+        state: 'call',
+        step,
+        ...value,
+      } as const;
+
       if (partialToolCalls[value.toolCallId] != null) {
         // change the partial tool call to a full tool call
-        message.toolInvocations![partialToolCalls[value.toolCallId].index] = {
-          state: 'call',
-          step,
-          ...value,
-        };
+        message.toolInvocations![partialToolCalls[value.toolCallId].index] =
+          invocation;
       } else {
         if (message.toolInvocations == null) {
           message.toolInvocations = [];
         }
 
-        message.toolInvocations.push({
-          state: 'call',
-          step,
-          ...value,
-        });
+        message.toolInvocations.push(invocation);
       }
+
+      updateToolInvocationPart(value.toolCallId, invocation);
 
       // invoke the onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
@@ -176,13 +237,18 @@ export async function processChatResponse({
       if (onToolCall) {
         const result = await onToolCall({ toolCall: value });
         if (result != null) {
-          // store the result in the tool invocation
-          message.toolInvocations![message.toolInvocations!.length - 1] = {
+          const invocation = {
             state: 'result',
             step,
             ...value,
             result,
-          };
+          } as const;
+
+          // store the result in the tool invocation
+          message.toolInvocations![message.toolInvocations!.length - 1] =
+            invocation;
+
+          updateToolInvocationPart(value.toolCallId, invocation);
         }
       }
 
@@ -207,11 +273,15 @@ export async function processChatResponse({
         );
       }
 
-      toolInvocations[toolInvocationIndex] = {
+      const invocation = {
         ...toolInvocations[toolInvocationIndex],
         state: 'result' as const,
         ...value,
-      };
+      } as const;
+
+      toolInvocations[toolInvocationIndex] = invocation;
+
+      updateToolInvocationPart(value.toolCallId, invocation);
 
       execUpdate();
     },
@@ -230,6 +300,10 @@ export async function processChatResponse({
     },
     onFinishStepPart(value) {
       step += 1;
+
+      // reset the current text and reasoning parts
+      currentTextPart = value.isContinued ? currentTextPart : undefined;
+      currentReasoningPart = undefined;
     },
     onStartStepPart(value) {
       // keep message id stable when we are updating an existing message:

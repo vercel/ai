@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 1.1.7
+
+### Patch Changes
+
+- 4d5e0a9: fix (provider/cohere): omit tool plan content from normal response text
+
 ## 1.1.6
 
 ### Patch Changes

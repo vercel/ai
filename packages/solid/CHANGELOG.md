@@ -1,5 +1,26 @@
 # @ai-sdk/solid
 
+## 1.1.12
+
+### Patch Changes
+
+- 244dd77: feat (ui/solid): add support for prepareRequestBody
+
+## 1.1.11
+
+### Patch Changes
+
+- bcc61d4: feat (ui): introduce message parts for useChat
+- Updated dependencies [bcc61d4]
+  - @ai-sdk/ui-utils@1.1.10
+
+## 1.1.10
+
+### Patch Changes
+
+- Updated dependencies [6b8cc14]
+  - @ai-sdk/ui-utils@1.1.9
+
 ## 1.1.9
 
 ### Patch Changes

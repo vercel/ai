@@ -73,6 +73,11 @@ for await (const textPart of result.textStream) {
   `result.textStream` is both a `ReadableStream` and an `AsyncIterable`.
 </Note>
 
+<Note type="warning">
+  `streamText` immediately starts streaming and suppresses errors to prevent
+  server crashes. Use the `onError` callback to log errors.
+</Note>
+
 You can use `streamText` on it's own or in combination with [AI SDK
 UI](/examples/next-pages/basics/streaming-text-generation) and [AI SDK
 RSC](/examples/next-app/basics/streaming-text-generation).
@@ -93,6 +98,25 @@ It also provides several promises that resolve when the stream is finished:
 - `result.text`: The generated text.
 - `result.finishReason`: The reason the model finished generating text.
 - `result.usage`: The usage of the model during text generation.
+
+### `onError` callback
+
+`streamText` immediately starts streaming to enable sending data without waiting for the model.
+Errors become part of the stream and are not thrown to prevent e.g. servers from crashing.
+
+To log errors, you can provide an `onError` callback that is triggered when an error occurs.
+
+```tsx highlight="6-8"
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: yourModel,
+  prompt: 'Invent a new holiday and describe its traditions.',
+  onError({ error }) {
+    console.error(error); // your error logging logic here
+  },
+});
+```
 
 ### `onChunk` callback
 

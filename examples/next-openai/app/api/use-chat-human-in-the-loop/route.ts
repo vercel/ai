@@ -1,88 +1,42 @@
 import { openai } from '@ai-sdk/openai';
-import {
-  createDataStreamResponse,
-  formatDataStreamPart,
-  streamText,
-  tool,
-  ToolInvocation,
-} from 'ai';
-import { z } from 'zod';
+import { createDataStreamResponse, Message, streamText } from 'ai';
+import { processToolCalls } from './utils';
+import { tools } from './tools';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: Message[] } = await req.json();
 
   return createDataStreamResponse({
     execute: async dataStream => {
-      const lastMessage = messages[messages.length - 1];
-      lastMessage.toolInvocations = await Promise.all(
-        lastMessage.toolInvocations?.map(
-          async (toolInvocation: ToolInvocation) => {
-            if (
-              toolInvocation.toolName !== 'getWeatherInformation' ||
-              toolInvocation.state !== 'result'
-            ) {
-              return toolInvocation;
-            }
-
-            switch (toolInvocation.result) {
-              case 'Yes, confirmed.': {
-                const result = await executeWeatherTool(toolInvocation.args);
-
-                // forward updated tool result to the client:
-                dataStream.write(
-                  formatDataStreamPart('tool_result', {
-                    toolCallId: toolInvocation.toolCallId,
-                    result,
-                  }),
-                );
-
-                // update the messages:
-                return { ...toolInvocation, result };
-              }
-              case 'No, denied.': {
-                const result =
-                  'Error: User denied access to weather information';
-
-                // forward updated tool result to the client:
-                dataStream.write(
-                  formatDataStreamPart('tool_result', {
-                    toolCallId: toolInvocation.toolCallId,
-                    result,
-                  }),
-                );
-
-                // update the messages:
-                return { ...toolInvocation, result };
-              }
-              default:
-                return toolInvocation;
-            }
+      // Utility function to handle tools that require human confirmation
+      // Checks for confirmation in last message and then runs associated tool
+      const processedMessages = await processToolCalls(
+        {
+          messages,
+          dataStream,
+          tools,
+        },
+        {
+          // type-safe object for tools without an execute function
+          getWeatherInformation: async ({ city }) => {
+            const conditions = ['sunny', 'cloudy', 'rainy', 'snowy'];
+            return `The weather in ${city} is ${
+              conditions[Math.floor(Math.random() * conditions.length)]
+            }.`;
           },
-        ) ?? [],
+        },
       );
 
       const result = streamText({
         model: openai('gpt-4o'),
-        messages,
-        tools: {
-          // server-side tool with human in the loop:
-          getWeatherInformation: tool({
-            description: 'show the weather in a given city to the user',
-            parameters: z.object({ city: z.string() }),
-            // no execute function, we want human in the loop
-          }),
-        },
+        messages: processedMessages,
+        tools,
       });
 
       result.mergeIntoDataStream(dataStream);
     },
   });
-}
-
-async function executeWeatherTool({}: { city: string }) {
-  const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
-  return weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
 }

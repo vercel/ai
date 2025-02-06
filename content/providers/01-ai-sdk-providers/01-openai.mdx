@@ -407,16 +407,17 @@ console.log('Usage:', {
 ```
 
 <Note>
+  System messages are automatically converted to OpenAI developer messages for
+  reasoning models when supported. For models that do not support developer
+  messages, such as `o1-preview`, system messages are removed and a warning is
+  added.
+</Note>
+
+<Note>
   Reasoning models like `o1-mini` and `o1-preview` require additional runtime
   inference to complete their reasoning phase before generating a response. This
   introduces longer latency compared to other models, with `o1-preview`
   exhibiting significantly more inference time than `o1-mini`.
-</Note>
-
-<Note>
-  For some models such as `o1-preview`, system messages are removed and a
-  warning is added. For other reasoning models, system messages are converted to
-  `developer` messages.
 </Note>
 
 <Note>

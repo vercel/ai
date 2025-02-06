@@ -1,5 +1,24 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`zodSchema > json schema conversion > nullable > should support nullable 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "location": {
+      "type": [
+        "string",
+        "null",
+      ],
+    },
+  },
+  "required": [
+    "location",
+  ],
+  "type": "object",
+}
+`;
+
 exports[`zodSchema > json schema conversion > should create a schema with simple types 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -20,7 +39,7 @@ exports[`zodSchema > json schema conversion > should create a schema with simple
 }
 `;
 
-exports[`zodSchema > json schema conversion > should duplicate referenced schemas (and not use references) 1`] = `
+exports[`zodSchema > json schema conversion > should duplicate referenced schemas (and not use references) by default 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -181,6 +200,77 @@ exports[`zodSchema > json schema conversion > should support required enums 1`] 
   },
   "required": [
     "type",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`zodSchema > json schema conversion > should use recursive references with z.lazy when useReferences is true 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "category": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+        },
+        "subcategories": {
+          "items": {
+            "$ref": "#/properties/category",
+          },
+          "type": "array",
+        },
+      },
+      "required": [
+        "name",
+        "subcategories",
+      ],
+      "type": "object",
+    },
+  },
+  "required": [
+    "category",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`zodSchema > json schema conversion > should use references when useReferences is true 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "group1": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "number": {
+            "type": "number",
+          },
+          "text": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "text",
+          "number",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+    "group2": {
+      "items": {
+        "$ref": "#/properties/group1/items",
+      },
+      "type": "array",
+    },
+  },
+  "required": [
+    "group1",
+    "group2",
   ],
   "type": "object",
 }

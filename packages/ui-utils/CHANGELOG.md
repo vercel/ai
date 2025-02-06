@@ -1,5 +1,17 @@
 # @ai-sdk/ui-utils
 
+## 1.1.10
+
+### Patch Changes
+
+- bcc61d4: feat (ui): introduce message parts for useChat
+
+## 1.1.9
+
+### Patch Changes
+
+- 6b8cc14: feat (ai/core): support recursive zod schemas
+
 ## 1.1.8
 
 ### Patch Changes

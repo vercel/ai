@@ -28,7 +28,6 @@ describe('doGenerate', () => {
 
   function prepareJsonResponse({
     text = '',
-    tool_plan = '',
     tool_calls,
     finish_reason = 'COMPLETE',
     tokens = {
@@ -38,7 +37,6 @@ describe('doGenerate', () => {
     generation_id = 'dad0c7cd-7982-42a7-acfb-706ccf598291',
   }: {
     text?: string;
-    tool_plan?: string;
     tool_calls?: any;
     finish_reason?: string;
     tokens?: {
@@ -61,9 +59,6 @@ describe('doGenerate', () => {
         tokens,
       },
     };
-    if (tool_plan) {
-      server.responseBodyJson.message.tool_plan = tool_plan;
-    }
   }
 
   it('should extract text response', async () => {
@@ -80,7 +75,6 @@ describe('doGenerate', () => {
 
   it('should extract tool plan', async () => {
     prepareJsonResponse({
-      tool_plan: 'Looking up the stock price for AAPL.',
       tool_calls: [
         {
           id: 'test-id-1',
@@ -124,7 +118,6 @@ describe('doGenerate', () => {
         args: '{"value":"example value"}',
       },
     ]);
-    expect(text).toStrictEqual('Looking up the stock price for AAPL.');
     expect(finishReason).toStrictEqual('stop');
   });
 
@@ -455,7 +448,6 @@ describe('doStream', () => {
   it('should stream tool deltas', async () => {
     server.responseChunks = [
       `event: message-start\ndata: {"type":"message-start","id":"29f14a5a-11de-4cae-9800-25e4747408ea"}\n\n`,
-      `event: tool-plan-delta\ndata: {"type":"tool-plan-delta","delta":{"message":{"tool_plan":"Looking up the stock price for AAPL."}}}\n\n`,
       `event: tool-call-start\ndata: {"type":"tool-call-start","delta":{"message":{"tool_calls":{"id":"test-id-1","type":"function","function":{"name":"test-tool","arguments":""}}}}}\n\n`,
       `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"{\\n    \\""}}}}}\n\n`,
       `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"ticker"}}}}}\n\n`,
@@ -497,10 +489,6 @@ describe('doStream', () => {
 
     expect(responseArray).toStrictEqual([
       { type: 'response-metadata', id: '29f14a5a-11de-4cae-9800-25e4747408ea' },
-      {
-        type: 'text-delta',
-        textDelta: 'Looking up the stock price for AAPL.',
-      },
       {
         type: 'tool-call-delta',
         toolCallType: 'function',

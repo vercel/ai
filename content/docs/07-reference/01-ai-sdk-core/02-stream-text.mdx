@@ -14,7 +14,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
 const { textStream } = streamText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4o'),
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -738,6 +738,25 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'onError',
+      type: '(event: OnErrorResult) => Promise<void> |void',
+      isOptional: true,
+      description:
+        'Callback that is called when an error occurs during streaming. You can use it to log errors.',
+      properties: [
+        {
+          type: 'OnErrorResult',
+          parameters: [
+            {
+              name: 'error',
+              type: 'unknown',
+              description: 'The error that occurred.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'experimental_output',
       type: 'Output',
       isOptional: true,
@@ -1317,7 +1336,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'textStream',
       type: 'AsyncIterable<string> & ReadableStream<string>',
       description:
-        'A text stream that returns only the generated text deltas. You can use it as either an AsyncIterable or a ReadableStream. When an error occurs, the stream will throw the error.',
+        'A text stream that returns only the generated text deltas. You can use it as either an AsyncIterable or a ReadableStream. Errors are suppressed to prevent server crashes. Use the onError callback to log errors.',
     },
     {
       name: 'fullStream',
@@ -1754,6 +1773,12 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'AsyncIterableStream<PARTIAL_OUTPUT>',
       description:
         'A stream of partial outputs. It uses the `experimental_output` specification.',
+    },
+    {
+      name: 'consumeStream',
+      type: '() => Promise<void>',
+      description:
+        'Consumes the stream without processing the parts. This is useful to force the stream to finish.',
     },
     {
       name: 'pipeDataStreamToResponse',

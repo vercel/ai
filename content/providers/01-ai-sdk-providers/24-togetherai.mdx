@@ -74,6 +74,23 @@ You can create [Together.ai models](https://docs.together.ai/docs/serverless-mod
 const model = togetherai('google/gemma-2-9b-it');
 ```
 
+### Reasoning Models
+
+Together.ai exposes the thinking of `deepseek-ai/DeepSeek-R1` in the generated text using the `<think>` tag.
+You can use the `extractReasoningMiddleware` to extract this reasoning and expose it as a `reasoning` property on the result:
+
+```ts
+import { togetherai } from '@ai-sdk/togetherai';
+import { wrapLanguageModel, extractReasoningMiddleware } from 'ai';
+
+const enhancedModel = wrapLanguageModel({
+  model: togetherai('deepseek-ai/DeepSeek-R1'),
+  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+});
+```
+
+You can then use that enhanced model in functions like `generateText` and `streamText`.
+
 ### Example
 
 You can use Together.ai language models to generate text with the `generateText` function:

@@ -7,8 +7,10 @@ export const POST = async (event: APIEvent) => {
   const { messages } = await event.request.json();
 
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-4o'),
     messages,
+    toolCallStreaming: true,
+    maxSteps: 5, // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {

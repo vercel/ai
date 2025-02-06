@@ -184,7 +184,7 @@ describe('streamText', () => {
       );
     });
 
-    it('should re-throw error in doStream', async () => {
+    it('should swallow error to prevent server crash', async () => {
       const result = streamText({
         model: new MockLanguageModelV1({
           doStream: async () => {
@@ -194,9 +194,9 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      await expect(async () => {
-        await convertAsyncIterableToArray(result.textStream);
-      }).rejects.toThrow('test error');
+      expect(
+        await convertAsyncIterableToArray(result.textStream),
+      ).toStrictEqual([]);
     });
   });
 
@@ -1417,8 +1417,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      // consume stream (runs in parallel)
-      convertAsyncIterableToArray(result.textStream);
+      result.consumeStream();
 
       expect(await result.warnings).toStrictEqual([
         { type: 'other', message: 'test-warning' },
@@ -1443,8 +1442,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      // consume stream (runs in parallel)
-      convertAsyncIterableToArray(result.textStream);
+      result.consumeStream();
 
       assert.deepStrictEqual(await result.usage, {
         completionTokens: 10,
@@ -1471,8 +1469,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      // consume stream (runs in parallel)
-      convertAsyncIterableToArray(result.textStream);
+      result.consumeStream();
 
       expect(await result.finishReason).toStrictEqual('stop');
     });
@@ -1498,8 +1495,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      // consume stream (runs in parallel)
-      convertAsyncIterableToArray(result.textStream);
+      result.consumeStream();
 
       expect(await result.experimental_providerMetadata).toStrictEqual({
         testProvider: { testKey: 'testValue' },
@@ -1531,8 +1527,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      // consume stream (runs in parallel)
-      convertAsyncIterableToArray(result.textStream);
+      result.consumeStream();
 
       expect(await result.request).toStrictEqual({
         body: 'test body',
@@ -1565,8 +1560,7 @@ describe('streamText', () => {
         experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      // consume stream (runs in parallel)
-      convertAsyncIterableToArray(result.textStream);
+      result.consumeStream();
 
       expect(await result.response).toMatchSnapshot();
     });
@@ -1579,8 +1573,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      // consume stream (runs in parallel)
-      convertAsyncIterableToArray(result.textStream);
+      result.consumeStream();
 
       assert.strictEqual(await result.text, 'Hello, world!');
     });
@@ -1616,8 +1609,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      // consume stream
-      await convertAsyncIterableToArray(result.textStream);
+      result.consumeStream();
 
       expect(await result.reasoning).toStrictEqual(
         'I will open the conversation with witty banter.',
@@ -1662,8 +1654,7 @@ describe('streamText', () => {
         },
       });
 
-      // consume stream
-      await convertAsyncIterableToArray(result.textStream);
+      result.consumeStream();
 
       expect(await result.steps).toMatchSnapshot();
     });
@@ -1697,8 +1688,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      // consume stream (runs in parallel)
-      convertAsyncIterableToArray(result.textStream);
+      result.consumeStream();
 
       expect(await result.toolCalls).toStrictEqual([
         {
@@ -1740,8 +1730,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      // consume stream (runs in parallel)
-      convertAsyncIterableToArray(result.textStream);
+      result.consumeStream();
 
       assert.deepStrictEqual(await result.toolResults, [
         {
@@ -1774,7 +1763,7 @@ describe('streamText', () => {
     beforeEach(async () => {
       result = [];
 
-      const { textStream } = streamText({
+      const resultObject = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
             { type: 'text-delta', textDelta: 'Hello' },
@@ -1835,8 +1824,7 @@ describe('streamText', () => {
         },
       });
 
-      // consume stream
-      await convertAsyncIterableToArray(textStream);
+      await resultObject.consumeStream();
     });
 
     it('should return events in order', async () => {
@@ -1887,13 +1875,36 @@ describe('streamText', () => {
     });
   });
 
+  describe('options.onError', () => {
+    it('should invoke onError', async () => {
+      const result: Array<{ error: unknown }> = [];
+
+      const resultObject = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => {
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        onError(event) {
+          console.log('foo');
+          result.push(event);
+        },
+      });
+
+      await resultObject.consumeStream();
+
+      expect(result).toStrictEqual([{ error: new Error('test error') }]);
+    });
+  });
+
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
       let result!: Parameters<
         Required<Parameters<typeof streamText>[0]>['onFinish']
       >[0];
 
-      const { textStream } = streamText({
+      const resultObject = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
             {
@@ -1937,7 +1948,7 @@ describe('streamText', () => {
         experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      await convertAsyncIterableToArray(textStream); // consume stream
+      await resultObject.consumeStream();
 
       expect(result).toMatchSnapshot();
     });
@@ -1982,7 +1993,7 @@ describe('streamText', () => {
         experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      await convertAsyncIterableToArray(result.textStream); // consume stream
+      result.consumeStream();
 
       expect((await result.response).messages).toMatchSnapshot();
     });
@@ -2017,7 +2028,7 @@ describe('streamText', () => {
         experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      await convertAsyncIterableToArray(result.textStream); // consume stream
+      result.consumeStream();
 
       expect((await result.response).messages).toMatchSnapshot();
     });
@@ -2215,7 +2226,7 @@ describe('streamText', () => {
 
       describe('callbacks', () => {
         beforeEach(async () => {
-          await convertAsyncIterableToArray(result.fullStream); // consume stream
+          await result.consumeStream();
         });
 
         it('onFinish should send correct information', async () => {
@@ -2229,7 +2240,7 @@ describe('streamText', () => {
 
       describe('value promises', () => {
         beforeEach(async () => {
-          await convertAsyncIterableToArray(result.fullStream); // consume stream
+          await result.consumeStream();
         });
 
         it('result.usage should contain total token usage', async () => {
@@ -2258,7 +2269,7 @@ describe('streamText', () => {
       });
 
       it('should record telemetry data for each step', async () => {
-        await convertAsyncIterableToArray(result.fullStream); // consume stream
+        await result.consumeStream();
         expect(tracer.jsonSpans).toMatchSnapshot();
       });
     });
@@ -2509,7 +2520,7 @@ describe('streamText', () => {
 
       describe('callbacks', () => {
         beforeEach(async () => {
-          await convertAsyncIterableToArray(result.fullStream); // consume stream
+          await result.consumeStream();
         });
 
         it('onFinish should send correct information', async () => {
@@ -2523,7 +2534,7 @@ describe('streamText', () => {
 
       describe('value promises', () => {
         beforeEach(async () => {
-          await convertAsyncIterableToArray(result.fullStream); // consume stream
+          await result.consumeStream();
         });
 
         it('result.usage should contain total token usage', async () => {
@@ -2566,7 +2577,7 @@ describe('streamText', () => {
       });
 
       it('should record telemetry data for each step', async () => {
-        await convertAsyncIterableToArray(result.fullStream); // consume stream
+        await result.consumeStream();
         expect(tracer.jsonSpans).toMatchSnapshot();
       });
 
@@ -2717,8 +2728,7 @@ describe('streamText', () => {
         },
       });
 
-      // consume stream
-      await convertAsyncIterableToArray(result.textStream);
+      await result.consumeStream();
 
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
@@ -2749,8 +2759,7 @@ describe('streamText', () => {
         _internal: { now: mockValues(0, 100, 500) },
       });
 
-      // consume stream
-      await convertAsyncIterableToArray(result.textStream);
+      await result.consumeStream();
 
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
@@ -2791,8 +2800,7 @@ describe('streamText', () => {
         _internal: { now: mockValues(0, 100, 500) },
       });
 
-      // consume stream
-      await convertAsyncIterableToArray(result.textStream);
+      await result.consumeStream();
 
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
@@ -2838,8 +2846,7 @@ describe('streamText', () => {
         _internal: { now: mockValues(0, 100, 500) },
       });
 
-      // consume stream
-      await convertAsyncIterableToArray(result.textStream);
+      await result.consumeStream();
 
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
@@ -3049,8 +3056,7 @@ describe('streamText', () => {
         ],
       });
 
-      // Consume the stream to ensure all processing happens
-      await convertAsyncIterableToArray(result.textStream);
+      await result.consumeStream();
 
       expect(supportsUrlCalled).toBe(true);
       expect(await result.text).toBe('Hello, world!');
@@ -3230,8 +3236,7 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        // consume stream
-        await convertAsyncIterableToArray(result.fullStream);
+        await result.consumeStream();
 
         expect(await result.text).toStrictEqual('HELLO, WORLD!');
       });
@@ -3243,8 +3248,7 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        // consume stream
-        await convertAsyncIterableToArray(result.fullStream);
+        await result.consumeStream();
 
         expect(await result.response).toStrictEqual({
           id: expect.any(String),
@@ -3295,8 +3299,7 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        // consume stream
-        await convertAsyncIterableToArray(result.fullStream);
+        await result.consumeStream();
 
         expect(await result.usage).toStrictEqual({
           completionTokens: 100,
@@ -3330,8 +3333,7 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        // consume stream
-        await convertAsyncIterableToArray(result.fullStream);
+        await result.consumeStream();
 
         expect(await result.finishReason).toStrictEqual('stop');
       });
@@ -3366,8 +3368,7 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        // consume stream
-        await convertAsyncIterableToArray(result.fullStream);
+        await result.consumeStream();
 
         expect(await result.toolCalls).toStrictEqual([
           {
@@ -3409,8 +3410,7 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        // consume stream
-        await convertAsyncIterableToArray(result.fullStream);
+        await result.consumeStream();
 
         expect(await result.toolResults).toStrictEqual([
           {
@@ -3459,8 +3459,7 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        // consume stream
-        await convertAsyncIterableToArray(result.fullStream);
+        await result.consumeStream();
 
         expect(await result.steps).toStrictEqual([
           {
@@ -3565,8 +3564,7 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform(),
         });
 
-        // consume stream (runs in parallel)
-        convertAsyncIterableToArray(result.textStream);
+        result.consumeStream();
 
         expect(await result.request).toStrictEqual({
           body: 'TEST BODY',
@@ -3602,8 +3600,7 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform(),
         });
 
-        // consume stream (runs in parallel)
-        convertAsyncIterableToArray(result.textStream);
+        result.consumeStream();
 
         expect(
           JSON.stringify(await result.experimental_providerMetadata),
@@ -3621,7 +3618,7 @@ describe('streamText', () => {
           Required<Parameters<typeof streamText>[0]>['onFinish']
         >[0];
 
-        const { textStream } = streamText({
+        const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
               {
@@ -3666,7 +3663,7 @@ describe('streamText', () => {
           experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
-        await convertAsyncIterableToArray(textStream); // consume stream
+        await resultObject.consumeStream();
 
         expect(result).toMatchSnapshot();
       });
@@ -3676,7 +3673,7 @@ describe('streamText', () => {
           Required<Parameters<typeof streamText>[0]>['onStepFinish']
         >[0];
 
-        const { textStream } = streamText({
+        const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
               {
@@ -3721,7 +3718,7 @@ describe('streamText', () => {
           experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
-        await convertAsyncIterableToArray(textStream); // consume stream
+        await resultObject.consumeStream();
 
         expect(result).toMatchSnapshot();
       });
@@ -3771,8 +3768,7 @@ describe('streamText', () => {
           _internal: { now: mockValues(0, 100, 500) },
         });
 
-        // consume stream
-        await convertAsyncIterableToArray(result.textStream);
+        await result.consumeStream();
 
         expect(tracer.jsonSpans).toMatchSnapshot();
       });
@@ -3793,7 +3789,7 @@ describe('streamText', () => {
           >
         > = [];
 
-        const { textStream } = streamText({
+        const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello' },
@@ -3852,10 +3848,9 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform(),
         });
 
-        // consume stream
-        await convertAsyncIterableToArray(textStream);
+        await resultObject.consumeStream();
 
-        assert.deepStrictEqual(result, [
+        expect(result).toStrictEqual([
           { type: 'text-delta', textDelta: 'HELLO' },
           {
             type: 'reasoning',
@@ -4090,7 +4085,7 @@ describe('streamText', () => {
           Required<Parameters<typeof streamText>[0]>['onStepFinish']
         >[0];
 
-        const { textStream } = streamText({
+        const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello, ' },
@@ -4116,7 +4111,7 @@ describe('streamText', () => {
           experimental_transform: stopWordTransform(),
         });
 
-        await convertAsyncIterableToArray(textStream); // consume stream
+        await resultObject.consumeStream();
 
         expect(result).toMatchSnapshot();
       });
@@ -4212,8 +4207,7 @@ describe('streamText', () => {
           prompt: 'prompt',
         });
 
-        // consume stream
-        await convertAsyncIterableToArray(result.textStream);
+        await result.consumeStream();
 
         expect(callOptions).toEqual({
           temperature: 0,
