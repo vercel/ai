@@ -682,9 +682,10 @@ describe('doGenerate', () => {
 
         expect(sources).toEqual([
           {
+            id: 'test-id',
             sourceType: 'url',
-            url: 'https://source.example.com',
             title: 'Source Title',
+            url: 'https://source.example.com',
           },
         ]);
       },

@@ -10,6 +10,11 @@ export type LanguageModelV1Source = {
   sourceType: 'url';
 
   /**
+   * The ID of the source.
+   */
+  id: string;
+
+  /**
    * The URL of the source.
    */
   url: string;

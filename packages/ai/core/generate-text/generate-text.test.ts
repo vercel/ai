@@ -78,6 +78,7 @@ describe('result.sources', () => {
           sources: [
             {
               sourceType: 'url' as const,
+              id: '123',
               url: 'https://example.com',
               title: 'Example',
               providerMetadata: { provider: { custom: 'value' } },

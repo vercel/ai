@@ -252,7 +252,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           safetyRatings: candidate.safetyRatings ?? null,
         },
       },
-      sources: extractSources(candidate.groundingMetadata),
+      sources: extractSources({
+        groundingMetadata: candidate.groundingMetadata,
+        generateId: this.config.generateId,
+      }),
       request: { body },
     };
   }
@@ -537,9 +540,13 @@ const chunkSchema = z.object({
     .nullish(),
 });
 
-function extractSources(
-  groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null,
-): undefined | LanguageModelV1Source[] {
+function extractSources({
+  groundingMetadata,
+  generateId,
+}: {
+  groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null;
+  generateId: () => string;
+}): undefined | LanguageModelV1Source[] {
   return groundingMetadata?.groundingChunks
     ?.filter(
       (
@@ -550,6 +557,7 @@ function extractSources(
     )
     .map(chunk => ({
       sourceType: 'url',
+      id: generateId(),
       url: chunk.web.uri,
       title: chunk.web.title,
     }));

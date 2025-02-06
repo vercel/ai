@@ -781,6 +781,7 @@ exports[`result.response.messages > should contain assistant response message wh
 exports[`result.sources > should contain sources 1`] = `
 [
   {
+    "id": "123",
     "providerMetadata": {
       "provider": {
         "custom": "value",
