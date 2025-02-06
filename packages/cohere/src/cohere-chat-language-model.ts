@@ -212,7 +212,9 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
         ? response.message.tool_calls.map(toolCall => ({
             toolCallId: toolCall.id,
             toolName: toolCall.function.name,
-            args: toolCall.function.arguments,
+            // Cohere sometimes returns `null` for tool call arguments for tools
+            // defined as having no arguments.
+            args: toolCall.function.arguments.replace(/^null$/, '{}'),
             toolCallType: 'function',
           }))
         : [],
@@ -340,14 +342,15 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
               case 'tool-call-end': {
                 // Post the full tool call now that we have all of the arguments.
-
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: pendingToolCallDelta.toolCallId,
                   toolName: pendingToolCallDelta.toolName,
                   toolCallType: 'function',
                   args: JSON.stringify(
-                    JSON.parse(pendingToolCallDelta.argsTextDelta),
+                    JSON.parse(
+                      pendingToolCallDelta.argsTextDelta?.trim() || '{}',
+                    ),
                   ),
                 });
 
