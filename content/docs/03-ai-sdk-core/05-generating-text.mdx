@@ -73,6 +73,11 @@ for await (const textPart of result.textStream) {
   `result.textStream` is both a `ReadableStream` and an `AsyncIterable`.
 </Note>
 
+<Note type="warning">
+  `streamText` immediately starts streaming and suppresses errors to prevent
+  server crashes. Use the `onError` callback to log errors.
+</Note>
+
 You can use `streamText` on it's own or in combination with [AI SDK
 UI](/examples/next-pages/basics/streaming-text-generation) and [AI SDK
 RSC](/examples/next-app/basics/streaming-text-generation).
