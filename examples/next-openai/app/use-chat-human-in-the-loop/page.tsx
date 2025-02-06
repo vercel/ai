@@ -28,16 +28,12 @@ export default function Chat() {
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages?.map((m: Message) => (
-        <div key={m.id} id={m.id} className="whitespace-pre-wrap">
+        <div key={m.id} className="whitespace-pre-wrap">
           <strong>{`${m.role}: `}</strong>
           {m.parts?.map((part, i) => {
             switch (part.type) {
               case 'text':
-                return (
-                  <div key={i} className="">
-                    {part.text}
-                  </div>
-                );
+                return <div key={i}>{part.text}</div>;
               case 'tool-invocation':
                 const toolInvocation = part.toolInvocation;
                 const toolCallId = toolInvocation.toolCallId;
