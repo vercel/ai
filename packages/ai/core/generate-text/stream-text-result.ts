@@ -126,6 +126,14 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   readonly experimental_partialOutputStream: AsyncIterableStream<PARTIAL_OUTPUT>;
 
   /**
+Consumes the stream without processing the parts.
+This is useful to force the stream to finish.
+It effectively removes the backpressure and allows the stream to finish,
+triggering the `onFinish` callback and the promise resolution.
+  */
+  consumeStream(): Promise<void>;
+
+  /**
   Converts the result to a data stream.
 
   @param data an optional StreamData object that will be merged into the stream.

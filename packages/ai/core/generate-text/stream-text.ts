@@ -1432,6 +1432,13 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
+  async consumeStream(): Promise<void> {
+    const stream = this.fullStream;
+    for await (const part of stream) {
+      // no op
+    }
+  }
+
   get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
     if (this.output == null) {
       throw new NoOutputSpecifiedError();

@@ -1775,6 +1775,12 @@ To see `streamText` in action, check out [these examples](#examples).
         'A stream of partial outputs. It uses the `experimental_output` specification.',
     },
     {
+      name: 'consumeStream',
+      type: '() => Promise<void>',
+      description:
+        'Consumes the stream without processing the parts. This is useful to force the stream to finish.',
+    },
+    {
       name: 'pipeDataStreamToResponse',
       type: '(response: ServerResponse, options: PipeDataStreamToResponseOptions } => void',
       description:
