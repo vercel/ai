@@ -7,7 +7,7 @@
     "@ai-sdk/anthropic": "1.1.6",
     "@ai-sdk/azure": "1.1.9",
     "@ai-sdk/cerebras": "0.1.8",
-    "@ai-sdk/cohere": "1.1.7",
+    "@ai-sdk/cohere": "1.1.8",
     "@ai-sdk/deepseek": "0.1.8",
     "@ai-sdk/deepinfra": "0.1.9",
     "@ai-sdk/fal": "0.0.2",
