@@ -38,8 +38,6 @@ async function main() {
     }
   }
 
-  //   console.log('result', JSON.stringify(result, null, 2));
-
   console.log(result.text);
   console.log(JSON.stringify(result.toolCalls, null, 2));
   console.log(JSON.stringify(result.toolResults, null, 2));
