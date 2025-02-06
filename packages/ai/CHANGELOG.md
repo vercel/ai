@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.24
+
+### Patch Changes
+
+- 38142b8: feat (ai/core): introduce streamText consumeStream
+
 ## 4.1.23
 
 ### Patch Changes
