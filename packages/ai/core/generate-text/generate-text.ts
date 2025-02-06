@@ -562,6 +562,7 @@ A function that attempts to repair a tool call that failed to parse.
         logprobs: currentModelResponse.logprobs,
         steps,
         providerMetadata: currentModelResponse.providerMetadata,
+        sources: currentModelResponse.sources,
       });
     },
   });
@@ -678,6 +679,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   >['experimental_providerMetadata'];
   readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
+  readonly sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
 
   private readonly outputResolver: () => GenerateTextResult<
     TOOLS,
@@ -704,6 +706,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
       TOOLS,
       OUTPUT
     >['experimental_output'];
+    sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
   }) {
     this.text = options.text;
     this.reasoning = options.reasoning;
@@ -718,6 +721,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.experimental_providerMetadata = options.providerMetadata;
     this.logprobs = options.logprobs;
     this.outputResolver = options.outputResolver;
+    this.sources = options.sources;
   }
 
   get experimental_output() {

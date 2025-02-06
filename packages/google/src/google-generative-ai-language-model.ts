@@ -2,8 +2,9 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
-  LanguageModelV1StreamPart,
   LanguageModelV1ProviderMetadata,
+  LanguageModelV1Source,
+  LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -251,6 +252,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           safetyRatings: candidate.safetyRatings ?? null,
         },
       },
+      sources: extractSources(candidate.groundingMetadata),
       request: { body },
     };
   }
@@ -449,32 +451,16 @@ const contentSchema = z.object({
 
 // https://ai.google.dev/gemini-api/docs/grounding
 // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search
+const groundingChunkSchema = z.object({
+  web: z.object({ uri: z.string(), title: z.string() }).nullish(),
+  retrievedContext: z.object({ uri: z.string(), title: z.string() }).nullish(),
+});
+
 export const groundingMetadataSchema = z.object({
   webSearchQueries: z.array(z.string()).nullish(),
   retrievalQueries: z.array(z.string()).nullish(),
-  searchEntryPoint: z
-    .object({
-      renderedContent: z.string(),
-    })
-    .nullish(),
-  groundingChunks: z
-    .array(
-      z.object({
-        web: z
-          .object({
-            uri: z.string(),
-            title: z.string(),
-          })
-          .nullish(),
-        retrievedContext: z
-          .object({
-            uri: z.string(),
-            title: z.string(),
-          })
-          .nullish(),
-      }),
-    )
-    .nullish(),
+  searchEntryPoint: z.object({ renderedContent: z.string() }).nullish(),
+  groundingChunks: z.array(groundingChunkSchema).nullish(),
   groundingSupports: z
     .array(
       z.object({
@@ -550,3 +536,21 @@ const chunkSchema = z.object({
     })
     .nullish(),
 });
+
+function extractSources(
+  groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null,
+): undefined | LanguageModelV1Source[] {
+  return groundingMetadata?.groundingChunks
+    ?.filter(
+      (
+        chunk,
+      ): chunk is z.infer<typeof groundingChunkSchema> & {
+        web: { uri: string; title?: string };
+      } => chunk.web != null,
+    )
+    .map(chunk => ({
+      sourceType: 'url',
+      url: chunk.web.uri,
+      title: chunk.web.title,
+    }));
+}

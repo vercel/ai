@@ -1,3 +1,4 @@
+import { LanguageModelV1Source } from '@ai-sdk/provider';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import {
   CallWarning,
@@ -100,4 +101,7 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
   readonly experimental_providerMetadata: ProviderMetadata | undefined;
+
+  // TODO different type
+  readonly sources: LanguageModelV1Source[] | undefined;
 }
