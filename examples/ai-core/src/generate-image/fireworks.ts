@@ -1,7 +1,7 @@
-import 'dotenv/config';
 import { fireworks } from '@ai-sdk/fireworks';
 import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
+import { presentImages } from '../lib/present-image';
+import 'dotenv/config';
 
 async function main() {
   const result = await generateImage({
@@ -21,11 +21,7 @@ async function main() {
     },
   });
 
-  for (const [index, image] of result.images.entries()) {
-    const filename = `image-${Date.now()}-${index}.png`;
-    fs.writeFileSync(filename, image.uint8Array);
-    console.log(`Image saved to ${filename}`);
-  }
+  await presentImages(result.images);
 }
 
 main().catch(console.error);
