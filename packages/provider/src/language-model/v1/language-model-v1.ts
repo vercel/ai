@@ -263,6 +263,9 @@ export type LanguageModelV1StreamPart =
   // Reasoning text deltas:
   | { type: 'reasoning'; textDelta: string }
 
+  // Sources:
+  | { type: 'source'; source: LanguageModelV1Source }
+
   // Complete tool calls:
   | ({ type: 'tool-call' } & LanguageModelV1FunctionToolCall)
 
