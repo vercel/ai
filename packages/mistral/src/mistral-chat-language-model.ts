@@ -14,13 +14,13 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
+import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
   MistralChatModelId,
   MistralChatSettings,
 } from './mistral-chat-settings';
 import { mistralFailedResponseHandler } from './mistral-error';
-import { getResponseMetadata } from './get-response-metadata';
 import { prepareTools } from './mistral-prepare-tools';
 
 type MistralChatConfig = {

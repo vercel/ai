@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: mistral('open-mistral-7b'),
+    model: mistral('mistral-large-latest'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
