@@ -16,6 +16,7 @@ import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { Source } from '../types/language-model';
 
 /**
 A result object for accessing different stream types and additional information.
@@ -237,6 +238,10 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'reasoning';
       textDelta: string;
+    }
+  | {
+      type: 'source';
+      source: Source;
     }
   | ({
       type: 'tool-call';

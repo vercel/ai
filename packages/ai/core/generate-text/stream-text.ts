@@ -1086,6 +1086,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
+                    case 'source': {
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
                     case 'tool-call': {
                       controller.enqueue(chunk);
                       // store tool calls for onFinish callback and toolCalls promise:
@@ -1502,6 +1507,11 @@ However, the LLM results are expected to be small enough to not cause issues.
                 formatDataStreamPart('reasoning', chunk.textDelta),
               );
             }
+            break;
+          }
+
+          case 'source': {
+            // not implemented yet
             break;
           }
 

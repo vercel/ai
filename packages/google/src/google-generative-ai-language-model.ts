@@ -332,6 +332,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 hasToolCalls,
               });
 
+              const sources =
+                extractSources({
+                  groundingMetadata: candidate.groundingMetadata,
+                  generateId,
+                }) ?? [];
+
+              for (const source of sources) {
+                controller.enqueue({ type: 'source', source });
+              }
+
               providerMetadata = {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,

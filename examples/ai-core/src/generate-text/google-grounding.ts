@@ -4,9 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: google('gemini-2.0-flash-exp', {
-      useSearchGrounding: true,
-    }),
+    model: google('gemini-2.0-flash-exp', { useSearchGrounding: true }),
     prompt: 'List the top 5 San Francisco news from the past week.',
   });
 
