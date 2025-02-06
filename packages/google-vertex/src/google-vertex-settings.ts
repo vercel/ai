@@ -3,6 +3,8 @@ import type { InternalGoogleGenerativeAISettings } from '@ai-sdk/google/internal
 // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference#supported-models
 export type GoogleVertexModelId =
   | 'gemini-2.0-flash-exp'
+  | 'gemini-2.0-flash-001'
+  | 'gemini-2.0-flash-lite-preview-02-05'
   | 'gemini-1.5-flash'
   | 'gemini-1.5-flash-001'
   | 'gemini-1.5-flash-002'
