@@ -214,7 +214,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
             toolName: toolCall.function.name,
             // Cohere sometimes returns `null` for tool call arguments for tools
             // defined as having no arguments.
-            args: toolCall.function.arguments?.replace(/^null$/, '{}') ?? '{}',
+            args: toolCall.function.arguments.replace(/^null$/, '{}') ?? '{}',
             toolCallType: 'function',
           }))
         : [],
@@ -435,7 +435,7 @@ const cohereChatResponseSchema = z.object({
           type: z.literal('function'),
           function: z.object({
             name: z.string(),
-            arguments: z.string().nullish(),
+            arguments: z.string(),
           }),
         }),
       )

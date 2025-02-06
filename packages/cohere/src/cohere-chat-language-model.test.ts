@@ -379,51 +379,6 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should handle empty tool call arguments', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'test-id-1',
-          type: 'function',
-          function: {
-            name: 'currentTime',
-            arguments: null,
-          },
-        },
-      ],
-    });
-
-    const { toolCalls } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'currentTime',
-            parameters: {
-              type: 'object',
-              properties: {},
-              required: [],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        ],
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(toolCalls).toStrictEqual([
-      {
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'currentTime',
-        args: '{}',
-      },
-    ]);
-  });
-
   it('should handle string "null" tool call arguments', async () => {
     prepareJsonResponse({
       tool_calls: [
