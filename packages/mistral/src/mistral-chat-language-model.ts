@@ -370,7 +370,7 @@ const mistralChatResponseSchema = z.object({
     z.object({
       message: z.object({
         role: z.literal('assistant'),
-        content: z.union([z.string(), z.array().transform(() => '')).nullable(),
+        content: z.union([z.string(), z.array(z.any()).transform(() => '')]).nullable(),
         tool_calls: z
           .array(
             z.object({
@@ -401,7 +401,7 @@ const mistralChatChunkSchema = z.object({
     z.object({
       delta: z.object({
         role: z.enum(['assistant']).optional(),
-        content: z.union([z.string(), z.array().transform(() => '')).nullish(),
+        content: z.union([z.string(), z.array(z.any()).transform(() => '')]).nullish(),
         tool_calls: z
           .array(
             z.object({
