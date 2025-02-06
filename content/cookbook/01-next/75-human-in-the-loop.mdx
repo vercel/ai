@@ -21,12 +21,16 @@ export default function Chat() {
   return (
     <div>
       <div>
-        {messages.map(m => (
+        {messages?.map(m => (
           <div key={m.id}>
-            <div>
-              <div>{m.role}</div>
-              <p>{m.content}</p>
-            </div>
+            <strong>{`${m.role}: `}</strong>
+            {m.parts?.map((part, i) => {
+              switch (part.type) {
+                case 'text':
+                  return <div key={i}>{part.text}</div>;
+              }
+            })}
+            <br />
           </div>
         ))}
       </div>
@@ -43,7 +47,7 @@ export default function Chat() {
 }
 ```
 
-On the backend, create an route handler (API Route) that returns a `DateStreamResponse`. Within the execute function, call streamText, passing in the messages (sent from the client), finally merge the resulting generation into the data stream.
+On the backend, create a route handler (API Route) that returns a `DateStreamResponse`. Within the execute function, call streamText, passing in the messages (sent from the client), finally merge the resulting generation into the data stream.
 
 ```ts filename="api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
@@ -63,13 +67,7 @@ export async function POST(req: Request) {
             description: 'show the weather in a given city to the user',
             parameters: z.object({ city: z.string() }),
             execute: async ({}: { city: string }) => {
-              const weatherOptions = [
-                'sunny',
-                'cloudy',
-                'rainy',
-                'snowy',
-                'windy',
-              ];
+              const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy'];
               return weatherOptions[
                 Math.floor(Math.random() * weatherOptions.length)
               ];
@@ -88,7 +86,7 @@ What happens if you ask the LLM for the weather in New York? The LLM has one too
 
 To introduce a HITL step you will add a confirmation step to this process in between the `ToolCall` and the `ToolResult`.
 
-## Solution
+## Adding a Confirmation Step
 
 ### Forward Tool Call To The Client
 
@@ -133,59 +131,65 @@ On the frontend, you map through the messages, either rendering the message cont
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { ToolInvocation } from 'ai';
-import { Message, useChat } from 'ai/react';
+import { useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
-    useChat({});
+    useChat();
 
   return (
     <div>
-      {messages?.map(m => (
-        <div key={m.id}>
-          <div>{m.role}</div>
-          <p>{m.content}</p>
-          {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
-            const toolCallId = toolInvocation.toolCallId;
+      <div>
+        {messages?.map(m => (
+          <div key={m.id}>
+            <strong>{`${m.role}: `}</strong>
+            {m.parts?.map((part, i) => {
+              switch (part.type) {
+                case 'text':
+                  return <div key={i}>{part.text}</div>;
+                case 'tool-invocation':
+                  const toolInvocation = part.toolInvocation;
+                  const toolCallId = toolInvocation.toolCallId;
 
-            // render confirmation tool (client-side tool with user interaction)
-            if (
-              toolInvocation.toolName === 'getWeatherInformation' &&
-              toolInvocation.state === 'call'
-            ) {
-              return (
-                <div key={toolCallId}>
-                  Get weather information for {toolInvocation.args.city}?
-                  <div>
-                    <button
-                      onClick={() =>
-                        addToolResult({
-                          toolCallId,
-                          result: 'Yes, confirmed.',
-                        })
-                      }
-                    >
-                      Yes
-                    </button>
-                    <button
-                      onClick={() =>
-                        addToolResult({
-                          toolCallId,
-                          result: 'No, denied.',
-                        })
-                      }
-                    >
-                      No
-                    </button>
-                  </div>
-                </div>
-              );
-            }
-          })}
-          <br />
-        </div>
-      ))}
+                  // render confirmation tool (client-side tool with user interaction)
+                  if (
+                    toolInvocation.toolName === 'getWeatherInformation' &&
+                    toolInvocation.state === 'call'
+                  ) {
+                    return (
+                      <div key={toolCallId}>
+                        Get weather information for {toolInvocation.args.city}?
+                        <div>
+                          <button
+                            onClick={() =>
+                              addToolResult({
+                                toolCallId,
+                                result: 'Yes, confirmed.',
+                              })
+                            }
+                          >
+                            Yes
+                          </button>
+                          <button
+                            onClick={() =>
+                              addToolResult({
+                                toolCallId,
+                                result: 'No, denied.',
+                              })
+                            }
+                          >
+                            No
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+              }
+            })}
+            <br />
+          </div>
+        ))}
+      </div>
 
       <form onSubmit={handleSubmit}>
         <input
@@ -208,63 +212,70 @@ import { openai } from '@ai-sdk/openai';
 import {
   createDataStreamResponse,
   formatDataStreamPart,
+  Message,
   streamText,
   tool,
-  ToolInvocation,
 } from 'ai';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: Message[] } = await req.json();
 
   return createDataStreamResponse({
     execute: async dataStream => {
+      // pull out last message
       const lastMessage = messages[messages.length - 1];
-      lastMessage.toolInvocations = await Promise.all(
-        lastMessage.toolInvocations?.map(
-          async (toolInvocation: ToolInvocation) => {
-            if (
-              toolInvocation.toolName !== 'getWeatherInformation' ||
-              toolInvocation.state !== 'result'
-            ) {
-              return toolInvocation;
+
+
+      lastMessage.parts = await Promise.all(
+        // map through all message parts
+        lastMessage.parts?.map(async part => {
+          if (part.type !== 'tool-invocation') {
+            return part;
+          }
+          const toolInvocation = part.toolInvocation;
+          // return if tool isn't weather tool or in a result state
+          if (
+            toolInvocation.toolName !== 'getWeatherInformation' ||
+            toolInvocation.state !== 'result'
+          ) {
+            return part;
+          }
+
+          // switch through tool result states (set on the frontend)
+          switch (toolInvocation.result) {
+            case 'Yes, confirmed.': {
+              const result = await executeWeatherTool(toolInvocation.args);
+
+              // forward updated tool result to the client:
+              dataStream.write(
+                formatDataStreamPart('tool_result', {
+                  toolCallId: toolInvocation.toolCallId,
+                  result,
+                }),
+              );
+
+              // update the message part:
+              return { ...part, toolInvocation: { ...toolInvocation, result } };
             }
+            case 'No, denied.': {
+              const result = 'Error: User denied access to weather information';
 
-            switch (toolInvocation.result) {
-              case 'Yes, confirmed.': {
-                const result = await executeWeatherTool(toolInvocation.args);
+              // forward updated tool result to the client:
+              dataStream.write(
+                formatDataStreamPart('tool_result', {
+                  toolCallId: toolInvocation.toolCallId,
+                  result,
+                }),
+              );
 
-                // forward updated tool result to the client:
-                dataStream.write(
-                  formatDataStreamPart('tool_result', {
-                    toolCallId: toolInvocation.toolCallId,
-                    result,
-                  }),
-                );
-
-                // update the messages:
-                return { ...toolInvocation, result };
-              }
-              case 'No, denied.': {
-                const result =
-                  'Error: User denied access to weather information';
-
-                // forward updated tool result to the client:
-                dataStream.write(
-                  formatDataStreamPart('tool_result', {
-                    toolCallId: toolInvocation.toolCallId,
-                    result,
-                  }),
-                );
-
-                // update the messages:
-                return { ...toolInvocation, result };
-              }
-              default:
-                return toolInvocation;
+              // update the message part:
+              return { ...part, toolInvocation: { ...toolInvocation, result } };
             }
-          },
-        ) ?? [],
+            default:
+              return part;
+          }
+        }) ?? [],
       );
 
       const result = streamText({
@@ -284,7 +295,7 @@ export async function POST(req: Request) {
 }
 
 async function executeWeatherTool({}: { city: string }) {
-  const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
+  const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy'];
   return weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
 }
 ```
