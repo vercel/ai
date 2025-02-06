@@ -738,6 +738,25 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'onError',
+      type: '(event: OnErrorResult) => Promise<void> |void',
+      isOptional: true,
+      description:
+        'Callback that is called when an error occurs during streaming. You can use it to log errors.',
+      properties: [
+        {
+          type: 'OnErrorResult',
+          parameters: [
+            {
+              name: 'error',
+              type: 'unknown',
+              description: 'The error that occurred.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'experimental_output',
       type: 'Output',
       isOptional: true,

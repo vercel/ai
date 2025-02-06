@@ -1887,6 +1887,30 @@ describe('streamText', () => {
     });
   });
 
+  describe('options.onError', () => {
+    it('should invoke onError', async () => {
+      const result: Array<{ error: unknown }> = [];
+
+      const { fullStream } = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => {
+            throw new Error('test error');
+          },
+        }),
+        prompt: 'test-input',
+        onError(event) {
+          console.log('foo');
+          result.push(event);
+        },
+      });
+
+      // consume stream
+      await convertAsyncIterableToArray(fullStream);
+
+      expect(result).toStrictEqual([{ error: new Error('test error') }]);
+    });
+  });
+
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
       let result!: Parameters<
