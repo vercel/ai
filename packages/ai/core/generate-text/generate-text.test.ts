@@ -69,6 +69,29 @@ describe('result.reasoning', () => {
   });
 });
 
+describe('result.sources', () => {
+  it('should contain sources', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          sources: [
+            {
+              sourceType: 'url' as const,
+              url: 'https://example.com',
+              title: 'Example',
+              providerMetadata: { provider: { custom: 'value' } },
+            },
+          ],
+        }),
+      }),
+      prompt: 'prompt',
+    });
+
+    expect(result.sources).toMatchSnapshot();
+  });
+});
+
 describe('result.steps', () => {
   it('should add the reasoning from the model response to the step result', async () => {
     const result = await generateText({

@@ -778,6 +778,21 @@ exports[`result.response.messages > should contain assistant response message wh
 ]
 `;
 
+exports[`result.sources > should contain sources 1`] = `
+[
+  {
+    "providerMetadata": {
+      "provider": {
+        "custom": "value",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example",
+    "url": "https://example.com",
+  },
+]
+`;
+
 exports[`result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
   {
