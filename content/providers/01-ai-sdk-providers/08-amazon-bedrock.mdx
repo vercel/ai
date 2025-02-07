@@ -90,26 +90,15 @@ const bedrock = createAmazonBedrock({
   secretAccessKey: 'xxxxxxxxx',
   sessionToken: 'xxxxxxxxx',
 });
-
-// or with bedrockOptions
-const bedrock = createAmazonBedrock({
-  bedrockOptions: {
-    region: 'us-east-1',
-    credentials: {
-      // ...
-    },
-  },
-});
 ```
 
 <Note>
-  The top level credentials settings below fall back to environment variable
-  defaults. These may be set by your serverless environment without your
-  awareness, which can lead to merged/conflicting credential values and provider
-  errors around failed authentication. If you're experiencing issues try (1)
-  using the `bedrockOptions` object as it will take precedence over the other
-  settings and does not inherit environment variable values, or (2) explicitly
-  specifying all settings (even if `undefined`) to avoid any defaults.
+  The credentials settings fall back to environment variable defaults described
+  below. These may be set by your serverless environment without your awareness,
+  which can lead to merged/conflicting credential values and provider errors
+  around failed authentication. If you're experiencing issues be sure you are
+  explicitly specifying all settings (even if `undefined`) to avoid any
+  defaults.
 </Note>
 
 You can use the following optional settings to customize the Amazon Bedrock provider instance:
@@ -133,19 +122,6 @@ You can use the following optional settings to customize the Amazon Bedrock prov
 
   Optional. The AWS session token that you want to use for the API calls.
   It uses the `AWS_SESSION_TOKEN` environment variable by default.
-
-- **bedrockOptions** _object_
-
-  Optional. The configuration options used by the [Amazon Bedrock Library](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-client-bedrock-runtime/)
-  (`BedrockRuntimeClientConfig`), including:
-
-  - **region** _string_
-    The AWS region that you want to use for the API calls.
-
-  - **credentials** _object_
-    The AWS credentials that you want to use for the API calls.
-
-  When `bedrockOptions` are provided, the `region`, `accessKeyId`, and `secretAccessKey` settings are ignored.
 
 ## Language Models
 
