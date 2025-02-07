@@ -44,7 +44,7 @@ app.post('/v1/chat/completions', async c => {
       return c.json({
         object: 'chat.completion',
         id: result.response.id,
-        created: result.response.timestamp,
+        created: result.response.timestamp.getTime(),
         model: result.response.modelId,
         // TODO system fingerprint
         // TODO service tier
@@ -52,7 +52,11 @@ app.post('/v1/chat/completions', async c => {
           // TODO multiple choice support
           {
             index: 0,
-            message: result.text,
+            message: {
+              role: 'assistant',
+              content: result.text,
+            },
+            // TODO logprobs
             finish_reason: result.finishReason, // TODO mapping
           },
         ],
