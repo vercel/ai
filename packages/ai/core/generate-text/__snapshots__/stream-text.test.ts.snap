@@ -982,7 +982,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
-      "sources": [],
+      "sources": [
+        {
+          "id": "123",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example",
+          "url": "https://example.com",
+        },
+      ],
       "stepType": "continue",
       "text": "no-whitespace",
       "toolCalls": [],
@@ -1022,7 +1034,30 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
-      "sources": [],
+      "sources": [
+        {
+          "id": "456",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value2",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example 2",
+          "url": "https://example.com/2",
+        },
+        {
+          "id": "789",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value3",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example 3",
+          "url": "https://example.com/3",
+        },
+      ],
       "stepType": "continue",
       "text": "immediatefollow  ",
       "toolCalls": [],
@@ -1158,7 +1193,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
-    "sources": [],
+    "sources": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "url": "https://example.com",
+      },
+    ],
     "stepType": "continue",
     "text": "no-whitespace",
     "toolCalls": [],
@@ -1198,7 +1245,30 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
-    "sources": [],
+    "sources": [
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "url": "https://example.com/2",
+      },
+      {
+        "id": "789",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value3",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 3",
+        "url": "https://example.com/3",
+      },
+    ],
     "stepType": "continue",
     "text": "immediatefollow  ",
     "toolCalls": [],
@@ -1304,6 +1374,20 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": [],
   },
   {
+    "source": {
+      "id": "123",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example",
+      "url": "https://example.com",
+    },
+    "type": "source",
+  },
+  {
     "textDelta": "no-whitespace",
     "type": "text-delta",
   },
@@ -1335,8 +1419,36 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": [],
   },
   {
+    "source": {
+      "id": "456",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value2",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example 2",
+      "url": "https://example.com/2",
+    },
+    "type": "source",
+  },
+  {
     "textDelta": "immediatefollow  ",
     "type": "text-delta",
+  },
+  {
+    "source": {
+      "id": "789",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value3",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example 3",
+      "url": "https://example.com/3",
+    },
+    "type": "source",
   },
   {
     "experimental_providerMetadata": undefined,
@@ -1735,7 +1847,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
-    "sources": [],
+    "sources": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "url": "https://example.com",
+      },
+    ],
     "stepType": "continue",
     "text": "no-whitespace",
     "toolCalls": [],
@@ -1775,7 +1899,30 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
-    "sources": [],
+    "sources": [
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "url": "https://example.com/2",
+      },
+      {
+        "id": "789",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value3",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 3",
+        "url": "https://example.com/3",
+      },
+    ],
     "stepType": "continue",
     "text": "immediatefollow  ",
     "toolCalls": [],

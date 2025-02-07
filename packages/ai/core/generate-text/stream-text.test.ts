@@ -2449,6 +2449,16 @@ describe('streamText', () => {
                       },
                       // case where there is no leading nor trailing whitespace:
                       { type: 'text-delta', textDelta: 'no-' },
+                      {
+                        type: 'source',
+                        source: {
+                          sourceType: 'url' as const,
+                          id: '123',
+                          url: 'https://example.com',
+                          title: 'Example',
+                          providerMetadata: { provider: { custom: 'value' } },
+                        },
+                      },
                       { type: 'text-delta', textDelta: 'whitespace' },
                       {
                         type: 'finish',
@@ -2499,8 +2509,28 @@ describe('streamText', () => {
                         modelId: 'mock-model-id',
                         timestamp: new Date(1000),
                       },
+                      {
+                        type: 'source',
+                        source: {
+                          sourceType: 'url' as const,
+                          id: '456',
+                          url: 'https://example.com/2',
+                          title: 'Example 2',
+                          providerMetadata: { provider: { custom: 'value2' } },
+                        },
+                      },
                       // set up trailing whitespace for next step:
                       { type: 'text-delta', textDelta: 'immediatefollow  ' },
+                      {
+                        type: 'source',
+                        source: {
+                          sourceType: 'url' as const,
+                          id: '789',
+                          url: 'https://example.com/3',
+                          title: 'Example 3',
+                          providerMetadata: { provider: { custom: 'value3' } },
+                        },
+                      },
                       {
                         type: 'finish',
                         finishReason: 'length',
