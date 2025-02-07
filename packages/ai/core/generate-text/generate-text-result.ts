@@ -31,6 +31,12 @@ has only generated text.
   readonly reasoning: string | undefined;
 
   /**
+Sources that have been used as input to generate the response.
+For multi-step generation, the sources are accumulated from all steps.
+   */
+  readonly sources: Source[] | undefined;
+
+  /**
 The generated structured output. It uses the `experimental_output` specification.
    */
   readonly experimental_output: OUTPUT;
@@ -101,9 +107,4 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
   readonly experimental_providerMetadata: ProviderMetadata | undefined;
-
-  /**
-Sources that have been used as input to generate the response.
-   */
-  readonly sources: Source[] | undefined;
 }
