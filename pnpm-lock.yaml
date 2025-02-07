@@ -249,6 +249,9 @@ importers:
 
   examples/hono-openai-server:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: 1.1.6
+        version: link:../../packages/anthropic
       '@ai-sdk/openai':
         specifier: 1.1.9
         version: link:../../packages/openai

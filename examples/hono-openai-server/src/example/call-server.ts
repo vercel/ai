@@ -8,7 +8,7 @@ const openai = createOpenAI({
 
 async function main() {
   const { text, usage } = await generateText({
-    model: openai('openai/gpt-4o'),
+    model: openai('anthropic/claude-3-5-haiku-20241022'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
