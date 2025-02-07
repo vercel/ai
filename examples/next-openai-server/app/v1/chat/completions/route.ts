@@ -1,29 +1,25 @@
-import { serve } from '@hono/node-server';
-import { generateText, NoSuchModelError } from 'ai';
-import 'dotenv/config';
-import { Hono } from 'hono';
-import { modelRegistry } from './model-registry';
+import { NextResponse } from 'next/server';
 import { CreateChatCompletionRequest } from './openai-request-schema';
+import { generateText, NoSuchModelError } from 'ai';
+import { modelRegistry } from './model-registry';
 
-const app = new Hono();
-
-app.post('/v1/chat/completions', async c => {
+export async function POST(req: Request) {
   try {
     // Parse the request body as JSON
-    const rawRequestBody = await c.req.json();
+    const rawRequestBody = await req.json();
 
     // Validate the request body with the Zod schema
     const parseResult = CreateChatCompletionRequest.safeParse(rawRequestBody);
     if (!parseResult.success) {
       console.error('Validation errors:', parseResult.error.issues);
-      return c.json(
+      return NextResponse.json(
         {
           error: {
             message: 'Invalid request schema',
             details: parseResult.error.issues,
           },
         },
-        400,
+        { status: 400 },
       );
     }
 
@@ -31,7 +27,7 @@ app.post('/v1/chat/completions', async c => {
     const requestBody = parseResult.data;
     if (requestBody.stream) {
       // Return a JSON response with "hello world" and echo the validated body
-      return c.json({
+      return NextResponse.json({
         message: 'hello world - streaming not supported',
         body: requestBody,
       });
@@ -41,7 +37,7 @@ app.post('/v1/chat/completions', async c => {
         messages: requestBody.messages as any, // TODO mapping
       });
 
-      return c.json({
+      return NextResponse.json({
         object: 'chat.completion',
         id: result.response.id,
         created: result.response.timestamp.getTime(),
@@ -69,12 +65,19 @@ app.post('/v1/chat/completions', async c => {
     }
   } catch (error) {
     if (NoSuchModelError.isInstance(error)) {
-      return c.json({ error: { message: error.message } }, 400);
+      return NextResponse.json(
+        { error: { message: error.message } },
+        { status: 400 },
+      );
     }
 
     console.error('Error parsing request:', error);
-    return c.json({ error: { message: 'Invalid JSON' } }, 400);
+    return NextResponse.json(
+      { error: { message: 'Invalid JSON' } },
+      { status: 400 },
+    );
   }
-});
 
-serve({ fetch: app.fetch, port: 8080 });
+  console.log('req', req);
+  return NextResponse.json({ message: 'OpenAI-compatible response' });
+}

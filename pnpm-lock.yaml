@@ -247,37 +247,6 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
 
-  examples/hono-openai-server:
-    dependencies:
-      '@ai-sdk/anthropic':
-        specifier: 1.1.6
-        version: link:../../packages/anthropic
-      '@ai-sdk/openai':
-        specifier: 1.1.9
-        version: link:../../packages/openai
-      '@hono/node-server':
-        specifier: 1.13.7
-        version: 1.13.7(hono@4.6.9)
-      ai:
-        specifier: 4.1.24
-        version: link:../../packages/ai
-      dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
-      hono:
-        specifier: 4.6.9
-        version: 4.6.9
-    devDependencies:
-      '@types/node':
-        specifier: 20.11.20
-        version: 20.11.20
-      tsx:
-        specifier: 4.19.2
-        version: 4.19.2
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
-
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
@@ -695,6 +664,67 @@ importers:
       typescript:
         specifier: 5.4.5
         version: 5.4.5
+
+  examples/next-openai-server:
+    dependencies:
+      '@ai-sdk/anthropic':
+        specifier: 1.1.6
+        version: link:../../packages/anthropic
+      '@ai-sdk/openai':
+        specifier: 1.1.9
+        version: link:../../packages/openai
+      '@vercel/blob':
+        specifier: ^0.26.0
+        version: 0.26.0
+      ai:
+        specifier: 4.1.24
+        version: link:../../packages/ai
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      next:
+        specifier: latest
+        version: 15.1.6(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: ^18
+        version: 18.3.1
+      react-dom:
+        specifier: ^18
+        version: 18.3.1(react@18.3.1)
+      react-markdown:
+        specifier: 9.0.1
+        version: 9.0.1(@types/react@18.3.3)(react@18.3.1)
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+    devDependencies:
+      '@types/node':
+        specifier: ^17.0.12
+        version: 17.0.45
+      '@types/react':
+        specifier: ^18
+        version: 18.3.3
+      '@types/react-dom':
+        specifier: ^18
+        version: 18.3.0
+      autoprefixer:
+        specifier: ^10.4.14
+        version: 10.4.20(postcss@8.4.49)
+      eslint:
+        specifier: 8.57.1
+        version: 8.57.1
+      eslint-config-next:
+        specifier: 14.2.3
+        version: 14.2.3(eslint@8.57.1)(typescript@5.6.3)
+      postcss:
+        specifier: ^8.4.49
+        version: 8.4.49
+      tailwindcss:
+        specifier: ^3.4.15
+        version: 3.4.15(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.6.3))
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
 
   examples/next-openai-telemetry:
     dependencies:
