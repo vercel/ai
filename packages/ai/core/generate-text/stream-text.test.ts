@@ -1668,6 +1668,19 @@ describe('streamText', () => {
     });
   });
 
+  describe('result.sources', () => {
+    it('should contain sources', async () => {
+      const result = streamText({
+        model: modelWithSources,
+        prompt: 'prompt',
+      });
+
+      result.consumeStream();
+
+      expect(await result.sources).toMatchSnapshot();
+    });
+  });
+
   describe('result.steps', () => {
     it('should add the reasoning from the model response to the step result', async () => {
       const result = streamText({
@@ -2709,6 +2722,11 @@ describe('streamText', () => {
             dataStream.pipeThrough(new TextDecoderStream()),
           ),
         ).toMatchSnapshot();
+      });
+
+      it('result.sources should contain sources from all steps', async () => {
+        result.consumeStream();
+        expect(await result.sources).toMatchSnapshot();
       });
     });
   });

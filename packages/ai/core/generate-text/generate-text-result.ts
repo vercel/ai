@@ -34,7 +34,7 @@ has only generated text.
 Sources that have been used as input to generate the response.
 For multi-step generation, the sources are accumulated from all steps.
    */
-  readonly sources: Source[] | undefined;
+  readonly sources: Source[];
 
   /**
 The generated structured output. It uses the `experimental_output` specification.

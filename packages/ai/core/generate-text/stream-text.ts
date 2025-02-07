@@ -440,6 +440,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   private readonly reasoningPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoning']>
   >();
+  private readonly sourcesPromise = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['sources']>
+  >();
   private readonly toolCallsPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['toolCalls']>
   >();
@@ -563,7 +566,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedContinuationText = '';
     let recordedFullText = '';
     let recordedReasoningText: string | undefined = undefined;
-    let recordedSources: LanguageModelV1Source[] = [];
+    let recordedStepSources: LanguageModelV1Source[] = [];
+    const recordedSources: LanguageModelV1Source[] = [];
 
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<ResponseMessage>;
@@ -618,6 +622,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
         if (part.type === 'source') {
           recordedSources.push(part.source);
+          recordedStepSources.push(part.source);
         }
 
         if (part.type === 'tool-call') {
@@ -664,7 +669,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             stepType,
             text: recordedStepText,
             reasoning: recordedReasoningText,
-            sources: recordedSources,
+            sources: recordedStepSources,
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
             finishReason: part.finishReason,
@@ -686,8 +691,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           recordedToolCalls = [];
           recordedToolResults = [];
-          recordedSources = [];
           recordedStepText = '';
+          recordedStepSources = [];
 
           if (nextStepType !== 'done') {
             stepType = nextStepType;
@@ -742,6 +747,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // aggregate results:
           self.textPromise.resolve(recordedFullText);
           self.reasoningPromise.resolve(recordedReasoningText);
+          self.sourcesPromise.resolve(recordedSources);
           self.stepsPromise.resolve(recordedSteps);
 
           // call onFinish callback:
@@ -1382,6 +1388,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   get reasoning() {
     return this.reasoningPromise.value;
+  }
+
+  get sources() {
+    return this.sourcesPromise.value;
   }
 
   get toolCalls() {

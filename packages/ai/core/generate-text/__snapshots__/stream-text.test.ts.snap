@@ -1325,6 +1325,44 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 ]
 `;
 
+exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > result.sources should contain sources from all steps 1`] = `
+[
+  {
+    "id": "123",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example",
+    "url": "https://example.com",
+  },
+  {
+    "id": "456",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value2",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example 2",
+    "url": "https://example.com/2",
+  },
+  {
+    "id": "789",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value3",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example 3",
+    "url": "https://example.com/3",
+  },
+]
+`;
+
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > should contain text deltas from all steps 1`] = `
 [
   {
@@ -3613,6 +3651,33 @@ exports[`streamText > result.responseMessages > should contain assistant respons
     ],
     "id": "msg-0",
     "role": "assistant",
+  },
+]
+`;
+
+exports[`streamText > result.sources > should contain sources 1`] = `
+[
+  {
+    "id": "123",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example",
+    "url": "https://example.com",
+  },
+  {
+    "id": "456",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value2",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example 2",
+    "url": "https://example.com/2",
   },
 ]
 `;
