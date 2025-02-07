@@ -25,12 +25,6 @@ describe('doEmbed', () => {
     'shared-header': 'config-shared',
   };
 
-  const mockSignedHeaders = {
-    'signed-header': 'signed-value',
-    'shared-header': 'signed-shared',
-    authorization: 'AWS4-HMAC-SHA256...',
-  };
-
   const server = createTestServer({
     [embedUrl]: {
       response: {
@@ -48,13 +42,15 @@ describe('doEmbed', () => {
     },
   });
 
-  const provider = createAmazonBedrock({
-    region: 'us-east-1',
-    accessKeyId: 'test-access-key',
-    secretAccessKey: 'test-secret-key',
-    sessionToken: 'test-token-key',
-    headers: mockConfigHeaders,
-  });
+  const model = new BedrockEmbeddingModel(
+    'amazon.titan-embed-text-v2:0',
+    {},
+    {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      sign: ({ headers }) => headers, // Dummy sign function that just returns the headers
+    },
+  );
 
   let callCount = 0;
 
@@ -75,11 +71,9 @@ describe('doEmbed', () => {
   });
 
   it('should handle single input value and return embeddings', async () => {
-    const { embeddings } = await provider
-      .embedding('amazon.titan-embed-text-v2:0')
-      .doEmbed({
-        values: [testValues[0]],
-      });
+    const { embeddings } = await model.doEmbed({
+      values: [testValues[0]],
+    });
 
     expect(embeddings.length).toBe(1);
     expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
@@ -87,15 +81,15 @@ describe('doEmbed', () => {
     const body = await server.calls[0].requestBody;
     expect(body).toEqual({
       inputText: testValues[0],
+      dimensions: undefined,
+      normalize: undefined,
     });
   });
 
   it('should handle single input value and extract usage', async () => {
-    const { usage } = await provider
-      .embedding('amazon.titan-embed-text-v2:0')
-      .doEmbed({
-        values: [testValues[0]],
-      });
+    const { usage } = await model.doEmbed({
+      values: [testValues[0]],
+    });
 
     expect(usage?.tokens).toStrictEqual(8);
   });
@@ -120,11 +114,9 @@ describe('doEmbed', () => {
   // });
 
   it('should handle multiple input values and extract usage', async () => {
-    const { usage } = await provider
-      .embedding('amazon.titan-embed-text-v2:0')
-      .doEmbed({
-        values: testValues,
-      });
+    const { usage } = await model.doEmbed({
+      values: testValues,
+    });
 
     expect(usage?.tokens).toStrictEqual(16);
   });
@@ -135,7 +127,7 @@ describe('doEmbed', () => {
       'shared-header': 'options-shared',
     };
 
-    const model = new BedrockEmbeddingModel(
+    const modelWithHeaders = new BedrockEmbeddingModel(
       'amazon.titan-embed-text-v2:0',
       {},
       {
@@ -145,16 +137,14 @@ describe('doEmbed', () => {
           'shared-header': 'model-shared',
         },
         sign: ({ headers }) => ({
-          'options-header': 'options-value',
-          'model-header': 'model-value',
-          'shared-header': 'options-shared',
+          ...headers,
           'signed-header': 'signed-value',
           authorization: 'AWS4-HMAC-SHA256...',
         }),
       },
     );
 
-    await model.doEmbed({
+    await modelWithHeaders.doEmbed({
       values: [testValues[0]],
       headers: optionsHeaders,
     });
@@ -168,7 +158,7 @@ describe('doEmbed', () => {
   });
 
   it('should work with partial headers', async () => {
-    const model = new BedrockEmbeddingModel(
+    const modelWithPartialHeaders = new BedrockEmbeddingModel(
       'amazon.titan-embed-text-v2:0',
       {},
       {
@@ -177,14 +167,14 @@ describe('doEmbed', () => {
           'model-header': 'model-value',
         },
         sign: ({ headers }) => ({
-          'model-header': 'model-value',
+          ...headers,
           'signed-header': 'signed-value',
           authorization: 'AWS4-HMAC-SHA256...',
         }),
       },
     );
 
-    await model.doEmbed({
+    await modelWithPartialHeaders.doEmbed({
       values: [testValues[0]],
     });
 
