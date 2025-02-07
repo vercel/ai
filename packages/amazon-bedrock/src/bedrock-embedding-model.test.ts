@@ -94,25 +94,6 @@ describe('doEmbed', () => {
     expect(usage?.tokens).toStrictEqual(8);
   });
 
-  // TODO: Update unified test server to support dynamic responses.
-
-  // it('should handle multiple input values and return embeddings', async () => {
-  //   const { embeddings } = await provider
-  //     .embedding('amazon.titan-embed-text-v2:0')
-  //     .doEmbed({
-  //       values: testValues,
-  //     });
-
-  //   expect(embeddings.length).toBe(2);
-  //   expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
-  //   expect(embeddings[1]).toStrictEqual(mockEmbeddings[1]);
-
-  //   const firstRequest = JSON.parse(await calls[0].requestBody);
-  //   const secondRequest = JSON.parse(await calls[1].requestBody);
-  //   expect(firstRequest).toEqual({ inputText: testValues[0] });
-  //   expect(secondRequest).toEqual({ inputText: testValues[1] });
-  // });
-
   it('should handle multiple input values and extract usage', async () => {
     const { usage } = await model.doEmbed({
       values: testValues,
