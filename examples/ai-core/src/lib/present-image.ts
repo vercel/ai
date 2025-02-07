@@ -34,16 +34,14 @@ export async function presentImages(images: GeneratedImage[]) {
     console.log(await terminalImage.buffer(Buffer.from(srcBuffer)));
 
     // Save the original image to a file.
-    if (!fs.existsSync(OUTPUT_DIR)) {
-      fs.mkdirSync(OUTPUT_DIR);
-    }
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     const filePath = path.join(
       OUTPUT_DIR,
       `image-${timestamp}-${index}.${extension}`,
     );
-    fs.writeFileSync(filePath, srcBuffer);
-    console.log(`Saved image [path=${filePath}].`);
+    await fs.promises.writeFile(filePath, srcBuffer);
+    console.log(`Saved image to ${filePath}`);
   }
 
-  console.log(`Processed images [count=${images.length}].`);
+  console.log(`Processed ${images.length} images`);
 }
