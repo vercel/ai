@@ -285,6 +285,55 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
+    it('should include sources in fullStream', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV1({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'source',
+                source: {
+                  sourceType: 'url' as const,
+                  id: '123',
+                  url: 'https://example.com',
+                  title: 'Example',
+                  providerMetadata: { provider: { custom: 'value' } },
+                },
+              },
+              { type: 'text-delta', textDelta: 'Hello!' },
+              {
+                type: 'source',
+                source: {
+                  sourceType: 'url' as const,
+                  id: '456',
+                  url: 'https://example.com/2',
+                  title: 'Example 2',
+                  providerMetadata: { provider: { custom: 'value2' } },
+                },
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          }),
+        }),
+        prompt: 'test-input',
+        _internal: {
+          currentDate: mockValues(new Date(2000)),
+          generateId: mockValues('id-2000'),
+        },
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.fullStream),
+      ).toMatchSnapshot();
+    });
+
     it('should use fallback response metadata when response metadata is not provided', async () => {
       const result = streamText({
         model: new MockLanguageModelV1({
