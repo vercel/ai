@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { CreateChatCompletionRequest } from './openai-request-schema';
-import { generateText, NoSuchModelError } from 'ai';
+import { generateText, streamText, NoSuchModelError, TextStreamPart } from 'ai';
 import { modelRegistry } from './model-registry';
 
 export async function POST(req: Request) {
@@ -23,18 +23,101 @@ export async function POST(req: Request) {
       );
     }
 
-    // If valid, extract the typed data
+    // Extract the validated body
     const requestBody = parseResult.data;
+
     if (requestBody.stream) {
-      // Return a JSON response with "hello world" and echo the validated body
-      return NextResponse.json({
-        message: 'hello world - streaming not supported',
-        body: requestBody,
+      // Call streamText using the model from the registry.
+      // You might join requestBody.messages into a prompt if needed.
+      const result = streamText({
+        model: modelRegistry.languageModel(requestBody.model),
+        messages: requestBody.messages as any, // TODO: add proper mapping if needed
+      });
+
+      // Use a TransformStream to map fullStream chunks into SSE messages.
+      let finishEmitted = false;
+      const sseTransform = new TransformStream<
+        TextStreamPart<any>, // TODO fix any
+        Uint8Array
+      >({
+        transform(chunk, controller) {
+          // Handle different event types from the full stream
+          if (chunk.type === 'text-delta' || chunk.type === 'reasoning') {
+            const sseChunk = {
+              id: 'chatcmpl-' + Math.random().toString(36).substring(2, 15),
+              object: 'chat.completion.chunk',
+              created: Date.now(),
+              model: requestBody.model,
+              choices: [
+                {
+                  delta: { content: chunk.textDelta },
+                  index: 0,
+                  finish_reason: null,
+                },
+              ],
+            };
+            controller.enqueue(
+              new TextEncoder().encode(`data: ${JSON.stringify(sseChunk)}\n\n`),
+            );
+          } else if (chunk.type === 'finish') {
+            // When receiving a finished event, output a complete chunk
+            // that omits delta but includes finish_reason and usage.
+            if (!finishEmitted) {
+              finishEmitted = true;
+              const finishChunk = {
+                id: 'chatcmpl-' + Math.random().toString(36).substring(2, 15),
+                object: 'chat.completion.chunk',
+                created: Date.now(),
+                model: requestBody.model,
+                choices: [
+                  {
+                    // No delta is sent on the finish chunk.
+                    delta: {},
+                    index: 0,
+                    finish_reason: chunk.finishReason,
+                  },
+                ],
+                // We assume the chunk carries usage info; fallback to empty object if not present.
+                usage: chunk.usage ?? {},
+              };
+              controller.enqueue(
+                new TextEncoder().encode(
+                  `data: ${JSON.stringify(finishChunk)}\n\n`,
+                ),
+              );
+            }
+          } else if (chunk.type === 'error') {
+            // For error events, send an SSE error message and terminate the stream.
+            controller.enqueue(
+              new TextEncoder().encode(
+                `data: ${JSON.stringify({ error: chunk.error })}\n\n`,
+              ),
+            );
+            controller.terminate();
+          }
+          // Ignore other event types (tool-call, step-start, etc)
+        },
+        flush(controller) {
+          if (!finishEmitted) {
+            controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+          }
+        },
+      });
+
+      // Pipe the fullStream (which is an AsyncIterableStream) through the transformer.
+      const sseStream = result.fullStream.pipeThrough(sseTransform);
+
+      return new NextResponse(sseStream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+        },
       });
     } else {
+      // Non-streaming response – call generateText normally
       const result = await generateText({
         model: modelRegistry.languageModel(requestBody.model),
-        messages: requestBody.messages as any, // TODO mapping
+        messages: requestBody.messages as any, // TODO: add proper mapping if needed
       });
 
       return NextResponse.json({
@@ -42,18 +125,14 @@ export async function POST(req: Request) {
         id: result.response.id,
         created: result.response.timestamp.getTime(),
         model: result.response.modelId,
-        // TODO system fingerprint
-        // TODO service tier
         choices: [
-          // TODO multiple choice support
           {
             index: 0,
             message: {
               role: 'assistant',
               content: result.text,
             },
-            // TODO logprobs
-            finish_reason: result.finishReason, // TODO mapping
+            finish_reason: result.finishReason,
           },
         ],
         usage: {
@@ -77,7 +156,4 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-
-  console.log('req', req);
-  return NextResponse.json({ message: 'OpenAI-compatible response' });
 }
