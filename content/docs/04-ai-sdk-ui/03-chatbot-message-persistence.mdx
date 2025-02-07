@@ -283,7 +283,7 @@ the consumption of tokens that are not yet requested.
 However, this means that when the client disconnects, e.g. by closing the browser tab or because of a network issue,
 the stream from the LLM will be aborted and the conversation may end up in a broken state.
 
-Assuming that you have a storage solution in place, you can use the `consumeStream` method to consume the stream on the backend,
+Assuming that you have a [storage solution](#storing-messages) in place, you can use the `consumeStream` method to consume the stream on the backend,
 and then save the result as usual.
 `consumeStream` effectively removes the backpressure,
 meaning that the result is stored even when the client has already disconnected.
