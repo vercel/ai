@@ -870,7 +870,7 @@ exports[`result.toolCalls > result.steps should contain sources 1`] = `
     "request": {},
     "response": {
       "headers": undefined,
-      "id": "aitxt-UiklxrDUByBuiivqGDJczYRX",
+      "id": "id-0",
       "messages": [
         {
           "content": [
@@ -879,12 +879,12 @@ exports[`result.toolCalls > result.steps should contain sources 1`] = `
               "type": "text",
             },
           ],
-          "id": "msg-viGrp0hNHEytgGRkXLXGqSji",
+          "id": "msg-0",
           "role": "assistant",
         },
       ],
       "modelId": "mock-model-id",
-      "timestamp": 2025-02-07T11:16:25.940Z,
+      "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "sources": [
       {

@@ -215,6 +215,11 @@ describe('result.toolCalls', () => {
     const result = await generateText({
       model: modelWithSources,
       prompt: 'prompt',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      _internal: {
+        generateId: mockId({ prefix: 'id' }),
+        currentDate: () => new Date(0),
+      },
     });
 
     expect(result.steps).toMatchSnapshot();
