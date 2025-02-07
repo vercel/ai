@@ -139,6 +139,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
+  "sources": [],
   "steps": [
     {
       "experimental_providerMetadata": undefined,
@@ -187,6 +188,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "sources": [],
       "stepType": "initial",
       "text": "",
       "toolCalls": [
@@ -274,6 +276,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
+      "sources": [],
       "stepType": "tool-result",
       "text": "Hello, world!",
       "toolCalls": [],
@@ -347,6 +350,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "",
     "toolCalls": [
@@ -434,6 +438,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
@@ -778,6 +783,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "",
     "toolCalls": [
@@ -865,6 +871,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
@@ -908,6 +915,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
+  "sources": [],
   "steps": [
     {
       "experimental_providerMetadata": undefined,
@@ -935,6 +943,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "sources": [],
       "stepType": "initial",
       "text": "part 1 
  ",
@@ -973,6 +982,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
+      "sources": [],
       "stepType": "continue",
       "text": "no-whitespace",
       "toolCalls": [],
@@ -1012,6 +1022,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
+      "sources": [],
       "stepType": "continue",
       "text": "immediatefollow  ",
       "toolCalls": [],
@@ -1052,6 +1063,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
+      "sources": [],
       "stepType": "continue",
       "text": "final value keep all whitespace
  end",
@@ -1107,6 +1119,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "part 1 
  ",
@@ -1145,6 +1158,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "no-whitespace",
     "toolCalls": [],
@@ -1184,6 +1198,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "immediatefollow  ",
     "toolCalls": [],
@@ -1224,6 +1239,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "final value keep all whitespace
  end",
@@ -1680,6 +1696,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "part 1 
  ",
@@ -1718,6 +1735,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "no-whitespace",
     "toolCalls": [],
@@ -1757,6 +1775,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "immediatefollow  ",
     "toolCalls": [],
@@ -1797,6 +1816,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "final value keep all whitespace
  end",
@@ -1863,6 +1883,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "sources": [],
   "steps": [
     {
       "experimental_providerMetadata": {
@@ -1915,6 +1936,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "sources": [],
       "stepType": "initial",
       "text": "Hello, world!",
       "toolCalls": [
@@ -2028,6 +2050,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "sources": [],
   "steps": [
     {
       "experimental_providerMetadata": {
@@ -2080,6 +2103,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "sources": [],
       "stepType": "initial",
       "text": "HELLO, WORLD!",
       "toolCalls": [
@@ -2194,6 +2218,7 @@ exports[`streamText > options.transform > with base transformation > options.onS
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "sources": [],
   "stepType": "initial",
   "text": "HELLO, WORLD!",
   "toolCalls": [
@@ -2224,6 +2249,87 @@ exports[`streamText > options.transform > with base transformation > options.onS
   },
   "warnings": undefined,
 }
+`;
+
+exports[`streamText > options.transform > with base transformation > result.steps should be transformed 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "reasoning": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "HELLO, WORLD!",
+              "type": "text",
+            },
+            {
+              "args": {
+                "value": "VALUE",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "RESULT1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "id": "msg-1",
+          "role": "tool",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "sources": [],
+    "stepType": "initial",
+    "text": "HELLO, WORLD!",
+    "toolCalls": [
+      {
+        "args": {
+          "value": "VALUE",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "args": {
+          "value": "VALUE",
+        },
+        "result": "RESULT1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
+  },
+]
 `;
 
 exports[`streamText > options.transform > with base transformation > telemetry should record transformed data when enabled 1`] = `
@@ -2334,6 +2440,7 @@ exports[`streamText > options.transform > with transformation that aborts stream
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "sources": [],
   "stepType": "initial",
   "text": "Hello, ",
   "toolCalls": [],
@@ -3267,6 +3374,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "Hello, world!",
     "toolCalls": [],

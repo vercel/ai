@@ -3506,87 +3506,12 @@ describe('streamText', () => {
           },
           experimental_transform: upperCaseTransform(),
           prompt: 'test-input',
+          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
-        await result.consumeStream();
+        result.consumeStream();
 
-        expect(await result.steps).toStrictEqual([
-          {
-            stepType: 'initial',
-            text: 'HELLO, WORLD!',
-            reasoning: undefined,
-            experimental_providerMetadata: undefined,
-            finishReason: 'stop',
-            isContinued: false,
-            logprobs: undefined,
-            request: {},
-            response: {
-              headers: undefined,
-              id: 'id-0',
-              messages: [
-                {
-                  id: expect.any(String),
-                  content: [
-                    {
-                      text: 'HELLO, WORLD!',
-                      type: 'text',
-                    },
-                    {
-                      args: {
-                        value: 'VALUE',
-                      },
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      type: 'tool-call',
-                    },
-                  ],
-                  role: 'assistant',
-                },
-                {
-                  id: expect.any(String),
-                  content: [
-                    {
-                      result: 'RESULT1',
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      type: 'tool-result',
-                    },
-                  ],
-                  role: 'tool',
-                },
-              ],
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            toolCalls: [
-              {
-                args: {
-                  value: 'VALUE',
-                },
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                type: 'tool-call',
-              },
-            ],
-            toolResults: [
-              {
-                args: {
-                  value: 'VALUE',
-                },
-                result: 'RESULT1',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                type: 'tool-result',
-              },
-            ],
-            usage: {
-              completionTokens: 10,
-              promptTokens: 3,
-              totalTokens: 13,
-            },
-            warnings: undefined,
-          },
-        ]);
+        expect(await result.steps).toMatchSnapshot();
       });
 
       it('result.request should be transformed', async () => {

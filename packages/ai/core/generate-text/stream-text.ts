@@ -54,6 +54,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { LanguageModelV1Source } from '@ai-sdk/provider';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -562,6 +563,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedContinuationText = '';
     let recordedFullText = '';
     let recordedReasoningText: string | undefined = undefined;
+    let recordedSources: LanguageModelV1Source[] = [];
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<ResponseMessage>;
     } = {
@@ -613,6 +615,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             (recordedReasoningText ?? '') + part.textDelta;
         }
 
+        if (part.type === 'source') {
+          recordedSources.push(part.source);
+        }
+
         if (part.type === 'tool-call') {
           recordedToolCalls.push(part);
         }
@@ -657,6 +663,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             stepType,
             text: recordedStepText,
             reasoning: recordedReasoningText,
+            sources: recordedSources,
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
             finishReason: part.finishReason,
@@ -742,6 +749,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             usage,
             text: recordedFullText,
             reasoning: recordedReasoningText,
+            sources: recordedSources,
             toolCalls: lastStep.toolCalls,
             toolResults: lastStep.toolResults,
             request: lastStep.request ?? {},
