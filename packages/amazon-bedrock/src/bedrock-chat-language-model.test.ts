@@ -659,6 +659,38 @@ describe('doStream', () => {
     expect(requestHeaders['signed-header']).toBe('signed-value');
     expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
   });
+
+  it('should include providerOptions in the request for streaming calls', async () => {
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Dummy' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'stop_sequence' },
+        }) + '\n',
+      ],
+    };
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        bedrock: {
+          foo: 'bar',
+        },
+      },
+    });
+
+    // Verify the outgoing request body includes "foo" at the top level.
+    const body = await server.calls[0].requestBody;
+    expect(body).toMatchObject({ foo: 'bar' });
+  });
 });
 
 describe('doGenerate', () => {
@@ -1050,5 +1082,24 @@ describe('doGenerate', () => {
     expect(requestHeaders['model-header']).toBe('model-value');
     expect(requestHeaders['signed-header']).toBe('signed-value');
     expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+  });
+
+  it('should include providerOptions in the request for generate calls', async () => {
+    prepareJsonResponse({ content: 'Test generation' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        bedrock: {
+          foo: 'bar',
+        },
+      },
+    });
+
+    // Verify that the outgoing request body includes "foo" at its top level.
+    const body = await server.calls[0].requestBody;
+    expect(body).toMatchObject({ foo: 'bar' });
   });
 });

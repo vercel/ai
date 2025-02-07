@@ -19,8 +19,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   BedrockConverseInput,
-  BedrockGuardrailConfiguration,
-  BedrockGuardrailStreamConfiguration,
   BedrockSigningFunction,
   BedrockStopReason,
   BedrockToolInputSchema,
@@ -131,10 +129,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         inferenceConfig,
       }),
       messages,
-      guardrailConfig: providerMetadata?.bedrock?.guardrailConfig as
-        | BedrockGuardrailConfiguration
-        | BedrockGuardrailStreamConfiguration
-        | undefined,
+      ...providerMetadata?.bedrock,
     };
 
     switch (type) {

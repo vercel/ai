@@ -20,7 +20,10 @@ export interface BedrockConverseInput {
     stopSequences?: string[];
   };
   additionalModelRequestFields?: Record<string, any>;
-  guardrailConfig?: any;
+  guardrailConfig?:
+    | BedrockGuardrailConfiguration
+    | BedrockGuardrailStreamConfiguration
+    | undefined;
 }
 
 export interface BedrockGuardrailConfiguration {
