@@ -20,7 +20,7 @@ import {
 import {
   BedrockConverseInput,
   BedrockSigningFunction,
-  BedrockStopReason,
+  BEDROCK_STOP_REASONS,
   BedrockToolInputSchema,
 } from './bedrock-api-types';
 import {
@@ -220,9 +220,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
           toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
           args: JSON.stringify(part.toolUse?.input ?? ''),
         })),
-      finishReason: mapBedrockFinishReason(
-        response.stopReason as BedrockStopReason,
-      ),
+      finishReason: mapBedrockFinishReason(response.stopReason),
       usage: {
         promptTokens: response.usage?.inputTokens ?? Number.NaN,
         completionTokens: response.usage?.outputTokens ?? Number.NaN,
@@ -424,6 +422,11 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   }
 }
 
+const BedrockStopReasonSchema = z.union([
+  z.enum(BEDROCK_STOP_REASONS),
+  z.string(),
+]);
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const BedrockResponseSchema = z.object({
@@ -449,7 +452,7 @@ const BedrockResponseSchema = z.object({
       role: z.string(),
     }),
   }),
-  stopReason: z.string(),
+  stopReason: BedrockStopReasonSchema,
   trace: z.any().nullish(),
   usage: z.object({
     inputTokens: z.number(),
@@ -482,7 +485,7 @@ const BedrockStreamSchema = z.object({
   messageStop: z
     .object({
       additionalModelResponseFields: z.any().nullish(),
-      stopReason: z.string(),
+      stopReason: BedrockStopReasonSchema,
     })
     .nullish(),
   metadata: z

@@ -57,17 +57,22 @@ export interface BedrockToolConfiguration {
     | undefined;
 }
 
+export const BEDROCK_STOP_REASONS = [
+  'stop',
+  'stop_sequence',
+  'end_turn',
+  'length',
+  'max_tokens',
+  'content-filter',
+  'content_filtered',
+  'guardrail_intervened',
+  'tool-calls',
+  'tool_use',
+] as const;
+
 export type BedrockStopReason =
-  | 'stop'
-  | 'stop_sequence'
-  | 'end_turn'
-  | 'length'
-  | 'max_tokens'
-  | 'content-filter'
-  | 'content_filtered'
-  | 'guardrail_intervened'
-  | 'tool-calls'
-  | 'tool_use';
+  | (typeof BEDROCK_STOP_REASONS)[number]
+  | (string & {});
 
 export type BedrockImageFormat = 'jpeg' | 'png' | 'gif';
 export type BedrockDocumentFormat = 'pdf' | 'txt' | 'md';
