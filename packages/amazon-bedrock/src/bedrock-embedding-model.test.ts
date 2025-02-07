@@ -1,5 +1,6 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createAmazonBedrock } from './bedrock-provider';
+import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 
 const mockEmbeddings = [
   [
@@ -19,6 +20,17 @@ const embedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encode
 )}/invoke`;
 
 describe('doEmbed', () => {
+  const mockConfigHeaders = {
+    'config-header': 'config-value',
+    'shared-header': 'config-shared',
+  };
+
+  const mockSignedHeaders = {
+    'signed-header': 'signed-value',
+    'shared-header': 'signed-shared',
+    authorization: 'AWS4-HMAC-SHA256...',
+  };
+
   const server = createTestServer({
     [embedUrl]: {
       response: {
@@ -41,7 +53,7 @@ describe('doEmbed', () => {
     accessKeyId: 'test-access-key',
     secretAccessKey: 'test-secret-key',
     sessionToken: 'test-token-key',
-    signingFunction: () => ({}),
+    headers: mockConfigHeaders,
   });
 
   let callCount = 0;
@@ -115,5 +127,70 @@ describe('doEmbed', () => {
       });
 
     expect(usage?.tokens).toStrictEqual(16);
+  });
+
+  it('should properly combine headers from all sources', async () => {
+    const optionsHeaders = {
+      'options-header': 'options-value',
+      'shared-header': 'options-shared',
+    };
+
+    const model = new BedrockEmbeddingModel(
+      'amazon.titan-embed-text-v2:0',
+      {},
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: {
+          'model-header': 'model-value',
+          'shared-header': 'model-shared',
+        },
+        sign: ({ headers }) => ({
+          'options-header': 'options-value',
+          'model-header': 'model-value',
+          'shared-header': 'options-shared',
+          'signed-header': 'signed-value',
+          authorization: 'AWS4-HMAC-SHA256...',
+        }),
+      },
+    );
+
+    await model.doEmbed({
+      values: [testValues[0]],
+      headers: optionsHeaders,
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+    expect(requestHeaders['options-header']).toBe('options-value');
+    expect(requestHeaders['model-header']).toBe('model-value');
+    expect(requestHeaders['signed-header']).toBe('signed-value');
+    expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+    expect(requestHeaders['shared-header']).toBe('options-shared');
+  });
+
+  it('should work with partial headers', async () => {
+    const model = new BedrockEmbeddingModel(
+      'amazon.titan-embed-text-v2:0',
+      {},
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: {
+          'model-header': 'model-value',
+        },
+        sign: ({ headers }) => ({
+          'model-header': 'model-value',
+          'signed-header': 'signed-value',
+          authorization: 'AWS4-HMAC-SHA256...',
+        }),
+      },
+    );
+
+    await model.doEmbed({
+      values: [testValues[0]],
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+    expect(requestHeaders['model-header']).toBe('model-value');
+    expect(requestHeaders['signed-header']).toBe('signed-value');
+    expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
   });
 });

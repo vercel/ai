@@ -5,7 +5,6 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { vi } from 'vitest';
-import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 
 // Mock the eventstream codec module
 vi.mock('./bedrock-event-stream-response-handler', () => ({
@@ -99,7 +98,8 @@ const model = new BedrockChatLanguageModel(
   {},
   {
     baseUrl: () => baseUrl,
-    headers: () => ({
+    headers: {},
+    sign: () => ({
       'x-amz-auth': 'test-auth',
     }),
     generateId: () => 'test-id',
@@ -567,6 +567,98 @@ describe('doStream', () => {
       'x-amzn-trace-id': 'test-trace-id',
     });
   });
+
+  it('should properly combine headers from all sources', async () => {
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        'x-amzn-trace-id': 'test-trace-id',
+      },
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const optionsHeaders = {
+      'options-header': 'options-value',
+      'shared-header': 'options-shared',
+    };
+
+    const model = new BedrockChatLanguageModel(
+      modelId,
+      {},
+      {
+        baseUrl: () => baseUrl,
+        headers: {
+          'model-header': 'model-value',
+          'shared-header': 'model-shared',
+        },
+        sign: () => ({
+          'options-header': 'options-value',
+          'model-header': 'model-value',
+          'shared-header': 'options-shared',
+          'signed-header': 'signed-value',
+          authorization: 'AWS4-HMAC-SHA256...',
+        }),
+        generateId: () => 'test-id',
+      },
+    );
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      headers: optionsHeaders,
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+    expect(requestHeaders['options-header']).toBe('options-value');
+    expect(requestHeaders['model-header']).toBe('model-value');
+    expect(requestHeaders['signed-header']).toBe('signed-value');
+    expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+    expect(requestHeaders['shared-header']).toBe('options-shared');
+  });
+
+  it('should work with partial headers', async () => {
+    const model = new BedrockChatLanguageModel(
+      modelId,
+      {},
+      {
+        baseUrl: () => baseUrl,
+        headers: {
+          'model-header': 'model-value',
+        },
+        sign: () => ({
+          'model-header': 'model-value',
+          'signed-header': 'signed-value',
+          authorization: 'AWS4-HMAC-SHA256...',
+        }),
+        generateId: () => 'test-id',
+      },
+    );
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+    expect(requestHeaders['model-header']).toBe('model-value');
+    expect(requestHeaders['signed-header']).toBe('signed-value');
+    expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+  });
 });
 
 describe('doGenerate', () => {
@@ -883,5 +975,80 @@ describe('doGenerate', () => {
         ],
       },
     });
+  });
+
+  it('should properly combine headers from all sources', async () => {
+    prepareJsonResponse({});
+
+    const optionsHeaders = {
+      'options-header': 'options-value',
+      'shared-header': 'options-shared',
+    };
+
+    const model = new BedrockChatLanguageModel(
+      modelId,
+      {},
+      {
+        baseUrl: () => baseUrl,
+        headers: {
+          'model-header': 'model-value',
+          'shared-header': 'model-shared',
+        },
+        sign: () => ({
+          'options-header': 'options-value',
+          'model-header': 'model-value',
+          'shared-header': 'options-shared',
+          'signed-header': 'signed-value',
+          authorization: 'AWS4-HMAC-SHA256...',
+        }),
+        generateId: () => 'test-id',
+      },
+    );
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      headers: optionsHeaders,
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+    expect(requestHeaders['options-header']).toBe('options-value');
+    expect(requestHeaders['model-header']).toBe('model-value');
+    expect(requestHeaders['signed-header']).toBe('signed-value');
+    expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+    expect(requestHeaders['shared-header']).toBe('options-shared');
+  });
+
+  it('should work with partial headers', async () => {
+    prepareJsonResponse({});
+
+    const model = new BedrockChatLanguageModel(
+      modelId,
+      {},
+      {
+        baseUrl: () => baseUrl,
+        headers: {
+          'model-header': 'model-value',
+        },
+        sign: () => ({
+          'model-header': 'model-value',
+          'signed-header': 'signed-value',
+          authorization: 'AWS4-HMAC-SHA256...',
+        }),
+        generateId: () => 'test-id',
+      },
+    );
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+    expect(requestHeaders['model-header']).toBe('model-value');
+    expect(requestHeaders['signed-header']).toBe('signed-value');
+    expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
   });
 });

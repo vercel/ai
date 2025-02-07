@@ -9,7 +9,6 @@ import {
   loadSetting,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { BedrockSigningFunction } from './bedrock-api-types';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import {
   BedrockChatModelId,
@@ -24,46 +23,27 @@ import { createSigV4SigningFunction } from './bedrock-sigv4-signing-function';
 
 export interface AmazonBedrockProviderSettings {
   /**
-The AWS region to use for the Bedrock provider.
+The AWS region to use for the Bedrock provider. Defaults to the value of the
+`AWS_REGION` environment variable.
    */
   region?: string;
 
   /**
-The AWS access key ID to use for the Bedrock provider.
+The AWS access key ID to use for the Bedrock provider. Defaults to the value of the
    */
   accessKeyId?: string;
 
   /**
-The AWS secret access key to use for the Bedrock provider.
+The AWS secret access key to use for the Bedrock provider. Defaults to the value of the
+`AWS_SECRET_ACCESS_KEY` environment variable.
    */
   secretAccessKey?: string;
 
   /**
-The AWS session token to use for the Bedrock provider.
+The AWS session token to use for the Bedrock provider. Defaults to the value of the
+`AWS_SESSION_TOKEN` environment variable.
    */
   sessionToken?: string;
-
-  /**
-Complete Bedrock configuration for setting advanced authentication and other
-options. When this is provided, the region, accessKeyId, and secretAccessKey
-settings are ignored.
-   */
-  // TODO: review this for backwards-compatibility.
-  // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-client-bedrock-runtime/TypeAlias/BedrockRuntimeClientConfigType/
-  // bedrockOptions?: BedrockRuntimeClientConfig;
-
-  /**
-   * Custom function to generate authentication headers for Bedrock API requests.
-   * If not provided, a default signing function will be created using the AWS credentials
-   * (region, accessKeyId, secretAccessKey, sessionToken) specified in the provider settings.
-   *
-   * This can be useful for:
-   * - Implementing custom authentication logic
-   * - Using alternative credential providers
-   * - Testing and mocking authentication
-   * - Integrating with custom authentication systems
-   */
-  signingFunction?: BedrockSigningFunction;
 
   /**
 Base URL for the Bedrock API calls.
@@ -73,7 +53,6 @@ Base URL for the Bedrock API calls.
   /**
 Custom headers to include in the requests.
    */
-  // TODO: integrate this where appropriate.
   headers?: Record<string, string>;
 
   /**
@@ -109,14 +88,12 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const signingFunction =
-    options.signingFunction ??
-    createSigV4SigningFunction({
-      region: options.region,
-      accessKeyId: options.accessKeyId,
-      secretAccessKey: options.secretAccessKey,
-      sessionToken: options.sessionToken,
-    });
+  const sign = createSigV4SigningFunction({
+    region: options.region,
+    accessKeyId: options.accessKeyId,
+    secretAccessKey: options.secretAccessKey,
+    sessionToken: options.sessionToken,
+  });
 
   const getBaseUrl = (): string =>
     withoutTrailingSlash(
@@ -135,10 +112,10 @@ export function createAmazonBedrock(
   ) =>
     new BedrockChatLanguageModel(modelId, settings, {
       baseUrl: getBaseUrl,
-      // TODO: likely need to rename the config key below to match the value
-      headers: signingFunction,
-      generateId,
+      headers: options.headers ?? {},
       fetch: options.fetch,
+      sign,
+      generateId,
     });
 
   const provider = function (
@@ -160,8 +137,9 @@ export function createAmazonBedrock(
   ) =>
     new BedrockEmbeddingModel(modelId, settings, {
       baseUrl: getBaseUrl,
-      headers: signingFunction,
+      headers: options.headers ?? {},
       fetch: options.fetch,
+      sign,
     });
 
   provider.languageModel = createChatModel;

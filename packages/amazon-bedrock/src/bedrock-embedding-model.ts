@@ -1,6 +1,8 @@
 import { EmbeddingModelV1, EmbeddingModelV1Embedding } from '@ai-sdk/provider';
 import {
   FetchFunction,
+  Resolvable,
+  combineHeaders,
   createJsonErrorResponseHandler,
   postJsonToApi,
   resolve,
@@ -14,8 +16,9 @@ import { BedrockSigningFunction } from './bedrock-api-types';
 
 type BedrockEmbeddingConfig = {
   baseUrl: () => string;
-  headers: BedrockSigningFunction;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
+  sign: BedrockSigningFunction;
 };
 
 type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>;
@@ -54,13 +57,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
       const url = this.getUrl(this.modelId);
       const { value: response } = await postJsonToApi({
         url,
-        headers: await resolve(
-          this.config.headers({
-            url,
-            headers: headers ?? {},
-            body: args,
-          }),
-        ),
+        headers: await this.getFullSignedHeaders(url, headers, args),
         body: args,
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: BedrockErrorSchema,
@@ -95,6 +92,20 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
         return accumulated;
       },
       { embeddings: [], usage: { tokens: 0 } },
+    );
+  }
+
+  private async getFullSignedHeaders(
+    url: string,
+    headers: Record<string, string | undefined> | undefined,
+    args: any,
+  ) {
+    return await resolve(
+      this.config.sign({
+        url,
+        headers: combineHeaders(await resolve(this.config.headers), headers),
+        body: args,
+      }),
     );
   }
 }

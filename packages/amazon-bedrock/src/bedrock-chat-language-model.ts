@@ -10,6 +10,8 @@ import {
 import {
   FetchFunction,
   ParseResult,
+  Resolvable,
+  combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
@@ -36,8 +38,9 @@ import { z } from 'zod';
 
 type BedrockChatConfig = {
   baseUrl: () => string;
-  headers: BedrockSigningFunction;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
+  sign: BedrockSigningFunction;
   generateId: () => string;
 };
 
@@ -96,13 +99,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    if (headers != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'headers',
-      });
-    }
-
     if (topK != null) {
       warnings.push({
         type: 'unsupported-setting',
@@ -110,6 +106,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    // TODO: validate this is still the case.
     if (responseFormat != null && responseFormat.type !== 'text') {
       warnings.push({
         type: 'unsupported-setting',
@@ -188,16 +185,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     }
   }
 
-  private getUrl(modelId: string) {
-    const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl()}/model/${encodedModelId}/converse`;
-  }
-
-  private getStreamUrl(modelId: string): string {
-    const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl()}/model/${encodedModelId}/converse-stream`;
-  }
-
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
@@ -206,13 +193,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     const url = this.getUrl(this.modelId);
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
-      headers: await resolve(
-        this.config.headers({
-          url,
-          headers: options.headers ?? {},
-          body: args,
-        }),
-      ),
+      headers: await this.getFullSignedHeaders(url, options.headers, args),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
@@ -266,13 +247,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
-      headers: await resolve(
-        this.config.headers({
-          url,
-          headers: options.headers ?? {},
-          body: args,
-        }),
-      ),
+      headers: await this.getFullSignedHeaders(url, options.headers, args),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
@@ -427,6 +402,30 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       rawResponse: { headers: responseHeaders },
       warnings,
     };
+  }
+
+  private getUrl(modelId: string) {
+    const encodedModelId = encodeURIComponent(modelId);
+    return `${this.config.baseUrl()}/model/${encodedModelId}/converse`;
+  }
+
+  private getStreamUrl(modelId: string): string {
+    const encodedModelId = encodeURIComponent(modelId);
+    return `${this.config.baseUrl()}/model/${encodedModelId}/converse-stream`;
+  }
+
+  private async getFullSignedHeaders(
+    url: string,
+    headers: Record<string, string | undefined> | undefined,
+    args: BedrockConverseInput,
+  ) {
+    return await resolve(
+      this.config.sign({
+        url,
+        headers: combineHeaders(await resolve(this.config.headers), headers),
+        body: args,
+      }),
+    );
   }
 }
 
