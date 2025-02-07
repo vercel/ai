@@ -18,6 +18,28 @@ const dummyResponseValues = {
   usage: { promptTokens: 10, completionTokens: 20 },
 };
 
+const modelWithSources = new MockLanguageModelV1({
+  doGenerate: async () => ({
+    ...dummyResponseValues,
+    sources: [
+      {
+        sourceType: 'url' as const,
+        id: '123',
+        url: 'https://example.com',
+        title: 'Example',
+        providerMetadata: { provider: { custom: 'value' } },
+      },
+      {
+        sourceType: 'url' as const,
+        id: '456',
+        url: 'https://example.com/2',
+        title: 'Example 2',
+        providerMetadata: { provider: { custom: 'value2' } },
+      },
+    ],
+  }),
+});
+
 describe('result.text', () => {
   it('should generate text', async () => {
     const result = await generateText({
@@ -70,44 +92,13 @@ describe('result.reasoning', () => {
 });
 
 describe('result.sources', () => {
-  const modelWithSources = new MockLanguageModelV1({
-    doGenerate: async () => ({
-      ...dummyResponseValues,
-      sources: [
-        {
-          sourceType: 'url' as const,
-          id: '123',
-          url: 'https://example.com',
-          title: 'Example',
-          providerMetadata: { provider: { custom: 'value' } },
-        },
-        {
-          sourceType: 'url' as const,
-          id: '456',
-          url: 'https://example.com/2',
-          title: 'Example 2',
-          providerMetadata: { provider: { custom: 'value2' } },
-        },
-      ],
-    }),
-  });
-
-  it('result.sources should contain sources', async () => {
+  it('should contain sources', async () => {
     const result = await generateText({
       model: modelWithSources,
       prompt: 'prompt',
     });
 
     expect(result.sources).toMatchSnapshot();
-  });
-
-  it('result.steps should contain sources', async () => {
-    const result = await generateText({
-      model: modelWithSources,
-      prompt: 'prompt',
-    });
-
-    expect(result.steps).toMatchSnapshot();
   });
 });
 
@@ -210,7 +201,7 @@ describe('result.toolCalls', () => {
       assertType<string>(result.toolCalls[0].args.value);
     }
 
-    assert.deepStrictEqual(result.toolCalls, [
+    expect(result.toolCalls).toStrictEqual([
       {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -218,6 +209,15 @@ describe('result.toolCalls', () => {
         args: { value: 'value' },
       },
     ]);
+  });
+
+  it('result.steps should contain sources', async () => {
+    const result = await generateText({
+      model: modelWithSources,
+      prompt: 'prompt',
+    });
+
+    expect(result.steps).toMatchSnapshot();
   });
 });
 
