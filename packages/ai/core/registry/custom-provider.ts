@@ -1,27 +1,21 @@
-import {
-  EmbeddingModelV1,
-  LanguageModelV1,
-  ImageModelV1,
-  ProviderV1,
-} from '@ai-sdk/provider';
-import { Provider } from '../types';
-import { NoSuchModelError } from '@ai-sdk/provider';
+import { NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
+import { EmbeddingModel, ImageModel, LanguageModel, Provider } from '../types';
 
 /**
  * Creates a custom provider with specified language models, text embedding models, and an optional fallback provider.
  *
  * @param {Object} options - The options for creating the custom provider.
- * @param {Record<string, LanguageModelV1>} [options.languageModels] - A record of language models, where keys are model IDs and values are LanguageModelV1 instances.
- * @param {Record<string, EmbeddingModelV1<string>>} [options.textEmbeddingModels] - A record of text embedding models, where keys are model IDs and values are EmbeddingModelV1<string> instances.
+ * @param {Record<string, LanguageModel>} [options.languageModels] - A record of language models, where keys are model IDs and values are LanguageModel instances.
+ * @param {Record<string, EmbeddingModel<string>>} [options.textEmbeddingModels] - A record of text embedding models, where keys are model IDs and values are EmbeddingModel<string> instances.
  * @param {Provider} [options.fallbackProvider] - An optional fallback provider to use when a requested model is not found in the custom provider.
  * @returns {Provider} A Provider object with languageModel and textEmbeddingModel methods.
  *
  * @throws {NoSuchModelError} Throws when a requested model is not found and no fallback provider is available.
  */
 export function customProvider<
-  LANGUAGE_MODELS extends Record<string, LanguageModelV1>,
-  EMBEDDING_MODELS extends Record<string, EmbeddingModelV1<string>>,
-  IMAGE_MODELS extends Record<string, ImageModelV1>,
+  LANGUAGE_MODELS extends Record<string, LanguageModel>,
+  EMBEDDING_MODELS extends Record<string, EmbeddingModel<string>>,
+  IMAGE_MODELS extends Record<string, ImageModel>,
 >({
   languageModels,
   textEmbeddingModels,
@@ -33,14 +27,14 @@ export function customProvider<
   imageModels?: IMAGE_MODELS;
   fallbackProvider?: ProviderV1;
 }): Provider & {
-  languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV1;
+  languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModel;
   textEmbeddingModel(
     modelId: ExtractModelId<EMBEDDING_MODELS>,
-  ): EmbeddingModelV1<string>;
-  imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV1;
+  ): EmbeddingModel<string>;
+  imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModel;
 } {
   return {
-    languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV1 {
+    languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModel {
       if (languageModels != null && modelId in languageModels) {
         return languageModels[modelId];
       }
@@ -54,7 +48,7 @@ export function customProvider<
 
     textEmbeddingModel(
       modelId: ExtractModelId<EMBEDDING_MODELS>,
-    ): EmbeddingModelV1<string> {
+    ): EmbeddingModel<string> {
       if (textEmbeddingModels != null && modelId in textEmbeddingModels) {
         return textEmbeddingModels[modelId];
       }
@@ -66,7 +60,7 @@ export function customProvider<
       throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
     },
 
-    imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV1 {
+    imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModel {
       if (imageModels != null && modelId in imageModels) {
         return imageModels[modelId];
       }
