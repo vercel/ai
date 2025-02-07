@@ -564,6 +564,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedFullText = '';
     let recordedReasoningText: string | undefined = undefined;
     let recordedSources: LanguageModelV1Source[] = [];
+
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<ResponseMessage>;
     } = {
@@ -685,6 +686,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           recordedToolCalls = [];
           recordedToolResults = [];
+          recordedSources = [];
           recordedStepText = '';
 
           if (nextStepType !== 'done') {
@@ -748,8 +750,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             logprobs: undefined,
             usage,
             text: recordedFullText,
-            reasoning: recordedReasoningText,
-            sources: recordedSources,
+            reasoning: lastStep.reasoning,
+            sources: lastStep.sources,
             toolCalls: lastStep.toolCalls,
             toolResults: lastStep.toolResults,
             request: lastStep.request ?? {},
