@@ -267,6 +267,7 @@ A function that attempts to repair a tool call that failed to parse.
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
       let text = '';
+      const sources: GenerateTextResult<TOOLS, OUTPUT>['sources'] = [];
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
       let usage: LanguageModelUsage = {
         completionTokens: 0,
@@ -457,6 +458,9 @@ A function that attempts to repair a tool call that failed to parse.
             ? text + stepText
             : stepText;
 
+        // sources:
+        sources.push(...(currentModelResponse.sources ?? []));
+
         // append to messages for potential next step:
         if (stepType === 'continue') {
           // continue step: update the last assistant message
@@ -539,6 +543,7 @@ A function that attempts to repair a tool call that failed to parse.
       return new DefaultGenerateTextResult({
         text,
         reasoning: currentModelResponse.reasoning,
+        sources,
         outputResolver: () => {
           if (output == null) {
             throw new NoOutputSpecifiedError();
@@ -563,7 +568,6 @@ A function that attempts to repair a tool call that failed to parse.
         logprobs: currentModelResponse.logprobs,
         steps,
         providerMetadata: currentModelResponse.providerMetadata,
-        sources: currentModelResponse.sources,
       });
     },
   });

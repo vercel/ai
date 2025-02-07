@@ -705,6 +705,15 @@ describe('options.maxSteps', () => {
                     timestamp: new Date(10000),
                     modelId: 'test-response-model-id',
                   },
+                  sources: [
+                    {
+                      sourceType: 'url' as const,
+                      id: '123',
+                      url: 'https://example.com',
+                      title: 'Example',
+                      providerMetadata: { provider: { custom: 'value' } },
+                    },
+                  ],
                   usage: { completionTokens: 5, promptTokens: 30 },
                   // test handling of custom response headers:
                   rawResponse: {
@@ -749,6 +758,22 @@ describe('options.maxSteps', () => {
                   // set up trailing whitespace for next step:
                   text: 'immediatefollow  ',
                   finishReason: 'length',
+                  sources: [
+                    {
+                      sourceType: 'url' as const,
+                      id: '456',
+                      url: 'https://example.com/2',
+                      title: 'Example 2',
+                      providerMetadata: { provider: { custom: 'value2' } },
+                    },
+                    {
+                      sourceType: 'url' as const,
+                      id: '789',
+                      url: 'https://example.com/3',
+                      title: 'Example 3',
+                      providerMetadata: { provider: { custom: 'value3' } },
+                    },
+                  ],
                   response: {
                     id: 'test-id-3-from-model',
                     timestamp: new Date(20000),
@@ -868,6 +893,10 @@ describe('options.maxSteps', () => {
 
     it('onStepFinish should be called for each step', () => {
       expect(onStepFinishResults).toMatchSnapshot();
+    });
+
+    it('result.sources should contain sources from all steps', () => {
+      expect(result.sources).toMatchSnapshot();
     });
   });
 });

@@ -418,7 +418,19 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
-    "sources": [],
+    "sources": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "url": "https://example.com",
+      },
+    ],
     "stepType": "continue",
     "text": "no-whitespace",
     "toolCalls": [],
@@ -464,7 +476,30 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
-    "sources": [],
+    "sources": [
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "url": "https://example.com/2",
+      },
+      {
+        "id": "789",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value3",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 3",
+        "url": "https://example.com/3",
+      },
+    ],
     "stepType": "continue",
     "text": "immediatefollow  ",
     "toolCalls": [],
@@ -527,6 +562,44 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
       "totalTokens": 5,
     },
     "warnings": undefined,
+  },
+]
+`;
+
+exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > result.sources should contain sources from all steps 1`] = `
+[
+  {
+    "id": "123",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example",
+    "url": "https://example.com",
+  },
+  {
+    "id": "456",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value2",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example 2",
+    "url": "https://example.com/2",
+  },
+  {
+    "id": "789",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value3",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example 3",
+    "url": "https://example.com/3",
   },
 ]
 `;
@@ -604,7 +677,19 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
-    "sources": [],
+    "sources": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "url": "https://example.com",
+      },
+    ],
     "stepType": "continue",
     "text": "no-whitespace",
     "toolCalls": [],
@@ -650,7 +735,30 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
-    "sources": [],
+    "sources": [
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "url": "https://example.com/2",
+      },
+      {
+        "id": "789",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value3",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 3",
+        "url": "https://example.com/3",
+      },
+    ],
     "stepType": "continue",
     "text": "immediatefollow  ",
     "toolCalls": [],
