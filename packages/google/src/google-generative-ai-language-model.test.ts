@@ -1451,4 +1451,45 @@ describe('doStream', () => {
       ),
     );
   });
+
+  it(
+    'should stream source events',
+    withTestServer(
+      prepareStreamResponse({
+        content: ['Some initial text'],
+        groundingMetadata: {
+          groundingChunks: [
+            {
+              web: {
+                uri: 'https://source.example.com',
+                title: 'Source Title',
+              },
+            },
+          ],
+        },
+      }),
+      async () => {
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const sourceEvents = events.filter(event => event.type === 'source');
+
+        expect(sourceEvents).toEqual([
+          {
+            type: 'source',
+            source: {
+              id: 'test-id',
+              sourceType: 'url',
+              title: 'Source Title',
+              url: 'https://source.example.com',
+            },
+          },
+        ]);
+      },
+    ),
+  );
 });
