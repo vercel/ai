@@ -47,6 +47,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "",
     "toolCalls": [
@@ -134,6 +135,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "sources": [],
     "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
@@ -240,6 +242,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "",
     "toolCalls": [
@@ -327,6 +330,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "sources": [],
     "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
@@ -369,6 +373,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "part 1 
  ",
@@ -413,6 +418,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "no-whitespace",
     "toolCalls": [],
@@ -458,6 +464,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "immediatefollow  ",
     "toolCalls": [],
@@ -508,6 +515,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "final value keep all whitespace
  end",
@@ -551,6 +559,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "part 1 
  ",
@@ -595,6 +604,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "no-whitespace",
     "toolCalls": [],
@@ -640,6 +650,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "immediatefollow  ",
     "toolCalls": [],
@@ -690,6 +701,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:20.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "final value keep all whitespace
  end",
@@ -778,7 +790,7 @@ exports[`result.response.messages > should contain assistant response message wh
 ]
 `;
 
-exports[`result.sources > should contain sources 1`] = `
+exports[`result.sources > result.sources should contain sources 1`] = `
 [
   {
     "id": "123",
@@ -790,6 +802,82 @@ exports[`result.sources > should contain sources 1`] = `
     "sourceType": "url",
     "title": "Example",
     "url": "https://example.com",
+  },
+  {
+    "id": "456",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value2",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example 2",
+    "url": "https://example.com/2",
+  },
+]
+`;
+
+exports[`result.sources > result.steps should contain sources 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "reasoning": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "aitxt-X5yiU0V1FPcutSjYy4RSUSvF",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "",
+              "type": "text",
+            },
+          ],
+          "id": "msg-6s2ZvDdfcufwEkDqLh7BcxJJ",
+          "role": "assistant",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 2025-02-07T11:12:39.298Z,
+    },
+    "sources": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "url": "https://example.com",
+      },
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "url": "https://example.com/2",
+      },
+    ],
+    "stepType": "initial",
+    "text": "",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
   },
 ]
 `;
@@ -821,6 +909,7 @@ exports[`result.steps > should add the reasoning from the model response to the 
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "Hello, world!",
     "toolCalls": [],

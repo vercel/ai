@@ -492,6 +492,7 @@ A function that attempts to repair a tool call that failed to parse.
           stepType,
           text: stepText,
           reasoning: currentModelResponse.reasoning,
+          sources: currentModelResponse.sources ?? [],
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
           finishReason: currentModelResponse.finishReason,

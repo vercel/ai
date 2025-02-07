@@ -70,26 +70,44 @@ describe('result.reasoning', () => {
 });
 
 describe('result.sources', () => {
-  it('should contain sources', async () => {
+  const modelWithSources = new MockLanguageModelV1({
+    doGenerate: async () => ({
+      ...dummyResponseValues,
+      sources: [
+        {
+          sourceType: 'url' as const,
+          id: '123',
+          url: 'https://example.com',
+          title: 'Example',
+          providerMetadata: { provider: { custom: 'value' } },
+        },
+        {
+          sourceType: 'url' as const,
+          id: '456',
+          url: 'https://example.com/2',
+          title: 'Example 2',
+          providerMetadata: { provider: { custom: 'value2' } },
+        },
+      ],
+    }),
+  });
+
+  it('result.sources should contain sources', async () => {
     const result = await generateText({
-      model: new MockLanguageModelV1({
-        doGenerate: async () => ({
-          ...dummyResponseValues,
-          sources: [
-            {
-              sourceType: 'url' as const,
-              id: '123',
-              url: 'https://example.com',
-              title: 'Example',
-              providerMetadata: { provider: { custom: 'value' } },
-            },
-          ],
-        }),
-      }),
+      model: modelWithSources,
       prompt: 'prompt',
     });
 
     expect(result.sources).toMatchSnapshot();
+  });
+
+  it('result.steps should contain sources', async () => {
+    const result = await generateText({
+      model: modelWithSources,
+      prompt: 'prompt',
+    });
+
+    expect(result.steps).toMatchSnapshot();
   });
 });
 
