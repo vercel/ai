@@ -69,6 +69,41 @@ function createTestModel({
   });
 }
 
+const modelWithSources = new MockLanguageModelV1({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'source',
+        source: {
+          sourceType: 'url' as const,
+          id: '123',
+          url: 'https://example.com',
+          title: 'Example',
+          providerMetadata: { provider: { custom: 'value' } },
+        },
+      },
+      { type: 'text-delta', textDelta: 'Hello!' },
+      {
+        type: 'source',
+        source: {
+          sourceType: 'url' as const,
+          id: '456',
+          url: 'https://example.com/2',
+          title: 'Example 2',
+          providerMetadata: { provider: { custom: 'value2' } },
+        },
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        logprobs: undefined,
+        usage: { completionTokens: 10, promptTokens: 3 },
+      },
+    ]),
+    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+  }),
+});
+
 describe('streamText', () => {
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
@@ -287,40 +322,7 @@ describe('streamText', () => {
 
     it('should include sources in fullStream', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'source',
-                source: {
-                  sourceType: 'url' as const,
-                  id: '123',
-                  url: 'https://example.com',
-                  title: 'Example',
-                  providerMetadata: { provider: { custom: 'value' } },
-                },
-              },
-              { type: 'text-delta', textDelta: 'Hello!' },
-              {
-                type: 'source',
-                source: {
-                  sourceType: 'url' as const,
-                  id: '456',
-                  url: 'https://example.com/2',
-                  title: 'Example 2',
-                  providerMetadata: { provider: { custom: 'value2' } },
-                },
-              },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
+        model: modelWithSources,
         prompt: 'test-input',
         _internal: {
           currentDate: mockValues(new Date(2000)),
@@ -1697,6 +1699,22 @@ describe('streamText', () => {
         experimental_generateMessageId: mockId({
           prefix: 'msg',
         }),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          currentDate: () => new Date(0),
+        },
+      });
+
+      result.consumeStream();
+
+      expect(await result.steps).toMatchSnapshot();
+    });
+
+    it('should contain sources', async () => {
+      const result = streamText({
+        model: modelWithSources,
+        prompt: 'prompt',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
         _internal: {
           generateId: mockId({ prefix: 'id' }),
           currentDate: () => new Date(0),

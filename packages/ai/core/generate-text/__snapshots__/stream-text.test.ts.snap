@@ -3389,6 +3389,71 @@ exports[`streamText > result.steps > should add the reasoning from the model res
 ]
 `;
 
+exports[`streamText > result.steps > should contain sources 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "reasoning": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "Hello!",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "sources": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "url": "https://example.com",
+      },
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "url": "https://example.com/2",
+      },
+    ],
+    "stepType": "initial",
+    "text": "Hello!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
 exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 [
   "f:{"messageId":"msg-0"}

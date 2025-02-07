@@ -859,7 +859,7 @@ exports[`result.steps > should add the reasoning from the model response to the 
 ]
 `;
 
-exports[`result.toolCalls > result.steps should contain sources 1`] = `
+exports[`result.steps > should contain sources 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,

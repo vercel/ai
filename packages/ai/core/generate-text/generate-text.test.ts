@@ -124,6 +124,20 @@ describe('result.steps', () => {
 
     expect(result.steps).toMatchSnapshot();
   });
+
+  it('should contain sources', async () => {
+    const result = await generateText({
+      model: modelWithSources,
+      prompt: 'prompt',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      _internal: {
+        generateId: mockId({ prefix: 'id' }),
+        currentDate: () => new Date(0),
+      },
+    });
+
+    expect(result.steps).toMatchSnapshot();
+  });
 });
 
 describe('result.toolCalls', () => {
@@ -209,20 +223,6 @@ describe('result.toolCalls', () => {
         args: { value: 'value' },
       },
     ]);
-  });
-
-  it('result.steps should contain sources', async () => {
-    const result = await generateText({
-      model: modelWithSources,
-      prompt: 'prompt',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      _internal: {
-        generateId: mockId({ prefix: 'id' }),
-        currentDate: () => new Date(0),
-      },
-    });
-
-    expect(result.steps).toMatchSnapshot();
   });
 });
 
