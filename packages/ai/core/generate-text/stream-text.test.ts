@@ -2020,6 +2020,29 @@ describe('streamText', () => {
       expect(result).toMatchSnapshot();
     });
 
+    it('should send sources', async () => {
+      let result!: Parameters<
+        Required<Parameters<typeof streamText>[0]>['onFinish']
+      >[0];
+
+      const resultObject = streamText({
+        model: modelWithSources,
+        prompt: 'test-input',
+        onFinish: async event => {
+          result = event as unknown as typeof result;
+        },
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          currentDate: () => new Date(0),
+        },
+      });
+
+      await resultObject.consumeStream();
+
+      expect(result).toMatchSnapshot();
+    });
+
     it('should not prevent error from being forwarded', async () => {
       const result = streamText({
         model: new MockLanguageModelV1({
