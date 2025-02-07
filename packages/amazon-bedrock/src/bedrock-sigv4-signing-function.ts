@@ -1,6 +1,6 @@
 import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
 import { BedrockSigningFunction } from './bedrock-api-types';
-import { AwsSigV4Signer } from './bedrock-sigv4-signer';
+import { AwsV4Signer } from 'aws4fetch';
 
 /**
 Settings for the Bedrock signing function.
@@ -47,23 +47,26 @@ export function createSigV4SigningFunction(
       environmentVariableName: 'AWS_SESSION_TOKEN',
     });
 
-    const signer = new AwsSigV4Signer({
-      region,
-      service: 'bedrock',
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-        sessionToken,
-      },
-    });
-
-    return signer.signRequest({
-      method: 'POST',
+    const signer = new AwsV4Signer({
       url,
-      headers,
+      method: 'POST',
+      headers: Object.entries(headers).filter(([_, v]) => v !== undefined) as [
+        string,
+        string,
+      ][],
       // TODO: explore avoiding the below stringify since we do it again at
       // post-time and the content could be large with attachments.
       body: JSON.stringify(body),
+      region,
+      accessKeyId,
+      secretAccessKey,
+      ...(sessionToken && { sessionToken }),
+      service: 'bedrock',
     });
+
+    const result = await signer.sign();
+    const signedHeaders: Record<string, string | undefined> = {};
+    result.headers.forEach((v, k) => (signedHeaders[k] = v));
+    return signedHeaders;
   };
 }
