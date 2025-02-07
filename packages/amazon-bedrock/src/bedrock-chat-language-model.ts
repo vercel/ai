@@ -273,11 +273,14 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     return {
       stream: response.pipeThrough(
-        new TransformStream<ParseResult<any>, LanguageModelV1StreamPart>({
+        new TransformStream<
+          ParseResult<z.infer<typeof BedrockStreamSchema>>,
+          LanguageModelV1StreamPart
+        >({
           transform(chunk, controller) {
-            function enqueueError(error: Error) {
+            function enqueueError(bedrockError: Record<string, any>) {
               finishReason = 'error';
-              controller.enqueue({ type: 'error', error });
+              controller.enqueue({ type: 'error', error: bedrockError });
             }
 
             // handle failed chunk parsing / validation:

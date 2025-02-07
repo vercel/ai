@@ -6,37 +6,6 @@ import {
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { vi } from 'vitest';
 
-// Mock the eventstream codec module
-vi.mock('./bedrock-event-stream-response-handler', () => ({
-  createBedrockEventStreamResponseHandler: (schema: any) => {
-    return async ({ response }: { response: Response }) => {
-      const text = await response.text();
-      const chunks = text
-        .split('\n')
-        .filter(Boolean)
-        .map(chunk => ({
-          success: true,
-          value: JSON.parse(chunk),
-        }));
-
-      const headers: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        headers[key] = value;
-      });
-
-      return {
-        responseHeaders: headers,
-        value: new ReadableStream({
-          start(controller) {
-            chunks.forEach(chunk => controller.enqueue(chunk));
-            controller.close();
-          },
-        }),
-      };
-    };
-  },
-}));
-
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'system', content: 'System Prompt' },
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -106,8 +75,59 @@ const model = new BedrockChatLanguageModel(
   },
 );
 
+let mockOptions: { success: boolean; errorValue?: any } = { success: true };
+
 describe('doStream', () => {
+  beforeEach(() => {
+    mockOptions = { success: true, errorValue: undefined };
+  });
+
+  vi.mock('./bedrock-event-stream-response-handler', () => ({
+    createBedrockEventStreamResponseHandler: (schema: any) => {
+      return async ({ response }: { response: Response }) => {
+        let chunks: { success: boolean; value: any }[] = [];
+        if (mockOptions.success) {
+          const text = await response.text();
+          chunks = text
+            .split('\n')
+            .filter(Boolean)
+            .map(chunk => ({
+              success: true,
+              value: JSON.parse(chunk),
+            }));
+        }
+        const headers: Record<string, string> = {};
+        response.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+        return {
+          responseHeaders: headers,
+          value: new ReadableStream({
+            start(controller) {
+              if (mockOptions.success) {
+                chunks.forEach(chunk => controller.enqueue(chunk));
+              } else {
+                controller.enqueue({
+                  success: false,
+                  error: mockOptions.errorValue,
+                });
+              }
+              controller.close();
+            },
+          }),
+        };
+      };
+    },
+  }));
+
+  function setupMockEventStreamHandler(
+    options: { success?: boolean; errorValue?: any } = { success: true },
+  ) {
+    mockOptions = { ...mockOptions, ...options };
+  }
+
   it('should stream text deltas with metadata and usage', async () => {
+    setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
       type: 'stream-chunks',
       chunks: [
@@ -162,6 +182,7 @@ describe('doStream', () => {
   });
 
   it('should stream tool deltas', async () => {
+    setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
       type: 'stream-chunks',
       chunks: [
@@ -249,6 +270,7 @@ describe('doStream', () => {
   });
 
   it('should stream parallel tool calls', async () => {
+    setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
       type: 'stream-chunks',
       chunks: [
@@ -391,6 +413,7 @@ describe('doStream', () => {
   });
 
   it('should handle error stream parts', async () => {
+    setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
       type: 'stream-chunks',
       chunks: [
@@ -433,7 +456,156 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should handle modelStreamErrorException error', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          modelStreamErrorException: {
+            message: 'Model Stream Error',
+            name: 'ModelStreamErrorException',
+            $fault: 'server',
+            $metadata: {},
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+    expect(result).toStrictEqual([
+      {
+        type: 'error',
+        error: {
+          message: 'Model Stream Error',
+          name: 'ModelStreamErrorException',
+          $fault: 'server',
+          $metadata: {},
+        },
+      },
+      {
+        finishReason: 'error',
+        type: 'finish',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    ]);
+  });
+
+  it('should handle throttlingException error', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          throttlingException: {
+            message: 'Throttling Error',
+            name: 'ThrottlingException',
+            $fault: 'server',
+            $metadata: {},
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+    expect(result).toStrictEqual([
+      {
+        type: 'error',
+        error: {
+          message: 'Throttling Error',
+          name: 'ThrottlingException',
+          $fault: 'server',
+          $metadata: {},
+        },
+      },
+      {
+        finishReason: 'error',
+        type: 'finish',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    ]);
+  });
+
+  it('should handle validationException error', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          validationException: {
+            message: 'Validation Error',
+            name: 'ValidationException',
+            $fault: 'server',
+            $metadata: {},
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+    expect(result).toStrictEqual([
+      {
+        type: 'error',
+        error: {
+          message: 'Validation Error',
+          name: 'ValidationException',
+          $fault: 'server',
+          $metadata: {},
+        },
+      },
+      {
+        finishReason: 'error',
+        type: 'finish',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    ]);
+  });
+
+  it('should handle failed chunk parsing', async () => {
+    setupMockEventStreamHandler({
+      success: false,
+      errorValue: { message: 'Chunk Parsing Failed' },
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+    const result = await convertReadableStreamToArray(stream);
+    expect(result).toStrictEqual([
+      {
+        type: 'error',
+        error: { message: 'Chunk Parsing Failed' },
+      },
+      {
+        finishReason: 'error',
+        type: 'finish',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    ]);
+  });
+
   it('should pass the messages and the model', async () => {
+    setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
       type: 'stream-chunks',
       chunks: [],
@@ -452,6 +624,7 @@ describe('doStream', () => {
   });
 
   it('should support guardrails', async () => {
+    setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
       type: 'stream-chunks',
       chunks: [],
@@ -486,6 +659,7 @@ describe('doStream', () => {
   });
 
   it('should include trace information in providerMetadata', async () => {
+    setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
       type: 'stream-chunks',
       chunks: [
@@ -532,6 +706,7 @@ describe('doStream', () => {
   });
 
   it('should include response headers in rawResponse', async () => {
+    setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
       type: 'stream-chunks',
       headers: {
@@ -569,6 +744,7 @@ describe('doStream', () => {
   });
 
   it('should properly combine headers from all sources', async () => {
+    setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
       type: 'stream-chunks',
       headers: {
@@ -631,6 +807,7 @@ describe('doStream', () => {
   });
 
   it('should work with partial headers', async () => {
+    setupMockEventStreamHandler();
     const model = new BedrockChatLanguageModel(
       modelId,
       {},
@@ -661,6 +838,7 @@ describe('doStream', () => {
   });
 
   it('should include providerOptions in the request for streaming calls', async () => {
+    setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
       type: 'stream-chunks',
       chunks: [
