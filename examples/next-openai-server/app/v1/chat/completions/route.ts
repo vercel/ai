@@ -78,7 +78,11 @@ export async function POST(req: Request) {
                   },
                 ],
                 // We assume the chunk carries usage info; fallback to empty object if not present.
-                usage: chunk.usage ?? {},
+                usage: {
+                  prompt_tokens: chunk.usage.promptTokens,
+                  completion_tokens: chunk.usage.completionTokens,
+                  total_tokens: chunk.usage.totalTokens,
+                },
               };
               controller.enqueue(
                 new TextEncoder().encode(
