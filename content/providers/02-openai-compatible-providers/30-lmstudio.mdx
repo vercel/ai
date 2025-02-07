@@ -37,7 +37,6 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 const lmstudio = createOpenAICompatible({
   name: 'lmstudio',
   baseURL: 'http://localhost:1234/v1',
-  maxRetries: 1, // immediately error if the server is not running
 });
 ```
 
@@ -73,6 +72,7 @@ const lmstudio = createOpenAICompatible({
 const { text } = await generateText({
   model: lmstudio('llama-3.2-1b'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  maxRetries: 1, // immediately error if the server is not running
 });
 ```
 
