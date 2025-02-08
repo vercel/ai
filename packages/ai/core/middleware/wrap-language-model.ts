@@ -61,7 +61,7 @@ const doWrap = ({
 
     defaultObjectGenerationMode: model.defaultObjectGenerationMode,
     supportsImageUrls: model.supportsImageUrls,
-    supportsUrl: model.supportsUrl,
+    supportsUrl: model.supportsUrl?.bind(model),
     supportsStructuredOutputs: model.supportsStructuredOutputs,
 
     async doGenerate(
