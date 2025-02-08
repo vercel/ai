@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.26
+
+### Patch Changes
+
+- 34983d4: fix (ai/core): bind supportsUrl when creating wrapper
+
 ## 4.1.25
 
 ### Patch Changes
