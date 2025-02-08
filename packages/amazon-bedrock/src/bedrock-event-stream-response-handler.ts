@@ -4,6 +4,7 @@ import {
   safeParseJSON,
   extractResponseHeaders,
   ResponseHandler,
+  safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { toUtf8, fromUtf8 } from '@smithy/util-utf8';
@@ -23,6 +24,7 @@ export const createBedrockEventStreamResponseHandler =
 
     const codec = new EventStreamCodec(toUtf8, fromUtf8);
     let buffer = new Uint8Array(0);
+    const textDecoder = new TextDecoder();
 
     return {
       responseHeaders,
@@ -59,11 +61,10 @@ export const createBedrockEventStreamResponseHandler =
 
                 // Process the message.
                 if (decoded.headers[':message-type']?.value === 'event') {
-                  const data = new TextDecoder().decode(decoded.body);
+                  const data = textDecoder.decode(decoded.body);
 
                   // Wrap the data in the `:event-type` field to match the expected schema.
                   const parsedDataResult = safeParseJSON({ text: data });
-                  let wrappedData;
                   if (!parsedDataResult.success) {
                     controller.enqueue(parsedDataResult);
                     break;
@@ -71,26 +72,25 @@ export const createBedrockEventStreamResponseHandler =
 
                   // The `p` field appears to be padding or some other non-functional field.
                   delete (parsedDataResult.value as any).p;
-                  wrappedData = {
+                  let wrappedData = {
                     [decoded.headers[':event-type']?.value as string]:
                       parsedDataResult.value,
                   };
 
-                  // Re-parse with the expected schema.
-                  const parsedWrappedData = safeParseJSON({
-                    text: JSON.stringify(wrappedData),
+                  // Re-validate with the expected schema.
+                  const validatedWrappedData = safeValidateTypes({
+                    value: wrappedData,
                     schema: chunkSchema,
                   });
-                  if (!parsedWrappedData.success) {
-                    controller.enqueue(parsedWrappedData);
-                    break;
+                  if (!validatedWrappedData.success) {
+                    controller.enqueue(validatedWrappedData);
+                  } else {
+                    controller.enqueue({
+                      success: true,
+                      value: validatedWrappedData.value,
+                      rawValue: wrappedData,
+                    });
                   }
-
-                  controller.enqueue({
-                    success: true,
-                    value: parsedWrappedData.value,
-                    rawValue: parsedWrappedData.rawValue,
-                  });
                 }
               } catch (e) {
                 // If we can't decode a complete message, wait for more data
