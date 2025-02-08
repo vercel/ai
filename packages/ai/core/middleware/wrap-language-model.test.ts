@@ -1,4 +1,4 @@
-import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 
@@ -198,6 +198,41 @@ describe('wrapLanguageModel', () => {
     expect(
       wrappedModel.supportsUrl?.(new URL('https://example.com/test.jpg')),
     ).toBe(true);
+  });
+
+  it('should support models that use "this" context in supportsUrl', async () => {
+    let supportsUrlCalled = false;
+
+    class MockLanguageModelWithImageSupport implements LanguageModelV1 {
+      readonly specificationVersion = 'v1';
+      readonly provider = 'test-provider';
+      readonly modelId = 'test-model';
+      readonly defaultObjectGenerationMode = 'json';
+      readonly supportsImageUrls = false;
+
+      readonly doGenerate: LanguageModelV1['doGenerate'] = vi.fn();
+      readonly doStream: LanguageModelV1['doStream'] = vi.fn();
+
+      private readonly value = true;
+
+      supportsUrl(url: URL) {
+        supportsUrlCalled = true;
+        // Reference 'this' to verify context
+        return this.value;
+      }
+    }
+
+    const wrappedModel = wrapLanguageModel({
+      model: new MockLanguageModelWithImageSupport(),
+      middleware: {
+        middlewareVersion: 'v1',
+      },
+    });
+
+    expect(
+      wrappedModel.supportsUrl?.(new URL('https://example.com/test.jpg')),
+    ).toBe(true);
+    expect(supportsUrlCalled).toBe(true);
   });
 
   describe('wrapLanguageModel with multiple middlewares', () => {
