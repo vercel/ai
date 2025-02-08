@@ -28,7 +28,7 @@
     "@opentelemetry/auto-instrumentations-node": "0.54.0",
     "@opentelemetry/sdk-node": "0.54.2",
     "@opentelemetry/sdk-trace-node": "1.28.0",
-    "ai": "4.1.25",
+    "ai": "4.1.26",
     "dotenv": "16.4.5",
     "image-type": "^5.2.0",
     "mathjs": "14.0.0",
