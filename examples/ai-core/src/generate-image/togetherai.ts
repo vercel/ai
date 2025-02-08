@@ -1,7 +1,7 @@
 import { togetherai } from '@ai-sdk/togetherai';
 import { experimental_generateImage as generateImage } from 'ai';
+import { presentImages } from '../lib/present-image';
 import 'dotenv/config';
-import fs from 'fs';
 
 async function main() {
   const result = await generateImage({
@@ -16,11 +16,7 @@ async function main() {
     },
   });
 
-  for (const [index, image] of result.images.entries()) {
-    const filename = `image-${Date.now()}-${index}.png`;
-    fs.writeFileSync(filename, image.uint8Array);
-    console.log(`Image saved to ${filename}`);
-  }
+  await presentImages(result.images);
 }
 
 main().catch(console.error);

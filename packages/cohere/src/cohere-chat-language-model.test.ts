@@ -14,8 +14,6 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-let testIdCounter = 0;
-
 const provider = createCohere({
   apiKey: 'test-api-key',
 });
@@ -380,6 +378,56 @@ describe('doGenerate', () => {
       body: '{"model":"command-r-plus","messages":[{"role":"system","content":"you are a friendly bot!"},{"role":"user","content":"Hello"}]}',
     });
   });
+
+  it('should handle string "null" tool call arguments', async () => {
+    prepareJsonResponse({
+      tool_calls: [
+        {
+          id: 'test-id-1',
+          type: 'function',
+          function: {
+            name: 'currentTime',
+            arguments: 'null',
+          },
+        },
+      ],
+    });
+
+    const { toolCalls } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'currentTime',
+            parameters: {
+              type: 'object',
+              properties: {},
+              required: [],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What is the current time?' }],
+        },
+      ],
+    });
+
+    expect(toolCalls).toStrictEqual([
+      {
+        toolCallId: 'test-id-1',
+        toolCallType: 'function',
+        toolName: 'currentTime',
+        args: '{}',
+      },
+    ]);
+  });
 });
 
 describe('doStream', () => {
@@ -705,5 +753,62 @@ describe('doStream', () => {
     expect(request).toStrictEqual({
       body: '{"model":"command-r-plus","messages":[{"role":"system","content":"you are a friendly bot!"},{"role":"user","content":"Hello"}],"stream":true}',
     });
+  });
+
+  it('should handle empty tool call arguments', async () => {
+    server.responseChunks = [
+      `event: message-start\ndata: {"type":"message-start","id":"test-id"}\n\n`,
+      `event: tool-call-start\ndata: {"type":"tool-call-start","delta":{"message":{"tool_calls":{"id":"test-id-1","type":"function","function":{"name":"test-tool","arguments":""}}}}}\n\n`,
+      `event: tool-call-end\ndata: {"type":"tool-call-end"}\n\n`,
+      `event: message-end\ndata: {"type":"message-end","delta":{"finish_reason":"COMPLETE","usage":{"tokens":{"input_tokens":10,"output_tokens":5}}}}\n\n`,
+      `data: [DONE]\n\n`,
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      prompt: TEST_PROMPT,
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: {},
+              required: [],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      { type: 'response-metadata', id: 'test-id' },
+      {
+        type: 'tool-call-delta',
+        toolCallType: 'function',
+        toolCallId: 'test-id-1',
+        toolName: 'test-tool',
+        argsTextDelta: '',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'test-id-1',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        args: '{}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: {
+          promptTokens: 10,
+          completionTokens: 5,
+        },
+      },
+    ]);
   });
 });

@@ -1,17 +1,15 @@
 import { fal } from '@ai-sdk/fal';
 import { experimental_generateImage as generateImage } from 'ai';
+import { presentImages } from '../lib/present-image';
 import 'dotenv/config';
-import fs from 'node:fs';
 
 async function main() {
-  const { image } = await generateImage({
+  const { images } = await generateImage({
     model: fal.image('fal-ai/flux/schnell'),
-    prompt: 'A cat wearing a intricate robe',
+    prompt:
+      'A cat wearing an intricate robe while gesticulating wildly, in the style of 80s pop art',
   });
-
-  const filename = `image-${Date.now()}.png`;
-  fs.writeFileSync(filename, image.uint8Array);
-  console.log(`Image saved to ${filename}`);
+  await presentImages(images);
 }
 
 main().catch(console.error);
