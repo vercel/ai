@@ -104,7 +104,7 @@ export function createAmazonBedrock(
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
         })}.amazonaws.com`,
-    ) ?? '';
+    ) ?? `https://bedrock-runtime.us-east-1.amazonaws.com`;
 
   const createChatModel = (
     modelId: BedrockChatModelId,
