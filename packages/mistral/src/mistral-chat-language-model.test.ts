@@ -305,6 +305,39 @@ describe('doGenerate', () => {
       body: '{"model":"mistral-small-latest","messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}]}',
     });
   });
+
+  it('should extract text response when message content is a content object', async () => {
+    server.responseBodyJson = {
+      object: 'chat.completion',
+      id: 'object-id',
+      created: 1711113008,
+      model: 'mistral-small-latest',
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: {
+              type: 'text',
+              text: 'Hello from object',
+            },
+            tool_calls: null,
+          },
+          finish_reason: 'stop',
+          logprobs: null,
+        },
+      ],
+      usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+    };
+
+    const { text } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('Hello from object');
+  });
 });
 
 describe('doStream', () => {
@@ -544,5 +577,39 @@ describe('doStream', () => {
     expect(request).toStrictEqual({
       body: '{"model":"mistral-small-latest","messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}],"stream":true}',
     });
+  });
+
+  it('should stream text with content objects', async () => {
+    // Instead of using prepareStreamResponse (which sends strings),
+    // we set the chunks manually so that each delta's content is an object.
+    server.responseChunks = [
+      `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"role":"assistant","content":{"type":"text","text":""}},"finish_reason":null,"logprobs":null}]}\n\n`,
+      `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":{"type":"text","text":"Hello"}},"finish_reason":null,"logprobs":null}]}\n\n`,
+      `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":{"type":"text","text":", world!"}},"finish_reason":"stop","logprobs":null}],"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32}}\n\n`,
+      `data: [DONE]\n\n`,
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'stream-object-id',
+        timestamp: new Date(1711097175 * 1000),
+        modelId: 'mistral-small-latest',
+      },
+      { type: 'text-delta', textDelta: '' },
+      { type: 'text-delta', textDelta: 'Hello' },
+      { type: 'text-delta', textDelta: ', world!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 32 },
+      },
+    ]);
   });
 });

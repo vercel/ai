@@ -618,9 +618,13 @@ describe('text stream', () => {
 });
 
 describe('onToolCall', () => {
+  let resolve: () => void;
+  let toolCallPromise: Promise<void>;
+
   const TestComponent = () => {
     const { messages, append } = useChat(() => ({
       async onToolCall({ toolCall }) {
+        await toolCallPromise;
         return `test-tool-response: ${toolCall.toolName} ${
           toolCall.toolCallId
         } ${JSON.stringify(toolCall.args)}`;
@@ -633,13 +637,11 @@ describe('onToolCall', () => {
           {(m, idx) => (
             <div data-testid={`message-${idx()}`}>
               <For each={m.toolInvocations ?? []}>
-                {(toolInvocation, toolIdx) =>
-                  'result' in toolInvocation ? (
-                    <div data-testid={`tool-invocation-${toolIdx()}`}>
-                      {toolInvocation.result}
-                    </div>
-                  ) : null
-                }
+                {(toolInvocation, toolIdx) => (
+                  <div data-testid={`tool-invocation-${toolIdx()}`}>
+                    {JSON.stringify(toolInvocation)}
+                  </div>
+                )}
               </For>
             </div>
           )}
@@ -656,6 +658,10 @@ describe('onToolCall', () => {
   };
 
   beforeEach(() => {
+    toolCallPromise = new Promise(resolveArg => {
+      resolve = resolveArg;
+    });
+
     render(() => <TestComponent />);
   });
 
@@ -680,8 +686,16 @@ describe('onToolCall', () => {
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
+      `{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}`,
     );
+
+    resolve();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        `{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-tool-response: test-tool tool-call-0 {\\"testArg\\":\\"test-value\\"}"}`,
+      );
+    });
   });
 });
 

@@ -1,4 +1,9 @@
+import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
+import {
+  calculateLanguageModelUsage,
+  LanguageModelUsage,
+} from './duplicated/usage';
 import { parsePartialJson } from './parse-partial-json';
 import { processDataStream } from './process-data-stream';
 import type {
@@ -10,11 +15,6 @@ import type {
   UIMessage,
   UseChatOptions,
 } from './types';
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
-import {
-  calculateLanguageModelUsage,
-  LanguageModelUsage,
-} from './duplicated/usage';
 
 export async function processChatResponse({
   stream,
@@ -231,6 +231,8 @@ export async function processChatResponse({
 
       updateToolInvocationPart(value.toolCallId, invocation);
 
+      execUpdate();
+
       // invoke the onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
       // requires additional state management for error handling etc.
@@ -249,10 +251,10 @@ export async function processChatResponse({
             invocation;
 
           updateToolInvocationPart(value.toolCallId, invocation);
+
+          execUpdate();
         }
       }
-
-      execUpdate();
     },
     onToolResultPart(value) {
       const toolInvocations = message.toolInvocations;
