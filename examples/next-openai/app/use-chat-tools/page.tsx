@@ -10,6 +10,9 @@ export default function Chat() {
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {
+        // artificial 2 second delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         if (toolCall.toolName === 'getLocation') {
           const cities = [
             'New York',
