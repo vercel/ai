@@ -1,12 +1,11 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { DataStreamString } from '@ai-sdk/ui-utils';
 
-export interface DataStreamWriter {
-  /**
-   * Appends a data part to the stream.
-   */
-  write(data: DataStreamString): void;
-
+/**
+ * Basic version of DataStreamWriter that exposes only the high-level writing methods.
+ * Used for client-side and tool execution where only data and annotation writing is needed.
+ */
+export interface BasicDataStreamWriter {
   /**
    * Appends a data part to the stream.
    */
@@ -16,6 +15,17 @@ export interface DataStreamWriter {
    * Appends a message annotation to the stream.
    */
   writeMessageAnnotation(value: JSONValue): void;
+}
+
+/**
+ * Full version of DataStreamWriter that includes all stream manipulation methods.
+ * Used internally for stream processing and merging.
+ */
+export interface DataStreamWriter extends BasicDataStreamWriter {
+  /**
+   * Appends a data part to the stream.
+   */
+  write(data: DataStreamString): void;
 
   /**
    * Merges the contents of another stream to this stream.

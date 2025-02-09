@@ -2,6 +2,7 @@ import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { ToolResultContent } from '../prompt/tool-result-content';
 import { CoreMessage } from '../prompt/message';
+import { BasicDataStreamWriter } from '../data-stream/data-stream-writer';
 
 type Parameters = z.ZodTypeAny | Schema<any>;
 
@@ -28,6 +29,11 @@ export interface ToolExecutionOptions {
    * An optional abort signal that indicates that the overall operation should be aborted.
    */
   abortSignal?: AbortSignal;
+
+  /**
+   * The data stream writer that can be used to write data to the stream during tool execution.
+   */
+  dataStream: BasicDataStreamWriter;
 }
 
 /**

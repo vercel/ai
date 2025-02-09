@@ -1,8 +1,10 @@
 import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
+import { formatStreamPart } from '@ai-sdk/ui-utils';
 import { Tracer } from '@opentelemetry/api';
 import { ToolExecutionError } from '../../errors';
 import { CoreMessage } from '../prompt/message';
+import { BasicDataStreamWriter } from '../data-stream/data-stream-writer';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -133,6 +135,18 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         SingleRequestTextStreamPart<TOOLS>
       >,
     ) {
+      // Initialize dataStream that writes to the forward stream controller
+      const dataStream: BasicDataStreamWriter = {
+        writeData(data: unknown) {
+          controller.enqueue(formatStreamPart('data', [data]));
+        },
+        writeMessageAnnotation(annotation: unknown) {
+          controller.enqueue(
+            formatStreamPart('message_annotations', [annotation]),
+          );
+        },
+      };
+
       const chunkType = chunk.type;
 
       switch (chunkType) {
@@ -212,6 +226,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     toolCallId: toolCall.toolCallId,
                     messages,
                     abortSignal,
+                    dataStream,
                   }).then(
                     (result: any) => {
                       toolResultsStreamController!.enqueue({

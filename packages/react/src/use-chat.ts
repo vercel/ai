@@ -7,6 +7,7 @@ import type {
   UIMessage,
   UseChatOptions,
 } from '@ai-sdk/ui-utils';
+import type { BasicDataStreamWriter } from 'ai';
 import {
   callChatApi,
   extractMaxToolInvocationStep,
@@ -17,8 +18,9 @@ import {
   prepareAttachmentsForRequest,
   shouldResubmitMessages,
   updateToolCallResult,
+  formatDataStreamPart,
 } from '@ai-sdk/ui-utils';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import useSWR from 'swr';
 import { throttle } from './throttle';
 
@@ -87,6 +89,9 @@ export type UseChatHelpers = {
       | undefined
       | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
   ) => void;
+
+  /** The data stream writer that can be used to write data during tool execution. */
+  dataStream: BasicDataStreamWriter;
 
   /** The id of the chat */
   id: string;
@@ -543,6 +548,25 @@ By default, it's set to 1, which means that only a single LLM call is made.
     [mutate, triggerRequest],
   );
 
+  // Create a data stream writer that matches the core API (minus merge/onError)
+  const dataStream = useMemo<BasicDataStreamWriter>(
+    () => ({
+      writeData(data: JSONValue) {
+        setData(currentData => [
+          ...(currentData || []),
+          formatDataStreamPart('data', [data]),
+        ]);
+      },
+      writeMessageAnnotation(annotation: JSONValue) {
+        setData(currentData => [
+          ...(currentData || []),
+          formatDataStreamPart('message_annotations', [annotation]),
+        ]);
+      },
+    }),
+    [setData],
+  );
+
   return {
     messages: messages ?? [],
     id: chatId,
@@ -558,6 +582,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     handleInputChange,
     handleSubmit,
     isLoading,
+    dataStream,
     addToolResult,
   };
 }
