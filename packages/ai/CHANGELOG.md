@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.28
+
+### Patch Changes
+
+- 6eb7fc4: feat (ai/core): url source support
+
 ## 4.1.27
 
 ### Patch Changes
