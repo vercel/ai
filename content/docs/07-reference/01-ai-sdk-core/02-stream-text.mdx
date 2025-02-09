@@ -624,6 +624,21 @@ To see `streamText` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'type',
+                      type: "'source'",
+                      description: 'The type to identify the object as source.',
+                    },
+                    {
+                      name: 'source',
+                      type: 'Source',
+                      description: 'The source.',
+                    },
+                  ],
+                },
+                {
+                  type: 'TextStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
                       type: "'tool-call'",
                       description:
                         'The type to identify the object as tool call.',
@@ -846,6 +861,54 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The full text that has been generated.',
             },
             {
+              name: 'reasoning',
+              type: 'string | undefined',
+              description:
+                'The reasoning text of the model (only available for some models).',
+            },
+            {
+              name: 'sources',
+              type: 'Array<Source>',
+              description:
+                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+              properties: [
+                {
+                  type: 'Source',
+                  parameters: [
+                    {
+                      name: 'sourceType',
+                      type: "'url'",
+                      description:
+                        'A URL source. This is return by web search RAG models.',
+                    },
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description: 'The ID of the source.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description: 'The URL of the source.',
+                    },
+                    {
+                      name: 'title',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The title of the source.',
+                    },
+                    {
+                      name: 'providerMetadata',
+                      type: 'LanguageModelV1ProviderMetadata',
+                      isOptional: true,
+                      description:
+                        'Additional provider metadata for the source.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'toolCalls',
               type: 'ToolCall[]',
               description: 'The tool calls that have been executed.',
@@ -968,6 +1031,54 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'text',
               type: 'string',
               description: 'The full text that has been generated.',
+            },
+            {
+              name: 'reasoning',
+              type: 'string | undefined',
+              description:
+                'The reasoning text of the model (only available for some models).',
+            },
+            {
+              name: 'sources',
+              type: 'Array<Source>',
+              description:
+                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+              properties: [
+                {
+                  type: 'Source',
+                  parameters: [
+                    {
+                      name: 'sourceType',
+                      type: "'url'",
+                      description:
+                        'A URL source. This is return by web search RAG models.',
+                    },
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description: 'The ID of the source.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description: 'The URL of the source.',
+                    },
+                    {
+                      name: 'title',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The title of the source.',
+                    },
+                    {
+                      name: 'providerMetadata',
+                      type: 'LanguageModelV1ProviderMetadata',
+                      isOptional: true,
+                      description:
+                        'Additional provider metadata for the source.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'toolCalls',
@@ -1098,6 +1209,47 @@ To see `streamText` in action, check out [these examples](#examples).
         'The reasoning text of the model (only available for some models). Resolved when the response is finished.',
     },
     {
+      name: 'sources',
+      type: 'Promise<Array<Source>>',
+      description:
+        'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps. Resolved when the response is finished.',
+      properties: [
+        {
+          type: 'Source',
+          parameters: [
+            {
+              name: 'sourceType',
+              type: "'url'",
+              description:
+                'A URL source. This is return by web search RAG models.',
+            },
+            {
+              name: 'id',
+              type: 'string',
+              description: 'The ID of the source.',
+            },
+            {
+              name: 'url',
+              type: 'string',
+              description: 'The URL of the source.',
+            },
+            {
+              name: 'title',
+              type: 'string',
+              isOptional: true,
+              description: 'The title of the source.',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'LanguageModelV1ProviderMetadata',
+              isOptional: true,
+              description: 'Additional provider metadata for the source.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'toolCalls',
       type: 'Promise<ToolCall[]>',
       description:
@@ -1202,6 +1354,47 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'string | undefined',
               description:
                 'The reasoning text of the model (only available for some models).',
+            },
+            {
+              name: 'sources',
+              type: 'Array<Source>',
+              description: 'Sources that have been used as input.',
+              properties: [
+                {
+                  type: 'Source',
+                  parameters: [
+                    {
+                      name: 'sourceType',
+                      type: "'url'",
+                      description:
+                        'A URL source. This is return by web search RAG models.',
+                    },
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description: 'The ID of the source.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description: 'The URL of the source.',
+                    },
+                    {
+                      name: 'title',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The title of the source.',
+                    },
+                    {
+                      name: 'providerMetadata',
+                      type: 'LanguageModelV1ProviderMetadata',
+                      isOptional: true,
+                      description:
+                        'Additional provider metadata for the source.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'toolCalls',
@@ -1371,6 +1564,21 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'textDelta',
               type: 'string',
               description: 'The reasoning text delta.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'source'",
+              description: 'The type to identify the object as source.',
+            },
+            {
+              name: 'source',
+              type: 'Source',
+              description: 'The source.',
             },
           ],
         },

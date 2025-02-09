@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.1.11
+
+### Patch Changes
+
+- 6eb7fc4: feat (ai/core): url source support
+
 ## 1.1.10
 
 ### Patch Changes

@@ -267,6 +267,7 @@ A function that attempts to repair a tool call that failed to parse.
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
       let text = '';
+      const sources: GenerateTextResult<TOOLS, OUTPUT>['sources'] = [];
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
       let usage: LanguageModelUsage = {
         completionTokens: 0,
@@ -457,6 +458,9 @@ A function that attempts to repair a tool call that failed to parse.
             ? text + stepText
             : stepText;
 
+        // sources:
+        sources.push(...(currentModelResponse.sources ?? []));
+
         // append to messages for potential next step:
         if (stepType === 'continue') {
           // continue step: update the last assistant message
@@ -492,6 +496,7 @@ A function that attempts to repair a tool call that failed to parse.
           stepType,
           text: stepText,
           reasoning: currentModelResponse.reasoning,
+          sources: currentModelResponse.sources ?? [],
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
           finishReason: currentModelResponse.finishReason,
@@ -538,6 +543,7 @@ A function that attempts to repair a tool call that failed to parse.
       return new DefaultGenerateTextResult({
         text,
         reasoning: currentModelResponse.reasoning,
+        sources,
         outputResolver: () => {
           if (output == null) {
             throw new NoOutputSpecifiedError();
@@ -678,6 +684,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   >['experimental_providerMetadata'];
   readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
+  readonly sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
 
   private readonly outputResolver: () => GenerateTextResult<
     TOOLS,
@@ -704,6 +711,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
       TOOLS,
       OUTPUT
     >['experimental_output'];
+    sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
   }) {
     this.text = options.text;
     this.reasoning = options.reasoning;
@@ -718,6 +726,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.experimental_providerMetadata = options.providerMetadata;
     this.logprobs = options.logprobs;
     this.outputResolver = options.outputResolver;
+    this.sources = options.sources;
   }
 
   get experimental_output() {
