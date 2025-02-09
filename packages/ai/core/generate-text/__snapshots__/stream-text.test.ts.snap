@@ -2017,6 +2017,77 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 ]
 `;
 
+exports[`streamText > options.onChunk > should return events in order 1`] = `
+[
+  {
+    "textDelta": "Hello",
+    "type": "text-delta",
+  },
+  {
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-call-streaming-start",
+  },
+  {
+    "argsTextDelta": "{"value": "",
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-call-delta",
+  },
+  {
+    "textDelta": "Feeling clever",
+    "type": "reasoning",
+  },
+  {
+    "argsTextDelta": "test",
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-call-delta",
+  },
+  {
+    "argsTextDelta": ""}",
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-call-delta",
+  },
+  {
+    "source": {
+      "id": "123",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example",
+      "url": "https://example.com",
+    },
+    "type": "source",
+  },
+  {
+    "args": {
+      "value": "test",
+    },
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+  {
+    "args": {
+      "value": "test",
+    },
+    "result": "test-result",
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-result",
+  },
+  {
+    "textDelta": " World",
+    "type": "text-delta",
+  },
+]
+`;
+
 exports[`streamText > options.onFinish > should send correct information 1`] = `
 {
   "experimental_providerMetadata": {

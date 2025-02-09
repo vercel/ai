@@ -1832,6 +1832,7 @@ describe('streamText', () => {
           type:
             | 'text-delta'
             | 'reasoning'
+            | 'source'
             | 'tool-call'
             | 'tool-call-streaming-start'
             | 'tool-call-delta'
@@ -1873,6 +1874,16 @@ describe('streamText', () => {
               argsTextDelta: '"}',
             },
             {
+              type: 'source',
+              source: {
+                sourceType: 'url' as const,
+                id: '123',
+                url: 'https://example.com',
+                title: 'Example',
+                providerMetadata: { provider: { custom: 'value' } },
+              },
+            },
+            {
               type: 'tool-call',
               toolCallId: '1',
               toolCallType: 'function',
@@ -1908,50 +1919,7 @@ describe('streamText', () => {
     });
 
     it('should return events in order', async () => {
-      assert.deepStrictEqual(result, [
-        { type: 'text-delta', textDelta: 'Hello' },
-        {
-          type: 'tool-call-streaming-start',
-          toolCallId: '1',
-          toolName: 'tool1',
-        },
-        {
-          type: 'tool-call-delta',
-          argsTextDelta: '{"value": "',
-          toolCallId: '1',
-          toolName: 'tool1',
-        },
-        {
-          type: 'reasoning',
-          textDelta: 'Feeling clever',
-        },
-        {
-          type: 'tool-call-delta',
-          argsTextDelta: 'test',
-          toolCallId: '1',
-          toolName: 'tool1',
-        },
-        {
-          type: 'tool-call-delta',
-          argsTextDelta: '"}',
-          toolCallId: '1',
-          toolName: 'tool1',
-        },
-        {
-          type: 'tool-call',
-          toolCallId: '1',
-          toolName: 'tool1',
-          args: { value: 'test' },
-        },
-        {
-          type: 'tool-result',
-          toolCallId: '1',
-          toolName: 'tool1',
-          args: { value: 'test' },
-          result: 'test-result',
-        },
-        { type: 'text-delta', textDelta: ' World' },
-      ]);
+      expect(result).toMatchSnapshot();
     });
   });
 
@@ -3844,6 +3812,7 @@ describe('streamText', () => {
               type:
                 | 'text-delta'
                 | 'reasoning'
+                | 'source'
                 | 'tool-call'
                 | 'tool-call-streaming-start'
                 | 'tool-call-delta'

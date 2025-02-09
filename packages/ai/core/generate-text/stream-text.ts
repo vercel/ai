@@ -262,6 +262,7 @@ Callback that is called for each chunk of the stream. The stream processing will
           type:
             | 'text-delta'
             | 'reasoning'
+            | 'source'
             | 'tool-call'
             | 'tool-call-streaming-start'
             | 'tool-call-delta'
@@ -526,6 +527,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               type:
                 | 'text-delta'
                 | 'reasoning'
+                | 'source'
                 | 'tool-call'
                 | 'tool-call-streaming-start'
                 | 'tool-call-delta'
@@ -597,6 +599,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (
           part.type === 'text-delta' ||
           part.type === 'reasoning' ||
+          part.type === 'source' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
           part.type === 'tool-call-streaming-start' ||
