@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { vi } from 'vitest';
+import { FetchFunction } from '@ai-sdk/provider-utils';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'system', content: 'System Prompt' },
@@ -38,6 +39,27 @@ const mockTrace = {
   },
 };
 
+function createFakeFetch(customHeaders: Record<string, string>): FetchFunction {
+  return async (input, init = {}) => {
+    // Ensure headers is a plain object, Headers instance, or array.
+    if (init.headers instanceof Headers) {
+      for (const [key, value] of Object.entries(customHeaders)) {
+        init.headers.set(key, value);
+      }
+    } else if (Array.isArray(init.headers)) {
+      for (const [key, value] of Object.entries(customHeaders)) {
+        init.headers.push([key, value]);
+      }
+    } else {
+      init.headers = { ...(init.headers || {}), ...customHeaders };
+    }
+    // Delegate to the global fetch (MSW will intercept it).
+    return await globalThis.fetch(input, init);
+  };
+}
+
+const fakeFetchWithAuth = createFakeFetch({ 'x-amz-auth': 'test-auth' });
+
 const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
 const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
 
@@ -68,9 +90,7 @@ const model = new BedrockChatLanguageModel(
   {
     baseUrl: () => baseUrl,
     headers: {},
-    sign: () => ({
-      'x-amz-auth': 'test-auth',
-    }),
+    fetch: fakeFetchWithAuth,
     generateId: () => 'test-id',
   },
 );
@@ -780,7 +800,7 @@ describe('doStream', () => {
           'model-header': 'model-value',
           'shared-header': 'model-shared',
         },
-        sign: () => ({
+        fetch: createFakeFetch({
           'options-header': 'options-value',
           'model-header': 'model-value',
           'shared-header': 'options-shared',
@@ -816,7 +836,7 @@ describe('doStream', () => {
         headers: {
           'model-header': 'model-value',
         },
-        sign: () => ({
+        fetch: createFakeFetch({
           'model-header': 'model-value',
           'signed-header': 'signed-value',
           authorization: 'AWS4-HMAC-SHA256...',
@@ -1204,7 +1224,7 @@ describe('doGenerate', () => {
           'model-header': 'model-value',
           'shared-header': 'model-shared',
         },
-        sign: () => ({
+        fetch: createFakeFetch({
           'options-header': 'options-value',
           'model-header': 'model-value',
           'shared-header': 'options-shared',
@@ -1241,7 +1261,7 @@ describe('doGenerate', () => {
         headers: {
           'model-header': 'model-value',
         },
-        sign: () => ({
+        fetch: createFakeFetch({
           'model-header': 'model-value',
           'signed-header': 'signed-value',
           authorization: 'AWS4-HMAC-SHA256...',

@@ -19,7 +19,7 @@ import {
   BedrockEmbeddingModelId,
   BedrockEmbeddingSettings,
 } from './bedrock-embedding-settings';
-import { createSigV4SigningFunction } from './bedrock-sigv4-signing-function';
+import { createSigV4FetchFunction } from './bedrock-sigv4-fetch';
 
 export interface AmazonBedrockProviderSettings {
   /**
@@ -88,13 +88,15 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const sign = createSigV4SigningFunction({
-    region: options.region,
-    accessKeyId: options.accessKeyId,
-    secretAccessKey: options.secretAccessKey,
-    sessionToken: options.sessionToken,
-  });
-
+  const sigv4Fetch = createSigV4FetchFunction(
+    {
+      region: options.region,
+      accessKeyId: options.accessKeyId,
+      secretAccessKey: options.secretAccessKey,
+      sessionToken: options.sessionToken,
+    },
+    options.fetch,
+  );
   const getBaseUrl = (): string =>
     withoutTrailingSlash(
       options.baseURL ??
@@ -113,8 +115,7 @@ export function createAmazonBedrock(
     new BedrockChatLanguageModel(modelId, settings, {
       baseUrl: getBaseUrl,
       headers: options.headers ?? {},
-      fetch: options.fetch,
-      sign,
+      fetch: sigv4Fetch,
       generateId,
     });
 
@@ -138,8 +139,7 @@ export function createAmazonBedrock(
     new BedrockEmbeddingModel(modelId, settings, {
       baseUrl: getBaseUrl,
       headers: options.headers ?? {},
-      fetch: options.fetch,
-      sign,
+      fetch: sigv4Fetch,
     });
 
   provider.languageModel = createChatModel;

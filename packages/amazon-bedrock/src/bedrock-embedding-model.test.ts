@@ -1,6 +1,7 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createAmazonBedrock } from './bedrock-provider';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
+import { FetchFunction } from '@ai-sdk/provider-utils';
 
 const mockEmbeddings = [
   [
@@ -12,6 +13,28 @@ const mockEmbeddings = [
     [0.6, 0.7, 0.8, 0.9, 1.0],
   ],
 ];
+
+// TODO: share with bedrock-chat-language-model.test.ts
+function createFakeFetch(customHeaders: Record<string, string>): FetchFunction {
+  return async (input, init = {}) => {
+    // Ensure headers is a plain object, Headers instance, or array.
+    if (init.headers instanceof Headers) {
+      for (const [key, value] of Object.entries(customHeaders)) {
+        init.headers.set(key, value);
+      }
+    } else if (Array.isArray(init.headers)) {
+      for (const [key, value] of Object.entries(customHeaders)) {
+        init.headers.push([key, value]);
+      }
+    } else {
+      init.headers = { ...(init.headers || {}), ...customHeaders };
+    }
+    // Delegate to the global fetch (MSW will intercept it).
+    return await globalThis.fetch(input, init);
+  };
+}
+
+const fakeFetchWithAuth = createFakeFetch({ 'x-amz-auth': 'test-auth' });
 
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
@@ -48,7 +71,7 @@ describe('doEmbed', () => {
     {
       baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
       headers: mockConfigHeaders,
-      sign: ({ headers }) => headers, // Dummy sign function that just returns the headers
+      fetch: fakeFetchWithAuth,
     },
   );
 
@@ -117,8 +140,7 @@ describe('doEmbed', () => {
           'model-header': 'model-value',
           'shared-header': 'model-shared',
         },
-        sign: ({ headers }) => ({
-          ...headers,
+        fetch: createFakeFetch({
           'signed-header': 'signed-value',
           authorization: 'AWS4-HMAC-SHA256...',
         }),
@@ -147,8 +169,7 @@ describe('doEmbed', () => {
         headers: {
           'model-header': 'model-value',
         },
-        sign: ({ headers }) => ({
-          ...headers,
+        fetch: createFakeFetch({
           'signed-header': 'signed-value',
           authorization: 'AWS4-HMAC-SHA256...',
         }),

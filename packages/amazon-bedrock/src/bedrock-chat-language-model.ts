@@ -19,7 +19,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   BedrockConverseInput,
-  BedrockSigningFunction,
   BEDROCK_STOP_REASONS,
   BedrockToolInputSchema,
 } from './bedrock-api-types';
@@ -38,7 +37,6 @@ type BedrockChatConfig = {
   baseUrl: () => string;
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
-  sign: BedrockSigningFunction;
   generateId: () => string;
 };
 
@@ -188,7 +186,10 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     const url = this.getUrl(this.modelId);
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
-      headers: await this.getFullSignedHeaders(url, options.headers, args),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
@@ -240,7 +241,10 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
-      headers: await this.getFullSignedHeaders(url, options.headers, args),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
@@ -408,20 +412,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   private getStreamUrl(modelId: string): string {
     const encodedModelId = encodeURIComponent(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}/converse-stream`;
-  }
-
-  private async getFullSignedHeaders(
-    url: string,
-    headers: Record<string, string | undefined> | undefined,
-    args: BedrockConverseInput,
-  ) {
-    return await resolve(
-      this.config.sign({
-        url,
-        headers: combineHeaders(await resolve(this.config.headers), headers),
-        body: args,
-      }),
-    );
   }
 }
 

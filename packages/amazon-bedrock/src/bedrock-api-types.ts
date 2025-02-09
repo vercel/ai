@@ -1,11 +1,5 @@
 import { Resolvable } from '@ai-sdk/provider-utils';
 
-export type BedrockSigningFunction = (args: {
-  url: string;
-  headers: Record<string, string | undefined>;
-  body: unknown;
-}) => Resolvable<Record<string, string | undefined>>;
-
 export interface BedrockConverseInput {
   system?: Array<{ text: string }>;
   messages: Array<{
