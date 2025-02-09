@@ -137,5 +137,5 @@ export function createVertexAnthropic(
 
   provider.tools = anthropicTools;
 
-  return provider as GoogleVertexAnthropicProvider;
+  return provider;
 }

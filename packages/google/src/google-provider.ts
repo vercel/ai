@@ -160,7 +160,7 @@ export function createGoogleGenerativeAI(
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
-  return provider as GoogleGenerativeAIProvider;
+  return provider;
 }
 
 /**

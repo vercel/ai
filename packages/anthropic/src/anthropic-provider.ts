@@ -133,7 +133,7 @@ export function createAnthropic(
 
   provider.tools = anthropicTools;
 
-  return provider as AnthropicProvider;
+  return provider;
 }
 
 /**
