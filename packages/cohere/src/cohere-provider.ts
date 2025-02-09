@@ -120,7 +120,7 @@ export function createCohere(
   provider.embedding = createTextEmbeddingModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
 
-  return provider as CohereProvider;
+  return provider;
 }
 
 /**

@@ -192,7 +192,7 @@ export function createDeepInfra(
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
 
-  return provider as DeepInfraProvider;
+  return provider;
 }
 
 export const deepinfra = createDeepInfra();

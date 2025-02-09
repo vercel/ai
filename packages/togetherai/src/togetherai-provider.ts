@@ -190,7 +190,7 @@ export function createTogetherAI(
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
 
-  return provider as TogetherAIProvider;
+  return provider;
 }
 
 export const togetherai = createTogetherAI();

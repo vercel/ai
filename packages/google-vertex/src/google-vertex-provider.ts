@@ -174,5 +174,5 @@ export function createVertex(
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
 
-  return provider as GoogleVertexProvider;
+  return provider;
 }
