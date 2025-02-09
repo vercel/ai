@@ -9,6 +9,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import { Source } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -33,6 +34,14 @@ When there are multiple steps, the usage is the sum of all step usages.
 Resolved when the response is finished.
      */
   readonly usage: Promise<LanguageModelUsage>;
+
+  /**
+Sources that have been used as input to generate the response.
+For multi-step generation, the sources are accumulated from all steps.
+
+Resolved when the response is finished.
+   */
+  readonly sources: Promise<Source[]>;
 
   /**
 The reason why the generation finished. Taken from the last step.
@@ -237,6 +246,10 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'reasoning';
       textDelta: string;
+    }
+  | {
+      type: 'source';
+      source: Source;
     }
   | ({
       type: 'tool-call';

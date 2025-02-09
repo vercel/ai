@@ -54,6 +54,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { LanguageModelV1Source } from '@ai-sdk/provider';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -261,6 +262,7 @@ Callback that is called for each chunk of the stream. The stream processing will
           type:
             | 'text-delta'
             | 'reasoning'
+            | 'source'
             | 'tool-call'
             | 'tool-call-streaming-start'
             | 'tool-call-delta'
@@ -439,6 +441,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   private readonly reasoningPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoning']>
   >();
+  private readonly sourcesPromise = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['sources']>
+  >();
   private readonly toolCallsPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['toolCalls']>
   >();
@@ -522,6 +527,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               type:
                 | 'text-delta'
                 | 'reasoning'
+                | 'source'
                 | 'tool-call'
                 | 'tool-call-streaming-start'
                 | 'tool-call-delta'
@@ -562,6 +568,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedContinuationText = '';
     let recordedFullText = '';
     let recordedReasoningText: string | undefined = undefined;
+    let recordedStepSources: LanguageModelV1Source[] = [];
+    const recordedSources: LanguageModelV1Source[] = [];
+
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<ResponseMessage>;
     } = {
@@ -590,6 +599,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (
           part.type === 'text-delta' ||
           part.type === 'reasoning' ||
+          part.type === 'source' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
           part.type === 'tool-call-streaming-start' ||
@@ -611,6 +621,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (part.type === 'reasoning') {
           recordedReasoningText =
             (recordedReasoningText ?? '') + part.textDelta;
+        }
+
+        if (part.type === 'source') {
+          recordedSources.push(part.source);
+          recordedStepSources.push(part.source);
         }
 
         if (part.type === 'tool-call') {
@@ -657,6 +672,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             stepType,
             text: recordedStepText,
             reasoning: recordedReasoningText,
+            sources: recordedStepSources,
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
             finishReason: part.finishReason,
@@ -679,6 +695,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedToolCalls = [];
           recordedToolResults = [];
           recordedStepText = '';
+          recordedStepSources = [];
 
           if (nextStepType !== 'done') {
             stepType = nextStepType;
@@ -733,6 +750,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // aggregate results:
           self.textPromise.resolve(recordedFullText);
           self.reasoningPromise.resolve(recordedReasoningText);
+          self.sourcesPromise.resolve(recordedSources);
           self.stepsPromise.resolve(recordedSteps);
 
           // call onFinish callback:
@@ -741,7 +759,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             logprobs: undefined,
             usage,
             text: recordedFullText,
-            reasoning: recordedReasoningText,
+            reasoning: lastStep.reasoning,
+            sources: lastStep.sources,
             toolCalls: lastStep.toolCalls,
             toolResults: lastStep.toolResults,
             request: lastStep.request ?? {},
@@ -1086,6 +1105,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
+                    case 'source': {
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
                     case 'tool-call': {
                       controller.enqueue(chunk);
                       // store tool calls for onFinish callback and toolCalls promise:
@@ -1369,6 +1393,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     return this.reasoningPromise.value;
   }
 
+  get sources() {
+    return this.sourcesPromise.value;
+  }
+
   get toolCalls() {
     return this.toolCallsPromise.value;
   }
@@ -1502,6 +1530,11 @@ However, the LLM results are expected to be small enough to not cause issues.
                 formatDataStreamPart('reasoning', chunk.textDelta),
               );
             }
+            break;
+          }
+
+          case 'source': {
+            // not implemented yet
             break;
           }
 

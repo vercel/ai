@@ -7,6 +7,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import { Source } from '../types/language-model';
 import { LanguageModelUsage } from '../types/usage';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
@@ -37,6 +38,11 @@ The generated text.
 The reasoning that was generated during the generation.
 */
   readonly reasoning: string | undefined;
+
+  /**
+The sources that were used to generate the text.
+*/
+  readonly sources: Source[];
 
   /**
 The tool calls that were made during the generation.

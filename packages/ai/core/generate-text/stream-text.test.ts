@@ -69,6 +69,41 @@ function createTestModel({
   });
 }
 
+const modelWithSources = new MockLanguageModelV1({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'source',
+        source: {
+          sourceType: 'url' as const,
+          id: '123',
+          url: 'https://example.com',
+          title: 'Example',
+          providerMetadata: { provider: { custom: 'value' } },
+        },
+      },
+      { type: 'text-delta', textDelta: 'Hello!' },
+      {
+        type: 'source',
+        source: {
+          sourceType: 'url' as const,
+          id: '456',
+          url: 'https://example.com/2',
+          title: 'Example 2',
+          providerMetadata: { provider: { custom: 'value2' } },
+        },
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        logprobs: undefined,
+        usage: { completionTokens: 10, promptTokens: 3 },
+      },
+    ]),
+    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+  }),
+});
+
 describe('streamText', () => {
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
@@ -272,6 +307,22 @@ describe('streamText', () => {
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           }),
         }),
+        prompt: 'test-input',
+        _internal: {
+          currentDate: mockValues(new Date(2000)),
+          generateId: mockValues('id-2000'),
+        },
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.fullStream),
+      ).toMatchSnapshot();
+    });
+
+    it('should include sources in fullStream', async () => {
+      const result = streamText({
+        model: modelWithSources,
         prompt: 'test-input',
         _internal: {
           currentDate: mockValues(new Date(2000)),
@@ -1617,6 +1668,19 @@ describe('streamText', () => {
     });
   });
 
+  describe('result.sources', () => {
+    it('should contain sources', async () => {
+      const result = streamText({
+        model: modelWithSources,
+        prompt: 'prompt',
+      });
+
+      result.consumeStream();
+
+      expect(await result.sources).toMatchSnapshot();
+    });
+  });
+
   describe('result.steps', () => {
     it('should add the reasoning from the model response to the step result', async () => {
       const result = streamText({
@@ -1648,6 +1712,22 @@ describe('streamText', () => {
         experimental_generateMessageId: mockId({
           prefix: 'msg',
         }),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          currentDate: () => new Date(0),
+        },
+      });
+
+      result.consumeStream();
+
+      expect(await result.steps).toMatchSnapshot();
+    });
+
+    it('should contain sources', async () => {
+      const result = streamText({
+        model: modelWithSources,
+        prompt: 'prompt',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
         _internal: {
           generateId: mockId({ prefix: 'id' }),
           currentDate: () => new Date(0),
@@ -1752,6 +1832,7 @@ describe('streamText', () => {
           type:
             | 'text-delta'
             | 'reasoning'
+            | 'source'
             | 'tool-call'
             | 'tool-call-streaming-start'
             | 'tool-call-delta'
@@ -1793,6 +1874,16 @@ describe('streamText', () => {
               argsTextDelta: '"}',
             },
             {
+              type: 'source',
+              source: {
+                sourceType: 'url' as const,
+                id: '123',
+                url: 'https://example.com',
+                title: 'Example',
+                providerMetadata: { provider: { custom: 'value' } },
+              },
+            },
+            {
               type: 'tool-call',
               toolCallId: '1',
               toolCallType: 'function',
@@ -1828,50 +1919,7 @@ describe('streamText', () => {
     });
 
     it('should return events in order', async () => {
-      assert.deepStrictEqual(result, [
-        { type: 'text-delta', textDelta: 'Hello' },
-        {
-          type: 'tool-call-streaming-start',
-          toolCallId: '1',
-          toolName: 'tool1',
-        },
-        {
-          type: 'tool-call-delta',
-          argsTextDelta: '{"value": "',
-          toolCallId: '1',
-          toolName: 'tool1',
-        },
-        {
-          type: 'reasoning',
-          textDelta: 'Feeling clever',
-        },
-        {
-          type: 'tool-call-delta',
-          argsTextDelta: 'test',
-          toolCallId: '1',
-          toolName: 'tool1',
-        },
-        {
-          type: 'tool-call-delta',
-          argsTextDelta: '"}',
-          toolCallId: '1',
-          toolName: 'tool1',
-        },
-        {
-          type: 'tool-call',
-          toolCallId: '1',
-          toolName: 'tool1',
-          args: { value: 'test' },
-        },
-        {
-          type: 'tool-result',
-          toolCallId: '1',
-          toolName: 'tool1',
-          args: { value: 'test' },
-          result: 'test-result',
-        },
-        { type: 'text-delta', textDelta: ' World' },
-      ]);
+      expect(result).toMatchSnapshot();
     });
   });
 
@@ -1946,6 +1994,29 @@ describe('streamText', () => {
           result = event as unknown as typeof result;
         },
         experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      await resultObject.consumeStream();
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should send sources', async () => {
+      let result!: Parameters<
+        Required<Parameters<typeof streamText>[0]>['onFinish']
+      >[0];
+
+      const resultObject = streamText({
+        model: modelWithSources,
+        prompt: 'test-input',
+        onFinish: async event => {
+          result = event as unknown as typeof result;
+        },
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          currentDate: () => new Date(0),
+        },
       });
 
       await resultObject.consumeStream();
@@ -2359,6 +2430,16 @@ describe('streamText', () => {
                       },
                       // case where there is no leading nor trailing whitespace:
                       { type: 'text-delta', textDelta: 'no-' },
+                      {
+                        type: 'source',
+                        source: {
+                          sourceType: 'url' as const,
+                          id: '123',
+                          url: 'https://example.com',
+                          title: 'Example',
+                          providerMetadata: { provider: { custom: 'value' } },
+                        },
+                      },
                       { type: 'text-delta', textDelta: 'whitespace' },
                       {
                         type: 'finish',
@@ -2409,8 +2490,28 @@ describe('streamText', () => {
                         modelId: 'mock-model-id',
                         timestamp: new Date(1000),
                       },
+                      {
+                        type: 'source',
+                        source: {
+                          sourceType: 'url' as const,
+                          id: '456',
+                          url: 'https://example.com/2',
+                          title: 'Example 2',
+                          providerMetadata: { provider: { custom: 'value2' } },
+                        },
+                      },
                       // set up trailing whitespace for next step:
                       { type: 'text-delta', textDelta: 'immediatefollow  ' },
+                      {
+                        type: 'source',
+                        source: {
+                          sourceType: 'url' as const,
+                          id: '789',
+                          url: 'https://example.com/3',
+                          title: 'Example 3',
+                          providerMetadata: { provider: { custom: 'value3' } },
+                        },
+                      },
                       {
                         type: 'finish',
                         finishReason: 'length',
@@ -2589,6 +2690,11 @@ describe('streamText', () => {
             dataStream.pipeThrough(new TextDecoderStream()),
           ),
         ).toMatchSnapshot();
+      });
+
+      it('result.sources should contain sources from all steps', async () => {
+        result.consumeStream();
+        expect(await result.sources).toMatchSnapshot();
       });
     });
   });
@@ -3457,87 +3563,12 @@ describe('streamText', () => {
           },
           experimental_transform: upperCaseTransform(),
           prompt: 'test-input',
+          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
-        await result.consumeStream();
+        result.consumeStream();
 
-        expect(await result.steps).toStrictEqual([
-          {
-            stepType: 'initial',
-            text: 'HELLO, WORLD!',
-            reasoning: undefined,
-            experimental_providerMetadata: undefined,
-            finishReason: 'stop',
-            isContinued: false,
-            logprobs: undefined,
-            request: {},
-            response: {
-              headers: undefined,
-              id: 'id-0',
-              messages: [
-                {
-                  id: expect.any(String),
-                  content: [
-                    {
-                      text: 'HELLO, WORLD!',
-                      type: 'text',
-                    },
-                    {
-                      args: {
-                        value: 'VALUE',
-                      },
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      type: 'tool-call',
-                    },
-                  ],
-                  role: 'assistant',
-                },
-                {
-                  id: expect.any(String),
-                  content: [
-                    {
-                      result: 'RESULT1',
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      type: 'tool-result',
-                    },
-                  ],
-                  role: 'tool',
-                },
-              ],
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            toolCalls: [
-              {
-                args: {
-                  value: 'VALUE',
-                },
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                type: 'tool-call',
-              },
-            ],
-            toolResults: [
-              {
-                args: {
-                  value: 'VALUE',
-                },
-                result: 'RESULT1',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                type: 'tool-result',
-              },
-            ],
-            usage: {
-              completionTokens: 10,
-              promptTokens: 3,
-              totalTokens: 13,
-            },
-            warnings: undefined,
-          },
-        ]);
+        expect(await result.steps).toMatchSnapshot();
       });
 
       it('result.request should be transformed', async () => {
@@ -3781,6 +3812,7 @@ describe('streamText', () => {
               type:
                 | 'text-delta'
                 | 'reasoning'
+                | 'source'
                 | 'tool-call'
                 | 'tool-call-streaming-start'
                 | 'tool-call-delta'
