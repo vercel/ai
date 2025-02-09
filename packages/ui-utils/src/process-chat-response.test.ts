@@ -631,7 +631,7 @@ describe('scenario: onToolCall is executed', () => {
     });
   });
 
-  it('should call the update function with the correct arguments', async () => {
+  it('should call the update function twice with the correct arguments', async () => {
     expect(updateCalls).toMatchSnapshot();
   });
 

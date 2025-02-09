@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.1.11
+
+### Patch Changes
+
+- 318b351: fix (ui): update ui before automatic client-side tool call is executed
+
 ## 1.1.10
 
 ### Patch Changes
