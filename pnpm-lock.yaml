@@ -116,6 +116,9 @@ importers:
       '@ai-sdk/togetherai':
         specifier: 0.1.9
         version: link:../../packages/togetherai
+      '@ai-sdk/valibot':
+        specifier: 0.0.0
+        version: link:../../packages/valibot
       '@ai-sdk/xai':
         specifier: 1.1.8
         version: link:../../packages/xai
@@ -149,6 +152,9 @@ importers:
       terminal-image:
         specifier: ^2.0.0
         version: 2.0.0
+      valibot:
+        specifier: ^1.0.0-rc.0 || ^1.0.0
+        version: 1.0.0-rc.0(typescript@5.6.3)
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -2008,6 +2014,31 @@ importers:
       zod:
         specifier: 3.23.8
         version: 3.23.8
+
+  packages/valibot:
+    dependencies:
+      '@valibot/to-json-schema':
+        specifier: ^1.0.0-rc.0 || ^1.0.0
+        version: 1.0.0-rc.0(valibot@1.0.0-rc.0(typescript@5.6.3))
+      ai:
+        specifier: 4.1.34
+        version: link:../ai
+    devDependencies:
+      '@types/node':
+        specifier: ^18
+        version: 18.19.54
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.4.49)(tsx@4.19.2)(typescript@5.6.3)(yaml@2.5.0)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      valibot:
+        specifier: ^1.0.0-rc.0 || ^1.0.0
+        version: 1.0.0-rc.0(typescript@5.6.3)
 
   packages/vue:
     dependencies:
@@ -7302,6 +7333,11 @@ packages:
 
   '@upstash/redis@1.34.3':
     resolution: {integrity: sha512-VT25TyODGy/8ljl7GADnJoMmtmJ1F8d84UXfGonRRF8fWYJz7+2J6GzW+a6ETGtk4OyuRTt7FRSvFG5GvrfSdQ==}
+
+  '@valibot/to-json-schema@1.0.0-rc.0':
+    resolution: {integrity: sha512-F3WDgnPzcDs9Y8qZwU9qfPnEJBQ6lCMCFjI7VsMjAza6yAixGr4cZ50gOy6zniSCk49GkFvq2a6cBKfZjTpyOw==}
+    peerDependencies:
+      valibot: ^1.0.0 || ^1.0.0-beta.5 || ^1.0.0-rc
 
   '@vercel/blob@0.26.0':
     resolution: {integrity: sha512-5aF+bDYGFx5WgxGE+CeOWWI8GYD1I/JxAWl+R//+MgNjkTPpCKkUVjdchFOr622rEu2wuHAOtpLr5HYg7/uRAA==}
@@ -14020,6 +14056,14 @@ packages:
     resolution: {integrity: sha512-kiGUalWN+rgBJ/1OHZsBtU4rXZOfj/7rKQxULKlIzwzQSvMJUUNgPwJEEh7gU6xEVxC0ahoOBvN2YI8GH6FNgA==}
     engines: {node: '>=10.12.0'}
 
+  valibot@1.0.0-rc.0:
+    resolution: {integrity: sha512-9ZUrOXOejY/WaIn8p0Z469R1qBAwNJeqq8jzOIDsl1qR8gqtObHQmyHLFli0UCkcGiTco5kH6/KPLWsTWE9b2g==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   validate-html-nesting@1.2.2:
     resolution: {integrity: sha512-hGdgQozCsQJMyfK5urgFcWEqsSSrK63Awe0t/IMR0bZ0QMtnuaiHzThW81guu3qx9abLi99NEuiaN6P9gVYsNg==}
 
@@ -20697,6 +20741,10 @@ snapshots:
   '@upstash/redis@1.34.3':
     dependencies:
       crypto-js: 4.2.0
+
+  '@valibot/to-json-schema@1.0.0-rc.0(valibot@1.0.0-rc.0(typescript@5.6.3))':
+    dependencies:
+      valibot: 1.0.0-rc.0(typescript@5.6.3)
 
   '@vercel/blob@0.26.0':
     dependencies:
@@ -29469,6 +29517,10 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.25
       '@types/istanbul-lib-coverage': 2.0.6
       convert-source-map: 2.0.0
+
+  valibot@1.0.0-rc.0(typescript@5.6.3):
+    optionalDependencies:
+      typescript: 5.6.3
 
   validate-html-nesting@1.2.2: {}
 

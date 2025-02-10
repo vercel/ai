@@ -24,6 +24,7 @@
     "@ai-sdk/replicate": "0.1.7",
     "@ai-sdk/togetherai": "0.1.9",
     "@ai-sdk/xai": "1.1.8",
+    "@ai-sdk/valibot": "0.0.0",
     "@google/generative-ai": "0.21.0",
     "@opentelemetry/auto-instrumentations-node": "0.54.0",
     "@opentelemetry/sdk-node": "0.54.2",
@@ -35,7 +36,8 @@
     "sharp": "^0.33.5",
     "terminal-image": "^2.0.0",
     "zod": "3.23.8",
-    "zod-to-json-schema": "3.23.5"
+    "zod-to-json-schema": "3.23.5",
+    "valibot": "^1.0.0-rc.0 || ^1.0.0"
   },
   "scripts": {
     "test:e2e:all": "vitest run src/e2e/*.test.ts",
