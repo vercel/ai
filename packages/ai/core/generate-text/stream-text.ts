@@ -1513,21 +1513,6 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendUsage: boolean | undefined;
     sendReasoning: boolean | undefined;
   }): ReadableStream<DataStreamString> {
-    let aggregatedResponse = '';
-
-    const callbackTransformer = new TransformStream<
-      TextStreamPart<TOOLS>,
-      TextStreamPart<TOOLS>
-    >({
-      async transform(chunk, controller): Promise<void> {
-        controller.enqueue(chunk);
-
-        if (chunk.type === 'text-delta') {
-          aggregatedResponse += chunk.textDelta;
-        }
-      },
-    });
-
     const streamPartsTransformer = new TransformStream<
       TextStreamPart<TOOLS>,
       DataStreamString
@@ -1650,9 +1635,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       },
     });
 
-    return this.fullStream
-      .pipeThrough(callbackTransformer)
-      .pipeThrough(streamPartsTransformer);
+    return this.fullStream.pipeThrough(streamPartsTransformer);
   }
 
   pipeDataStreamToResponse(
