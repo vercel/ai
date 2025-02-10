@@ -5,7 +5,13 @@ export * as Output from './output';
 export { smoothStream } from './smooth-stream';
 export type { StepResult } from './step-result';
 export { streamText } from './stream-text';
-export type { StreamTextTransform } from './stream-text';
+export type {
+  StreamTextOnChunkCallback,
+  StreamTextOnErrorCallback,
+  StreamTextOnFinishCallback,
+  StreamTextOnStepFinishCallback,
+  StreamTextTransform,
+} from './stream-text';
 export type { StreamTextResult, TextStreamPart } from './stream-text-result';
 export type {
   CoreToolCall,

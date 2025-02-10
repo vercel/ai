@@ -45,8 +45,13 @@ const originalGenerateMessageId = createIdGenerator({
   size: 24,
 });
 
+/**
+Callback that is set using the `onStepFinish` option.
+
+@param stepResult - The result of the step.
+ */
 export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
-  event: StepResult<TOOLS>,
+  stepResult: StepResult<TOOLS>,
 ) => Promise<void> | void;
 
 /**
