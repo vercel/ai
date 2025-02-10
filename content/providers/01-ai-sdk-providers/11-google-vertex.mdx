@@ -364,7 +364,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const { text, experimental_providerMetadata } = await generateText({
+const { text, providerMetadata } = await generateText({
   model: vertex('gemini-1.5-pro', {
     useSearchGrounding: true,
   }),
@@ -375,7 +375,7 @@ const { text, experimental_providerMetadata } = await generateText({
 
 // access the grounding metadata. Casting to the provider metadata type
 // is optional but provides autocomplete and type safety.
-const metadata = experimental_providerMetadata?.google as
+const metadata = providerMetadata?.google as
   | GoogleGenerativeAIProviderMetadata
   | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
@@ -809,7 +809,7 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
 You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
-The cache creation input tokens are then returned in the `experimental_providerMetadata` object
+The cache creation input tokens are then returned in the `providerMetadata` object
 for `generateText` and `generateObject`, again under the `anthropic` property.
 When you use `streamText` or `streamObject`, the response contains a promise
 that resolves to the metadata. Alternatively you can receive it in the
@@ -842,7 +842,7 @@ const result = await generateText({
 });
 
 console.log(result.text);
-console.log(result.experimental_providerMetadata?.anthropic);
+console.log(result.providerMetadata?.anthropic);
 // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
 ```
 
