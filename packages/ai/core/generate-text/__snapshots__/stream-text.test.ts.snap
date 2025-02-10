@@ -2378,6 +2378,83 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
 }
 `;
 
+exports[`streamText > options.output > object output > should call onFinish with the correct content 1`] = `
+{
+  "experimental_providerMetadata": undefined,
+  "finishReason": "stop",
+  "logprobs": undefined,
+  "reasoning": undefined,
+  "request": {},
+  "response": {
+    "headers": undefined,
+    "id": "id-1",
+    "messages": [
+      {
+        "content": [
+          {
+            "text": "{ "value": "Hello, world!" }",
+            "type": "text",
+          },
+        ],
+        "id": "msg-0",
+        "role": "assistant",
+      },
+    ],
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "sources": [],
+  "steps": [
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "stop",
+      "isContinued": false,
+      "logprobs": undefined,
+      "reasoning": undefined,
+      "request": {},
+      "response": {
+        "headers": undefined,
+        "id": "id-1",
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "{ "value": "Hello, world!" }",
+                "type": "text",
+              },
+            ],
+            "id": "msg-0",
+            "role": "assistant",
+          },
+        ],
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "sources": [],
+      "stepType": "initial",
+      "text": "{ "value": "Hello, world!" }",
+      "toolCalls": [],
+      "toolResults": [],
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
+      "warnings": undefined,
+    },
+  ],
+  "text": "{ "value": "Hello, world!" }",
+  "toolCalls": [],
+  "toolResults": [],
+  "usage": {
+    "completionTokens": 10,
+    "promptTokens": 3,
+    "totalTokens": 13,
+  },
+  "warnings": undefined,
+}
+`;
+
 exports[`streamText > options.transform > with base transformation > options.onFinish should receive transformed data 1`] = `
 {
   "experimental_providerMetadata": {

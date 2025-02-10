@@ -4148,6 +4148,7 @@ describe('streamText', () => {
       });
     });
   });
+
   describe('options.output', () => {
     describe('no output', () => {
       it('should throw error when accessing partial output stream', async () => {
@@ -4358,6 +4359,74 @@ describe('streamText', () => {
             result.experimental_partialOutputStream,
           ),
         ).toStrictEqual([{}, { value: 'Hello, ' }, { value: 'Hello, world!' }]);
+      });
+
+      it('should resolve text promise with the correct content', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"value": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world!" ` },
+              { type: 'text-delta', textDelta: '}' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+          }),
+          experimental_output: object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+        });
+
+        result.consumeStream();
+
+        expect(await result.text).toStrictEqual('{ "value": "Hello, world!" }');
+      });
+
+      it('should call onFinish with the correct content', async () => {
+        let result!: Parameters<
+          Required<Parameters<typeof streamText>[0]>['onFinish']
+        >[0];
+
+        const resultObject = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"value": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world!" ` },
+              { type: 'text-delta', textDelta: '}' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+          }),
+          experimental_output: object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+          onFinish: async event => {
+            result = event as unknown as typeof result;
+          },
+          experimental_generateMessageId: mockId({ prefix: 'msg' }),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            currentDate: () => new Date(0),
+          },
+        });
+
+        resultObject.consumeStream();
+
+        await resultObject.consumeStream();
+
+        expect(result).toMatchSnapshot();
       });
     });
   });
