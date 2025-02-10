@@ -368,34 +368,62 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 }
 
 function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
-  return typeof content === 'string'
-    ? content
-    : content?.type === 'text'
-    ? content.text
-    : undefined;
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (content === null) {
+    return undefined;
+  }
+
+  const textContent: string[] = [];
+
+  for (const chunk of content) {
+    const { type } = chunk;
+
+    switch (type) {
+      case 'text':
+        textContent.push(chunk.text);
+        break;
+      case 'image_url':
+      case 'reference':
+        // image content or reference content is currently ignored.
+        break;
+      default: {
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+      }
+    }
+  }
+
+  return textContent.length ? textContent.join('') : undefined;
 }
 
 const mistralContentSchema = z
   .union([
     z.string(),
-    z.object({
-      type: z.literal('text'),
-      text: z.string(),
-    }),
-    z.object({
-      type: z.literal('image_url'),
-      image_url: z.union([
-        z.string(),
+    z.array(
+      z.discriminatedUnion('type', [
         z.object({
-          url: z.string(),
-          detail: z.string().nullable(),
+          type: z.literal('text'),
+          text: z.string(),
+        }),
+        z.object({
+          type: z.literal('image_url'),
+          image_url: z.union([
+            z.string(),
+            z.object({
+              url: z.string(),
+              detail: z.string().nullable(),
+            }),
+          ]),
+        }),
+        z.object({
+          type: z.literal('reference'),
+          reference_ids: z.array(z.number()),
         }),
       ]),
-    }),
-    z.object({
-      type: z.literal('reference'),
-      reference_ids: z.array(z.number()),
-    }),
+    ),
   ])
   .nullable();
 
