@@ -41,6 +41,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       "isContinued": false,
       "logprobs": undefined,
       "messageId": "msg-0",
+      "providerMetadata": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -60,6 +61,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       "experimental_providerMetadata": undefined,
       "finishReason": "stop",
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "response": {
         "headers": undefined,
         "id": "id-0",
@@ -87,6 +89,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
+  "providerMetadata": undefined,
   "reasoning": undefined,
   "request": {},
   "response": {
@@ -146,6 +149,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "finishReason": "tool-calls",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
       "request": {},
       "response": {
@@ -224,6 +228,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
       "request": {},
       "response": {
@@ -308,6 +313,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -386,6 +392,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -484,6 +491,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -521,6 +529,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-2",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -542,6 +551,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": {
         "call": "2",
@@ -741,6 +751,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -819,6 +830,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -891,6 +903,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
+  "providerMetadata": undefined,
   "reasoning": undefined,
   "request": {},
   "response": {
@@ -922,6 +935,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
       "request": {},
       "response": {
@@ -961,6 +975,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
       "request": {},
       "response": {
@@ -1011,6 +1026,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
       "request": {},
       "response": {
@@ -1074,6 +1090,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
       "request": {},
       "response": {
@@ -1133,6 +1150,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -1172,6 +1190,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -1222,6 +1241,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -1285,6 +1305,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -1390,6 +1411,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1435,6 +1457,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1494,6 +1517,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1540,6 +1564,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1561,6 +1586,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": {
         "call": "3",
@@ -1825,6 +1851,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -1864,6 +1891,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -1914,6 +1942,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -1977,6 +2006,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -2097,6 +2127,11 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
   },
   "finishReason": "stop",
   "logprobs": undefined,
+  "providerMetadata": {
+    "testProvider": {
+      "testKey": "testValue",
+    },
+  },
   "reasoning": undefined,
   "request": {},
   "response": {
@@ -2150,6 +2185,11 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": {
+        "testProvider": {
+          "testKey": "testValue",
+        },
+      },
       "reasoning": undefined,
       "request": {},
       "response": {
@@ -2260,6 +2300,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
+  "providerMetadata": undefined,
   "reasoning": undefined,
   "request": {},
   "response": {
@@ -2310,6 +2351,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
       "request": {},
       "response": {
@@ -2383,6 +2425,7 @@ exports[`streamText > options.output > object output > should call onFinish with
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
+  "providerMetadata": undefined,
   "reasoning": undefined,
   "request": {},
   "response": {
@@ -2410,6 +2453,7 @@ exports[`streamText > options.output > object output > should call onFinish with
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
       "request": {},
       "response": {
@@ -2464,6 +2508,11 @@ exports[`streamText > options.transform > with base transformation > options.onF
   },
   "finishReason": "stop",
   "logprobs": undefined,
+  "providerMetadata": {
+    "testProvider": {
+      "testKey": "TEST VALUE",
+    },
+  },
   "reasoning": undefined,
   "request": {},
   "response": {
@@ -2517,6 +2566,11 @@ exports[`streamText > options.transform > with base transformation > options.onF
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": {
+        "testProvider": {
+          "testKey": "TEST VALUE",
+        },
+      },
       "reasoning": undefined,
       "request": {},
       "response": {
@@ -2632,6 +2686,11 @@ exports[`streamText > options.transform > with base transformation > options.onS
   "finishReason": "stop",
   "isContinued": false,
   "logprobs": undefined,
+  "providerMetadata": {
+    "testProvider": {
+      "testKey": "TEST VALUE",
+    },
+  },
   "reasoning": undefined,
   "request": {},
   "response": {
@@ -2714,6 +2773,7 @@ exports[`streamText > options.transform > with base transformation > result.step
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -2877,6 +2937,7 @@ exports[`streamText > options.transform > with transformation that aborts stream
   "finishReason": "stop",
   "isContinued": false,
   "logprobs": undefined,
+  "providerMetadata": undefined,
   "reasoning": undefined,
   "request": {},
   "response": {
@@ -2936,6 +2997,7 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -2955,6 +3017,7 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -3001,6 +3064,7 @@ exports[`streamText > result.fullStream > should include reasoning content in fu
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3020,6 +3084,7 @@ exports[`streamText > result.fullStream > should include reasoning content in fu
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-2000",
@@ -3082,6 +3147,7 @@ exports[`streamText > result.fullStream > should include sources in fullStream 1
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3101,6 +3167,7 @@ exports[`streamText > result.fullStream > should include sources in fullStream 1
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-2000",
@@ -3139,6 +3206,7 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3158,6 +3226,7 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
     "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -3205,6 +3274,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3224,6 +3294,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -3266,6 +3337,7 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3285,6 +3357,7 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "response-id",
@@ -3370,6 +3443,7 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3389,6 +3463,7 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
     "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -3427,6 +3502,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3446,6 +3522,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -3493,6 +3570,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3512,6 +3590,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -3554,6 +3633,7 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3573,6 +3653,7 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-2000",
@@ -3837,6 +3918,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": "I will open the conversation with witty banter.",
     "request": {},
     "response": {
@@ -3879,6 +3961,7 @@ exports[`streamText > result.steps > should contain sources 1`] = `
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
     "request": {},
     "response": {
@@ -4418,6 +4501,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -4437,6 +4521,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",

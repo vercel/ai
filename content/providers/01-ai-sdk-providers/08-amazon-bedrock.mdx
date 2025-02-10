@@ -236,7 +236,7 @@ const result = await generateText({
 Tracing information will be returned in the provider metadata if you have tracing enabled.
 
 ```ts
-if (result.experimental_providerMetadata?.bedrock.trace) {
+if (result.providerMetadata?.bedrock.trace) {
   // ...
 }
 ```

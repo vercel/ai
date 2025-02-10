@@ -107,7 +107,7 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
 You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
-The cache creation input tokens are then returned in the `experimental_providerMetadata` object
+The cache creation input tokens are then returned in the `providerMetadata` object
 for `generateText` and `generateObject`, again under the `anthropic` property.
 When you use `streamText` or `streamObject`, the response contains a promise
 that resolves to the metadata. Alternatively you can receive it in the
@@ -140,7 +140,7 @@ const result = await generateText({
 });
 
 console.log(result.text);
-console.log(result.experimental_providerMetadata?.anthropic);
+console.log(result.providerMetadata?.anthropic);
 // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
 ```
 

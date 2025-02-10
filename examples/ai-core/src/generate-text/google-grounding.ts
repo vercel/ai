@@ -14,7 +14,7 @@ async function main() {
   console.log(result.sources);
   console.log();
   console.log('PROVIDER METADATA');
-  console.log(result.experimental_providerMetadata?.google);
+  console.log(result.providerMetadata?.google);
 }
 
 main().catch(console.error);
