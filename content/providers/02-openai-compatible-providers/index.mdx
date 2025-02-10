@@ -89,19 +89,19 @@ const model = provider('model-id');
 You can use provider language models to generate text with the `generateText` function:
 
 ```ts
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
-import { generateText } from 'ai'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
 
 const provider = createOpenAICompatible({
   name: 'provider-name',
   apiKey: process.env.PROVIDER_API_KEY,
-  baseURL: 'https://api.provider.com/v1'
-})
+  baseURL: 'https://api.provider.com/v1',
+});
 
 const { text } = await generateText({
   model: provider('model-id'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
-})
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 ```
 
 ### Including model ids for auto-completion
