@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.34
+
+### Patch Changes
+
+- dc49119: chore: deprecate ai/react
+
 ## 4.1.33
 
 ### Patch Changes
