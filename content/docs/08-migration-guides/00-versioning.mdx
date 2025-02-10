@@ -1,0 +1,61 @@
+---
+title: Versioning
+description: Understand how the AI SDK approaches versioning.
+---
+
+# Versioning
+
+The AI SDK follows semantic versioning ([Semver](https://semver.org/)) for its releases. This system provides consistent and predictable version numbers that reflect changes to the API.
+
+## Understanding Version Numbers
+
+Each version number follows the format: `MAJOR.MINOR.PATCH`
+
+- **Major**: Requires code changes due to breaking API updates
+- **Minor**: Adds new features without breaking existing code
+- **Patch**: Fixes bugs without changing the API
+
+## API Stability Indicators
+
+We use different status indicators to communicate the stability of our APIs:
+
+### Stable APIs
+
+By default, all APIs without special prefixes are considered stable and ready for production use. We maintain backward compatibility for these features and only introduce breaking changes in major releases.
+
+### Experimental APIs
+
+APIs prefixed with `experimental_` (like `experimental_generateImage()`) are in development and can change in minor releases. To use experimental APIs safely:
+
+1. Test them first in development, not production
+2. Review release notes before upgrading
+3. Prepare for potential code updates
+
+### Deprecated APIs
+
+APIs marked as `deprecated` will be removed in future major releases. To handle deprecations:
+
+1. Switch to the recommended alternative API
+2. Follow the migration guide
+3. Update your code before the next major release
+
+Each deprecation includes:
+
+- Documentation for the replacement API
+- Clear removal timeline
+- Step-by-step migration instructions
+
+### Paused APIs
+
+APIs marked as `paused` are temporarily inactive due to external blockers. Development will resume once these blockers are resolved.
+
+## Breaking Changes
+
+When breaking changes are necessary:
+
+1. The major version number increases
+2. Release notes detail the changes
+3. Migration guides help you upgrade
+4. Codemods automate updates where possible
+
+Note: Experimental APIs may have breaking changes in minor releases.
