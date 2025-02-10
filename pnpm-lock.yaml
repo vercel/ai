@@ -337,6 +337,9 @@ importers:
 
   examples/next-fastapi:
     dependencies:
+      '@ai-sdk/react':
+        specifier: 1.1.11
+        version: link:../../packages/react
       '@ai-sdk/ui-utils':
         specifier: 1.1.11
         version: link:../../packages/ui-utils
@@ -563,6 +566,9 @@ importers:
       '@ai-sdk/openai':
         specifier: 1.1.9
         version: link:../../packages/openai
+      '@ai-sdk/react':
+        specifier: 1.1.11
+        version: link:../../packages/react
       '@vercel/functions':
         specifier: latest
         version: 1.6.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0))
@@ -810,6 +816,9 @@ importers:
       '@ai-sdk/openai':
         specifier: 1.1.9
         version: link:../../packages/openai
+      '@ai-sdk/react':
+        specifier: 1.1.11
+        version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
         version: 0.4.4

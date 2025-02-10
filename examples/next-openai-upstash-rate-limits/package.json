@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "1.1.9",
+    "@ai-sdk/react": "1.1.11",
     "@upstash/ratelimit": "^0.4.3",
     "@vercel/kv": "^0.2.2",
     "ai": "4.1.33",
