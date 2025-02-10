@@ -111,6 +111,7 @@ export function useChat(
     fetch,
     keepLastMessageOnError = true,
     maxSteps = 1,
+    experimental_prepareRequestBody,
   }: UseChatOptions & {
     /**
      * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
@@ -118,6 +119,23 @@ export function useChat(
      * By default, it's set to 1, which means that only a single LLM call is made.
      */
     maxSteps?: number;
+
+    /**
+     * Experimental (Vue only). When a function is provided, it will be used
+     * to prepare the request body for the chat API. This can be useful for
+     * customizing the request body based on the messages and data in the chat.
+     *
+     * @param id The chat ID
+     * @param messages The current messages in the chat
+     * @param requestData The data object passed in the chat request
+     * @param requestBody The request body object passed in the chat request
+     */
+    experimental_prepareRequestBody?: (options: {
+      id: string;
+      messages: UIMessage[];
+      requestData?: JSONValue;
+      requestBody?: object;
+    }) => unknown;
   } = {
     maxSteps: 1,
   },
@@ -204,7 +222,12 @@ export function useChat(
 
       await callChatApi({
         api,
-        body: {
+        body: experimental_prepareRequestBody?.({
+          id: chatId,
+          messages: chatMessages,
+          requestData: data,
+          requestBody: body,
+        }) ?? {
           id: chatId,
           messages: constructedMessagesPayload,
           data,
