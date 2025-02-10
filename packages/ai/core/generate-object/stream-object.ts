@@ -56,7 +56,7 @@ import { validateObjectGenerationInput } from './validate-object-generation-inpu
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
-type OnFinishCallback<RESULT> = (event: {
+export type StreamObjectOnFinishCallback<RESULT> = (event: {
   /**
 The token usage of the generated response.
 */
@@ -167,7 +167,7 @@ functionality that can be fully encapsulated in the provider.
       /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
-      onFinish?: OnFinishCallback<OBJECT>;
+      onFinish?: StreamObjectOnFinishCallback<OBJECT>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -251,7 +251,7 @@ functionality that can be fully encapsulated in the provider.
       /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
-      onFinish?: OnFinishCallback<Array<ELEMENT>>;
+      onFinish?: StreamObjectOnFinishCallback<Array<ELEMENT>>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -310,7 +310,7 @@ functionality that can be fully encapsulated in the provider.
       /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
-      onFinish?: OnFinishCallback<JSONValue>;
+      onFinish?: StreamObjectOnFinishCallback<JSONValue>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -366,7 +366,7 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     experimental_telemetry?: TelemetrySettings;
     providerOptions?: ProviderOptions;
     experimental_providerMetadata?: ProviderMetadata;
-    onFinish?: OnFinishCallback<RESULT>;
+    onFinish?: StreamObjectOnFinishCallback<RESULT>;
     _internal?: {
       generateId?: () => string;
       currentDate?: () => Date;
@@ -469,7 +469,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
     mode: 'auto' | 'json' | 'tool' | undefined;
-    onFinish: OnFinishCallback<RESULT> | undefined;
+    onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
     generateId: () => string;
     currentDate: () => Date;
     now: () => number;
