@@ -116,6 +116,9 @@ importers:
       '@ai-sdk/togetherai':
         specifier: 0.1.9
         version: link:../../packages/togetherai
+      '@ai-sdk/valibot':
+        specifier: 0.0.0
+        version: link:../../packages/valibot
       '@ai-sdk/xai':
         specifier: 1.1.8
         version: link:../../packages/xai
@@ -149,6 +152,9 @@ importers:
       terminal-image:
         specifier: ^2.0.0
         version: 2.0.0
+      valibot:
+        specifier: ^1.0.0-rc.0 || ^1.0.0
+        version: 1.0.0-rc.0(typescript@5.6.3)
       zod:
         specifier: 3.23.8
         version: 3.23.8
