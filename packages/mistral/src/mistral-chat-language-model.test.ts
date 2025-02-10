@@ -317,10 +317,12 @@ describe('doGenerate', () => {
           index: 0,
           message: {
             role: 'assistant',
-            content: {
-              type: 'text',
-              text: 'Hello from object',
-            },
+            content: [
+              {
+                type: 'text',
+                text: 'Hello from object',
+              },
+            ],
             tool_calls: null,
           },
           finish_reason: 'stop',
@@ -583,9 +585,9 @@ describe('doStream', () => {
     // Instead of using prepareStreamResponse (which sends strings),
     // we set the chunks manually so that each delta's content is an object.
     server.responseChunks = [
-      `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"role":"assistant","content":{"type":"text","text":""}},"finish_reason":null,"logprobs":null}]}\n\n`,
-      `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":{"type":"text","text":"Hello"}},"finish_reason":null,"logprobs":null}]}\n\n`,
-      `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":{"type":"text","text":", world!"}},"finish_reason":"stop","logprobs":null}],"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32}}\n\n`,
+      `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"text","text":""}]},"finish_reason":null,"logprobs":null}]}\n\n`,
+      `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":[{"type":"text","text":"Hello"}]},"finish_reason":null,"logprobs":null}]}\n\n`,
+      `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":[{"type":"text","text":", world!"}]},"finish_reason":"stop","logprobs":null}],"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32}}\n\n`,
       `data: [DONE]\n\n`,
     ];
 
