@@ -564,12 +564,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'onStepFinish',
-      type: '(result: onStepFinishResult) => Promise<void> | void',
+      type: '(result: OnStepFinishResult) => Promise<void> | void',
       isOptional: true,
       description: 'Callback that is called when a step is finished.',
       properties: [
         {
-          type: 'onStepFinishResult',
+          type: 'OnStepFinishResult',
           parameters: [
             {
               name: 'stepType',

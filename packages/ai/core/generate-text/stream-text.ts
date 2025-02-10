@@ -78,6 +78,59 @@ export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>;
 
 /**
+Callback that is set using the `onError` option.
+
+@param event - The event that is passed to the callback.
+ */
+export type StreamTextOnErrorCallback = (event: {
+  error: unknown;
+}) => Promise<void> | void;
+
+/**
+Callback that is set using the `onStepFinish` option.
+
+@param stepResult - The result of the step.
+ */
+export type StreamTextOnStepFinishCallback<TOOLS extends ToolSet> = (
+  stepResult: StepResult<TOOLS>,
+) => Promise<void> | void;
+
+/**
+Callback that is set using the `onChunk` option.
+
+@param event - The event that is passed to the callback.
+ */
+export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
+  chunk: Extract<
+    TextStreamPart<TOOLS>,
+    {
+      type:
+        | 'text-delta'
+        | 'reasoning'
+        | 'source'
+        | 'tool-call'
+        | 'tool-call-streaming-start'
+        | 'tool-call-delta'
+        | 'tool-result';
+    }
+  >;
+}) => Promise<void> | void;
+
+/**
+Callback that is set using the `onFinish` option.
+
+@param event - The event that is passed to the callback.
+ */
+export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
+  event: Omit<StepResult<TOOLS>, 'stepType' | 'isContinued'> & {
+    /**
+Details for all steps.
+   */
+    readonly steps: StepResult<TOOLS>[];
+  },
+) => Promise<void> | void;
+
+/**
 Generate a text and call tools for a given prompt using a language model.
 
 This function streams the output. If you do not want to stream the output, use `generateText` instead.
@@ -253,28 +306,17 @@ The stream transformations must maintain the stream structure for streamText to 
       | Array<StreamTextTransform<TOOLS>>;
 
     /**
-Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
+Callback that is called for each chunk of the stream.
+The stream processing will pause until the callback promise is resolved.
      */
-    onChunk?: (event: {
-      chunk: Extract<
-        TextStreamPart<TOOLS>,
-        {
-          type:
-            | 'text-delta'
-            | 'reasoning'
-            | 'source'
-            | 'tool-call'
-            | 'tool-call-streaming-start'
-            | 'tool-call-delta'
-            | 'tool-result';
-        }
-      >;
-    }) => Promise<void> | void;
+    onChunk?: StreamTextOnChunkCallback<TOOLS>;
 
     /**
-Callback that is invoked when an error occurs during streaming. You can use it to log errors.
+Callback that is invoked when an error occurs during streaming.
+You can use it to log errors.
+The stream processing will pause until the callback promise is resolved.
      */
-    onError?: (event: { error: unknown }) => Promise<void> | void;
+    onError?: StreamTextOnErrorCallback;
 
     /**
 Callback that is called when the LLM response and all request tool executions
@@ -282,19 +324,12 @@ Callback that is called when the LLM response and all request tool executions
 
 The usage is the combined usage of all steps.
      */
-    onFinish?: (
-      event: Omit<StepResult<TOOLS>, 'stepType' | 'isContinued'> & {
-        /**
-Details for all steps.
-       */
-        readonly steps: StepResult<TOOLS>[];
-      },
-    ) => Promise<void> | void;
+    onFinish?: StreamTextOnFinishCallback<TOOLS>;
 
     /**
 Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
-    onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
+    onStepFinish?: StreamTextOnStepFinishCallback<TOOLS>;
 
     /**
 Internal. For test use only. May change without notice.
@@ -490,14 +525,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     output,
     continueSteps,
     providerOptions,
-    onChunk,
-    onError,
-    onFinish,
-    onStepFinish,
     now,
     currentDate,
     generateId,
     generateMessageId,
+    onChunk,
+    onError,
+    onFinish,
+    onStepFinish,
   }: {
     model: LanguageModel;
     telemetry: TelemetrySettings | undefined;
@@ -518,38 +553,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     continueSteps: boolean;
     providerOptions: ProviderOptions | undefined;
-    onChunk:
-      | undefined
-      | ((event: {
-          chunk: Extract<
-            TextStreamPart<TOOLS>,
-            {
-              type:
-                | 'text-delta'
-                | 'reasoning'
-                | 'source'
-                | 'tool-call'
-                | 'tool-call-streaming-start'
-                | 'tool-call-delta'
-                | 'tool-result';
-            }
-          >;
-        }) => Promise<void> | void);
-    onError: undefined | ((event: { error: unknown }) => Promise<void> | void);
-    onFinish:
-      | undefined
-      | ((
-          event: Omit<StepResult<TOOLS>, 'stepType' | 'isContinued'> & {
-            readonly steps: StepResult<TOOLS>[];
-          },
-        ) => Promise<void> | void);
-    onStepFinish:
-      | undefined
-      | ((event: StepResult<TOOLS>) => Promise<void> | void);
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
     generateMessageId: () => string;
+
+    // callbacks:
+    onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
+    onError: undefined | StreamTextOnErrorCallback;
+    onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
+    onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
     if (maxSteps < 1) {
       throw new InvalidArgumentError({
