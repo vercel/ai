@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.30
+
+### Patch Changes
+
+- 4ee5b6f: fix (core): remove invalid providerOptions from streamObject onFinish callback
+
 ## 4.1.29
 
 ### Patch Changes
