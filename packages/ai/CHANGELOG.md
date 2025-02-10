@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.31
+
+### Patch Changes
+
+- b30b1cc: feat (ai/core): add onError callback to streamObject
+
 ## 4.1.30
 
 ### Patch Changes
