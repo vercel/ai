@@ -670,7 +670,7 @@ describe('streamObject', () => {
         // consume stream (runs in parallel)
         convertAsyncIterableToArray(result.partialObjectStream);
 
-        assert.deepStrictEqual(await result.experimental_providerMetadata, {
+        expect(await result.providerMetadata).toStrictEqual({
           testProvider: { testKey: 'testValue' },
         });
       });
