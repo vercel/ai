@@ -381,7 +381,7 @@ Replace your root page (`app/page.tsx`) with the following code.
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -551,7 +551,7 @@ Let’s make a few changes in the UI to communicate to the user when a tool has 
 ```tsx filename="app/page.tsx" highlight="14-22"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();

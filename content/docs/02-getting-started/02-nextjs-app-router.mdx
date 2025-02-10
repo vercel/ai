@@ -125,7 +125,7 @@ Update your root page (`app/page.tsx`) with the following code to show a list of
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -240,7 +240,7 @@ To display the tool invocations in your UI, update your `app/page.tsx` file:
 ```tsx filename="app/page.tsx" highlight="12-16"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -287,7 +287,7 @@ Modify your `app/page.tsx` file to include the `maxSteps` option:
 ```tsx filename="app/page.tsx" highlight="7"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({

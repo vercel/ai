@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from '@/app/components';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { GeistMono } from 'geist/font/mono';
 
 export default function Page() {

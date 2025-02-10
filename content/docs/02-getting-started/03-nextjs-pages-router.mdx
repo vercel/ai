@@ -129,7 +129,7 @@ Now that you have an API route that can query an LLM, it's time to setup your fr
 Update your root page (`pages/index.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
 ```tsx filename="pages/index.tsx"
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -238,7 +238,7 @@ Notice the blank response in the UI? This is because instead of generating a tex
 To display the tool invocations in your UI, update your `pages/index.tsx` file:
 
 ```tsx filename="pages/index.tsx" highlight="11-15"
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -283,7 +283,7 @@ To solve this, you can enable multi-step tool calls using the `maxSteps` option 
 Modify your `pages/index.tsx` file to include the `maxSteps` option:
 
 ```tsx filename="pages/index.tsx" highlight="6"
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({

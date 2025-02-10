@@ -87,7 +87,7 @@ On the client, you can destructure `data` from the `useChat` hook which stores a
 as a `JSONValue[]`.
 
 ```tsx
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 const { data } = useChat();
 ```
@@ -103,7 +103,7 @@ you have to destructure them in a type-safe way on the client side.
 Here we just show the annotations as a JSON string:
 
 ```tsx highlight="9"
-import { Message, useChat } from 'ai/react';
+import { Message, useChat } from '@ai-sdk/react';
 
 const { messages } = useChat();
 
@@ -140,7 +140,7 @@ setData(currentData => [...currentData, { test: 'value' }]);
 ```tsx highlight="18-21"
 'use client';
 
-import { Message, useChat } from 'ai/react';
+import { Message, useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, data, setData } =

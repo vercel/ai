@@ -133,7 +133,7 @@ Update your root page (`app/page.tsx`) with the following code to show a list of
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -183,7 +183,7 @@ Update your root page (`app/page.tsx`) with the following code:
 ```tsx filename="app/page.tsx" highlight="4-5,10-11,19-33,39-49,51-61"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 

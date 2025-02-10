@@ -87,7 +87,7 @@ send and receive messages:
 ```tsx filename="ui/chat.tsx" highlight="10-12"
 'use client';
 
-import { Message, useChat } from 'ai/react';
+import { Message, useChat } from '@ai-sdk/react';
 
 export default function Chat({
   id,
@@ -195,7 +195,7 @@ You can control the ID format by providing ID generators
 
 ```tsx filename="ui/chat.tsx" highlight="8-12"
 import { createIdGenerator } from 'ai';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 const {
   // ...
@@ -235,7 +235,7 @@ To achieve this, you can provide an `experimental_prepareRequestBody` function t
 This function receives the messages and the chat ID, and returns the request body to be sent to the server.
 
 ```tsx filename="ui/chat.tsx" highlight="7-10"
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 const {
   // ...
