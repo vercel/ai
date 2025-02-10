@@ -428,10 +428,7 @@ function createOutputTransformStream<
       }
 
       if (chunk.type !== 'text-delta') {
-        controller.enqueue({
-          part: chunk,
-          partialOutput: undefined,
-        });
+        controller.enqueue({ part: chunk, partialOutput: undefined });
         return;
       }
 
@@ -444,19 +441,14 @@ function createOutputTransformStream<
         // only send new json if it has changed:
         const currentJson = JSON.stringify(result.partial);
         if (currentJson !== lastPublishedJson) {
-          publishTextChunk({
-            controller,
-            partialOutput: result.partial,
-          });
-
+          publishTextChunk({ controller, partialOutput: result.partial });
           lastPublishedJson = currentJson;
         }
       }
     },
 
     flush(controller) {
-      // publish remaining text
-      // (there should be none if the content was correctly formatted):
+      // publish remaining text (there should be none if the content was correctly formatted):
       if (textChunk.length > 0) {
         publishTextChunk({ controller });
       }
