@@ -96,7 +96,7 @@ importers:
         specifier: 0.0.4
         version: link:../../packages/luma
       '@ai-sdk/mistral':
-        specifier: 1.1.7
+        specifier: 1.1.8
         version: link:../../packages/mistral
       '@ai-sdk/openai':
         specifier: 1.1.9
@@ -1062,7 +1062,7 @@ importers:
         specifier: 1.1.7
         version: link:../../packages/groq
       '@ai-sdk/mistral':
-        specifier: 1.1.7
+        specifier: 1.1.8
         version: link:../../packages/mistral
       '@ai-sdk/openai':
         specifier: 1.1.9

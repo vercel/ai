@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 1.1.8
+
+### Patch Changes
+
+- e0f90d7: feat (provider/mistral): support multiple text content parts
+
 ## 1.1.7
 
 ### Patch Changes
