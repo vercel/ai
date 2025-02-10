@@ -4415,6 +4415,11 @@ describe('streamText', () => {
           onFinish: async event => {
             result = event as unknown as typeof result;
           },
+          experimental_generateMessageId: mockId({ prefix: 'msg' }),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            currentDate: () => new Date(0),
+          },
         });
 
         resultObject.consumeStream();

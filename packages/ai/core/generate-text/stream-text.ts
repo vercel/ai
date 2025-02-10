@@ -401,11 +401,32 @@ function createOutputTransformStream<
   let textChunk = '';
   let lastPublishedJson = '';
 
+  function publishTextChunk({
+    controller,
+    partialOutput = undefined,
+  }: {
+    controller: TransformStreamDefaultController<
+      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+    >;
+    partialOutput?: PARTIAL_OUTPUT;
+  }) {
+    controller.enqueue({
+      part: { type: 'text-delta', textDelta: textChunk },
+      partialOutput,
+    });
+    textChunk = '';
+  }
+
   return new TransformStream<
     TextStreamPart<TOOLS>,
     EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
   >({
     transform(chunk, controller) {
+      // ensure that we publish the last text chunk before the step finish:
+      if (chunk.type === 'step-finish') {
+        publishTextChunk({ controller });
+      }
+
       if (chunk.type !== 'text-delta') {
         controller.enqueue({
           part: chunk,
@@ -423,16 +444,12 @@ function createOutputTransformStream<
         // only send new json if it has changed:
         const currentJson = JSON.stringify(result.partial);
         if (currentJson !== lastPublishedJson) {
-          controller.enqueue({
-            part: {
-              type: 'text-delta',
-              textDelta: textChunk,
-            },
+          publishTextChunk({
+            controller,
             partialOutput: result.partial,
           });
 
           lastPublishedJson = currentJson;
-          textChunk = '';
         }
       }
     },
@@ -441,13 +458,7 @@ function createOutputTransformStream<
       // publish remaining text
       // (there should be none if the content was correctly formatted):
       if (textChunk.length > 0) {
-        controller.enqueue({
-          part: {
-            type: 'text-delta',
-            textDelta: textChunk,
-          },
-          partialOutput: undefined,
-        });
+        publishTextChunk({ controller });
       }
     },
   });

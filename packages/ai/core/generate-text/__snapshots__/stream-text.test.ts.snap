@@ -2387,21 +2387,21 @@ exports[`streamText > options.output > object output > should call onFinish with
   "request": {},
   "response": {
     "headers": undefined,
-    "id": "aitxt-OI0lD3g22RohebwEXLOfdExi",
+    "id": "id-1",
     "messages": [
       {
         "content": [
           {
-            "text": "{ "value": "Hello, world!" ",
+            "text": "{ "value": "Hello, world!" }",
             "type": "text",
           },
         ],
-        "id": "msg-uYzAoDuzD8jL5scfc4MddiTW",
+        "id": "msg-0",
         "role": "assistant",
       },
     ],
     "modelId": "mock-model-id",
-    "timestamp": 2025-02-10T09:15:45.766Z,
+    "timestamp": 1970-01-01T00:00:00.000Z,
   },
   "sources": [],
   "steps": [
@@ -2414,25 +2414,25 @@ exports[`streamText > options.output > object output > should call onFinish with
       "request": {},
       "response": {
         "headers": undefined,
-        "id": "aitxt-OI0lD3g22RohebwEXLOfdExi",
+        "id": "id-1",
         "messages": [
           {
             "content": [
               {
-                "text": "{ "value": "Hello, world!" ",
+                "text": "{ "value": "Hello, world!" }",
                 "type": "text",
               },
             ],
-            "id": "msg-uYzAoDuzD8jL5scfc4MddiTW",
+            "id": "msg-0",
             "role": "assistant",
           },
         ],
         "modelId": "mock-model-id",
-        "timestamp": 2025-02-10T09:15:45.766Z,
+        "timestamp": 1970-01-01T00:00:00.000Z,
       },
       "sources": [],
       "stepType": "initial",
-      "text": "{ "value": "Hello, world!" ",
+      "text": "{ "value": "Hello, world!" }",
       "toolCalls": [],
       "toolResults": [],
       "usage": {
