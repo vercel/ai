@@ -1935,7 +1935,6 @@ describe('streamText', () => {
         }),
         prompt: 'test-input',
         onError(event) {
-          console.log('foo');
           result.push(event);
         },
       });

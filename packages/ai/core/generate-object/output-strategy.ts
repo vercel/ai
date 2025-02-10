@@ -255,10 +255,7 @@ const arrayOutputStrategy = <ELEMENT>(
 
                 case 'text-delta':
                 case 'finish':
-                  break;
-
-                case 'error':
-                  controller.error(chunk.error);
+                case 'error': // suppress error (use onError instead)
                   break;
 
                 default: {
