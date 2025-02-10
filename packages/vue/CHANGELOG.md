@@ -1,5 +1,11 @@
 # @ai-sdk/vue
 
+## 1.1.12
+
+### Patch Changes
+
+- 6c79b4e: feat (ui/vue): add support for prepareRequestBody
+
 ## 1.1.11
 
 ### Patch Changes
