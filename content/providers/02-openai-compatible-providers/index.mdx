@@ -99,7 +99,7 @@ const provider = createOpenAICompatible({
 })
 
 const { text } = await generateText({
-  model: provider('model-id')
+  model: provider('model-id'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.'
 })
 ```
