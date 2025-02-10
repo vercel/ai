@@ -45,6 +45,10 @@ const originalGenerateMessageId = createIdGenerator({
   size: 24,
 });
 
+export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
+  event: StepResult<TOOLS>,
+) => Promise<void> | void;
+
 /**
 Generate a text and call tools for a given prompt using a language model.
 
@@ -195,7 +199,7 @@ A function that attempts to repair a tool call that failed to parse.
     /**
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
-    onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
+    onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
 
     /**
      * Internal. For test use only. May change without notice.
