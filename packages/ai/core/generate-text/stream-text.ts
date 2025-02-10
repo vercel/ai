@@ -1513,146 +1513,126 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendUsage: boolean | undefined;
     sendReasoning: boolean | undefined;
   }): ReadableStream<DataStreamString> {
-    let aggregatedResponse = '';
-
-    const callbackTransformer = new TransformStream<
-      TextStreamPart<TOOLS>,
-      TextStreamPart<TOOLS>
-    >({
-      async transform(chunk, controller): Promise<void> {
-        controller.enqueue(chunk);
-
-        if (chunk.type === 'text-delta') {
-          aggregatedResponse += chunk.textDelta;
-        }
-      },
-    });
-
-    const streamPartsTransformer = new TransformStream<
-      TextStreamPart<TOOLS>,
-      DataStreamString
-    >({
-      transform: async (chunk, controller) => {
-        const chunkType = chunk.type;
-        switch (chunkType) {
-          case 'text-delta': {
-            controller.enqueue(formatDataStreamPart('text', chunk.textDelta));
-            break;
-          }
-
-          case 'reasoning': {
-            if (sendReasoning) {
-              controller.enqueue(
-                formatDataStreamPart('reasoning', chunk.textDelta),
-              );
+    return this.fullStream.pipeThrough(
+      new TransformStream<TextStreamPart<TOOLS>, DataStreamString>({
+        transform: async (chunk, controller) => {
+          const chunkType = chunk.type;
+          switch (chunkType) {
+            case 'text-delta': {
+              controller.enqueue(formatDataStreamPart('text', chunk.textDelta));
+              break;
             }
-            break;
-          }
 
-          case 'source': {
-            // not implemented yet
-            break;
-          }
+            case 'reasoning': {
+              if (sendReasoning) {
+                controller.enqueue(
+                  formatDataStreamPart('reasoning', chunk.textDelta),
+                );
+              }
+              break;
+            }
 
-          case 'tool-call-streaming-start': {
-            controller.enqueue(
-              formatDataStreamPart('tool_call_streaming_start', {
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-              }),
-            );
-            break;
-          }
+            case 'source': {
+              // not implemented yet
+              break;
+            }
 
-          case 'tool-call-delta': {
-            controller.enqueue(
-              formatDataStreamPart('tool_call_delta', {
-                toolCallId: chunk.toolCallId,
-                argsTextDelta: chunk.argsTextDelta,
-              }),
-            );
-            break;
-          }
+            case 'tool-call-streaming-start': {
+              controller.enqueue(
+                formatDataStreamPart('tool_call_streaming_start', {
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                }),
+              );
+              break;
+            }
 
-          case 'tool-call': {
-            controller.enqueue(
-              formatDataStreamPart('tool_call', {
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-                args: chunk.args,
-              }),
-            );
-            break;
-          }
+            case 'tool-call-delta': {
+              controller.enqueue(
+                formatDataStreamPart('tool_call_delta', {
+                  toolCallId: chunk.toolCallId,
+                  argsTextDelta: chunk.argsTextDelta,
+                }),
+              );
+              break;
+            }
 
-          case 'tool-result': {
-            controller.enqueue(
-              formatDataStreamPart('tool_result', {
-                toolCallId: chunk.toolCallId,
-                result: chunk.result,
-              }),
-            );
-            break;
-          }
+            case 'tool-call': {
+              controller.enqueue(
+                formatDataStreamPart('tool_call', {
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                  args: chunk.args,
+                }),
+              );
+              break;
+            }
 
-          case 'error': {
-            controller.enqueue(
-              formatDataStreamPart('error', getErrorMessage(chunk.error)),
-            );
-            break;
-          }
+            case 'tool-result': {
+              controller.enqueue(
+                formatDataStreamPart('tool_result', {
+                  toolCallId: chunk.toolCallId,
+                  result: chunk.result,
+                }),
+              );
+              break;
+            }
 
-          case 'step-start': {
-            controller.enqueue(
-              formatDataStreamPart('start_step', {
-                messageId: chunk.messageId,
-              }),
-            );
-            break;
-          }
+            case 'error': {
+              controller.enqueue(
+                formatDataStreamPart('error', getErrorMessage(chunk.error)),
+              );
+              break;
+            }
 
-          case 'step-finish': {
-            controller.enqueue(
-              formatDataStreamPart('finish_step', {
-                finishReason: chunk.finishReason,
-                usage: sendUsage
-                  ? {
-                      promptTokens: chunk.usage.promptTokens,
-                      completionTokens: chunk.usage.completionTokens,
-                    }
-                  : undefined,
-                isContinued: chunk.isContinued,
-              }),
-            );
-            break;
-          }
+            case 'step-start': {
+              controller.enqueue(
+                formatDataStreamPart('start_step', {
+                  messageId: chunk.messageId,
+                }),
+              );
+              break;
+            }
 
-          case 'finish': {
-            controller.enqueue(
-              formatDataStreamPart('finish_message', {
-                finishReason: chunk.finishReason,
-                usage: sendUsage
-                  ? {
-                      promptTokens: chunk.usage.promptTokens,
-                      completionTokens: chunk.usage.completionTokens,
-                    }
-                  : undefined,
-              }),
-            );
-            break;
-          }
+            case 'step-finish': {
+              controller.enqueue(
+                formatDataStreamPart('finish_step', {
+                  finishReason: chunk.finishReason,
+                  usage: sendUsage
+                    ? {
+                        promptTokens: chunk.usage.promptTokens,
+                        completionTokens: chunk.usage.completionTokens,
+                      }
+                    : undefined,
+                  isContinued: chunk.isContinued,
+                }),
+              );
+              break;
+            }
 
-          default: {
-            const exhaustiveCheck: never = chunkType;
-            throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
-          }
-        }
-      },
-    });
+            case 'finish': {
+              controller.enqueue(
+                formatDataStreamPart('finish_message', {
+                  finishReason: chunk.finishReason,
+                  usage: sendUsage
+                    ? {
+                        promptTokens: chunk.usage.promptTokens,
+                        completionTokens: chunk.usage.completionTokens,
+                      }
+                    : undefined,
+                }),
+              );
+              break;
+            }
 
-    return this.fullStream
-      .pipeThrough(callbackTransformer)
-      .pipeThrough(streamPartsTransformer);
+            default: {
+              const exhaustiveCheck: never = chunkType;
+              throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+            }
+          }
+        },
+      }),
+    );
   }
 
   pipeDataStreamToResponse(
