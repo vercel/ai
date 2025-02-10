@@ -56,6 +56,20 @@ import { validateObjectGenerationInput } from './validate-object-generation-inpu
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
+/**
+Callback that is set using the `onError` option.
+
+@param event - The event that is passed to the callback.
+ */
+export type StreamObjectOnErrorCallback = (event: {
+  error: unknown;
+}) => Promise<void> | void;
+
+/**
+Callback that is set using the `onFinish` option.
+
+@param event - The event that is passed to the callback.
+ */
 export type StreamObjectOnFinishCallback<RESULT> = (event: {
   /**
 The token usage of the generated response.
@@ -160,6 +174,13 @@ functionality that can be fully encapsulated in the provider.
       experimental_providerMetadata?: ProviderMetadata;
 
       /**
+Callback that is invoked when an error occurs during streaming.
+You can use it to log errors.
+The stream processing will pause until the callback promise is resolved.
+     */
+      onError?: StreamObjectOnErrorCallback;
+
+      /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: StreamObjectOnFinishCallback<OBJECT>;
@@ -244,6 +265,13 @@ functionality that can be fully encapsulated in the provider.
       experimental_providerMetadata?: ProviderMetadata;
 
       /**
+Callback that is invoked when an error occurs during streaming.
+You can use it to log errors.
+The stream processing will pause until the callback promise is resolved.
+     */
+      onError?: StreamObjectOnErrorCallback;
+
+      /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: StreamObjectOnFinishCallback<Array<ELEMENT>>;
@@ -303,6 +331,13 @@ functionality that can be fully encapsulated in the provider.
       experimental_providerMetadata?: ProviderMetadata;
 
       /**
+Callback that is invoked when an error occurs during streaming.
+You can use it to log errors.
+The stream processing will pause until the callback promise is resolved.
+     */
+      onError?: StreamObjectOnErrorCallback;
+
+      /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: StreamObjectOnFinishCallback<JSONValue>;
@@ -333,6 +368,7 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   experimental_telemetry: telemetry,
   experimental_providerMetadata,
   providerOptions = experimental_providerMetadata,
+  onError,
   onFinish,
   _internal: {
     generateId = originalGenerateId,
@@ -361,6 +397,7 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     experimental_telemetry?: TelemetrySettings;
     providerOptions?: ProviderOptions;
     experimental_providerMetadata?: ProviderMetadata;
+    onError?: StreamObjectOnErrorCallback;
     onFinish?: StreamObjectOnFinishCallback<RESULT>;
     _internal?: {
       generateId?: () => string;
@@ -398,6 +435,7 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schemaDescription,
     providerOptions,
     mode,
+    onError,
     onFinish,
     generateId,
     currentDate,
@@ -421,8 +459,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   private readonly responsePromise =
     new DelayedPromise<LanguageModelResponseMetadata>();
 
-  private readonly stitchableStream =
-    createStitchableStream<ObjectStreamPart<PARTIAL>>();
+  private readonly baseStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
 
   private readonly outputStrategy: OutputStrategy<
     PARTIAL,
@@ -445,6 +482,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaDescription,
     providerOptions,
     mode,
+    onError,
     onFinish,
     generateId,
     currentDate,
@@ -464,6 +502,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
     mode: 'auto' | 'json' | 'tool' | undefined;
+    onError: StreamObjectOnErrorCallback | undefined;
     onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
     generateId: () => string;
     currentDate: () => Date;
@@ -482,6 +521,24 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
     const tracer = getTracer(telemetry);
     const self = this;
+
+    const stitchableStream =
+      createStitchableStream<ObjectStreamPart<PARTIAL>>();
+
+    const eventProcessor = new TransformStream<
+      ObjectStreamPart<PARTIAL>,
+      ObjectStreamPart<PARTIAL>
+    >({
+      transform(chunk, controller) {
+        controller.enqueue(chunk);
+
+        if (chunk.type === 'error') {
+          onError?.({ error: chunk.error });
+        }
+      },
+    });
+
+    this.baseStream = stitchableStream.stream.pipeThrough(eventProcessor);
 
     recordSpan({
       name: 'ai.streamObject',
@@ -918,7 +975,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     experimental_providerMetadata: providerMetadata,
                   });
                 } catch (error) {
-                  controller.error(error);
+                  controller.enqueue({ type: 'error', error });
                 } finally {
                   rootSpan.end();
                 }
@@ -926,21 +983,22 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
             }),
           );
 
-        self.stitchableStream.addStream(transformedStream);
+        stitchableStream.addStream(transformedStream);
       },
     })
       .catch(error => {
         // add an empty stream with an error to break the stream:
-        self.stitchableStream.addStream(
+        stitchableStream.addStream(
           new ReadableStream({
             start(controller) {
-              controller.error(error);
+              controller.enqueue({ type: 'error', error });
+              controller.close();
             },
           }),
         );
       })
       .finally(() => {
-        self.stitchableStream.close();
+        stitchableStream.close();
       });
 
     this.outputStrategy = outputStrategy;
@@ -972,7 +1030,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
   get partialObjectStream(): AsyncIterableStream<PARTIAL> {
     return createAsyncIterableStream(
-      this.stitchableStream.stream.pipeThrough(
+      this.baseStream.pipeThrough(
         new TransformStream<ObjectStreamPart<PARTIAL>, PARTIAL>({
           transform(chunk, controller) {
             switch (chunk.type) {
@@ -982,10 +1040,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
               case 'text-delta':
               case 'finish':
-                break;
-
-              case 'error':
-                controller.error(chunk.error);
+              case 'error': // suppress error (use onError instead)
                 break;
 
               default: {
@@ -1000,14 +1055,12 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get elementStream(): ELEMENT_STREAM {
-    return this.outputStrategy.createElementStream(
-      this.stitchableStream.stream,
-    );
+    return this.outputStrategy.createElementStream(this.baseStream);
   }
 
   get textStream(): AsyncIterableStream<string> {
     return createAsyncIterableStream(
-      this.stitchableStream.stream.pipeThrough(
+      this.baseStream.pipeThrough(
         new TransformStream<ObjectStreamPart<PARTIAL>, string>({
           transform(chunk, controller) {
             switch (chunk.type) {
@@ -1017,10 +1070,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
               case 'object':
               case 'finish':
-                break;
-
-              case 'error':
-                controller.error(chunk.error);
+              case 'error': // suppress error (use onError instead)
                 break;
 
               default: {
@@ -1035,7 +1085,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get fullStream(): AsyncIterableStream<ObjectStreamPart<PARTIAL>> {
-    return createAsyncIterableStream(this.stitchableStream.stream);
+    return createAsyncIterableStream(this.baseStream);
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {

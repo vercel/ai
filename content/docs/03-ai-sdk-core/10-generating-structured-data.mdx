@@ -66,6 +66,24 @@ for await (const partialObject of partialObjectStream) {
 
 You can use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-sdk-rsc))) or the [`useObject`](/docs/reference/ai-sdk-ui/use-object) hook.
 
+### `onError` callback
+
+`streamObject` immediately starts streaming.
+Errors become part of the stream and are not thrown to prevent e.g. servers from crashing.
+
+To log errors, you can provide an `onError` callback that is triggered when an error occurs.
+
+```tsx highlight="6-8"
+import { streamObject } from 'ai';
+
+const result = streamObject({
+  // ...
+  onError({ error }) {
+    console.error(error); // your error logging logic here
+  },
+});
+```
+
 ## Output Strategy
 
 You can use both functions with different output strategies, e.g. `array`, `object`, or `no-schema`.
