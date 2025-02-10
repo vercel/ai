@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.29
+
+### Patch Changes
+
+- 605de49: feat (ai/core): export callback types
+
 ## 4.1.28
 
 ### Patch Changes
