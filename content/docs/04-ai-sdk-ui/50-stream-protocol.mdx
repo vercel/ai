@@ -40,7 +40,7 @@ Here is a Next.js example that uses the text stream protocol:
 ```tsx filename='app/page.tsx' highlight="7"
 'use client';
 
-import { useCompletion } from 'ai/react';
+import { useCompletion } from '@ai-sdk/react';
 
 export default function Page() {
   const { completion, input, handleInputChange, handleSubmit } = useCompletion({
@@ -275,7 +275,7 @@ Here is a Next.js example that uses the data stream protocol:
 ```tsx filename='app/page.tsx' highlight="7"
 'use client';
 
-import { useCompletion } from 'ai/react';
+import { useCompletion } from '@ai-sdk/react';
 
 export default function Page() {
   const { completion, input, handleInputChange, handleSubmit } = useCompletion({

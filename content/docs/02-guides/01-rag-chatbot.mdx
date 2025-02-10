@@ -252,9 +252,9 @@ This function will take an input string and split it by periods, filtering out a
 
 You will use the AI SDK to create embeddings. This will require two more dependencies, which you can install by running the following command:
 
-<Snippet text="pnpm add ai @ai-sdk/openai" />
+<Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai" />
 
-This will install the [AI SDK](https://sdk.vercel.ai/docs) and the [OpenAI provider](/providers/ai-sdk-providers/openai).
+This will install the [AI SDK](https://sdk.vercel.ai/docs), AI SDK's React hooks, and AI SDK's [OpenAI provider](/providers/ai-sdk-providers/openai).
 
 <Note>
   The AI SDK is designed to be a unified interface to interact with any large
@@ -381,7 +381,7 @@ Replace your root page (`app/page.tsx`) with the following code.
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -551,7 +551,7 @@ Let’s make a few changes in the UI to communicate to the user when a tool has 
 ```tsx filename="app/page.tsx" highlight="14-22"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();

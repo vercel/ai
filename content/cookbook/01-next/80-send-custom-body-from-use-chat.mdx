@@ -32,7 +32,7 @@ This can be useful if you want to reduce the amount of data sent to the server.
 ```typescript filename='app/page.tsx' highlight="7-10"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({

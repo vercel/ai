@@ -1,4 +1,4 @@
-import { Message, useAssistant } from 'ai/react';
+import { Message, useAssistant } from '@ai-sdk/react';
 import { useEffect, useState } from 'react';
 
 export default function Page() {
