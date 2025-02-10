@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.32
+
+### Patch Changes
+
+- c128ca5: fix (ai/core): fix streamText onFinish messages with structured output
+
 ## 4.1.31
 
 ### Patch Changes
