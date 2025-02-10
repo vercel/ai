@@ -1548,7 +1548,7 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect(await result.experimental_providerMetadata).toStrictEqual({
+      expect(await result.providerMetadata).toStrictEqual({
         testProvider: { testKey: 'testValue' },
       });
     });
@@ -2758,7 +2758,7 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
-        experimental_providerMetadata: {
+        providerOptions: {
           aProvider: { someKey: 'someValue' },
         },
       });
@@ -3234,6 +3234,7 @@ describe('streamText', () => {
         {
           type: 'step-finish',
           messageId: expect.any(String),
+          providerMetadata: undefined,
           experimental_providerMetadata: undefined,
           finishReason: 'stop',
           isContinued: false,
@@ -3254,6 +3255,7 @@ describe('streamText', () => {
         },
         {
           type: 'finish',
+          providerMetadata: undefined,
           experimental_providerMetadata: undefined,
           finishReason: 'stop',
           logprobs: undefined,
@@ -3311,8 +3313,8 @@ describe('streamText', () => {
               }
 
               if (chunk.type === 'finish') {
-                if (chunk.experimental_providerMetadata?.testProvider != null) {
-                  chunk.experimental_providerMetadata.testProvider = {
+                if (chunk.providerMetadata?.testProvider != null) {
+                  chunk.providerMetadata.testProvider = {
                     testKey: 'TEST VALUE',
                   };
                 }
@@ -3632,9 +3634,7 @@ describe('streamText', () => {
 
         result.consumeStream();
 
-        expect(
-          JSON.stringify(await result.experimental_providerMetadata),
-        ).toStrictEqual(
+        expect(JSON.stringify(await result.providerMetadata)).toStrictEqual(
           JSON.stringify({
             testProvider: {
               testKey: 'TEST VALUE',
@@ -4002,6 +4002,7 @@ describe('streamText', () => {
                   messageId: 'msg-transformed-123',
                   finishReason: 'stop',
                   logprobs: undefined,
+                  providerMetadata: undefined,
                   usage: {
                     completionTokens: NaN,
                     promptTokens: NaN,
@@ -4021,6 +4022,7 @@ describe('streamText', () => {
                   type: 'finish',
                   finishReason: 'stop',
                   logprobs: undefined,
+                  providerMetadata: undefined,
                   usage: {
                     completionTokens: NaN,
                     promptTokens: NaN,
@@ -4076,6 +4078,7 @@ describe('streamText', () => {
           { type: 'text-delta', textDelta: 'Hello, ' },
           {
             type: 'step-finish',
+            providerMetadata: undefined,
             messageId: 'msg-transformed-123',
             finishReason: 'stop',
             logprobs: undefined,
@@ -4095,6 +4098,7 @@ describe('streamText', () => {
           },
           {
             type: 'finish',
+            providerMetadata: undefined,
             finishReason: 'stop',
             logprobs: undefined,
             usage: {
