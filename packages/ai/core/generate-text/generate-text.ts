@@ -520,6 +520,7 @@ A function that attempts to repair a tool call that failed to parse.
             // deep clone msgs to avoid mutating past messages in multi-step:
             messages: structuredClone(responseMessages),
           },
+          providerMetadata: currentModelResponse.providerMetadata,
           experimental_providerMetadata: currentModelResponse.providerMetadata,
           isContinued: nextStepType === 'continue',
         };
@@ -691,6 +692,10 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     TOOLS,
     OUTPUT
   >['experimental_providerMetadata'];
+  readonly providerMetadata: GenerateTextResult<
+    TOOLS,
+    OUTPUT
+  >['providerMetadata'];
   readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
   readonly sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
@@ -710,10 +715,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
     logprobs: GenerateTextResult<TOOLS, OUTPUT>['logprobs'];
     steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
-    providerMetadata: GenerateTextResult<
-      TOOLS,
-      OUTPUT
-    >['experimental_providerMetadata'];
+    providerMetadata: GenerateTextResult<TOOLS, OUTPUT>['providerMetadata'];
     response: GenerateTextResult<TOOLS, OUTPUT>['response'];
     request: GenerateTextResult<TOOLS, OUTPUT>['request'];
     outputResolver: () => GenerateTextResult<
@@ -733,6 +735,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.response = options.response;
     this.steps = options.steps;
     this.experimental_providerMetadata = options.providerMetadata;
+    this.providerMetadata = options.providerMetadata;
     this.logprobs = options.logprobs;
     this.outputResolver = options.outputResolver;
     this.sources = options.sources;

@@ -676,7 +676,7 @@ To see `generateText` in action, check out [these examples](#examples).
                 'True when there will be a continuation step with a continuation text.',
             },
             {
-              name: 'experimental_providerMetadata',
+              name: 'providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               isOptional: true,
               description:
@@ -857,7 +857,7 @@ To see `generateText` in action, check out [these examples](#examples).
         'Warnings from the model provider (e.g. unsupported settings).',
     },
     {
-      name: 'experimental_providerMetadata',
+      name: 'providerMetadata',
       type: 'Record<string,Record<string,JSONValue>> | undefined',
       description:
         'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
@@ -1055,7 +1055,7 @@ To see `generateText` in action, check out [these examples](#examples).
                 'True when there will be a continuation step with a continuation text.',
             },
             {
-              name: 'experimental_providerMetadata',
+              name: 'providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               isOptional: true,
               description:

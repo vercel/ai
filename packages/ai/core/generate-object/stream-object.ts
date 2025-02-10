@@ -101,6 +101,11 @@ Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
 */
+  providerMetadata: ProviderMetadata | undefined;
+
+  /**
+@deprecated Use `providerMetadata` instead.
+*/
   experimental_providerMetadata?: ProviderMetadata;
 }) => Promise<void> | void;
 
@@ -972,6 +977,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                       headers: rawResponse?.headers,
                     },
                     warnings,
+                    providerMetadata,
                     experimental_providerMetadata: providerMetadata,
                   });
                 } catch (error) {
@@ -1013,6 +1019,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get experimental_providerMetadata() {
+    return this.providerMetadataPromise.value;
+  }
+
+  get providerMetadata() {
     return this.providerMetadataPromise.value;
   }
 

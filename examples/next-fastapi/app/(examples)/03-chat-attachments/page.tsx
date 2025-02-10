@@ -3,7 +3,7 @@
 import { Card } from '@/app/components';
 /* eslint-disable @next/next/no-img-element */
 import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 
 export default function Page() {

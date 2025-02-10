@@ -17,7 +17,7 @@ On the frontend, use the `useChat` hook to manage the message state and user int
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -150,7 +150,7 @@ You can check if the tool requiring confirmation has been called and, if so, pre
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
@@ -559,7 +559,7 @@ Finally, update the frontend to use the new `getToolsRequiringConfirmation` func
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { Message, useChat } from 'ai/react';
+import { Message, useChat } from '@ai-sdk/react';
 import {
   APPROVAL,
   getToolsRequiringConfirmation,

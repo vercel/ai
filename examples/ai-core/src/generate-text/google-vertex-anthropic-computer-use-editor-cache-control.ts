@@ -51,7 +51,7 @@ This is a test file.
   });
 
   console.log('TEXT', result.text);
-  console.log('CACHE', result.experimental_providerMetadata?.anthropic);
+  console.log('CACHE', result.providerMetadata?.anthropic);
   console.log();
   console.log('EDITOR CONTENT', editorContent);
 }

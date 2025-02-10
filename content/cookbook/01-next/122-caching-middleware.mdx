@@ -10,12 +10,12 @@ Let's create a simple chat interface that uses [`LanguageModelMiddleware`](/docs
 
 ## Client
 
-Let's create a simple chat interface that allows users to send messages to the assistant and receive responses. You will integrate the `useChat` hook from `ai/react` to stream responses.
+Let's create a simple chat interface that allows users to send messages to the assistant and receive responses. You will integrate the `useChat` hook from `@ai-sdk/react` to stream responses.
 
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, error } = useChat();

@@ -1,5 +1,17 @@
 # ai
 
+## 4.1.34
+
+### Patch Changes
+
+- dc49119: chore: deprecate ai/react
+
+## 4.1.33
+
+### Patch Changes
+
+- 74f0f0e: chore (ai/core): move providerMetadata to stable
+
 ## 4.1.32
 
 ### Patch Changes

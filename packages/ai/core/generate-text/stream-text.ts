@@ -700,6 +700,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               ...part.response,
               messages: [...recordedResponse.messages, ...stepMessages],
             },
+            providerMetadata: part.experimental_providerMetadata,
             experimental_providerMetadata: part.experimental_providerMetadata,
             isContinued: part.isContinued,
           };
@@ -782,6 +783,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             request: lastStep.request ?? {},
             response: lastStep.response,
             warnings: lastStep.warnings,
+            providerMetadata: lastStep.providerMetadata,
             experimental_providerMetadata:
               lastStep.experimental_providerMetadata,
             steps: recordedSteps,
@@ -1277,6 +1279,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     type: 'step-finish',
                     finishReason: stepFinishReason,
                     usage: stepUsage,
+                    providerMetadata: stepProviderMetadata,
                     experimental_providerMetadata: stepProviderMetadata,
                     logprobs: stepLogProbs,
                     request: stepRequest,
@@ -1296,6 +1299,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       type: 'finish',
                       finishReason: stepFinishReason,
                       usage: combinedUsage,
+                      providerMetadata: stepProviderMetadata,
                       experimental_providerMetadata: stepProviderMetadata,
                       logprobs: stepLogProbs,
                       response: {
@@ -1398,6 +1402,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get experimental_providerMetadata() {
+    return this.providerMetadataPromise.value;
+  }
+
+  get providerMetadata() {
     return this.providerMetadataPromise.value;
   }
 

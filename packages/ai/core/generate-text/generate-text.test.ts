@@ -317,7 +317,7 @@ describe('result.providerMetadata', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(result.experimental_providerMetadata, {
+    expect(result.providerMetadata).toStrictEqual({
       anthropic: {
         cacheCreationInputTokens: 10,
         cacheReadInputTokens: 20,

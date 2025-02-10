@@ -55,6 +55,11 @@ Additional provider-specific metadata from the last step.
 Metadata is passed through from the provider to the AI SDK and
 enables provider-specific results that can be fully encapsulated in the provider.
    */
+  readonly providerMetadata: Promise<ProviderMetadata | undefined>;
+
+  /**
+@deprecated Use `providerMetadata` instead.
+   */
   readonly experimental_providerMetadata: Promise<ProviderMetadata | undefined>;
 
   /**
@@ -288,6 +293,11 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       response: LanguageModelResponseMetadata;
       usage: LanguageModelUsage;
       finishReason: FinishReason;
+      providerMetadata: ProviderMetadata | undefined;
+      /**
+       * @deprecated Use `providerMetadata` instead.
+       */
+      // TODO 5.0 breaking change: remove
       experimental_providerMetadata?: ProviderMetadata;
       isContinued: boolean;
     }
@@ -295,6 +305,11 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'finish';
       finishReason: FinishReason;
       usage: LanguageModelUsage;
+      providerMetadata: ProviderMetadata | undefined;
+      /**
+       * @deprecated Use `providerMetadata` instead.
+       */
+      // TODO 5.0 breaking change: remove
       experimental_providerMetadata?: ProviderMetadata;
 
       /**

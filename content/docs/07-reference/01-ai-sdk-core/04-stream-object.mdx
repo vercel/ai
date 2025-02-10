@@ -538,7 +538,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
               ],
             },
             {
-              name: 'experimental_providerMetadata',
+              name: 'providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               description:
                 'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
@@ -638,7 +638,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       ],
     },
     {
-      name: 'experimental_providerMetadata',
+      name: 'providerMetadata',
       type: 'Promise<Record<string,Record<string,JSONValue>> | undefined>',
       description:
         'Optional metadata from the provider. Resolved whe the response is finished. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',

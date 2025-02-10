@@ -21,7 +21,7 @@ async function main() {
   }
 
   // TODO sources promise
-  console.log((await result.experimental_providerMetadata)?.google);
+  console.log((await result.providerMetadata)?.google);
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);

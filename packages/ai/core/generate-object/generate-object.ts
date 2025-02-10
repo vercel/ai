@@ -1,4 +1,4 @@
-import { JSONValue } from '@ai-sdk/provider';
+import { JSONValue, LanguageModelV1ProviderMetadata } from '@ai-sdk/provider';
 import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
@@ -769,6 +769,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly warnings: GenerateObjectResult<T>['warnings'];
   readonly logprobs: GenerateObjectResult<T>['logprobs'];
   readonly experimental_providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
+  readonly providerMetadata: GenerateObjectResult<T>['providerMetadata'];
   readonly response: GenerateObjectResult<T>['response'];
   readonly request: GenerateObjectResult<T>['request'];
 
@@ -778,7 +779,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     usage: GenerateObjectResult<T>['usage'];
     warnings: GenerateObjectResult<T>['warnings'];
     logprobs: GenerateObjectResult<T>['logprobs'];
-    providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
+    providerMetadata: GenerateObjectResult<T>['providerMetadata'];
     response: GenerateObjectResult<T>['response'];
     request: GenerateObjectResult<T>['request'];
   }) {
@@ -786,6 +787,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
+    this.providerMetadata = options.providerMetadata;
     this.experimental_providerMetadata = options.providerMetadata;
     this.response = options.response;
     this.request = options.request;
