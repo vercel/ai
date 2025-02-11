@@ -5,9 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: bedrock(
-      `arn:aws:bedrock:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:inference-profile/us.anthropic.claude-3-5-sonnet-20240620-v1:0`,
-    ),
+    model: bedrock('anthropic.claude-3-5-sonnet-20240620-v1:0'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),
