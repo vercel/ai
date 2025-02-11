@@ -126,7 +126,7 @@ export async function POST(request) {
 ```tsx filename="@/app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, input, setInput, handleSubmit } = useChat();
@@ -249,7 +249,7 @@ export async function POST(request) {
 ```tsx filename="@/app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { Weather } from '@/components/weather';
 
 export default function Page() {
@@ -348,7 +348,7 @@ After switching to AI SDK UI, these messages are synced by initializing the `use
 ```tsx filename="@/app/components/list-flights.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export function ListFlights({ chatId, flights }) {
   const { append } = useChat({
@@ -569,7 +569,7 @@ export default async function Page({ params }: { params: any }) {
 'use client';
 
 import { Message } from 'ai';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export function Chat({
   id,
@@ -695,7 +695,7 @@ export async function POST(req: Request) {
 ```tsx filename="@/app/page.tsx"
 'use client';
 
-import { useObject } from 'ai/react';
+import { useObject } from '@ai-sdk/react';
 import { notificationSchema } from '@/utils/schemas';
 
 export default function Page() {

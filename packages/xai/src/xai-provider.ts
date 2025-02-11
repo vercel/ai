@@ -114,7 +114,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
 
-  return provider as XaiProvider;
+  return provider;
 }
 
 export const xai = createXai();

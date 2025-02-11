@@ -121,7 +121,7 @@ export function createPerplexity(
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
 
-  return provider as PerplexityProvider;
+  return provider;
 }
 
 export const perplexity = createPerplexity();

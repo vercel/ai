@@ -147,7 +147,7 @@ export function createMistral(
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
-  return provider as MistralProvider;
+  return provider;
 }
 
 /**

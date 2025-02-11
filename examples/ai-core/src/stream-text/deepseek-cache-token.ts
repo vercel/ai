@@ -36,7 +36,7 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-  console.log('Provider metadata:', await result.experimental_providerMetadata);
+  console.log('Provider metadata:', await result.providerMetadata);
   // "prompt_cache_hit_tokens":1856,"prompt_cache_miss_tokens":5}
 }
 

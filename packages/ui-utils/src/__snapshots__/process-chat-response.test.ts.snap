@@ -302,8 +302,44 @@ exports[`scenario: onToolCall is executed > should call the onFinish function wi
 ]
 `;
 
-exports[`scenario: onToolCall is executed > should call the update function with the correct arguments 1`] = `
+exports[`scenario: onToolCall is executed > should call the update function twice with the correct arguments 1`] = `
 [
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "state": "call",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "state": "call",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
   {
     "data": [],
     "message": {
@@ -325,7 +361,7 @@ exports[`scenario: onToolCall is executed > should call the update function with
           "type": "tool-invocation",
         },
       ],
-      "revisionId": "id-1",
+      "revisionId": "id-2",
       "role": "assistant",
       "toolInvocations": [
         {

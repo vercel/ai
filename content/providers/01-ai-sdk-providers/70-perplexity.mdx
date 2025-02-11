@@ -82,7 +82,7 @@ Perplexity models can be used in the `streamText` and `streamUI` functions (see
 
 ### Provider Metadata
 
-The Perplexity provider includes additional experimental metadata in the response through `experimental_providerMetadata`:
+The Perplexity provider includes additional experimental metadata in the response through `providerMetadata`:
 
 ```ts
 const result = await generateText({
@@ -95,7 +95,7 @@ const result = await generateText({
   },
 });
 
-console.log(result.experimental_providerMetadata);
+console.log(result.providerMetadata);
 // Example output:
 // {
 //   perplexity: {

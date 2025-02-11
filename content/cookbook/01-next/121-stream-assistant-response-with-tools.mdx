@@ -6,7 +6,7 @@ tags: ['next', 'streaming', 'assistant']
 
 # Stream Assistant Response with Tools
 
-Let's create a simple chat interface that allows users to send messages to the assistant and receive responses and give it the ability to use tools. You will integrate the `useAssistant` hook from `ai/react` to stream the messages and status.
+Let's create a simple chat interface that allows users to send messages to the assistant and receive responses and give it the ability to use tools. You will integrate the `useAssistant` hook from `@ai-sdk/react` to stream the messages and status.
 
 You will need to provide the list of tools on the OpenAI [Assistant Dashboard](https://platform.openai.com/assistants). You can use the following schema to create a tool to convert celsius to fahrenheit.
 
@@ -29,12 +29,12 @@ You will need to provide the list of tools on the OpenAI [Assistant Dashboard](h
 
 ## Client
 
-Let's create a simple chat interface that allows users to send messages to the assistant and receive responses. You will integrate the `useAssistant` hook from `ai/react` to stream the messages and status.
+Let's create a simple chat interface that allows users to send messages to the assistant and receive responses. You will integrate the `useAssistant` hook from `@ai-sdk/react` to stream the messages and status.
 
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { Message, useAssistant } from 'ai/react';
+import { Message, useAssistant } from '@ai-sdk/react';
 
 export default function Page() {
   const { status, messages, input, submitMessage, handleInputChange } =

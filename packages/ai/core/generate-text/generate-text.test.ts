@@ -18,6 +18,28 @@ const dummyResponseValues = {
   usage: { promptTokens: 10, completionTokens: 20 },
 };
 
+const modelWithSources = new MockLanguageModelV1({
+  doGenerate: async () => ({
+    ...dummyResponseValues,
+    sources: [
+      {
+        sourceType: 'url' as const,
+        id: '123',
+        url: 'https://example.com',
+        title: 'Example',
+        providerMetadata: { provider: { custom: 'value' } },
+      },
+      {
+        sourceType: 'url' as const,
+        id: '456',
+        url: 'https://example.com/2',
+        title: 'Example 2',
+        providerMetadata: { provider: { custom: 'value2' } },
+      },
+    ],
+  }),
+});
+
 describe('result.text', () => {
   it('should generate text', async () => {
     const result = await generateText({
@@ -69,6 +91,17 @@ describe('result.reasoning', () => {
   });
 });
 
+describe('result.sources', () => {
+  it('should contain sources', async () => {
+    const result = await generateText({
+      model: modelWithSources,
+      prompt: 'prompt',
+    });
+
+    expect(result.sources).toMatchSnapshot();
+  });
+});
+
 describe('result.steps', () => {
   it('should add the reasoning from the model response to the step result', async () => {
     const result = await generateText({
@@ -83,6 +116,20 @@ describe('result.steps', () => {
       experimental_generateMessageId: mockId({
         prefix: 'msg',
       }),
+      _internal: {
+        generateId: mockId({ prefix: 'id' }),
+        currentDate: () => new Date(0),
+      },
+    });
+
+    expect(result.steps).toMatchSnapshot();
+  });
+
+  it('should contain sources', async () => {
+    const result = await generateText({
+      model: modelWithSources,
+      prompt: 'prompt',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
       _internal: {
         generateId: mockId({ prefix: 'id' }),
         currentDate: () => new Date(0),
@@ -168,7 +215,7 @@ describe('result.toolCalls', () => {
       assertType<string>(result.toolCalls[0].args.value);
     }
 
-    assert.deepStrictEqual(result.toolCalls, [
+    expect(result.toolCalls).toStrictEqual([
       {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -270,7 +317,7 @@ describe('result.providerMetadata', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(result.experimental_providerMetadata, {
+    expect(result.providerMetadata).toStrictEqual({
       anthropic: {
         cacheCreationInputTokens: 10,
         cacheReadInputTokens: 20,
@@ -658,6 +705,15 @@ describe('options.maxSteps', () => {
                     timestamp: new Date(10000),
                     modelId: 'test-response-model-id',
                   },
+                  sources: [
+                    {
+                      sourceType: 'url' as const,
+                      id: '123',
+                      url: 'https://example.com',
+                      title: 'Example',
+                      providerMetadata: { provider: { custom: 'value' } },
+                    },
+                  ],
                   usage: { completionTokens: 5, promptTokens: 30 },
                   // test handling of custom response headers:
                   rawResponse: {
@@ -702,6 +758,22 @@ describe('options.maxSteps', () => {
                   // set up trailing whitespace for next step:
                   text: 'immediatefollow  ',
                   finishReason: 'length',
+                  sources: [
+                    {
+                      sourceType: 'url' as const,
+                      id: '456',
+                      url: 'https://example.com/2',
+                      title: 'Example 2',
+                      providerMetadata: { provider: { custom: 'value2' } },
+                    },
+                    {
+                      sourceType: 'url' as const,
+                      id: '789',
+                      url: 'https://example.com/3',
+                      title: 'Example 3',
+                      providerMetadata: { provider: { custom: 'value3' } },
+                    },
+                  ],
                   response: {
                     id: 'test-id-3-from-model',
                     timestamp: new Date(20000),
@@ -821,6 +893,10 @@ describe('options.maxSteps', () => {
 
     it('onStepFinish should be called for each step', () => {
       expect(onStepFinishResults).toMatchSnapshot();
+    });
+
+    it('result.sources should contain sources from all steps', () => {
+      expect(result.sources).toMatchSnapshot();
     });
   });
 });

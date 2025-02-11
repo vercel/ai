@@ -9,14 +9,14 @@ The `useAssistant` hook allows you to handle the client state when interacting w
 This hook is useful when you want to integrate assistant capabilities into your application,
 with the UI updated automatically as the assistant is streaming its execution.
 
-The `useAssistant` hook is supported in `ai/react`, `ai/svelte`, and `ai/vue`.
+The `useAssistant` hook is supported in `@ai-sdk/react`, `ai/svelte`, and `ai/vue`.
 
 ## Example
 
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { Message, useAssistant } from 'ai/react';
+import { Message, useAssistant } from '@ai-sdk/react';
 
 export default function Chat() {
   const { status, messages, input, submitMessage, handleInputChange } =

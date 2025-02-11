@@ -12,7 +12,7 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-  console.log('Metadata:', result.experimental_providerMetadata);
+  console.log('Metadata:', result.providerMetadata);
 }
 
 main().catch(console.error);

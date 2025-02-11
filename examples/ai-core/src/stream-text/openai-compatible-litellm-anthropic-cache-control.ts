@@ -42,9 +42,6 @@ async function main() {
   }
 
   console.log();
-  // Note the cache-specific token usage information is not yet available in the
-  // AI SDK. We plan to make it available in the response through the
-  // `experimental_providerMetadata` field in the future.
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
 }

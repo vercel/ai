@@ -294,10 +294,10 @@ const result = streamText({
 ```
 
 OpenAI provides usage information for predicted outputs (`acceptedPredictionTokens` and `rejectedPredictionTokens`).
-You can access it in the `experimental_providerMetadata` object.
+You can access it in the `providerMetadata` object.
 
 ```ts highlight="11"
-const openaiMetadata = (await result.experimental_providerMetadata)?.openai;
+const openaiMetadata = (await result.providerMetadata)?.openai;
 
 const acceptedPredictionTokens = openaiMetadata?.acceptedPredictionTokens;
 const rejectedPredictionTokens = openaiMetadata?.rejectedPredictionTokens;
@@ -383,13 +383,13 @@ Reasoning models support additional settings and response metadata:
 
   - the `reasoningEffort` option (or alternatively the `reasoningEffort` model setting), which determines the amount of reasoning the model performs.
 
-- You can use response `experimental_providerMetadata` to access the number of reasoning tokens that the model generated.
+- You can use response `providerMetadata` to access the number of reasoning tokens that the model generated.
 
 ```ts highlight="4,7-11,17"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const { text, usage, experimental_providerMetadata } = await generateText({
+const { text, usage, providerMetadata } = await generateText({
   model: openai('o3-mini'),
   prompt: 'Invent a new holiday and describe its traditions.',
   providerOptions: {
@@ -402,7 +402,7 @@ const { text, usage, experimental_providerMetadata } = await generateText({
 console.log(text);
 console.log('Usage:', {
   ...usage,
-  reasoningTokens: experimental_providerMetadata?.openai?.reasoningTokens,
+  reasoningTokens: providerMetadata?.openai?.reasoningTokens,
 });
 ```
 
@@ -437,7 +437,7 @@ including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
 
 - Prompt caching is automatically enabled for these models, when the prompt is 1024 tokens or longer. It does
   not need to be explicitly enabled.
-- You can use response `experimental_providerMetadata` to access the number of prompt tokens that were a cache hit.
+- You can use response `providerMetadata` to access the number of prompt tokens that were a cache hit.
 - Note that caching behavior is dependent on load on OpenAI's infrastructure. Prompt prefixes generally remain in the
   cache following 5-10 minutes of inactivity before they are evicted, but during off-peak periods they may persist for up
   to an hour.
@@ -446,14 +446,14 @@ including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const { text, usage, experimental_providerMetadata } = await generateText({
+const { text, usage, providerMetadata } = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: `A 1024-token or longer prompt...`,
 });
 
 console.log(`usage:`, {
   ...usage,
-  cachedPromptTokens: experimental_providerMetadata?.openai?.cachedPromptTokens,
+  cachedPromptTokens: providerMetadata?.openai?.cachedPromptTokens,
 });
 ```
 
