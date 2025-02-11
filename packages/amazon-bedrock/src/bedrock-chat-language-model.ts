@@ -102,7 +102,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    // TODO: validate this is still the case.
     if (responseFormat != null && responseFormat.type !== 'text') {
       warnings.push({
         type: 'unsupported-setting',
