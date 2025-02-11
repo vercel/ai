@@ -52,7 +52,7 @@ export const createBedrockEventStreamResponseHandler =
               }
 
               try {
-                // 3) Decode exactly the sub-slice for this event.
+                // Decode exactly the sub-slice for this event.
                 const subView = buffer.subarray(0, totalLength);
                 const decoded = codec.decode(subView);
 

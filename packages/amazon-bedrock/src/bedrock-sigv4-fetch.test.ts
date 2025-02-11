@@ -22,6 +22,16 @@ vi.mock('aws4fetch', () => {
   return { AwsV4Signer: MockAwsV4Signer };
 });
 
+const createFetchFunction = (dummyFetch: any) =>
+  createSigV4FetchFunction(
+    () => ({
+      region: 'us-west-2',
+      accessKeyId: 'test-access-key',
+      secretAccessKey: 'test-secret',
+    }),
+    dummyFetch,
+  );
+
 describe('createSigV4FetchFunction', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -30,8 +40,8 @@ describe('createSigV4FetchFunction', () => {
   it('should bypass signing for non-POST requests', async () => {
     const dummyResponse = new Response('OK', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const fetchFn = createFetchFunction(dummyFetch);
 
-    const fetchFn = createSigV4FetchFunction({}, dummyFetch);
     const response = await fetchFn('http://example.com', { method: 'GET' });
     expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
       method: 'GET',
@@ -42,8 +52,8 @@ describe('createSigV4FetchFunction', () => {
   it('should bypass signing if POST request has no body', async () => {
     const dummyResponse = new Response('OK', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const fetchFn = createFetchFunction(dummyFetch);
 
-    const fetchFn = createSigV4FetchFunction({}, dummyFetch);
     const response = await fetchFn('http://example.com', { method: 'POST' });
     expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
       method: 'POST',
@@ -55,14 +65,16 @@ describe('createSigV4FetchFunction', () => {
     const dummyResponse = new Response('Signed', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
 
-    // Provide settings (including a sessionToken) so that the signer includes that header.
-    const settings = {
-      region: 'us-west-2',
-      accessKeyId: 'test-access-key',
-      secretAccessKey: 'test-secret',
-      sessionToken: 'test-session-token',
-    };
-    const fetchFn = createSigV4FetchFunction(settings, dummyFetch);
+    // Provide settings (including a sessionToken) so that the signer includes that header.\
+    const fetchFn = createSigV4FetchFunction(
+      () => ({
+        region: 'us-west-2',
+        accessKeyId: 'test-access-key',
+        secretAccessKey: 'test-secret',
+        sessionToken: 'test-session-token',
+      }),
+      dummyFetch,
+    );
 
     const inputUrl = 'http://example.com';
     const init: RequestInit = {
@@ -95,13 +107,7 @@ describe('createSigV4FetchFunction', () => {
   it('should handle non-string body by stringifying it', async () => {
     const dummyResponse = new Response('Signed', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
-
-    const settings = {
-      region: 'us-west-2',
-      accessKeyId: 'key',
-      secretAccessKey: 'secret',
-    };
-    const fetchFn = createSigV4FetchFunction(settings, dummyFetch);
+    const fetchFn = createFetchFunction(dummyFetch);
 
     const inputUrl = 'http://example.com';
     const jsonBody = { field: 'value' };
@@ -120,13 +126,7 @@ describe('createSigV4FetchFunction', () => {
   it('should handle Uint8Array body', async () => {
     const dummyResponse = new Response('Signed', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
-
-    const settings = {
-      region: 'us-west-2',
-      accessKeyId: 'key',
-      secretAccessKey: 'secret',
-    };
-    const fetchFn = createSigV4FetchFunction(settings, dummyFetch);
+    const fetchFn = createFetchFunction(dummyFetch);
 
     const inputUrl = 'http://example.com';
     const uint8Body = new TextEncoder().encode('binaryTest');
@@ -145,13 +145,7 @@ describe('createSigV4FetchFunction', () => {
   it('should handle ArrayBuffer body', async () => {
     const dummyResponse = new Response('Signed', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
-
-    const settings = {
-      region: 'us-west-2',
-      accessKeyId: 'key',
-      secretAccessKey: 'secret',
-    };
-    const fetchFn = createSigV4FetchFunction(settings, dummyFetch);
+    const fetchFn = createFetchFunction(dummyFetch);
 
     const inputUrl = 'http://example.com';
     const text = 'bufferTest';
@@ -170,13 +164,7 @@ describe('createSigV4FetchFunction', () => {
   it('should extract headers from a Headers instance', async () => {
     const dummyResponse = new Response('Signed', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
-
-    const settings = {
-      region: 'us-west-2',
-      accessKeyId: 'key',
-      secretAccessKey: 'secret',
-    };
-    const fetchFn = createSigV4FetchFunction(settings, dummyFetch);
+    const fetchFn = createFetchFunction(dummyFetch);
 
     const h = new Headers();
     h.set('A', 'value-a');
@@ -190,7 +178,6 @@ describe('createSigV4FetchFunction', () => {
     expect(dummyFetch).toHaveBeenCalled();
     const calledInit = dummyFetch.mock.calls[0][1] as RequestInit;
     const headers = calledInit.headers as Record<string, string>;
-    // Depending on the runtime, header keys might be normalized (typically lowercased).
     expect(headers['a'] || headers['A']).toEqual('value-a');
     expect(headers['b'] || headers['B']).toEqual('value-b');
   });
@@ -198,13 +185,7 @@ describe('createSigV4FetchFunction', () => {
   it('should handle headers provided as an array', async () => {
     const dummyResponse = new Response('Signed', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
-
-    const settings = {
-      region: 'us-west-2',
-      accessKeyId: 'key',
-      secretAccessKey: 'secret',
-    };
-    const fetchFn = createSigV4FetchFunction(settings, dummyFetch);
+    const fetchFn = createFetchFunction(dummyFetch);
 
     const headersArray: [string, string][] = [
       ['Array-Header', 'array-value'],
@@ -235,8 +216,8 @@ describe('createSigV4FetchFunction', () => {
   it('should call original fetch if init is undefined', async () => {
     const dummyResponse = new Response('OK', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const fetchFn = createFetchFunction(dummyFetch);
 
-    const fetchFn = createSigV4FetchFunction({}, dummyFetch);
     const response = await fetchFn('http://example.com');
     expect(dummyFetch).toHaveBeenCalledWith('http://example.com', undefined);
     expect(response).toBe(dummyResponse);

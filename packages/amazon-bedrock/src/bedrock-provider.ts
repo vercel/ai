@@ -6,6 +6,7 @@ import {
 import {
   FetchFunction,
   generateId,
+  loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
@@ -89,14 +90,33 @@ export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
   const sigv4Fetch = createSigV4FetchFunction(
-    {
-      region: options.region,
-      accessKeyId: options.accessKeyId,
-      secretAccessKey: options.secretAccessKey,
-      sessionToken: options.sessionToken,
-    },
+    () => ({
+      region: loadSetting({
+        settingValue: options.region,
+        settingName: 'region',
+        environmentVariableName: 'AWS_REGION',
+        description: 'AWS region',
+      }),
+      accessKeyId: loadSetting({
+        settingValue: options.accessKeyId,
+        settingName: 'accessKeyId',
+        environmentVariableName: 'AWS_ACCESS_KEY_ID',
+        description: 'AWS access key ID',
+      }),
+      secretAccessKey: loadSetting({
+        settingValue: options.secretAccessKey,
+        settingName: 'secretAccessKey',
+        environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
+        description: 'AWS secret access key',
+      }),
+      sessionToken: loadOptionalSetting({
+        settingValue: options.sessionToken,
+        environmentVariableName: 'AWS_SESSION_TOKEN',
+      }),
+    }),
     options.fetch,
   );
+
   const getBaseUrl = (): string =>
     withoutTrailingSlash(
       options.baseURL ??

@@ -1,15 +1,10 @@
-import {
-  FetchFunction,
-  loadOptionalSetting,
-  loadSetting,
-  combineHeaders,
-} from '@ai-sdk/provider-utils';
+import { FetchFunction, combineHeaders } from '@ai-sdk/provider-utils';
 import { AwsV4Signer } from 'aws4fetch';
 
-export interface SigV4Settings {
-  region?: string;
-  accessKeyId?: string;
-  secretAccessKey?: string;
+export interface BedrockCredentials {
+  region: string;
+  accessKeyId: string;
+  secretAccessKey: string;
   sessionToken?: string;
 }
 
@@ -26,7 +21,7 @@ export interface SigV4Settings {
  * @returns A FetchFunction that signs requests before passing them to the underlying fetch.
  */
 export function createSigV4FetchFunction(
-  settings: SigV4Settings = {},
+  getCredentials: () => BedrockCredentials,
   originalFetch?: FetchFunction,
 ): FetchFunction {
   const fetchImpl = originalFetch || globalThis.fetch;
@@ -75,41 +70,19 @@ export function createSigV4FetchFunction(
       bodyString = JSON.stringify(init.body);
     }
 
-    // Resolve AWS credentials and region from settings and environment variables.
-    // TODO: Build credentials set earlier in provider control flow and pass in here.
-    const region = loadSetting({
-      settingValue: settings.region,
-      settingName: 'region',
-      environmentVariableName: 'AWS_REGION',
-      description: 'AWS region',
-    });
-    const accessKeyId = loadSetting({
-      settingValue: settings.accessKeyId,
-      settingName: 'accessKeyId',
-      environmentVariableName: 'AWS_ACCESS_KEY_ID',
-      description: 'AWS access key ID',
-    });
-    const secretAccessKey = loadSetting({
-      settingValue: settings.secretAccessKey,
-      settingName: 'secretAccessKey',
-      environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-      description: 'AWS secret access key',
-    });
-    const sessionToken = loadOptionalSetting({
-      settingValue: settings.sessionToken,
-      environmentVariableName: 'AWS_SESSION_TOKEN',
-    });
-
     // Create the signer, passing the already stringified body.
+    const credentials = getCredentials();
     const signer = new AwsV4Signer({
       url,
       method: 'POST',
       headers: Object.entries(removeUndefinedEntries(originalHeaders)),
       body: bodyString,
-      region,
-      accessKeyId,
-      secretAccessKey,
-      ...(sessionToken && { sessionToken }),
+      region: credentials.region,
+      accessKeyId: credentials.accessKeyId,
+      secretAccessKey: credentials.secretAccessKey,
+      ...(credentials.sessionToken && {
+        sessionToken: credentials.sessionToken,
+      }),
       service: 'bedrock',
     });
 
