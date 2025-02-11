@@ -21,7 +21,7 @@ By default, all APIs without special prefixes are considered stable and ready fo
 
 ### Experimental APIs
 
-APIs prefixed with `experimental_` (like `experimental_generateImage()`) are in development and can change in minor releases. To use experimental APIs safely:
+APIs prefixed with `experimental_` (like `experimental_generateImage()`) are in development and can change in minor and patch releases. To use experimental APIs safely:
 
 1. Test them first in development, not production
 2. Review release notes before upgrading
@@ -45,17 +45,10 @@ Each deprecation includes:
 - Clear removal timeline
 - Step-by-step migration instructions
 
+<Note>
+For major releases, we provide automated codemods where possible to help migrate your code to the new version.
+</Note>
+
 ### Paused APIs
 
 APIs marked as `paused` are temporarily inactive due to external blockers. Development will resume once these blockers are resolved.
-
-## Breaking Changes
-
-When breaking changes are necessary:
-
-1. The major version number increases
-2. Release notes detail the changes
-3. Migration guides help you upgrade
-4. Codemods automate updates where possible
-
-Note: Experimental APIs may have breaking changes in minor releases.
