@@ -1,4 +1,8 @@
-import { FetchFunction, combineHeaders } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  combineHeaders,
+  removeUndefinedEntries,
+} from '@ai-sdk/provider-utils';
 import { AwsV4Signer } from 'aws4fetch';
 
 export interface BedrockCredentials {
@@ -109,13 +113,4 @@ function convertHeadersToRecord(headers: Headers): Record<string, string> {
     record[key] = value;
   });
   return record;
-}
-
-// TODO: export from provider-utils.
-function removeUndefinedEntries<T>(
-  record: Record<string, T | undefined>,
-): Record<string, T> {
-  return Object.fromEntries(
-    Object.entries(record).filter(([_key, value]) => value != null),
-  ) as Record<string, T>;
 }
