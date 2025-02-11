@@ -7,8 +7,8 @@
       "env": [
         "ANTHROPIC_API_KEY",
         "ASSISTANT_ID",
-        "AWS_ACCESS_KEY_ID",
         "AWS_REGION",
+        "AWS_ACCESS_KEY_ID",
         "AWS_SECRET_ACCESS_KEY",
         "BASETEN_API_KEY",
         "CEREBRAS_API_KEY",
