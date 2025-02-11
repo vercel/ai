@@ -2,6 +2,7 @@ import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createAmazonBedrock } from './bedrock-provider';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import { FetchFunction } from '@ai-sdk/provider-utils';
+import { createFakeFetch } from './fake-fetch';
 
 const mockEmbeddings = [
   [
@@ -13,26 +14,6 @@ const mockEmbeddings = [
     [0.6, 0.7, 0.8, 0.9, 1.0],
   ],
 ];
-
-// TODO: share with bedrock-chat-language-model.test.ts
-function createFakeFetch(customHeaders: Record<string, string>): FetchFunction {
-  return async (input, init = {}) => {
-    // Ensure headers is a plain object, Headers instance, or array.
-    if (init.headers instanceof Headers) {
-      for (const [key, value] of Object.entries(customHeaders)) {
-        init.headers.set(key, value);
-      }
-    } else if (Array.isArray(init.headers)) {
-      for (const [key, value] of Object.entries(customHeaders)) {
-        init.headers.push([key, value]);
-      }
-    } else {
-      init.headers = { ...(init.headers || {}), ...customHeaders };
-    }
-    // Delegate to the global fetch (MSW will intercept it).
-    return await globalThis.fetch(input, init);
-  };
-}
 
 const fakeFetchWithAuth = createFakeFetch({ 'x-amz-auth': 'test-auth' });
 
