@@ -3,7 +3,10 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { createIdGenerator } from '@ai-sdk/provider-utils';
+import {
+  createIdGenerator,
+  convertUint8ArrayToBase64,
+} from '@ai-sdk/provider-utils';
 import { BedrockDocumentFormat, BedrockImageFormat } from './bedrock-api-types';
 import {
   BedrockAssistantMessage,
@@ -71,9 +74,9 @@ export function convertToBedrockChatMessages(
                           '/',
                         )?.[1] as BedrockImageFormat,
                         source: {
-                          bytes: Buffer.from(
+                          bytes: convertUint8ArrayToBase64(
                             part.image ?? (part.image as Uint8Array),
-                          ).toString('base64'),
+                          ),
                         },
                       },
                     });
