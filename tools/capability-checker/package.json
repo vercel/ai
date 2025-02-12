@@ -1,31 +1,11 @@
 {
-  "name": "@ai-sdk/model-tests",
-  "version": "0.0.0",
-  "license": "Apache-2.0",
-  "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist/**/*",
-    "CHANGELOG.md"
-  ],
+  "private": true,
+  "name": "capability-checker",
   "scripts": {
-    "build": "tsup src/index.ts",
-    "build:watch": "tsup --watch",
-    "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test:capabilities": "vitest run src/test-runner.test.ts"
-  },
-  "exports": {
-    "./package.json": "./package.json",
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    }
   },
   "dependencies": {
     "@ai-sdk/cerebras": "0.1.8",
@@ -54,22 +34,5 @@
   },
   "peerDependencies": {
     "zod": "^3.0.0"
-  },
-  "engines": {
-    "node": ">=18"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "homepage": "https://sdk.vercel.ai/docs",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
-  },
-  "bugs": {
-    "url": "https://github.com/vercel/ai/issues"
-  },
-  "keywords": [
-    "ai"
-  ]
+  }
 }

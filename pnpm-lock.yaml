@@ -1613,73 +1613,6 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
 
-  packages/model-tests:
-    dependencies:
-      '@ai-sdk/cerebras':
-        specifier: 0.1.8
-        version: link:../cerebras
-      '@ai-sdk/deepinfra':
-        specifier: 0.1.9
-        version: link:../deepinfra
-      '@ai-sdk/deepseek':
-        specifier: 0.1.8
-        version: link:../deepseek
-      '@ai-sdk/fireworks':
-        specifier: 0.1.8
-        version: link:../fireworks
-      '@ai-sdk/google':
-        specifier: 1.1.11
-        version: link:../google
-      '@ai-sdk/google-vertex':
-        specifier: 2.1.12
-        version: link:../google-vertex
-      '@ai-sdk/luma':
-        specifier: 0.0.4
-        version: link:../luma
-      '@ai-sdk/openai':
-        specifier: 1.1.9
-        version: link:../openai
-      '@ai-sdk/perplexity':
-        specifier: 0.0.7
-        version: link:../perplexity
-      '@ai-sdk/provider':
-        specifier: 1.0.7
-        version: link:../provider
-      '@ai-sdk/provider-utils':
-        specifier: 2.1.6
-        version: link:../provider-utils
-      '@ai-sdk/togetherai':
-        specifier: 0.1.9
-        version: link:../togetherai
-      '@ai-sdk/xai':
-        specifier: 1.1.8
-        version: link:../xai
-      ai:
-        specifier: 4.1.34
-        version: link:../ai
-      dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
-      vitest:
-        specifier: 2.1.4
-        version: 2.1.4(@edge-runtime/vm@5.0.0)(@types/node@18.19.54)(jsdom@24.0.0)(msw@2.7.0(@types/node@18.19.54)(typescript@5.6.3))(terser@5.31.3)
-    devDependencies:
-      '@types/node':
-        specifier: ^18
-        version: 18.19.54
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
-      tsup:
-        specifier: ^8
-        version: 8.3.0(jiti@2.4.0)(postcss@8.4.49)(tsx@4.19.2)(typescript@5.6.3)(yaml@2.5.0)
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
-      zod:
-        specifier: 3.23.8
-        version: 3.23.8
-
   packages/openai:
     dependencies:
       '@ai-sdk/provider':
@@ -2198,6 +2131,73 @@ importers:
       typescript:
         specifier: 5.6.3
         version: 5.6.3
+
+  tools/capability-checker:
+    dependencies:
+      '@ai-sdk/cerebras':
+        specifier: 0.1.8
+        version: link:../../packages/cerebras
+      '@ai-sdk/deepinfra':
+        specifier: 0.1.9
+        version: link:../../packages/deepinfra
+      '@ai-sdk/deepseek':
+        specifier: 0.1.8
+        version: link:../../packages/deepseek
+      '@ai-sdk/fireworks':
+        specifier: 0.1.8
+        version: link:../../packages/fireworks
+      '@ai-sdk/google':
+        specifier: 1.1.11
+        version: link:../../packages/google
+      '@ai-sdk/google-vertex':
+        specifier: 2.1.12
+        version: link:../../packages/google-vertex
+      '@ai-sdk/luma':
+        specifier: 0.0.4
+        version: link:../../packages/luma
+      '@ai-sdk/openai':
+        specifier: 1.1.9
+        version: link:../../packages/openai
+      '@ai-sdk/perplexity':
+        specifier: 0.0.7
+        version: link:../../packages/perplexity
+      '@ai-sdk/provider':
+        specifier: 1.0.7
+        version: link:../../packages/provider
+      '@ai-sdk/provider-utils':
+        specifier: 2.1.6
+        version: link:../../packages/provider-utils
+      '@ai-sdk/togetherai':
+        specifier: 0.1.9
+        version: link:../../packages/togetherai
+      '@ai-sdk/xai':
+        specifier: 1.1.8
+        version: link:../../packages/xai
+      ai:
+        specifier: 4.1.34
+        version: link:../../packages/ai
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      vitest:
+        specifier: 2.1.4
+        version: 2.1.4(@edge-runtime/vm@5.0.0)(@types/node@18.19.54)(jsdom@24.0.0)(msw@2.7.0(@types/node@18.19.54)(typescript@5.6.3))(terser@5.31.3)
+    devDependencies:
+      '@types/node':
+        specifier: ^18
+        version: 18.19.54
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.4.49)(tsx@4.19.2)(typescript@5.6.3)(yaml@2.5.0)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
 
   tools/eslint-config:
     dependencies:
