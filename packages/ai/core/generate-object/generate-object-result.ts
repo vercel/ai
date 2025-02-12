@@ -43,6 +43,11 @@ Additional response information.
   readonly response: LanguageModelResponseMetadata;
 
   /**
+  The reasoning of the model.
+   */
+  readonly reasoning: string | undefined;
+
+  /**
  Logprobs for the completion.
 `undefined` if the mode does not support logprobs or if was not enabled.
 
