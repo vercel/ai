@@ -1,11 +1,5 @@
-import {
-  LanguageModelV1FinishReason,
-  LanguageModelV1Source,
-} from '@ai-sdk/provider';
-import {
-  ToolCall as ToolCall,
-  ToolResult as ToolResult,
-} from '@ai-sdk/provider-utils';
+import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { JSONValue } from './types';
 
 export type DataStreamString =
