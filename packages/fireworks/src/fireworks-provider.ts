@@ -202,7 +202,7 @@ export function createFireworks(
   provider.textEmbeddingModel = createTextEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
-  return provider as FireworksProvider;
+  return provider;
 }
 
 export const fireworks = createFireworks();

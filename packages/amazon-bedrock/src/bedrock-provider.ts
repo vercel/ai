@@ -128,7 +128,7 @@ export function createAmazonBedrock(
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
-  return provider as AmazonBedrockProvider;
+  return provider;
 }
 
 /**

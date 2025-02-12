@@ -11,6 +11,11 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
   "object": {
     "content": "Hello, world!",
   },
+  "providerMetadata": {
+    "testProvider": {
+      "testKey": "testValue",
+    },
+  },
   "response": {
     "headers": undefined,
     "id": "id-0",
@@ -31,6 +36,7 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
   "error": [AI_NoObjectGeneratedError: No object generated: response did not match schema.],
   "experimental_providerMetadata": undefined,
   "object": undefined,
+  "providerMetadata": undefined,
   "response": {
     "headers": undefined,
     "id": "id-0",

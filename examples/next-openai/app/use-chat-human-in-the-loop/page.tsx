@@ -1,6 +1,6 @@
 'use client';
 
-import { Message, useChat } from 'ai/react';
+import { Message, useChat } from '@ai-sdk/react';
 import {
   APPROVAL,
   getToolsRequiringConfirmation,

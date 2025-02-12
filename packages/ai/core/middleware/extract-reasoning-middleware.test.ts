@@ -127,6 +127,7 @@ describe('extractReasoningMiddleware', () => {
         },
         {
           experimental_providerMetadata: undefined,
+          providerMetadata: undefined,
           finishReason: 'stop',
           isContinued: false,
           logprobs: undefined,
@@ -148,6 +149,7 @@ describe('extractReasoningMiddleware', () => {
         },
         {
           experimental_providerMetadata: undefined,
+          providerMetadata: undefined,
           finishReason: 'stop',
           logprobs: undefined,
           response: {
@@ -230,6 +232,7 @@ describe('extractReasoningMiddleware', () => {
         },
         {
           experimental_providerMetadata: undefined,
+          providerMetadata: undefined,
           finishReason: 'stop',
           isContinued: false,
           logprobs: undefined,
@@ -251,6 +254,7 @@ describe('extractReasoningMiddleware', () => {
         },
         {
           experimental_providerMetadata: undefined,
+          providerMetadata: undefined,
           finishReason: 'stop',
           logprobs: undefined,
           response: {

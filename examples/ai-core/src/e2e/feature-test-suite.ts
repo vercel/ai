@@ -926,8 +926,9 @@ export function createFeatureTestSuite({
                 expect(result.text.toLowerCase()).toContain('tokyo');
                 expect(result.usage?.totalTokens).toBeGreaterThan(0);
 
-                const metadata = result.experimental_providerMetadata
-                  ?.google as GoogleGenerativeAIProviderMetadata | undefined;
+                const metadata = result.providerMetadata?.google as
+                  | GoogleGenerativeAIProviderMetadata
+                  | undefined;
                 verifyGroundingMetadata(metadata?.groundingMetadata);
               });
 
@@ -942,8 +943,9 @@ export function createFeatureTestSuite({
                   chunks.push(chunk);
                 }
 
-                const metadata = (await result.experimental_providerMetadata)
-                  ?.google as GoogleGenerativeAIProviderMetadata | undefined;
+                const metadata = (await result.providerMetadata)?.google as
+                  | GoogleGenerativeAIProviderMetadata
+                  | undefined;
 
                 const completeText = chunks.join('');
                 expect(completeText).toBeTruthy();
@@ -959,8 +961,9 @@ export function createFeatureTestSuite({
                   prompt: 'What is the current population of Tokyo?',
                 });
 
-                const metadata = result.experimental_providerMetadata
-                  ?.google as GoogleGenerativeAIProviderMetadata | undefined;
+                const metadata = result.providerMetadata?.google as
+                  | GoogleGenerativeAIProviderMetadata
+                  | undefined;
                 verifySafetyRatings(metadata?.safetyRatings ?? []);
               });
 
@@ -974,8 +977,9 @@ export function createFeatureTestSuite({
                   // consume the stream
                 }
 
-                const metadata = (await result.experimental_providerMetadata)
-                  ?.google as GoogleGenerativeAIProviderMetadata | undefined;
+                const metadata = (await result.providerMetadata)?.google as
+                  | GoogleGenerativeAIProviderMetadata
+                  | undefined;
 
                 verifySafetyRatings(metadata?.safetyRatings ?? []);
               });

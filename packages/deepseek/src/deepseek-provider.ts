@@ -101,7 +101,7 @@ export function createDeepSeek(
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
 
-  return provider as DeepSeekProvider;
+  return provider;
 }
 
 export const deepseek = createDeepSeek();

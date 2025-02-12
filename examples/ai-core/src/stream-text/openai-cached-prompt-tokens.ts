@@ -147,8 +147,8 @@ function createCompletion() {
     providerOptions: {
       openai: { maxCompletionTokens: 100 },
     },
-    onFinish: ({ usage, experimental_providerMetadata }) => {
-      console.log(`metadata:`, experimental_providerMetadata);
+    onFinish: ({ usage, providerMetadata }) => {
+      console.log(`metadata:`, providerMetadata);
     },
   });
 }

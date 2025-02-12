@@ -22,7 +22,7 @@ Let's start with the following example first.
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({});
@@ -95,7 +95,7 @@ purposes
 ```tsx filename='app/page.tsx' highlight="6,20-27,34"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit, isLoading, stop } =
@@ -147,7 +147,7 @@ It can be used to display an error message, disable the submit button, or show a
 ```tsx file="app/page.tsx" highlight="6,18-25,31"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, error, reload } =
@@ -283,7 +283,7 @@ const { messages, ... } = useChat({
 These callbacks can be used to trigger additional actions, such as logging, analytics, or custom UI updates.
 
 ```tsx
-import { Message } from 'ai/react';
+import { Message } from '@ai-sdk/react';
 
 const {
   /* ... */
@@ -333,7 +333,7 @@ This is useful if you want to pass in additional information to your backend tha
 ```tsx filename="app/page.tsx" highlight="18-20"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -442,7 +442,7 @@ export async function POST(req: Request) {
 ```tsx filename="app/page.tsx" highlight="7"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages } = useChat({
@@ -468,7 +468,7 @@ You can configure the `useChat` hook to allow empty submissions by setting the `
 ```tsx filename="app/page.tsx" highlight="18"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -559,7 +559,7 @@ By using `FileList`, you can send multiple files as attachments along with a mes
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 
 export default function Page() {
@@ -641,7 +641,7 @@ You can also send URLs as attachments along with a message. This can be useful f
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useState } from 'react';
 import { Attachment } from '@ai-sdk/ui-utils';
 

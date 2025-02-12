@@ -102,7 +102,7 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
 
-  return provider as GroqProvider;
+  return provider;
 }
 
 /**

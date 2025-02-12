@@ -1,7 +1,7 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
 import { Attachment } from '@ai-sdk/ui-utils';

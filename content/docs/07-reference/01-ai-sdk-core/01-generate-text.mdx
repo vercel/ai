@@ -564,12 +564,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'onStepFinish',
-      type: '(result: onStepFinishResult) => Promise<void> | void',
+      type: '(result: OnStepFinishResult) => Promise<void> | void',
       isOptional: true,
       description: 'Callback that is called when a step is finished.',
       properties: [
         {
-          type: 'onStepFinishResult',
+          type: 'OnStepFinishResult',
           parameters: [
             {
               name: 'stepType',
@@ -676,7 +676,7 @@ To see `generateText` in action, check out [these examples](#examples).
                 'True when there will be a continuation step with a continuation text.',
             },
             {
-              name: 'experimental_providerMetadata',
+              name: 'providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               isOptional: true,
               description:
@@ -703,6 +703,47 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'string | undefined',
       description:
         'The reasoning text of the model (only available for some models).',
+    },
+    {
+      name: 'sources',
+      type: 'Array<Source>',
+      description:
+        'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+      properties: [
+        {
+          type: 'Source',
+          parameters: [
+            {
+              name: 'sourceType',
+              type: "'url'",
+              description:
+                'A URL source. This is return by web search RAG models.',
+            },
+            {
+              name: 'id',
+              type: 'string',
+              description: 'The ID of the source.',
+            },
+            {
+              name: 'url',
+              type: 'string',
+              description: 'The URL of the source.',
+            },
+            {
+              name: 'title',
+              type: 'string',
+              isOptional: true,
+              description: 'The title of the source.',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'LanguageModelV1ProviderMetadata',
+              isOptional: true,
+              description: 'Additional provider metadata for the source.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'toolCalls',
@@ -816,7 +857,7 @@ To see `generateText` in action, check out [these examples](#examples).
         'Warnings from the model provider (e.g. unsupported settings).',
     },
     {
-      name: 'experimental_providerMetadata',
+      name: 'providerMetadata',
       type: 'Record<string,Record<string,JSONValue>> | undefined',
       description:
         'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
@@ -852,6 +893,48 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'string | undefined',
               description:
                 'The reasoning text of the model (only available for some models).',
+            },
+            {
+              name: 'sources',
+              type: 'Array<Source>',
+              description:
+                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+              properties: [
+                {
+                  type: 'Source',
+                  parameters: [
+                    {
+                      name: 'sourceType',
+                      type: "'url'",
+                      description:
+                        'A URL source. This is return by web search RAG models.',
+                    },
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description: 'The ID of the source.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description: 'The URL of the source.',
+                    },
+                    {
+                      name: 'title',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The title of the source.',
+                    },
+                    {
+                      name: 'providerMetadata',
+                      type: 'LanguageModelV1ProviderMetadata',
+                      isOptional: true,
+                      description:
+                        'Additional provider metadata for the source.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'toolCalls',
@@ -972,7 +1055,7 @@ To see `generateText` in action, check out [these examples](#examples).
                 'True when there will be a continuation step with a continuation text.',
             },
             {
-              name: 'experimental_providerMetadata',
+              name: 'providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               isOptional: true,
               description:

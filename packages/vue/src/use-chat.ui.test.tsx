@@ -24,6 +24,65 @@ import TestChatToolInvocationsComponent from './TestChatToolInvocationsComponent
 import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
 import TestChatUrlAttachmentsComponent from './TestChatUrlAttachmentsComponent.vue';
 import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsComponent.vue';
+import TestChatPrepareRequestBodyComponent from './TestChatPrepareRequestBodyComponent.vue';
+
+describe('prepareRequestBody', () => {
+  beforeEach(() => {
+    render(TestChatPrepareRequestBodyComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'should show streamed response',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      },
+      async ({ call }) => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await waitFor(() => {
+          const element = screen.getByTestId('on-body-options');
+          expect(element.textContent?.trim() ?? '').not.toBe('');
+        });
+
+        const value = JSON.parse(
+          screen.getByTestId('on-body-options').textContent ?? '',
+        );
+
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+        expect(value).toStrictEqual({
+          id: expect.any(String),
+          messages: [
+            {
+              role: 'user',
+              content: 'hi',
+              id: expect.any(String),
+              createdAt: expect.any(String),
+              parts: [{ type: 'text', text: 'hi' }],
+            },
+          ],
+          requestData: { 'test-data-key': 'test-data-value' },
+          requestBody: { 'request-body-key': 'request-body-value' },
+        });
+
+        expect(await call(0).getRequestBodyJson()).toBe('test-request-body');
+
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: Hello, world.',
+        );
+      },
+    ),
+  );
+});
 
 describe('data protocol stream', () => {
   beforeEach(() => {

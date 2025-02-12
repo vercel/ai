@@ -5,6 +5,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
@@ -28,6 +29,12 @@ The reasoning text that the model has generated. Can be undefined if the model
 has only generated text.
    */
   readonly reasoning: string | undefined;
+
+  /**
+Sources that have been used as input to generate the response.
+For multi-step generation, the sources are accumulated from all steps.
+   */
+  readonly sources: Source[];
 
   /**
 The generated structured output. It uses the `experimental_output` specification.
@@ -98,6 +105,11 @@ Logprobs for the completion.
 Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
+   */
+  readonly providerMetadata: ProviderMetadata | undefined;
+
+  /**
+@deprecated Use `providerMetadata` instead.
    */
   readonly experimental_providerMetadata: ProviderMetadata | undefined;
 }
