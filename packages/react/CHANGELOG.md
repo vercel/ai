@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 1.1.12
+
+### Patch Changes
+
+- Updated dependencies [166e09e]
+  - @ai-sdk/ui-utils@1.1.12
+
 ## 1.1.11
 
 ### Patch Changes

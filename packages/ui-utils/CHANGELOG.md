@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.1.12
+
+### Patch Changes
+
+- 166e09e: feat (ai/ui): forward source parts to useChat
+
 ## 1.1.11
 
 ### Patch Changes
