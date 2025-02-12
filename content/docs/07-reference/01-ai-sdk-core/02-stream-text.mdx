@@ -2042,6 +2042,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Whether to send the reasoning information in the stream. Defaults to false.',
             },
+            {
+              name: 'sendSources',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the sources information in the stream. Defaults to false.',
+            },
           ],
         },
       ],
@@ -2112,6 +2119,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Whether to send the reasoning information in the stream. Defaults to false.',
             },
+            {
+              name: 'sendSources',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the sources information in the stream. Defaults to false.',
+            },
           ],
         },
       ],
@@ -2170,6 +2184,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Whether to send the reasoning information in the stream. Defaults to false.',
             },
+            {
+              name: 'sendSources',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the sources information in the stream. Defaults to false.',
+            },
           ],
         },
       ],
@@ -2207,12 +2228,12 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'mergeIntoDataStream',
-      type: '(dataStream: DataStreamWriter, options?: { sendUsage?: boolean, sendReasoning?: boolean }) => void',
+      type: '(dataStream: DataStreamWriter, options?: DataStreamOptions) => void',
       description:
         'Merges the result as a data stream into another data stream.',
       properties: [
         {
-          type: 'MergeIntoDataStreamOptions',
+          type: 'DataStreamOptions',
           parameters: [
             {
               name: 'sendUsage',
@@ -2227,6 +2248,13 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Whether to send the reasoning information in the stream. Defaults to false.',
+            },
+            {
+              name: 'sendSources',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the sources information in the stream. Defaults to false.',
             },
           ],
         },
