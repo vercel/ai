@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { modelRegistry } from './model-registry';
 import { LanguageModelV1StreamPart } from 'ai';
 
-// TODO streaming
 export async function POST(req: NextRequest) {
   const body = await req.json(); // TODO validation
   const headers = Object.fromEntries(req.headers.entries());
