@@ -18,7 +18,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
 
-export type DataStreamSendOptions = {
+export type DataStreamOptions = {
   /**
    * Send usage parts to the client.
    * Default to true.
@@ -181,7 +181,7 @@ triggering the `onFinish` callback and the promise resolution.
     options?: {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-    } & DataStreamSendOptions,
+    } & DataStreamOptions,
   ): ReadableStream<Uint8Array>;
 
   /**
@@ -193,7 +193,7 @@ triggering the `onFinish` callback and the promise resolution.
    */
   mergeIntoDataStream(
     dataStream: DataStreamWriter,
-    options?: DataStreamSendOptions,
+    options?: DataStreamOptions,
   ): void;
 
   /**
@@ -213,7 +213,7 @@ triggering the `onFinish` callback and the promise resolution.
     options?: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-    } & DataStreamSendOptions,
+    } & DataStreamOptions,
   ): void;
 
   /**
@@ -244,7 +244,7 @@ triggering the `onFinish` callback and the promise resolution.
     options?: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-    } & DataStreamSendOptions,
+    } & DataStreamOptions,
   ): Response;
 
   /**

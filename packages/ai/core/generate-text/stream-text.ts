@@ -49,7 +49,7 @@ import {
 } from './run-tools-transformation';
 import { ResponseMessage, StepResult } from './step-result';
 import {
-  DataStreamSendOptions,
+  DataStreamOptions,
   StreamTextResult,
   TextStreamPart,
 } from './stream-text-result';
@@ -1665,7 +1665,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendReasoning,
       sendSources,
     }: ResponseInit &
-      DataStreamSendOptions & {
+      DataStreamOptions & {
         data?: StreamData;
         getErrorMessage?: (error: unknown) => string;
       } = {},
@@ -1702,7 +1702,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   // TODO breaking change 5.0: remove pipeThrough(new TextEncoderStream())
   toDataStream(
-    options?: DataStreamSendOptions & {
+    options?: DataStreamOptions & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
     },
@@ -1717,10 +1717,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
   }
 
-  mergeIntoDataStream(
-    writer: DataStreamWriter,
-    options?: DataStreamSendOptions,
-  ) {
+  mergeIntoDataStream(writer: DataStreamWriter, options?: DataStreamOptions) {
     writer.merge(
       this.toDataStreamInternal({
         getErrorMessage: writer.onError,
@@ -1741,7 +1738,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendReasoning,
     sendSources,
   }: ResponseInit &
-    DataStreamSendOptions & {
+    DataStreamOptions & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
     } = {}): Response {
