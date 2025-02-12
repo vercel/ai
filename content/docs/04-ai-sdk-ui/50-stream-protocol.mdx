@@ -119,6 +119,14 @@ Format: `g:string\n`
 
 Example: `g:"I will open the conversation with witty banter."\n`
 
+### Source Part
+
+The source parts are appended to the message as they are received. The source part is available through `source`.
+
+Format: `h:Source\n`
+
+Example: `h:{"sourceType":"url","id":"source-id","url":"https://example.com","title":"Example"}\n`
+
 ### Data Part
 
 The data parts are parsed as JSON and appended to the message as they are received. The data part is available through `data`.
