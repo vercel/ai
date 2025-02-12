@@ -393,20 +393,7 @@ const dataStreamParts = [
   sourcePart,
 ] as const;
 
-type DataStreamParts =
-  | typeof textStreamPart
-  | typeof dataStreamPart
-  | typeof errorStreamPart
-  | typeof messageAnnotationsStreamPart
-  | typeof toolCallStreamPart
-  | typeof toolResultStreamPart
-  | typeof toolCallStreamingStartStreamPart
-  | typeof toolCallDeltaStreamPart
-  | typeof finishMessageStreamPart
-  | typeof finishStepStreamPart
-  | typeof startStepStreamPart
-  | typeof reasoningStreamPart
-  | typeof sourcePart;
+type DataStreamParts = (typeof dataStreamParts)[number];
 
 /**
  * Maps the type of a stream part to its value type.
