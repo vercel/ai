@@ -571,7 +571,7 @@ describe('output = "object"', () => {
         prompt: 'prompt',
       });
 
-      assert.deepStrictEqual(result.experimental_providerMetadata, {
+      expect(result.providerMetadata).toStrictEqual({
         anthropic: {
           cacheCreationInputTokens: 10,
           cacheReadInputTokens: 20,
@@ -1281,5 +1281,43 @@ describe('options.messages', () => {
     });
 
     expect(result.object).toStrictEqual({ content: 'Hello, world!' });
+  });
+
+  it('should support models that use "this" context in supportsUrl', async () => {
+    let supportsUrlCalled = false;
+    class MockLanguageModelWithImageSupport extends MockLanguageModelV1 {
+      readonly supportsImageUrls = false;
+
+      constructor() {
+        super({
+          supportsUrl(url: URL) {
+            supportsUrlCalled = true;
+            // Reference 'this' to verify context
+            return this.modelId === 'mock-model-id';
+          },
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+          }),
+        });
+      }
+    }
+
+    const model = new MockLanguageModelWithImageSupport();
+
+    const result = await generateObject({
+      model,
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'image', image: 'https://example.com/test.jpg' }],
+        },
+      ],
+    });
+
+    expect(result.object).toStrictEqual({ content: 'Hello, world!' });
+    expect(supportsUrlCalled).toBe(true);
   });
 });

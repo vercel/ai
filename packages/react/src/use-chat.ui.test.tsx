@@ -271,6 +271,7 @@ describe('data protocol stream', () => {
               createdAt: expect.any(Date),
               role: 'assistant',
               content: 'Hello, world.',
+              parts: [{ text: 'Hello, world.', type: 'text' }],
             },
             options: {
               finishReason: 'stop',
@@ -300,7 +301,13 @@ describe('data protocol stream', () => {
 
           expect(await call(0).getRequestBodyJson()).toStrictEqual({
             id: screen.getByTestId('id').textContent,
-            messages: [{ role: 'user', content: 'hi' }],
+            messages: [
+              {
+                role: 'user',
+                content: 'hi',
+                parts: [{ text: 'hi', type: 'text' }],
+              },
+            ],
           });
         },
       ),
@@ -453,6 +460,7 @@ describe('text stream', () => {
               createdAt: expect.any(Date),
               role: 'assistant',
               content: 'Hello, world.',
+              parts: [{ text: 'Hello, world.', type: 'text' }],
             },
             options: {
               finishReason: 'unknown',
@@ -620,7 +628,10 @@ describe('form actions (with options)', () => {
         const secondInput = screen.getByTestId('do-input');
         await userEvent.type(secondInput, '{Enter}');
 
-        expect(screen.getByTestId('message-2')).toHaveTextContent(
+        await screen.findByTestId('message-2');
+        expect(screen.getByTestId('message-2')).toHaveTextContent('User:');
+
+        expect(screen.getByTestId('message-3')).toHaveTextContent(
           'AI: How can I help you?',
         );
 
@@ -628,12 +639,12 @@ describe('form actions (with options)', () => {
         await userEvent.type(thirdInput, 'what color is the sky?');
         await userEvent.type(thirdInput, '{Enter}');
 
-        expect(screen.getByTestId('message-3')).toHaveTextContent(
+        expect(screen.getByTestId('message-4')).toHaveTextContent(
           'User: what color is the sky?',
         );
 
-        await screen.findByTestId('message-4');
-        expect(screen.getByTestId('message-4')).toHaveTextContent(
+        await screen.findByTestId('message-5');
+        expect(screen.getByTestId('message-5')).toHaveTextContent(
           'AI: The sky is blue.',
         );
       },
@@ -711,6 +722,7 @@ describe('prepareRequestBody', () => {
               id: expect.any(String),
               experimental_attachments: undefined,
               createdAt: expect.any(Date),
+              parts: [{ type: 'text', text: 'hi' }],
             },
           ],
           requestData: { 'test-data-key': 'test-data-value' },
@@ -729,9 +741,13 @@ describe('prepareRequestBody', () => {
 });
 
 describe('onToolCall', () => {
+  let resolve: () => void;
+  let toolCallPromise: Promise<void>;
+
   const TestComponent = () => {
     const { messages, append } = useChat({
       async onToolCall({ toolCall }) {
+        await toolCallPromise;
         return `test-tool-response: ${toolCall.toolName} ${
           toolCall.toolCallId
         } ${JSON.stringify(toolCall.args)}`;
@@ -742,13 +758,11 @@ describe('onToolCall', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.toolInvocations?.map((toolInvocation, toolIdx) =>
-              'result' in toolInvocation ? (
-                <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
-                  {toolInvocation.result}
-                </div>
-              ) : null,
-            )}
+            {m.toolInvocations?.map((toolInvocation, toolIdx) => (
+              <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
+                {JSON.stringify(toolInvocation)}
+              </div>
+            ))}
           </div>
         ))}
 
@@ -763,6 +777,10 @@ describe('onToolCall', () => {
   };
 
   beforeEach(() => {
+    toolCallPromise = new Promise(resolveArg => {
+      resolve = resolveArg;
+    });
+
     render(<TestComponent />);
   });
 
@@ -790,8 +808,16 @@ describe('onToolCall', () => {
 
         await screen.findByTestId('message-1');
         expect(screen.getByTestId('message-1')).toHaveTextContent(
-          'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
+          `{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}`,
         );
+
+        resolve();
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            `{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-tool-response: test-tool tool-call-0 {\\"testArg\\":\\"test-value\\"}"}`,
+          );
+        });
       },
     ),
   );
@@ -863,7 +889,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool"}',
+            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool"}',
           );
         });
 
@@ -876,7 +902,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
+            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
           );
         });
 
@@ -889,7 +915,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -903,7 +929,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -917,7 +943,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+            '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
           );
         });
       },
@@ -941,7 +967,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -955,7 +981,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+            '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
           );
         });
       },
@@ -983,7 +1009,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -991,7 +1017,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+            '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
           );
         });
       },
@@ -1069,8 +1095,8 @@ describe('maxSteps', () => {
 
           expect(onToolCallInvoked).toBe(true);
 
-          await screen.findByTestId('message-2');
-          expect(screen.getByTestId('message-2')).toHaveTextContent(
+          await screen.findByTestId('message-1');
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
             'final result',
           );
         },
@@ -1298,6 +1324,7 @@ describe('file attachments with data url', () => {
                   url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
                 },
               ],
+              parts: [{ text: 'Message with text attachment', type: 'text' }],
             },
           ],
         });
@@ -1356,6 +1383,7 @@ describe('file attachments with data url', () => {
                   url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
                 },
               ],
+              parts: [{ text: 'Message with image attachment', type: 'text' }],
             },
           ],
         });
@@ -1480,6 +1508,7 @@ describe('file attachments with url', () => {
                   url: 'https://example.com/image.png',
                 },
               ],
+              parts: [{ text: 'Message with image attachment', type: 'text' }],
             },
           ],
         });
@@ -1578,6 +1607,7 @@ describe('attachments with empty submit', () => {
                   url: 'https://example.com/image.png',
                 },
               ],
+              parts: [{ text: '', type: 'text' }],
             },
           ],
         });
@@ -1685,6 +1715,7 @@ describe('should append message with attachments', () => {
                   url: 'https://example.com/image.png',
                 },
               ],
+              parts: [{ text: 'Message with image attachment', type: 'text' }],
             },
           ],
         });
@@ -1764,7 +1795,13 @@ describe('reload', () => {
 
         expect(await call(1).getRequestBodyJson()).toStrictEqual({
           id: expect.any(String),
-          messages: [{ content: 'hi', role: 'user' }],
+          messages: [
+            {
+              content: 'hi',
+              role: 'user',
+              parts: [{ text: 'hi', type: 'text' }],
+            },
+          ],
           data: { 'test-data-key': 'test-data-value' },
           'request-body-key': 'request-body-value',
         });
@@ -1842,6 +1879,7 @@ describe('test sending additional fields during message submission', () => {
               role: 'user',
               content: 'hi',
               annotations: ['this is an annotation'],
+              parts: [{ text: 'hi', type: 'text' }],
             },
           ],
         });

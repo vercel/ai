@@ -5,8 +5,6 @@ description: Learn how to work with multiple providers
 
 # Provider Management
 
-<Note type="warning">Provider management is an experimental feature.</Note>
-
 When you work with multiple providers and models, it is often desirable to manage them in a central place
 and access the models through simple string ids.
 
@@ -18,7 +16,7 @@ The provider registry lets you mix **multiple providers** and access them throug
 
 ## Custom Providers
 
-You can create a [custom provider](/docs/reference/ai-sdk-core/custom-provider) using `experimental_customProvider`.
+You can create a [custom provider](/docs/reference/ai-sdk-core/custom-provider) using `customProvider`.
 
 ### Example: custom model settings
 
@@ -27,7 +25,7 @@ with pre-configured settings.
 
 ```ts
 import { openai as originalOpenAI } from '@ai-sdk/openai';
-import { experimental_customProvider as customProvider } from 'ai';
+import { customProvider } from 'ai';
 
 // custom provider with different model settings:
 export const openai = customProvider({
@@ -49,7 +47,7 @@ You can also provide model name aliases, so you can update the model version in 
 
 ```ts
 import { anthropic as originalAnthropic } from '@ai-sdk/anthropic';
-import { experimental_customProvider as customProvider } from 'ai';
+import { customProvider } from 'ai';
 
 // custom provider with alias names:
 export const anthropic = customProvider({
@@ -69,7 +67,7 @@ You can limit the available models in the system, even if you have multiple prov
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
-import { experimental_customProvider as customProvider } from 'ai';
+import { customProvider } from 'ai';
 
 export const myProvider = customProvider({
   languageModels: {
@@ -86,6 +84,8 @@ export const myProvider = customProvider({
 ```
 
 ## Provider Registry
+
+<Note type="warning">The provider registry is an experimental feature.</Note>
 
 You can create a [provider registry](/docs/reference/ai-sdk-core/provider-registry) with multiple providers and models using `experimental_createProviderRegistry`.
 
@@ -134,5 +134,20 @@ import { registry } from './registry';
 const { embedding } = await embed({
   model: registry.textEmbeddingModel('openai:text-embedding-3-small'),
   value: 'sunny day at the beach',
+});
+```
+
+### Example: Use image models
+
+You can access image models by using the `imageModel` method on the registry.
+The provider id will become the prefix of the model id: `providerId:modelId`.
+
+```ts highlight={"5"}
+import { generateImage } from 'ai';
+import { registry } from './registry';
+
+const { image } = await generateImage({
+  model: registry.imageModel('openai:dall-e-3'),
+  prompt: 'A beautiful sunset over a calm ocean',
 });
 ```

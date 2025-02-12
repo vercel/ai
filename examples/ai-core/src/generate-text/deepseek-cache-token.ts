@@ -31,7 +31,7 @@ async function main() {
 
   console.log(result.text);
   console.log(result.usage);
-  console.log(result.experimental_providerMetadata);
+  console.log(result.providerMetadata);
   // "prompt_cache_hit_tokens":1856,"prompt_cache_miss_tokens":5}
 }
 

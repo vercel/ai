@@ -43,9 +43,11 @@ using [multi-step calls](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-cal
 
 Schemas are used to define the parameters for tools and to validate the [tool calls](/docs/ai-sdk-core/tools-and-tool-calling).
 
-The AI SDK supports both raw JSON schemas (using the `jsonSchema` function) and [Zod](https://zod.dev/) schemas.
-[Zod](https://zod.dev/) is the most popular JavaScript schema validation library.
-You can install Zod with:
+The AI SDK supports both raw JSON schemas (using the [`jsonSchema` function](/docs/reference/ai-sdk-core/json-schema))
+and [Zod](https://zod.dev/) schemas (either directly or using the [`zodSchema` function](/docs/reference/ai-sdk-core/zod-schema)).
+
+[Zod](https://zod.dev/) is a popular TypeScript schema validation library.
+You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
@@ -93,6 +95,7 @@ There are several providers that offer pre-built tools as **toolkits** that you 
 - **[browserbase](https://github.com/browserbase/js-sdk?tab=readme-ov-file#vercel-ai-sdk-integration)** - Browser tool that runs a headless browser
 - **[Stripe agent tools](https://docs.stripe.com/agents)** - Tools for interacting with Stripe.
 - **[Toolhouse](https://docs.toolhouse.ai/toolhouse/using-vercel-ai)** - AI function-calling in 3 lines of code for over 25 different actions.
+- **[Agent Tools](https://ai-sdk-agents.vercel.app/?item=introduction)** - A collection of tools for agents.
 
 <Note>
   Do you have open source tools or tool libraries that are compatible with the

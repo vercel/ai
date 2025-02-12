@@ -34,8 +34,6 @@ async function main() {
       tools,
       parameterSchema,
       error,
-      messages,
-      system,
     }) => {
       if (NoSuchToolError.isInstance(error)) {
         return null; // do not attempt to fix invalid tool names

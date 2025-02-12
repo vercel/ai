@@ -422,6 +422,8 @@ You can use different strategies to repair the tool call:
 - Send the messages, system prompt, and tool schema to a stronger model to generate the arguments.
 - Provide more specific repair instructions based on which tool was called.
 
+### Example: Use a model with structured outputs for repair
+
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
@@ -431,15 +433,11 @@ const result = await generateText({
   tools,
   prompt,
 
-  // example approach: use a model with structured outputs for repair.
-  // (you can use other strategies as well)
   experimental_repairToolCall: async ({
     toolCall,
     tools,
     parameterSchema,
     error,
-    messages,
-    system,
   }) => {
     if (NoSuchToolError.isInstance(error)) {
       return null; // do not attempt to fix invalid tool names
@@ -461,6 +459,71 @@ const result = await generateText({
     });
 
     return { ...toolCall, args: JSON.stringify(repairedArgs) };
+  },
+});
+```
+
+### Example: Use the re-ask strategy for repair
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
+
+const result = await generateText({
+  model,
+  tools,
+  prompt,
+
+  experimental_repairToolCall: async ({
+    toolCall,
+    tools,
+    error,
+    messages,
+    system,
+  }) => {
+    const result = await generateText({
+      model,
+      system,
+      messages: [
+        ...messages,
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+              args: toolCall.args,
+            },
+          ],
+        },
+        {
+          role: 'tool' as const,
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+              result: error.message,
+            },
+          ],
+        },
+      ],
+      tools,
+    });
+
+    const newToolCall = result.toolCalls.find(
+      newToolCall => newToolCall.toolName === toolCall.toolName,
+    );
+
+    return newToolCall != null
+      ? {
+          toolCallType: 'function' as const,
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          args: JSON.stringify(newToolCall.args),
+        }
+      : null;
   },
 });
 ```

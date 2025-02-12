@@ -1,4 +1,9 @@
-import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  EmbeddingModelV1,
+  ProviderV1,
+  ImageModelV1,
+} from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
@@ -21,6 +26,11 @@ import {
   DeepInfraCompletionModelId,
   DeepInfraCompletionSettings,
 } from './deepinfra-completion-settings';
+import {
+  DeepInfraImageModelId,
+  DeepInfraImageSettings,
+} from './deepinfra-image-settings';
+import { DeepInfraImageModel } from './deepinfra-image-model';
 
 export interface DeepInfraProviderSettings {
   /**
@@ -42,7 +52,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface DeepInfraProvider {
+export interface DeepInfraProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
 */
@@ -55,6 +65,30 @@ Creates a model for text generation.
 Creates a chat model for text generation.
 */
   chatModel(
+    modelId: DeepInfraChatModelId,
+    settings?: DeepInfraChatSettings,
+  ): LanguageModelV1;
+
+  /**
+Creates a model for image generation.
+  */
+  image(
+    modelId: DeepInfraImageModelId,
+    settings?: DeepInfraImageSettings,
+  ): ImageModelV1;
+
+  /**
+Creates a model for image generation.
+  */
+  imageModel(
+    modelId: DeepInfraImageModelId,
+    settings?: DeepInfraImageSettings,
+  ): ImageModelV1;
+
+  /**
+Creates a chat model for text generation.
+*/
+  languageModel(
     modelId: DeepInfraChatModelId,
     settings?: DeepInfraChatSettings,
   ): LanguageModelV1;
@@ -80,7 +114,7 @@ export function createDeepInfra(
   options: DeepInfraProviderSettings = {},
 ): DeepInfraProvider {
   const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.deepinfra.com/v1/openai',
+    options.baseURL ?? 'https://api.deepinfra.com/v1',
   );
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
@@ -100,7 +134,7 @@ export function createDeepInfra(
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `deepinfra.${modelType}`,
-    url: ({ path }) => `${baseURL}${path}`,
+    url: ({ path }) => `${baseURL}/openai${path}`,
     headers: getHeaders,
     fetch: options.fetch,
   });
@@ -135,6 +169,17 @@ export function createDeepInfra(
       getCommonModelConfig('embedding'),
     );
 
+  const createImageModel = (
+    modelId: DeepInfraImageModelId,
+    settings: DeepInfraImageSettings = {},
+  ) =>
+    new DeepInfraImageModel(modelId, settings, {
+      ...getCommonModelConfig('image'),
+      baseURL: baseURL
+        ? `${baseURL}/inference`
+        : 'https://api.deepinfra.com/v1/inference',
+    });
+
   const provider = (
     modelId: DeepInfraChatModelId,
     settings?: DeepInfraChatSettings,
@@ -142,9 +187,12 @@ export function createDeepInfra(
 
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
+  provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
 
-  return provider as DeepInfraProvider;
+  return provider;
 }
 
 export const deepinfra = createDeepInfra();

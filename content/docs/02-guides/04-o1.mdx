@@ -81,6 +81,10 @@ const { text } = await generateText({
 
 <Note>o1 only supports streaming in a simulated capacity.</Note>
 
+<Note>
+  System messages are automatically converted to OpenAI developer messages.
+</Note>
+
 ### Refining Reasoning Effort
 
 You can control the amount of reasoning effort expended by o1 through the `reasoningEffort` parameter.
@@ -202,7 +206,7 @@ export async function POST(req: Request) {
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit, error } = useChat();

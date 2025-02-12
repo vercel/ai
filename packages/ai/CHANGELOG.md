@@ -1,5 +1,161 @@
 # ai
 
+## 4.1.34
+
+### Patch Changes
+
+- dc49119: chore: deprecate ai/react
+
+## 4.1.33
+
+### Patch Changes
+
+- 74f0f0e: chore (ai/core): move providerMetadata to stable
+
+## 4.1.32
+
+### Patch Changes
+
+- c128ca5: fix (ai/core): fix streamText onFinish messages with structured output
+
+## 4.1.31
+
+### Patch Changes
+
+- b30b1cc: feat (ai/core): add onError callback to streamObject
+
+## 4.1.30
+
+### Patch Changes
+
+- 4ee5b6f: fix (core): remove invalid providerOptions from streamObject onFinish callback
+
+## 4.1.29
+
+### Patch Changes
+
+- 605de49: feat (ai/core): export callback types
+
+## 4.1.28
+
+### Patch Changes
+
+- 6eb7fc4: feat (ai/core): url source support
+
+## 4.1.27
+
+### Patch Changes
+
+- Updated dependencies [318b351]
+  - @ai-sdk/ui-utils@1.1.11
+  - @ai-sdk/react@1.1.11
+
+## 4.1.26
+
+### Patch Changes
+
+- 34983d4: fix (ai/core): bind supportsUrl when creating wrapper
+
+## 4.1.25
+
+### Patch Changes
+
+- 5a21310: fix (ai/core): use ai types on custom provider to prevent ts error
+
+## 4.1.24
+
+### Patch Changes
+
+- 38142b8: feat (ai/core): introduce streamText consumeStream
+
+## 4.1.23
+
+### Patch Changes
+
+- b08f7c1: fix (ai/core): suppress errors in textStream
+
+## 4.1.22
+
+### Patch Changes
+
+- 2bec72a: feat (ai/core): add onError callback to streamText
+
+## 4.1.21
+
+### Patch Changes
+
+- d387989: feat (ai/core): re-export zodSchema
+
+## 4.1.20
+
+### Patch Changes
+
+- bcc61d4: feat (ui): introduce message parts for useChat
+- Updated dependencies [bcc61d4]
+  - @ai-sdk/ui-utils@1.1.10
+  - @ai-sdk/react@1.1.10
+
+## 4.1.19
+
+### Patch Changes
+
+- Updated dependencies [6b8cc14]
+  - @ai-sdk/ui-utils@1.1.9
+  - @ai-sdk/react@1.1.9
+
+## 4.1.18
+
+### Patch Changes
+
+- 6a1acfe: fix (ai/core): revert '@internal' tag on function definitions due to build impacts
+
+## 4.1.17
+
+### Patch Changes
+
+- 5af8cdb: fix (ai/core): support this reference in model.supportsUrl implementations
+
+## 4.1.16
+
+### Patch Changes
+
+- 7e299a4: feat (ai/core): wrapLanguageModel can apply multiple middlewares
+
+## 4.1.15
+
+### Patch Changes
+
+- d89c3b9: feat (provider): add image model support to provider specification
+- d89c3b9: feat (core): type ahead for model ids with custom provider
+- 08f54fc: chore (ai/core): move custom provider to stable
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+  - @ai-sdk/ui-utils@1.1.8
+  - @ai-sdk/react@1.1.8
+
+## 4.1.14
+
+### Patch Changes
+
+- ca89615: fix (ai/core): only append assistant response at the end when there is a final user message
+
+## 4.1.13
+
+### Patch Changes
+
+- 999085e: feat (ai/core): add write function to DataStreamWriter
+
+## 4.1.12
+
+### Patch Changes
+
+- 0d2d9bf: fix (ui): single assistant message with multiple tool steps
+- Updated dependencies [0d2d9bf]
+- Updated dependencies [0d2d9bf]
+  - @ai-sdk/react@1.1.7
+  - @ai-sdk/ui-utils@1.1.7
+
 ## 4.1.11
 
 ### Patch Changes

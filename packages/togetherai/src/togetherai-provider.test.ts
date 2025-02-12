@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { createTogetherAI } from './togetherai-provider';
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
-import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
+import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
+import { loadApiKey } from '@ai-sdk/provider-utils';
+import { TogetherAIImageModel } from './togetherai-image-model';
+import { createTogetherAI } from './togetherai-provider';
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 
 // Add type assertion for the mocked class
 const OpenAICompatibleChatLanguageModelMock =
@@ -22,6 +22,10 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
 vi.mock('@ai-sdk/provider-utils', () => ({
   loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
   withoutTrailingSlash: vi.fn(url => url),
+}));
+
+vi.mock('./togetherai-image-model', () => ({
+  TogetherAIImageModel: vi.fn(),
 }));
 
 describe('TogetherAIProvider', () => {
@@ -56,7 +60,7 @@ describe('TogetherAIProvider', () => {
       expect(loadApiKey).toHaveBeenCalledWith({
         apiKey: undefined,
         environmentVariableName: 'TOGETHER_AI_API_KEY',
-        description: "TogetherAI's API key",
+        description: 'TogetherAI',
       });
     });
 
@@ -77,7 +81,7 @@ describe('TogetherAIProvider', () => {
       expect(loadApiKey).toHaveBeenCalledWith({
         apiKey: 'custom-key',
         environmentVariableName: 'TOGETHER_AI_API_KEY',
-        description: "TogetherAI's API key",
+        description: 'TogetherAI',
       });
     });
 
@@ -124,6 +128,43 @@ describe('TogetherAIProvider', () => {
       const model = provider.textEmbeddingModel(modelId, settings);
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
+    });
+  });
+
+  describe('image', () => {
+    it('should construct an image model with correct configuration', () => {
+      const provider = createTogetherAI();
+      const modelId = 'stabilityai/stable-diffusion-xl';
+      const settings = { maxImagesPerCall: 4 };
+
+      const model = provider.image(modelId, settings);
+
+      expect(TogetherAIImageModel).toHaveBeenCalledWith(
+        modelId,
+        settings,
+        expect.objectContaining({
+          provider: 'togetherai.image',
+          baseURL: 'https://api.together.xyz/v1/',
+        }),
+      );
+      expect(model).toBeInstanceOf(TogetherAIImageModel);
+    });
+
+    it('should pass custom baseURL to image model', () => {
+      const provider = createTogetherAI({
+        baseURL: 'https://custom.url/',
+      });
+      const modelId = 'stabilityai/stable-diffusion-xl';
+
+      provider.image(modelId);
+
+      expect(TogetherAIImageModel).toHaveBeenCalledWith(
+        modelId,
+        expect.any(Object),
+        expect.objectContaining({
+          baseURL: 'https://custom.url/',
+        }),
+      );
     });
   });
 });

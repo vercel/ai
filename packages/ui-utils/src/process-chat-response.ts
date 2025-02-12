@@ -1,12 +1,20 @@
-import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
-import { parsePartialJson } from './parse-partial-json';
-import { processDataStream } from './process-data-stream';
-import type { JSONValue, Message, UseChatOptions } from './types';
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import {
   calculateLanguageModelUsage,
   LanguageModelUsage,
 } from './duplicated/usage';
+import { parsePartialJson } from './parse-partial-json';
+import { processDataStream } from './process-data-stream';
+import type {
+  JSONValue,
+  ReasoningUIPart,
+  TextUIPart,
+  ToolInvocation,
+  ToolInvocationUIPart,
+  UIMessage,
+  UseChatOptions,
+} from './types';
 
 export async function processChatResponse({
   stream,
@@ -15,34 +23,77 @@ export async function processChatResponse({
   onFinish,
   generateId = generateIdFunction,
   getCurrentDate = () => new Date(),
+  lastMessage,
 }: {
   stream: ReadableStream<Uint8Array>;
-  update: (newMessages: Message[], data: JSONValue[] | undefined) => void;
+  update: (options: {
+    message: UIMessage;
+    data: JSONValue[] | undefined;
+    replaceLastMessage: boolean;
+  }) => void;
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (options: {
-    message: Message | undefined;
+    message: UIMessage | undefined;
     finishReason: LanguageModelV1FinishReason;
     usage: LanguageModelUsage;
   }) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
+  lastMessage: UIMessage | undefined;
 }) {
-  const createdAt = getCurrentDate();
+  const replaceLastMessage = lastMessage?.role === 'assistant';
+  let step = replaceLastMessage
+    ? 1 +
+      // find max step in existing tool invocations:
+      (lastMessage.toolInvocations?.reduce((max, toolInvocation) => {
+        return Math.max(max, toolInvocation.step ?? 0);
+      }, 0) ?? 0)
+    : 0;
 
-  let currentMessage: Message | undefined = undefined;
-  let createNewMessage: boolean = true;
-  let newMessageId: string | undefined = undefined;
-  const previousMessages: Message[] = [];
+  const message: UIMessage = replaceLastMessage
+    ? structuredClone(lastMessage)
+    : {
+        id: generateId(),
+        createdAt: getCurrentDate(),
+        role: 'assistant',
+        content: '',
+        parts: [],
+      };
+
+  let currentTextPart: TextUIPart | undefined = undefined;
+  let currentReasoningPart: ReasoningUIPart | undefined = undefined;
+
+  function updateToolInvocationPart(
+    toolCallId: string,
+    invocation: ToolInvocation,
+  ) {
+    const part = message.parts.find(
+      part =>
+        part.type === 'tool-invocation' &&
+        part.toolInvocation.toolCallId === toolCallId,
+    ) as ToolInvocationUIPart | undefined;
+
+    if (part != null) {
+      part.toolInvocation = invocation;
+    } else {
+      message.parts.push({
+        type: 'tool-invocation',
+        toolInvocation: invocation,
+      });
+    }
+  }
 
   const data: JSONValue[] = [];
 
   // keep list of current message annotations for message
-  let messageAnnotations: JSONValue[] | undefined = undefined;
+  let messageAnnotations: JSONValue[] | undefined = replaceLastMessage
+    ? lastMessage?.annotations
+    : undefined;
 
   // keep track of partial tool calls
   const partialToolCalls: Record<
     string,
-    { text: string; index: number; toolName: string }
+    { text: string; step: number; index: number; toolName: string }
   > = {};
 
   let usage: LanguageModelUsage = {
@@ -56,135 +107,131 @@ export async function processChatResponse({
     // make a copy of the data array to ensure UI is updated (SWR)
     const copiedData = [...data];
 
-    // if there is not current message, update still (data might have changed)
-    if (currentMessage == null) {
-      update(previousMessages, copiedData);
-      return;
-    }
-
     // keeps the currentMessage up to date with the latest annotations,
     // even if annotations preceded the message creation
     if (messageAnnotations?.length) {
-      currentMessage.annotations = messageAnnotations;
+      message.annotations = messageAnnotations;
     }
 
     const copiedMessage = {
       // deep copy the message to ensure that deep changes (msg attachments) are updated
       // with SolidJS. SolidJS uses referential integration of sub-objects to detect changes.
-      ...JSON.parse(JSON.stringify(currentMessage)),
+      ...structuredClone(message),
       // add a revision id to ensure that the message is updated with SWR. SWR uses a
       // hashing approach by default to detect changes, but it only works for shallow
       // changes. This is why we need to add a revision id to ensure that the message
       // is updated with SWR (without it, the changes get stuck in SWR and are not
       // forwarded to rendering):
       revisionId: generateId(),
-      // Fill in createdAt to retain Date object (lost in JSON.parse):
-      createdAt: currentMessage.createdAt,
-    } as Message;
+    } as UIMessage;
 
-    update([...previousMessages, copiedMessage], copiedData);
-  }
-
-  // switch to the next prefix map once we start receiving
-  // content of the next message. Stream data annotations
-  // are associated with the previous message until then to
-  // support sending them in onFinish and onStepFinish:
-  function getMessage(): Message {
-    if (createNewMessage || currentMessage == null) {
-      if (currentMessage != null) {
-        previousMessages.push(currentMessage);
-      }
-
-      currentMessage = {
-        id: newMessageId ?? generateId(),
-        role: 'assistant',
-        content: '',
-        createdAt,
-      };
-
-      createNewMessage = false;
-      newMessageId = undefined;
-    }
-
-    return currentMessage;
+    update({
+      message: copiedMessage,
+      data: copiedData,
+      replaceLastMessage,
+    });
   }
 
   await processDataStream({
     stream,
     onTextPart(value) {
-      const activeMessage = getMessage();
-      currentMessage = {
-        ...activeMessage,
-        content: activeMessage.content + value,
-      };
+      if (currentTextPart == null) {
+        currentTextPart = {
+          type: 'text',
+          text: value,
+        };
+        message.parts.push(currentTextPart);
+      } else {
+        currentTextPart.text += value;
+      }
+
+      message.content += value;
       execUpdate();
     },
     onReasoningPart(value) {
-      const activeMessage = getMessage();
-      currentMessage = {
-        ...activeMessage,
-        reasoning: (activeMessage.reasoning ?? '') + value,
-      };
+      if (currentReasoningPart == null) {
+        currentReasoningPart = {
+          type: 'reasoning',
+          reasoning: value,
+        };
+        message.parts.push(currentReasoningPart);
+      } else {
+        currentReasoningPart.reasoning += value;
+      }
+
+      message.reasoning = (message.reasoning ?? '') + value;
       execUpdate();
     },
     onToolCallStreamingStartPart(value) {
-      const activeMessage = getMessage();
-
-      if (activeMessage.toolInvocations == null) {
-        activeMessage.toolInvocations = [];
+      if (message.toolInvocations == null) {
+        message.toolInvocations = [];
       }
 
       // add the partial tool call to the map
       partialToolCalls[value.toolCallId] = {
         text: '',
+        step,
         toolName: value.toolName,
-        index: activeMessage.toolInvocations.length,
+        index: message.toolInvocations.length,
       };
 
-      activeMessage.toolInvocations.push({
+      const invocation = {
         state: 'partial-call',
+        step,
         toolCallId: value.toolCallId,
         toolName: value.toolName,
         args: undefined,
-      });
+      } as const;
+
+      message.toolInvocations.push(invocation);
+
+      updateToolInvocationPart(value.toolCallId, invocation);
 
       execUpdate();
     },
     onToolCallDeltaPart(value) {
-      const activeMessage = getMessage();
       const partialToolCall = partialToolCalls[value.toolCallId];
 
       partialToolCall.text += value.argsTextDelta;
 
       const { value: partialArgs } = parsePartialJson(partialToolCall.text);
 
-      activeMessage.toolInvocations![partialToolCall.index] = {
+      const invocation = {
         state: 'partial-call',
+        step: partialToolCall.step,
         toolCallId: value.toolCallId,
         toolName: partialToolCall.toolName,
         args: partialArgs,
-      };
+      } as const;
+
+      message.toolInvocations![partialToolCall.index] = invocation;
+
+      updateToolInvocationPart(value.toolCallId, invocation);
 
       execUpdate();
     },
     async onToolCallPart(value) {
-      const activeMessage = getMessage();
+      const invocation = {
+        state: 'call',
+        step,
+        ...value,
+      } as const;
 
       if (partialToolCalls[value.toolCallId] != null) {
         // change the partial tool call to a full tool call
-        activeMessage.toolInvocations![
-          partialToolCalls[value.toolCallId].index
-        ] = { state: 'call', ...value };
+        message.toolInvocations![partialToolCalls[value.toolCallId].index] =
+          invocation;
       } else {
-        if (activeMessage.toolInvocations == null) {
-          activeMessage.toolInvocations = [];
+        if (message.toolInvocations == null) {
+          message.toolInvocations = [];
         }
 
-        activeMessage.toolInvocations.push({
-          state: 'call',
-          ...value,
-        });
+        message.toolInvocations.push(invocation);
       }
+
+      updateToolInvocationPart(value.toolCallId, invocation);
+
+      execUpdate();
 
       // invoke the onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
@@ -192,18 +239,25 @@ export async function processChatResponse({
       if (onToolCall) {
         const result = await onToolCall({ toolCall: value });
         if (result != null) {
+          const invocation = {
+            state: 'result',
+            step,
+            ...value,
+            result,
+          } as const;
+
           // store the result in the tool invocation
-          activeMessage.toolInvocations![
-            activeMessage.toolInvocations!.length - 1
-          ] = { state: 'result', ...value, result };
+          message.toolInvocations![message.toolInvocations!.length - 1] =
+            invocation;
+
+          updateToolInvocationPart(value.toolCallId, invocation);
+
+          execUpdate();
         }
       }
-
-      execUpdate();
     },
     onToolResultPart(value) {
-      const activeMessage = getMessage();
-      const toolInvocations = activeMessage.toolInvocations;
+      const toolInvocations = message.toolInvocations;
 
       if (toolInvocations == null) {
         throw new Error('tool_result must be preceded by a tool_call');
@@ -221,11 +275,15 @@ export async function processChatResponse({
         );
       }
 
-      toolInvocations[toolInvocationIndex] = {
+      const invocation = {
         ...toolInvocations[toolInvocationIndex],
         state: 'result' as const,
         ...value,
-      };
+      } as const;
+
+      toolInvocations[toolInvocationIndex] = invocation;
+
+      updateToolInvocationPart(value.toolCallId, invocation);
 
       execUpdate();
     },
@@ -243,10 +301,17 @@ export async function processChatResponse({
       execUpdate();
     },
     onFinishStepPart(value) {
-      createNewMessage = !value.isContinued;
+      step += 1;
+
+      // reset the current text and reasoning parts
+      currentTextPart = value.isContinued ? currentTextPart : undefined;
+      currentReasoningPart = undefined;
     },
     onStartStepPart(value) {
-      newMessageId = value.messageId;
+      // keep message id stable when we are updating an existing message:
+      if (!replaceLastMessage) {
+        message.id = value.messageId;
+      }
     },
     onFinishMessagePart(value) {
       finishReason = value.finishReason;
@@ -259,5 +324,5 @@ export async function processChatResponse({
     },
   });
 
-  onFinish?.({ message: currentMessage, finishReason, usage });
+  onFinish?.({ message, finishReason, usage });
 }

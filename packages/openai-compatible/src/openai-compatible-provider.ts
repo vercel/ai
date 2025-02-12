@@ -3,17 +3,13 @@ import {
   LanguageModelV1,
   ProviderV1,
 } from '@ai-sdk/provider';
-import {
-  FetchFunction,
-  loadApiKey,
-  withoutTrailingSlash,
-} from '@ai-sdk/provider-utils';
+import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 import { OpenAICompatibleChatSettings } from './openai-compatible-chat-settings';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
 import { OpenAICompatibleCompletionSettings } from './openai-compatible-completion-settings';
-import { OpenAICompatibleEmbeddingSettings } from './openai-compatible-embedding-settings';
 import { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
+import { OpenAICompatibleEmbeddingSettings } from './openai-compatible-embedding-settings';
 
 export interface OpenAICompatibleProvider<
   CHAT_MODEL_IDS extends string = string,
@@ -50,7 +46,12 @@ export interface OpenAICompatibleProviderSettings {
   /**
 Base URL for the API calls.
    */
-  baseURL?: string;
+  baseURL: string;
+
+  /**
+Provider name.
+   */
+  name: string;
 
   /**
 API key for authenticating requests. If specified, adds an `Authorization`
@@ -75,11 +76,6 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
-
-  /**
-Provider name.
-   */
-  name?: string;
 }
 
 /**
@@ -96,14 +92,7 @@ export function createOpenAICompatible<
   COMPLETION_MODEL_IDS,
   EMBEDDING_MODEL_IDS
 > {
-  if (!options.baseURL) {
-    throw new Error('Base URL is required');
-  }
   const baseURL = withoutTrailingSlash(options.baseURL);
-
-  if (!options.name) {
-    throw new Error('Provider name is required');
-  }
   const providerName = options.name;
 
   interface CommonModelConfig {

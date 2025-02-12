@@ -28,14 +28,14 @@ Some language models support calling tools in parallel. This is particularly use
 
 ## Client
 
-Let's create a React component that imports the `useChat` hook from the `ai/react` module. The `useChat` hook will call the `/api/chat` endpoint when the user sends a message. The endpoint will generate the assistant's response based on the conversation history and stream it to the client. If the assistant responds with a tool call, the hook will automatically display them as well.
+Let's create a React component that imports the `useChat` hook from the `@ai-sdk/react` module. The `useChat` hook will call the `/api/chat` endpoint when the user sends a message. The endpoint will generate the assistant's response based on the conversation history and stream it to the client. If the assistant responds with a tool call, the hook will automatically display them as well.
 
 You will use the `maxSteps` to specify the maximum number of steps that can made before the model or the user responds with a text message. In this example, you will set it to `2` to allow for another call with the tool result to happen.
 
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, input, setInput, append } = useChat({

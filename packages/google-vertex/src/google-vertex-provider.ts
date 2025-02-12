@@ -22,6 +22,7 @@ import {
   GoogleVertexImageSettings,
 } from './google-vertex-image-settings';
 import { GoogleVertexConfig } from './google-vertex-config';
+import { isSupportedFileUrl } from './google-vertex-supported-file-url';
 
 export interface GoogleVertexProvider extends ProviderV1 {
   /**
@@ -41,6 +42,14 @@ Creates a model for text generation.
    * Creates a model for image generation.
    */
   image(
+    modelId: GoogleVertexImageModelId,
+    settings?: GoogleVertexImageSettings,
+  ): ImageModelV1;
+
+  /**
+Creates a model for image generation.
+   */
+  imageModel(
     modelId: GoogleVertexImageModelId,
     settings?: GoogleVertexImageSettings,
   ): ImageModelV1;
@@ -128,6 +137,7 @@ export function createVertex(
     return new GoogleGenerativeAILanguageModel(modelId, settings, {
       ...createConfig('chat'),
       generateId: options.generateId ?? generateId,
+      isSupportedUrl: isSupportedFileUrl,
     });
   };
 
@@ -162,6 +172,7 @@ export function createVertex(
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
-  return provider as GoogleVertexProvider;
+  return provider;
 }

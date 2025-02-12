@@ -8,7 +8,7 @@ tags: ['next', 'chat']
 
 <Note type="warning">
   `experimental_prepareRequestBody` is an experimental feature and only
-  available in React.
+  available in React, Solid and Vue.
 </Note>
 
 By default, `useChat` sends all messages as well as information from the request to the server.
@@ -32,7 +32,7 @@ This can be useful if you want to reduce the amount of data sent to the server.
 ```typescript filename='app/page.tsx' highlight="7-10"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({

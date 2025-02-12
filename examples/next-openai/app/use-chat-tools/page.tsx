@@ -1,7 +1,6 @@
 'use client';
 
-import { ToolInvocation } from 'ai';
-import { Message, useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
@@ -11,6 +10,9 @@ export default function Chat() {
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {
+        // artificial 2 second delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         if (toolCall.toolName === 'getLocation') {
           const cities = [
             'New York',
@@ -25,74 +27,108 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages?.map((m: Message) => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          <strong>{`${m.role}: `}</strong>
-          {m.content}
-          {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
-            const toolCallId = toolInvocation.toolCallId;
+      {messages?.map(message => (
+        <div key={message.id} className="whitespace-pre-wrap">
+          <strong>{`${message.role}: `}</strong>
+          {message.parts.map(part => {
+            switch (part.type) {
+              case 'text':
+                return part.text;
+              case 'tool-invocation': {
+                const callId = part.toolInvocation.toolCallId;
 
-            // example of pre-rendering streaming tool calls
-            if (toolInvocation.state === 'partial-call') {
-              return (
-                <pre key={toolCallId}>
-                  {JSON.stringify(toolInvocation, null, 2)}
-                </pre>
-              );
+                switch (part.toolInvocation.toolName) {
+                  case 'askForConfirmation': {
+                    switch (part.toolInvocation.state) {
+                      case 'call':
+                        return (
+                          <div key={callId} className="text-gray-500">
+                            {part.toolInvocation.args.message}
+                            <div className="flex gap-2">
+                              <button
+                                className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
+                                onClick={() =>
+                                  addToolResult({
+                                    toolCallId: callId,
+                                    result: 'Yes, confirmed.',
+                                  })
+                                }
+                              >
+                                Yes
+                              </button>
+                              <button
+                                className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
+                                onClick={() =>
+                                  addToolResult({
+                                    toolCallId: callId,
+                                    result: 'No, denied',
+                                  })
+                                }
+                              >
+                                No
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      case 'result':
+                        return (
+                          <div key={callId} className="text-gray-500">
+                            Location access allowed:{' '}
+                            {part.toolInvocation.result}
+                          </div>
+                        );
+                    }
+                    break;
+                  }
+
+                  case 'getLocation': {
+                    switch (part.toolInvocation.state) {
+                      case 'call':
+                        return (
+                          <div key={callId} className="text-gray-500">
+                            Getting location...
+                          </div>
+                        );
+                      case 'result':
+                        return (
+                          <div key={callId} className="text-gray-500">
+                            Location: {part.toolInvocation.result}
+                          </div>
+                        );
+                    }
+                    break;
+                  }
+
+                  case 'getWeatherInformation': {
+                    switch (part.toolInvocation.state) {
+                      // example of pre-rendering streaming tool calls:
+                      case 'partial-call':
+                        return (
+                          <pre key={callId}>
+                            {JSON.stringify(part.toolInvocation, null, 2)}
+                          </pre>
+                        );
+                      case 'call':
+                        return (
+                          <div key={callId} className="text-gray-500">
+                            Getting weather information for{' '}
+                            {part.toolInvocation.args.city}...
+                          </div>
+                        );
+                      case 'result':
+                        return (
+                          <div key={callId} className="text-gray-500">
+                            Weather in {part.toolInvocation.args.city}:{' '}
+                            {part.toolInvocation.result}
+                          </div>
+                        );
+                    }
+                    break;
+                  }
+                }
+              }
             }
-
-            // render confirmation tool (client-side tool with user interaction)
-            if (toolInvocation.toolName === 'askForConfirmation') {
-              return (
-                <div key={toolCallId} className="text-gray-500">
-                  {toolInvocation.args.message}
-                  <div className="flex gap-2">
-                    {'result' in toolInvocation ? (
-                      <b>{toolInvocation.result}</b>
-                    ) : (
-                      <>
-                        <button
-                          className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
-                          onClick={() =>
-                            addToolResult({
-                              toolCallId,
-                              result: 'Yes, confirmed.',
-                            })
-                          }
-                        >
-                          Yes
-                        </button>
-                        <button
-                          className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
-                          onClick={() =>
-                            addToolResult({
-                              toolCallId,
-                              result: 'No, denied',
-                            })
-                          }
-                        >
-                          No
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            }
-
-            // other tools:
-            return 'result' in toolInvocation ? (
-              <div key={toolCallId} className="text-gray-500">
-                Tool call {`${toolInvocation.toolName}: `}
-                {toolInvocation.result}
-              </div>
-            ) : (
-              <div key={toolCallId} className="text-gray-500">
-                Calling {toolInvocation.toolName}...
-              </div>
-            );
           })}
-          <br />
           <br />
         </div>
       ))}

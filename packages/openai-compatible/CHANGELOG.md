@@ -1,5 +1,19 @@
 # @ai-sdk/openai-compatible
 
+## 0.1.8
+
+### Patch Changes
+
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+
+## 0.1.7
+
+### Patch Changes
+
+- f2c6c37: feat (provider/openai-compatible): support providerOptions in generateText/streamText
+
 ## 0.1.6
 
 ### Patch Changes

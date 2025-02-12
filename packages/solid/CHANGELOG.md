@@ -1,5 +1,55 @@
 # @ai-sdk/solid
 
+## 1.1.13
+
+### Patch Changes
+
+- Updated dependencies [318b351]
+  - @ai-sdk/ui-utils@1.1.11
+
+## 1.1.12
+
+### Patch Changes
+
+- 244dd77: feat (ui/solid): add support for prepareRequestBody
+
+## 1.1.11
+
+### Patch Changes
+
+- bcc61d4: feat (ui): introduce message parts for useChat
+- Updated dependencies [bcc61d4]
+  - @ai-sdk/ui-utils@1.1.10
+
+## 1.1.10
+
+### Patch Changes
+
+- Updated dependencies [6b8cc14]
+  - @ai-sdk/ui-utils@1.1.9
+
+## 1.1.9
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@2.1.6
+- @ai-sdk/ui-utils@1.1.8
+
+## 1.1.8
+
+### Patch Changes
+
+- 0d2d9bf: fix (ui): empty submits (with allowEmptySubmit) create user messages
+- 0d2d9bf: fix (ui): single assistant message with multiple tool steps
+- Updated dependencies [0d2d9bf]
+  - @ai-sdk/ui-utils@1.1.7
+
+## 1.1.7
+
+### Patch Changes
+
+- c73423e: feat (ui/solid): experimental attachment support
+
 ## 1.1.6
 
 ### Patch Changes

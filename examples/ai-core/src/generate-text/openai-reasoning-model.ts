@@ -3,7 +3,7 @@ import { generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const { text, usage, experimental_providerMetadata } = await generateText({
+  const { text, usage, providerMetadata } = await generateText({
     model: openai('o1-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxTokens: 1000, // mapped to max_completion_tokens
@@ -13,7 +13,7 @@ async function main() {
   console.log();
   console.log('Usage:', {
     ...usage,
-    reasoningTokens: experimental_providerMetadata?.openai?.reasoningTokens,
+    reasoningTokens: providerMetadata?.openai?.reasoningTokens,
   });
 }
 

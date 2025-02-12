@@ -1,27 +1,32 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
-  IdGenerator,
   JSONValue,
   Message,
+  UIMessage,
   UseChatOptions,
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
+  extractMaxToolInvocationStep,
+  fillMessageParts,
   generateId as generateIdFunc,
+  getMessageParts,
+  isAssistantMessageWithCompletedToolCalls,
   prepareAttachmentsForRequest,
+  shouldResubmitMessages,
+  updateToolCallResult,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useSWR, { KeyedMutator } from 'swr';
+import useSWR from 'swr';
 import { throttle } from './throttle';
 
 export type { CreateMessage, Message, UseChatOptions };
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
-  messages: Message[];
+  messages: UIMessage[];
   /** The error object of the API request */
   error: undefined | Error;
   /**
@@ -87,101 +92,6 @@ export type UseChatHelpers = {
   id: string;
 };
 
-const processResponseStream = async (
-  api: string,
-  chatRequest: ChatRequest,
-  mutate: KeyedMutator<Message[]>,
-  mutateStreamData: KeyedMutator<JSONValue[] | undefined>,
-  existingDataRef: React.MutableRefObject<JSONValue[] | undefined>,
-  extraMetadataRef: React.MutableRefObject<any>,
-  messagesRef: React.MutableRefObject<Message[]>,
-  abortControllerRef: React.MutableRefObject<AbortController | null>,
-  generateId: IdGenerator,
-  streamProtocol: UseChatOptions['streamProtocol'],
-  onFinish: UseChatOptions['onFinish'],
-  onResponse: ((response: Response) => void | Promise<void>) | undefined,
-  onToolCall: UseChatOptions['onToolCall'] | undefined,
-  sendExtraMessageFields: boolean | undefined,
-  experimental_prepareRequestBody:
-    | ((options: {
-        id: string;
-        messages: Message[];
-        requestData?: JSONValue;
-        requestBody?: object;
-      }) => unknown)
-    | undefined,
-  fetch: FetchFunction | undefined,
-  keepLastMessageOnError: boolean,
-  id: string,
-) => {
-  // Do an optimistic update to the chat state to show the updated messages immediately:
-  const previousMessages = messagesRef.current;
-  mutate(chatRequest.messages, false);
-
-  const constructedMessagesPayload = sendExtraMessageFields
-    ? chatRequest.messages
-    : chatRequest.messages.map(
-        ({
-          role,
-          content,
-          experimental_attachments,
-          data,
-          annotations,
-          toolInvocations,
-        }) => ({
-          role,
-          content,
-          ...(experimental_attachments !== undefined && {
-            experimental_attachments,
-          }),
-          ...(data !== undefined && { data }),
-          ...(annotations !== undefined && { annotations }),
-          ...(toolInvocations !== undefined && { toolInvocations }),
-        }),
-      );
-
-  const existingData = existingDataRef.current;
-
-  return await callChatApi({
-    api,
-    body: experimental_prepareRequestBody?.({
-      id,
-      messages: chatRequest.messages,
-      requestData: chatRequest.data,
-      requestBody: chatRequest.body,
-    }) ?? {
-      id,
-      messages: constructedMessagesPayload,
-      data: chatRequest.data,
-      ...extraMetadataRef.current.body,
-      ...chatRequest.body,
-    },
-    streamProtocol,
-    credentials: extraMetadataRef.current.credentials,
-    headers: {
-      ...extraMetadataRef.current.headers,
-      ...chatRequest.headers,
-    },
-    abortController: () => abortControllerRef.current,
-    restoreMessagesOnFailure() {
-      if (!keepLastMessageOnError) {
-        mutate(previousMessages, false);
-      }
-    },
-    onResponse,
-    onUpdate(merged, data) {
-      mutate([...chatRequest.messages, ...merged], false);
-      if (data?.length) {
-        mutateStreamData([...(existingData ?? []), ...data], false);
-      }
-    },
-    onToolCall,
-    onFinish,
-    generateId,
-    fetch,
-  });
-};
-
 export function useChat({
   api = '/api/chat',
   id,
@@ -216,7 +126,7 @@ export function useChat({
    */
   experimental_prepareRequestBody?: (options: {
     id: string;
-    messages: Message[];
+    messages: UIMessage[];
     requestData?: JSONValue;
     requestBody?: object;
   }) => unknown;
@@ -228,7 +138,8 @@ Default is undefined, which disables throttling.
   experimental_throttle?: number;
 
   /**
-Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
+Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
+Must be at least 1.
 
 A maximum number is required to prevent infinite loops in the case of misconfigured tools.
 
@@ -257,14 +168,19 @@ By default, it's set to 1, which means that only a single LLM call is made.
   const [initialMessagesFallback] = useState([]);
 
   // Store the chat state in SWR, using the chatId as the key to share states.
-  const { data: messages, mutate } = useSWR<Message[]>(
+  const { data: messages, mutate } = useSWR<UIMessage[]>(
     [chatKey, 'messages'],
     null,
-    { fallbackData: initialMessages ?? initialMessagesFallback },
+    {
+      fallbackData:
+        initialMessages != null
+          ? fillMessageParts(initialMessages)
+          : initialMessagesFallback,
+    },
   );
 
   // Keep the latest messages in a ref.
-  const messagesRef = useRef<Message[]>(messages || []);
+  const messagesRef = useRef<UIMessage[]>(messages || []);
   useEffect(() => {
     messagesRef.current = messages || [];
   }, [messages]);
@@ -309,7 +225,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
-      const messageCount = messagesRef.current.length;
+      const chatMessages = fillMessageParts(chatRequest.messages);
+
+      const messageCount = chatMessages.length;
+      const maxStep = extractMaxToolInvocationStep(
+        chatMessages[chatMessages.length - 1]?.toolInvocations,
+      );
 
       try {
         mutateLoading(true);
@@ -318,27 +239,93 @@ By default, it's set to 1, which means that only a single LLM call is made.
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
-        await processResponseStream(
-          api,
-          chatRequest,
-          // throttle streamed ui updates:
-          throttle(mutate, throttleWaitMs),
-          throttle(mutateStreamData, throttleWaitMs),
-          streamDataRef,
-          extraMetadataRef,
-          messagesRef,
-          abortControllerRef,
-          generateId,
-          streamProtocol,
-          onFinish,
-          onResponse,
-          onToolCall,
-          sendExtraMessageFields,
-          experimental_prepareRequestBody,
-          fetch,
-          keepLastMessageOnError,
-          chatId,
+        const throttledMutate = throttle(mutate, throttleWaitMs);
+        const throttledMutateStreamData = throttle(
+          mutateStreamData,
+          throttleWaitMs,
         );
+
+        // Do an optimistic update to the chat state to show the updated messages immediately:
+        const previousMessages = messagesRef.current;
+        throttledMutate(chatMessages, false);
+
+        const constructedMessagesPayload = sendExtraMessageFields
+          ? chatMessages
+          : chatMessages.map(
+              ({
+                role,
+                content,
+                experimental_attachments,
+                data,
+                annotations,
+                toolInvocations,
+                parts,
+              }) => ({
+                role,
+                content,
+                ...(experimental_attachments !== undefined && {
+                  experimental_attachments,
+                }),
+                ...(data !== undefined && { data }),
+                ...(annotations !== undefined && { annotations }),
+                ...(toolInvocations !== undefined && { toolInvocations }),
+                ...(parts !== undefined && { parts }),
+              }),
+            );
+
+        const existingData = streamDataRef.current;
+
+        await callChatApi({
+          api,
+          body: experimental_prepareRequestBody?.({
+            id: chatId,
+            messages: chatMessages,
+            requestData: chatRequest.data,
+            requestBody: chatRequest.body,
+          }) ?? {
+            id: chatId,
+            messages: constructedMessagesPayload,
+            data: chatRequest.data,
+            ...extraMetadataRef.current.body,
+            ...chatRequest.body,
+          },
+          streamProtocol,
+          credentials: extraMetadataRef.current.credentials,
+          headers: {
+            ...extraMetadataRef.current.headers,
+            ...chatRequest.headers,
+          },
+          abortController: () => abortControllerRef.current,
+          restoreMessagesOnFailure() {
+            if (!keepLastMessageOnError) {
+              throttledMutate(previousMessages, false);
+            }
+          },
+          onResponse,
+          onUpdate({ message, data, replaceLastMessage }) {
+            throttledMutate(
+              [
+                ...(replaceLastMessage
+                  ? chatMessages.slice(0, chatMessages.length - 1)
+                  : chatMessages),
+                message,
+              ],
+              false,
+            );
+
+            if (data?.length) {
+              throttledMutateStreamData(
+                [...(existingData ?? []), ...data],
+                false,
+              );
+            }
+          },
+          onToolCall,
+          onFinish,
+          generateId,
+          fetch,
+          lastMessage: chatMessages[chatMessages.length - 1],
+        });
 
         abortControllerRef.current = null;
       } catch (err) {
@@ -357,20 +344,16 @@ By default, it's set to 1, which means that only a single LLM call is made.
         mutateLoading(false);
       }
 
-      // auto-submit when all tool calls in the last assistant message have results:
+      // auto-submit when all tool calls in the last assistant message have results
+      // and assistant has not answered yet
       const messages = messagesRef.current;
-      const lastMessage = messages[messages.length - 1];
       if (
-        // ensure we actually have new messages (to prevent infinite loops in case of errors):
-        messages.length > messageCount &&
-        // ensure there is a last message:
-        lastMessage != null &&
-        // check if the feature is enabled:
-        maxSteps > 1 &&
-        // check that next step is possible:
-        isAssistantMessageWithCompletedToolCalls(lastMessage) &&
-        // limit the number of automatic steps:
-        countTrailingAssistantMessages(messages) < maxSteps
+        shouldResubmitMessages({
+          originalMaxToolInvocationStep: maxStep,
+          originalMessageCount: messageCount,
+          maxSteps,
+          messages,
+        })
       ) {
         await triggerRequest({ messages });
       }
@@ -421,6 +404,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         createdAt: message.createdAt ?? new Date(),
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+        parts: getMessageParts(message),
       });
 
       return triggerRequest({ messages, headers, body, data });
@@ -462,8 +446,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
         messages = messages(messagesRef.current);
       }
 
-      mutate(messages, false);
-      messagesRef.current = messages;
+      const messagesWithParts = fillMessageParts(messages);
+      mutate(messagesWithParts, false);
+      messagesRef.current = messagesWithParts;
     },
     [mutate],
   );
@@ -509,19 +494,15 @@ By default, it's set to 1, which means that only a single LLM call is made.
         options.experimental_attachments,
       );
 
-      const messages =
-        !input && !attachmentsForRequest.length && options.allowEmptySubmit
-          ? messagesRef.current
-          : messagesRef.current.concat({
-              id: generateId(),
-              createdAt: new Date(),
-              role: 'user',
-              content: input,
-              experimental_attachments:
-                attachmentsForRequest.length > 0
-                  ? attachmentsForRequest
-                  : undefined,
-            });
+      const messages = messagesRef.current.concat({
+        id: generateId(),
+        createdAt: new Date(),
+        role: 'user',
+        content: input,
+        experimental_attachments:
+          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+        parts: [{ type: 'text', text: input }],
+      });
 
       const chatRequest: ChatRequest = {
         messages,
@@ -542,40 +523,28 @@ By default, it's set to 1, which means that only a single LLM call is made.
   };
 
   const addToolResult = useCallback(
-    ({ toolCallId, result }: { toolCallId: string; result: any }) => {
-      const updatedMessages = messagesRef.current.map((message, index, arr) =>
-        // update the tool calls in the last assistant message:
-        index === arr.length - 1 &&
-        message.role === 'assistant' &&
-        message.toolInvocations
-          ? {
-              ...message,
-              toolInvocations: message.toolInvocations.map(toolInvocation =>
-                toolInvocation.toolCallId === toolCallId
-                  ? {
-                      ...toolInvocation,
-                      result,
-                      state: 'result' as const,
-                    }
-                  : toolInvocation,
-              ),
-            }
-          : message,
-      );
+    ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
+      const currentMessages = messagesRef.current;
 
-      mutate(updatedMessages, false);
+      updateToolCallResult({
+        messages: currentMessages,
+        toolCallId,
+        toolResult: result,
+      });
+
+      mutate(currentMessages, false);
 
       // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = updatedMessages[updatedMessages.length - 1];
+      const lastMessage = currentMessages[currentMessages.length - 1];
       if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-        triggerRequest({ messages: updatedMessages });
+        triggerRequest({ messages: currentMessages });
       }
     },
     [mutate, triggerRequest],
   );
 
   return {
-    messages: messages || [],
+    messages: messages ?? [],
     id: chatId,
     setMessages,
     data: streamData,
@@ -591,33 +560,4 @@ By default, it's set to 1, which means that only a single LLM call is made.
     isLoading,
     addToolResult,
   };
-}
-
-/**
-Check if the message is an assistant message with completed tool calls.
-The message must have at least one tool invocation and all tool invocations
-must have a result.
- */
-function isAssistantMessageWithCompletedToolCalls(message: Message) {
-  return (
-    message.role === 'assistant' &&
-    message.toolInvocations &&
-    message.toolInvocations.length > 0 &&
-    message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
-  );
-}
-
-/**
-Returns the number of trailing assistant messages in the array.
- */
-function countTrailingAssistantMessages(messages: Message[]) {
-  let count = 0;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'assistant') {
-      count++;
-    } else {
-      break;
-    }
-  }
-  return count;
 }

@@ -1,5 +1,25 @@
 # @ai-sdk/cohere
 
+## 1.1.8
+
+### Patch Changes
+
+- 0c324f7: fix (provider/cohere): deal gracefully with tools with no parameters
+
+## 1.1.7
+
+### Patch Changes
+
+- 4d5e0a9: fix (provider/cohere): omit tool plan content from normal response text
+
+## 1.1.6
+
+### Patch Changes
+
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+
 ## 1.1.5
 
 ### Patch Changes

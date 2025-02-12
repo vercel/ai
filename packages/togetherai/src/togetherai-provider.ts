@@ -1,4 +1,9 @@
-import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  EmbeddingModelV1,
+  ProviderV1,
+  ImageModelV1,
+} from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
@@ -21,6 +26,11 @@ import {
   TogetherAICompletionModelId,
   TogetherAICompletionSettings,
 } from './togetherai-completion-settings';
+import { TogetherAIImageModel } from './togetherai-image-model';
+import {
+  TogetherAIImageModelId,
+  TogetherAIImageSettings,
+} from './togetherai-image-settings';
 
 export interface TogetherAIProviderSettings {
   /**
@@ -42,7 +52,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface TogetherAIProvider {
+export interface TogetherAIProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
 */
@@ -55,6 +65,14 @@ Creates a model for text generation.
 Creates a chat model for text generation.
 */
   chatModel(
+    modelId: TogetherAIChatModelId,
+    settings?: TogetherAIChatSettings,
+  ): LanguageModelV1;
+
+  /**
+Creates a chat model for text generation.
+*/
+  languageModel(
     modelId: TogetherAIChatModelId,
     settings?: TogetherAIChatSettings,
   ): LanguageModelV1;
@@ -74,6 +92,22 @@ Creates a text embedding model for text generation.
     modelId: TogetherAIEmbeddingModelId,
     settings?: TogetherAIEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  /**
+  Creates a model for image generation.
+   */
+  image(
+    modelId: TogetherAIImageModelId,
+    settings?: TogetherAIImageSettings,
+  ): ImageModelV1;
+
+  /**
+  Creates a model for image generation.
+   */
+  imageModel(
+    modelId: TogetherAIImageModelId,
+    settings?: TogetherAIImageSettings,
+  ): ImageModelV1;
 }
 
 export function createTogetherAI(
@@ -86,7 +120,7 @@ export function createTogetherAI(
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
       environmentVariableName: 'TOGETHER_AI_API_KEY',
-      description: "TogetherAI's API key",
+      description: 'TogetherAI',
     })}`,
     ...options.headers,
   });
@@ -109,7 +143,6 @@ export function createTogetherAI(
     modelId: TogetherAIChatModelId,
     settings: TogetherAIChatSettings = {},
   ) => {
-    // TODO(shaper): Likely need a registry of model to object generation mode.
     return new OpenAICompatibleChatLanguageModel(modelId, settings, {
       ...getCommonModelConfig('chat'),
       defaultObjectGenerationMode: 'tool',
@@ -136,16 +169,28 @@ export function createTogetherAI(
       getCommonModelConfig('embedding'),
     );
 
+  const createImageModel = (
+    modelId: TogetherAIImageModelId,
+    settings: TogetherAIImageSettings = {},
+  ) =>
+    new TogetherAIImageModel(modelId, settings, {
+      ...getCommonModelConfig('image'),
+      baseURL: baseURL ?? 'https://api.together.xyz/v1/',
+    });
+
   const provider = (
     modelId: TogetherAIChatModelId,
     settings?: TogetherAIChatSettings,
   ) => createChatModel(modelId, settings);
 
   provider.completionModel = createCompletionModel;
+  provider.languageModel = createChatModel;
   provider.chatModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
-  return provider as TogetherAIProvider;
+  return provider;
 }
 
 export const togetherai = createTogetherAI();

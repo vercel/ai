@@ -8,6 +8,7 @@ import {
   EmbeddingModelV1,
   ImageModelV1,
   LanguageModelV1,
+  ProviderV1,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -65,7 +66,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface FireworksProvider {
+export interface FireworksProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
 */
@@ -91,6 +92,14 @@ Creates a completion model for text generation.
   ): LanguageModelV1;
 
   /**
+Creates a chat model for text generation.
+*/
+  languageModel(
+    modelId: FireworksChatModelId,
+    settings?: FireworksChatSettings,
+  ): LanguageModelV1;
+
+  /**
 Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
@@ -102,6 +111,14 @@ Creates a text embedding model for text generation.
 Creates a model for image generation.
 */
   image(
+    modelId: FireworksImageModelId,
+    settings?: FireworksImageSettings,
+  ): ImageModelV1;
+
+  /**
+Creates a model for image generation.
+*/
+  imageModel(
     modelId: FireworksImageModelId,
     settings?: FireworksImageSettings,
   ): ImageModelV1;
@@ -181,10 +198,11 @@ export function createFireworks(
 
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
+  provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
   provider.image = createImageModel;
-
-  return provider as FireworksProvider;
+  provider.imageModel = createImageModel;
+  return provider;
 }
 
 export const fireworks = createFireworks();

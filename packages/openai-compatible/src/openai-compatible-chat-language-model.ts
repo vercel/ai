@@ -95,6 +95,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
+  private get providerOptionsName(): string {
+    return this.config.provider.split('.')[0].trim();
+  }
+
   private getArgs({
     mode,
     prompt,
@@ -104,6 +108,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    providerMetadata,
     stopSequences,
     responseFormat,
     seed,
@@ -162,6 +167,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
       stop: stopSequences,
       seed,
+      ...providerMetadata?.[this.providerOptionsName],
 
       // messages:
       messages: convertToOpenAICompatibleChatMessages(prompt),

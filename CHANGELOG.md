@@ -13,6 +13,7 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/cohere](./packages/cohere/CHANGELOG.md)
 - [@ai-sdk/deepinfra](./packages/deepinfra/CHANGELOG.md)
 - [@ai-sdk/deepseek](./packages/deepseek/CHANGELOG.md)
+- [@ai-sdk/fal](./packages/fal/CHANGELOG.md)
 - [@ai-sdk/fireworks](./packages/fireworks/CHANGELOG.md)
 - [@ai-sdk/google](./packages/google/CHANGELOG.md)
 - [@ai-sdk/google-vertex](./packages/google-vertex/CHANGELOG.md)
@@ -39,3 +40,4 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/provider-utils](./packages/provider-utils/CHANGELOG.md)
 - [@ai-sdk/swarm](./packages/swarm/CHANGELOG.md)
 - [@ai-sdk/ui-utils](./packages/ui-utils/CHANGELOG.md)
+- [@ai-sdk/valibot](./packages/valibot/CHANGELOG.md)

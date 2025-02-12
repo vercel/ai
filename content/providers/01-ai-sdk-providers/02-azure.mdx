@@ -92,6 +92,23 @@ const model = azure('your-deployment-name');
 
 You need to pass your deployment name as the first argument.
 
+### Reasoning Models
+
+Azure exposes the thinking of `DeepSeek-R1` in the generated text using the `<think>` tag.
+You can use the `extractReasoningMiddleware` to extract this reasoning and expose it as a `reasoning` property on the result:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { wrapLanguageModel, extractReasoningMiddleware } from 'ai';
+
+const enhancedModel = wrapLanguageModel({
+  model: azure('your-deepseek-r1-deployment-name'),
+  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+});
+```
+
+You can then use that enhanced model in functions like `generateText` and `streamText`.
+
 ### Example
 
 You can use OpenAI language models to generate text with the `generateText` function:

@@ -4,9 +4,8 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: openai('o1'),
-    system: 'You are a helpful assistant.',
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: openai('o3-mini'),
+    prompt: 'How many "r"s are in the word "strawberry"?',
     temperature: 0.5, // should get ignored (warning)
     maxTokens: 1000, // mapped to max_completion_tokens
   });
@@ -18,8 +17,7 @@ async function main() {
   console.log();
   console.log('Usage:', {
     ...(await result.usage),
-    reasoningTokens: (await result.experimental_providerMetadata)?.openai
-      ?.reasoningTokens,
+    reasoningTokens: (await result.providerMetadata)?.openai?.reasoningTokens,
   });
   console.log('Warnings:', await result.warnings);
 }

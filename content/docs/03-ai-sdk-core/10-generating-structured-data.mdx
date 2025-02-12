@@ -16,8 +16,13 @@ with the [`generateObject`](/docs/reference/ai-sdk-core/generate-object)
 and [`streamObject`](/docs/reference/ai-sdk-core/stream-object) functions.
 You can use both functions with different output strategies, e.g. `array`, `object`, or `no-schema`,
 and with different generation modes, e.g. `auto`, `tool`, or `json`.
-You can use [Zod schemas](./schemas-and-zod) or [JSON schemas](/docs/reference/ai-sdk-core/json-schema) to specify the shape of the data that you want,
+You can use [Zod schemas](/docs/reference/ai-sdk-core/zod-schema), [Valibot](/docs/reference/ai-sdk-core/valibot-schema), or [JSON schemas](/docs/reference/ai-sdk-core/json-schema) to specify the shape of the data that you want,
 and the AI model will generate data that conforms to that structure.
+
+<Note>
+  You can pass Zod objects directly to the AI SDK functions or use the
+  `zodSchema` helper function.
+</Note>
 
 ## Generate Object
 
@@ -60,6 +65,24 @@ for await (const partialObject of partialObjectStream) {
 ```
 
 You can use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-sdk-rsc))) or the [`useObject`](/docs/reference/ai-sdk-ui/use-object) hook.
+
+### `onError` callback
+
+`streamObject` immediately starts streaming.
+Errors become part of the stream and are not thrown to prevent e.g. servers from crashing.
+
+To log errors, you can provide an `onError` callback that is triggered when an error occurs.
+
+```tsx highlight="5-7"
+import { streamObject } from 'ai';
+
+const result = streamObject({
+  // ...
+  onError({ error }) {
+    console.error(error); // your error logging logic here
+  },
+});
+```
 
 ## Output Strategy
 

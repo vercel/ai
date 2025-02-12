@@ -9,6 +9,7 @@ export {
   parseDataStreamPart,
   processDataStream,
   processTextStream,
+  zodSchema,
 } from '@ai-sdk/ui-utils';
 export type {
   AssistantMessage,

@@ -19,6 +19,7 @@ import {
   LanguageModelV1,
   ProviderV1,
 } from '@ai-sdk/provider';
+import { isSupportedFileUrl } from './google-supported-file-url';
 
 export interface GoogleGenerativeAIProvider extends ProviderV1 {
   (
@@ -124,6 +125,7 @@ export function createGoogleGenerativeAI(
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
+      isSupportedUrl: isSupportedFileUrl,
       fetch: options.fetch,
     });
 
@@ -158,7 +160,7 @@ export function createGoogleGenerativeAI(
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
-  return provider as GoogleGenerativeAIProvider;
+  return provider;
 }
 
 /**

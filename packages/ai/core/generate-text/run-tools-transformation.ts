@@ -13,6 +13,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import { Source } from '../types/language-model';
 import { calculateLanguageModelUsage } from '../types/usage';
 import { parseToolCall } from './parse-tool-call';
 import { ToolCallUnion } from './tool-call';
@@ -28,6 +29,10 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'reasoning';
       textDelta: string;
+    }
+  | {
+      type: 'source';
+      source: Source;
     }
   | ({
       type: 'tool-call';
@@ -139,6 +144,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         // forward:
         case 'text-delta':
         case 'reasoning':
+        case 'source':
         case 'response-metadata':
         case 'error': {
           controller.enqueue(chunk);

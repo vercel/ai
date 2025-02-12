@@ -1,5 +1,166 @@
 # @ai-sdk/swarm
 
+## 0.1.34
+
+### Patch Changes
+
+- Updated dependencies [dc49119]
+  - ai@4.1.34
+
+## 0.1.33
+
+### Patch Changes
+
+- Updated dependencies [74f0f0e]
+  - ai@4.1.33
+
+## 0.1.32
+
+### Patch Changes
+
+- Updated dependencies [c128ca5]
+  - ai@4.1.32
+
+## 0.1.31
+
+### Patch Changes
+
+- Updated dependencies [b30b1cc]
+  - ai@4.1.31
+
+## 0.1.30
+
+### Patch Changes
+
+- Updated dependencies [4ee5b6f]
+  - ai@4.1.30
+
+## 0.1.29
+
+### Patch Changes
+
+- Updated dependencies [605de49]
+  - ai@4.1.29
+
+## 0.1.28
+
+### Patch Changes
+
+- Updated dependencies [6eb7fc4]
+  - ai@4.1.28
+
+## 0.1.27
+
+### Patch Changes
+
+- ai@4.1.27
+
+## 0.1.26
+
+### Patch Changes
+
+- Updated dependencies [34983d4]
+  - ai@4.1.26
+
+## 0.1.25
+
+### Patch Changes
+
+- Updated dependencies [5a21310]
+  - ai@4.1.25
+
+## 0.1.24
+
+### Patch Changes
+
+- Updated dependencies [38142b8]
+  - ai@4.1.24
+
+## 0.1.23
+
+### Patch Changes
+
+- Updated dependencies [b08f7c1]
+  - ai@4.1.23
+
+## 0.1.22
+
+### Patch Changes
+
+- Updated dependencies [2bec72a]
+  - ai@4.1.22
+
+## 0.1.21
+
+### Patch Changes
+
+- Updated dependencies [d387989]
+  - ai@4.1.21
+
+## 0.1.20
+
+### Patch Changes
+
+- Updated dependencies [bcc61d4]
+  - ai@4.1.20
+
+## 0.1.19
+
+### Patch Changes
+
+- ai@4.1.19
+
+## 0.1.18
+
+### Patch Changes
+
+- Updated dependencies [6a1acfe]
+  - ai@4.1.18
+
+## 0.1.17
+
+### Patch Changes
+
+- Updated dependencies [5af8cdb]
+  - ai@4.1.17
+
+## 0.1.16
+
+### Patch Changes
+
+- Updated dependencies [7e299a4]
+  - ai@4.1.16
+
+## 0.1.15
+
+### Patch Changes
+
+- Updated dependencies [d89c3b9]
+- Updated dependencies [d89c3b9]
+- Updated dependencies [08f54fc]
+  - ai@4.1.15
+
+## 0.1.14
+
+### Patch Changes
+
+- Updated dependencies [ca89615]
+  - ai@4.1.14
+
+## 0.1.13
+
+### Patch Changes
+
+- Updated dependencies [999085e]
+  - ai@4.1.13
+
+## 0.1.12
+
+### Patch Changes
+
+- Updated dependencies [0d2d9bf]
+  - ai@4.1.12
+
 ## 0.1.11
 
 ### Patch Changes

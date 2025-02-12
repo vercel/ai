@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.0.7
+
+### Patch Changes
+
+- d89c3b9: feat (provider): add image model support to provider specification
+
 ## 1.0.6
 
 ### Patch Changes

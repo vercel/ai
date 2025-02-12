@@ -23,13 +23,7 @@ async function main() {
 
   console.log(result.text);
   console.log();
-  console.log(
-    JSON.stringify(
-      result.experimental_providerMetadata?.bedrock.trace,
-      null,
-      2,
-    ),
-  );
+  console.log(JSON.stringify(result.providerMetadata?.bedrock.trace, null, 2));
 }
 
 main().catch(console.error);

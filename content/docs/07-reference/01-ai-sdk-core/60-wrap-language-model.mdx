@@ -35,8 +35,9 @@ const wrappedLanguageModel = wrapLanguageModel({
     },
     {
       name: 'middleware',
-      type: 'Experimental_LanguageModelV1Middleware',
-      description: 'The middleware to be applied to the language model.',
+      type: 'LanguageModelV1Middleware | LanguageModelV1Middleware[]',
+      description:
+        'The middleware to be applied to the language model. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.',
     },
     {
       name: 'modelId',
