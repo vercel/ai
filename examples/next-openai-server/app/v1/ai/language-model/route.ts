@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       .languageModel(modelId)
       .doStream(body);
 
+    // TODO how to include data that's not streamed but returned by doStream?
     return new NextResponse(
       stream
         .pipeThrough(
