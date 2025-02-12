@@ -21,7 +21,6 @@ import {
   BedrockConverseInput,
   BedrockStopReason,
   BEDROCK_STOP_REASONS,
-  BedrockToolInputSchema,
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,
@@ -183,7 +182,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { command: args, warnings } = this.getArgs(options);
 
-    const url = this.getUrl(this.modelId);
+    const url = `${this.getUrl(this.modelId)}/converse`;
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
       headers: combineHeaders(
@@ -239,7 +238,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const { command: args, warnings } = this.getArgs(options);
-    const url = this.getStreamUrl(this.modelId);
+    const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
@@ -337,7 +336,11 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
               }
             }
 
-            if (value.contentBlockDelta?.delta?.text) {
+            if (
+              value.contentBlockDelta?.delta &&
+              'text' in value.contentBlockDelta.delta &&
+              value.contentBlockDelta.delta.text
+            ) {
               controller.enqueue({
                 type: 'text-delta',
                 textDelta: value.contentBlockDelta.delta.text,
@@ -355,7 +358,11 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
             }
 
             const contentBlockDelta = value.contentBlockDelta;
-            if (contentBlockDelta?.delta?.toolUse) {
+            if (
+              contentBlockDelta?.delta &&
+              'toolUse' in contentBlockDelta.delta &&
+              contentBlockDelta.delta.toolUse
+            ) {
               const contentBlock =
                 toolCallContentBlocks[contentBlockDelta.contentBlockIndex!];
               const delta = contentBlockDelta.delta.toolUse.input ?? '';
@@ -408,12 +415,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
   private getUrl(modelId: string) {
     const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl()}/model/${encodedModelId}/converse`;
-  }
-
-  private getStreamUrl(modelId: string): string {
-    const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl()}/model/${encodedModelId}/converse-stream`;
+    return `${this.config.baseUrl()}/model/${encodedModelId}`;
   }
 }
 
@@ -421,6 +423,12 @@ const BedrockStopReasonSchema = z.union([
   z.enum(BEDROCK_STOP_REASONS),
   z.string(),
 ]);
+
+const BedrockToolUseSchema = z.object({
+  toolUseId: z.string(),
+  name: z.string(),
+  input: z.unknown(),
+});
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -434,21 +442,15 @@ const BedrockResponseSchema = z.object({
     message: z.object({
       content: z.array(
         z.object({
-          text: z.string().optional(),
-          toolUse: z
-            .object({
-              toolUseId: z.string(),
-              name: z.string(),
-              input: z.any(),
-            })
-            .optional(),
+          text: z.string().nullish(),
+          toolUse: BedrockToolUseSchema.nullish(),
         }),
       ),
       role: z.string(),
     }),
   }),
   stopReason: BedrockStopReasonSchema,
-  trace: z.any().nullish(),
+  trace: z.unknown().nullish(),
   usage: z.object({
     inputTokens: z.number(),
     outputTokens: z.number(),
@@ -462,13 +464,22 @@ const BedrockStreamSchema = z.object({
   contentBlockDelta: z
     .object({
       contentBlockIndex: z.number(),
-      delta: z.record(z.any()).nullish(),
+      delta: z
+        .union([
+          z.object({ text: z.string() }),
+          z.object({ toolUse: z.object({ input: z.string() }) }),
+        ])
+        .nullish(),
     })
     .nullish(),
   contentBlockStart: z
     .object({
       contentBlockIndex: z.number(),
-      start: z.record(z.any()).nullish(),
+      start: z
+        .object({
+          toolUse: BedrockToolUseSchema.nullish(),
+        })
+        .nullish(),
     })
     .nullish(),
   contentBlockStop: z
@@ -476,16 +487,16 @@ const BedrockStreamSchema = z.object({
       contentBlockIndex: z.number(),
     })
     .nullish(),
-  internalServerException: z.record(z.any()).nullish(),
+  internalServerException: z.record(z.unknown()).nullish(),
   messageStop: z
     .object({
-      additionalModelResponseFields: z.any().nullish(),
+      additionalModelResponseFields: z.record(z.unknown()).nullish(),
       stopReason: BedrockStopReasonSchema,
     })
     .nullish(),
   metadata: z
     .object({
-      trace: z.any(),
+      trace: z.unknown().nullish(),
       usage: z
         .object({
           inputTokens: z.number(),
@@ -494,7 +505,7 @@ const BedrockStreamSchema = z.object({
         .nullish(),
     })
     .nullish(),
-  modelStreamErrorException: z.record(z.any()).nullish(),
-  throttlingException: z.record(z.any()).nullish(),
-  validationException: z.record(z.any()).nullish(),
+  modelStreamErrorException: z.record(z.unknown()).nullish(),
+  throttlingException: z.record(z.unknown()).nullish(),
+  validationException: z.record(z.unknown()).nullish(),
 });
