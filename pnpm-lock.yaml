@@ -505,6 +505,9 @@ importers:
       '@ai-sdk/deepseek':
         specifier: 0.1.8
         version: link:../../packages/deepseek
+      '@ai-sdk/google':
+        specifier: 1.1.11
+        version: link:../../packages/google
       '@ai-sdk/openai':
         specifier: 1.1.9
         version: link:../../packages/openai
