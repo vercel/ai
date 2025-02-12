@@ -28,12 +28,17 @@ export default function Chat() {
 
             if (part.type === 'source') {
               return (
-                <pre
-                  key={index}
-                  className="italic text-gray-500 whitespace-pre-wrap"
-                >
-                  {JSON.stringify(part.source, null, 2)}
-                </pre>
+                <span key={`source-${part.source.id}`}>
+                  [
+                  <a
+                    href={part.source.url}
+                    target="_blank"
+                    className="text-sm font-bold text-blue-500 hover:underline"
+                  >
+                    {part.source.title}
+                  </a>
+                  ]
+                </span>
               );
             }
           })}

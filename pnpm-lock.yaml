@@ -508,6 +508,9 @@ importers:
       '@ai-sdk/google':
         specifier: 1.1.11
         version: link:../../packages/google
+      '@ai-sdk/google-vertex':
+        specifier: 2.1.12
+        version: link:../../packages/google-vertex
       '@ai-sdk/openai':
         specifier: 1.1.9
         version: link:../../packages/openai
