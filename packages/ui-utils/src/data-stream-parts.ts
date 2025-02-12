@@ -1,8 +1,5 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
-import {
-  ToolCall as ToolCall,
-  ToolResult as ToolResult,
-} from '@ai-sdk/provider-utils';
+import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { JSONValue } from './types';
 
 export type DataStreamString =
@@ -372,19 +369,13 @@ const dataStreamParts = [
   reasoningStreamPart,
 ] as const;
 
-type DataStreamParts =
-  | typeof textStreamPart
-  | typeof dataStreamPart
-  | typeof errorStreamPart
-  | typeof messageAnnotationsStreamPart
-  | typeof toolCallStreamPart
-  | typeof toolResultStreamPart
-  | typeof toolCallStreamingStartStreamPart
-  | typeof toolCallDeltaStreamPart
-  | typeof finishMessageStreamPart
-  | typeof finishStepStreamPart
-  | typeof startStepStreamPart
-  | typeof reasoningStreamPart;
+export const dataStreamPartsByCode = Object.fromEntries(
+  dataStreamParts.map(part => [part.code, part]),
+) as {
+  [K in (typeof dataStreamParts)[number]['code']]: (typeof dataStreamParts)[number];
+};
+
+type DataStreamParts = (typeof dataStreamParts)[number];
 
 /**
  * Maps the type of a stream part to its value type.
@@ -393,34 +384,7 @@ type DataStreamPartValueType = {
   [P in DataStreamParts as P['name']]: ReturnType<P['parse']>['value'];
 };
 
-export type DataStreamPartType =
-  | ReturnType<typeof textStreamPart.parse>
-  | ReturnType<typeof dataStreamPart.parse>
-  | ReturnType<typeof errorStreamPart.parse>
-  | ReturnType<typeof messageAnnotationsStreamPart.parse>
-  | ReturnType<typeof toolCallStreamPart.parse>
-  | ReturnType<typeof toolResultStreamPart.parse>
-  | ReturnType<typeof toolCallStreamingStartStreamPart.parse>
-  | ReturnType<typeof toolCallDeltaStreamPart.parse>
-  | ReturnType<typeof finishMessageStreamPart.parse>
-  | ReturnType<typeof finishStepStreamPart.parse>
-  | ReturnType<typeof startStepStreamPart.parse>
-  | ReturnType<typeof reasoningStreamPart.parse>;
-
-export const dataStreamPartsByCode = {
-  [textStreamPart.code]: textStreamPart,
-  [dataStreamPart.code]: dataStreamPart,
-  [errorStreamPart.code]: errorStreamPart,
-  [messageAnnotationsStreamPart.code]: messageAnnotationsStreamPart,
-  [toolCallStreamPart.code]: toolCallStreamPart,
-  [toolResultStreamPart.code]: toolResultStreamPart,
-  [toolCallStreamingStartStreamPart.code]: toolCallStreamingStartStreamPart,
-  [toolCallDeltaStreamPart.code]: toolCallDeltaStreamPart,
-  [finishMessageStreamPart.code]: finishMessageStreamPart,
-  [finishStepStreamPart.code]: finishStepStreamPart,
-  [startStepStreamPart.code]: startStepStreamPart,
-  [reasoningStreamPart.code]: reasoningStreamPart,
-} as const;
+export type DataStreamPartType = ReturnType<DataStreamParts['parse']>;
 
 /**
  * The map of prefixes for data in the stream
@@ -444,21 +408,11 @@ export const dataStreamPartsByCode = {
  * 6: {"tool_call": {"id": "tool_0", "type": "function", "function": {"name": "get_current_weather", "arguments": "{\\n\\"location\\": \\"Charlottesville, Virginia\\",\\n\\"format\\": \\"celsius\\"\\n}"}}}
  *```
  */
-export const DataStreamStringPrefixes = {
-  [textStreamPart.name]: textStreamPart.code,
-  [dataStreamPart.name]: dataStreamPart.code,
-  [errorStreamPart.name]: errorStreamPart.code,
-  [messageAnnotationsStreamPart.name]: messageAnnotationsStreamPart.code,
-  [toolCallStreamPart.name]: toolCallStreamPart.code,
-  [toolResultStreamPart.name]: toolResultStreamPart.code,
-  [toolCallStreamingStartStreamPart.name]:
-    toolCallStreamingStartStreamPart.code,
-  [toolCallDeltaStreamPart.name]: toolCallDeltaStreamPart.code,
-  [finishMessageStreamPart.name]: finishMessageStreamPart.code,
-  [finishStepStreamPart.name]: finishStepStreamPart.code,
-  [startStepStreamPart.name]: startStepStreamPart.code,
-  [reasoningStreamPart.name]: reasoningStreamPart.code,
-} as const;
+export const DataStreamStringPrefixes = Object.fromEntries(
+  dataStreamParts.map(part => [part.name, part.code]),
+) as {
+  [K in DataStreamParts['name']]: (typeof dataStreamParts)[number]['code'];
+};
 
 export const validCodes = dataStreamParts.map(part => part.code);
 
