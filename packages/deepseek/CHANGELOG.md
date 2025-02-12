@@ -1,5 +1,13 @@
 # @ai-sdk/deepseek
 
+## 0.1.9
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+  - @ai-sdk/openai-compatible@0.1.9
+
 ## 0.1.8
 
 ### Patch Changes
