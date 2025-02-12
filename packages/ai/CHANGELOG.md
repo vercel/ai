@@ -1,5 +1,14 @@
 # ai
 
+## 4.1.35
+
+### Patch Changes
+
+- 166e09e: feat (ai/ui): forward source parts to useChat
+- Updated dependencies [166e09e]
+  - @ai-sdk/ui-utils@1.1.12
+  - @ai-sdk/react@1.1.12
+
 ## 4.1.34
 
 ### Patch Changes
