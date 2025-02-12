@@ -46,6 +46,10 @@ const { object } = await generateObject({
 });
 ```
 
+<Note>
+  See `generateObject` in action with [these examples](#more-examples)
+</Note>
+
 ## Stream Object
 
 Given the added complexity of returning structured data, model response time can be unacceptable for your interactive use case.
@@ -65,6 +69,8 @@ for await (const partialObject of partialObjectStream) {
 ```
 
 You can use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-sdk-rsc))) or the [`useObject`](/docs/reference/ai-sdk-ui/use-object) hook.
+
+<Note>See `streamObject` in action with [these examples](#more-examples)</Note>
 
 ### `onError` callback
 
