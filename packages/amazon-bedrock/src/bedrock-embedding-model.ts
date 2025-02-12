@@ -4,6 +4,7 @@ import {
   Resolvable,
   combineHeaders,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
@@ -12,6 +13,7 @@ import {
   BedrockEmbeddingSettings,
 } from './bedrock-embedding-settings';
 import { BedrockErrorSchema } from './bedrock-error';
+import { z } from 'zod';
 
 type BedrockEmbeddingConfig = {
   baseUrl: () => string;
@@ -63,14 +65,9 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
           errorSchema: BedrockErrorSchema,
           errorToMessage: error => `${error.type}: ${error.message}`,
         }),
-        successfulResponseHandler: async response => {
-          const binaryData = await response.response.arrayBuffer();
-          const jsonString = new TextDecoder().decode(
-            new Uint8Array(binaryData),
-          );
-          const parsed = JSON.parse(jsonString);
-          return { value: parsed };
-        },
+        successfulResponseHandler: createJsonResponseHandler(
+          BedrockEmbeddingResponseSchema,
+        ),
         fetch: this.config.fetch,
         abortSignal,
       });
@@ -95,3 +92,8 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
     );
   }
 }
+
+const BedrockEmbeddingResponseSchema = z.object({
+  embedding: z.array(z.number()),
+  inputTextTokenCount: z.number(),
+});
