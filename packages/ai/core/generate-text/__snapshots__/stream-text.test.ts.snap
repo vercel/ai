@@ -3047,7 +3047,7 @@ exports[`streamText > result.fullStream > should include reasoning content in fu
     "type": "reasoning",
   },
   {
-    "textDelta": " with witty banter.",
+    "textDelta": " with witty banter. ",
     "type": "reasoning",
   },
   {
@@ -3059,6 +3059,14 @@ exports[`streamText > result.fullStream > should include reasoning content in fu
     "type": "reasoning",
   },
   {
+    "textDelta": "Hi",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": " there!",
+    "type": "text-delta",
+  },
+  {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "isContinued": false,
@@ -3068,9 +3076,9 @@ exports[`streamText > result.fullStream > should include reasoning content in fu
     "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-2000",
+      "id": "id-0",
       "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:02.000Z,
+      "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "type": "step-finish",
     "usage": {
@@ -3087,9 +3095,9 @@ exports[`streamText > result.fullStream > should include reasoning content in fu
     "providerMetadata": undefined,
     "response": {
       "headers": undefined,
-      "id": "id-2000",
+      "id": "id-0",
       "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:02.000Z,
+      "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "type": "finish",
     "usage": {
@@ -3798,11 +3806,15 @@ exports[`streamText > result.pipeDataStreamToResponse > should write reasoning c
 ",
   "g:"I will open the conversation"
 ",
-  "g:" with witty banter."
+  "g:" with witty banter. "
 ",
   "g:"Once the user has relaxed,"
 ",
   "g:" I will pry for valuable information."
+",
+  "0:"Hi"
+",
+  "0:" there!"
 ",
   "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
@@ -3810,6 +3822,25 @@ exports[`streamText > result.pipeDataStreamToResponse > should write reasoning c
 ",
 ]
 `;
+
+exports[`streamText > result.pipeDataStreamToResponse > should write source content to a Node.js response-like object 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "h:{"sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
+",
+  "0:"Hello!"
+",
+  "h:{"sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`streamText > result.reasoning > should contain reasoning from model response 1`] = `"I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information."`;
 
 exports[`streamText > result.response > should resolve with response information 1`] = `
 {
@@ -3919,16 +3950,16 @@ exports[`streamText > result.steps > should add the reasoning from the model res
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": "I will open the conversation with witty banter.",
+    "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
     "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-1",
+      "id": "id-0",
       "messages": [
         {
           "content": [
             {
-              "text": "Hello, world!",
+              "text": "Hi there!",
               "type": "text",
             },
           ],
@@ -3941,7 +3972,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
     },
     "sources": [],
     "stepType": "initial",
-    "text": "Hello, world!",
+    "text": "Hi there!",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
@@ -3954,7 +3985,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
 ]
 `;
 
-exports[`streamText > result.steps > should contain sources 1`] = `
+exports[`streamText > result.steps > should add the sources from the model response to the step result 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
@@ -4020,6 +4051,25 @@ exports[`streamText > result.steps > should contain sources 1`] = `
 ]
 `;
 
+exports[`streamText > result.text > should resolve with full text 1`] = `"Hello, world!"`;
+
+exports[`streamText > result.textStream > should filter out empty text deltas 1`] = `
+[
+  "Hello",
+  ", ",
+  "world!",
+]
+`;
+
+exports[`streamText > result.textStream > should not include reasoning content in textStream 1`] = `
+[
+  "Hi",
+  " there!",
+]
+`;
+
+exports[`streamText > result.textStream > should swallow error to prevent server crash 1`] = `[]`;
+
 exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 [
   "f:{"messageId":"msg-0"}
@@ -4046,6 +4096,46 @@ exports[`streamText > result.toDataStream > should mask error messages by defaul
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
 ",
   "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+",
+]
+`;
+
+exports[`streamText > result.toDataStream > should send reasoning content when sendReasoning is true 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "g:"I will open the conversation"
+",
+  "g:" with witty banter. "
+",
+  "g:"Once the user has relaxed,"
+",
+  "g:" I will pry for valuable information."
+",
+  "0:"Hi"
+",
+  "0:" there!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`streamText > result.toDataStream > should send source content when sendSources is true 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "h:{"sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
+",
+  "0:"Hello!"
+",
+  "h:{"sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
 ",
 ]
 `;

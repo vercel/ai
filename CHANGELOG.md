@@ -40,3 +40,4 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/provider-utils](./packages/provider-utils/CHANGELOG.md)
 - [@ai-sdk/swarm](./packages/swarm/CHANGELOG.md)
 - [@ai-sdk/ui-utils](./packages/ui-utils/CHANGELOG.md)
+- [@ai-sdk/valibot](./packages/valibot/CHANGELOG.md)

@@ -12,7 +12,11 @@ export type {
   StreamTextOnStepFinishCallback,
   StreamTextTransform,
 } from './stream-text';
-export type { StreamTextResult, TextStreamPart } from './stream-text-result';
+export type {
+  DataStreamOptions,
+  StreamTextResult,
+  TextStreamPart,
+} from './stream-text-result';
 export type {
   CoreToolCall,
   CoreToolCallUnion,
