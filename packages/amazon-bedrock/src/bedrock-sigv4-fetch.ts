@@ -1,3 +1,4 @@
+import { convertHeadersToRecord, extractHeaders } from './headers-utils';
 import {
   FetchFunction,
   combineHeaders,
@@ -75,32 +76,4 @@ function prepareBodyString(body: BodyInit | undefined): string {
   } else {
     return JSON.stringify(body);
   }
-}
-
-function extractHeaders(
-  headers: HeadersInit | undefined,
-): Record<string, string | undefined> {
-  let originalHeaders: Record<string, string | undefined> = {};
-  if (headers) {
-    if (headers instanceof Headers) {
-      originalHeaders = convertHeadersToRecord(headers);
-    } else if (Array.isArray(headers)) {
-      for (const [k, v] of headers) {
-        originalHeaders[k.toLowerCase()] = v;
-      }
-    } else {
-      originalHeaders = Object.fromEntries(
-        Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]),
-      ) as Record<string, string>;
-    }
-  }
-  return originalHeaders;
-}
-
-function convertHeadersToRecord(headers: Headers): Record<string, string> {
-  const record: Record<string, string> = {};
-  headers.forEach((value, key) => {
-    record[key.toLowerCase()] = value;
-  });
-  return record;
 }

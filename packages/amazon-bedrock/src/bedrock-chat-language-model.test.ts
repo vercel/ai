@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { vi } from 'vitest';
-import { createFakeFetch } from './fake-fetch';
+import { injectFetchHeaders } from './inject-fetch-headers';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'system', content: 'System Prompt' },
@@ -39,7 +39,7 @@ const mockTrace = {
   },
 };
 
-const fakeFetchWithAuth = createFakeFetch({ 'x-amz-auth': 'test-auth' });
+const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
 const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
@@ -781,7 +781,7 @@ describe('doStream', () => {
           'model-header': 'model-value',
           'shared-header': 'model-shared',
         },
-        fetch: createFakeFetch({
+        fetch: injectFetchHeaders({
           'options-header': 'options-value',
           'model-header': 'model-value',
           'shared-header': 'options-shared',
@@ -817,7 +817,7 @@ describe('doStream', () => {
         headers: {
           'model-header': 'model-value',
         },
-        fetch: createFakeFetch({
+        fetch: injectFetchHeaders({
           'model-header': 'model-value',
           'signed-header': 'signed-value',
           authorization: 'AWS4-HMAC-SHA256...',
@@ -1205,7 +1205,7 @@ describe('doGenerate', () => {
           'model-header': 'model-value',
           'shared-header': 'model-shared',
         },
-        fetch: createFakeFetch({
+        fetch: injectFetchHeaders({
           'options-header': 'options-value',
           'model-header': 'model-value',
           'shared-header': 'options-shared',
@@ -1242,7 +1242,7 @@ describe('doGenerate', () => {
         headers: {
           'model-header': 'model-value',
         },
-        fetch: createFakeFetch({
+        fetch: injectFetchHeaders({
           'model-header': 'model-value',
           'signed-header': 'signed-value',
           authorization: 'AWS4-HMAC-SHA256...',

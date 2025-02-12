@@ -1,13 +1,13 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
-import { createFakeFetch } from './fake-fetch';
+import { injectFetchHeaders } from './inject-fetch-headers';
 
 const mockEmbeddings = [
   [-0.09, 0.05, -0.02, 0.01, 0.04],
   [-0.08, 0.06, -0.03, 0.02, 0.03],
 ];
 
-const fakeFetchWithAuth = createFakeFetch({ 'x-amz-auth': 'test-auth' });
+const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
@@ -113,7 +113,7 @@ describe('doEmbed', () => {
           'model-header': 'model-value',
           'shared-header': 'model-shared',
         },
-        fetch: createFakeFetch({
+        fetch: injectFetchHeaders({
           'signed-header': 'signed-value',
           authorization: 'AWS4-HMAC-SHA256...',
         }),
@@ -142,7 +142,7 @@ describe('doEmbed', () => {
         headers: {
           'model-header': 'model-value',
         },
-        fetch: createFakeFetch({
+        fetch: injectFetchHeaders({
           'signed-header': 'signed-value',
           authorization: 'AWS4-HMAC-SHA256...',
         }),
