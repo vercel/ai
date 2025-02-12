@@ -1,14 +1,14 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { createRemoteProvider } from '@ai-sdk/remote-provider';
 import { generateText } from 'ai';
 
-const openai = createOpenAI({
+const remote = createRemoteProvider({
   baseURL: 'http://localhost:3000/v1',
   apiKey: 'abc',
 });
 
 async function main() {
   const { text, usage } = await generateText({
-    model: openai('anthropic/claude-3-5-haiku-20241022'),
+    model: remote('anthropic/claude-3-5-haiku-20241022'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxRetries: 0,
   });
