@@ -3832,6 +3832,8 @@ exports[`streamText > result.pipeDataStreamToResponse > should write source cont
 ]
 `;
 
+exports[`streamText > result.reasoning > should contain reasoning from model response 1`] = `"I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information."`;
+
 exports[`streamText > result.response > should resolve with response information 1`] = `
 {
   "headers": {
@@ -3940,16 +3942,16 @@ exports[`streamText > result.steps > should add the reasoning from the model res
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": "I will open the conversation with witty banter.",
+    "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
     "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-1",
+      "id": "id-0",
       "messages": [
         {
           "content": [
             {
-              "text": "Hello, world!",
+              "text": "Hi there!",
               "type": "text",
             },
           ],
@@ -3962,7 +3964,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
     },
     "sources": [],
     "stepType": "initial",
-    "text": "Hello, world!",
+    "text": "Hi there!",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
@@ -3975,7 +3977,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
 ]
 `;
 
-exports[`streamText > result.steps > should contain sources 1`] = `
+exports[`streamText > result.steps > should add the sources from the model response to the step result 1`] = `
 [
   {
     "experimental_providerMetadata": undefined,
@@ -4040,6 +4042,8 @@ exports[`streamText > result.steps > should contain sources 1`] = `
   },
 ]
 `;
+
+exports[`streamText > result.text > should resolve with full text 1`] = `"Hello, world!"`;
 
 exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 [

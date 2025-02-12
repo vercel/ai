@@ -29,6 +29,16 @@ import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
 
+const defaultSettings = () =>
+  ({
+    prompt: 'prompt',
+    experimental_generateMessageId: mockId({ prefix: 'msg' }),
+    _internal: {
+      generateId: mockId({ prefix: 'id' }),
+      currentDate: () => new Date(0),
+    },
+  } as const);
+
 function createTestModel({
   stream = convertArrayToReadableStream([
     {
@@ -1631,8 +1641,7 @@ describe('streamText', () => {
           ]),
           rawResponse: { headers: { call: '2' } },
         }),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
       });
 
       result.consumeStream();
@@ -1645,12 +1654,12 @@ describe('streamText', () => {
     it('should resolve with full text', async () => {
       const result = streamText({
         model: createTestModel(),
-        prompt: 'test-input',
+        ...defaultSettings(),
       });
 
       result.consumeStream();
 
-      assert.strictEqual(await result.text, 'Hello, world!');
+      expect(await result.text).toMatchSnapshot();
     });
   });
 
@@ -1658,15 +1667,12 @@ describe('streamText', () => {
     it('should contain reasoning from model response', async () => {
       const result = streamText({
         model: modelWithReasoning,
-        prompt: 'test-input',
+        ...defaultSettings(),
       });
 
       result.consumeStream();
 
-      expect(await result.reasoning).toStrictEqual(
-        'I will open the conversation with witty banter. ' +
-          'Once the user has relaxed, I will pry for valuable information.',
-      );
+      expect(await result.reasoning).toMatchSnapshot();
     });
   });
 
@@ -1674,7 +1680,7 @@ describe('streamText', () => {
     it('should contain sources', async () => {
       const result = streamText({
         model: modelWithSources,
-        prompt: 'prompt',
+        ...defaultSettings(),
       });
 
       result.consumeStream();
@@ -1686,38 +1692,8 @@ describe('streamText', () => {
   describe('result.steps', () => {
     it('should add the reasoning from the model response to the step result', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'reasoning',
-                textDelta: 'I will open the conversation',
-              },
-              {
-                type: 'reasoning',
-                textDelta: ' with witty banter.',
-              },
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: `world!` },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({
-          prefix: 'msg',
-        }),
-        _internal: {
-          generateId: mockId({ prefix: 'id' }),
-          currentDate: () => new Date(0),
-        },
+        model: modelWithReasoning,
+        ...defaultSettings(),
       });
 
       result.consumeStream();
@@ -1725,15 +1701,10 @@ describe('streamText', () => {
       expect(await result.steps).toMatchSnapshot();
     });
 
-    it('should contain sources', async () => {
+    it('should add the sources from the model response to the step result', async () => {
       const result = streamText({
         model: modelWithSources,
-        prompt: 'prompt',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-        _internal: {
-          generateId: mockId({ prefix: 'id' }),
-          currentDate: () => new Date(0),
-        },
+        ...defaultSettings(),
       });
 
       result.consumeStream();
