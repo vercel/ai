@@ -21,19 +21,16 @@ Creates a fetch function that applies AWS Signature Version 4 signing.
  */
 export function createSigV4FetchFunction(
   getCredentials: () => BedrockCredentials,
-  originalFetch?: FetchFunction,
+  fetch: FetchFunction = globalThis.fetch,
 ): FetchFunction {
-  const fetchImpl = originalFetch || globalThis.fetch;
   return async (
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
-    // We only need to sign POST requests that have a body.
     if (init?.method?.toUpperCase() !== 'POST' || !init?.body) {
-      return fetchImpl(input, init);
+      return fetch(input, init);
     }
 
-    // Determine the URL from the fetch input.
     const url =
       typeof input === 'string'
         ? input
@@ -42,37 +39,29 @@ export function createSigV4FetchFunction(
         : input.url;
 
     const originalHeaders = extractHeaders(init.headers);
-    const bodyString = prepareBodyString(init.body);
+    const body = prepareBodyString(init.body);
     const credentials = getCredentials();
     const signer = new AwsV4Signer({
       url,
       method: 'POST',
       headers: Object.entries(removeUndefinedEntries(originalHeaders)),
-      body: bodyString,
+      body,
       region: credentials.region,
       accessKeyId: credentials.accessKeyId,
       secretAccessKey: credentials.secretAccessKey,
-      ...(credentials.sessionToken && {
-        sessionToken: credentials.sessionToken,
-      }),
+      sessionToken: credentials.sessionToken,
       service: 'bedrock',
     });
 
-    const result = await signer.sign();
-    const signedHeaders = convertHeadersToRecord(result.headers);
-    const mergedHeaders = removeUndefinedEntries(
-      combineHeaders(originalHeaders, signedHeaders),
-    );
-
-    // Create a new RequestInit with the merged headers including the signed headers.
-    const newInit: RequestInit = {
+    const signingResult = await signer.sign();
+    const signedHeaders = convertHeadersToRecord(signingResult.headers);
+    return fetch(input, {
       ...init,
-      body: bodyString,
-      headers: mergedHeaders,
-    };
-
-    // Invoke the underlying fetch implementation with the new headers.
-    return fetchImpl(input, newInit);
+      body,
+      headers: removeUndefinedEntries(
+        combineHeaders(originalHeaders, signedHeaders),
+      ),
+    });
   };
 }
 
@@ -84,7 +73,6 @@ function prepareBodyString(body: BodyInit | undefined): string {
   } else if (body instanceof ArrayBuffer) {
     return new TextDecoder().decode(new Uint8Array(body));
   } else {
-    // Fallback: assume it's a plain object.
     return JSON.stringify(body);
   }
 }
