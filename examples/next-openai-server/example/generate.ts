@@ -2,7 +2,7 @@ import { createRemoteProvider } from '@ai-sdk/remote-provider';
 import { generateText } from 'ai';
 
 const remote = createRemoteProvider({
-  baseURL: 'http://localhost:3000/v1',
+  baseURL: 'http://localhost:3000/v1/ai/language-model',
   apiKey: 'abc',
 });
 
