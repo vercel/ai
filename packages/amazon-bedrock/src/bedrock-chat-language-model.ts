@@ -19,6 +19,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   BedrockConverseInput,
+  BedrockStopReason,
   BEDROCK_STOP_REASONS,
   BedrockToolInputSchema,
 } from './bedrock-api-types';
@@ -158,8 +159,8 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
                     name: mode.tool.name,
                     description: mode.tool.description,
                     inputSchema: {
-                      json: mode.tool.parameters,
-                    } as BedrockToolInputSchema,
+                      json: mode.tool.parameters as JSONObject,
+                    },
                   },
                 },
               ],
@@ -220,7 +221,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
           toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
           args: JSON.stringify(part.toolUse?.input ?? ''),
         })),
-      finishReason: mapBedrockFinishReason(response.stopReason),
+      finishReason: mapBedrockFinishReason(
+        response.stopReason as BedrockStopReason,
+      ),
       usage: {
         promptTokens: response.usage?.inputTokens ?? Number.NaN,
         completionTokens: response.usage?.outputTokens ?? Number.NaN,
@@ -314,7 +317,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
             if (value.messageStop) {
               finishReason = mapBedrockFinishReason(
-                value.messageStop.stopReason,
+                value.messageStop.stopReason as BedrockStopReason,
               );
             }
 

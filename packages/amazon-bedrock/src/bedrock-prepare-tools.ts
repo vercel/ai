@@ -1,13 +1,10 @@
 import {
+  JSONObject,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
-  BedrockTool,
-  BedrockToolConfiguration,
-  BedrockToolInputSchema,
-} from './bedrock-api-types';
+import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
 
 export function prepareTools(
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
@@ -39,8 +36,8 @@ export function prepareTools(
           name: tool.name,
           description: tool.description,
           inputSchema: {
-            json: tool.parameters,
-          } as BedrockToolInputSchema,
+            json: tool.parameters as JSONObject,
+          },
         },
       });
     }

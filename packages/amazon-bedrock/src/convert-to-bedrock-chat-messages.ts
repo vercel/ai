@@ -1,4 +1,5 @@
 import {
+  JSONObject,
   LanguageModelV1Message,
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
@@ -168,7 +169,7 @@ export function convertToBedrockChatMessages(
                   toolUse: {
                     toolUseId: part.toolCallId,
                     name: part.toolName,
-                    input: part.args as any,
+                    input: part.args as JSONObject,
                   },
                 });
                 break;

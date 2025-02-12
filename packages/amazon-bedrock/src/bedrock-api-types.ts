@@ -1,3 +1,4 @@
+import { JSONObject } from '@ai-sdk/provider';
 import { Resolvable } from '@ai-sdk/provider-utils';
 
 export interface BedrockConverseInput {
@@ -13,7 +14,7 @@ export interface BedrockConverseInput {
     topP?: number;
     stopSequences?: string[];
   };
-  additionalModelRequestFields?: Record<string, any>;
+  additionalModelRequestFields?: Record<string, unknown>;
   guardrailConfig?:
     | BedrockGuardrailConfiguration
     | BedrockGuardrailStreamConfiguration
@@ -24,21 +25,21 @@ export interface BedrockGuardrailConfiguration {
   guardrails?: Array<{
     name: string;
     description?: string;
-    parameters?: Record<string, any>;
+    parameters?: Record<string, unknown>;
   }>;
 }
 
 export type BedrockGuardrailStreamConfiguration = BedrockGuardrailConfiguration;
 
 export interface BedrockToolInputSchema {
-  json: Record<string, any>;
+  json: Record<string, unknown>;
 }
 
 export interface BedrockTool {
   toolSpec: {
     name: string;
     description?: string;
-    inputSchema: { json: any };
+    inputSchema: { json: JSONObject };
   };
 }
 
@@ -64,9 +65,7 @@ export const BEDROCK_STOP_REASONS = [
   'tool_use',
 ] as const;
 
-export type BedrockStopReason =
-  | (typeof BEDROCK_STOP_REASONS)[number]
-  | (string & {});
+export type BedrockStopReason = (typeof BEDROCK_STOP_REASONS)[number];
 
 export type BedrockImageFormat = 'jpeg' | 'png' | 'gif';
 export type BedrockDocumentFormat = 'pdf' | 'txt' | 'md';
@@ -82,7 +81,7 @@ export interface BedrockDocumentBlock {
 }
 
 export interface BedrockGuardrailConverseContentBlock {
-  guardContent: any;
+  guardContent: unknown;
 }
 
 export interface BedrockImageBlock {
@@ -105,7 +104,7 @@ export interface BedrockToolUseBlock {
   toolUse: {
     toolUseId: string;
     name: string;
-    input: Record<string, any>;
+    input: Record<string, unknown>;
   };
 }
 
