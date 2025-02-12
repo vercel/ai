@@ -939,8 +939,7 @@ describe('streamText', () => {
 
       const result = streamText({
         model: modelWithReasoning,
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
       });
 
       result.pipeDataStreamToResponse(mockResponse, {
@@ -962,8 +961,7 @@ describe('streamText', () => {
 
       const result = streamText({
         model: modelWithSources,
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
       });
 
       result.pipeDataStreamToResponse(mockResponse, {
