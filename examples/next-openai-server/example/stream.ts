@@ -1,15 +1,15 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { createRemoteProvider } from '@ai-sdk/remote-provider';
 import { streamText } from 'ai';
 import 'dotenv/config';
 
-const openai = createOpenAI({
-  baseURL: 'http://localhost:3000/v1',
+const remote = createRemoteProvider({
+  baseURL: 'http://localhost:3000/v1/ai/language-model',
   apiKey: 'abc',
 });
 
 async function main() {
   const result = streamText({
-    model: openai('openai/gpt-4o-mini'),
+    model: remote('openai/gpt-4o-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
     onError: error => {
       console.error(error);
