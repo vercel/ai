@@ -251,7 +251,7 @@ Allows you to easily create a conversational user interface for your chatbot app
             },
             {
               name: 'parts',
-              type: 'Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>',
+              type: 'Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart>',
               description:
                 'An array of message parts that are associated with the message.',
               properties: [
@@ -386,6 +386,48 @@ Allows you to easily create a conversational user interface for your chatbot app
                               name: 'result',
                               type: 'any',
                               description: 'The result of the tool call.',
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: 'SourceUIPart',
+                  description: 'A source part of the message.',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: '"source"',
+                    },
+                    {
+                      name: 'source',
+                      type: 'Source',
+                      properties: [
+                        {
+                          type: 'Source',
+                          parameters: [
+                            {
+                              name: 'sourceType',
+                              type: "'url'",
+                              description: 'The type of the source.',
+                            },
+                            {
+                              name: 'id',
+                              type: 'string',
+                              description: 'ID of the source.',
+                            },
+                            {
+                              name: 'url',
+                              type: 'string',
+                              description: 'URL of the source.',
+                            },
+                            {
+                              name: 'title',
+                              type: 'string',
+                              isOptional: true,
+                              description: 'The title of the source.',
                             },
                           ],
                         },
