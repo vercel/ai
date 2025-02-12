@@ -7,6 +7,7 @@ The **Capability Checker** tool provides a standardized test suite for validatin
 The Capability Checker tool includes:
 
 1. **Core Test Suite Generator:** Runs standardized tests across various capabilities such as:
+
    - Text Generation
    - Object Generation
    - Tool Usage
@@ -54,11 +55,10 @@ pnpm run test:capabilities
 Test results are output as JSON files in the `results` directory using the following structure:
 
 - Files are saved as: `<provider>/<model-type>/<model-id>.json`  
-  (e.g. `openai/chat/gpt-4-turbo-preview.json`)
-- Each file contains a machine-readable JSON object detailing:
+  (e.g. `openai/language/gpt-4-turbo-preview.json`)
+- Each file contains a JSON object detailing:
   - The timestamp of the test run
   - Pass/fail status and error details for each capability
-  - Token usage and any additional metadata
 
 Example result:
 

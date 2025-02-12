@@ -41,7 +41,7 @@ export class TestResultStore {
     testResult: TestResult,
   ) {
     const providerDir = path.join(this.baseOutputDir, provider);
-    const modelTypeDir = path.join(providerDir, `${modelType}-model`);
+    const modelTypeDir = path.join(providerDir, `${modelType}`);
     await fs.mkdir(modelTypeDir, { recursive: true });
 
     const safeModelId = modelId.replace(/\//g, '--');
