@@ -18,6 +18,27 @@ import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
 
+export type DataStreamOptions = {
+  /**
+   * Send usage parts to the client.
+   * Default to true.
+   */
+  // TODO change default to false in v5: secure by default
+  sendUsage?: boolean;
+
+  /**
+   * Send reasoning parts to the client.
+   * Default to false.
+   */
+  sendReasoning?: boolean;
+
+  /**
+   * Send source parts to the client.
+   * Default to false.
+   */
+  sendSources?: boolean;
+};
+
 /**
 A result object for accessing different stream types and additional information.
  */
@@ -156,12 +177,12 @@ triggering the `onFinish` callback and the promise resolution.
   @param sendReasoning whether to send the reasoning information to the client. Defaults to false.
   @return A data stream.
      */
-  toDataStream(options?: {
-    data?: StreamData;
-    getErrorMessage?: (error: unknown) => string;
-    sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
-    sendReasoning?: boolean; // default to false
-  }): ReadableStream<Uint8Array>;
+  toDataStream(
+    options?: {
+      data?: StreamData;
+      getErrorMessage?: (error: unknown) => string;
+    } & DataStreamOptions,
+  ): ReadableStream<Uint8Array>;
 
   /**
    * Merges the result as a data stream into another data stream.
@@ -172,10 +193,7 @@ triggering the `onFinish` callback and the promise resolution.
    */
   mergeIntoDataStream(
     dataStream: DataStreamWriter,
-    options?: {
-      sendUsage?: boolean;
-      sendReasoning?: boolean;
-    },
+    options?: DataStreamOptions,
   ): void;
 
   /**
@@ -195,9 +213,7 @@ triggering the `onFinish` callback and the promise resolution.
     options?: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
-      sendReasoning?: boolean; // default to false
-    },
+    } & DataStreamOptions,
   ): void;
 
   /**
@@ -228,9 +244,7 @@ triggering the `onFinish` callback and the promise resolution.
     options?: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
-      sendReasoning?: boolean; // default to false
-    },
+    } & DataStreamOptions,
   ): Response;
 
   /**

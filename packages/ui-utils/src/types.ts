@@ -1,5 +1,8 @@
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
-import { ToolCall, ToolResult, FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  LanguageModelV1FinishReason,
+  LanguageModelV1Source,
+} from '@ai-sdk/provider';
+import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from './duplicated/usage';
 
 export * from './use-assistant-types';
@@ -104,7 +107,9 @@ that the assistant made as part of this message.
    * User messages can have text parts.
    */
   // note: optional on the Message type (which serves as input)
-  parts?: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
+  parts?: Array<
+    TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart
+  >;
 }
 
 export type UIMessage = Message & {
@@ -114,7 +119,9 @@ export type UIMessage = Message & {
    * Assistant messages can have text, reasoning and tool invocation parts.
    * User messages can have text parts.
    */
-  parts: Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart>;
+  parts: Array<
+    TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart
+  >;
 };
 
 /**
@@ -151,6 +158,18 @@ export type ToolInvocationUIPart = {
    * The tool invocation.
    */
   toolInvocation: ToolInvocation;
+};
+
+/**
+ * A source part of a message.
+ */
+export type SourceUIPart = {
+  type: 'source';
+
+  /**
+   * The source.
+   */
+  source: LanguageModelV1Source;
 };
 
 export type CreateMessage = Omit<Message, 'id'> & {

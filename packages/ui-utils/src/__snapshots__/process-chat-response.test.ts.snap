@@ -450,7 +450,7 @@ exports[`scenario: server provides reasoning > should call the onFinish function
   {
     "finishReason": "stop",
     "message": {
-      "content": "Hello, world!",
+      "content": "Hi there!",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -459,7 +459,7 @@ exports[`scenario: server provides reasoning > should call the onFinish function
           "type": "reasoning",
         },
         {
-          "text": "Hello, world!",
+          "text": "Hi there!",
           "type": "text",
         },
       ],
@@ -552,7 +552,7 @@ exports[`scenario: server provides reasoning > should call the update function w
   {
     "data": [],
     "message": {
-      "content": "Hello, ",
+      "content": "Hi there!",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -561,7 +561,7 @@ exports[`scenario: server provides reasoning > should call the update function w
           "type": "reasoning",
         },
         {
-          "text": "Hello, ",
+          "text": "Hi there!",
           "type": "text",
         },
       ],
@@ -571,24 +571,84 @@ exports[`scenario: server provides reasoning > should call the update function w
     },
     "replaceLastMessage": false,
   },
+]
+`;
+
+exports[`scenario: server provides sources > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "content": "The weather in London is sunny.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+        {
+          "source": {
+            "id": "source-id",
+            "sourceType": "url",
+            "title": "Example",
+            "url": "https://example.com",
+          },
+          "type": "source",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "completionTokens": 7,
+      "promptTokens": 14,
+      "totalTokens": 21,
+    },
+  },
+]
+`;
+
+exports[`scenario: server provides sources > should call the update function with the correct arguments 1`] = `
+[
   {
     "data": [],
     "message": {
-      "content": "Hello, world!",
+      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
-      "id": "step_123",
+      "id": "id-0",
       "parts": [
         {
-          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
-          "type": "reasoning",
-        },
-        {
-          "text": "Hello, world!",
+          "text": "The weather in London is sunny.",
           "type": "text",
         },
       ],
-      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
-      "revisionId": "id-6",
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "The weather in London is sunny.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+        {
+          "source": {
+            "id": "source-id",
+            "sourceType": "url",
+            "title": "Example",
+            "url": "https://example.com",
+          },
+          "type": "source",
+        },
+      ],
+      "revisionId": "id-2",
       "role": "assistant",
     },
     "replaceLastMessage": false,

@@ -48,7 +48,11 @@ import {
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
 import { ResponseMessage, StepResult } from './step-result';
-import { StreamTextResult, TextStreamPart } from './stream-text-result';
+import {
+  DataStreamOptions,
+  StreamTextResult,
+  TextStreamPart,
+} from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
@@ -1516,10 +1520,12 @@ However, the LLM results are expected to be small enough to not cause issues.
     getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
     sendReasoning = false,
+    sendSources = false,
   }: {
     getErrorMessage: ((error: unknown) => string) | undefined;
     sendUsage: boolean | undefined;
     sendReasoning: boolean | undefined;
+    sendSources: boolean | undefined;
   }): ReadableStream<DataStreamString> {
     return this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, DataStreamString>({
@@ -1541,7 +1547,11 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'source': {
-              // not implemented yet
+              if (sendSources) {
+                controller.enqueue(
+                  formatDataStreamPart('source', chunk.source),
+                );
+              }
               break;
             }
 
@@ -1653,12 +1663,12 @@ However, the LLM results are expected to be small enough to not cause issues.
       getErrorMessage,
       sendUsage,
       sendReasoning,
-    }: ResponseInit & {
-      data?: StreamData;
-      getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
-      sendReasoning?: boolean; // default to false
-    } = {},
+      sendSources,
+    }: ResponseInit &
+      DataStreamOptions & {
+        data?: StreamData;
+        getErrorMessage?: (error: unknown) => string;
+      } = {},
   ) {
     writeToServerResponse({
       response,
@@ -1673,6 +1683,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         getErrorMessage,
         sendUsage,
         sendReasoning,
+        sendSources,
       }),
     });
   }
@@ -1690,33 +1701,29 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   // TODO breaking change 5.0: remove pipeThrough(new TextEncoderStream())
-  toDataStream(options?: {
-    data?: StreamData;
-    getErrorMessage?: (error: unknown) => string;
-    sendUsage?: boolean;
-    sendReasoning?: boolean;
-  }) {
+  toDataStream(
+    options?: DataStreamOptions & {
+      data?: StreamData;
+      getErrorMessage?: (error: unknown) => string;
+    },
+  ) {
     const stream = this.toDataStreamInternal({
       getErrorMessage: options?.getErrorMessage,
       sendUsage: options?.sendUsage,
       sendReasoning: options?.sendReasoning,
+      sendSources: options?.sendSources,
     }).pipeThrough(new TextEncoderStream());
 
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
   }
 
-  mergeIntoDataStream(
-    writer: DataStreamWriter,
-    options?: {
-      sendUsage?: boolean;
-      sendReasoning?: boolean;
-    },
-  ) {
+  mergeIntoDataStream(writer: DataStreamWriter, options?: DataStreamOptions) {
     writer.merge(
       this.toDataStreamInternal({
         getErrorMessage: writer.onError,
         sendUsage: options?.sendUsage,
         sendReasoning: options?.sendReasoning,
+        sendSources: options?.sendSources,
       }),
     );
   }
@@ -1729,14 +1736,20 @@ However, the LLM results are expected to be small enough to not cause issues.
     getErrorMessage,
     sendUsage,
     sendReasoning,
-  }: ResponseInit & {
-    data?: StreamData;
-    getErrorMessage?: (error: unknown) => string;
-    sendUsage?: boolean;
-    sendReasoning?: boolean;
-  } = {}): Response {
+    sendSources,
+  }: ResponseInit &
+    DataStreamOptions & {
+      data?: StreamData;
+      getErrorMessage?: (error: unknown) => string;
+    } = {}): Response {
     return new Response(
-      this.toDataStream({ data, getErrorMessage, sendUsage, sendReasoning }),
+      this.toDataStream({
+        data,
+        getErrorMessage,
+        sendUsage,
+        sendReasoning,
+        sendSources,
+      }),
       {
         status,
         statusText,

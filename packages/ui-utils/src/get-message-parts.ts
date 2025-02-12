@@ -2,6 +2,7 @@ import {
   CreateMessage,
   Message,
   ReasoningUIPart,
+  SourceUIPart,
   TextUIPart,
   ToolInvocationUIPart,
   UIMessage,
@@ -9,7 +10,7 @@ import {
 
 export function getMessageParts(
   message: Message | CreateMessage | UIMessage,
-): (TextUIPart | ReasoningUIPart | ToolInvocationUIPart)[] {
+): (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart)[] {
   return (
     message.parts ?? [
       ...(message.toolInvocations

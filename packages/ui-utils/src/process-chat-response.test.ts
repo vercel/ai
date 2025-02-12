@@ -569,8 +569,7 @@ describe('scenario: server provides reasoning', () => {
         'reasoning',
         ' I will pry for valuable information.',
       ),
-      formatDataStreamPart('text', 'Hello, '),
-      formatDataStreamPart('text', 'world!'),
+      formatDataStreamPart('text', 'Hi there!'),
       formatDataStreamPart('finish_step', {
         finishReason: 'stop',
         usage: { completionTokens: 5, promptTokens: 10 },
@@ -632,6 +631,46 @@ describe('scenario: onToolCall is executed', () => {
   });
 
   it('should call the update function twice with the correct arguments', async () => {
+    expect(updateCalls).toMatchSnapshot();
+  });
+
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toMatchSnapshot();
+  });
+});
+
+describe('scenario: server provides sources', () => {
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatDataStreamPart('text', 'The weather in London is sunny.'),
+      formatDataStreamPart('source', {
+        sourceType: 'url',
+        id: 'source-id',
+        url: 'https://example.com',
+        title: 'Example',
+      }),
+      formatDataStreamPart('finish_step', {
+        finishReason: 'stop',
+        usage: { completionTokens: 2, promptTokens: 4 },
+        isContinued: false,
+      }),
+      formatDataStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 7, promptTokens: 14 },
+      }),
+    ]);
+
+    await processChatResponse({
+      stream,
+      update,
+      onFinish,
+      generateId: mockId(),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+      lastMessage: undefined,
+    });
+  });
+
+  it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toMatchSnapshot();
   });
 

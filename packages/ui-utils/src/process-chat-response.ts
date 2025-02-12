@@ -162,6 +162,14 @@ export async function processChatResponse({
       message.reasoning = (message.reasoning ?? '') + value;
       execUpdate();
     },
+    onSourcePart(value) {
+      message.parts.push({
+        type: 'source',
+        source: value,
+      });
+
+      execUpdate();
+    },
     onToolCallStreamingStartPart(value) {
       if (message.toolInvocations == null) {
         message.toolInvocations = [];

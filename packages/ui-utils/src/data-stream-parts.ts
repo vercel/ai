@@ -1,4 +1,7 @@
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import {
+  LanguageModelV1FinishReason,
+  LanguageModelV1Source,
+} from '@ai-sdk/provider';
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { JSONValue } from './types';
 
@@ -354,6 +357,21 @@ const reasoningStreamPart: DataStreamPart<'g', 'reasoning', string> = {
   },
 };
 
+const sourcePart: DataStreamPart<'h', 'source', LanguageModelV1Source> = {
+  code: 'h',
+  name: 'source',
+  parse: (value: JSONValue) => {
+    if (value == null || typeof value !== 'object') {
+      throw new Error('"source" parts expect a Source object.');
+    }
+
+    return {
+      type: 'source',
+      value: value as LanguageModelV1Source,
+    };
+  },
+};
+
 const dataStreamParts = [
   textStreamPart,
   dataStreamPart,
@@ -367,6 +385,7 @@ const dataStreamParts = [
   finishStepStreamPart,
   startStepStreamPart,
   reasoningStreamPart,
+  sourcePart,
 ] as const;
 
 export const dataStreamPartsByCode = Object.fromEntries(
