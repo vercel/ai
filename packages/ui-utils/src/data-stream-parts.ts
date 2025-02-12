@@ -360,23 +360,6 @@ const reasoningStreamPart: DataStreamPart<'g', 'reasoning', string> = {
   },
 };
 
-const sourcePart: DataStreamPart<'h', 'source', LanguageModelV1Source> = {
-  code: 'h',
-  name: 'source',
-  parse: (value: JSONValue) => {
-    if (value == null || typeof value !== 'object' || !('type' in value)) {
-      throw new Error(
-        '"source" parts expect an object with a "type" property.',
-      );
-    }
-
-    return {
-      type: 'source',
-      value: value as LanguageModelV1Source,
-    };
-  },
-};
-
 const dataStreamParts = [
   textStreamPart,
   dataStreamPart,
@@ -390,7 +373,6 @@ const dataStreamParts = [
   finishStepStreamPart,
   startStepStreamPart,
   reasoningStreamPart,
-  sourcePart,
 ] as const;
 
 export const dataStreamPartsByCode = Object.fromEntries(
