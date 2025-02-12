@@ -38,18 +38,13 @@ export class RemoteLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    console.log('doGenerate', JSON.stringify(options, null, 2));
-
-    const headers = combineHeaders(this.config.headers(), options.headers, {
-      'ai-language-model-specification-version': '1',
-      'ai-language-model-id': this.modelId,
-    });
-
-    console.log(JSON.stringify(headers, null, 2));
-
     const { value } = await postJsonToApi({
       url: this.config.baseURL,
-      headers: headers,
+      headers: combineHeaders(this.config.headers(), options.headers, {
+        'ai-language-model-specification-version': '1',
+        'ai-language-model-id': this.modelId,
+        'ai-language-model-streaming': 'false',
+      }),
       body: options,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: z.any(),
@@ -60,7 +55,7 @@ export class RemoteLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
-    console.log(JSON.stringify(value, null, 2));
+    // TODO what about response, e.g. headers, rawCall, rawResponse, request, response
 
     return value;
   }
