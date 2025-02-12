@@ -1616,47 +1616,47 @@ importers:
   packages/model-tests:
     dependencies:
       '@ai-sdk/cerebras':
-        specifier: 0.1.6
-        version: 0.1.6(zod@3.23.8)
+        specifier: 0.1.8
+        version: link:../cerebras
       '@ai-sdk/deepinfra':
-        specifier: 0.1.6
-        version: 0.1.6(zod@3.23.8)
+        specifier: 0.1.9
+        version: link:../deepinfra
       '@ai-sdk/deepseek':
-        specifier: 0.1.6
-        version: 0.1.6(zod@3.23.8)
+        specifier: 0.1.8
+        version: link:../deepseek
       '@ai-sdk/fireworks':
-        specifier: 0.1.6
-        version: 0.1.6(zod@3.23.8)
+        specifier: 0.1.8
+        version: link:../fireworks
       '@ai-sdk/google':
-        specifier: 1.1.6
-        version: 1.1.6(zod@3.23.8)
+        specifier: 1.1.11
+        version: link:../google
       '@ai-sdk/google-vertex':
-        specifier: 2.1.6
-        version: 2.1.6(zod@3.23.8)
+        specifier: 2.1.12
+        version: link:../google-vertex
       '@ai-sdk/luma':
-        specifier: 0.0.3
-        version: 0.0.3(zod@3.23.8)
-      '@ai-sdk/openai':
-        specifier: 1.1.5
-        version: 1.1.5(zod@3.23.8)
-      '@ai-sdk/perplexity':
         specifier: 0.0.4
-        version: 0.0.4(zod@3.23.8)
+        version: link:../luma
+      '@ai-sdk/openai':
+        specifier: 1.1.9
+        version: link:../openai
+      '@ai-sdk/perplexity':
+        specifier: 0.0.7
+        version: link:../perplexity
       '@ai-sdk/provider':
-        specifier: 1.0.6
-        version: 1.0.6
+        specifier: 1.0.7
+        version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.5
-        version: 2.1.5(zod@3.23.8)
+        specifier: 2.1.6
+        version: link:../provider-utils
       '@ai-sdk/togetherai':
-        specifier: 0.1.6
-        version: 0.1.6(zod@3.23.8)
+        specifier: 0.1.9
+        version: link:../togetherai
       '@ai-sdk/xai':
-        specifier: 1.1.6
-        version: 1.1.6(zod@3.23.8)
+        specifier: 1.1.8
+        version: link:../xai
       ai:
-        specifier: 4.1.11
-        version: 4.1.11(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)
+        specifier: 4.1.34
+        version: link:../ai
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
@@ -2229,118 +2229,6 @@ packages:
 
   '@adobe/css-tools@4.4.0':
     resolution: {integrity: sha512-Ff9+ksdQQB3rMncgqDK78uLznstjyfIf2Arnh22pW8kBpLs6rpKDwgnZT46hin5Hl1WzazzK64DOrhSwYpS7bQ==}
-
-  '@ai-sdk/anthropic@1.1.5':
-    resolution: {integrity: sha512-HGs69t2dsHlt+c4nCeUcdx5ojXs25dH8xly88TZZoyjfiCRWjmyjQxiPHZL2ME864a+vEpQSmvn8DgvMFA4p2g==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/cerebras@0.1.6':
-    resolution: {integrity: sha512-tlsUTpx6YclRP4SfX6Qbep9jS3I1sCd48ITDXwJBHk8rb+3TWwsIKQmfXGG7bpUnZsner+2nEcq3LxoQs1z5vA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/deepinfra@0.1.6':
-    resolution: {integrity: sha512-AwGlOYVK8GE1UggOrTdR93KQs/yxOjHeTD9VdL1QN7grVZJI4zWWqaWFQJYOyc+bouF73LFr2pErbzbNer4frQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/deepseek@0.1.6':
-    resolution: {integrity: sha512-/bQQ4rpE32T3Ru3VGUAXh1PQf7cWnNFaJ1v3tmbe8EJd22g8Z808eTY1K0RvFhEyYjp4UbbSPvOy94oH8XcjMA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/fireworks@0.1.6':
-    resolution: {integrity: sha512-fTqmWPpLpnF8l5ZSNB2vT5lg85Y0kYICe4rBKcEzdJnx4wjsyVKm6UgGo1JLIB20D+6pem2M/FkRcinRf3GFZw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/google-vertex@2.1.6':
-    resolution: {integrity: sha512-P4wFwolk2Wk2UyO/uOVtnZZDcievt0SPffvYV27xY7RbYuvByDNeEPo7EjvwZTxUCphO3d8Pj19e2hV3PFahIA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/google@1.1.6':
-    resolution: {integrity: sha512-W9A2jYbPa8WlqyrLohWncIZ0fGWtyUuxjQNGhhMhlAdA+PZeS2pEy0hFJPr8IRRtxVYfRSbjnTpUrJO/vbcnqA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/luma@0.0.3':
-    resolution: {integrity: sha512-tIQI+JinD77OCR1XUubAGZ1c1tTPNNmlygqIPi4+7kfS/AW/yy/sjccumCQgshlCDPyD0giGU/NFmRCz8PJ2jQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/openai-compatible@0.1.6':
-    resolution: {integrity: sha512-8byBCRZqdhIP4C6ch4kZ1yjJF6yLUCXik82+71KF3okv5Jl+Gi6qo3P7MJb/LpkdSvXa6lEroNXPr4itThWbxA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/openai@1.1.5':
-    resolution: {integrity: sha512-pmZPeb99oWlV3PqMH5DVWtMGZgwWznInjdF0Bi4q1mKoEjomDXSYw+imvzMoSbpCrcGB9uFFTVx2VeR/jvcppg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/perplexity@0.0.4':
-    resolution: {integrity: sha512-ZWk+Qk0SSxu7a7eZwUTC7PBGyo+ktY96YZYriQ967c58pzvZgnP4rioYri0Wn7jd/VE9JiOIghYI/NxvRUtMZA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/provider-utils@2.1.5':
-    resolution: {integrity: sha512-PcNR7E4ovZGV/J47gUqaFlvzorgca6uUfN5WzfXJSFWeOeLunN+oxRVwgUOwj0zbmO0yGQTHQD+FHVw8s3Rz8w==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
-  '@ai-sdk/provider@1.0.6':
-    resolution: {integrity: sha512-hwj/gFNxpDgEfTaYzCYoslmw01IY9kWLKl/wf8xuPvHtQIzlfXWmmUwc8PnCwxyt8cKzIuV0dfUghCf68HQ0SA==}
-    engines: {node: '>=18'}
-
-  '@ai-sdk/react@1.1.6':
-    resolution: {integrity: sha512-kP5pimLyNWldw8+0j3ym+AACFEXcQHdELNtk45wDJA3HoH486x/zffdn7yLc3c1DOu5apew+COl8CNL4A+2E4g==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      react: ^18 || ^19 || ^19.0.0-rc
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      react:
-        optional: true
-      zod:
-        optional: true
-
-  '@ai-sdk/togetherai@0.1.6':
-    resolution: {integrity: sha512-WElZ2sFs0kgnrjoI4bWNm8jOqNaZKARZWhvh9ccHeAJr1fyp0Ty2bM35aNFN7taUrTL4eViXr7suDEU5rgnGEg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/ui-utils@1.1.6':
-    resolution: {integrity: sha512-YAwZhFwpIcvWERIjkET2o2MAwMFfJG18WdtcIjtxxMW7hA0bt5cliOV78DVcwRrxqJ2IKBlxaFmwUjW6M4SdOQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
-  '@ai-sdk/xai@1.1.6':
-    resolution: {integrity: sha512-KP60K0mIgsRc6h9CNzm9LI4AGinkFpNOFBcIUqDmCKV4oAIbF7uUBDnOzyfDCrXVY5FrZGEFRhiAfe5S+ka/Ag==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -7859,18 +7747,6 @@ packages:
   agentkeepalive@4.5.0:
     resolution: {integrity: sha512-5GG/5IbQQpC9FpkRGsSvZI5QYeSCzlJHdpBQntCsuTOxhKD8lqKhrleg2Yi7yvMIf82Ycmmqln9U8V9qwEiJew==}
     engines: {node: '>= 8.0.0'}
-
-  ai@4.1.11:
-    resolution: {integrity: sha512-390dahvdwt/kKCq63dyi3M7pq6iWVk9MpfY9C5+RpyDWb50tohUwxntnUvB4Y/cOXGn4Miavdo1g8JbCxsd7wg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      react: ^18 || ^19 || ^19.0.0-rc
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      react:
-        optional: true
-      zod:
-        optional: true
 
   ajv-formats@2.1.1:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
@@ -14778,128 +14654,6 @@ snapshots:
 
   '@adobe/css-tools@4.4.0': {}
 
-  '@ai-sdk/anthropic@1.1.5(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/cerebras@0.1.6(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/openai-compatible': 0.1.6(zod@3.23.8)
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/deepinfra@0.1.6(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/openai-compatible': 0.1.6(zod@3.23.8)
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/deepseek@0.1.6(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/openai-compatible': 0.1.6(zod@3.23.8)
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/fireworks@0.1.6(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/openai-compatible': 0.1.6(zod@3.23.8)
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/google-vertex@2.1.6(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/anthropic': 1.1.5(zod@3.23.8)
-      '@ai-sdk/google': 1.1.6(zod@3.23.8)
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      google-auth-library: 9.15.0
-      zod: 3.23.8
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
-
-  '@ai-sdk/google@1.1.6(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/luma@0.0.3(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/openai-compatible@0.1.6(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/openai@1.1.5(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/perplexity@0.0.4(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/openai-compatible': 0.1.6(zod@3.23.8)
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/provider-utils@2.1.5(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.6
-      eventsource-parser: 3.0.0
-      nanoid: 3.3.8
-      secure-json-parse: 2.7.0
-    optionalDependencies:
-      zod: 3.23.8
-
-  '@ai-sdk/provider@1.0.6':
-    dependencies:
-      json-schema: 0.4.0
-
-  '@ai-sdk/react@1.1.6(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      '@ai-sdk/ui-utils': 1.1.6(zod@3.23.8)
-      swr: 2.2.5(react@19.0.0-rc-cc1ec60d0d-20240607)
-      throttleit: 2.1.0
-    optionalDependencies:
-      react: 19.0.0-rc-cc1ec60d0d-20240607
-      zod: 3.23.8
-
-  '@ai-sdk/togetherai@0.1.6(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/openai-compatible': 0.1.6(zod@3.23.8)
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/ui-utils@1.1.6(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod-to-json-schema: 3.24.1(zod@3.23.8)
-    optionalDependencies:
-      zod: 3.23.8
-
-  '@ai-sdk/xai@1.1.6(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/openai-compatible': 0.1.6(zod@3.23.8)
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      zod: 3.23.8
-
   '@alloc/quick-lru@5.2.0': {}
 
   '@ampproject/remapping@2.3.0':
@@ -21621,18 +21375,6 @@ snapshots:
   agentkeepalive@4.5.0:
     dependencies:
       humanize-ms: 1.2.1
-
-  ai@4.1.11(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8):
-    dependencies:
-      '@ai-sdk/provider': 1.0.6
-      '@ai-sdk/provider-utils': 2.1.5(zod@3.23.8)
-      '@ai-sdk/react': 1.1.6(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)
-      '@ai-sdk/ui-utils': 1.1.6(zod@3.23.8)
-      '@opentelemetry/api': 1.9.0
-      jsondiffpatch: 0.6.0
-    optionalDependencies:
-      react: 19.0.0-rc-cc1ec60d0d-20240607
-      zod: 3.23.8
 
   ajv-formats@2.1.1(ajv@8.12.0):
     optionalDependencies:
@@ -28865,12 +28607,6 @@ snapshots:
       react: 18.3.1
       use-sync-external-store: 1.2.0(react@18.3.1)
 
-  swr@2.2.5(react@19.0.0-rc-cc1ec60d0d-20240607):
-    dependencies:
-      client-only: 0.0.1
-      react: 19.0.0-rc-cc1ec60d0d-20240607
-      use-sync-external-store: 1.2.0(react@19.0.0-rc-cc1ec60d0d-20240607)
-
   swrev@4.0.0: {}
 
   swrv@1.0.4(vue@3.3.8(typescript@5.6.3)):
@@ -29865,10 +29601,6 @@ snapshots:
   use-sync-external-store@1.2.0(react@18.3.1):
     dependencies:
       react: 18.3.1
-
-  use-sync-external-store@1.2.0(react@19.0.0-rc-cc1ec60d0d-20240607):
-    dependencies:
-      react: 19.0.0-rc-cc1ec60d0d-20240607
 
   utif@2.0.1:
     dependencies:
