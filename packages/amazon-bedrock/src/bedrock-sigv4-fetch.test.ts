@@ -92,9 +92,9 @@ describe('createSigV4FetchFunction', () => {
     // `combinedHeaders` should merge the original headers with the signing
     // headers added by the AwsV4Signer mock.
     const headers = calledInit.headers as Record<string, string>;
-    expect(headers['Content-Type']).toEqual('application/json');
-    expect(headers['Custom-Header']).toEqual('value');
-    expect(headers['Empty-Header']).toBeUndefined();
+    expect(headers['content-type']).toEqual('application/json');
+    expect(headers['custom-header']).toEqual('value');
+    expect(headers['empty-header']).toBeUndefined();
     expect(headers['x-amz-date']).toEqual('20240315T000000Z');
     expect(headers['authorization']).toEqual(
       'AWS4-HMAC-SHA256 Credential=test',

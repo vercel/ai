@@ -98,10 +98,12 @@ function extractHeaders(
       originalHeaders = convertHeadersToRecord(headers);
     } else if (Array.isArray(headers)) {
       for (const [k, v] of headers) {
-        originalHeaders[k] = v;
+        originalHeaders[k.toLowerCase()] = v;
       }
     } else {
-      originalHeaders = { ...headers } as Record<string, string>;
+      originalHeaders = Object.fromEntries(
+        Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]),
+      ) as Record<string, string>;
     }
   }
   return originalHeaders;
@@ -110,7 +112,7 @@ function extractHeaders(
 function convertHeadersToRecord(headers: Headers): Record<string, string> {
   const record: Record<string, string> = {};
   headers.forEach((value, key) => {
-    record[key] = value;
+    record[key.toLowerCase()] = value;
   });
   return record;
 }
