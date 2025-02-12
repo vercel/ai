@@ -432,22 +432,11 @@ export type DataStreamPartType = ReturnType<DataStreamParts['parse']>;
  * 6: {"tool_call": {"id": "tool_0", "type": "function", "function": {"name": "get_current_weather", "arguments": "{\\n\\"location\\": \\"Charlottesville, Virginia\\",\\n\\"format\\": \\"celsius\\"\\n}"}}}
  *```
  */
-export const DataStreamStringPrefixes = {
-  [textStreamPart.name]: textStreamPart.code,
-  [dataStreamPart.name]: dataStreamPart.code,
-  [errorStreamPart.name]: errorStreamPart.code,
-  [messageAnnotationsStreamPart.name]: messageAnnotationsStreamPart.code,
-  [toolCallStreamPart.name]: toolCallStreamPart.code,
-  [toolResultStreamPart.name]: toolResultStreamPart.code,
-  [toolCallStreamingStartStreamPart.name]:
-    toolCallStreamingStartStreamPart.code,
-  [toolCallDeltaStreamPart.name]: toolCallDeltaStreamPart.code,
-  [finishMessageStreamPart.name]: finishMessageStreamPart.code,
-  [finishStepStreamPart.name]: finishStepStreamPart.code,
-  [startStepStreamPart.name]: startStepStreamPart.code,
-  [reasoningStreamPart.name]: reasoningStreamPart.code,
-  [sourcePart.name]: sourcePart.code,
-} as const;
+export const DataStreamStringPrefixes = Object.fromEntries(
+  dataStreamParts.map(part => [part.name, part.code]),
+) as {
+  [K in DataStreamParts['name']]: (typeof dataStreamParts)[number]['code'];
+};
 
 export const validCodes = dataStreamParts.map(part => part.code);
 
