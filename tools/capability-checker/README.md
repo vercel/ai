@@ -1,29 +1,29 @@
-# AI SDK - Model Capabilities Tests
+# AI SDK - Capability Checker
 
-The **Model Capabilities Tests** module contains a standardized test suite for validating AI models against a common set of capabilities and behaviors.
+The **Capability Checker** tool provides a standardized test suite for validating AI models against a set of capabilities.
 
 ## Overview
 
-The test framework consists of:
+The Capability Checker tool includes:
 
-1. A core test suite generator that runs standardized tests across different capabilities e.g.:
+1. **Core Test Suite Generator:** Runs standardized tests across various capabilities such as:
+   - Text Generation
+   - Object Generation
+   - Tool Usage
+   - Search Grounding
+   - Embedding Generation
+   - Image Generation
+   - Audio and PDF Input
 
-   - Text generation
-   - Object generation
-   - Tool usage
-   - Search grounding
-   - Embeddings
-   - Image generation
-
-2. Model-specific test implementations that configure and customize the test suite for each provider and model's unique characteristics.
+2. **Model-Specific Test Implementations:** Configures and customizes tests for individual providers and models based on their unique characteristics.
 
 ## Data-Driven Testing
 
-The framework uses a data-driven approach for running and tracking capability tests:
+Capability Checker uses a data-driven approach to run and track tests:
 
 ### Configuration
 
-- Define model capabilities in `etc/model-capabilities.json`:
+Define your model capabilities in `etc/model-capabilities.json`. For example:
 
 ```json
 {
@@ -43,18 +43,22 @@ The framework uses a data-driven approach for running and tracking capability te
 
 ### Running Tests
 
+Execute the Capability Checker tests with the following command:
+
 ```bash
 pnpm run test:capabilities
 ```
 
 ### Results
 
-Test results are stored as JSON files in the `results` directory:
+Test results are output as JSON files in the `results` directory using the following structure:
 
-- Files are stored as: `<provider>/<model-type>/<model-id>.json` (e.g. `openai/chat/gpt-4-turbo-preview.json`)
-- Each file contains a machine-readable JSON object with test results
-- Results include pass/fail status and error details for each capability
-- Format enables easy parsing and analysis for reporting
+- Files are saved as: `<provider>/<model-type>/<model-id>.json`  
+  (e.g. `openai/chat/gpt-4-turbo-preview.json`)
+- Each file contains a machine-readable JSON object detailing:
+  - The timestamp of the test run
+  - Pass/fail status and error details for each capability
+  - Token usage and any additional metadata
 
 Example result:
 
