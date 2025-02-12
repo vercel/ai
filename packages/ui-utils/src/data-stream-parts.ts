@@ -393,6 +393,12 @@ const dataStreamParts = [
   sourcePart,
 ] as const;
 
+export const dataStreamPartsByCode = Object.fromEntries(
+  dataStreamParts.map(part => [part.code, part]),
+) as {
+  [K in (typeof dataStreamParts)[number]['code']]: (typeof dataStreamParts)[number];
+};
+
 type DataStreamParts = (typeof dataStreamParts)[number];
 
 /**
@@ -402,36 +408,7 @@ type DataStreamPartValueType = {
   [P in DataStreamParts as P['name']]: ReturnType<P['parse']>['value'];
 };
 
-export type DataStreamPartType =
-  | ReturnType<typeof textStreamPart.parse>
-  | ReturnType<typeof dataStreamPart.parse>
-  | ReturnType<typeof errorStreamPart.parse>
-  | ReturnType<typeof messageAnnotationsStreamPart.parse>
-  | ReturnType<typeof toolCallStreamPart.parse>
-  | ReturnType<typeof toolResultStreamPart.parse>
-  | ReturnType<typeof toolCallStreamingStartStreamPart.parse>
-  | ReturnType<typeof toolCallDeltaStreamPart.parse>
-  | ReturnType<typeof finishMessageStreamPart.parse>
-  | ReturnType<typeof finishStepStreamPart.parse>
-  | ReturnType<typeof startStepStreamPart.parse>
-  | ReturnType<typeof reasoningStreamPart.parse>
-  | ReturnType<typeof sourcePart.parse>;
-
-export const dataStreamPartsByCode = {
-  [textStreamPart.code]: textStreamPart,
-  [dataStreamPart.code]: dataStreamPart,
-  [errorStreamPart.code]: errorStreamPart,
-  [messageAnnotationsStreamPart.code]: messageAnnotationsStreamPart,
-  [toolCallStreamPart.code]: toolCallStreamPart,
-  [toolResultStreamPart.code]: toolResultStreamPart,
-  [toolCallStreamingStartStreamPart.code]: toolCallStreamingStartStreamPart,
-  [toolCallDeltaStreamPart.code]: toolCallDeltaStreamPart,
-  [finishMessageStreamPart.code]: finishMessageStreamPart,
-  [finishStepStreamPart.code]: finishStepStreamPart,
-  [startStepStreamPart.code]: startStepStreamPart,
-  [reasoningStreamPart.code]: reasoningStreamPart,
-  [sourcePart.code]: sourcePart,
-} as const;
+export type DataStreamPartType = ReturnType<DataStreamParts['parse']>;
 
 /**
  * The map of prefixes for data in the stream
