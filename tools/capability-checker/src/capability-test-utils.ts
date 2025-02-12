@@ -1,5 +1,5 @@
 import { describe, beforeEach } from 'vitest';
-import type { Capability, ModelCapabilities } from './capability-types';
+import type { Capability, ModelCapabilities } from './types/capability';
 
 const shouldRunTests = (
   capabilities: ModelCapabilities | undefined,

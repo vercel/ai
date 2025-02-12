@@ -5,7 +5,7 @@ import {
   createImageModelWithCapabilities,
   createFeatureTestSuite,
 } from '../feature-test-suite';
-import type { ModelConfig } from '../model-types';
+import type { ModelConfig } from '../types/model';
 import 'dotenv/config';
 
 export default function runTests(modelConfig: ModelConfig) {

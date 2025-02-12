@@ -1,7 +1,7 @@
 import type { APICallError } from 'ai';
-import type { ModelVariants } from './model-types';
-import type { Capability, ModelCapabilities } from './capability-types';
-import type { TestResult } from './test-result-types';
+import type { ModelVariants } from './model';
+import type { Capability, ModelCapabilities } from './capability';
+import type { TestResult } from './test-result';
 import type {
   LanguageModelV1,
   ImageModelV1,

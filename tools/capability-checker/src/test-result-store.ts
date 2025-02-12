@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
-import type { TestResult } from './test-result-types';
+import type { TestResult } from './types/test-result';
 
 export class TestResultStore {
   private readonly baseOutputDir: string;

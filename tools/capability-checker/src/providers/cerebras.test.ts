@@ -4,7 +4,7 @@ import {
   createLanguageModelWithCapabilities,
   createFeatureTestSuite,
 } from '../feature-test-suite';
-import type { ModelConfig } from '../model-types';
+import type { ModelConfig } from '../types/model';
 import { APICallError } from 'ai';
 import 'dotenv/config';
 

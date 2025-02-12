@@ -6,7 +6,7 @@ import {
   createFeatureTestSuite,
 } from '../feature-test-suite';
 import { DeepSeekErrorData } from '@ai-sdk/deepseek';
-import type { ModelConfig } from '../model-types';
+import type { ModelConfig } from '../types/model';
 import 'dotenv/config';
 
 export default function runTests(modelConfig: ModelConfig) {

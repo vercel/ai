@@ -14,7 +14,7 @@ import {
   defaultChatModelCapabilities,
 } from '../feature-test-suite';
 import { ImageModelV1 } from '@ai-sdk/provider';
-import { ModelConfig, ModelWithCapabilities } from '../model-types';
+import { ModelConfig, ModelWithCapabilities } from '../types/model';
 import 'dotenv/config';
 
 const RUNTIME_VARIANTS = {

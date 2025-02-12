@@ -9,10 +9,10 @@ import {
   FeatureTestContext,
   TestFunctionParams,
   TestSuiteOptions,
-} from './testing-types';
-import { CapabilityModelType, ModelCapabilities } from './capability-types';
-import { ModelWithCapabilities } from './model-types';
-import { ModelTypeMap } from './capability-types';
+} from './types/testing';
+import { CapabilityModelType, ModelCapabilities } from './types/capability';
+import { ModelWithCapabilities } from './types/model';
+import { ModelTypeMap } from './types/capability';
 
 export const defaultChatModelCapabilities: ModelCapabilities = [
   'imageInput',

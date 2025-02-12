@@ -3,11 +3,7 @@ import type {
   ImageModelV1,
   EmbeddingModelV1,
 } from '@ai-sdk/provider';
-import type {
-  ModelCapabilities,
-  Capability,
-  ModelType,
-} from './capability-types';
+import type { ModelCapabilities, Capability, ModelType } from './capability';
 
 export type ModelTestOptions =
   | { type: 'language'; model: LanguageModelV1 }

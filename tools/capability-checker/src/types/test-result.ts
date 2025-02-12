@@ -1,4 +1,4 @@
-import type { ModelType } from './capability-types';
+import type { ModelType } from './capability';
 
 export interface CapabilityResult {
   supported: boolean;

@@ -14,7 +14,7 @@ import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
 } from '../feature-test-suite';
-import { ModelConfig, ModelWithCapabilities } from '../model-types';
+import { ModelConfig, ModelWithCapabilities } from '../types/model';
 import 'dotenv/config';
 
 const RUNTIME_VARIANTS = {

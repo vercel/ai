@@ -1,12 +1,12 @@
 import { describe, beforeAll, afterAll, afterEach } from 'vitest';
-import type { ModelConfig } from './model-types';
+import type { ModelConfig } from './types/model';
 import { loadCapabilities, groupModelsByProvider } from './test-config';
 import { TestResultStore } from './test-result-store';
 import path from 'path';
-import { TestResult } from './test-result-types';
-import { Capability } from './capability-types';
+import { TestResult } from './types/test-result';
+import { Capability } from './types/capability';
 import { capabilityTests } from './capabilities';
-import type { FeatureTestContext } from './testing-types';
+import type { FeatureTestContext } from './types/testing';
 
 const CAPABILITIES = Object.keys(capabilityTests) as Capability[];
 

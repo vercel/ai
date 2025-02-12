@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { ModelType, capabilitiesSchema } from './schema-capabilities';
-import type { ModelConfig } from './model-types';
+import type { ModelConfig } from './types/model';
 
 const CAPABILITIES_JSON_PATH = path.join(
   __dirname,
