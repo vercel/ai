@@ -1014,8 +1014,7 @@ describe('streamText', () => {
     it('should create a data stream', async () => {
       const result = streamText({
         model: createTestModel(),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
       });
 
       const dataStream = result.toDataStream();
@@ -1030,8 +1029,7 @@ describe('streamText', () => {
     it('should support merging with existing stream data', async () => {
       const result = streamText({
         model: createTestModel(),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
       });
 
       const streamData = new StreamData();
@@ -1086,8 +1084,7 @@ describe('streamText', () => {
             execute: async ({ value }) => `${value}-result`,
           },
         },
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
       });
 
       expect(
@@ -1136,9 +1133,8 @@ describe('streamText', () => {
             execute: async ({ value }) => `${value}-result`,
           },
         },
-        prompt: 'test-input',
         toolCallStreaming: true,
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
       });
 
       expect(
@@ -1155,8 +1151,7 @@ describe('streamText', () => {
             { type: 'error', error: 'error' },
           ]),
         }),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
       });
 
       const dataStream = result.toDataStream();
@@ -1175,8 +1170,7 @@ describe('streamText', () => {
             { type: 'error', error: 'error' },
           ]),
         }),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
       });
 
       const dataStream = result.toDataStream({
@@ -1202,11 +1196,40 @@ describe('streamText', () => {
             },
           ]),
         }),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
       });
 
       const dataStream = result.toDataStream({ sendUsage: false });
+
+      expect(
+        await convertReadableStreamToArray(
+          dataStream.pipeThrough(new TextDecoderStream()),
+        ),
+      ).toMatchSnapshot();
+    });
+
+    it('should send reasoning content when sendReasoning is true', async () => {
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      const dataStream = result.toDataStream({ sendReasoning: true });
+
+      expect(
+        await convertReadableStreamToArray(
+          dataStream.pipeThrough(new TextDecoderStream()),
+        ),
+      ).toMatchSnapshot();
+    });
+
+    it('should send source content when sendSources is true', async () => {
+      const result = streamText({
+        model: modelWithSources,
+        ...defaultSettings(),
+      });
+
+      const dataStream = result.toDataStream({ sendSources: true });
 
       expect(
         await convertReadableStreamToArray(

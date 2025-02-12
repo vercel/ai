@@ -4100,6 +4100,46 @@ exports[`streamText > result.toDataStream > should mask error messages by defaul
 ]
 `;
 
+exports[`streamText > result.toDataStream > should send reasoning content when sendReasoning is true 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "g:"I will open the conversation"
+",
+  "g:" with witty banter. "
+",
+  "g:"Once the user has relaxed,"
+",
+  "g:" I will pry for valuable information."
+",
+  "0:"Hi"
+",
+  "0:" there!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`streamText > result.toDataStream > should send source content when sendSources is true 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "h:{"sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
+",
+  "0:"Hello!"
+",
+  "h:{"sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
 exports[`streamText > result.toDataStream > should send tool call and tool result stream parts 1`] = `
 [
   "f:{"messageId":"msg-0"}
