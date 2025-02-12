@@ -3047,7 +3047,7 @@ exports[`streamText > result.fullStream > should include reasoning content in fu
     "type": "reasoning",
   },
   {
-    "textDelta": " with witty banter.",
+    "textDelta": " with witty banter. ",
     "type": "reasoning",
   },
   {
@@ -3059,6 +3059,14 @@ exports[`streamText > result.fullStream > should include reasoning content in fu
     "type": "reasoning",
   },
   {
+    "textDelta": "Hi",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": " there!",
+    "type": "text-delta",
+  },
+  {
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "isContinued": false,
@@ -3068,9 +3076,9 @@ exports[`streamText > result.fullStream > should include reasoning content in fu
     "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-2000",
+      "id": "id-0",
       "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:02.000Z,
+      "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "type": "step-finish",
     "usage": {
@@ -3087,9 +3095,9 @@ exports[`streamText > result.fullStream > should include reasoning content in fu
     "providerMetadata": undefined,
     "response": {
       "headers": undefined,
-      "id": "id-2000",
+      "id": "id-0",
       "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:02.000Z,
+      "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "type": "finish",
     "usage": {
@@ -4044,6 +4052,23 @@ exports[`streamText > result.steps > should add the sources from the model respo
 `;
 
 exports[`streamText > result.text > should resolve with full text 1`] = `"Hello, world!"`;
+
+exports[`streamText > result.textStream > should filter out empty text deltas 1`] = `
+[
+  "Hello",
+  ", ",
+  "world!",
+]
+`;
+
+exports[`streamText > result.textStream > should not include reasoning content in textStream 1`] = `
+[
+  "Hi",
+  " there!",
+]
+`;
+
+exports[`streamText > result.textStream > should swallow error to prevent server crash 1`] = `[]`;
 
 exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 [

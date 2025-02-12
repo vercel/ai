@@ -203,53 +203,20 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      assert.deepStrictEqual(
+      expect(
         await convertAsyncIterableToArray(result.textStream),
-        ['Hello', ', ', 'world!'],
-      );
+      ).toMatchSnapshot();
     });
 
     it('should not include reasoning content in textStream', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'reasoning',
-                textDelta: 'I will open the conversation',
-              },
-              {
-                type: 'reasoning',
-                textDelta: ' with witty banter.',
-              },
-              {
-                type: 'reasoning',
-                textDelta: 'Once the user has relaxed,',
-              },
-              {
-                type: 'reasoning',
-                textDelta: ' I will pry for valuable information.',
-              },
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: `world!` },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
-        prompt: 'test-input',
+        model: modelWithReasoning,
+        ...defaultSettings(),
       });
 
-      assert.deepStrictEqual(
+      expect(
         await convertAsyncIterableToArray(result.textStream),
-        ['Hello', ', ', 'world!'],
-      );
+      ).toMatchSnapshot();
     });
 
     it('should swallow error to prevent server crash', async () => {
@@ -264,7 +231,7 @@ describe('streamText', () => {
 
       expect(
         await convertAsyncIterableToArray(result.textStream),
-      ).toStrictEqual([]);
+      ).toMatchSnapshot();
     });
   });
 
@@ -320,32 +287,8 @@ describe('streamText', () => {
 
     it('should include reasoning content in fullStream', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'reasoning', textDelta: 'I will open the conversation' },
-              { type: 'reasoning', textDelta: ' with witty banter.' },
-              { type: 'reasoning', textDelta: 'Once the user has relaxed,' },
-              {
-                type: 'reasoning',
-                textDelta: ' I will pry for valuable information.',
-              },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
-        prompt: 'test-input',
-        _internal: {
-          currentDate: mockValues(new Date(2000)),
-          generateId: mockValues('id-2000'),
-        },
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        model: modelWithReasoning,
+        ...defaultSettings(),
       });
 
       expect(
