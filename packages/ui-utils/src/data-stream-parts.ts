@@ -1,4 +1,7 @@
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import {
+  LanguageModelV1FinishReason,
+  LanguageModelV1Source,
+} from '@ai-sdk/provider';
 import {
   ToolCall as ToolCall,
   ToolResult as ToolResult,
@@ -357,6 +360,23 @@ const reasoningStreamPart: DataStreamPart<'g', 'reasoning', string> = {
   },
 };
 
+const sourcePart: DataStreamPart<'h', 'source', LanguageModelV1Source> = {
+  code: 'h',
+  name: 'source',
+  parse: (value: JSONValue) => {
+    if (value == null || typeof value !== 'object' || !('type' in value)) {
+      throw new Error(
+        '"source" parts expect an object with a "type" property.',
+      );
+    }
+
+    return {
+      type: 'source',
+      value: value as LanguageModelV1Source,
+    };
+  },
+};
+
 const dataStreamParts = [
   textStreamPart,
   dataStreamPart,
@@ -370,6 +390,7 @@ const dataStreamParts = [
   finishStepStreamPart,
   startStepStreamPart,
   reasoningStreamPart,
+  sourcePart,
 ] as const;
 
 type DataStreamParts =
@@ -384,7 +405,8 @@ type DataStreamParts =
   | typeof finishMessageStreamPart
   | typeof finishStepStreamPart
   | typeof startStepStreamPart
-  | typeof reasoningStreamPart;
+  | typeof reasoningStreamPart
+  | typeof sourcePart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -405,7 +427,8 @@ export type DataStreamPartType =
   | ReturnType<typeof finishMessageStreamPart.parse>
   | ReturnType<typeof finishStepStreamPart.parse>
   | ReturnType<typeof startStepStreamPart.parse>
-  | ReturnType<typeof reasoningStreamPart.parse>;
+  | ReturnType<typeof reasoningStreamPart.parse>
+  | ReturnType<typeof sourcePart.parse>;
 
 export const dataStreamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -420,6 +443,7 @@ export const dataStreamPartsByCode = {
   [finishStepStreamPart.code]: finishStepStreamPart,
   [startStepStreamPart.code]: startStepStreamPart,
   [reasoningStreamPart.code]: reasoningStreamPart,
+  [sourcePart.code]: sourcePart,
 } as const;
 
 /**
@@ -458,6 +482,7 @@ export const DataStreamStringPrefixes = {
   [finishStepStreamPart.name]: finishStepStreamPart.code,
   [startStepStreamPart.name]: startStepStreamPart.code,
   [reasoningStreamPart.name]: reasoningStreamPart.code,
+  [sourcePart.name]: sourcePart.code,
 } as const;
 
 export const validCodes = dataStreamParts.map(part => part.code);
