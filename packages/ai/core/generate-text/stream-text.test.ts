@@ -59,13 +59,7 @@ function createTestModel({
   warnings?: LanguageModelV1CallWarning[];
 } = {}): LanguageModelV1 {
   return new MockLanguageModelV1({
-    doStream: async () => ({
-      stream,
-      rawCall,
-      rawResponse,
-      request,
-      warnings,
-    }),
+    doStream: async () => ({ stream, rawCall, rawResponse, request, warnings }),
   });
 }
 
@@ -93,6 +87,35 @@ const modelWithSources = new MockLanguageModelV1({
           providerMetadata: { provider: { custom: 'value2' } },
         },
       },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        logprobs: undefined,
+        usage: { completionTokens: 10, promptTokens: 3 },
+      },
+    ]),
+    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+  }),
+});
+
+const modelWithReasoning = new MockLanguageModelV1({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'response-metadata',
+        id: 'id-0',
+        modelId: 'mock-model-id',
+        timestamp: new Date(0),
+      },
+      { type: 'reasoning', textDelta: 'I will open the conversation' },
+      { type: 'reasoning', textDelta: ' with witty banter. ' },
+      { type: 'reasoning', textDelta: 'Once the user has relaxed,' },
+      {
+        type: 'reasoning',
+        textDelta: ' I will pry for valuable information.',
+      },
+      { type: 'text-delta', textDelta: 'Hi' },
+      { type: 'text-delta', textDelta: ' there!' },
       {
         type: 'finish',
         finishReason: 'stop',
@@ -962,35 +985,36 @@ describe('streamText', () => {
       const mockResponse = createMockServerResponse();
 
       const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            { type: 'reasoning', textDelta: 'I will open the conversation' },
-            { type: 'reasoning', textDelta: ' with witty banter.' },
-            { type: 'reasoning', textDelta: 'Once the user has relaxed,' },
-            {
-              type: 'reasoning',
-              textDelta: ' I will pry for valuable information.',
-            },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              logprobs: undefined,
-              usage: { completionTokens: 10, promptTokens: 3 },
-            },
-          ]),
-        }),
+        model: modelWithReasoning,
         prompt: 'test-input',
         experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       result.pipeDataStreamToResponse(mockResponse, {
         sendReasoning: true,
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.statusCode).toBe(200);
+      expect(mockResponse.headers).toEqual({
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Vercel-AI-Data-Stream': 'v1',
+      });
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
+    it('should write source content to a Node.js response-like object', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: modelWithSources,
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse, {
+        sendSources: true,
       });
 
       await mockResponse.waitForEnd();
@@ -1633,37 +1657,15 @@ describe('streamText', () => {
   describe('result.reasoning', () => {
     it('should contain reasoning from model response', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'reasoning',
-                textDelta: 'I will open the conversation',
-              },
-              {
-                type: 'reasoning',
-                textDelta: ' with witty banter.',
-              },
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: `world!` },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
+        model: modelWithReasoning,
         prompt: 'test-input',
       });
 
       result.consumeStream();
 
       expect(await result.reasoning).toStrictEqual(
-        'I will open the conversation with witty banter.',
+        'I will open the conversation with witty banter. ' +
+          'Once the user has relaxed, I will pry for valuable information.',
       );
     });
   });
