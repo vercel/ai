@@ -519,3 +519,40 @@ it('should convert string enum properties', () => {
     required: ['kind'],
   });
 });
+
+it('should convert array with primitive types', () => {
+  const schemaWithEnumProperty: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      elements: {
+        type: 'array',
+        items: {
+          type: ['string', 'number'],
+        },
+      },
+    },
+    required: ['elements'],
+    additionalProperties: false,
+    $schema: 'http://json-schema.org/draft-07/schema#',
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(schemaWithEnumProperty)).toEqual({
+    type: 'object',
+    properties: {
+      elements: {
+        type: 'array',
+        items: {
+          oneOf: [
+            {
+              type: 'string',
+            },
+            {
+              type: 'number',
+            },
+          ],
+        },
+      },
+    },
+    required: ['elements'],
+  });
+});

@@ -43,11 +43,19 @@ export function convertJSONSchemaToOpenAPISchema(
   // Handle type
   if (type) {
     if (Array.isArray(type)) {
+      const nonNullTypes = type.filter(t => t !== 'null');
       if (type.includes('null')) {
-        result.type = type.filter(t => t !== 'null')[0];
-        result.nullable = true;
+        if (nonNullTypes.length === 1) {
+          result.type = nonNullTypes[0];
+          result.nullable = true;
+        } else {
+          result.oneOf = nonNullTypes.map(t => ({ type: t }));
+          result.nullable = true;
+        }
+      } else if (type.length > 1) {
+        result.oneOf = type.map(t => ({ type: t }));
       } else {
-        result.type = type;
+        result.type = type[0];
       }
     } else if (type === 'null') {
       result.type = 'null';
@@ -56,7 +64,7 @@ export function convertJSONSchemaToOpenAPISchema(
     }
   }
 
-  // Handle enum
+  // Handle enum (overwrites const, if present)
   if (enumValues !== undefined) {
     result.enum = enumValues;
   }
