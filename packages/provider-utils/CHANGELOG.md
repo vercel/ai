@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.1.8
+
+### Patch Changes
+
+- 2e898b4: chore (ai): move mockId test helper into provider utils
+
 ## 2.1.7
 
 ### Patch Changes

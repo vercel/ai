@@ -1,5 +1,16 @@
 # @ai-sdk/perplexity
 
+## 1.0.0
+
+### Major Changes
+
+- 2e898b4: feat (provider/perplexity): rewrite provider and support sources
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+
 ## 0.0.8
 
 ### Patch Changes
