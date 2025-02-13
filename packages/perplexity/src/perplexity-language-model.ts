@@ -238,6 +238,12 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
           citationTokens: number | null;
           numSearchQueries: number | null;
         };
+        images: Array<{
+          imageUrl: string;
+          originUrl: string;
+          height: number;
+          width: number;
+        }> | null;
       };
     } = {
       perplexity: {
@@ -245,6 +251,7 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
           citationTokens: null,
           numSearchQueries: null,
         },
+        images: null,
       },
     };
     let isFirstChunk = true;
@@ -295,6 +302,15 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
                 citationTokens: value.usage.citation_tokens ?? null,
                 numSearchQueries: value.usage.num_search_queries ?? null,
               };
+            }
+
+            if (value.images != null) {
+              providerMetadata.perplexity.images = value.images.map(image => ({
+                imageUrl: image.image_url,
+                originUrl: image.origin_url,
+                height: image.height,
+                width: image.width,
+              }));
             }
 
             const choice = value.choices[0];

@@ -308,6 +308,7 @@ describe('PerplexityLanguageModel', () => {
       contents,
       usage = { prompt_tokens: 10, completion_tokens: 20 },
       citations = [],
+      images,
     }: {
       contents: string[];
       usage?: {
@@ -317,6 +318,7 @@ describe('PerplexityLanguageModel', () => {
         num_search_queries?: number;
       };
       citations?: string[];
+      images?: z.infer<typeof perplexityImageSchema>[];
     }) {
       const baseChunk = (
         content: string,
@@ -327,6 +329,7 @@ describe('PerplexityLanguageModel', () => {
           id: 'stream-id',
           created: 1680003600,
           model: modelId,
+          images,
           citations,
           choices: [
             {
@@ -358,7 +361,7 @@ describe('PerplexityLanguageModel', () => {
         };
     }
 
-    it('should stream text deltas correctly', async () => {
+    it('should stream text deltas', async () => {
       prepareStreamResponse({ contents: ['Hello', ', ', 'World!'] });
 
       const { stream } = await perplexityLM.doStream({
@@ -394,6 +397,7 @@ describe('PerplexityLanguageModel', () => {
           usage: { promptTokens: 10, completionTokens: 20 },
           providerMetadata: {
             perplexity: {
+              images: null,
               usage: {
                 citationTokens: null,
                 numSearchQueries: null,
@@ -404,7 +408,7 @@ describe('PerplexityLanguageModel', () => {
       ]);
     });
 
-    it('should stream sources correctly', async () => {
+    it('should stream sources', async () => {
       prepareStreamResponse({
         contents: ['Hello', ', ', 'World!'],
         citations: ['http://example.com/123', 'https://example.com/456'],
@@ -459,6 +463,7 @@ describe('PerplexityLanguageModel', () => {
           usage: { promptTokens: 10, completionTokens: 20 },
           providerMetadata: {
             perplexity: {
+              images: null,
               usage: {
                 citationTokens: null,
                 numSearchQueries: null,
@@ -486,17 +491,18 @@ describe('PerplexityLanguageModel', () => {
       });
     });
 
-    it('should send usage in streaming mode', async () => {
+    it('should send usage', async () => {
       prepareStreamResponse({
         contents: ['Hello', ', ', 'World!'],
-        usage: {
-          prompt_tokens: 11,
-          completion_tokens: 21,
-          citation_tokens: 30,
-          num_search_queries: 40,
-        },
+        images: [
+          {
+            image_url: 'https://example.com/image.jpg',
+            origin_url: 'https://example.com/image.jpg',
+            height: 100,
+            width: 100,
+          },
+        ],
       });
-
       const { stream } = await perplexityLM.doStream({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
@@ -527,9 +533,72 @@ describe('PerplexityLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'stop',
+          usage: { promptTokens: 10, completionTokens: 20 },
+          providerMetadata: {
+            perplexity: {
+              images: [
+                {
+                  imageUrl: 'https://example.com/image.jpg',
+                  originUrl: 'https://example.com/image.jpg',
+                  height: 100,
+                  width: 100,
+                },
+              ],
+              usage: {
+                citationTokens: null,
+                numSearchQueries: null,
+              },
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should send images', async () => {
+      prepareStreamResponse({
+        contents: ['Hello', ', ', 'World!'],
+        usage: {
+          prompt_tokens: 11,
+          completion_tokens: 21,
+          citation_tokens: 30,
+          num_search_queries: 40,
+        },
+      });
+
+      const { stream } = await perplexityLM.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      expect(result).toStrictEqual([
+        {
+          id: 'stream-id',
+          modelId: 'perplexity-001',
+          timestamp: new Date('2023-03-28T11:40:00.000Z'),
+          type: 'response-metadata',
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'Hello',
+        },
+        {
+          type: 'text-delta',
+          textDelta: ', ',
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'World!',
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
           usage: { promptTokens: 11, completionTokens: 21 },
           providerMetadata: {
             perplexity: {
+              images: null,
               usage: {
                 citationTokens: 30,
                 numSearchQueries: 40,
@@ -540,7 +609,7 @@ describe('PerplexityLanguageModel', () => {
       ]);
     });
 
-    it('should pass headers in streaming mode', async () => {
+    it('should pass headers', async () => {
       prepareStreamResponse({ contents: [] });
       const lmWithCustomHeaders = new PerplexityLanguageModel(modelId, {
         baseURL: 'https://api.perplexity.ai',
