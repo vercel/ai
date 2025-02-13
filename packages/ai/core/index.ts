@@ -24,6 +24,7 @@ export type {
   IdGenerator,
   JSONValue,
   Message,
+  UIMessage,
   RequestOptions,
   Schema,
   ToolInvocation,
