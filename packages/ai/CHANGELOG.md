@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.37
+
+### Patch Changes
+
+- c1e10d1: chore: export UIMessage type
+
 ## 4.1.36
 
 ### Patch Changes
