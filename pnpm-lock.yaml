@@ -511,6 +511,9 @@ importers:
       '@ai-sdk/openai':
         specifier: 1.1.10
         version: link:../../packages/openai
+      '@ai-sdk/perplexity':
+        specifier: 0.0.8
+        version: link:../../packages/perplexity
       '@ai-sdk/react':
         specifier: 1.1.13
         version: link:../../packages/react
@@ -1668,9 +1671,6 @@ importers:
 
   packages/perplexity:
     dependencies:
-      '@ai-sdk/openai-compatible':
-        specifier: 0.1.9
-        version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.7
         version: link:../provider
