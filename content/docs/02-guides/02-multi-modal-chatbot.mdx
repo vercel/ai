@@ -1,13 +1,26 @@
 ---
 title: Multi-Modal Chatbot
-description: Learn how to build a multi-modal chatbot with the AI SDK!
+description: Learn how to build a multi-modal chatbot that can process images and PDFs with the AI SDK.
 ---
 
 # Multi-Modal Chatbot
 
-In this guide, you will build a multi-modal AI-chatbot with a streaming user interface.
+In this guide, you will build a multi-modal AI-chatbot capable of understanding both images and PDFs.
 
-Multi-modal refers to the ability of the chatbot to understand and generate responses in multiple formats, such as text, images, and videos. In this example, we will focus on sending images and generating text-based responses.
+Multi-modal refers to the ability of the chatbot to understand and generate responses in multiple formats, such as text, images, PDFs, and videos. In this example, we will focus on sending images and PDFs and generating text-based responses.
+
+Different AI providers have varying levels of multi-modal support, for example:
+
+- OpenAI (GPT-4o): Supports image input
+- Anthropic (Sonnet 3.5): Supports image and PDF input
+- Google (Gemini 2.0): Supports image and PDF input
+
+<Note>
+  For a complete list of providers that support both image and PDF inputs, visit
+  the [providers documentation](/providers/ai-sdk-providers).
+</Note>
+
+We'll first build a chatbot capable of generating responses based on an image input using OpenAI, then show how to switch providers to handle PDFs.
 
 ## Prerequisites
 
@@ -15,8 +28,11 @@ To follow this quickstart, you'll need:
 
 - Node.js 18+ and pnpm installed on your local development machine.
 - An OpenAI API key.
+- An Anthropic API Key.
 
 If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
+
+If you haven't obtained your Anthropic API key, you can do so by [signing up](https://console.anthropic.com/) on Anthropic's website.
 
 ## Create Your Application
 
@@ -98,16 +114,16 @@ Create a route handler, `app/api/chat/route.ts` and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, Message } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: Message[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o'),
     messages,
   });
 
@@ -269,7 +285,150 @@ With that, you have built everything you need for your multi-modal chatbot! To s
 
 Head to your browser and open http://localhost:3000. You should see an input field and a button to upload an image.
 
-Upload a file and ask the model to describe what it sees. Watch as the model's response is streamed back to you!
+Upload an image and ask the model to describe what it sees. Watch as the model's response is streamed back to you!
+
+## Working with PDFs
+
+To enable PDF support, you can switch to a provider that handles PDFs like Google's Gemini or Anthropic's Claude. Here's how to modify the code to use Anthropic:
+
+1. First install the Anthropic provider:
+
+<Snippet text="pnpm add @ai-sdk/anthropic" />
+
+2. Update your environment variables:
+
+```env filename=".env.local" highlight="2"
+OPENAI_API_KEY=xxxxxxxxx
+ANTHROPIC_API_KEY=xxxxxxxxx
+```
+
+3. Modify your route handler:
+
+```tsx filename="app/api/chat/route.ts" highlight="2,10-15,18-20"
+import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
+
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { messages }: { messages: Message[] } = await req.json();
+
+  // check if user has sent a PDF
+  const messagesHavePDF = messages.some(message =>
+    message.experimental_attachments?.some(
+      a => a.contentType === 'application/pdf',
+    ),
+  );
+
+  const result = streamText({
+    model: messagesHavePDF
+      ? anthropic('claude-3-5-sonnet-latest')
+      : openai('gpt-4o'),
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+Now your chatbot can process both images and PDFs! You automatically route PDF requests to Claude Sonnet 3.5 and image requests to OpenAI's gpt-4o model.
+
+Finally, to display PDFs in your chat interface, update the message rendering code in your frontend to show PDF attachments in an `<iframe>`:
+
+```tsx filename="app/page.tsx" highlight="20-44"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { useRef, useState } from 'react';
+import Image from 'next/image';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+
+  const [files, setFiles] = useState<FileList | undefined>(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+          <div>
+            {m?.experimental_attachments
+              ?.filter(
+                attachment =>
+                  attachment?.contentType?.startsWith('image/') ||
+                  attachment?.contentType?.startsWith('application/pdf'),
+              )
+              .map((attachment, index) =>
+                attachment.contentType?.startsWith('image/') ? (
+                  <Image
+                    key={`${m.id}-${index}`}
+                    src={attachment.url}
+                    width={500}
+                    height={500}
+                    alt={attachment.name ?? `attachment-${index}`}
+                  />
+                ) : attachment.contentType?.startsWith('application/pdf') ? (
+                  <iframe
+                    key={`${m.id}-${index}`}
+                    src={attachment.url}
+                    width={500}
+                    height={600}
+                    title={attachment.name ?? `attachment-${index}`}
+                  />
+                ) : null,
+              )}
+          </div>
+        </div>
+      ))}
+
+      <form
+        className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl space-y-2"
+        onSubmit={event => {
+          handleSubmit(event, {
+            experimental_attachments: files,
+          });
+
+          setFiles(undefined);
+
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }}
+      >
+        <input
+          type="file"
+          className=""
+          onChange={event => {
+            if (event.target.files) {
+              setFiles(event.target.files);
+            }
+          }}
+          multiple
+          ref={fileInputRef}
+        />
+        <input
+          className="w-full p-2"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+Try uploading a PDF and asking questions about its contents.
+
+<Note>
+  When switching providers, be sure to check the [provider
+  documentation](/providers/ai-sdk-providers) for specific file size limits and
+  supported file types.
+</Note>
 
 ## Where to Next?
 
