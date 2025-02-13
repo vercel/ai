@@ -266,7 +266,12 @@ describe('PerplexityLanguageModel', () => {
       citations = [],
     }: {
       contents: string[];
-      usage?: { prompt_tokens: number; completion_tokens: number };
+      usage?: {
+        prompt_tokens: number;
+        completion_tokens: number;
+        citation_tokens?: number;
+        num_search_queries?: number;
+      };
       citations?: string[];
     }) {
       const baseChunk = (
@@ -343,6 +348,14 @@ describe('PerplexityLanguageModel', () => {
           type: 'finish',
           finishReason: 'stop',
           usage: { promptTokens: 10, completionTokens: 20 },
+          providerMetadata: {
+            perplexity: {
+              usage: {
+                citationTokens: null,
+                numSearchQueries: null,
+              },
+            },
+          },
         },
       ]);
     });
@@ -400,6 +413,14 @@ describe('PerplexityLanguageModel', () => {
           type: 'finish',
           finishReason: 'stop',
           usage: { promptTokens: 10, completionTokens: 20 },
+          providerMetadata: {
+            perplexity: {
+              usage: {
+                citationTokens: null,
+                numSearchQueries: null,
+              },
+            },
+          },
         },
       ]);
     });
@@ -419,6 +440,60 @@ describe('PerplexityLanguageModel', () => {
         messages: [{ role: 'user', content: 'Hello' }],
         stream: true,
       });
+    });
+
+    it('should send usage in streaming mode', async () => {
+      prepareStreamResponse({
+        contents: ['Hello', ', ', 'World!'],
+        usage: {
+          prompt_tokens: 11,
+          completion_tokens: 21,
+          citation_tokens: 30,
+          num_search_queries: 40,
+        },
+      });
+
+      const { stream } = await perplexityLM.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      expect(result).toEqual([
+        {
+          id: 'stream-id',
+          modelId: 'perplexity-001',
+          timestamp: new Date('2023-03-28T11:40:00.000Z'),
+          type: 'response-metadata',
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'Hello',
+        },
+        {
+          type: 'text-delta',
+          textDelta: ', ',
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'World!',
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 11, completionTokens: 21 },
+          providerMetadata: {
+            perplexity: {
+              usage: {
+                citationTokens: 30,
+                numSearchQueries: 40,
+              },
+            },
+          },
+        },
+      ]);
     });
 
     it('should pass headers in streaming mode', async () => {

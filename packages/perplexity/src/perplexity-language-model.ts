@@ -225,6 +225,21 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
+    const providerMetadata: {
+      perplexity: {
+        usage: {
+          citationTokens: number | null;
+          numSearchQueries: number | null;
+        };
+      };
+    } = {
+      perplexity: {
+        usage: {
+          citationTokens: null,
+          numSearchQueries: null,
+        },
+      },
+    };
     let isFirstChunk = true;
 
     const self = this;
@@ -268,6 +283,11 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
                 promptTokens: value.usage.prompt_tokens,
                 completionTokens: value.usage.completion_tokens,
               };
+
+              providerMetadata.perplexity.usage = {
+                citationTokens: value.usage.citation_tokens ?? null,
+                numSearchQueries: value.usage.num_search_queries ?? null,
+              };
             }
 
             const choice = value.choices[0];
@@ -291,7 +311,12 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              usage,
+              providerMetadata,
+            });
           },
         }),
       ),
