@@ -10,9 +10,11 @@ async function main() {
       'You must include the date of each article.',
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
+  // for await (const textPart of result.textStream) {
+  //   process.stdout.write(textPart);
+  // }
+
+  await result.consumeStream();
 
   console.log();
   console.log('Token usage:', await result.usage);

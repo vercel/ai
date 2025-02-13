@@ -1,6 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { useEffect } from 'react';
 
 export default function Chat() {
   const {
@@ -12,12 +13,18 @@ export default function Chat() {
     messages,
     reload,
     stop,
+    setInput,
   } = useChat({
     onFinish(message, { usage, finishReason }) {
       console.log('Usage', usage);
       console.log('FinishReason', finishReason);
     },
   });
+
+  useEffect(() => {
+    // Any logic here
+    console.log('Messages', messages);
+  }, [messages]); // Adding messages as dependency
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
