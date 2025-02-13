@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 1.1.14
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+  - @ai-sdk/ui-utils@1.1.14
+
 ## 1.1.13
 
 ### Patch Changes

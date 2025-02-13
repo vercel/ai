@@ -1,5 +1,16 @@
 # ai
 
+## 4.1.38
+
+### Patch Changes
+
+- 4c9c194: chore (ai): add description to provider-defined tools for better accessibility
+- 2e898b4: chore (ai): move mockId test helper into provider utils
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+  - @ai-sdk/react@1.1.14
+  - @ai-sdk/ui-utils@1.1.14
+
 ## 4.1.37
 
 ### Patch Changes
