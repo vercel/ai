@@ -5,18 +5,20 @@ import 'dotenv/config';
 async function main() {
   const result = streamText({
     model: perplexity('sonar-pro'),
-    prompt:
-      'List the top 5 San Francisco news from the past week.' +
-      'You must include the date of each article.',
+    prompt: 'What has happened in San Francisco recently?',
+    providerOptions: {
+      perplexity: {
+        search_recency_filter: 'week',
+      },
+    },
   });
 
-  // for await (const textPart of result.textStream) {
-  //   process.stdout.write(textPart);
-  // }
-
-  await result.consumeStream();
+  for await (const textPart of result.textStream) {
+    process.stdout.write(textPart);
+  }
 
   console.log();
+  console.log('Sources:', await result.sources);
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
   console.log(
