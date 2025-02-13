@@ -21,11 +21,6 @@ export default function Chat() {
     },
   });
 
-  useEffect(() => {
-    // Any logic here
-    console.log('Messages', messages);
-  }, [messages]); // Adding messages as dependency
-
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(m => (
