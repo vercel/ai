@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`assistant messages > should add prefix true to trailing assistant messages 1`] = `
+[
+  {
+    "text": "Hello",
+    "type": "Human",
+  },
+  {
+    "text": "Hello!",
+    "type": "AI",
+  },
+]
+`;
+
+exports[`tool calls > should stringify arguments to tool calls 1`] = `[]`;

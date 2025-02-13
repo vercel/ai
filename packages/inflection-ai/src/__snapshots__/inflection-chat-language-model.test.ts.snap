@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`doStream > should stream text deltas 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "type": "finish",
+    "usage": {
+      "completionTokens": 0,
+      "promptTokens": 2,
+    },
+  },
+]
+`;
