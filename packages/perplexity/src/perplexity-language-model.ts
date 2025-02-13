@@ -187,6 +187,13 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       })),
       providerMetadata: {
         perplexity: {
+          images:
+            response.images?.map(image => ({
+              imageUrl: image.image_url,
+              originUrl: image.origin_url,
+              height: image.height,
+              width: image.width,
+            })) ?? null,
           usage: {
             citationTokens: response.usage.citation_tokens ?? null,
             numSearchQueries: response.usage.num_search_queries ?? null,
@@ -351,6 +358,13 @@ const perplexityUsageSchema = z.object({
   num_search_queries: z.number().nullish(),
 });
 
+export const perplexityImageSchema = z.object({
+  image_url: z.string(),
+  origin_url: z.string(),
+  height: z.number(),
+  width: z.number(),
+});
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const perplexityResponseSchema = z.object({
@@ -367,6 +381,7 @@ const perplexityResponseSchema = z.object({
     }),
   ),
   citations: z.array(z.string()),
+  images: z.array(perplexityImageSchema).nullish(),
   usage: perplexityUsageSchema,
 });
 
@@ -386,6 +401,7 @@ const perplexityChunkSchema = z.object({
     }),
   ),
   citations: z.array(z.string()).nullish(),
+  images: z.array(perplexityImageSchema).nullish(),
   usage: perplexityUsageSchema.nullish(),
 });
 

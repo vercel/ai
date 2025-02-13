@@ -7,7 +7,11 @@ import {
   createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { PerplexityLanguageModel } from './perplexity-language-model';
+import {
+  perplexityImageSchema,
+  PerplexityLanguageModel,
+} from './perplexity-language-model';
+import { z } from 'zod';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -46,6 +50,7 @@ describe('PerplexityLanguageModel', () => {
       model = modelId,
       headers = {},
       citations = [],
+      images,
     }: {
       content?: string;
       usage?: {
@@ -59,6 +64,7 @@ describe('PerplexityLanguageModel', () => {
       model?: string;
       headers?: Record<string, string>;
       citations?: string[];
+      images?: z.infer<typeof perplexityImageSchema>[];
     } = {}) {
       jsonServer.urls['https://api.perplexity.ai/chat/completions'].response = {
         type: 'json-value',
@@ -77,6 +83,7 @@ describe('PerplexityLanguageModel', () => {
             },
           ],
           citations,
+          images,
           usage,
         },
       };
@@ -165,7 +172,43 @@ describe('PerplexityLanguageModel', () => {
       ]);
     });
 
-    it('should extract usage correctly', async () => {
+    it('should extract images', async () => {
+      prepareJsonResponse({
+        images: [
+          {
+            image_url: 'https://example.com/image.jpg',
+            origin_url: 'https://example.com/image.jpg',
+            height: 100,
+            width: 100,
+          },
+        ],
+      });
+
+      const result = await perplexityLM.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toStrictEqual({
+        perplexity: {
+          images: [
+            {
+              imageUrl: 'https://example.com/image.jpg',
+              originUrl: 'https://example.com/image.jpg',
+              height: 100,
+              width: 100,
+            },
+          ],
+          usage: {
+            citationTokens: null,
+            numSearchQueries: null,
+          },
+        },
+      });
+    });
+
+    it('should extract usage', async () => {
       prepareJsonResponse({
         usage: {
           prompt_tokens: 10,
@@ -188,6 +231,7 @@ describe('PerplexityLanguageModel', () => {
 
       expect(result.providerMetadata).toEqual({
         perplexity: {
+          images: null,
           usage: {
             citationTokens: 30,
             numSearchQueries: 40,
