@@ -5,6 +5,7 @@ import {
 import {
   convertReadableStreamToArray,
   createTestServer,
+  mockId,
 } from '@ai-sdk/provider-utils/test';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 
@@ -15,14 +16,15 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
 describe('PerplexityLanguageModel', () => {
   describe('doGenerate', () => {
     const modelId = 'perplexity-001';
-    const providerConfig = {
+
+    const perplexityLM = new PerplexityLanguageModel(modelId, {
       baseURL: 'https://api.perplexity.ai',
       headers: () => ({
         authorization: 'Bearer test-token',
         'content-type': 'application/json',
       }),
-    };
-    const perplexityLM = new PerplexityLanguageModel(modelId, providerConfig);
+      generateId: mockId(),
+    });
 
     // Create a unified test server to handle JSON responses.
     const jsonServer = createTestServer({
@@ -43,6 +45,7 @@ describe('PerplexityLanguageModel', () => {
       created = 1680000000,
       model = modelId,
       headers = {},
+      citations = [],
     }: {
       content?: string;
       usage?: { prompt_tokens: number; completion_tokens: number };
@@ -50,6 +53,7 @@ describe('PerplexityLanguageModel', () => {
       created?: number;
       model?: string;
       headers?: Record<string, string>;
+      citations?: string[];
     } = {}) {
       jsonServer.urls['https://api.perplexity.ai/chat/completions'].response = {
         type: 'json-value',
@@ -67,7 +71,7 @@ describe('PerplexityLanguageModel', () => {
               finish_reason: 'stop',
             },
           ],
-          citations: [],
+          citations,
           usage,
         },
       };
@@ -131,6 +135,31 @@ describe('PerplexityLanguageModel', () => {
       });
     });
 
+    it('should extract citations as sources', async () => {
+      prepareJsonResponse({
+        citations: ['http://example.com/123', 'https://example.com/456'],
+      });
+
+      const result = await perplexityLM.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.sources).toEqual([
+        {
+          sourceType: 'url',
+          id: 'id-0',
+          url: 'http://example.com/123',
+        },
+        {
+          sourceType: 'url',
+          id: 'id-1',
+          url: 'https://example.com/456',
+        },
+      ]);
+    });
+
     it('should pass headers from provider and request', async () => {
       prepareJsonResponse({ content: '' });
       const lmWithCustomHeaders = new PerplexityLanguageModel(modelId, {
@@ -139,6 +168,7 @@ describe('PerplexityLanguageModel', () => {
           authorization: 'Bearer test-api-key',
           'Custom-Provider-Header': 'provider-header-value',
         }),
+        generateId: mockId(),
       });
 
       await lmWithCustomHeaders.doGenerate({
@@ -172,8 +202,8 @@ describe('PerplexityLanguageModel', () => {
 
   describe('doStream', () => {
     const modelId = 'perplexity-001';
-    // Create a test server to handle stream responses.
-    let streamServer = createTestServer({
+
+    const streamServer = createTestServer({
       'https://api.perplexity.ai/chat/completions': {
         response: {
           type: 'stream-chunks',
@@ -190,6 +220,7 @@ describe('PerplexityLanguageModel', () => {
     const perplexityLM = new PerplexityLanguageModel(modelId, {
       baseURL: 'https://api.perplexity.ai',
       headers: () => ({ authorization: 'Bearer test-token' }),
+      generateId: mockId(),
     });
 
     // Helper to prepare the stream response.
@@ -302,6 +333,7 @@ describe('PerplexityLanguageModel', () => {
           authorization: 'Bearer test-api-key',
           'Custom-Provider-Header': 'provider-header-value',
         }),
+        generateId: mockId(),
       });
 
       await lmWithCustomHeaders.doStream({

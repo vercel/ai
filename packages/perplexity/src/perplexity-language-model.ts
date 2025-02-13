@@ -22,6 +22,7 @@ import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
 type PerplexityChatConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
+  generateId: () => string;
   fetch?: FetchFunction;
 };
 
@@ -179,6 +180,11 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       request: { body: JSON.stringify(args) },
       response: getResponseMetadata(response),
       warnings,
+      sources: response.citations.map(id => ({
+        sourceType: 'url',
+        id: this.config.generateId(),
+        url: id,
+      })),
     };
   }
 
