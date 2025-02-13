@@ -48,7 +48,12 @@ describe('PerplexityLanguageModel', () => {
       citations = [],
     }: {
       content?: string;
-      usage?: { prompt_tokens: number; completion_tokens: number };
+      usage?: {
+        prompt_tokens: number;
+        completion_tokens: number;
+        citation_tokens?: number;
+        num_search_queries?: number;
+      };
       id?: string;
       created?: number;
       model?: string;
@@ -158,6 +163,37 @@ describe('PerplexityLanguageModel', () => {
           url: 'https://example.com/456',
         },
       ]);
+    });
+
+    it('should extract usage correctly', async () => {
+      prepareJsonResponse({
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 20,
+          citation_tokens: 30,
+          num_search_queries: 40,
+        },
+      });
+
+      const result = await perplexityLM.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage).toEqual({
+        promptTokens: 10,
+        completionTokens: 20,
+      });
+
+      expect(result.providerMetadata).toEqual({
+        perplexity: {
+          usage: {
+            citationTokens: 30,
+            numSearchQueries: 40,
+          },
+        },
+      });
     });
 
     it('should pass headers from provider and request', async () => {

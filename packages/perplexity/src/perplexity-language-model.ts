@@ -185,6 +185,14 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
         id: this.config.generateId(),
         url,
       })),
+      providerMetadata: {
+        perplexity: {
+          usage: {
+            citationTokens: response.usage.citation_tokens ?? null,
+            numSearchQueries: response.usage.num_search_queries ?? null,
+          },
+        },
+      },
     };
   }
 
@@ -311,6 +319,13 @@ function getResponseMetadata({
   };
 }
 
+const perplexityUsageSchema = z.object({
+  prompt_tokens: z.number(),
+  completion_tokens: z.number(),
+  citation_tokens: z.number().nullish(),
+  num_search_queries: z.number().nullish(),
+});
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const perplexityResponseSchema = z.object({
@@ -327,10 +342,7 @@ const perplexityResponseSchema = z.object({
     }),
   ),
   citations: z.array(z.string()),
-  usage: z.object({
-    prompt_tokens: z.number(),
-    completion_tokens: z.number(),
-  }),
+  usage: perplexityUsageSchema,
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -349,12 +361,7 @@ const perplexityChunkSchema = z.object({
     }),
   ),
   citations: z.array(z.string()).nullish(),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-    })
-    .nullish(),
+  usage: perplexityUsageSchema.nullish(),
 });
 
 export const perplexityErrorSchema = z.object({
