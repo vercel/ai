@@ -62,8 +62,7 @@ export default function Page() {
 Next, let's create the `/api/chat` endpoint that generates the assistant's response based on the conversation history.
 
 ```typescript filename='app/api/chat/route.ts'
-import { streamText } from 'ai';
-import { UIMessage } from '@ai-sdk/ui-utils';
+import { streamText, UIMessage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
