@@ -108,6 +108,29 @@ describe('PerplexityLanguageModel', () => {
       });
     });
 
+    it('should pass through perplexity provider options', async () => {
+      prepareJsonResponse({ content: '' });
+      await perplexityLM.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        providerMetadata: {
+          perplexity: {
+            search_recency_filter: 'month',
+            return_images: true,
+          },
+        },
+      });
+
+      const requestBody = await jsonServer.calls[0].requestBody;
+      expect(requestBody).toEqual({
+        model: modelId,
+        messages: [{ role: 'user', content: 'Hello' }],
+        search_recency_filter: 'month',
+        return_images: true,
+      });
+    });
+
     it('should pass headers from provider and request', async () => {
       prepareJsonResponse({ content: '' });
       const lmWithCustomHeaders = new PerplexityLanguageModel(modelId, {

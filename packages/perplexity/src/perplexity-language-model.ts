@@ -56,6 +56,7 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
+    providerMetadata,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -104,7 +105,7 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
           : undefined,
 
       // provider extensions
-      // TODO
+      ...(providerMetadata?.perplexity ?? {}),
 
       // messages:
       messages: convertToPerplexityMessages(prompt),
