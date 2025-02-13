@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
+  generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
@@ -64,6 +65,7 @@ export function createPerplexity(
         options.baseURL ?? 'https://api.perplexity.ai',
       )!,
       headers: getHeaders,
+      generateId,
       fetch: options.fetch,
     });
   };

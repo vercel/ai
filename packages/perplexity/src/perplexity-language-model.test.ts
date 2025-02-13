@@ -227,9 +227,11 @@ describe('PerplexityLanguageModel', () => {
     function prepareStreamResponse({
       contents,
       usage = { prompt_tokens: 10, completion_tokens: 20 },
+      citations = [],
     }: {
       contents: string[];
       usage?: { prompt_tokens: number; completion_tokens: number };
+      citations?: string[];
     }) {
       const baseChunk = (
         content: string,
@@ -240,6 +242,7 @@ describe('PerplexityLanguageModel', () => {
           id: 'stream-id',
           created: 1680003600,
           model: modelId,
+          citations,
           choices: [
             {
               delta: { role: 'assistant', content },
@@ -287,6 +290,63 @@ describe('PerplexityLanguageModel', () => {
           id: 'stream-id',
           timestamp: new Date(1680003600 * 1000),
           modelId,
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'Hello',
+        },
+        {
+          type: 'text-delta',
+          textDelta: ', ',
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'World!',
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 10, completionTokens: 20 },
+        },
+      ]);
+    });
+
+    it('should stream sources correctly', async () => {
+      prepareStreamResponse({
+        contents: ['Hello', ', ', 'World!'],
+        citations: ['http://example.com/123', 'https://example.com/456'],
+      });
+
+      const { stream } = await perplexityLM.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      expect(result).toEqual([
+        {
+          type: 'response-metadata',
+          id: 'stream-id',
+          timestamp: new Date(1680003600 * 1000),
+          modelId,
+        },
+        {
+          type: 'source',
+          source: {
+            sourceType: 'url',
+            id: 'id-0',
+            url: 'http://example.com/123',
+          },
+        },
+        {
+          type: 'source',
+          source: {
+            sourceType: 'url',
+            id: 'id-1',
+            url: 'https://example.com/456',
+          },
         },
         {
           type: 'text-delta',

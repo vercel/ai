@@ -180,10 +180,10 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       request: { body: JSON.stringify(args) },
       response: getResponseMetadata(response),
       warnings,
-      sources: response.citations.map(id => ({
+      sources: response.citations.map(url => ({
         sourceType: 'url',
         id: this.config.generateId(),
-        url: id,
+        url,
       })),
     };
   }
@@ -219,6 +219,8 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
     };
     let isFirstChunk = true;
 
+    const self = this;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -239,7 +241,16 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
                 ...getResponseMetadata(value),
               });
 
-              // TODO sources
+              value.citations?.forEach(url => {
+                controller.enqueue({
+                  type: 'source',
+                  source: {
+                    sourceType: 'url',
+                    id: self.config.generateId(),
+                    url,
+                  },
+                });
+              });
 
               isFirstChunk = false;
             }
