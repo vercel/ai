@@ -1,0 +1,299 @@
+import {
+  LanguageModelV1Prompt,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
+import {
+  convertReadableStreamToArray,
+  createTestServer,
+} from '@ai-sdk/provider-utils/test';
+import { PerplexityLanguageModel } from './perplexity-language-model';
+
+const TEST_PROMPT: LanguageModelV1Prompt = [
+  { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+];
+
+describe('PerplexityLanguageModel', () => {
+  describe('doGenerate', () => {
+    const modelId = 'perplexity-001';
+    const providerConfig = {
+      baseURL: 'https://api.perplexity.ai',
+      headers: () => ({
+        authorization: 'Bearer test-token',
+        'content-type': 'application/json',
+      }),
+    };
+    const perplexityLM = new PerplexityLanguageModel(modelId, providerConfig);
+
+    // Create a unified test server to handle JSON responses.
+    const jsonServer = createTestServer({
+      'https://api.perplexity.ai/chat/completions': {
+        response: {
+          type: 'json-value',
+          headers: { 'content-type': 'application/json' },
+          body: {},
+        },
+      },
+    });
+
+    // Helper to prepare the JSON response for doGenerate.
+    function prepareJsonResponse({
+      content = '',
+      usage = { prompt_tokens: 10, completion_tokens: 20 },
+      id = 'test-id',
+      created = 1680000000,
+      model = modelId,
+      headers = {},
+    }: {
+      content?: string;
+      usage?: { prompt_tokens: number; completion_tokens: number };
+      id?: string;
+      created?: number;
+      model?: string;
+      headers?: Record<string, string>;
+    } = {}) {
+      jsonServer.urls['https://api.perplexity.ai/chat/completions'].response = {
+        type: 'json-value',
+        headers: { 'content-type': 'application/json', ...headers },
+        body: {
+          id,
+          created,
+          model,
+          choices: [
+            {
+              message: {
+                role: 'assistant',
+                content,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          citations: [],
+          usage,
+        },
+      };
+    }
+
+    it('should extract text response correctly', async () => {
+      prepareJsonResponse({ content: 'Hello, World!' });
+
+      const result = await perplexityLM.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.text).toBe('Hello, World!');
+      expect(result.usage).toEqual({
+        promptTokens: 10,
+        completionTokens: 20,
+      });
+      expect(result.response).toEqual({
+        id: 'test-id',
+        modelId,
+        timestamp: new Date(1680000000 * 1000),
+      });
+    });
+
+    it('should send the correct request body', async () => {
+      prepareJsonResponse({ content: '' });
+      await perplexityLM.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+      const requestBody = await jsonServer.calls[0].requestBody;
+      expect(requestBody).toEqual({
+        model: modelId,
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+    });
+
+    it('should pass headers from provider and request', async () => {
+      prepareJsonResponse({ content: '' });
+      const lmWithCustomHeaders = new PerplexityLanguageModel(modelId, {
+        baseURL: 'https://api.perplexity.ai',
+        headers: () => ({
+          authorization: 'Bearer test-api-key',
+          'Custom-Provider-Header': 'provider-header-value',
+        }),
+      });
+
+      await lmWithCustomHeaders.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        headers: { 'Custom-Request-Header': 'request-header-value' },
+      });
+
+      expect(jsonServer.calls[0].requestHeaders).toEqual({
+        authorization: 'Bearer test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
+    });
+
+    it('should throw error for unsupported mode: object-tool', async () => {
+      await expect(
+        perplexityLM.doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'object-tool',
+            tool: { type: 'function', name: 'test', parameters: {} },
+          },
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toThrowError(UnsupportedFunctionalityError);
+    });
+  });
+
+  describe('doStream', () => {
+    const modelId = 'perplexity-001';
+    // Create a test server to handle stream responses.
+    let streamServer = createTestServer({
+      'https://api.perplexity.ai/chat/completions': {
+        response: {
+          type: 'stream-chunks',
+          headers: {
+            'content-type': 'text/event-stream',
+            'cache-control': 'no-cache',
+            connection: 'keep-alive',
+          },
+          chunks: [],
+        },
+      },
+    });
+
+    const perplexityLM = new PerplexityLanguageModel(modelId, {
+      baseURL: 'https://api.perplexity.ai',
+      headers: () => ({ authorization: 'Bearer test-token' }),
+    });
+
+    // Helper to prepare the stream response.
+    function prepareStreamResponse({
+      contents,
+      usage = { prompt_tokens: 10, completion_tokens: 20 },
+    }: {
+      contents: string[];
+      usage?: { prompt_tokens: number; completion_tokens: number };
+    }) {
+      const baseChunk = (
+        content: string,
+        finish_reason: string | null = null,
+        includeUsage = false,
+      ) => {
+        const chunkObj: any = {
+          id: 'stream-id',
+          created: 1680003600,
+          model: modelId,
+          choices: [
+            {
+              delta: { role: 'assistant', content },
+              finish_reason,
+            },
+          ],
+        };
+        if (includeUsage) {
+          chunkObj.usage = usage;
+        }
+        return `data: ${JSON.stringify(chunkObj)}\n\n`;
+      };
+
+      streamServer.urls['https://api.perplexity.ai/chat/completions'].response =
+        {
+          type: 'stream-chunks',
+          headers: {
+            'content-type': 'text/event-stream',
+            'cache-control': 'no-cache',
+            connection: 'keep-alive',
+          },
+          chunks: [
+            ...contents.slice(0, -1).map(text => baseChunk(text)),
+            // Final chunk: include finish_reason and usage.
+            baseChunk(contents[contents.length - 1], 'stop', true),
+            'data: [DONE]\n\n',
+          ],
+        };
+    }
+
+    it('should stream text deltas correctly', async () => {
+      prepareStreamResponse({ contents: ['Hello', ', ', 'World!'] });
+
+      const { stream } = await perplexityLM.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      expect(result).toEqual([
+        {
+          type: 'response-metadata',
+          id: 'stream-id',
+          timestamp: new Date(1680003600 * 1000),
+          modelId,
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'Hello',
+        },
+        {
+          type: 'text-delta',
+          textDelta: ', ',
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'World!',
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 10, completionTokens: 20 },
+        },
+      ]);
+    });
+
+    it('should send the correct streaming request body', async () => {
+      prepareStreamResponse({ contents: [] });
+
+      await perplexityLM.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await streamServer.calls[0].requestBody;
+      expect(requestBody).toEqual({
+        model: modelId,
+        messages: [{ role: 'user', content: 'Hello' }],
+        stream: true,
+      });
+    });
+
+    it('should pass headers in streaming mode', async () => {
+      prepareStreamResponse({ contents: [] });
+      const lmWithCustomHeaders = new PerplexityLanguageModel(modelId, {
+        baseURL: 'https://api.perplexity.ai',
+        headers: () => ({
+          authorization: 'Bearer test-api-key',
+          'Custom-Provider-Header': 'provider-header-value',
+        }),
+      });
+
+      await lmWithCustomHeaders.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        headers: { 'Custom-Request-Header': 'request-header-value' },
+      });
+
+      expect(streamServer.calls[0].requestHeaders).toEqual({
+        authorization: 'Bearer test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
+    });
+  });
+});

@@ -226,8 +226,6 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
 
             const value = chunk.value;
 
-            console.log(JSON.stringify(chunk.rawValue, null, 2));
-
             if (isFirstChunk) {
               controller.enqueue({
                 type: 'response-metadata',
