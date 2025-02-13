@@ -12,7 +12,6 @@ export default function Chat() {
     messages,
     reload,
     stop,
-    setInput,
   } = useChat({
     onFinish(message, { usage, finishReason }) {
       console.log('Usage', usage);
