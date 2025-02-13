@@ -89,7 +89,8 @@ export function convertJSONSchemaToOpenAPISchema(
     result.allOf = allOf.map(convertJSONSchemaToOpenAPISchema);
   }
   if (anyOf) {
-    result.anyOf = anyOf.map(convertJSONSchemaToOpenAPISchema);
+    // anyOf is not supported by Google Generative AI, so we convert it to oneOf:
+    result.oneOf = anyOf.map(convertJSONSchemaToOpenAPISchema);
   }
   if (oneOf) {
     result.oneOf = oneOf.map(convertJSONSchemaToOpenAPISchema);

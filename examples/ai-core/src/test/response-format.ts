@@ -1,45 +1,21 @@
-import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
+import { generateObject } from 'ai';
 import 'dotenv/config';
+import { z } from 'zod';
 
 async function main() {
-  const result = await openai('gpt-4-turbo').doStream({
-    mode: { type: 'regular' },
-    inputFormat: 'prompt',
-    responseFormat: {
-      type: 'json',
-      schema: {
-        type: 'object',
-        properties: {
-          text: { type: 'string' },
-        },
-        required: ['text'],
-      },
-    },
-    temperature: 0,
-    prompt: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: 'Invent a new holiday and describe its traditions. Output as JSON object.',
-          },
-        ],
-      },
-    ],
+  const result = await generateObject({
+    model: google('gemini-2.0-flash', { structuredOutputs: true }),
+    prompt: 'Generate a JSON object',
+    schema: z.object({
+      locator: z.array(z.union([z.string(), z.number()])),
+    }),
+    maxRetries: 0,
   });
 
-  const reader = result.stream.getReader();
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-
-    if (value.type === 'text-delta') {
-      process.stdout.write(value.textDelta);
-    }
-  }
+  console.log(JSON.stringify(result.object, null, 2));
 }
 
-main().catch(console.error);
+main().catch(error => {
+  console.error(JSON.stringify(error, null, 2));
+});
