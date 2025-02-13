@@ -21,27 +21,28 @@ export default function Chat() {
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.parts.map((part, index) => {
-            if (part.type === 'text') {
-              return <div key={index}>{part.text}</div>;
-            }
-
-            if (part.type === 'source') {
-              return (
-                <span key={`source-${part.source.id}`}>
-                  [
-                  <a
-                    href={part.source.url}
-                    target="_blank"
-                    className="text-sm font-bold text-blue-500 hover:underline"
-                  >
-                    {part.source.title}
-                  </a>
-                  ]
-                </span>
-              );
-            }
-          })}
+          {message.parts
+            .filter(part => part.type !== 'source')
+            .map((part, index) => {
+              if (part.type === 'text') {
+                return <div key={index}>{part.text}</div>;
+              }
+            })}
+          {message.parts
+            .filter(part => part.type === 'source')
+            .map(part => (
+              <span key={`source-${part.source.id}`}>
+                [
+                <a
+                  href={part.source.url}
+                  target="_blank"
+                  className="text-sm font-bold text-blue-500 hover:underline"
+                >
+                  {part.source.title ?? new URL(part.source.url).hostname}
+                </a>
+                ]
+              </span>
+            ))}
         </div>
       ))}
 

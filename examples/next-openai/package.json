@@ -13,6 +13,7 @@
     "@ai-sdk/deepseek": "0.1.9",
     "@ai-sdk/openai": "1.1.10",
     "@ai-sdk/google-vertex": "2.1.13",
+    "@ai-sdk/perplexity": "0.0.8",
     "@ai-sdk/ui-utils": "1.1.13",
     "@ai-sdk/react": "1.1.13",
     "@vercel/blob": "^0.26.0",
