@@ -79,6 +79,11 @@ Provider-defined tool.
       type: 'provider-defined';
 
       /**
+An optional description of what the tool does. Currently ignored for provider-defined tools.
+   */
+      description?: string;
+
+      /**
 The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
        */
       id: `${string}.${string}`;
