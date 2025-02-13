@@ -45,6 +45,13 @@ Use descriptions to make the input understandable for the language model.
   parameters: PARAMETERS;
 
   /**
+An optional description of what the tool does.
+Will be used by the language model to decide whether to use the tool.
+Not used for provider-defined tools.
+   */
+  description?: string;
+
+  /**
 Optional conversion function that maps the tool result to multi-part tool content for LLMs.
    */
   experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
@@ -66,22 +73,12 @@ If not provided, the tool will not be executed automatically.
 Function tool.
        */
       type?: undefined | 'function';
-
-      /**
-An optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
-   */
-      description?: string;
     }
   | {
       /**
 Provider-defined tool.
        */
       type: 'provider-defined';
-
-      /**
-An optional description of what the tool does. Currently ignored for provider-defined tools.
-   */
-      description?: string;
 
       /**
 The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
