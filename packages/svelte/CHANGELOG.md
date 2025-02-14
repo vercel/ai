@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 1.1.16
+
+### Patch Changes
+
+- c43df41: feat (ui): add useChat status
+
 ## 1.1.15
 
 ### Patch Changes
