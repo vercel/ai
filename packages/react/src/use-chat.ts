@@ -84,9 +84,9 @@ export type UseChatHelpers = {
   isLoading: boolean;
 
   /**
-   * The status of the useChat hook:
+   * Hook status:
    *
-   * - `pending`: The API request has been initiated but the response stream has not started yet.
+   * - `pending`: A message has been submitted, but the response stream has not started yet.
    * - `loading`: The response is actively streaming in, with data arriving incrementally.
    * - `ready`: The full response has been received and processed; a new user message can be submitted.
    * - `error`: An error occurred during the API request, preventing successful completion.

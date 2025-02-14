@@ -79,8 +79,23 @@ export type UseChatHelpers = {
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   metadata?: Object;
-  /** Whether the API request is in progress */
+
+  /**
+   * Whether the API request is in progress
+   *
+   * @deprecated use `status` instead
+   */
   isLoading: Readable<boolean | undefined>;
+
+  /**
+   * Hook status:
+   *
+   * - `pending`: A message has been submitted, but the response stream has not started yet.
+   * - `loading`: The response is actively streaming in, with data arriving incrementally.
+   * - `ready`: The full response has been received and processed; a new user message can be submitted.
+   * - `error`: An error occurred during the API request, preventing successful completion.
+   */
+  status: Readable<'pending' | 'loading' | 'ready' | 'error'>;
 
   /** Additional data added on the server via StreamData */
   data: Readable<JSONValue[] | undefined>;
@@ -223,18 +238,14 @@ export function useChat({
   const chatId = id ?? generateId();
 
   const key = `${api}|${chatId}`;
-  const {
-    data,
-    mutate: originalMutate,
-    isLoading: isSWRLoading,
-  } = useSWR<UIMessage[]>(key, {
+  const { data, mutate: originalMutate } = useSWR<UIMessage[]>(key, {
     fetcher: () => store[key] ?? fillMessageParts(initialMessages),
     fallbackData: fillMessageParts(initialMessages),
   });
 
   const streamData = writable<JSONValue[] | undefined>(undefined);
 
-  const loading = writable<boolean>(false);
+  const status = writable<'pending' | 'loading' | 'ready' | 'error'>('ready');
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
   data.set(fillMessageParts(initialMessages));
@@ -261,6 +272,9 @@ export function useChat({
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
   async function triggerRequest(chatRequest: ChatRequest) {
+    status.set('pending');
+    error.set(undefined);
+
     const messagesSnapshot = get(messages);
     const messageCount = messagesSnapshot.length;
     const maxStep = extractMaxToolInvocationStep(
@@ -268,8 +282,6 @@ export function useChat({
     );
 
     try {
-      error.set(undefined);
-      loading.set(true);
       abortController = new AbortController();
 
       await getStreamedResponse(
@@ -293,6 +305,8 @@ export function useChat({
         keepLastMessageOnError,
         chatId,
       );
+
+      status.set('ready');
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
@@ -305,9 +319,9 @@ export function useChat({
       }
 
       error.set(err as Error);
+      status.set('error');
     } finally {
       abortController = null;
-      loading.set(false);
     }
 
     // auto-submit when all tool calls in the last assistant message have results:
@@ -433,13 +447,6 @@ export function useChat({
     input.set('');
   };
 
-  const isLoading = derived(
-    [isSWRLoading, loading],
-    ([$isSWRLoading, $loading]) => {
-      return $isSWRLoading || $loading;
-    },
-  );
-
   const addToolResult = ({
     toolCallId,
     result,
@@ -475,7 +482,11 @@ export function useChat({
     setMessages,
     input,
     handleSubmit,
-    isLoading,
+    isLoading: derived(
+      status,
+      $status => $status === 'pending' || $status === 'loading',
+    ),
+    status,
     data: streamData,
     setData,
     addToolResult,
