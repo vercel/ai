@@ -19,6 +19,9 @@ async function main() {
 
     const result = streamText({
       model: mistral('mistral-large-latest'),
+      onError(error) {
+        console.error(error);
+      },
       system: `You are a helpful, respectful and honest assistant.`,
       tools: {
         weather: tool({
