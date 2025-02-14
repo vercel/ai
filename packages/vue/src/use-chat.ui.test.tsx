@@ -170,8 +170,13 @@ describe('data protocol stream', () => {
     expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
   });
 
-  describe('loading state', () => {
-    it('should show loading state', async () => {
+  describe('status', () => {
+    it('should show status', async () => {
+      let startGeneration: ((value?: unknown) => void) | undefined;
+      const startGenerationPromise = new Promise(resolve => {
+        startGeneration = resolve;
+      });
+
       let finishGeneration: ((value?: unknown) => void) | undefined;
       const finishGenerationPromise = new Promise(resolve => {
         finishGeneration = resolve;
@@ -180,6 +185,7 @@ describe('data protocol stream', () => {
       mockFetchDataStreamWithGenerator({
         url: 'https://example.com/api/chat',
         chunkGenerator: (async function* generate() {
+          await startGenerationPromise;
           const encoder = new TextEncoder();
           yield encoder.encode('0:"Hello"\n');
           await finishGenerationPromise;
@@ -188,23 +194,31 @@ describe('data protocol stream', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      await screen.findByTestId('loading');
-      expect(screen.getByTestId('loading')).toHaveTextContent('true');
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('pending');
+      });
+
+      startGeneration?.();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('loading');
+      });
 
       finishGeneration?.();
 
-      await findByText(await screen.findByTestId('loading'), 'false');
-
-      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('ready');
+      });
     });
 
-    it('should reset loading state on error', async () => {
+    it('should set status to error when there is a server error', async () => {
       mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      await screen.findByTestId('loading');
-      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('error');
+      });
     });
   });
 
