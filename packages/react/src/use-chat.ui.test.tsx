@@ -7,13 +7,7 @@ import {
   Message,
 } from '@ai-sdk/ui-utils';
 import '@testing-library/jest-dom/vitest';
-import {
-  cleanup,
-  findByText,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useRef, useState } from 'react';
 import { useChat } from './use-chat';
