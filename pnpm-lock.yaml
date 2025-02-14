@@ -1059,55 +1059,6 @@ importers:
         specifier: ^5
         version: 5.4.11(@types/node@22.7.4)(terser@5.31.3)
 
-  examples/swarm:
-    dependencies:
-      '@ai-sdk/anthropic':
-        specifier: 1.1.8
-        version: link:../../packages/anthropic
-      '@ai-sdk/google':
-        specifier: 1.1.14
-        version: link:../../packages/google
-      '@ai-sdk/google-vertex':
-        specifier: 2.1.15
-        version: link:../../packages/google-vertex
-      '@ai-sdk/groq':
-        specifier: 1.1.9
-        version: link:../../packages/groq
-      '@ai-sdk/mistral':
-        specifier: 1.1.10
-        version: link:../../packages/mistral
-      '@ai-sdk/openai':
-        specifier: 1.1.11
-        version: link:../../packages/openai
-      '@ai-sdk/swarm':
-        specifier: 0.1.39
-        version: link:../../packages/swarm
-      '@google/generative-ai':
-        specifier: 0.21.0
-        version: 0.21.0
-      ai:
-        specifier: 4.1.39
-        version: link:../../packages/ai
-      dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
-      zod:
-        specifier: 3.23.8
-        version: 3.23.8
-      zod-to-json-schema:
-        specifier: 3.23.5
-        version: 3.23.5(zod@3.23.8)
-    devDependencies:
-      '@types/node':
-        specifier: 20.11.20
-        version: 20.11.20
-      tsx:
-        specifier: 4.19.2
-        version: 4.19.2
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
-
   packages/ai:
     dependencies:
       '@ai-sdk/provider':
@@ -1930,28 +1881,6 @@ importers:
       tsup:
         specifier: ^7.2.0
         version: 7.2.0(postcss@8.4.49)(ts-node@10.9.2(@types/node@18.18.9)(typescript@5.6.3))(typescript@5.6.3)
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
-
-  packages/swarm:
-    dependencies:
-      ai:
-        specifier: 4.1.39
-        version: link:../ai
-      zod:
-        specifier: 3.23.8
-        version: 3.23.8
-    devDependencies:
-      '@types/node':
-        specifier: ^18
-        version: 18.19.54
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
-      tsup:
-        specifier: ^8
-        version: 8.3.0(jiti@2.4.0)(postcss@8.4.49)(tsx@4.19.2)(typescript@5.6.3)(yaml@2.5.0)
       typescript:
         specifier: 5.6.3
         version: 5.6.3
