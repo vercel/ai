@@ -195,13 +195,13 @@ describe('data protocol stream', () => {
       await userEvent.click(screen.getByTestId('do-append'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('status')).toHaveTextContent('pending');
+        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
       });
 
       startGeneration?.();
 
       await waitFor(() => {
-        expect(screen.getByTestId('status')).toHaveTextContent('loading');
+        expect(screen.getByTestId('status')).toHaveTextContent('streaming');
       });
 
       finishGeneration?.();

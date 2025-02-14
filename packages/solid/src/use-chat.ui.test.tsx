@@ -404,13 +404,13 @@ describe('data protocol stream', () => {
           await userEvent.click(screen.getByTestId('do-append'));
 
           await waitFor(() => {
-            expect(screen.getByTestId('status')).toHaveTextContent('pending');
+            expect(screen.getByTestId('status')).toHaveTextContent('submitted');
           });
 
           streamController.enqueue('0:"Hello"\n');
 
           await waitFor(() => {
-            expect(screen.getByTestId('status')).toHaveTextContent('loading');
+            expect(screen.getByTestId('status')).toHaveTextContent('streaming');
           });
 
           streamController.close();
