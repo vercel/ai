@@ -519,3 +519,37 @@ it('should convert string enum properties', () => {
     required: ['kind'],
   });
 });
+
+it('should convert nullable string enum', () => {
+  const schemaWithEnumProperty: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      fieldD: {
+        anyOf: [
+          {
+            type: 'string',
+            enum: ['a', 'b', 'c'],
+          },
+          {
+            type: 'null',
+          },
+        ],
+      },
+    },
+    required: ['fieldD'],
+    additionalProperties: false,
+    $schema: 'http://json-schema.org/draft-07/schema#',
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(schemaWithEnumProperty)).toEqual({
+    required: ['fieldD'],
+    type: 'object',
+    properties: {
+      fieldD: {
+        nullable: true,
+        type: 'string',
+        enum: ['a', 'b', 'c'],
+      },
+    },
+  });
+});
