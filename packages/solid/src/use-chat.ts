@@ -85,8 +85,23 @@ export type UseChatHelpers = {
     event?: { preventDefault?: () => void },
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
-  /** Whether the API request is in progress */
+
+  /**
+   * Whether the API request is in progress
+   *
+   * @deprecated use `status` instead
+   */
   isLoading: Accessor<boolean>;
+
+  /**
+   * Hook status:
+   *
+   * - `pending`: A message has been submitted, but the response stream has not started yet.
+   * - `loading`: The response is actively streaming in, with data arriving incrementally.
+   * - `ready`: The full response has been received and processed; a new user message can be submitted.
+   * - `error`: An error occurred during the API request, preventing successful completion.
+   */
+  status: Accessor<'pending' | 'loading' | 'ready' | 'error'>;
 
   /** Additional data added on the server via StreamData */
   data: Accessor<JSONValue[] | undefined>;
@@ -188,7 +203,9 @@ export function useChat(
   const [streamData, setStreamData] = createSignal<JSONValue[] | undefined>(
     undefined,
   );
-  const [isLoading, setIsLoading] = createSignal(false);
+  const [status, setStatus] = createSignal<
+    'pending' | 'loading' | 'ready' | 'error'
+  >('ready');
 
   let messagesRef: UIMessage[] = fillMessageParts(_messages()) || [];
   createEffect(() => {
@@ -211,15 +228,15 @@ export function useChat(
   });
 
   const triggerRequest = async (chatRequest: ChatRequest) => {
+    setError(undefined);
+    setStatus('pending');
+
     const messageCount = messagesRef.length;
     const maxStep = extractMaxToolInvocationStep(
       chatRequest.messages[chatRequest.messages.length - 1]?.toolInvocations,
     );
 
     try {
-      setError(undefined);
-      setIsLoading(true);
-
       abortController = new AbortController();
 
       const streamProtocol = useChatOptions().streamProtocol?.() ?? 'data';
@@ -298,6 +315,8 @@ export function useChat(
         },
         onResponse,
         onUpdate({ message, data, replaceLastMessage }) {
+          setStatus('loading');
+
           mutate([
             ...(replaceLastMessage
               ? chatMessages.slice(0, chatMessages.length - 1)
@@ -317,6 +336,7 @@ export function useChat(
       });
 
       abortController = null;
+      setStatus('ready');
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
@@ -330,8 +350,7 @@ export function useChat(
       }
 
       setError(err as Error);
-    } finally {
-      setIsLoading(false);
+      setStatus('error');
     }
 
     const maxSteps = useChatOptions().maxSteps?.() ?? 1;
@@ -500,6 +519,10 @@ export function useChat(
     }
   };
 
+  const isLoading = createMemo(
+    () => status() === 'pending' || status() === 'loading',
+  );
+
   return {
     // TODO next major release: replace with direct message store access (breaking change)
     messages: () => messagesStore,
@@ -514,6 +537,7 @@ export function useChat(
     handleInputChange,
     handleSubmit,
     isLoading,
+    status,
     data: streamData,
     setData,
     addToolResult,
