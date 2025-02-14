@@ -21,6 +21,8 @@ export interface BedrockConverseInput {
     | undefined;
 }
 
+export type BedrockCacheControl = { cachePoint: { type: string } };
+
 export interface BedrockGuardrailConfiguration {
   guardrails?: Array<{
     name: string;
@@ -118,4 +120,5 @@ export type BedrockContentBlock =
   | BedrockImageBlock
   | BedrockTextBlock
   | BedrockToolResultBlock
-  | BedrockToolUseBlock;
+  | BedrockToolUseBlock
+  | BedrockCacheControl;

@@ -2,13 +2,18 @@ import {
   JSONObject,
   LanguageModelV1Message,
   LanguageModelV1Prompt,
+  LanguageModelV1ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
-import { BedrockDocumentFormat, BedrockImageFormat } from './bedrock-api-types';
+import {
+  BedrockDocumentFormat,
+  BedrockImageFormat,
+  BedrockCacheControl,
+} from './bedrock-api-types';
 import {
   BedrockAssistantMessage,
   BedrockMessagesPrompt,
@@ -24,6 +29,20 @@ export function convertToBedrockChatMessages(
 
   let system: string | undefined = undefined;
   const messages: BedrockMessagesPrompt['messages'] = [];
+
+  function getCacheControl(
+    providerMetadata: LanguageModelV1ProviderMetadata | undefined,
+  ): BedrockCacheControl | undefined {
+    const bedrock = providerMetadata?.bedrock;
+
+    // allow both cacheControl and cache_control:
+    const cacheControlValue = bedrock?.cacheControl ?? bedrock?.cache_control;
+
+    // Pass through value assuming it is of the correct type.
+    return cacheControlValue !== undefined
+      ? ({ cachePoint: cacheControlValue } as BedrockCacheControl)
+      : undefined;
+  }
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -53,6 +72,8 @@ export function convertToBedrockChatMessages(
             case 'user': {
               for (let j = 0; j < content.length; j++) {
                 const part = content[j];
+
+                const cacheControl = getCacheControl(part.providerMetadata);
 
                 switch (part.type) {
                   case 'text': {
@@ -107,6 +128,11 @@ export function convertToBedrockChatMessages(
                     break;
                   }
                 }
+
+                // add cache checkpoint if valid
+                if (cacheControl !== undefined) {
+                  bedrockContent.push(cacheControl as BedrockCacheControl);
+                }
               }
 
               break;
@@ -149,6 +175,7 @@ export function convertToBedrockChatMessages(
           for (let k = 0; k < content.length; k++) {
             const part = content[k];
             const isLastContentPart = k === content.length - 1;
+            const cacheControl = getCacheControl(part.providerMetadata);
 
             switch (part.type) {
               case 'text': {
@@ -174,6 +201,10 @@ export function convertToBedrockChatMessages(
                 });
                 break;
               }
+            }
+            // add cache checkpoint if valid
+            if (cacheControl !== undefined) {
+              bedrockContent.push(cacheControl as BedrockCacheControl);
             }
           }
         }
