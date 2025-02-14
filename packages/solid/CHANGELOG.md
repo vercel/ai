@@ -1,5 +1,11 @@
 # @ai-sdk/solid
 
+## 1.1.17
+
+### Patch Changes
+
+- c43df41: feat (ui): add useChat status
+
 ## 1.1.16
 
 ### Patch Changes
