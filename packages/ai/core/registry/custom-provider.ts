@@ -33,6 +33,7 @@ export function customProvider<
     modelId: ExtractModelId<EMBEDDING_MODELS>,
   ): EmbeddingModel<string>;
   imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModel;
+  listModels(): { id: string; capabilities: string[] }[];
 } {
   return {
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModel {
@@ -71,6 +72,30 @@ export function customProvider<
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
+    },
+
+    listModels(): { id: string; capabilities: string[] }[] {
+      const models: { id: string; capabilities: string[] }[] = [];
+
+      if (languageModels) {
+        for (const id of Object.keys(languageModels)) {
+          models.push({ id, capabilities: ['languageModel'] });
+        }
+      }
+
+      if (textEmbeddingModels) {
+        for (const id of Object.keys(textEmbeddingModels)) {
+          models.push({ id, capabilities: ['textEmbeddingModel'] });
+        }
+      }
+
+      if (imageModels) {
+        for (const id of Object.keys(imageModels)) {
+          models.push({ id, capabilities: ['imageModel'] });
+        }
+      }
+
+      return models;
     },
   };
 }

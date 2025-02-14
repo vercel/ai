@@ -175,3 +175,38 @@ describe('imageModel', () => {
     expect(() => registry.imageModel('model')).toThrowError(NoSuchModelError);
   });
 });
+
+describe('listProviders', () => {
+  it('should list all providers and their models', () => {
+    const modelRegistry = experimental_createProviderRegistry({
+      provider1: {
+        languageModel: id => {
+          return new MockLanguageModelV1();
+        },
+        textEmbeddingModel: id => {
+          return new MockEmbeddingModelV1();
+        },
+        imageModel: id => {
+          return new MockImageModelV1();
+        },
+      },
+      provider2: {
+        languageModel: id => {
+          return new MockLanguageModelV1();
+        },
+        textEmbeddingModel: id => {
+          return new MockEmbeddingModelV1();
+        },
+        imageModel: id => {
+          return new MockImageModelV1();
+        },
+      },
+    });
+
+    const providers = modelRegistry.listProviders();
+    expect(providers).toEqual([
+      { id: 'provider1', models: ['languageModel', 'textEmbeddingModel', 'imageModel'] },
+      { id: 'provider2', models: ['languageModel', 'textEmbeddingModel', 'imageModel'] },
+    ]);
+  });
+});

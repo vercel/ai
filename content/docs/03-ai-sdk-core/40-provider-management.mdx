@@ -83,6 +83,29 @@ export const myProvider = customProvider({
 });
 ```
 
+### Example: list models
+
+You can list all models in the custom provider along with their capabilities.
+
+```ts
+import { customProvider } from 'ai';
+
+const provider = customProvider({
+  languageModels: {
+    'gpt-4o': originalOpenAI('gpt-4o'),
+  },
+  textEmbeddingModels: {
+    'text-embedding-3-small': originalOpenAI.textEmbeddingModel('text-embedding-3-small'),
+  },
+  imageModels: {
+    'dall-e-3': originalOpenAI.imageModel('dall-e-3'),
+  },
+});
+
+const models = provider.listModels();
+console.log(models);
+```
+
 ## Provider Registry
 
 <Note type="warning">The provider registry is an experimental feature.</Note>
@@ -150,4 +173,24 @@ const { image } = await generateImage({
   model: registry.imageModel('openai:dall-e-3'),
   prompt: 'A beautiful sunset over a calm ocean',
 });
+```
+
+### Example: list providers and models
+
+You can list all providers and their supported models.
+
+```ts
+import { experimental_createProviderRegistry as createProviderRegistry } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
+
+const registry = createProviderRegistry({
+  anthropic,
+  openai: createOpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  }),
+});
+
+const providers = registry.listProviders();
+console.log(providers);
 ```

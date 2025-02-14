@@ -110,4 +110,15 @@ class DefaultProviderRegistry implements Provider {
   textEmbedding(id: string): EmbeddingModel<string> {
     return this.textEmbeddingModel(id);
   }
+
+  listProviders(): { id: string; models: string[] }[] {
+    return Object.entries(this.providers).map(([id, provider]) => ({
+      id,
+      models: [
+        ...Object.keys(provider.languageModel ?? {}),
+        ...Object.keys(provider.textEmbeddingModel ?? {}),
+        ...Object.keys(provider.imageModel ?? {}),
+      ],
+    }));
+  }
 }

@@ -102,3 +102,26 @@ describe('imageModel', () => {
     expect(() => provider.imageModel('test-model')).toThrow(NoSuchModelError);
   });
 });
+
+describe('listModels', () => {
+  it('should list all models in the custom provider', () => {
+    const provider = customProvider({
+      languageModels: { 'test-language-model': mockLanguageModel },
+      textEmbeddingModels: { 'test-embedding-model': mockEmbeddingModel },
+      imageModels: { 'test-image-model': new MockImageModelV1() },
+    });
+
+    const models = provider.listModels();
+    expect(models).toEqual([
+      { id: 'test-language-model', capabilities: ['languageModel'] },
+      { id: 'test-embedding-model', capabilities: ['textEmbeddingModel'] },
+      { id: 'test-image-model', capabilities: ['imageModel'] },
+    ]);
+  });
+
+  it('should return an empty list if no models are present', () => {
+    const provider = customProvider({});
+    const models = provider.listModels();
+    expect(models).toEqual([]);
+  });
+});
