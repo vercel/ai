@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 1.1.11
+
+### Patch Changes
+
+- 31ec1c8: fix (provider/mistral): allow for undefined content
+
 ## 1.1.10
 
 ### Patch Changes
