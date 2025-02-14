@@ -86,12 +86,12 @@ export type UseChatHelpers = {
   /**
    * Hook status:
    *
-   * - `pending`: A message has been submitted, but the response stream has not started yet.
-   * - `loading`: The response is actively streaming in, with data arriving incrementally.
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
    * - `ready`: The full response has been received and processed; a new user message can be submitted.
    * - `error`: An error occurred during the API request, preventing successful completion.
    */
-  status: 'pending' | 'loading' | 'ready' | 'error';
+  status: 'submitted' | 'streaming' | 'ready' | 'error';
 
   /** Additional data added on the server via StreamData. */
   data?: JSONValue[];
@@ -213,7 +213,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
   }, [streamData]);
 
   const { data: status = 'ready', mutate: mutateStatus } = useSWR<
-    'pending' | 'loading' | 'ready' | 'error'
+    'submitted' | 'streaming' | 'ready' | 'error'
   >([chatKey, 'status'], null);
 
   const { data: error = undefined, mutate: setError } = useSWR<
@@ -239,7 +239,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
-      mutateStatus('pending');
+      mutateStatus('submitted');
       setError(undefined);
 
       const chatMessages = fillMessageParts(chatRequest.messages);
@@ -317,7 +317,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           },
           onResponse,
           onUpdate({ message, data, replaceLastMessage }) {
-            mutateStatus('loading');
+            mutateStatus('streaming');
 
             throttledMutate(
               [
@@ -574,7 +574,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading: status === 'pending' || status === 'loading',
+    isLoading: status === 'submitted' || status === 'streaming',
     status,
     addToolResult,
   };

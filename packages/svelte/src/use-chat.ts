@@ -90,12 +90,12 @@ export type UseChatHelpers = {
   /**
    * Hook status:
    *
-   * - `pending`: A message has been submitted, but the response stream has not started yet.
-   * - `loading`: The response is actively streaming in, with data arriving incrementally.
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
    * - `ready`: The full response has been received and processed; a new user message can be submitted.
    * - `error`: An error occurred during the API request, preventing successful completion.
    */
-  status: Readable<'pending' | 'loading' | 'ready' | 'error'>;
+  status: Readable<'submitted' | 'streaming' | 'ready' | 'error'>;
 
   /** Additional data added on the server via StreamData */
   data: Readable<JSONValue[] | undefined>;
@@ -151,7 +151,9 @@ export function useChat({
 
   const streamData = writable<JSONValue[] | undefined>(undefined);
 
-  const status = writable<'pending' | 'loading' | 'ready' | 'error'>('ready');
+  const status = writable<'submitted' | 'streaming' | 'ready' | 'error'>(
+    'ready',
+  );
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
   data.set(fillMessageParts(initialMessages));
@@ -178,7 +180,7 @@ export function useChat({
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
   async function triggerRequest(chatRequest: ChatRequest) {
-    status.set('pending');
+    status.set('submitted');
     error.set(undefined);
 
     const messagesSnapshot = get(messages);
@@ -246,7 +248,7 @@ export function useChat({
         },
         onResponse,
         onUpdate({ message, data, replaceLastMessage }) {
-          status.set('loading');
+          status.set('streaming');
 
           mutate([
             ...(replaceLastMessage
@@ -443,7 +445,7 @@ export function useChat({
     handleSubmit,
     isLoading: derived(
       status,
-      $status => $status === 'pending' || $status === 'loading',
+      $status => $status === 'submitted' || $status === 'streaming',
     ),
     status,
     data: streamData,

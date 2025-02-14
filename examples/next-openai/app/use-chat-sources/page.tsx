@@ -46,9 +46,9 @@ export default function Chat() {
         </div>
       ))}
 
-      {(status === 'pending' || status === 'loading') && (
+      {(status === 'submitted' || status === 'streaming') && (
         <div className="mt-4 text-gray-500">
-          {status === 'pending' && <div>Loading...</div>}
+          {status === 'submitted' && <div>Loading...</div>}
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"

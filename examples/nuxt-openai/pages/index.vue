@@ -20,10 +20,10 @@ const disabled = computed(() => status.value !== 'ready');
     </div>
 
     <div
-      v-if="status === 'loading' || status === 'pending'"
+      v-if="status === 'submitted' || status === 'streaming'"
       class="mt-4 text-gray-500"
     >
-      <div v-if="status === 'pending'">Loading...</div>
+      <div v-if="status === 'submitted'">Loading...</div>
       <button
         type="button"
         class="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"

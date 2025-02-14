@@ -96,12 +96,12 @@ export type UseChatHelpers = {
   /**
    * Hook status:
    *
-   * - `pending`: A message has been submitted, but the response stream has not started yet.
-   * - `loading`: The response is actively streaming in, with data arriving incrementally.
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
    * - `ready`: The full response has been received and processed; a new user message can be submitted.
    * - `error`: An error occurred during the API request, preventing successful completion.
    */
-  status: Accessor<'pending' | 'loading' | 'ready' | 'error'>;
+  status: Accessor<'submitted' | 'streaming' | 'ready' | 'error'>;
 
   /** Additional data added on the server via StreamData */
   data: Accessor<JSONValue[] | undefined>;
@@ -204,7 +204,7 @@ export function useChat(
     undefined,
   );
   const [status, setStatus] = createSignal<
-    'pending' | 'loading' | 'ready' | 'error'
+    'submitted' | 'streaming' | 'ready' | 'error'
   >('ready');
 
   let messagesRef: UIMessage[] = fillMessageParts(_messages()) || [];
@@ -229,7 +229,7 @@ export function useChat(
 
   const triggerRequest = async (chatRequest: ChatRequest) => {
     setError(undefined);
-    setStatus('pending');
+    setStatus('submitted');
 
     const messageCount = messagesRef.length;
     const maxStep = extractMaxToolInvocationStep(
@@ -315,7 +315,7 @@ export function useChat(
         },
         onResponse,
         onUpdate({ message, data, replaceLastMessage }) {
-          setStatus('loading');
+          setStatus('streaming');
 
           mutate([
             ...(replaceLastMessage
@@ -520,7 +520,7 @@ export function useChat(
   };
 
   const isLoading = createMemo(
-    () => status() === 'pending' || status() === 'loading',
+    () => status() === 'submitted' || status() === 'streaming',
   );
 
   return {

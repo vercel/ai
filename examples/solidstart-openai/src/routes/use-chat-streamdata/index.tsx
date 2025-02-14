@@ -47,9 +47,9 @@ export default function Chat() {
         )}
       </For>
 
-      <Show when={status() === 'pending' || status() === 'loading'}>
+      <Show when={status() === 'submitted' || status() === 'streaming'}>
         <div class="mt-4 text-gray-500">
-          <Show when={status() === 'pending'}>
+          <Show when={status() === 'submitted'}>
             <div>Loading...</div>
           </Show>
           <button

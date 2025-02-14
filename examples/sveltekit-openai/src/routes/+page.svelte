@@ -18,9 +18,9 @@
     {/each}
   </ul>
 
-  {#if $status === 'loading' || $status === 'pending'}
+  {#if $status === 'submitted' || $status === 'streaming'}
     <div class="mt-4 text-gray-500">
-      {#if $status === 'pending'}
+      {#if $status === 'submitted'}
         <div>Loading...</div>
       {/if}
       <button

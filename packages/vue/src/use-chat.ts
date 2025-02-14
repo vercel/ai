@@ -74,12 +74,12 @@ export type UseChatHelpers = {
   /**
    * Hook status:
    *
-   * - `pending`: A message has been submitted, but the response stream has not started yet.
-   * - `loading`: The response is actively streaming in, with data arriving incrementally.
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
    * - `ready`: The full response has been received and processed; a new user message can be submitted.
    * - `error`: An error occurred during the API request, preventing successful completion.
    */
-  status: Ref<'pending' | 'loading' | 'ready' | 'error'>;
+  status: Ref<'submitted' | 'streaming' | 'ready' | 'error'>;
 
   /** Additional data added on the server via StreamData. */
   data: Ref<JSONValue[] | undefined>;
@@ -165,7 +165,7 @@ export function useChat(
   );
 
   const { data: status, mutate: mutateStatus } = useSWRV<
-    'pending' | 'loading' | 'ready' | 'error'
+    'submitted' | 'streaming' | 'ready' | 'error'
   >(`${chatId}-status`, null);
 
   status.value ??= 'ready';
@@ -192,7 +192,7 @@ export function useChat(
     { data, headers, body }: ChatRequestOptions = {},
   ) {
     error.value = undefined;
-    mutateStatus(() => 'pending');
+    mutateStatus(() => 'submitted');
 
     const messageCount = messages.value.length;
     const maxStep = extractMaxToolInvocationStep(
@@ -257,7 +257,7 @@ export function useChat(
         credentials,
         onResponse,
         onUpdate({ message, data, replaceLastMessage }) {
-          mutateStatus(() => 'loading');
+          mutateStatus(() => 'streaming');
 
           mutate([
             ...(replaceLastMessage
@@ -440,8 +440,10 @@ export function useChat(
     setMessages,
     input,
     handleSubmit,
-    isLoading: computed(() => status.value === 'loading'),
-    status: status as Ref<'pending' | 'loading' | 'ready' | 'error'>,
+    isLoading: computed(
+      () => status.value === 'submitted' || status.value === 'streaming',
+    ),
+    status: status as Ref<'submitted' | 'streaming' | 'ready' | 'error'>,
     data: streamData as Ref<undefined | JSONValue[]>,
     setData,
     addToolResult,
