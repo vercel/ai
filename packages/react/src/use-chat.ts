@@ -75,11 +75,27 @@ export type UseChatHelpers = {
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   metadata?: Object;
-  /** Whether the API request is in progress */
+
+  /**
+   * Whether the API request is in progress
+   *
+   * @deprecated use `status` instead
+   */
   isLoading: boolean;
+
+  /**
+   * The status of the useChat hook:
+   *
+   * - `pending`: The API request has been initiated but the response stream has not started yet.
+   * - `loading`: The response is actively streaming in, with data arriving incrementally.
+   * - `ready`: The full response has been received and processed; a new user message can be submitted.
+   * - `error`: An error occurred during the API request, preventing successful completion.
+   */
+  status: 'pending' | 'loading' | 'ready' | 'error';
 
   /** Additional data added on the server via StreamData. */
   data?: JSONValue[];
+
   /** Set the data of the chat. You can use this to transform or clear the chat data. */
   setData: (
     data:
@@ -196,11 +212,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
     streamDataRef.current = streamData;
   }, [streamData]);
 
-  // We store loading state in another hook to sync loading states across hook invocations
-  const { data: isLoading = false, mutate: mutateLoading } = useSWR<boolean>(
-    [chatKey, 'loading'],
-    null,
-  );
+  const { data: status = 'ready', mutate: mutateStatus } = useSWR<
+    'pending' | 'loading' | 'ready' | 'error'
+  >([chatKey, 'status'], null);
 
   const { data: error = undefined, mutate: setError } = useSWR<
     undefined | Error
@@ -233,7 +247,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       );
 
       try {
-        mutateLoading(true);
+        mutateStatus('pending');
         setError(undefined);
 
         const abortController = new AbortController();
@@ -303,6 +317,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
           },
           onResponse,
           onUpdate({ message, data, replaceLastMessage }) {
+            mutateStatus('loading');
+
             throttledMutate(
               [
                 ...(replaceLastMessage
@@ -341,7 +357,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
         setError(err as Error);
       } finally {
-        mutateLoading(false);
+        mutateStatus('ready');
       }
 
       // auto-submit when all tool calls in the last assistant message have results
@@ -360,7 +376,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     },
     [
       mutate,
-      mutateLoading,
+      mutateStatus,
       api,
       extraMetadataRef,
       onResponse,
@@ -557,7 +573,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading,
+    isLoading: status === 'pending' || status === 'loading',
+    status,
     addToolResult,
   };
 }
