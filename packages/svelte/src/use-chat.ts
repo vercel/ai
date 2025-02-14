@@ -111,100 +111,6 @@ export type UseChatHelpers = {
   id: string;
 };
 
-const getStreamedResponse = async (
-  api: string,
-  chatRequest: ChatRequest,
-  mutate: (messages: UIMessage[]) => void,
-  mutateStreamData: (data: JSONValue[] | undefined) => void,
-  existingData: JSONValue[] | undefined,
-  extraMetadata: {
-    credentials?: RequestCredentials;
-    headers?: Record<string, string> | Headers;
-    body?: any;
-  },
-  previousMessages: UIMessage[],
-  abortControllerRef: AbortController | null,
-  generateId: IdGenerator,
-  streamProtocol: UseChatOptions['streamProtocol'],
-  onFinish: UseChatOptions['onFinish'],
-  onResponse: ((response: Response) => void | Promise<void>) | undefined,
-  onToolCall: UseChatOptions['onToolCall'] | undefined,
-  sendExtraMessageFields: boolean | undefined,
-  fetch: FetchFunction | undefined,
-  keepLastMessageOnError: boolean | undefined,
-  chatId: string,
-) => {
-  // Do an optimistic update to the chat state to show the updated messages
-  // immediately.
-  const chatMessages = fillMessageParts(chatRequest.messages);
-
-  mutate(chatMessages);
-
-  const constructedMessagesPayload = sendExtraMessageFields
-    ? chatMessages
-    : chatMessages.map(
-        ({
-          role,
-          content,
-          experimental_attachments,
-          data,
-          annotations,
-          toolInvocations,
-          parts,
-        }) => ({
-          role,
-          content,
-          ...(experimental_attachments !== undefined && {
-            experimental_attachments,
-          }),
-          ...(data !== undefined && { data }),
-          ...(annotations !== undefined && { annotations }),
-          ...(toolInvocations !== undefined && { toolInvocations }),
-          ...(parts !== undefined && { parts }),
-        }),
-      );
-
-  return await callChatApi({
-    api,
-    body: {
-      id: chatId,
-      messages: constructedMessagesPayload,
-      data: chatRequest.data,
-      ...extraMetadata.body,
-      ...chatRequest.body,
-    },
-    streamProtocol,
-    credentials: extraMetadata.credentials,
-    headers: {
-      ...extraMetadata.headers,
-      ...chatRequest.headers,
-    },
-    abortController: () => abortControllerRef,
-    restoreMessagesOnFailure() {
-      if (!keepLastMessageOnError) {
-        mutate(previousMessages);
-      }
-    },
-    onResponse,
-    onUpdate({ message, data, replaceLastMessage }) {
-      mutate([
-        ...(replaceLastMessage
-          ? chatMessages.slice(0, chatMessages.length - 1)
-          : chatMessages),
-        message,
-      ]);
-      if (data?.length) {
-        mutateStreamData([...(existingData ?? []), ...data]);
-      }
-    },
-    onFinish,
-    generateId,
-    onToolCall,
-    fetch,
-    lastMessage: chatMessages[chatMessages.length - 1],
-  });
-};
-
 const store: Record<string, UIMessage[] | undefined> = {};
 
 export function useChat({
@@ -284,27 +190,78 @@ export function useChat({
     try {
       abortController = new AbortController();
 
-      await getStreamedResponse(
+      // Do an optimistic update to the chat state to show the updated messages
+      // immediately.
+      const chatMessages = fillMessageParts(chatRequest.messages);
+
+      mutate(chatMessages);
+
+      const existingData = get(streamData);
+      const previousMessages = get(messages);
+
+      const constructedMessagesPayload = sendExtraMessageFields
+        ? chatMessages
+        : chatMessages.map(
+            ({
+              role,
+              content,
+              experimental_attachments,
+              data,
+              annotations,
+              toolInvocations,
+              parts,
+            }) => ({
+              role,
+              content,
+              ...(experimental_attachments !== undefined && {
+                experimental_attachments,
+              }),
+              ...(data !== undefined && { data }),
+              ...(annotations !== undefined && { annotations }),
+              ...(toolInvocations !== undefined && { toolInvocations }),
+              ...(parts !== undefined && { parts }),
+            }),
+          );
+
+      await callChatApi({
         api,
-        chatRequest,
-        mutate,
-        data => {
-          streamData.set(data);
+        body: {
+          id: chatId,
+          messages: constructedMessagesPayload,
+          data: chatRequest.data,
+          ...extraMetadata.body,
+          ...chatRequest.body,
         },
-        get(streamData),
-        extraMetadata,
-        get(messages),
-        abortController,
-        generateId,
         streamProtocol,
-        onFinish,
+        credentials: extraMetadata.credentials,
+        headers: {
+          ...extraMetadata.headers,
+          ...chatRequest.headers,
+        },
+        abortController: () => abortController,
+        restoreMessagesOnFailure() {
+          if (!keepLastMessageOnError) {
+            mutate(previousMessages);
+          }
+        },
         onResponse,
+        onUpdate({ message, data, replaceLastMessage }) {
+          mutate([
+            ...(replaceLastMessage
+              ? chatMessages.slice(0, chatMessages.length - 1)
+              : chatMessages),
+            message,
+          ]);
+          if (data?.length) {
+            streamData.set([...(existingData ?? []), ...data]);
+          }
+        },
+        onFinish,
+        generateId,
         onToolCall,
-        sendExtraMessageFields,
         fetch,
-        keepLastMessageOnError,
-        chatId,
-      );
+        lastMessage: chatMessages[chatMessages.length - 1],
+      });
 
       status.set('ready');
     } catch (err) {
