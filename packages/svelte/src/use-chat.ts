@@ -246,6 +246,8 @@ export function useChat({
         },
         onResponse,
         onUpdate({ message, data, replaceLastMessage }) {
+          status.set('loading');
+
           mutate([
             ...(replaceLastMessage
               ? chatMessages.slice(0, chatMessages.length - 1)
