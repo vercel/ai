@@ -5,11 +5,10 @@ import { useChat } from '@ai-sdk/react';
 import { GeistMono } from 'geist/font/mono';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
-    useChat({
-      streamProtocol: 'data',
-      maxSteps: 3,
-    });
+  const { messages, input, handleSubmit, handleInputChange, status } = useChat({
+    streamProtocol: 'data',
+    maxSteps: 3,
+  });
 
   return (
     <div className="flex flex-col gap-2">
@@ -51,7 +50,7 @@ export default function Page() {
           placeholder="What's the weather in San Francisco?"
           onChange={handleInputChange}
           className="w-full p-4 bg-transparent outline-none"
-          disabled={isLoading}
+          disabled={status !== 'ready'}
         />
       </form>
     </div>

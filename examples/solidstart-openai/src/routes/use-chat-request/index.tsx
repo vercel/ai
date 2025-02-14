@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { For } from 'solid-js';
+import { For, Show } from 'solid-js';
 import { useChat } from '@ai-sdk/solid';
 import { createIdGenerator } from 'ai';
 
@@ -9,7 +9,7 @@ export default function Chat() {
     messages,
     handleInputChange,
     handleSubmit,
-    isLoading,
+    status,
     error,
     stop,
     reload,
@@ -38,9 +38,11 @@ export default function Chat() {
         </For>
       </div>
 
-      {isLoading() && (
+      <Show when={status() === 'submitted' || status() === 'streaming'}>
         <div class="mt-4 text-gray-500">
-          <div>Loading...</div>
+          <Show when={status() === 'submitted'}>
+            <div>Loading...</div>
+          </Show>
           <button
             type="button"
             class="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
@@ -49,7 +51,7 @@ export default function Chat() {
             Stop
           </button>
         </div>
-      )}
+      </Show>
 
       {error() && (
         <div class="mt-4">
@@ -70,7 +72,7 @@ export default function Chat() {
           value={input()}
           placeholder="Say something..."
           onInput={handleInputChange}
-          disabled={isLoading()}
+          disabled={status() !== 'ready'}
         />
       </form>
     </div>

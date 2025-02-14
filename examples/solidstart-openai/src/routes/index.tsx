@@ -1,11 +1,11 @@
-import { For } from 'solid-js';
+import { For, Show } from 'solid-js';
 import { useChat } from '@ai-sdk/solid';
 
 export default function Chat() {
   const {
     error,
     input,
-    isLoading,
+    status,
     handleInputChange,
     handleSubmit,
     messages,
@@ -29,9 +29,11 @@ export default function Chat() {
         )}
       </For>
 
-      {isLoading() && (
+      <Show when={status() === 'submitted' || status() === 'streaming'}>
         <div class="mt-4 text-gray-500">
-          <div>Loading...</div>
+          <Show when={status() === 'submitted'}>
+            <div>Loading...</div>
+          </Show>
           <button
             type="button"
             class="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
@@ -40,9 +42,9 @@ export default function Chat() {
             Stop
           </button>
         </div>
-      )}
+      </Show>
 
-      {error() && (
+      <Show when={error()}>
         <div class="mt-4">
           <div class="text-red-500">An error occurred.</div>
           <button
@@ -53,7 +55,7 @@ export default function Chat() {
             Retry
           </button>
         </div>
-      )}
+      </Show>
 
       <form onSubmit={handleSubmit}>
         <input
@@ -61,7 +63,7 @@ export default function Chat() {
           value={input()}
           placeholder="Say something..."
           onInput={handleInputChange}
-          disabled={isLoading() || error() != null}
+          disabled={status() !== 'ready'}
         />
       </form>
     </div>

@@ -9,11 +9,10 @@ export default function Chat() {
     console.log(`component rendered #${++renderCount.current}`);
   });
 
-  const { messages, input, isLoading, error, handleInputChange, handleSubmit } =
-    useChat({
-      api: '/api/use-chat-throttle',
-      experimental_throttle: 50,
-    });
+  const { messages, input, status, handleInputChange, handleSubmit } = useChat({
+    api: '/api/use-chat-throttle',
+    experimental_throttle: 50,
+  });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -32,7 +31,7 @@ export default function Chat() {
           value={input}
           placeholder="Say something..."
           onChange={handleInputChange}
-          disabled={isLoading || error != null}
+          disabled={status !== 'ready'}
         />
       </form>
     </div>

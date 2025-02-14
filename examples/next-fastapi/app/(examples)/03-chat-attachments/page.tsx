@@ -7,10 +7,9 @@ import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
-    useChat({
-      streamProtocol: 'data',
-    });
+  const { messages, input, handleSubmit, handleInputChange, status } = useChat({
+    streamProtocol: 'data',
+  });
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,7 +107,7 @@ export default function Page() {
           placeholder="What's the weather in San Francisco?"
           onChange={handleInputChange}
           className="w-full bg-transparent outline-none"
-          disabled={isLoading}
+          disabled={status !== 'ready'}
         />
       </form>
     </div>

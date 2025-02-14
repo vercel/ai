@@ -1,21 +1,10 @@
 <script lang="ts">
   import { useChat } from '@ai-sdk/svelte';
 
-  const {
-    error,
-    input,
-    isLoading,
-    handleSubmit,
-    messages,
-    data,
-    setData
-  } = useChat({ api: '/api/use-chat-streamdata' });
+  const { input, status, handleSubmit, messages, data, setData } = useChat({
+    api: '/api/use-chat-streamdata',
+  });
 </script>
-
-<svelte:head>
-  <title>Home</title>
-  <meta name="description" content="Svelte demo app" />
-</svelte:head>
 
 <section>
   <h1>useChat</h1>
@@ -44,7 +33,7 @@
   <form on:submit={handleSubmit}>
     <input
       bind:value={$input}
-      disabled={$isLoading || $error != null}
+      disabled={$status !== 'ready'}
       class="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
       placeholder="Say something..."
     />
