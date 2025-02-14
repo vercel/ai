@@ -239,6 +239,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
+      mutateStatus('pending');
+      setError(undefined);
+
       const chatMessages = fillMessageParts(chatRequest.messages);
 
       const messageCount = chatMessages.length;
@@ -247,9 +250,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
       );
 
       try {
-        mutateStatus('pending');
-        setError(undefined);
-
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
@@ -344,6 +344,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
         });
 
         abortControllerRef.current = null;
+
+        mutateStatus('ready');
       } catch (err) {
         // Ignore abort errors as they are expected.
         if ((err as any).name === 'AbortError') {
@@ -356,8 +358,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         }
 
         setError(err as Error);
-      } finally {
-        mutateStatus('ready');
+        mutateStatus('error');
       }
 
       // auto-submit when all tool calls in the last assistant message have results

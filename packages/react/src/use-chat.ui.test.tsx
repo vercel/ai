@@ -38,7 +38,7 @@ describe('data protocol stream', () => {
       append,
       error,
       data,
-      isLoading,
+      status,
       setData,
       id: idKey,
     } = useChat({
@@ -51,7 +51,7 @@ describe('data protocol stream', () => {
     return (
       <div>
         <div data-testid="id">{idKey}</div>
-        <div data-testid="loading">{isLoading.toString()}</div>
+        <div data-testid="status">{status.toString()}</div>
         {error && <div data-testid="error">{error.toString()}</div>}
         <div data-testid="data">{data != null ? JSON.stringify(data) : ''}</div>
         {messages.map((m, idx) => (
@@ -207,36 +207,43 @@ describe('data protocol stream', () => {
     ),
   );
 
-  describe('loading state', () => {
+  describe('status', () => {
     it(
-      'should show loading state',
+      'should show status',
       withTestServer(
         { url: '/api/chat', type: 'controlled-stream' },
         async ({ streamController }) => {
-          streamController.enqueue('0:"Hello"\n');
-
           await userEvent.click(screen.getByTestId('do-append'));
 
-          await screen.findByTestId('loading');
-          expect(screen.getByTestId('loading')).toHaveTextContent('true');
+          await waitFor(() => {
+            expect(screen.getByTestId('status')).toHaveTextContent('pending');
+          });
+
+          streamController.enqueue('0:"Hello"\n');
+
+          await waitFor(() => {
+            expect(screen.getByTestId('status')).toHaveTextContent('loading');
+          });
 
           streamController.close();
 
-          await findByText(await screen.findByTestId('loading'), 'false');
-          expect(screen.getByTestId('loading')).toHaveTextContent('false');
+          await waitFor(() => {
+            expect(screen.getByTestId('status')).toHaveTextContent('ready');
+          });
         },
       ),
     );
 
     it(
-      'should reset loading state on error',
+      'should set status to error when there is a server error',
       withTestServer(
         { type: 'error', url: '/api/chat', status: 404, content: 'Not found' },
         async () => {
           await userEvent.click(screen.getByTestId('do-append'));
 
-          await screen.findByTestId('loading');
-          expect(screen.getByTestId('loading')).toHaveTextContent('false');
+          await waitFor(() => {
+            expect(screen.getByTestId('status')).toHaveTextContent('error');
+          });
         },
       ),
     );
@@ -479,7 +486,7 @@ describe('text stream', () => {
 
 describe('form actions', () => {
   const TestComponent = () => {
-    const { messages, handleSubmit, handleInputChange, isLoading, input } =
+    const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({ streamProtocol: 'text' });
 
     return (
@@ -496,7 +503,7 @@ describe('form actions', () => {
             value={input}
             placeholder="Send message..."
             onChange={handleInputChange}
-            disabled={isLoading}
+            disabled={status !== 'ready'}
             data-testid="do-input"
           />
         </form>
@@ -552,7 +559,7 @@ describe('form actions', () => {
 
 describe('form actions (with options)', () => {
   const TestComponent = () => {
-    const { messages, handleSubmit, handleInputChange, isLoading, input } =
+    const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({ streamProtocol: 'text' });
 
     return (
@@ -575,7 +582,7 @@ describe('form actions (with options)', () => {
             value={input}
             placeholder="Send message..."
             onChange={handleInputChange}
-            disabled={isLoading}
+            disabled={status !== 'ready'}
             data-testid="do-input"
           />
         </form>
@@ -656,7 +663,7 @@ describe('prepareRequestBody', () => {
   let bodyOptions: any;
 
   const TestComponent = () => {
-    const { messages, append, isLoading } = useChat({
+    const { messages, append, status } = useChat({
       experimental_prepareRequestBody(options) {
         bodyOptions = options;
         return 'test-request-body';
@@ -665,7 +672,7 @@ describe('prepareRequestBody', () => {
 
     return (
       <div>
-        <div data-testid="loading">{isLoading.toString()}</div>
+        <div data-testid="status">{status.toString()}</div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
@@ -1193,7 +1200,7 @@ describe('maxSteps', () => {
 
 describe('file attachments with data url', () => {
   const TestComponent = () => {
-    const { messages, handleSubmit, handleInputChange, isLoading, input } =
+    const { messages, handleSubmit, handleInputChange, status, input } =
       useChat();
 
     const [attachments, setAttachments] = useState<FileList | undefined>(
@@ -1254,7 +1261,7 @@ describe('file attachments with data url', () => {
           <input
             value={input}
             onChange={handleInputChange}
-            disabled={isLoading}
+            disabled={status !== 'ready'}
             data-testid="message-input"
           />
           <button type="submit" data-testid="submit-button">
@@ -1394,7 +1401,7 @@ describe('file attachments with data url', () => {
 
 describe('file attachments with url', () => {
   const TestComponent = () => {
-    const { messages, handleSubmit, handleInputChange, isLoading, input } =
+    const { messages, handleSubmit, handleInputChange, status, input } =
       useChat();
 
     return (
@@ -1444,7 +1451,7 @@ describe('file attachments with url', () => {
           <input
             value={input}
             onChange={handleInputChange}
-            disabled={isLoading}
+            disabled={status !== 'ready'}
             data-testid="message-input"
           />
           <button type="submit" data-testid="submit-button">
