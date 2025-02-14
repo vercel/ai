@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.1.14
+
+### Patch Changes
+
+- 08a3641: fix (provider/google): support nullable enums in schema
+
 ## 1.1.13
 
 ### Patch Changes

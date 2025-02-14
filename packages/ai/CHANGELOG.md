@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.39
+
+### Patch Changes
+
+- 075a9a9: fix (ai): improve tsdoc on custom provider
+
 ## 4.1.38
 
 ### Patch Changes
