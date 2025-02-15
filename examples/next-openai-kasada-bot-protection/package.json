@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "1.1.11",
-    "@ai-sdk/react": "1.1.15",
+    "@ai-sdk/react": "1.1.16",
     "@vercel/functions": "latest",
-    "ai": "4.1.40",
+    "ai": "4.1.41",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18",
