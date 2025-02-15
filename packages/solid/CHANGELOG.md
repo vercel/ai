@@ -1,5 +1,11 @@
 # @ai-sdk/solid
 
+## 1.1.18
+
+### Patch Changes
+
+- 60c3220: fix (ui): set status to ready after stream was aborted
+
 ## 1.1.17
 
 ### Patch Changes
