@@ -497,7 +497,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: 18, completionTokens: 439 },
+        usage: { completionTokens: 439, promptTokens: 18 }, // TODO: from where is it receiving this usage?
       },
     ]);
   });
@@ -796,8 +796,7 @@ describe('doStream', () => {
         `"function":{"arguments":""}}]},"logprobs":null,"finish_reason":"tool_calls","stop_reason":128008}],` +
         `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
       `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
+        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[]}\n\n`,
       `data: [DONE]\n\n`,
     ];
 
@@ -879,7 +878,7 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         // note: test copied from openai-compatible test, no sambanova-specific usage data
-        usage: { promptTokens: NaN, completionTokens: NaN },
+        usage: { promptTokens: 226, completionTokens: 20 },
       },
     ]);
   });
@@ -942,7 +941,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'tool-calls',
-        usage: { promptTokens: NaN, completionTokens: 439 },
+        usage: { promptTokens: 18, completionTokens: 439 },
       },
     ]);
   });
@@ -1081,7 +1080,7 @@ describe('doStream', () => {
     });
 
     expect(request).toStrictEqual({
-      body: '{"model":"Meta-Llama-3.1-8B-Instruct","messages":[{"role":"user","content":"Hello"}],"stream":true}',
+      body: '{"model":"Meta-Llama-3.1-8B-Instruct","messages":[{"role":"user","content":"Hello"}],"stream":true,"stream_options":{"include_usage":true}}',
     });
   });
 });

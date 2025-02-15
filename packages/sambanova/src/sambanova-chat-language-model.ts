@@ -87,12 +87,14 @@ export class SambaNovaChatLanguageModel implements LanguageModelV1 {
 
     const warnings: LanguageModelV1CallWarning[] = [];
 
-    if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
-    }
+    // TODO: Should we raise an error on unsupported features? As they're ignored by default.
+    // List: logprobs, top_logprobs, n, presence_penalty, frequency_penaly, logit_bias, seed.
+    // if (topK != null) {
+    //   warnings.push({
+    //     type: 'unsupported-setting',
+    //     setting: 'topK',
+    //   });
+    // }
 
     if (
       responseFormat != null &&
@@ -102,7 +104,8 @@ export class SambaNovaChatLanguageModel implements LanguageModelV1 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'responseFormat',
-        details: 'JSON response format schema is not supported',
+        details:
+          'JSON response format "schema" is not supported. Only "object" response format',
       });
     }
 
@@ -118,6 +121,7 @@ export class SambaNovaChatLanguageModel implements LanguageModelV1 {
       max_tokens: maxTokens,
       temperature,
       top_p: topP,
+      top_k: topK,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
       stop: stopSequences,
@@ -240,7 +244,11 @@ export class SambaNovaChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const { args, warnings } = this.getArgs({ ...options, stream: true });
 
-    const body = JSON.stringify({ ...args, stream: true });
+    const body = JSON.stringify({
+      ...args,
+      stream: true,
+      stream_options: { include_usage: true },
+    });
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -315,12 +323,10 @@ export class SambaNovaChatLanguageModel implements LanguageModelV1 {
               });
             }
 
-            if (value.x_sambanova?.usage != null) {
+            if (value.usage != null) {
               usage = {
-                promptTokens:
-                  value.x_sambanova.usage.prompt_tokens ?? undefined,
-                completionTokens:
-                  value.x_sambanova.usage.completion_tokens ?? undefined,
+                promptTokens: value.usage.prompt_tokens ?? undefined,
+                completionTokens: value.usage.completion_tokens ?? undefined,
               };
             }
 
@@ -542,14 +548,10 @@ const sambanovaChatChunkSchema = z.union([
         index: z.number(),
       }),
     ),
-    x_sambanova: z
+    usage: z
       .object({
-        usage: z
-          .object({
-            prompt_tokens: z.number().nullish(),
-            completion_tokens: z.number().nullish(),
-          })
-          .nullish(),
+        prompt_tokens: z.number().nullish(),
+        completion_tokens: z.number().nullish(),
       })
       .nullish(),
   }),
