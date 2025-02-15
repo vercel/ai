@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 1.1.17
+
+### Patch Changes
+
+- 60c3220: fix (ui): set status to ready after stream was aborted
+
 ## 1.1.16
 
 ### Patch Changes

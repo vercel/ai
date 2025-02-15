@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "1.1.11",
-    "@ai-sdk/svelte": "1.1.16",
-    "ai": "4.1.40",
+    "@ai-sdk/svelte": "1.1.17",
+    "ai": "4.1.41",
     "openai": "4.52.6",
     "zod": "^3.23.8"
   },
