@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: anthropic('research-claude-flannel'),
+    model: anthropic('claude-3-5-sonnet-20240620'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
