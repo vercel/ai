@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.1.12
+
+### Patch Changes
+
+- ea159cb: chore (provider/openai): remove default streaming simulation for o1
+
 ## 1.1.11
 
 ### Patch Changes
