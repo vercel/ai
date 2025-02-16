@@ -11,7 +11,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "1.1.8",
     "@ai-sdk/deepseek": "0.1.10",
-    "@ai-sdk/openai": "1.1.11",
+    "@ai-sdk/openai": "1.1.12",
     "@ai-sdk/google-vertex": "2.1.15",
     "@ai-sdk/perplexity": "1.0.0",
     "@ai-sdk/ui-utils": "1.1.14",
