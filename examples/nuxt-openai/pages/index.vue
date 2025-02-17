@@ -2,14 +2,14 @@
 import { useChat } from '@ai-sdk/vue';
 import { computed } from 'vue';
 
-const { error, input, isLoading, handleSubmit, messages, reload, stop } =
-  useChat({
-    onFinish(message, { usage, finishReason }) {
-      console.log('Usage', usage);
-      console.log('FinishReason', finishReason);
-    },
-  });
-const disabled = computed(() => isLoading.value || error.value != null);
+const { error, input, status, handleSubmit, messages, reload, stop } = useChat({
+  onFinish(message, { usage, finishReason }) {
+    console.log('Usage', usage);
+    console.log('FinishReason', finishReason);
+  },
+});
+
+const disabled = computed(() => status.value !== 'ready');
 </script>
 
 <template>
@@ -19,8 +19,11 @@ const disabled = computed(() => isLoading.value || error.value != null);
       {{ m.content }}
     </div>
 
-    <div v-if="isLoading" class="mt-4 text-gray-500">
-      <div>Loading...</div>
+    <div
+      v-if="status === 'submitted' || status === 'streaming'"
+      class="mt-4 text-gray-500"
+    >
+      <div v-if="status === 'submitted'">Loading...</div>
       <button
         type="button"
         class="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"

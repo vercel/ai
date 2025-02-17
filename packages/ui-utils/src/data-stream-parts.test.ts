@@ -318,3 +318,44 @@ describe('reasoning stream part', () => {
     );
   });
 });
+
+describe('source stream part', () => {
+  it('should format a source stream part', () => {
+    const source = {
+      sourceType: 'url',
+      id: 'source_1',
+      url: 'https://example.com',
+      title: 'Example Source',
+    } as const;
+
+    expect(formatDataStreamPart('source', source)).toEqual(
+      `h:${JSON.stringify(source)}\n`,
+    );
+  });
+
+  it('should parse a source stream part', () => {
+    const source = {
+      sourceType: 'url',
+      id: 'source_1',
+      url: 'https://example.com',
+      title: 'Example Source',
+    };
+
+    expect(parseDataStreamPart(`h:${JSON.stringify(source)}`)).toEqual({
+      type: 'source',
+      value: source,
+    });
+  });
+
+  it('should throw an error if the source value is not an object (e.g., a string)', () => {
+    expect(() => parseDataStreamPart(`h:"not an object"`)).toThrow(
+      '"source" parts expect a Source object.',
+    );
+  });
+
+  it('should throw an error if the source value is null', () => {
+    expect(() => parseDataStreamPart(`h:null`)).toThrow(
+      '"source" parts expect a Source object.',
+    );
+  });
+});

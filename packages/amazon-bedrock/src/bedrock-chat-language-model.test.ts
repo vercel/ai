@@ -1,34 +1,16 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
-import { mockClient } from 'aws-sdk-client-mock';
-import { createAmazonBedrock } from './bedrock-provider';
 import {
-  BedrockRuntimeClient,
-  ConverseCommand,
-  ConverseStreamCommand,
-  ConverseStreamOutput,
-  ConverseStreamTrace,
-  StopReason,
-} from '@aws-sdk/client-bedrock-runtime';
-import {
-  convertArrayToAsyncIterable,
+  createTestServer,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
+import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
+import { vi } from 'vitest';
+import { injectFetchHeaders } from './inject-fetch-headers';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'system', content: 'System Prompt' },
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
-
-const bedrockMock = mockClient(BedrockRuntimeClient);
-
-const provider = createAmazonBedrock({
-  region: 'us-east-1',
-  accessKeyId: 'test-access-key',
-  secretAccessKey: 'test-secret-key',
-  sessionToken: 'test-token-key',
-});
-
-const model = provider('anthropic.claude-3-haiku-20240307-v1:0');
 
 const mockTrace = {
   guardrail: {
@@ -51,346 +33,136 @@ const mockTrace = {
               type: 'PROFANITY' as const,
             },
           ],
-          customWords: undefined,
         },
       },
     },
   },
-} as ConverseStreamTrace;
+};
 
-describe('doGenerate', () => {
-  beforeEach(() => {
-    bedrockMock.reset();
-  });
+const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
-  it('should extract text response', async () => {
-    bedrockMock.on(ConverseCommand).resolves({
-      output: {
-        message: { role: 'assistant', content: [{ text: 'Hello, World!' }] },
-      },
-    });
+const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
+const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
 
-    const { text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(text).toStrictEqual('Hello, World!');
-  });
-
-  it('should extract usage', async () => {
-    bedrockMock.on(ConverseCommand).resolves({
-      usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
-    });
-
-    const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(usage).toStrictEqual({
-      promptTokens: 4,
-      completionTokens: 34,
-    });
-  });
-
-  it('should extract finish reason', async () => {
-    bedrockMock.on(ConverseCommand).resolves({
-      stopReason: 'stop_sequence',
-    });
-
-    const response = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response.finishReason).toStrictEqual('stop');
-  });
-
-  it('should support unknown finish reason', async () => {
-    bedrockMock.on(ConverseCommand).resolves({
-      stopReason: 'eos' as StopReason,
-    });
-
-    const response = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response.finishReason).toStrictEqual('unknown');
-  });
-
-  it('should pass the model and the messages', async () => {
-    bedrockMock.on(ConverseCommand).resolves({
-      output: {
-        message: { role: 'assistant', content: [{ text: 'Testing' }] },
-      },
-    });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(
-      bedrockMock.commandCalls(ConverseCommand, {
-        modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
-        messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
-      }).length,
-    ).toBe(1);
-  });
-
-  it('should pass settings', async () => {
-    bedrockMock.on(ConverseCommand).resolves({
-      output: {
-        message: { role: 'assistant', content: [{ text: 'Testing' }] },
-      },
-    });
-
-    await provider('amazon.titan-tg1-large', {
-      additionalModelRequestFields: { top_k: 10 },
-    }).doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      maxTokens: 100,
-      temperature: 0.5,
-      topP: 0.5,
-    });
-
-    expect(
-      bedrockMock.commandCalls(ConverseCommand, {
-        modelId: 'amazon.titan-tg1-large',
-        messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
-        additionalModelRequestFields: { top_k: 10 },
-        system: [{ text: 'System Prompt' }],
-        inferenceConfig: {
-          maxTokens: 100,
-          temperature: 0.5,
-          topP: 0.5,
-        },
-      }).length,
-    ).toBe(1);
-  });
-
-  it('should pass tool specification in object-tool mode', async () => {
-    bedrockMock.on(ConverseCommand).resolves({
-      output: {
-        message: { role: 'assistant', content: [{ text: 'ignored' }] },
-      },
-    });
-
-    await provider('amazon.titan-tg1-large').doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-tool',
-        tool: {
-          name: 'test-tool',
-          type: 'function',
-          parameters: {
-            type: 'object',
-            properties: {
-              property1: { type: 'string' },
-              property2: { type: 'number' },
-            },
-            required: ['property1', 'property2'],
-            additionalProperties: false,
-          },
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(
-      bedrockMock.commandCalls(ConverseCommand, {
-        modelId: 'amazon.titan-tg1-large',
-        messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
-        system: [{ text: 'System Prompt' }],
-        toolConfig: {
-          tools: [
-            {
-              toolSpec: {
-                name: 'test-tool',
-                description: undefined,
-                inputSchema: {
-                  json: {
-                    type: 'object',
-                    properties: {
-                      property1: { type: 'string' },
-                      property2: { type: 'number' },
-                    },
-                    required: ['property1', 'property2'],
-                    additionalProperties: false,
-                  },
-                },
-              },
-            },
-          ],
-        },
-      }).length,
-    ).toBe(1);
-  });
-
-  it('should support guardrails', async () => {
-    bedrockMock.on(ConverseCommand).resolves({
-      output: {
-        message: { role: 'assistant', content: [{ text: 'Testing' }] },
-      },
-    });
-
-    // GuardrailConfiguration
-    const result = await provider('amazon.titan-tg1-large').doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      providerMetadata: {
-        bedrock: {
-          guardrailConfig: {
-            guardrailIdentifier: '-1',
-            guardrailVersion: '1',
-            trace: 'enabled',
-          },
-        },
-      },
-    });
-
-    expect(
-      bedrockMock.commandCalls(ConverseCommand, {
-        modelId: 'amazon.titan-tg1-large',
-        messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
-        system: [{ text: 'System Prompt' }],
-        guardrailConfig: {
-          guardrailIdentifier: '-1',
-          guardrailVersion: '1',
-          trace: 'enabled',
-        },
-      }).length,
-    ).toBe(1);
-  });
-
-  it('should include trace information in providerMetadata', async () => {
-    bedrockMock.on(ConverseCommand).resolves({
-      trace: mockTrace,
-    });
-
-    const response = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response.providerMetadata?.bedrock.trace).toMatchObject(mockTrace);
-  });
-
-  it('should pass tools and tool choice correctly', async () => {
-    bedrockMock.on(ConverseCommand).resolves({
-      output: {
-        message: { role: 'assistant', content: [{ text: 'Testing' }] },
-      },
-    });
-
-    await provider('amazon.titan-tg1-large').doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool-1',
-            description: 'A test tool',
-            parameters: {
-              type: 'object',
-              properties: {
-                param1: { type: 'string' },
-                param2: { type: 'number' },
-              },
-              required: ['param1'],
-              additionalProperties: false,
-            },
-          },
-          {
-            type: 'provider-defined',
-            name: 'unsupported-tool',
-            id: 'provider.unsupported-tool',
-            args: {},
-          },
-        ],
-        toolChoice: { type: 'auto' },
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    const calls = bedrockMock.commandCalls(ConverseCommand);
-    expect(calls.length).toBe(1);
-    expect(calls[0].args[0].input).toStrictEqual({
-      additionalModelRequestFields: undefined,
-      guardrailConfig: undefined,
-      inferenceConfig: {
-        maxTokens: undefined,
-        stopSequences: undefined,
-        temperature: undefined,
-        topP: undefined,
-      },
-      modelId: 'amazon.titan-tg1-large',
-      messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
-      system: [{ text: 'System Prompt' }],
-      toolConfig: {
-        tools: [
-          {
-            toolSpec: {
-              name: 'test-tool-1',
-              description: 'A test tool',
-              inputSchema: {
-                json: {
-                  type: 'object',
-                  properties: {
-                    param1: { type: 'string' },
-                    param2: { type: 'number' },
-                  },
-                  required: ['param1'],
-                  additionalProperties: false,
-                },
-              },
-            },
-          },
-        ],
-        toolChoice: { auto: {} },
-      },
-    });
-  });
+const streamUrl = `${baseUrl}/model/${encodeURIComponent(
+  modelId,
+)}/converse-stream`;
+const generateUrl = `${baseUrl}/model/${encodeURIComponent(modelId)}/converse`;
+const server = createTestServer({
+  [generateUrl]: {},
+  [streamUrl]: {
+    response: {
+      type: 'stream-chunks',
+      chunks: [],
+    },
+  },
 });
+
+beforeEach(() => {
+  server.urls[streamUrl].response = {
+    type: 'stream-chunks',
+    chunks: [],
+  };
+});
+
+const model = new BedrockChatLanguageModel(
+  modelId,
+  {},
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
 describe('doStream', () => {
   beforeEach(() => {
-    bedrockMock.reset();
+    mockOptions = { success: true, errorValue: undefined };
   });
 
-  it('should stream text deltas', async () => {
-    const streamData: ConverseStreamOutput[] = [
-      { contentBlockDelta: { contentBlockIndex: 0, delta: { text: 'Hello' } } },
-      { contentBlockDelta: { contentBlockIndex: 1, delta: { text: ', ' } } },
-      {
-        contentBlockDelta: { contentBlockIndex: 2, delta: { text: 'World!' } },
-      },
-      {
-        metadata: {
-          usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
-          metrics: { latencyMs: 10 },
-        },
-      },
-      {
-        messageStop: { stopReason: 'stop_sequence' },
-      },
-    ];
+  vi.mock('./bedrock-event-stream-response-handler', () => ({
+    createBedrockEventStreamResponseHandler: (schema: any) => {
+      return async ({ response }: { response: Response }) => {
+        let chunks: { success: boolean; value: any }[] = [];
+        if (mockOptions.success) {
+          const text = await response.text();
+          chunks = text
+            .split('\n')
+            .filter(Boolean)
+            .map(chunk => ({
+              success: true,
+              value: JSON.parse(chunk),
+            }));
+        }
+        const headers: Record<string, string> = {};
+        response.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+        return {
+          responseHeaders: headers,
+          value: new ReadableStream({
+            start(controller) {
+              if (mockOptions.success) {
+                chunks.forEach(chunk => controller.enqueue(chunk));
+              } else {
+                controller.enqueue({
+                  success: false,
+                  error: mockOptions.errorValue,
+                });
+              }
+              controller.close();
+            },
+          }),
+        };
+      };
+    },
+  }));
 
-    bedrockMock.on(ConverseStreamCommand).resolves({
-      stream: convertArrayToAsyncIterable(streamData),
-    });
+  function setupMockEventStreamHandler(
+    options: { success?: boolean; errorValue?: any } = { success: true },
+  ) {
+    mockOptions = { ...mockOptions, ...options };
+  }
+
+  it('should stream text deltas with metadata and usage', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { text: ', ' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 2,
+            delta: { text: 'World!' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+            metrics: { latencyMs: 10 },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -406,38 +178,45 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 34 },
-        providerMetadata: undefined,
       },
     ]);
   });
 
   it('should stream tool deltas', async () => {
-    const streamData: ConverseStreamOutput[] = [
-      {
-        contentBlockStart: {
-          contentBlockIndex: 0,
-          start: { toolUse: { toolUseId: 'tool-use-id', name: 'test-tool' } },
-        },
-      },
-      {
-        contentBlockDelta: {
-          contentBlockIndex: 0,
-          delta: { toolUse: { input: '{"value":' } },
-        },
-      },
-      {
-        contentBlockDelta: {
-          contentBlockIndex: 0,
-          delta: { toolUse: { input: '"Sparkle Day"}' } },
-        },
-      },
-      { contentBlockStop: { contentBlockIndex: 0 } },
-      { messageStop: { stopReason: 'tool_use' } },
-    ];
-
-    bedrockMock.on(ConverseStreamCommand).resolves({
-      stream: convertArrayToAsyncIterable(streamData),
-    });
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 0,
+            start: {
+              toolUse: { toolUseId: 'tool-use-id', name: 'test-tool' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { toolUse: { input: '{"value":' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { toolUse: { input: '"Sparkle Day"}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'tool_use',
+          },
+        }) + '\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -487,61 +266,68 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: NaN, completionTokens: NaN },
-        providerMetadata: undefined,
       },
     ]);
   });
 
   it('should stream parallel tool calls', async () => {
-    const streamData: ConverseStreamOutput[] = [
-      {
-        contentBlockStart: {
-          contentBlockIndex: 0,
-          start: {
-            toolUse: { toolUseId: 'tool-use-id-1', name: 'test-tool-1' },
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 0,
+            start: {
+              toolUse: { toolUseId: 'tool-use-id-1', name: 'test-tool-1' },
+            },
           },
-        },
-      },
-      {
-        contentBlockDelta: {
-          contentBlockIndex: 0,
-          delta: { toolUse: { input: '{"value1":' } },
-        },
-      },
-      {
-        contentBlockStart: {
-          contentBlockIndex: 1,
-          start: {
-            toolUse: { toolUseId: 'tool-use-id-2', name: 'test-tool-2' },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { toolUse: { input: '{"value1":' } },
           },
-        },
-      },
-      {
-        contentBlockDelta: {
-          contentBlockIndex: 1,
-          delta: { toolUse: { input: '{"value2":' } },
-        },
-      },
-      {
-        contentBlockDelta: {
-          contentBlockIndex: 1,
-          delta: { toolUse: { input: '"Sparkle Day"}' } },
-        },
-      },
-      {
-        contentBlockDelta: {
-          contentBlockIndex: 0,
-          delta: { toolUse: { input: '"Sparkle Day"}' } },
-        },
-      },
-      { contentBlockStop: { contentBlockIndex: 0 } },
-      { contentBlockStop: { contentBlockIndex: 1 } },
-      { messageStop: { stopReason: 'tool_use' } },
-    ];
-
-    bedrockMock.on(ConverseStreamCommand).resolves({
-      stream: convertArrayToAsyncIterable(streamData),
-    });
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 1,
+            start: {
+              toolUse: { toolUseId: 'tool-use-id-2', name: 'test-tool-2' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { toolUse: { input: '{"value2":' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { toolUse: { input: '"Sparkle Day"}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { toolUse: { input: '"Sparkle Day"}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 1 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'tool_use',
+          },
+        }) + '\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -623,24 +409,25 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: NaN, completionTokens: NaN },
-        providerMetadata: undefined,
       },
     ]);
   });
 
   it('should handle error stream parts', async () => {
-    bedrockMock.on(ConverseStreamCommand).resolves({
-      stream: convertArrayToAsyncIterable([
-        {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
           internalServerException: {
             message: 'Internal Server Error',
             name: 'InternalServerException',
             $fault: 'server',
             $metadata: {},
           },
-        },
-      ]),
-    });
+        }) + '\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -648,7 +435,8 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+    const result = await convertReadableStreamToArray(stream);
+    expect(result).toStrictEqual([
       {
         type: 'error',
         error: {
@@ -665,15 +453,164 @@ describe('doStream', () => {
           completionTokens: NaN,
           promptTokens: NaN,
         },
-        providerMetadata: undefined,
+      },
+    ]);
+  });
+
+  it('should handle modelStreamErrorException error', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          modelStreamErrorException: {
+            message: 'Model Stream Error',
+            name: 'ModelStreamErrorException',
+            $fault: 'server',
+            $metadata: {},
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+    expect(result).toStrictEqual([
+      {
+        type: 'error',
+        error: {
+          message: 'Model Stream Error',
+          name: 'ModelStreamErrorException',
+          $fault: 'server',
+          $metadata: {},
+        },
+      },
+      {
+        finishReason: 'error',
+        type: 'finish',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    ]);
+  });
+
+  it('should handle throttlingException error', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          throttlingException: {
+            message: 'Throttling Error',
+            name: 'ThrottlingException',
+            $fault: 'server',
+            $metadata: {},
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+    expect(result).toStrictEqual([
+      {
+        type: 'error',
+        error: {
+          message: 'Throttling Error',
+          name: 'ThrottlingException',
+          $fault: 'server',
+          $metadata: {},
+        },
+      },
+      {
+        finishReason: 'error',
+        type: 'finish',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    ]);
+  });
+
+  it('should handle validationException error', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          validationException: {
+            message: 'Validation Error',
+            name: 'ValidationException',
+            $fault: 'server',
+            $metadata: {},
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+    expect(result).toStrictEqual([
+      {
+        type: 'error',
+        error: {
+          message: 'Validation Error',
+          name: 'ValidationException',
+          $fault: 'server',
+          $metadata: {},
+        },
+      },
+      {
+        finishReason: 'error',
+        type: 'finish',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    ]);
+  });
+
+  it('should handle failed chunk parsing', async () => {
+    setupMockEventStreamHandler({
+      success: false,
+      errorValue: { message: 'Chunk Parsing Failed' },
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+    const result = await convertReadableStreamToArray(stream);
+    expect(result).toStrictEqual([
+      {
+        type: 'error',
+        error: { message: 'Chunk Parsing Failed' },
+      },
+      {
+        finishReason: 'error',
+        type: 'finish',
+        usage: { promptTokens: NaN, completionTokens: NaN },
       },
     ]);
   });
 
   it('should pass the messages and the model', async () => {
-    bedrockMock.on(ConverseStreamCommand).resolves({
-      stream: convertArrayToAsyncIterable([]),
-    });
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [],
+    };
 
     await model.doStream({
       inputFormat: 'prompt',
@@ -681,20 +618,20 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(
-      bedrockMock.commandCalls(ConverseStreamCommand, {
-        modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
-        messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
-      }).length,
-    ).toBe(1);
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+      system: [{ text: 'System Prompt' }],
+    });
   });
 
   it('should support guardrails', async () => {
-    bedrockMock.on(ConverseStreamCommand).resolves({
-      stream: convertArrayToAsyncIterable([]),
-    });
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [],
+    };
 
-    await provider('amazon.titan-tg1-large').doStream({
+    await model.doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -710,37 +647,43 @@ describe('doStream', () => {
       },
     });
 
-    expect(
-      bedrockMock.commandCalls(ConverseStreamCommand, {
-        modelId: 'amazon.titan-tg1-large',
-        messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
-        system: [{ text: 'System Prompt' }],
-        guardrailConfig: {
-          guardrailIdentifier: '-1',
-          guardrailVersion: '1',
-          trace: 'enabled',
-          streamProcessingMode: 'async',
-        },
-      }).length,
-    ).toBe(1);
+    expect(await server.calls[0].requestBody).toMatchObject({
+      messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+      system: [{ text: 'System Prompt' }],
+      guardrailConfig: {
+        guardrailIdentifier: '-1',
+        guardrailVersion: '1',
+        trace: 'enabled',
+        streamProcessingMode: 'async',
+      },
+    });
   });
 
   it('should include trace information in providerMetadata', async () => {
-    const streamData: ConverseStreamOutput[] = [
-      { contentBlockDelta: { contentBlockIndex: 0, delta: { text: 'Hello' } } },
-      {
-        metadata: {
-          usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
-          metrics: { latencyMs: 10 },
-          trace: mockTrace,
-        },
-      },
-      { messageStop: { stopReason: 'stop_sequence' } },
-    ];
-
-    bedrockMock.on(ConverseStreamCommand).resolves({
-      stream: convertArrayToAsyncIterable(streamData),
-    });
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+            metrics: { latencyMs: 10 },
+            trace: mockTrace,
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -753,9 +696,589 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { completionTokens: 34, promptTokens: 4 },
-        providerMetadata: { bedrock: { trace: mockTrace } },
+        usage: { promptTokens: 4, completionTokens: 34 },
+        providerMetadata: {
+          bedrock: {
+            trace: mockTrace,
+          },
+        },
       },
     ]);
+  });
+
+  it('should include response headers in rawResponse', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        'x-amzn-trace-id': 'test-trace-id',
+      },
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const response = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response.rawResponse?.headers).toEqual({
+      'cache-control': 'no-cache',
+      connection: 'keep-alive',
+      'content-type': 'text/event-stream',
+      'x-amzn-requestid': 'test-request-id',
+      'x-amzn-trace-id': 'test-trace-id',
+    });
+  });
+
+  it('should properly combine headers from all sources', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        'x-amzn-trace-id': 'test-trace-id',
+      },
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const optionsHeaders = {
+      'options-header': 'options-value',
+      'shared-header': 'options-shared',
+    };
+
+    const model = new BedrockChatLanguageModel(
+      modelId,
+      {},
+      {
+        baseUrl: () => baseUrl,
+        headers: {
+          'model-header': 'model-value',
+          'shared-header': 'model-shared',
+        },
+        fetch: injectFetchHeaders({
+          'options-header': 'options-value',
+          'model-header': 'model-value',
+          'shared-header': 'options-shared',
+          'signed-header': 'signed-value',
+          authorization: 'AWS4-HMAC-SHA256...',
+        }),
+        generateId: () => 'test-id',
+      },
+    );
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      headers: optionsHeaders,
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+    expect(requestHeaders['options-header']).toBe('options-value');
+    expect(requestHeaders['model-header']).toBe('model-value');
+    expect(requestHeaders['signed-header']).toBe('signed-value');
+    expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+    expect(requestHeaders['shared-header']).toBe('options-shared');
+  });
+
+  it('should work with partial headers', async () => {
+    setupMockEventStreamHandler();
+    const model = new BedrockChatLanguageModel(
+      modelId,
+      {},
+      {
+        baseUrl: () => baseUrl,
+        headers: {
+          'model-header': 'model-value',
+        },
+        fetch: injectFetchHeaders({
+          'model-header': 'model-value',
+          'signed-header': 'signed-value',
+          authorization: 'AWS4-HMAC-SHA256...',
+        }),
+        generateId: () => 'test-id',
+      },
+    );
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+    expect(requestHeaders['model-header']).toBe('model-value');
+    expect(requestHeaders['signed-header']).toBe('signed-value');
+    expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+  });
+
+  it('should include providerOptions in the request for streaming calls', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Dummy' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'stop_sequence' },
+        }) + '\n',
+      ],
+    };
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        bedrock: {
+          foo: 'bar',
+        },
+      },
+    });
+
+    // Verify the outgoing request body includes "foo" at the top level.
+    const body = await server.calls[0].requestBody;
+    expect(body).toMatchObject({ foo: 'bar' });
+  });
+});
+
+describe('doGenerate', () => {
+  function prepareJsonResponse({
+    content = 'Hello, World!',
+    toolCalls = [],
+    usage = {
+      inputTokens: 4,
+      outputTokens: 34,
+      totalTokens: 38,
+    },
+    stopReason = 'stop_sequence',
+    trace,
+  }: {
+    content?: string;
+    toolCalls?: Array<{
+      id?: string;
+      name: string;
+      args: Record<string, unknown>;
+    }>;
+    usage?: {
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+    };
+    stopReason?: string;
+    trace?: typeof mockTrace;
+  }) {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: content },
+              ...toolCalls.map(tool => ({
+                type: 'tool_use',
+                toolUseId: tool.id ?? 'tool-use-id',
+                name: tool.name,
+                input: tool.args,
+              })),
+            ],
+          },
+        },
+        usage,
+        stopReason,
+        ...(trace ? { trace } : {}),
+      },
+    };
+  }
+
+  it('should extract text response', async () => {
+    prepareJsonResponse({ content: 'Hello, World!' });
+
+    const { text } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('Hello, World!');
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonResponse({
+      usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+    });
+
+    const { usage } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toStrictEqual({
+      promptTokens: 4,
+      completionTokens: 34,
+    });
+  });
+
+  it('should extract finish reason', async () => {
+    prepareJsonResponse({ stopReason: 'stop_sequence' });
+
+    const { finishReason } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(finishReason).toStrictEqual('stop');
+  });
+
+  it('should support unknown finish reason', async () => {
+    prepareJsonResponse({ stopReason: 'eos' });
+
+    const { finishReason } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(finishReason).toStrictEqual('unknown');
+  });
+
+  it('should pass the model and the messages', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+      system: [{ text: 'System Prompt' }],
+    });
+  });
+
+  it('should pass settings', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      maxTokens: 100,
+      temperature: 0.5,
+      topP: 0.5,
+    });
+
+    expect(await server.calls[0].requestBody).toMatchObject({
+      inferenceConfig: {
+        maxTokens: 100,
+        temperature: 0.5,
+        topP: 0.5,
+      },
+    });
+  });
+
+  it('should pass tool specification in object-tool mode', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-tool',
+        tool: {
+          name: 'test-tool',
+          type: 'function',
+          parameters: {
+            type: 'object',
+            properties: {
+              property1: { type: 'string' },
+              property2: { type: 'number' },
+            },
+            required: ['property1', 'property2'],
+            additionalProperties: false,
+          },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBody).toMatchObject({
+      toolConfig: {
+        tools: [
+          {
+            toolSpec: {
+              name: 'test-tool',
+              inputSchema: {
+                json: {
+                  type: 'object',
+                  properties: {
+                    property1: { type: 'string' },
+                    property2: { type: 'number' },
+                  },
+                  required: ['property1', 'property2'],
+                  additionalProperties: false,
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('should support guardrails', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        bedrock: {
+          guardrailConfig: {
+            guardrailIdentifier: '-1',
+            guardrailVersion: '1',
+            trace: 'enabled',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBody).toMatchObject({
+      guardrailConfig: {
+        guardrailIdentifier: '-1',
+        guardrailVersion: '1',
+        trace: 'enabled',
+      },
+    });
+  });
+
+  it('should include trace information in providerMetadata', async () => {
+    prepareJsonResponse({ trace: mockTrace });
+
+    const response = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response.providerMetadata?.bedrock.trace).toMatchObject(mockTrace);
+  });
+
+  it('should include response headers in rawResponse', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        'x-amzn-trace-id': 'test-trace-id',
+      },
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: 'Testing' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+        },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const response = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response.rawResponse?.headers).toEqual({
+      'x-amzn-requestid': 'test-request-id',
+      'x-amzn-trace-id': 'test-trace-id',
+      'content-type': 'application/json',
+      'content-length': '164',
+    });
+  });
+
+  it('should pass tools and tool choice correctly', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool-1',
+            description: 'A test tool',
+            parameters: {
+              type: 'object',
+              properties: {
+                param1: { type: 'string' },
+                param2: { type: 'number' },
+              },
+              required: ['param1'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        toolChoice: { type: 'auto' },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBody).toMatchObject({
+      toolConfig: {
+        tools: [
+          {
+            toolSpec: {
+              name: 'test-tool-1',
+              description: 'A test tool',
+              inputSchema: {
+                json: {
+                  type: 'object',
+                  properties: {
+                    param1: { type: 'string' },
+                    param2: { type: 'number' },
+                  },
+                  required: ['param1'],
+                  additionalProperties: false,
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('should properly combine headers from all sources', async () => {
+    prepareJsonResponse({});
+
+    const optionsHeaders = {
+      'options-header': 'options-value',
+      'shared-header': 'options-shared',
+    };
+
+    const model = new BedrockChatLanguageModel(
+      modelId,
+      {},
+      {
+        baseUrl: () => baseUrl,
+        headers: {
+          'model-header': 'model-value',
+          'shared-header': 'model-shared',
+        },
+        fetch: injectFetchHeaders({
+          'options-header': 'options-value',
+          'model-header': 'model-value',
+          'shared-header': 'options-shared',
+          'signed-header': 'signed-value',
+          authorization: 'AWS4-HMAC-SHA256...',
+        }),
+        generateId: () => 'test-id',
+      },
+    );
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      headers: optionsHeaders,
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+    expect(requestHeaders['options-header']).toBe('options-value');
+    expect(requestHeaders['model-header']).toBe('model-value');
+    expect(requestHeaders['signed-header']).toBe('signed-value');
+    expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+    expect(requestHeaders['shared-header']).toBe('options-shared');
+  });
+
+  it('should work with partial headers', async () => {
+    prepareJsonResponse({});
+
+    const model = new BedrockChatLanguageModel(
+      modelId,
+      {},
+      {
+        baseUrl: () => baseUrl,
+        headers: {
+          'model-header': 'model-value',
+        },
+        fetch: injectFetchHeaders({
+          'model-header': 'model-value',
+          'signed-header': 'signed-value',
+          authorization: 'AWS4-HMAC-SHA256...',
+        }),
+        generateId: () => 'test-id',
+      },
+    );
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+    expect(requestHeaders['model-header']).toBe('model-value');
+    expect(requestHeaders['signed-header']).toBe('signed-value');
+    expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+  });
+
+  it('should include providerOptions in the request for generate calls', async () => {
+    prepareJsonResponse({ content: 'Test generation' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        bedrock: {
+          foo: 'bar',
+        },
+      },
+    });
+
+    // Verify that the outgoing request body includes "foo" at its top level.
+    const body = await server.calls[0].requestBody;
+    expect(body).toMatchObject({ foo: 'bar' });
   });
 });

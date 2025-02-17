@@ -1,10 +1,10 @@
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
+  mockId,
 } from '@ai-sdk/provider-utils/test';
 import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { mockId } from '../test/mock-id';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
 

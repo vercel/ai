@@ -1,0 +1,125 @@
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { createAmazonBedrock } from './bedrock-provider';
+import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
+import { BedrockEmbeddingModel } from './bedrock-embedding-model';
+import { loadSetting } from '@ai-sdk/provider-utils';
+
+// Add type assertions for the mocked classes
+const BedrockChatLanguageModelMock =
+  BedrockChatLanguageModel as unknown as Mock;
+const BedrockEmbeddingModelMock = BedrockEmbeddingModel as unknown as Mock;
+
+vi.mock('./bedrock-chat-language-model', () => ({
+  BedrockChatLanguageModel: vi.fn(),
+}));
+
+vi.mock('./bedrock-embedding-model', () => ({
+  BedrockEmbeddingModel: vi.fn(),
+}));
+
+vi.mock('@ai-sdk/provider-utils', () => ({
+  loadSetting: vi.fn().mockImplementation(({ settingValue }) => 'us-east-1'),
+  withoutTrailingSlash: vi.fn(url => url),
+  generateId: vi.fn().mockReturnValue('mock-id'),
+}));
+
+describe('AmazonBedrockProvider', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('createAmazonBedrock', () => {
+    it('should create a provider instance with default options', () => {
+      const provider = createAmazonBedrock();
+      const model = provider('anthropic.claude-v2');
+
+      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('anthropic.claude-v2');
+      expect(constructorCall[1]).toEqual({});
+      expect(constructorCall[2].headers).toEqual({});
+      expect(constructorCall[2].baseUrl()).toBe(
+        'https://bedrock-runtime.us-east-1.amazonaws.com',
+      );
+    });
+
+    it('should create a provider instance with custom options', () => {
+      const customHeaders = { 'Custom-Header': 'value' };
+      const options = {
+        region: 'eu-west-1',
+        baseURL: 'https://custom.url',
+        headers: customHeaders,
+      };
+
+      const provider = createAmazonBedrock(options);
+      provider('anthropic.claude-v2');
+
+      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[2].headers).toEqual(customHeaders);
+      expect(constructorCall[2].baseUrl()).toBe('https://custom.url');
+    });
+
+    it('should pass headers to embedding model', () => {
+      const customHeaders = { 'Custom-Header': 'value' };
+      const provider = createAmazonBedrock({
+        headers: customHeaders,
+      });
+
+      provider.embedding('amazon.titan-embed-text-v1');
+
+      const constructorCall = BedrockEmbeddingModelMock.mock.calls[0];
+      expect(constructorCall[2].headers).toEqual(customHeaders);
+    });
+
+    it('should throw error when called with new keyword', () => {
+      const provider = createAmazonBedrock();
+      expect(() => {
+        new (provider as any)();
+      }).toThrow(
+        'The Amazon Bedrock model function cannot be called with the new keyword.',
+      );
+    });
+  });
+
+  describe('provider methods', () => {
+    it('should create a chat model via function call', () => {
+      const provider = createAmazonBedrock();
+      const modelId = 'anthropic.claude-v2';
+      const settings = { additionalModelRequestFields: { foo: 'bar' } };
+
+      const model = provider(modelId, settings);
+
+      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe(modelId);
+      expect(constructorCall[1]).toEqual(settings);
+      expect(model).toBeInstanceOf(BedrockChatLanguageModel);
+    });
+
+    it('should create a chat model via languageModel method', () => {
+      const provider = createAmazonBedrock();
+      const modelId = 'anthropic.claude-v2';
+      const settings = { additionalModelRequestFields: { foo: 'bar' } };
+
+      const model = provider.languageModel(modelId, settings);
+
+      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe(modelId);
+      expect(constructorCall[1]).toEqual(settings);
+      expect(model).toBeInstanceOf(BedrockChatLanguageModel);
+    });
+
+    it('should create an embedding model', () => {
+      const provider = createAmazonBedrock();
+      const modelId = 'amazon.titan-embed-text-v1';
+
+      const model = provider.embedding(modelId, {
+        dimensions: 1024,
+        normalize: true,
+      });
+
+      const constructorCall = BedrockEmbeddingModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe(modelId);
+      expect(constructorCall[1]).toEqual({ dimensions: 1024, normalize: true });
+      expect(model).toBeInstanceOf(BedrockEmbeddingModel);
+    });
+  });
+});

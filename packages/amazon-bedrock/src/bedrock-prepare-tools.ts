@@ -1,20 +1,17 @@
 import {
+  JSONObject,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
-  Tool,
-  ToolConfiguration,
-  ToolInputSchema,
-} from '@aws-sdk/client-bedrock-runtime';
+import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
 
 export function prepareTools(
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
   },
 ): {
-  toolConfig: ToolConfiguration; // note: do not rename, name required by Bedrock
+  toolConfig: BedrockToolConfiguration; // note: do not rename, name required by Bedrock
   toolWarnings: LanguageModelV1CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -28,7 +25,7 @@ export function prepareTools(
   }
 
   const toolWarnings: LanguageModelV1CallWarning[] = [];
-  const bedrockTools: Tool[] = [];
+  const bedrockTools: BedrockTool[] = [];
 
   for (const tool of tools) {
     if (tool.type === 'provider-defined') {
@@ -39,8 +36,8 @@ export function prepareTools(
           name: tool.name,
           description: tool.description,
           inputSchema: {
-            json: tool.parameters,
-          } as ToolInputSchema,
+            json: tool.parameters as JSONObject,
+          },
         },
       });
     }

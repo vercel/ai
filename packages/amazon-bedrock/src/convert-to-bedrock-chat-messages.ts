@@ -1,10 +1,14 @@
 import {
+  JSONObject,
   LanguageModelV1Message,
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { createIdGenerator } from '@ai-sdk/provider-utils';
-import { DocumentFormat, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
+import {
+  createIdGenerator,
+  convertUint8ArrayToBase64,
+} from '@ai-sdk/provider-utils';
+import { BedrockDocumentFormat, BedrockImageFormat } from './bedrock-api-types';
 import {
   BedrockAssistantMessage,
   BedrockMessagesPrompt,
@@ -67,9 +71,13 @@ export function convertToBedrockChatMessages(
 
                     bedrockContent.push({
                       image: {
-                        format: part.mimeType?.split('/')?.[1] as ImageFormat,
+                        format: part.mimeType?.split(
+                          '/',
+                        )?.[1] as BedrockImageFormat,
                         source: {
-                          bytes: part.image ?? (part.image as Uint8Array),
+                          bytes: convertUint8ArrayToBase64(
+                            part.image ?? (part.image as Uint8Array),
+                          ),
                         },
                       },
                     });
@@ -88,10 +96,10 @@ export function convertToBedrockChatMessages(
                       document: {
                         format: part.mimeType?.split(
                           '/',
-                        )?.[1] as DocumentFormat,
+                        )?.[1] as BedrockDocumentFormat,
                         name: generateFileId(),
                         source: {
-                          bytes: Buffer.from(part.data, 'base64'),
+                          bytes: part.data,
                         },
                       },
                     });
@@ -161,7 +169,7 @@ export function convertToBedrockChatMessages(
                   toolUse: {
                     toolUseId: part.toolCallId,
                     name: part.toolName,
-                    input: part.args as any,
+                    input: part.args as JSONObject,
                   },
                 });
                 break;

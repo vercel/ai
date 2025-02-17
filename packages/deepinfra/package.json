@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/deepinfra",
-  "version": "0.1.9",
+  "version": "0.1.11",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,9 +30,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "0.1.8",
+    "@ai-sdk/openai-compatible": "0.1.10",
     "@ai-sdk/provider": "1.0.7",
-    "@ai-sdk/provider-utils": "2.1.6"
+    "@ai-sdk/provider-utils": "2.1.8"
   },
   "devDependencies": {
     "@types/node": "^18",

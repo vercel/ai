@@ -45,18 +45,12 @@ This will cancel the stream from the client side to the server.
 import { useCompletion } from '@ai-sdk/react';
 
 export default function Chat() {
-  const {
-    input,
-    completion,
-    stop,
-    isLoading,
-    handleSubmit,
-    handleInputChange,
-  } = useCompletion();
+  const { input, completion, stop, status, handleSubmit, handleInputChange } =
+    useCompletion();
 
   return (
     <div>
-      {isLoading && (
+      {(status === 'submitted' || status === 'streaming') && (
         <button type="button" onClick={() => stop()}>
           Stop
         </button>

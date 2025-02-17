@@ -1,5 +1,25 @@
 # @ai-sdk/ui-utils
 
+## 1.1.14
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+
+## 1.1.13
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+
+## 1.1.12
+
+### Patch Changes
+
+- 166e09e: feat (ai/ui): forward source parts to useChat
+
 ## 1.1.11
 
 ### Patch Changes

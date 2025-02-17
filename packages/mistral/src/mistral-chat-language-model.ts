@@ -372,7 +372,7 @@ function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
     return content;
   }
 
-  if (content === null) {
+  if (content == null) {
     return undefined;
   }
 
@@ -425,7 +425,7 @@ const mistralContentSchema = z
       ]),
     ),
   ])
-  .nullable();
+  .nullish();
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency

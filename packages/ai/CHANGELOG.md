@@ -1,5 +1,60 @@
 # ai
 
+## 4.1.41
+
+### Patch Changes
+
+- Updated dependencies [60c3220]
+  - @ai-sdk/react@1.1.16
+
+## 4.1.40
+
+### Patch Changes
+
+- Updated dependencies [c43df41]
+  - @ai-sdk/react@1.1.15
+
+## 4.1.39
+
+### Patch Changes
+
+- 075a9a9: fix (ai): improve tsdoc on custom provider
+
+## 4.1.38
+
+### Patch Changes
+
+- 4c9c194: chore (ai): add description to provider-defined tools for better accessibility
+- 2e898b4: chore (ai): move mockId test helper into provider utils
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+  - @ai-sdk/react@1.1.14
+  - @ai-sdk/ui-utils@1.1.14
+
+## 4.1.37
+
+### Patch Changes
+
+- c1e10d1: chore: export UIMessage type
+
+## 4.1.36
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+  - @ai-sdk/react@1.1.13
+  - @ai-sdk/ui-utils@1.1.13
+
+## 4.1.35
+
+### Patch Changes
+
+- 166e09e: feat (ai/ui): forward source parts to useChat
+- Updated dependencies [166e09e]
+  - @ai-sdk/ui-utils@1.1.12
+  - @ai-sdk/react@1.1.12
+
 ## 4.1.34
 
 ### Patch Changes

@@ -14,7 +14,7 @@ const onFinishCalls: Array<{
   };
 }> = reactive([]);
 
-const { messages, append, data, error, isLoading, setData } = useChat({
+const { messages, append, data, error, status, setData } = useChat({
   onFinish: (message, options) => {
     onFinishCalls.push({ message, options });
   },
@@ -23,7 +23,7 @@ const { messages, append, data, error, isLoading, setData } = useChat({
 
 <template>
   <div>
-    <div data-testid="loading">{{ isLoading?.toString() }}</div>
+    <div data-testid="status">{{ status }}</div>
     <div data-testid="error">{{ error?.toString() }}</div>
     <div data-testid="data">{{ data != null ? JSON.stringify(data) : '' }}</div>
     <div

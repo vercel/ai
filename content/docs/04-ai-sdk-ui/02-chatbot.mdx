@@ -10,7 +10,7 @@ The `useChat` hook makes it effortless to create a conversational user interface
 To summarize, the `useChat` hook provides the following features:
 
 - **Message Streaming**: All the messages from the AI provider are streamed to the chat UI in real-time.
-- **Managed States**: The hook manages the states for input, messages, loading, error and more for you.
+- **Managed States**: The hook manages the states for input, messages, status, error and more for you.
 - **Seamless Integration**: Easily integrate your chat AI into any design or layout with minimal effort.
 
 In this guide, you will learn how to use the `useChat` hook to create a chatbot application with real-time message streaming.
@@ -81,12 +81,18 @@ without having to wait for the entire response to be received.
 
 ## Customized UI
 
-`useChat` also provides ways to manage the chat message and input states via code, show loading and error states, and update messages without being triggered by user interactions.
+`useChat` also provides ways to manage the chat message and input states via code, show status, and update messages without being triggered by user interactions.
 
-### Loading State
+### Status
 
-The `isLoading` state returned by the `useChat` hook can be used for several
-purposes
+The `useChat` hook returns a `status`. It has the following possible values:
+
+- `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+- `streaming`: The response is actively streaming in from the API, receiving chunks of data.
+- `ready`: The full response has been received and processed; a new user message can be submitted.
+- `error`: An error occurred during the API request, preventing successful completion.
+
+You can use `status` for e.g. the following purposes:
 
 - To show a loading spinner while the chatbot is processing the user's message.
 - To show a "Stop" button to abort the current message.
@@ -98,7 +104,7 @@ purposes
 import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, stop } =
+  const { messages, input, handleInputChange, handleSubmit, status, stop } =
     useChat({});
 
   return (
@@ -110,9 +116,9 @@ export default function Page() {
         </div>
       ))}
 
-      {isLoading && (
+      {(status === 'submitted' || status === 'streaming') && (
         <div>
-          <Spinner />
+          {status === 'submitted' && <Spinner />}
           <button type="button" onClick={() => stop()}>
             Stop
           </button>
@@ -124,7 +130,7 @@ export default function Page() {
           name="prompt"
           value={input}
           onChange={handleInputChange}
-          disabled={isLoading}
+          disabled={status !== 'ready'}
         />
         <button type="submit">Submit</button>
       </form>
@@ -231,15 +237,15 @@ return <>
   ...
 ```
 
-### Cancelation and regeneration
+### Cancellation and regeneration
 
 It's also a common use case to abort the response message while it's still streaming back from the AI provider. You can do this by calling the `stop` function returned by the `useChat` hook.
 
 ```tsx
-const { stop, isLoading, ... } = useChat()
+const { stop, status, ... } = useChat()
 
 return <>
-  <button onClick={stop} disabled={!isLoading}>Stop</button>
+  <button onClick={stop} disabled={!(status === 'streaming' || status === 'submitted')}>Stop</button>
   ...
 ```
 
@@ -248,10 +254,10 @@ When the user clicks the "Stop" button, the fetch request will be aborted. This 
 Similarly, you can also request the AI provider to reprocess the last message by calling the `reload` function returned by the `useChat` hook:
 
 ```tsx
-const { reload, isLoading, ... } = useChat()
+const { reload, status, ... } = useChat()
 
 return <>
-  <button onClick={reload} disabled={isLoading}>Regenerate</button>
+  <button onClick={reload} disabled={!(status === 'ready' || status === 'error')}>Regenerate</button>
   ...
 </>
 ```
@@ -563,7 +569,7 @@ import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
+  const { messages, input, handleSubmit, handleInputChange, status } =
     useChat();
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
@@ -624,7 +630,7 @@ export default function Page() {
           value={input}
           placeholder="Send message..."
           onChange={handleInputChange}
-          disabled={isLoading}
+          disabled={status !== 'ready'}
         />
       </form>
     </div>
@@ -646,7 +652,7 @@ import { useState } from 'react';
 import { Attachment } from '@ai-sdk/ui-utils';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
+  const { messages, input, handleSubmit, handleInputChange, status } =
     useChat();
 
   const [attachments] = useState<Attachment[]>([
@@ -701,7 +707,7 @@ export default function Page() {
           value={input}
           placeholder="Send message..."
           onChange={handleInputChange}
-          disabled={isLoading}
+          disabled={status !== 'ready'}
         />
       </form>
     </div>

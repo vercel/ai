@@ -75,11 +75,27 @@ export type UseChatHelpers = {
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   metadata?: Object;
-  /** Whether the API request is in progress */
+
+  /**
+   * Whether the API request is in progress
+   *
+   * @deprecated use `status` instead
+   */
   isLoading: boolean;
+
+  /**
+   * Hook status:
+   *
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
+   * - `ready`: The full response has been received and processed; a new user message can be submitted.
+   * - `error`: An error occurred during the API request, preventing successful completion.
+   */
+  status: 'submitted' | 'streaming' | 'ready' | 'error';
 
   /** Additional data added on the server via StreamData. */
   data?: JSONValue[];
+
   /** Set the data of the chat. You can use this to transform or clear the chat data. */
   setData: (
     data:
@@ -196,11 +212,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
     streamDataRef.current = streamData;
   }, [streamData]);
 
-  // We store loading state in another hook to sync loading states across hook invocations
-  const { data: isLoading = false, mutate: mutateLoading } = useSWR<boolean>(
-    [chatKey, 'loading'],
-    null,
-  );
+  const { data: status = 'ready', mutate: mutateStatus } = useSWR<
+    'submitted' | 'streaming' | 'ready' | 'error'
+  >([chatKey, 'status'], null);
 
   const { data: error = undefined, mutate: setError } = useSWR<
     undefined | Error
@@ -225,6 +239,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
+      mutateStatus('submitted');
+      setError(undefined);
+
       const chatMessages = fillMessageParts(chatRequest.messages);
 
       const messageCount = chatMessages.length;
@@ -233,9 +250,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
       );
 
       try {
-        mutateLoading(true);
-        setError(undefined);
-
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
@@ -303,6 +317,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
           },
           onResponse,
           onUpdate({ message, data, replaceLastMessage }) {
+            mutateStatus('streaming');
+
             throttledMutate(
               [
                 ...(replaceLastMessage
@@ -328,10 +344,13 @@ By default, it's set to 1, which means that only a single LLM call is made.
         });
 
         abortControllerRef.current = null;
+
+        mutateStatus('ready');
       } catch (err) {
         // Ignore abort errors as they are expected.
         if ((err as any).name === 'AbortError') {
           abortControllerRef.current = null;
+          mutateStatus('ready');
           return null;
         }
 
@@ -340,8 +359,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         }
 
         setError(err as Error);
-      } finally {
-        mutateLoading(false);
+        mutateStatus('error');
       }
 
       // auto-submit when all tool calls in the last assistant message have results
@@ -360,7 +378,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     },
     [
       mutate,
-      mutateLoading,
+      mutateStatus,
       api,
       extraMetadataRef,
       onResponse,
@@ -557,7 +575,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading,
+    isLoading: status === 'submitted' || status === 'streaming',
+    status,
     addToolResult,
   };
 }

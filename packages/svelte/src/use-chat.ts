@@ -79,8 +79,23 @@ export type UseChatHelpers = {
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   metadata?: Object;
-  /** Whether the API request is in progress */
+
+  /**
+   * Whether the API request is in progress
+   *
+   * @deprecated use `status` instead
+   */
   isLoading: Readable<boolean | undefined>;
+
+  /**
+   * Hook status:
+   *
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
+   * - `ready`: The full response has been received and processed; a new user message can be submitted.
+   * - `error`: An error occurred during the API request, preventing successful completion.
+   */
+  status: Readable<'submitted' | 'streaming' | 'ready' | 'error'>;
 
   /** Additional data added on the server via StreamData */
   data: Readable<JSONValue[] | undefined>;
@@ -94,100 +109,6 @@ export type UseChatHelpers = {
 
   /** The id of the chat */
   id: string;
-};
-
-const getStreamedResponse = async (
-  api: string,
-  chatRequest: ChatRequest,
-  mutate: (messages: UIMessage[]) => void,
-  mutateStreamData: (data: JSONValue[] | undefined) => void,
-  existingData: JSONValue[] | undefined,
-  extraMetadata: {
-    credentials?: RequestCredentials;
-    headers?: Record<string, string> | Headers;
-    body?: any;
-  },
-  previousMessages: UIMessage[],
-  abortControllerRef: AbortController | null,
-  generateId: IdGenerator,
-  streamProtocol: UseChatOptions['streamProtocol'],
-  onFinish: UseChatOptions['onFinish'],
-  onResponse: ((response: Response) => void | Promise<void>) | undefined,
-  onToolCall: UseChatOptions['onToolCall'] | undefined,
-  sendExtraMessageFields: boolean | undefined,
-  fetch: FetchFunction | undefined,
-  keepLastMessageOnError: boolean | undefined,
-  chatId: string,
-) => {
-  // Do an optimistic update to the chat state to show the updated messages
-  // immediately.
-  const chatMessages = fillMessageParts(chatRequest.messages);
-
-  mutate(chatMessages);
-
-  const constructedMessagesPayload = sendExtraMessageFields
-    ? chatMessages
-    : chatMessages.map(
-        ({
-          role,
-          content,
-          experimental_attachments,
-          data,
-          annotations,
-          toolInvocations,
-          parts,
-        }) => ({
-          role,
-          content,
-          ...(experimental_attachments !== undefined && {
-            experimental_attachments,
-          }),
-          ...(data !== undefined && { data }),
-          ...(annotations !== undefined && { annotations }),
-          ...(toolInvocations !== undefined && { toolInvocations }),
-          ...(parts !== undefined && { parts }),
-        }),
-      );
-
-  return await callChatApi({
-    api,
-    body: {
-      id: chatId,
-      messages: constructedMessagesPayload,
-      data: chatRequest.data,
-      ...extraMetadata.body,
-      ...chatRequest.body,
-    },
-    streamProtocol,
-    credentials: extraMetadata.credentials,
-    headers: {
-      ...extraMetadata.headers,
-      ...chatRequest.headers,
-    },
-    abortController: () => abortControllerRef,
-    restoreMessagesOnFailure() {
-      if (!keepLastMessageOnError) {
-        mutate(previousMessages);
-      }
-    },
-    onResponse,
-    onUpdate({ message, data, replaceLastMessage }) {
-      mutate([
-        ...(replaceLastMessage
-          ? chatMessages.slice(0, chatMessages.length - 1)
-          : chatMessages),
-        message,
-      ]);
-      if (data?.length) {
-        mutateStreamData([...(existingData ?? []), ...data]);
-      }
-    },
-    onFinish,
-    generateId,
-    onToolCall,
-    fetch,
-    lastMessage: chatMessages[chatMessages.length - 1],
-  });
 };
 
 const store: Record<string, UIMessage[] | undefined> = {};
@@ -223,18 +144,16 @@ export function useChat({
   const chatId = id ?? generateId();
 
   const key = `${api}|${chatId}`;
-  const {
-    data,
-    mutate: originalMutate,
-    isLoading: isSWRLoading,
-  } = useSWR<UIMessage[]>(key, {
+  const { data, mutate: originalMutate } = useSWR<UIMessage[]>(key, {
     fetcher: () => store[key] ?? fillMessageParts(initialMessages),
     fallbackData: fillMessageParts(initialMessages),
   });
 
   const streamData = writable<JSONValue[] | undefined>(undefined);
 
-  const loading = writable<boolean>(false);
+  const status = writable<'submitted' | 'streaming' | 'ready' | 'error'>(
+    'ready',
+  );
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
   data.set(fillMessageParts(initialMessages));
@@ -261,6 +180,9 @@ export function useChat({
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
   async function triggerRequest(chatRequest: ChatRequest) {
+    status.set('submitted');
+    error.set(undefined);
+
     const messagesSnapshot = get(messages);
     const messageCount = messagesSnapshot.length;
     const maxStep = extractMaxToolInvocationStep(
@@ -268,35 +190,89 @@ export function useChat({
     );
 
     try {
-      error.set(undefined);
-      loading.set(true);
       abortController = new AbortController();
 
-      await getStreamedResponse(
+      // Do an optimistic update to the chat state to show the updated messages
+      // immediately.
+      const chatMessages = fillMessageParts(chatRequest.messages);
+
+      mutate(chatMessages);
+
+      const existingData = get(streamData);
+      const previousMessages = get(messages);
+
+      const constructedMessagesPayload = sendExtraMessageFields
+        ? chatMessages
+        : chatMessages.map(
+            ({
+              role,
+              content,
+              experimental_attachments,
+              data,
+              annotations,
+              toolInvocations,
+              parts,
+            }) => ({
+              role,
+              content,
+              ...(experimental_attachments !== undefined && {
+                experimental_attachments,
+              }),
+              ...(data !== undefined && { data }),
+              ...(annotations !== undefined && { annotations }),
+              ...(toolInvocations !== undefined && { toolInvocations }),
+              ...(parts !== undefined && { parts }),
+            }),
+          );
+
+      await callChatApi({
         api,
-        chatRequest,
-        mutate,
-        data => {
-          streamData.set(data);
+        body: {
+          id: chatId,
+          messages: constructedMessagesPayload,
+          data: chatRequest.data,
+          ...extraMetadata.body,
+          ...chatRequest.body,
         },
-        get(streamData),
-        extraMetadata,
-        get(messages),
-        abortController,
-        generateId,
         streamProtocol,
-        onFinish,
+        credentials: extraMetadata.credentials,
+        headers: {
+          ...extraMetadata.headers,
+          ...chatRequest.headers,
+        },
+        abortController: () => abortController,
+        restoreMessagesOnFailure() {
+          if (!keepLastMessageOnError) {
+            mutate(previousMessages);
+          }
+        },
         onResponse,
+        onUpdate({ message, data, replaceLastMessage }) {
+          status.set('streaming');
+
+          mutate([
+            ...(replaceLastMessage
+              ? chatMessages.slice(0, chatMessages.length - 1)
+              : chatMessages),
+            message,
+          ]);
+          if (data?.length) {
+            streamData.set([...(existingData ?? []), ...data]);
+          }
+        },
+        onFinish,
+        generateId,
         onToolCall,
-        sendExtraMessageFields,
         fetch,
-        keepLastMessageOnError,
-        chatId,
-      );
+        lastMessage: chatMessages[chatMessages.length - 1],
+      });
+
+      status.set('ready');
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
         abortController = null;
+        status.set('ready');
         return null;
       }
 
@@ -305,9 +281,9 @@ export function useChat({
       }
 
       error.set(err as Error);
+      status.set('error');
     } finally {
       abortController = null;
-      loading.set(false);
     }
 
     // auto-submit when all tool calls in the last assistant message have results:
@@ -433,13 +409,6 @@ export function useChat({
     input.set('');
   };
 
-  const isLoading = derived(
-    [isSWRLoading, loading],
-    ([$isSWRLoading, $loading]) => {
-      return $isSWRLoading || $loading;
-    },
-  );
-
   const addToolResult = ({
     toolCallId,
     result,
@@ -475,7 +444,11 @@ export function useChat({
     setMessages,
     input,
     handleSubmit,
-    isLoading,
+    isLoading: derived(
+      status,
+      $status => $status === 'submitted' || $status === 'streaming',
+    ),
+    status,
     data: streamData,
     setData,
     addToolResult,

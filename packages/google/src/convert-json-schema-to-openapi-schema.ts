@@ -81,7 +81,31 @@ export function convertJSONSchemaToOpenAPISchema(
     result.allOf = allOf.map(convertJSONSchemaToOpenAPISchema);
   }
   if (anyOf) {
-    result.anyOf = anyOf.map(convertJSONSchemaToOpenAPISchema);
+    // Handle cases where anyOf includes a null type
+    if (
+      anyOf.some(
+        schema => typeof schema === 'object' && schema?.type === 'null',
+      )
+    ) {
+      const nonNullSchemas = anyOf.filter(
+        schema => !(typeof schema === 'object' && schema?.type === 'null'),
+      );
+
+      if (nonNullSchemas.length === 1) {
+        // If there's only one non-null schema, convert it and make it nullable
+        const converted = convertJSONSchemaToOpenAPISchema(nonNullSchemas[0]);
+        if (typeof converted === 'object') {
+          result.nullable = true;
+          Object.assign(result, converted);
+        }
+      } else {
+        // If there are multiple non-null schemas, keep them in anyOf
+        result.anyOf = nonNullSchemas.map(convertJSONSchemaToOpenAPISchema);
+        result.nullable = true;
+      }
+    } else {
+      result.anyOf = anyOf.map(convertJSONSchemaToOpenAPISchema);
+    }
   }
   if (oneOf) {
     result.oneOf = oneOf.map(convertJSONSchemaToOpenAPISchema);

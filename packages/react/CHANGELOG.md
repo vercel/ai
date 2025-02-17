@@ -1,5 +1,40 @@
 # @ai-sdk/react
 
+## 1.1.16
+
+### Patch Changes
+
+- 60c3220: fix (ui): set status to ready after stream was aborted
+
+## 1.1.15
+
+### Patch Changes
+
+- c43df41: feat (ui): add useChat status
+
+## 1.1.14
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+  - @ai-sdk/ui-utils@1.1.14
+
+## 1.1.13
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+  - @ai-sdk/ui-utils@1.1.13
+
+## 1.1.12
+
+### Patch Changes
+
+- Updated dependencies [166e09e]
+  - @ai-sdk/ui-utils@1.1.12
+
 ## 1.1.11
 
 ### Patch Changes
