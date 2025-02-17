@@ -164,13 +164,11 @@ describe('text stream', () => {
     );
   });
 
-  it('should reset the input after the submission',async () => {
-		await userEvent.type(screen.getByTestId('input-text-stream'), 'test input{enter};');
-		 expect(screen.getByTestId('input-text-stream')).toHaveTextContent(
-				'',
-		);
-
-  })
+  it('should reset text input after the submission', async () => {
+    await userEvent.type(
+      screen.getByTestId('input-text-stream'),
+      'test input{enter};',
+    );
+    expect(screen.getByTestId('input-text-stream')).toHaveTextContent('');
+  });
 });
-
-
