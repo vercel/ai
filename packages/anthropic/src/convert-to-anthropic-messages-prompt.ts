@@ -250,6 +250,17 @@ export function convertToAnthropicMessagesPrompt({
                 break;
               }
 
+              case 'reasoning': {
+                // TODO support redacted reasoning
+                // TODO test
+                anthropicContent.push({
+                  type: 'thinking',
+                  thinking: part.text,
+                  cache_control: cacheControl,
+                });
+                break; // ignored
+              }
+
               case 'tool-call': {
                 anthropicContent.push({
                   type: 'tool_use',
@@ -259,6 +270,11 @@ export function convertToAnthropicMessagesPrompt({
                   cache_control: cacheControl,
                 });
                 break;
+              }
+
+              default: {
+                const _exhaustiveCheck: never = part;
+                throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
               }
             }
           }

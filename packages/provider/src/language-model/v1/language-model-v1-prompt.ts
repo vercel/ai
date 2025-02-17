@@ -30,7 +30,11 @@ export type LanguageModelV1Message =
       }
     | {
         role: 'assistant';
-        content: Array<LanguageModelV1TextPart | LanguageModelV1ToolCallPart>;
+        content: Array<
+          | LanguageModelV1TextPart
+          | LanguageModelV1ReasoningPart
+          | LanguageModelV1ToolCallPart
+        >;
       }
     | {
         role: 'tool';
@@ -60,6 +64,30 @@ The text content.
    * Additional provider-specific metadata. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
+   */
+  providerMetadata?: LanguageModelV1ProviderMetadata;
+}
+
+/**
+Reasoning content part of a prompt. It contains a string of reasoning text.
+ */
+export interface LanguageModelV1ReasoningPart {
+  type: 'reasoning';
+
+  /**
+The reasoning text.
+   */
+  text: string;
+
+  /**
+Optional flag if the reasoning is redacted. Default is false.
+   */
+  isRedacted?: boolean;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
    */
   providerMetadata?: LanguageModelV1ProviderMetadata;
 }

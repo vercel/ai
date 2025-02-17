@@ -3,7 +3,6 @@ import {
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
-import { AnthropicAssistantMessage } from './anthropic-api-types';
 import { createAnthropic } from './anthropic-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
@@ -20,7 +19,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
   describe('doGenerate', () => {
     function prepareJsonResponse({
-      content = [{ type: 'text', text: '', cache_control: undefined }],
+      content = [{ type: 'text', text: '' }],
       usage = {
         input_tokens: 4,
         output_tokens: 30,
@@ -30,7 +29,11 @@ describe('AnthropicMessagesLanguageModel', () => {
       model = 'claude-3-haiku-20240307',
       headers = {},
     }: {
-      content?: AnthropicAssistantMessage['content'];
+      content?: Array<
+        | { type: 'text'; text: string }
+        | { type: 'thinking'; thinking: string }
+        | { type: 'tool_use'; id: string; name: string; input: unknown }
+      >;
       usage?: {
         input_tokens: number;
         output_tokens: number;
@@ -58,11 +61,61 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
     }
 
+    describe('reasoning (thinking enabled)', () => {
+      it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
+        prepareJsonResponse({
+          content: [{ type: 'text', text: 'Hello, World!' }],
+        });
+
+        const result = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          temperature: 0.5,
+          topP: 0.7,
+          topK: 0.1,
+          providerMetadata: {
+            anthropic: {
+              thinking: { type: 'enabled', budgetTokens: 1000 },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'claude-3-haiku-20240307',
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+            },
+          ],
+          max_tokens: 4096 + 1000,
+          thinking: { type: 'enabled', budget_tokens: 1000 },
+        });
+
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported-setting',
+            setting: 'temperature',
+            details: 'temperature is not supported when thinking is enabled',
+          },
+          {
+            type: 'unsupported-setting',
+            details: 'topK is not supported when thinking is enabled',
+            setting: 'topK',
+          },
+          {
+            type: 'unsupported-setting',
+            details: 'topP is not supported when thinking is enabled',
+            setting: 'topP',
+          },
+        ]);
+      });
+    });
+
     it('should extract text response', async () => {
       prepareJsonResponse({
-        content: [
-          { type: 'text', text: 'Hello, World!', cache_control: undefined },
-        ],
+        content: [{ type: 'text', text: 'Hello, World!' }],
       });
 
       const { text } = await provider('claude-3-haiku-20240307').doGenerate({
@@ -74,20 +127,33 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(text).toStrictEqual('Hello, World!');
     });
 
+    it('should extract reasoning response', async () => {
+      prepareJsonResponse({
+        content: [
+          { type: 'thinking', thinking: 'I am thinking...' },
+          { type: 'text', text: 'Hello, World!' },
+        ],
+      });
+
+      const { reasoning, text } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(reasoning).toStrictEqual('I am thinking...');
+      expect(text).toStrictEqual('Hello, World!');
+    });
+
     it('should extract tool calls', async () => {
       prepareJsonResponse({
         content: [
-          {
-            type: 'text',
-            text: 'Some text\n\n',
-            cache_control: undefined,
-          },
+          { type: 'text', text: 'Some text\n\n' },
           {
             type: 'tool_use',
             id: 'toolu_1',
             name: 'test-tool',
             input: { value: 'example value' },
-            cache_control: undefined,
           },
         ],
         stopReason: 'tool_use',
@@ -129,17 +195,12 @@ describe('AnthropicMessagesLanguageModel', () => {
     it('should support object-tool mode', async () => {
       prepareJsonResponse({
         content: [
-          {
-            type: 'text',
-            text: 'Some text\n\n',
-            cache_control: undefined,
-          },
+          { type: 'text', text: 'Some text\n\n' },
           {
             type: 'tool_use',
             id: 'toolu_1',
             name: 'json',
             input: { value: 'example value' },
-            cache_control: undefined,
           },
         ],
         stopReason: 'tool_use',
@@ -442,7 +503,9 @@ describe('AnthropicMessagesLanguageModel', () => {
       content,
       headers,
     }: {
-      content: string[];
+      content: Array<
+        { type: 'text'; text: string } | { type: 'thinking'; thinking: string }
+      >;
       headers?: Record<string, string>;
     }) {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
@@ -453,7 +516,15 @@ describe('AnthropicMessagesLanguageModel', () => {
           `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
           `data: {"type": "ping"}\n\n`,
           ...content.map(text => {
-            return `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${text}"}              }\n\n`;
+            let chunk = `data: {"type":"content_block_delta","index":0,"delta":`;
+
+            if (text.type === 'text') {
+              chunk += `{"type":"text_delta","text":"${text.text}"}`;
+            } else if (text.type === 'thinking') {
+              chunk += `{"type":"thinking_delta","thinking":"${text.thinking}"}`;
+            }
+
+            return `${chunk}}\n\n`;
           }),
           `data: {"type":"content_block_stop","index":0             }\n\n`,
           `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}          }\n\n`,
@@ -463,7 +534,13 @@ describe('AnthropicMessagesLanguageModel', () => {
     }
 
     it('should stream text deltas', async () => {
-      prepareStreamResponse({ content: ['Hello', ', ', 'World!'] });
+      prepareStreamResponse({
+        content: [
+          { type: 'text', text: 'Hello' },
+          { type: 'text', text: ', ' },
+          { type: 'text', text: 'World!' },
+        ],
+      });
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
@@ -477,18 +554,50 @@ describe('AnthropicMessagesLanguageModel', () => {
           modelId: 'claude-3-haiku-20240307',
           type: 'response-metadata',
         },
+        { textDelta: 'Hello', type: 'text-delta' },
+        { textDelta: ', ', type: 'text-delta' },
+        { textDelta: 'World!', type: 'text-delta' },
         {
-          textDelta: 'Hello',
-          type: 'text-delta',
+          finishReason: 'stop',
+          providerMetadata: {
+            anthropic: {
+              cacheCreationInputTokens: null,
+              cacheReadInputTokens: null,
+            },
+          },
+          type: 'finish',
+          usage: {
+            completionTokens: 227,
+            promptTokens: 17,
+          },
         },
+      ]);
+    });
+
+    it('should stream reasoning deltas', async () => {
+      prepareStreamResponse({
+        content: [
+          { type: 'thinking', thinking: 'I am' },
+          { type: 'thinking', thinking: 'thinking...' },
+          { type: 'text', text: 'Hello, World!' },
+        ],
+      });
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
         {
-          textDelta: ', ',
-          type: 'text-delta',
+          id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+          modelId: 'claude-3-haiku-20240307',
+          type: 'response-metadata',
         },
-        {
-          textDelta: 'World!',
-          type: 'text-delta',
-        },
+        { type: 'reasoning', textDelta: 'I am' },
+        { type: 'reasoning', textDelta: 'thinking...' },
+        { textDelta: 'Hello, World!', type: 'text-delta' },
         {
           finishReason: 'stop',
           providerMetadata: {

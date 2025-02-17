@@ -93,7 +93,7 @@ has only generated tool calls.
 Reasoning text that the model has generated. Can be undefined if the model
 has only generated text.
      */
-    reasoning?: string;
+    reasoning?: string | Array<{ text: string; isRedacted?: boolean }>;
 
     /**
 Tool calls that the model has generated. Can be undefined if the
@@ -261,7 +261,7 @@ export type LanguageModelV1StreamPart =
   | { type: 'text-delta'; textDelta: string }
 
   // Reasoning text deltas:
-  | { type: 'reasoning'; textDelta: string }
+  | { type: 'reasoning'; textDelta: string; isRedacted?: boolean }
 
   // Sources:
   | { type: 'source'; source: LanguageModelV1Source }

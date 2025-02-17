@@ -504,7 +504,10 @@ A function that attempts to repair a tool call that failed to parse.
         const currentStepResult: StepResult<TOOLS> = {
           stepType,
           text: stepText,
-          reasoning: currentModelResponse.reasoning,
+          // TODO rename to reasoningText
+          reasoning: convertReasoningToTextDelta(
+            currentModelResponse.reasoning,
+          ),
           sources: currentModelResponse.sources ?? [],
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
@@ -552,7 +555,7 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
-        reasoning: currentModelResponse.reasoning,
+        reasoning: convertReasoningToTextDelta(currentModelResponse.reasoning),
         sources,
         outputResolver: () => {
           if (output == null) {
@@ -674,6 +677,22 @@ async function executeTools<TOOLS extends ToolSet>({
   return toolResults.filter(
     (result): result is NonNullable<typeof result> => result != null,
   );
+}
+
+function convertReasoningToTextDelta(
+  reasoning: string | Array<{ text: string; isRedacted?: boolean }> | undefined,
+): string | undefined {
+  if (reasoning == null) {
+    return undefined;
+  }
+
+  if (typeof reasoning === 'string') {
+    return reasoning;
+  }
+  return reasoning
+    .filter(part => !part.isRedacted)
+    .map(part => part.text)
+    .join('');
 }
 
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>

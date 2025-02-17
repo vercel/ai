@@ -21,12 +21,20 @@ export interface AnthropicUserMessage {
 
 export interface AnthropicAssistantMessage {
   role: 'assistant';
-  content: Array<AnthropicTextContent | AnthropicToolCallContent>;
+  content: Array<
+    AnthropicTextContent | AnthropicThinkingContent | AnthropicToolCallContent
+  >;
 }
 
 export interface AnthropicTextContent {
   type: 'text';
   text: string;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicThinkingContent {
+  type: 'thinking';
+  thinking: string;
   cache_control: AnthropicCacheControl | undefined;
 }
 

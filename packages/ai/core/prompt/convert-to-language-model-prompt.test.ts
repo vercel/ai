@@ -700,6 +700,45 @@ describe('convertToLanguageModelMessage', () => {
       });
     });
 
+    describe('reasoning parts', () => {
+      it('should pass through provider metadata', () => {
+        const result = convertToLanguageModelMessage(
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'hello, world!',
+                providerOptions: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                    'key-b': 'test-value-2',
+                  },
+                },
+              },
+            ],
+          },
+          {},
+        );
+
+        expect(result).toEqual({
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'hello, world!',
+              providerMetadata: {
+                'test-provider': {
+                  'key-a': 'test-value-1',
+                  'key-b': 'test-value-2',
+                },
+              },
+            },
+          ],
+        });
+      });
+    });
+
     describe('tool call parts', () => {
       it('should pass through provider metadata', () => {
         const result = convertToLanguageModelMessage(
