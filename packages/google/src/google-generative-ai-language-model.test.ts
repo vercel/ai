@@ -992,6 +992,92 @@ describe('doGenerate', () => {
       ),
     );
   });
+
+  it(
+    'should handle executable code in response',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    executableCode: {
+                      language: 'PYTHON',
+                      code: 'print(google_search.search(queries=["How is the weather in Toronto?"]))',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        },
+      },
+      async () => {
+        const { text } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        // Executable code parts are ignored by getTextFromParts
+        expect(text).toStrictEqual(undefined);
+      },
+    ),
+  );
+
+  it(
+    'should handle mixed text and executable code in response',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { text: 'Here is a Python code example:' },
+                  {
+                    executableCode: {
+                      language: 'PYTHON',
+                      code: 'print("Hello World")',
+                    },
+                  },
+                  { text: '\nThis code will print a greeting.' },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        },
+      },
+      async () => {
+        const { text } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        // Only text parts are included
+        expect(text).toStrictEqual(
+          'Here is a Python code example:\nThis code will print a greeting.',
+        );
+      },
+    ),
+  );
 });
 
 describe('doStream', () => {

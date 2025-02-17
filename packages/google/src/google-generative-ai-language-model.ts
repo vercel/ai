@@ -458,6 +458,12 @@ const contentSchema = z.object({
           args: z.unknown(),
         }),
       }),
+      z.object({
+        executableCode: z.object({
+          language: z.string(),
+          code: z.string(),
+        }),
+      }),
     ]),
   ),
 });
