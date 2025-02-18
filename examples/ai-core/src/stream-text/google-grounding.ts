@@ -8,20 +8,20 @@ async function main() {
     prompt: 'List the top 5 San Francisco news from the past week.',
   });
 
-  for await (const fullStepText of result.fullStream) {
-    if (fullStepText.type === 'text-delta') {
-      process.stdout.write(fullStepText.textDelta);
+  for await (const part of result.fullStream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.textDelta);
     }
 
-    if (fullStepText.type === 'source') {
-      console.log();
-      console.log('Source:', fullStepText.source);
+    if (part.type === 'source' && part.source.sourceType === 'url') {
+      console.log('\x1b[36m%s\x1b[0m', 'Source');
+      console.log('ID:', part.source.id);
+      console.log('Title:', part.source.title);
+      console.log('URL:', part.source.url);
       console.log();
     }
   }
 
-  // TODO sources promise
-  console.log((await result.providerMetadata)?.google);
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
