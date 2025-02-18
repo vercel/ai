@@ -298,14 +298,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       }
     }
 
-    const reasoning = response.content
+    const reasoningText = response.content
       .filter(content => content.type === 'thinking')
       .map(content => content.thinking)
       .join('');
 
     return {
       text,
-      reasoning: reasoning.length > 0 ? reasoning : undefined,
+      reasoning: reasoningText.length > 0 ? reasoningText : undefined,
       toolCalls,
       finishReason: mapAnthropicStopReason(response.stop_reason),
       usage: {

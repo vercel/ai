@@ -1,8 +1,8 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { CoreMessage, generateText, tool } from 'ai';
+import { CoreMessage, generateText } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
-import { z } from 'zod';
+import { weatherTool } from '../tools/weather-tool';
 
 const terminal = readline.createInterface({
   input: process.stdin,
@@ -16,26 +16,9 @@ async function main() {
     const userInput = await terminal.question('You: ');
     messages.push({ role: 'user', content: userInput });
 
-    const { text, reasoning, response } = await generateText({
+    const { steps, response } = await generateText({
       model: anthropic('research-claude-flannel'),
-      tools: {
-        weatherTool: tool({
-          description: 'Get the weather in a location',
-          parameters: z.object({
-            location: z
-              .string()
-              .describe('The location to get the weather for'),
-          }),
-          // location below is inferred to be a string:
-          execute: async ({ location }) => {
-            console.log(`\x1b[32mGetting weather for: \x1b[0m${location}`);
-            return {
-              location,
-              temperature: 72 + Math.floor(Math.random() * 21) - 10,
-            };
-          },
-        }),
-      },
+      tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
       maxSteps: 5,
@@ -48,12 +31,23 @@ async function main() {
 
     console.log('Assistant:');
 
-    if (reasoning) {
-      console.log(`\x1b[36m${reasoning}\x1b[0m`);
-    }
+    for (const step of steps) {
+      if (step.reasoning) {
+        console.log(`\x1b[36m${step.reasoning}\x1b[0m`);
+      }
 
-    if (text) {
-      console.log(text);
+      if (step.text) {
+        console.log(step.text);
+      }
+
+      if (step.toolCalls) {
+        for (const toolCall of step.toolCalls) {
+          console.log(
+            `\x1b[33m${toolCall.toolName}\x1b[0m` +
+              JSON.stringify(toolCall.args),
+          );
+        }
+      }
     }
 
     console.log('\n');

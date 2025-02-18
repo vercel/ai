@@ -305,7 +305,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                 controller.enqueue({
                   type: 'reasoning',
                   textDelta: part.text,
-                  isRedacted: part.isRedacted,
                 });
               }
             } else {

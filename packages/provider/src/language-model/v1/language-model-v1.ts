@@ -64,7 +64,7 @@ use further optimizations if this flag is set to `true`.
 
 Defaults to `false`.
 */
-  // TODO rename to supportsGrammarGuidedGeneration in v2
+  // TODO v2: rename to supportsGrammarGuidedGeneration?
   readonly supportsStructuredOutputs?: boolean;
 
   /**
@@ -83,6 +83,7 @@ Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
   doGenerate(options: LanguageModelV1CallOptions): PromiseLike<{
+    // TODO v2: switch to a composite content array with text, tool calls, reasoning
     /**
 Text that the model has generated. Can be undefined if the model
 has only generated tool calls.
@@ -93,7 +94,7 @@ has only generated tool calls.
 Reasoning text that the model has generated. Can be undefined if the model
 has only generated text.
      */
-    reasoning?: string | Array<{ text: string; isRedacted?: boolean }>;
+    reasoning?: string | Array<{ type: 'reasoning'; text: string }>;
 
     /**
 Tool calls that the model has generated. Can be undefined if the
@@ -117,7 +118,7 @@ Finish reason.
     /**
 Raw prompt and setting information for observability provider integration.
      */
-    // TODO remove in v2 (there is now request)
+    // TODO v2: remove in v2 (now there is request)
     rawCall: {
       /**
 Raw prompt after expansion and conversion to the format that the
@@ -261,7 +262,7 @@ export type LanguageModelV1StreamPart =
   | { type: 'text-delta'; textDelta: string }
 
   // Reasoning text deltas:
-  | { type: 'reasoning'; textDelta: string; isRedacted?: boolean }
+  | { type: 'reasoning'; textDelta: string }
 
   // Sources:
   | { type: 'source'; source: LanguageModelV1Source }

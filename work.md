@@ -9,8 +9,6 @@
   - [x] toResponseMessages reasoning support
   - [x] generateText assistant message reasoning parts
   - [x] fix for empty reasoning at source
-  - [ ] investigate thinking w/ tools - why not returned?
-  - [ ] fix for empty reasoning at sink
   - [ ] streamText assistant message reasoning parts
   - [ ] reasoning conversion from ui messages (reasoning message roundtrips with UI)
   - [ ] support in ui parts
