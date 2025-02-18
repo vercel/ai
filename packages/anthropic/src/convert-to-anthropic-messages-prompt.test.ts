@@ -480,6 +480,48 @@ describe('assistant messages', () => {
       betas: new Set(),
     });
   });
+
+  it('should convert assistant message reasoning parts into thinking parts', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'I need to count the number of "r"s in the word "strawberry".',
+            },
+            {
+              type: 'text',
+              text: 'The word "strawberry" has 2 "r"s.',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'thinking',
+                thinking:
+                  'I need to count the number of "r"s in the word "strawberry".',
+              },
+              {
+                type: 'text',
+                text: 'The word "strawberry" has 2 "r"s.',
+              },
+            ],
+          },
+        ],
+      },
+      betas: new Set(),
+    });
+  });
 });
 
 describe('cache control', () => {

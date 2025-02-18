@@ -5,8 +5,7 @@
   - [x] reasoning output streaming
   - [x] reasoning output non-streaming
   - [x] convert reasoning input: CoreMessage -> LanguageModelMessage
-  - [ ] reasoning input anthropic mapping
-        test
+  - [x] reasoning input anthropic mapping
   - [ ] streamText assistant message reasoning parts
   - [ ] generateText assistant message reasoning parts
   - [ ] reasoning conversion from ui messages (reasoning message roundtrips with UI)
