@@ -206,16 +206,19 @@ await generateText({
 
 You can customize the run ID by passing the `runId` argument to the `AISDKExporter.getSettings()` method. This is especially useful if you want to know the run ID before the run has been completed.
 
+<Note>The run ID has to be a valid UUID.</Note>
+
 ```ts
 import { AISDKExporter } from 'langsmith/vercel';
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
+import { v4 as uuidv4 } from 'uuid';
 
 await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   experimental_telemetry: AISDKExporter.getSettings({
-    runId: 'my-custom-run-id',
+    runId: uuidv4(),
   }),
 });
 ```
