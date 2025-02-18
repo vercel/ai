@@ -301,7 +301,31 @@ Example response:
 }
 ```
 
-The safety ratings provide insight into how the model's response was grounded to search results. See [Google AI documentation on safety settings](https://ai.google.dev/gemini-api/docs/safety-settings).
+<Note>
+  The Google Generative AI provider does not yet support [dynamic retrieval mode
+  and
+  threshold](https://ai.google.dev/gemini-api/docs/grounding?lang=rest#dynamic-retrieval).
+</Note>
+
+### Sources
+
+When you use [Search Grounding](#search-grounding), the model will include sources in the response.
+You can access them using the `sources` property of the result:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { sources } = await generateText({
+  model: google('gemini-2.0-flash-exp', { useSearchGrounding: true }),
+  prompt: 'List the top 5 San Francisco news from the past week.',
+});
+```
+
+### Safety Ratings
+
+The safety ratings provide insight into the safety of the model's response.
+See [Google AI documentation on safety settings](https://ai.google.dev/gemini-api/docs/safety-settings).
 
 Example response excerpt:
 
@@ -340,12 +364,6 @@ Example response excerpt:
   ]
 }
 ```
-
-<Note>
-  The Google Generative AI provider does not yet support [dynamic retrieval mode
-  and
-  threshold](https://ai.google.dev/gemini-api/docs/grounding?lang=rest#dynamic-retrieval).
-</Note>
 
 ### Troubleshooting
 
