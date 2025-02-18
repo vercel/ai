@@ -528,7 +528,7 @@ On the client side, you can access the reasoning parts of the message object:
 
 ```tsx filename="app/page.tsx"
 messages.map(message => (
-  <div key={message.id} className="whitespace-pre-wrap">
+  <div key={message.id}>
     {message.role === 'user' ? 'User: ' : 'AI: '}
     {message.parts.map((part, index) => {
       // text parts:
@@ -576,7 +576,7 @@ Here is an example that renders the sources as links at the bottom of the messag
 
 ```tsx filename="app/page.tsx"
 messages.map(message => (
-  <div key={message.id} className="whitespace-pre-wrap">
+  <div key={message.id}>
     {message.role === 'user' ? 'User: ' : 'AI: '}
     {message.parts
       .filter(part => part.type !== 'source')
@@ -590,11 +590,7 @@ messages.map(message => (
       .map(part => (
         <span key={`source-${part.source.id}`}>
           [
-          <a
-            href={part.source.url}
-            target="_blank"
-            className="text-sm font-bold text-blue-500 hover:underline"
-          >
+          <a href={part.source.url} target="_blank">
             {part.source.title ?? new URL(part.source.url).hostname}
           </a>
           ]
