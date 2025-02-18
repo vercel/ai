@@ -467,6 +467,10 @@ A function that attempts to repair a tool call that failed to parse.
             ? text + stepText
             : stepText;
 
+        const reasoningText = extractReasoningText(
+          currentModelResponse.reasoning,
+        );
+
         // sources:
         sources.push(...(currentModelResponse.sources ?? []));
 
@@ -491,6 +495,7 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               text,
+              reasoning: currentModelResponse.reasoning,
               tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
               toolResults: currentToolResults,
@@ -504,10 +509,8 @@ A function that attempts to repair a tool call that failed to parse.
         const currentStepResult: StepResult<TOOLS> = {
           stepType,
           text: stepText,
-          // TODO rename to reasoningText
-          reasoning: convertReasoningToTextDelta(
-            currentModelResponse.reasoning,
-          ),
+          // TODO rename reasoning to reasoningText (and use reasoning for composite array)
+          reasoning: reasoningText,
           sources: currentModelResponse.sources ?? [],
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
@@ -555,7 +558,7 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
-        reasoning: convertReasoningToTextDelta(currentModelResponse.reasoning),
+        reasoning: extractReasoningText(currentModelResponse.reasoning),
         sources,
         outputResolver: () => {
           if (output == null) {
@@ -679,7 +682,7 @@ async function executeTools<TOOLS extends ToolSet>({
   );
 }
 
-function convertReasoningToTextDelta(
+function extractReasoningText(
   reasoning: string | Array<{ text: string; isRedacted?: boolean }> | undefined,
 ): string | undefined {
   if (reasoning == null) {

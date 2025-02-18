@@ -9,6 +9,7 @@ Converts the result of a `generateText` call to a list of response messages.
  */
 export function toResponseMessages<TOOLS extends ToolSet>({
   text = '',
+  reasoning,
   tools,
   toolCalls,
   toolResults,
@@ -16,6 +17,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   generateMessageId,
 }: {
   text: string | undefined;
+  reasoning: string | Array<{ text: string; isRedacted?: boolean }> | undefined;
   tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
   toolResults: ToolResultArray<TOOLS>;
@@ -26,7 +28,20 @@ export function toResponseMessages<TOOLS extends ToolSet>({
 
   responseMessages.push({
     role: 'assistant',
-    content: [{ type: 'text', text }, ...toolCalls],
+    content: [
+      ...(reasoning !== null && typeof reasoning === 'string'
+        ? [{ type: 'reasoning' as const, text: reasoning }]
+        : []),
+      ...(reasoning !== null && Array.isArray(reasoning)
+        ? reasoning.map(part => ({
+            type: 'reasoning' as const,
+            text: part.text,
+            isRedacted: part.isRedacted,
+          }))
+        : []),
+      { type: 'text', text },
+      ...toolCalls,
+    ],
     id: messageId,
   });
 

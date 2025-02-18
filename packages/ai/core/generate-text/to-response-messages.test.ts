@@ -7,6 +7,7 @@ describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
     const result = toResponseMessages({
       text: 'Hello, world!',
+      reasoning: undefined,
       tools: {
         testTool: {
           description: 'A test tool',
@@ -31,6 +32,7 @@ describe('toResponseMessages', () => {
   it('should include tool calls in the assistant message', () => {
     const result = toResponseMessages({
       text: 'Using a tool',
+      reasoning: undefined,
       tools: {
         testTool: {
           description: 'A test tool',
@@ -70,6 +72,7 @@ describe('toResponseMessages', () => {
   it('should include tool results as a separate message', () => {
     const result = toResponseMessages({
       text: 'Tool used',
+      reasoning: undefined,
       tools: {
         testTool: {
           description: 'A test tool',
@@ -130,6 +133,7 @@ describe('toResponseMessages', () => {
   it('should handle undefined text', () => {
     const result = toResponseMessages({
       text: undefined,
+      reasoning: undefined,
       tools: {
         testTool: {
           description: 'A test tool',
@@ -151,9 +155,70 @@ describe('toResponseMessages', () => {
     ]);
   });
 
+  it('should include reasoning as a string in the assistant message', () => {
+    const result = toResponseMessages({
+      text: 'Final text',
+      reasoning: 'Simple reasoning',
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          parameters: z.object({}),
+        },
+      },
+      toolCalls: [],
+      toolResults: [],
+      messageId: 'msg-123',
+      generateMessageId: mockValues('msg-345'),
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        id: 'msg-123',
+        content: [
+          { type: 'reasoning', text: 'Simple reasoning' },
+          { type: 'text', text: 'Final text' },
+        ],
+      },
+    ]);
+  });
+
+  it('should include reasoning as an array of parts in the assistant message', () => {
+    const result = toResponseMessages({
+      text: 'Final text',
+      reasoning: [
+        { text: 'Reasoning part one' },
+        { text: 'Reasoning part two', isRedacted: true },
+      ],
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          parameters: z.object({}),
+        },
+      },
+      toolCalls: [],
+      toolResults: [],
+      messageId: 'msg-123',
+      generateMessageId: mockValues('msg-345'),
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        id: 'msg-123',
+        content: [
+          { type: 'reasoning', text: 'Reasoning part one' },
+          { type: 'reasoning', text: 'Reasoning part two', isRedacted: true },
+          { type: 'text', text: 'Final text' },
+        ],
+      },
+    ]);
+  });
+
   it('should handle multipart tool results', () => {
     const result = toResponseMessages({
       text: 'multipart tool result',
+      reasoning: undefined,
       tools: {
         testTool: tool({
           description: 'A test tool',

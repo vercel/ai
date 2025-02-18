@@ -6,10 +6,12 @@
   - [x] reasoning output non-streaming
   - [x] convert reasoning input: CoreMessage -> LanguageModelMessage
   - [x] reasoning input anthropic mapping
+  - [x] toResponseMessages reasoning support
+  - [x] generateText assistant message reasoning parts
   - [ ] streamText assistant message reasoning parts
-  - [ ] generateText assistant message reasoning parts
   - [ ] reasoning conversion from ui messages (reasoning message roundtrips with UI)
   - [ ] support in ui parts
+  - [ ] multistep ui with reasoning
 - [ ] documentation
   - [ ] anthropic provider page
   - [ ] prompt page: assistant message reasoning part
@@ -26,4 +28,6 @@
 
 - reasoning output redacted streaming
 - reasoning output redacted non-streaming
+- protocol extension for redacted reasoning
+
   Idea: fullReasoning, redacted flag on reasoning parts

@@ -3959,6 +3959,10 @@ exports[`streamText > result.steps > should add the reasoning from the model res
         {
           "content": [
             {
+              "text": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+              "type": "reasoning",
+            },
+            {
               "text": "Hi there!",
               "type": "text",
             },
