@@ -8,6 +8,9 @@
   - [x] reasoning input anthropic mapping
   - [x] toResponseMessages reasoning support
   - [x] generateText assistant message reasoning parts
+  - [x] fix for empty reasoning at source
+  - [ ] investigate thinking w/ tools - why not returned?
+  - [ ] fix for empty reasoning at sink
   - [ ] streamText assistant message reasoning parts
   - [ ] reasoning conversion from ui messages (reasoning message roundtrips with UI)
   - [ ] support in ui parts
@@ -19,6 +22,7 @@
   - [ ] reference pages: assistant message reasoning part
 - [ ] examples
   - [x] anthropic reasoning examples
+  - [x] anthropic reasoning chatbot with tools (generateText)
   - [ ] reasoning ui example
         with reasoning roundtrip
   - [ ] reasoning message roundtrip example

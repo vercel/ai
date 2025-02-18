@@ -145,6 +145,22 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(text).toStrictEqual('Hello, World!');
     });
 
+    it('should return undefined reasoning when no thinking is present', async () => {
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
+
+      const { reasoning } = await provider(
+        'claude-3-haiku-20240307',
+      ).doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(reasoning).toBeUndefined();
+    });
+
     it('should extract tool calls', async () => {
       prepareJsonResponse({
         content: [
