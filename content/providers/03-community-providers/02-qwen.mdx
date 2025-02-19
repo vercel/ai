@@ -49,7 +49,6 @@ You can use the following optional settings to customize the Qwen provider insta
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`.
 
-
 - **apiKey** _string_
 
   API key that is being sent using the `Authorization` header.
@@ -95,20 +94,20 @@ Qwen language models can also be used in the `streamText`, `generateObject`, `st
 
 ### Model Capabilities
 
-| Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `qwen-vl-max`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen-plus-latest`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen-max`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen2.5-72b-instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen2.5-14b-instruct-1m`| <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen2.5-vl-72b-instruct`| <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                     | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `qwen-vl-max`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen-plus-latest`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen-max`                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen2.5-72b-instruct`    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen2.5-14b-instruct-1m` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen2.5-vl-72b-instruct` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Qwen
-  docs](https://www.alibabacloud.com/help/en/model-studio/getting-started/models) for a
-  full list of available models. The table above lists popular models. You can
-  also pass any available provider model ID as a string if needed.
+  docs](https://www.alibabacloud.com/help/en/model-studio/getting-started/models)
+  for a full list of available models. The table above lists popular models. You
+  can also pass any available provider model ID as a string if needed.
 </Note>
 
 ## Embedding Models
@@ -122,6 +121,6 @@ const model = qwen.embedding('text-embedding-v3');
 
 ### Model Capabilities
 
-| Model           | Default Dimensions | Maximum number of rows | Maximum tokens per row |
-| --------------- | ------------------ | ---------------------- | ----------------------- |
-| `text-embedding-v3` | 1024          |  6                      | 8,192                   |
+| Model               | Default Dimensions | Maximum number of rows | Maximum tokens per row |
+| ------------------- | ------------------ | ---------------------- | ---------------------- |
+| `text-embedding-v3` | 1024               | 6                      | 8,192                  |
