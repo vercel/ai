@@ -1,6 +1,6 @@
-import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
+import type { LanguageModelV1StreamPart } from '@ai-sdk/provider';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
-import { LanguageModelV1Middleware } from './language-model-v1-middleware';
+import type { LanguageModelV1Middleware } from './language-model-v1-middleware';
 
 /**
  * Extract an XML-tagged reasoning section from the generated text and exposes it
@@ -12,9 +12,11 @@ import { LanguageModelV1Middleware } from './language-model-v1-middleware';
 export function extractReasoningMiddleware({
   tagName,
   separator = '\n',
+  startWithReasoning = false,
 }: {
   tagName: string;
   separator?: string;
+  startWithReasoning?: boolean;
 }): LanguageModelV1Middleware {
   const openingTag = `<${tagName}>`;
   const closingTag = `<\/${tagName}>`;
@@ -22,10 +24,16 @@ export function extractReasoningMiddleware({
   return {
     middlewareVersion: 'v1',
     wrapGenerate: async ({ doGenerate }) => {
-      const { text, ...rest } = await doGenerate();
+      const { text: textFromDoGenerate, ...rest } = await doGenerate();
 
-      if (text == null) {
-        return { text, ...rest };
+      if (textFromDoGenerate == null) {
+        return { text: textFromDoGenerate, ...rest };
+      }
+
+      let text = textFromDoGenerate;
+
+      if (startWithReasoning) {
+        text = openingTag + text;
       }
 
       const regexp = new RegExp(`${openingTag}(.*?)${closingTag}`, 'gs');
@@ -61,8 +69,8 @@ export function extractReasoningMiddleware({
       let isFirstReasoning = true;
       let isFirstText = true;
       let afterSwitch = false;
-      let isReasoning: boolean = false;
-      let buffer = '';
+      let isReasoning = false;
+      let buffer = startWithReasoning ? openingTag : '';
 
       return {
         stream: stream.pipeThrough(
