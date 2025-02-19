@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.44
+
+### Patch Changes
+
+- f8e7df2: fix (ai/core): add `startWithReasoning` option to `extractReasoningMiddleware`
+
 ## 4.1.43
 
 ### Patch Changes
