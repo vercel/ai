@@ -9,7 +9,7 @@
   - [x] toResponseMessages reasoning support
   - [x] fix for empty reasoning at source
   - [x] ui message to core message conversion
-  - [ ] generateText assistant message reasoning parts
+  - [x] generateText assistant message reasoning parts
   - [ ] streamText assistant message reasoning parts
 - [ ] documentation
   - [ ] anthropic provider page
@@ -20,4 +20,7 @@
   - [x] anthropic reasoning examples
   - [x] anthropic reasoning chatbot with tools (generateText)
   - [x] reasoning ui example with roundtrip
+- [ ] testing
+  - [ ] e2e deepseek
+  - [ ] e2e anthropic
 - [ ] changeset

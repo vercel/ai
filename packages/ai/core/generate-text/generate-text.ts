@@ -509,7 +509,7 @@ A function that attempts to repair a tool call that failed to parse.
         const currentStepResult: StepResult<TOOLS> = {
           stepType,
           text: stepText,
-          // TODO rename reasoning to reasoningText (and use reasoning for composite array)
+          // TODO v5: rename reasoning to reasoningText (and use reasoning for composite array)
           reasoning: reasoningText,
           sources: currentModelResponse.sources ?? [],
           toolCalls: currentToolCalls,
