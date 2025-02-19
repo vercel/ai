@@ -13,10 +13,9 @@
   - [x] streamText assistant message reasoning parts
 - [ ] documentation
   - [x] anthropic provider page
-  - [ ] prompt page: assistant message reasoning part
-  - [ ] message reference: assistant message reasoning part
+  - [x] prompt page: assistant message reasoning part
   - [ ] reference pages: assistant message reasoning part
-- [ ] examples
+- [x] examples
   - [x] anthropic reasoning examples
   - [x] anthropic reasoning chatbot with tools (generateText)
   - [x] reasoning ui example with roundtrip

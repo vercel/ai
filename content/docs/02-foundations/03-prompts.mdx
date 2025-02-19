@@ -271,7 +271,8 @@ const result = await generateText({
 ### Assistant Messages
 
 Assistant messages are messages that have a role of `assistant`.
-They are typically previous responses from the assistant and can contain text and tool call parts.
+They are typically previous responses from the assistant
+and can contain text, reasoning, and tool call parts.
 
 #### Example: Assistant message with text content
 
@@ -295,6 +296,33 @@ const result = await generateText({
     {
       role: 'assistant',
       content: [{ type: 'text', text: 'Hello, how can I help?' }],
+    },
+  ],
+});
+```
+
+#### Example: Assistant message with reasoning content
+
+<Note>
+  Only [Anthropic reasoning
+  models](/providers/ai-sdk-providers/anthropic#reasoning) currently support
+  reasoning inputs.
+</Note>
+
+```ts highlight="8-11"
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    { role: 'user', content: 'Hi!' },
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'reasoning',
+          text: 'I need to help the user with their question.',
+        },
+        { type: 'text', text: 'Hello, how can I help?' },
+      ],
     },
   ],
 });
