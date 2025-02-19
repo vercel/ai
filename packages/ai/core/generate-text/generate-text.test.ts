@@ -73,13 +73,33 @@ describe('result.text', () => {
 });
 
 describe('result.reasoning', () => {
-  it('should contain reasoning from model response', async () => {
+  it('should contain reasoning string from model response', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async () => ({
           ...dummyResponseValues,
           text: 'Hello, world!',
           reasoning: 'I will open the conversation with witty banter.',
+        }),
+      }),
+      prompt: 'prompt',
+    });
+
+    expect(result.reasoning).toStrictEqual(
+      'I will open the conversation with witty banter.',
+    );
+  });
+
+  it('should contain reasoning array from model response', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: 'Hello, world!',
+          reasoning: [
+            { type: 'reasoning', text: 'I will open ' },
+            { type: 'reasoning', text: 'the conversation with witty banter.' },
+          ],
         }),
       }),
       prompt: 'prompt',
@@ -378,6 +398,25 @@ describe('result.response.messages', () => {
           },
         },
       },
+      prompt: 'test-input',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
+    });
+
+    expect(result.response.messages).toMatchSnapshot();
+  });
+
+  it('should contain reasoning array from model response', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: 'Hello, world!',
+          reasoning: [
+            { type: 'reasoning', text: 'I will open ' },
+            { type: 'reasoning', text: 'the conversation with witty banter.' },
+          ],
+        }),
+      }),
       prompt: 'test-input',
       experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });

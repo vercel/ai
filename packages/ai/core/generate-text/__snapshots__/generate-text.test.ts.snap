@@ -910,6 +910,29 @@ exports[`result.response.messages > should contain assistant response message wh
 ]
 `;
 
+exports[`result.response.messages > should contain reasoning array from model response 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "I will open ",
+        "type": "reasoning",
+      },
+      {
+        "text": "the conversation with witty banter.",
+        "type": "reasoning",
+      },
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "id": "msg-0",
+    "role": "assistant",
+  },
+]
+`;
+
 exports[`result.sources > should contain sources 1`] = `
 [
   {
