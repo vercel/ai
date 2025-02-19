@@ -7,11 +7,10 @@
   - [x] convert reasoning input: CoreMessage -> LanguageModelMessage
   - [x] reasoning input anthropic mapping
   - [x] toResponseMessages reasoning support
-  - [x] generateText assistant message reasoning parts
   - [x] fix for empty reasoning at source
-  - [ ] streamText assistant message reasoning parts
   - [x] ui message to core message conversion
-  - [ ] multistep ui with reasoning -- test with deepseek
+  - [ ] generateText assistant message reasoning parts
+  - [ ] streamText assistant message reasoning parts
 - [ ] documentation
   - [ ] anthropic provider page
   - [ ] prompt page: assistant message reasoning part
@@ -20,7 +19,5 @@
 - [ ] examples
   - [x] anthropic reasoning examples
   - [x] anthropic reasoning chatbot with tools (generateText)
-  - [ ] reasoning ui example
-        with reasoning roundtrip
-  - [ ] reasoning message roundtrip example
+  - [x] reasoning ui example with roundtrip
 - [ ] changeset
