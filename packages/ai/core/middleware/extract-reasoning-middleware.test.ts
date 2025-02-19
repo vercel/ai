@@ -460,7 +460,7 @@ describe('extractReasoningMiddleware', () => {
         },
       });
 
-      const result = streamText({
+      const resultTrue = streamText({
         model: wrapLanguageModel({
           model: mockModel,
           middleware: extractReasoningMiddleware({
@@ -472,8 +472,17 @@ describe('extractReasoningMiddleware', () => {
         experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
+      const resultFalse = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
       expect(
-        await convertAsyncIterableToArray(result.fullStream),
+        await convertAsyncIterableToArray(resultTrue.fullStream),
       ).toStrictEqual([
         {
           messageId: 'msg-0',
@@ -488,6 +497,69 @@ describe('extractReasoningMiddleware', () => {
         {
           type: 'reasoning',
           textDelta: 'lyzing the request\n',
+        },
+        {
+          experimental_providerMetadata: undefined,
+          providerMetadata: undefined,
+          finishReason: 'stop',
+          isContinued: false,
+          logprobs: undefined,
+          messageId: 'msg-0',
+          request: {},
+          response: {
+            headers: undefined,
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          type: 'step-finish',
+          usage: {
+            completionTokens: 10,
+            promptTokens: 3,
+            totalTokens: 13,
+          },
+          warnings: undefined,
+        },
+        {
+          experimental_providerMetadata: undefined,
+          providerMetadata: undefined,
+          finishReason: 'stop',
+          logprobs: undefined,
+          response: {
+            headers: undefined,
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          type: 'finish',
+          usage: {
+            completionTokens: 10,
+            promptTokens: 3,
+            totalTokens: 13,
+          },
+        },
+      ]);
+
+      expect(
+        await convertAsyncIterableToArray(resultFalse.fullStream),
+      ).toStrictEqual([
+        {
+          messageId: 'msg-0',
+          request: {},
+          type: 'step-start',
+          warnings: [],
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'ana',
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'lyzing the request\n',
+        },
+        {
+          type: 'text-delta',
+          textDelta: '</think>',
         },
         {
           experimental_providerMetadata: undefined,
