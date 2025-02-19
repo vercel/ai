@@ -3865,6 +3865,25 @@ exports[`streamText > result.response > should resolve with response information
 }
 `;
 
+exports[`streamText > result.response.messages > should contain reasoning 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+        "type": "reasoning",
+      },
+      {
+        "text": "Hi there!",
+        "type": "text",
+      },
+    ],
+    "id": "msg-0",
+    "role": "assistant",
+  },
+]
+`;
+
 exports[`streamText > result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
 [
   {

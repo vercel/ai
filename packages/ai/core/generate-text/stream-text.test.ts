@@ -1552,6 +1552,19 @@ describe('streamText', () => {
     });
   });
 
+  describe('result.response.messages', () => {
+    it('should contain reasoning', async () => {
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      result.consumeStream();
+
+      expect((await result.response).messages).toMatchSnapshot();
+    });
+  });
+
   describe('result.request', () => {
     it('should resolve with response information', async () => {
       const result = streamText({

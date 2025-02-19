@@ -910,7 +910,7 @@ exports[`result.response.messages > should contain assistant response message wh
 ]
 `;
 
-exports[`result.response.messages > should contain reasoning array from model response 1`] = `
+exports[`result.response.messages > should contain reasoning 1`] = `
 [
   {
     "content": [

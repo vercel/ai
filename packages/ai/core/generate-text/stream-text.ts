@@ -1017,7 +1017,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let stepText = '';
-          let stepReasoning = '';
+          let stepReasoning: string | undefined = undefined;
           let fullStepText = stepType === 'continue' ? previousStepText : '';
           let stepLogProbs: LogProbs | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
@@ -1337,7 +1337,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       responseMessages.push(
                         ...toResponseMessages({
                           text: stepText,
-                          reasoning: undefined, // TODO implement
+                          reasoning: stepReasoning,
                           tools: tools ?? ({} as TOOLS),
                           toolCalls: stepToolCalls,
                           toolResults: stepToolResults,

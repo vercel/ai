@@ -385,7 +385,7 @@ describe('result.response.messages', () => {
     expect(result.response.messages).toMatchSnapshot();
   });
 
-  it('should contain reasoning array from model response', async () => {
+  it('should contain reasoning', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async () => ({
