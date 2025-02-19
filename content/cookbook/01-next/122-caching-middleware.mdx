@@ -64,10 +64,10 @@ You can control the initial delay and delay between chunks by adjusting the `ini
 
 ```tsx filename='ai/middleware.ts'
 import { Redis } from '@upstash/redis';
-import type {
-  LanguageModelV1,
-  LanguageModelV1Middleware,
-  LanguageModelV1StreamPart,
+import {
+  type LanguageModelV1,
+  type LanguageModelV1Middleware,
+  type LanguageModelV1StreamPart,
   simulateReadableStream,
 } from 'ai';
 
