@@ -36,7 +36,7 @@ If you need a customized setup, you can import `createQwen` from `qwen-ai-provid
 ```ts
 import { createQwen } from 'qwen-ai-provider';
 
-const ollama = createQwen({
+const qwen = createQwen({
   // optional settings, e.g.
   // baseURL: 'https://qwen/api/v1',
 });
@@ -89,3 +89,39 @@ const { text } = await generateText({
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
+
+Qwen language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
+### Model Capabilities
+
+| Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `qwen-vl-max`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen-plus-latest`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen-max`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen2.5-72b-instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen2.5-14b-instruct-1m`| <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen2.5-vl-72b-instruct`| <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  The table above lists popular models. Please see the [Qwen
+  docs](https://www.alibabacloud.com/help/en/model-studio/getting-started/models) for a
+  full list of available models. The table above lists popular models. You can
+  also pass any available provider model ID as a string if needed.
+</Note>
+
+## Embedding Models
+
+You can create models that call the [Qwen embeddings API](https://www.alibabacloud.com/help/en/model-studio/getting-started/models#cff6607866tsg)
+using the `.embedding()` factory method.
+
+```ts
+const model = qwen.embedding('text-embedding-v3');
+```
+
+### Model Capabilities
+
+| Model           | Default Dimensions | Maximum number of rows | Maximum tokens per row |
+| --------------- | ------------------ | ---------------------- | ----------------------- |
+| `text-embedding-v3` | 1024          |  6                      | 8,192                   |
