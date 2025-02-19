@@ -448,6 +448,7 @@ describe('extractReasoningMiddleware', () => {
               { type: 'text-delta', textDelta: 'ana' },
               { type: 'text-delta', textDelta: 'lyzing the request\n' },
               { type: 'text-delta', textDelta: '</think>' },
+              { type: 'text-delta', textDelta: 'this is the response' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -497,6 +498,10 @@ describe('extractReasoningMiddleware', () => {
         {
           type: 'reasoning',
           textDelta: 'lyzing the request\n',
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'this is the response',
         },
         {
           experimental_providerMetadata: undefined,
@@ -560,6 +565,10 @@ describe('extractReasoningMiddleware', () => {
         {
           type: 'text-delta',
           textDelta: '</think>',
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'this is the response',
         },
         {
           experimental_providerMetadata: undefined,
