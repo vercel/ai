@@ -183,38 +183,6 @@ describe('toResponseMessages', () => {
     ]);
   });
 
-  it('should include reasoning as an array of parts in the assistant message', () => {
-    const result = toResponseMessages({
-      text: 'Final text',
-      reasoning: [
-        { text: 'Reasoning part one' },
-        { text: 'Reasoning part two' },
-      ],
-      tools: {
-        testTool: {
-          description: 'A test tool',
-          parameters: z.object({}),
-        },
-      },
-      toolCalls: [],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
-    });
-
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        id: 'msg-123',
-        content: [
-          { type: 'reasoning', text: 'Reasoning part one' },
-          { type: 'reasoning', text: 'Reasoning part two' },
-          { type: 'text', text: 'Final text' },
-        ],
-      },
-    ]);
-  });
-
   it('should handle multipart tool results', () => {
     const result = toResponseMessages({
       text: 'multipart tool result',

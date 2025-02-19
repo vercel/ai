@@ -915,11 +915,7 @@ exports[`result.response.messages > should contain reasoning array from model re
   {
     "content": [
       {
-        "text": "I will open ",
-        "type": "reasoning",
-      },
-      {
-        "text": "the conversation with witty banter.",
+        "text": "I will open the conversation with witty banter.",
         "type": "reasoning",
       },
       {

@@ -17,7 +17,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   generateMessageId,
 }: {
   text: string | undefined;
-  reasoning: string | Array<{ text: string }> | undefined;
+  reasoning: string | undefined;
   tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
   toolResults: ToolResultArray<TOOLS>;
@@ -31,12 +31,6 @@ export function toResponseMessages<TOOLS extends ToolSet>({
     content: [
       ...(reasoning !== null && typeof reasoning === 'string'
         ? [{ type: 'reasoning' as const, text: reasoning }]
-        : []),
-      ...(reasoning !== null && Array.isArray(reasoning)
-        ? reasoning.map(part => ({
-            type: 'reasoning' as const,
-            text: part.text,
-          }))
         : []),
       { type: 'text', text },
       ...toolCalls,

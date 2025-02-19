@@ -89,26 +89,6 @@ describe('result.reasoning', () => {
       'I will open the conversation with witty banter.',
     );
   });
-
-  it('should contain reasoning array from model response', async () => {
-    const result = await generateText({
-      model: new MockLanguageModelV1({
-        doGenerate: async () => ({
-          ...dummyResponseValues,
-          text: 'Hello, world!',
-          reasoning: [
-            { type: 'reasoning', text: 'I will open ' },
-            { type: 'reasoning', text: 'the conversation with witty banter.' },
-          ],
-        }),
-      }),
-      prompt: 'prompt',
-    });
-
-    expect(result.reasoning).toStrictEqual(
-      'I will open the conversation with witty banter.',
-    );
-  });
 });
 
 describe('result.sources', () => {
@@ -411,10 +391,7 @@ describe('result.response.messages', () => {
         doGenerate: async () => ({
           ...dummyResponseValues,
           text: 'Hello, world!',
-          reasoning: [
-            { type: 'reasoning', text: 'I will open ' },
-            { type: 'reasoning', text: 'the conversation with witty banter.' },
-          ],
+          reasoning: 'I will open the conversation with witty banter.',
         }),
       }),
       prompt: 'test-input',
