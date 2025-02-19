@@ -505,9 +505,15 @@ importers:
       '@ai-sdk/deepseek':
         specifier: 0.1.10
         version: link:../../packages/deepseek
+      '@ai-sdk/fireworks':
+        specifier: 0.1.10
+        version: link:../../packages/fireworks
       '@ai-sdk/google-vertex':
         specifier: 2.1.15
         version: link:../../packages/google-vertex
+      '@ai-sdk/groq':
+        specifier: 1.1.9
+        version: link:../../packages/groq
       '@ai-sdk/openai':
         specifier: 1.1.12
         version: link:../../packages/openai

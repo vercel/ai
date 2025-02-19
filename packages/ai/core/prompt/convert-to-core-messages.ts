@@ -1,4 +1,9 @@
-import { Message, TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-utils';
+import {
+  Message,
+  ReasoningUIPart,
+  TextUIPart,
+  ToolInvocationUIPart,
+} from '@ai-sdk/ui-utils';
 import { ToolSet } from '../generate-text/tool-set';
 import { CoreMessage, ToolCallPart, ToolResultPart } from '../prompt';
 import { attachmentsToParts } from './attachments-to-parts';
@@ -46,7 +51,9 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
         if (message.parts != null) {
           let currentStep = 0;
           let blockHasToolInvocations = false;
-          let block: Array<TextUIPart | ToolInvocationUIPart> = [];
+          let block: Array<
+            TextUIPart | ToolInvocationUIPart | ReasoningUIPart
+          > = [];
 
           function processBlock() {
             coreMessages.push({
@@ -58,13 +65,22 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                       type: 'text' as const,
                       text: part.text,
                     };
-                  default:
+                  case 'reasoning':
+                    return {
+                      type: 'reasoning' as const,
+                      text: part.reasoning,
+                    };
+                  case 'tool-invocation':
                     return {
                       type: 'tool-call' as const,
                       toolCallId: part.toolInvocation.toolCallId,
                       toolName: part.toolInvocation.toolName,
                       args: part.toolInvocation.args,
                     };
+                  default: {
+                    const _exhaustiveCheck: never = part;
+                    throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
+                  }
                 }
               }),
             });
@@ -73,7 +89,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
             const stepInvocations = block
               .filter(
                 (
-                  part: TextUIPart | ToolInvocationUIPart,
+                  part: TextUIPart | ToolInvocationUIPart | ReasoningUIPart,
                 ): part is ToolInvocationUIPart =>
                   part.type === 'tool-invocation',
               )
@@ -126,7 +142,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
           for (const part of message.parts) {
             switch (part.type) {
               case 'reasoning':
-                // reasoning is not sent back to the LLM
+                block.push(part);
                 break;
               case 'text': {
                 if (blockHasToolInvocations) {

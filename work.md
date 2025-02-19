@@ -10,8 +10,7 @@
   - [x] generateText assistant message reasoning parts
   - [x] fix for empty reasoning at source
   - [ ] streamText assistant message reasoning parts
-  - [ ] reasoning conversion from ui messages (reasoning message roundtrips with UI)
-  - [ ] support in ui parts
+  - [x] ui message to core message conversion
   - [ ] multistep ui with reasoning -- test with deepseek
 - [ ] documentation
   - [ ] anthropic provider page

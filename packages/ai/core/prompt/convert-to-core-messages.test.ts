@@ -207,6 +207,29 @@ describe('convertToCoreMessages', () => {
       ]);
     });
 
+    it('should convert an assistant message with reasoning (parts)', () => {
+      const result = convertToCoreMessages([
+        {
+          role: 'assistant',
+          content: '', // empty content
+          parts: [
+            { type: 'reasoning', reasoning: 'Thinking...' },
+            { type: 'text', text: 'Hello, human!' },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning', text: 'Thinking...' },
+            { type: 'text', text: 'Hello, human!' },
+          ],
+        },
+      ]);
+    });
+
     it('should handle assistant message with tool invocations', () => {
       const result = convertToCoreMessages([
         {
