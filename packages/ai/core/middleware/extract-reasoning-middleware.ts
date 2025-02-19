@@ -24,17 +24,13 @@ export function extractReasoningMiddleware({
   return {
     middlewareVersion: 'v1',
     wrapGenerate: async ({ doGenerate }) => {
-      const { text: textFromDoGenerate, ...rest } = await doGenerate();
+      const { text: rawText, ...rest } = await doGenerate();
 
-      if (textFromDoGenerate == null) {
-        return { text: textFromDoGenerate, ...rest };
+      if (rawText == null) {
+        return { text: rawText, ...rest };
       }
 
-      let text = textFromDoGenerate;
-
-      if (startWithReasoning) {
-        text = openingTag + text;
-      }
+      const text = startWithReasoning ? openingTag + rawText : rawText;
 
       const regexp = new RegExp(`${openingTag}(.*?)${closingTag}`, 'gs');
       const matches = Array.from(text.matchAll(regexp));
@@ -69,8 +65,8 @@ export function extractReasoningMiddleware({
       let isFirstReasoning = true;
       let isFirstText = true;
       let afterSwitch = false;
-      let isReasoning = false;
-      let buffer = startWithReasoning ? openingTag : '';
+      let isReasoning = startWithReasoning;
+      let buffer = '';
 
       return {
         stream: stream.pipeThrough(
