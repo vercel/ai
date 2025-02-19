@@ -298,6 +298,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       }
     }
 
+    // redacted_thinking is currently ignored
     const reasoningText = response.content
       .filter(content => content.type === 'thinking')
       .map(content => content.thinking)

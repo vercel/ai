@@ -142,11 +142,6 @@ The reasoning text.
   text: string;
 
   /**
-Whether the reasoning is redacted.
-   */
-  isRedacted?: boolean;
-
-  /**
 Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
@@ -165,7 +160,6 @@ functionality that can be fully encapsulated in the provider.
 export const reasoningPartSchema: z.ZodType<ReasoningPart> = z.object({
   type: z.literal('reasoning'),
   text: z.string(),
-  isRedacted: z.boolean().optional(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional(),
 });

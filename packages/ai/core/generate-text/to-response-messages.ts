@@ -17,7 +17,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   generateMessageId,
 }: {
   text: string | undefined;
-  reasoning: string | Array<{ text: string; isRedacted?: boolean }> | undefined;
+  reasoning: string | Array<{ text: string }> | undefined;
   tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
   toolResults: ToolResultArray<TOOLS>;
@@ -36,7 +36,6 @@ export function toResponseMessages<TOOLS extends ToolSet>({
         ? reasoning.map(part => ({
             type: 'reasoning' as const,
             text: part.text,
-            isRedacted: part.isRedacted,
           }))
         : []),
       { type: 'text', text },

@@ -12,7 +12,7 @@
   - [ ] streamText assistant message reasoning parts
   - [ ] reasoning conversion from ui messages (reasoning message roundtrips with UI)
   - [ ] support in ui parts
-  - [ ] multistep ui with reasoning
+  - [ ] multistep ui with reasoning -- test with deepseek
 - [ ] documentation
   - [ ] anthropic provider page
   - [ ] prompt page: assistant message reasoning part
@@ -25,11 +25,3 @@
         with reasoning roundtrip
   - [ ] reasoning message roundtrip example
 - [ ] changeset
-
-# Future Work
-
-- reasoning output redacted streaming
-- reasoning output redacted non-streaming
-- protocol extension for redacted reasoning
-
-  Idea: fullReasoning, redacted flag on reasoning parts

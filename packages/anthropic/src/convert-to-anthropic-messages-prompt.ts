@@ -251,7 +251,6 @@ export function convertToAnthropicMessagesPrompt({
               }
 
               case 'reasoning': {
-                // TODO support redacted reasoning
                 anthropicContent.push({
                   type: 'thinking',
                   thinking: part.text,

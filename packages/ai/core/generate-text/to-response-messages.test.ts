@@ -188,7 +188,7 @@ describe('toResponseMessages', () => {
       text: 'Final text',
       reasoning: [
         { text: 'Reasoning part one' },
-        { text: 'Reasoning part two', isRedacted: true },
+        { text: 'Reasoning part two' },
       ],
       tools: {
         testTool: {
@@ -208,7 +208,7 @@ describe('toResponseMessages', () => {
         id: 'msg-123',
         content: [
           { type: 'reasoning', text: 'Reasoning part one' },
-          { type: 'reasoning', text: 'Reasoning part two', isRedacted: true },
+          { type: 'reasoning', text: 'Reasoning part two' },
           { type: 'text', text: 'Final text' },
         ],
       },

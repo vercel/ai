@@ -683,7 +683,7 @@ async function executeTools<TOOLS extends ToolSet>({
 }
 
 function extractReasoningText(
-  reasoning: string | Array<{ text: string; isRedacted?: boolean }> | undefined,
+  reasoning: string | Array<{ text: string }> | undefined,
 ): string | undefined {
   if (reasoning == null) {
     return undefined;
@@ -692,10 +692,8 @@ function extractReasoningText(
   if (typeof reasoning === 'string') {
     return reasoning;
   }
-  return reasoning
-    .filter(part => !part.isRedacted)
-    .map(part => part.text)
-    .join('');
+
+  return reasoning.map(part => part.text).join('');
 }
 
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
