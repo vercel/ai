@@ -48,7 +48,7 @@ const middleware = extractReasoningMiddleware({
       type: 'boolean',
       isOptional: true,
       description:
-        'Prepends the response with the reasoning tag. Primarily used for patching edge cases in reasoning extraction in certain models, see [here](https://sdk.vercel.ai/docs/guides/r1#deepseek-r1-middleware) for more details. Defaults to false',
+        'Starts with reasoning tokens. Set to true when the response always starts with reasoning and the initial tag is omitted. Defaults to false.',
     },
   ]}
 />

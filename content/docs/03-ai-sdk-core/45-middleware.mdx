@@ -70,7 +70,10 @@ const model = wrapLanguageModel({
 
 You can then use that enhanced model in functions like `generateText` and `streamText`.
 
-The `extractReasoningMiddleware` function also includes a `startWithReasoning` option. When set to `true`, the reasoning tag will be prepended to the generated text. This is useful for models that do not include the reasoning tag at the beginning of the response. For more details, see [here](https://sdk.vercel.ai/docs/guides/r1#deepseek-r1-middleware).
+The `extractReasoningMiddleware` function also includes a `startWithReasoning` option.
+When set to `true`, the reasoning tag will be prepended to the generated text.
+This is useful for models that do not include the reasoning tag at the beginning of the response.
+For more details, see the [DeepSeek R1 guide](https://sdk.vercel.ai/docs/guides/r1#deepseek-r1-middleware).
 
 ## Implementing Language Model Middleware
 
