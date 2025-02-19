@@ -8,6 +8,7 @@ import type { LanguageModelV1Middleware } from './language-model-v1-middleware';
  *
  * @param tagName - The name of the XML tag to extract reasoning from.
  * @param separator - The separator to use between reasoning and text sections.
+ * @param startWithReasoning - Whether to start with reasoning tokens.
  */
 export function extractReasoningMiddleware({
   tagName,
