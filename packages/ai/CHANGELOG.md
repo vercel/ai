@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.43
+
+### Patch Changes
+
+- ef2e23b: feat (ai/core): add experimental repairText function to generateObject
+
 ## 4.1.42
 
 ### Patch Changes
