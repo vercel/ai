@@ -1,6 +1,6 @@
 # Tasks
 
-- [ ] implementation
+- [x] implementation
   - [x] reasoning settings & warnings
   - [x] reasoning output streaming
   - [x] reasoning output non-streaming
@@ -10,9 +10,9 @@
   - [x] fix for empty reasoning at source
   - [x] ui message to core message conversion
   - [x] generateText assistant message reasoning parts
-  - [ ] streamText assistant message reasoning parts
+  - [x] streamText assistant message reasoning parts
 - [ ] documentation
-  - [ ] anthropic provider page
+  - [x] anthropic provider page
   - [ ] prompt page: assistant message reasoning part
   - [ ] message reference: assistant message reasoning part
   - [ ] reference pages: assistant message reasoning part

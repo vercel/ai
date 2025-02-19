@@ -79,6 +79,26 @@ const { text } = await generateText({
 
 DeepSeek language models can be used in the `streamText` and `streamUI` functions (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
+### Reasoning
+
+DeepSeek has reasoning support for the `deepseek-reasoner` model:
+
+```ts
+import { deepseek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text, reasoning } = await generateText({
+  model: deepseek('deepseek-reasoner'),
+  prompt: 'How many people will live in the world in 2040?',
+});
+
+console.log(reasoning);
+console.log(text);
+```
+
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
+on how to integrate reasoning into your chatbot.
+
 ### Cache Token Usage
 
 DeepSeek provides context caching on disk technology that can significantly reduce token costs for repeated content. You can access the cache hit/miss metrics through the `providerMetadata` property in the response:

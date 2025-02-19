@@ -95,6 +95,34 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
   instead of streaming it incrementally.
 </Note>
 
+### Reasoning
+
+Anthropic has reasoning support for the `ABC` model.
+
+You can enable it using the `thinking` provider option
+and specifying a thinking budget in tokens.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text, reasoning } = await generateText({
+  model: anthropic('ABC'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 12000 },
+    },
+  },
+});
+
+console.log(reasoning);
+console.log(text);
+```
+
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
+on how to integrate reasoning into your chatbot.
+
 ### Cache Control
 
 <Note>
