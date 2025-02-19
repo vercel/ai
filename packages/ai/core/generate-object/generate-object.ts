@@ -784,12 +784,16 @@ export async function generateObject<SCHEMA, RESULT>({
           (JSONParseError.isInstance(error.cause) ||
             TypeValidationError.isInstance(error.cause))
         ) {
-          object = processResult(
-            await repairText({
-              text: result,
-              error: error.cause,
-            }),
-          );
+          const repairedText = await repairText({
+            text: result,
+            error: error.cause,
+          });
+
+          if (repairedText === null) {
+            throw error;
+          }
+
+          object = processResult(repairedText);
         } else {
           throw error;
         }
