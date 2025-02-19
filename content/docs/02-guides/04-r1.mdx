@@ -99,10 +99,14 @@ const { reasoning, text } = await generateText({
 });
 ```
 
-<Note>
-  The AI SDK provides a [middleware](/docs/ai-sdk-core/middleware)
-  (`extractReasoningMiddleware`) that can be used to extract the reasoning
-  tokens from the model's output.
+<Note id="deepseek-r1-middleware">
+The AI SDK provides a [middleware](/docs/ai-sdk-core/middleware)
+(`extractReasoningMiddleware`) that can be used to extract the reasoning
+tokens from the model's output.
+
+When using DeepSeek-R1 series models, we recommend using the `startWithReasoning`
+option in the `extractReasoningMiddleware` function, as they tend to bypass thinking patterns.
+
 </Note>
 
 ### Model Provider Comparison
