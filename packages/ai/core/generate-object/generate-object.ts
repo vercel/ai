@@ -737,45 +737,60 @@ export async function generateObject<SCHEMA, RESULT>({
         }
       }
 
-      let parseResult = safeParseJSON({ text: result });
+      function processResult(result: string): RESULT {
+        const parseResult = safeParseJSON({ text: result });
 
-      // attempt to repair the result:
-      if (!parseResult.success && repairText != null) {
-        parseResult = safeParseJSON({
-          text: await repairText({
+        if (!parseResult.success) {
+          throw new NoObjectGeneratedError({
+            message: 'No object generated: could not parse the response.',
+            cause: parseResult.error,
             text: result,
-            error: parseResult.error,
-          }),
-        });
+            response,
+            usage: calculateLanguageModelUsage(usage),
+          });
+        }
+
+        const validationResult = outputStrategy.validateFinalResult(
+          parseResult.value,
+          {
+            text: result,
+            response,
+            usage: calculateLanguageModelUsage(usage),
+          },
+        );
+
+        if (!validationResult.success) {
+          throw new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+            cause: validationResult.error,
+            text: result,
+            response,
+            usage: calculateLanguageModelUsage(usage),
+          });
+        }
+
+        return validationResult.value;
       }
 
-      if (!parseResult.success) {
-        throw new NoObjectGeneratedError({
-          message: 'No object generated: could not parse the response.',
-          cause: parseResult.error,
-          text: result,
-          response,
-          usage: calculateLanguageModelUsage(usage),
-        });
-      }
-
-      const validationResult = outputStrategy.validateFinalResult(
-        parseResult.value,
-        {
-          text: result,
-          response,
-          usage: calculateLanguageModelUsage(usage),
-        },
-      );
-
-      if (!validationResult.success) {
-        throw new NoObjectGeneratedError({
-          message: 'No object generated: response did not match schema.',
-          cause: validationResult.error,
-          text: result,
-          response,
-          usage: calculateLanguageModelUsage(usage),
-        });
+      let object: RESULT;
+      try {
+        object = processResult(result);
+      } catch (error) {
+        if (
+          repairText != null &&
+          NoObjectGeneratedError.isInstance(error) &&
+          (JSONParseError.isInstance(error.cause) ||
+            TypeValidationError.isInstance(error.cause))
+        ) {
+          object = processResult(
+            await repairText({
+              text: result,
+              error: error.cause,
+            }),
+          );
+        } else {
+          throw error;
+        }
       }
 
       // Add response information to the span:
@@ -785,7 +800,7 @@ export async function generateObject<SCHEMA, RESULT>({
           attributes: {
             'ai.response.finishReason': finishReason,
             'ai.response.object': {
-              output: () => JSON.stringify(validationResult.value),
+              output: () => JSON.stringify(object),
             },
 
             'ai.usage.promptTokens': usage.promptTokens,
@@ -795,7 +810,7 @@ export async function generateObject<SCHEMA, RESULT>({
       );
 
       return new DefaultGenerateObjectResult({
-        object: validationResult.value,
+        object,
         finishReason,
         usage: calculateLanguageModelUsage(usage),
         warnings,

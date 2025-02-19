@@ -6,7 +6,7 @@ import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } 
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
-import { JSONParseError } from '@ai-sdk/provider';
+import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -654,6 +654,33 @@ describe('output = "object"', () => {
           expect(error).toBeInstanceOf(JSONParseError);
           expect(text).toStrictEqual('{ "content": "provider metadata test" ');
           return text + '}';
+        },
+      });
+
+      expect(result.object).toStrictEqual({
+        content: 'provider metadata test',
+      });
+    });
+
+    it('should be able to repair an invalid JSON response', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({}) => {
+            return {
+              ...dummyResponseValues,
+              text: `{ "content-a": "provider metadata test" }`,
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        experimental_repairText: async ({ text, error }) => {
+          expect(error).toBeInstanceOf(TypeValidationError);
+          expect(text).toStrictEqual(
+            '{ "content-a": "provider metadata test" }',
+          );
+          return `{ "content": "provider metadata test" }`;
         },
       });
 
