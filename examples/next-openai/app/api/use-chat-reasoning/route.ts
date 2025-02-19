@@ -1,5 +1,4 @@
 import { fireworks } from '@ai-sdk/fireworks';
-import { groq } from '@ai-sdk/groq';
 import { extractReasoningMiddleware, streamText, wrapLanguageModel } from 'ai';
 
 // Allow streaming responses up to 30 seconds
