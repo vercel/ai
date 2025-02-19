@@ -1,4 +1,8 @@
-import { JSONParseError, JSONValue } from '@ai-sdk/provider';
+import {
+  JSONParseError,
+  JSONValue,
+  TypeValidationError,
+} from '@ai-sdk/provider';
 import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
 import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
@@ -33,6 +37,15 @@ import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
+
+/**
+A function that attempts to repair the raw output of the mode
+to enable JSON parsing.
+     */
+export type RepairTextFunction = (options: {
+  text: string;
+  error: JSONParseError | TypeValidationError;
+}) => Promise<string>;
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -87,12 +100,10 @@ Default and recommended: 'auto' (best mode for the model).
       mode?: 'auto' | 'json' | 'tool';
 
       /**
-Utility function that can be used to repair a response that could not be parsed into a valid JSON.
-       */
-      repairResponse?: (args: {
-        brokenJson: string;
-        error: JSONParseError;
-      }) => string;
+A function that attempts to repair the raw output of the mode
+to enable JSON parsing.
+     */
+      experimental_repairText?: RepairTextFunction;
 
       /**
 Optional telemetry configuration (experimental).
@@ -174,12 +185,10 @@ Default and recommended: 'auto' (best mode for the model).
       mode?: 'auto' | 'json' | 'tool';
 
       /**
-Utility function that can be used to repair a response that could not be parsed into a valid JSON.
-       */
-      repairResponse?: (args: {
-        brokenJson: string;
-        error: JSONParseError;
-      }) => string;
+A function that attempts to repair the raw output of the mode
+to enable JSON parsing.
+     */
+      experimental_repairText?: RepairTextFunction;
 
       /**
 Optional telemetry configuration (experimental).
@@ -246,12 +255,10 @@ Default and recommended: 'auto' (best mode for the model).
       mode?: 'auto' | 'json' | 'tool';
 
       /**
-Utility function that can be used to repair a response that could not be parsed into a valid JSON.
-       */
-      repairResponse?: (args: {
-        brokenJson: string;
-        error: JSONParseError;
-      }) => string;
+A function that attempts to repair the raw output of the mode
+to enable JSON parsing.
+     */
+      experimental_repairText?: RepairTextFunction;
 
       /**
 Optional telemetry configuration (experimental).
@@ -303,12 +310,10 @@ The mode to use for object generation. Must be "json" for no-schema output.
       mode?: 'json';
 
       /**
-Utility function that can be used to repair a response that could not be parsed into a valid JSON.
-       */
-      repairResponse?: (args: {
-        brokenJson: string;
-        error: JSONParseError;
-      }) => string;
+A function that attempts to repair the raw output of the mode
+to enable JSON parsing.
+     */
+      experimental_repairText?: RepairTextFunction;
 
       /**
 Optional telemetry configuration (experimental).
@@ -343,7 +348,6 @@ export async function generateObject<SCHEMA, RESULT>({
   schemaName,
   schemaDescription,
   mode,
-  repairResponse,
   output = 'object',
   system,
   prompt,
@@ -351,6 +355,7 @@ export async function generateObject<SCHEMA, RESULT>({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  experimental_repairText: repairText,
   experimental_telemetry: telemetry,
   experimental_providerMetadata,
   providerOptions = experimental_providerMetadata,
@@ -378,10 +383,7 @@ export async function generateObject<SCHEMA, RESULT>({
     schemaName?: string;
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
-    repairResponse?: (args: {
-      brokenJson: string;
-      error: JSONParseError;
-    }) => string;
+    experimental_repairText?: RepairTextFunction;
     experimental_telemetry?: TelemetrySettings;
     experimental_providerMetadata?: ProviderMetadata;
     providerOptions?: ProviderOptions;
@@ -735,17 +737,17 @@ export async function generateObject<SCHEMA, RESULT>({
         }
       }
 
-      const tmpParseResult = safeParseJSON({ text: result });
+      let parseResult = safeParseJSON({ text: result });
 
-      const parseResult =
-        tmpParseResult.success || !repairResponse
-          ? tmpParseResult
-          : safeParseJSON({
-              text: repairResponse({
-                brokenJson: result,
-                error: tmpParseResult.error as JSONParseError,
-              }),
-            });
+      // attempt to repair the result:
+      if (!parseResult.success && repairText != null) {
+        parseResult = safeParseJSON({
+          text: await repairText({
+            text: result,
+            error: parseResult.error,
+          }),
+        });
+      }
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({

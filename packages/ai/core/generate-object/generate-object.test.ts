@@ -636,7 +636,7 @@ describe('output = "object"', () => {
     });
   });
 
-  describe('options.repairOutput', () => {
+  describe('options.repairText', () => {
     it('should be able to repair a malformed JSON response', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV1({
@@ -650,9 +650,10 @@ describe('output = "object"', () => {
         schema: z.object({ content: z.string() }),
         mode: 'json',
         prompt: 'prompt',
-        repairResponse: ({ brokenJson, error }) => {
+        experimental_repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(JSONParseError);
-          return brokenJson + '}';
+          expect(text).toStrictEqual('{ "content": "provider metadata test" ');
+          return text + '}';
         },
       });
 
@@ -859,7 +860,7 @@ describe('output = "object"', () => {
           schema: z.object({ content: z.string() }),
           mode: 'json',
           prompt: 'prompt',
-          repairResponse: ({ brokenJson }) => brokenJson + '{',
+          experimental_repairText: async ({ text }) => text + '{',
         });
 
         fail('must throw error');
