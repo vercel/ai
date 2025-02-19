@@ -403,7 +403,7 @@ describe('streamObject', () => {
         );
       });
 
-      it('should handle error in doStream', async () => {
+      it('should suppress error in partialObjectStream', async () => {
         const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async () => {
@@ -415,9 +415,32 @@ describe('streamObject', () => {
           prompt: 'prompt',
         });
 
-        await expect(async () => {
-          await convertAsyncIterableToArray(result.partialObjectStream);
-        }).rejects.toThrow('test error');
+        expect(
+          await convertAsyncIterableToArray(result.partialObjectStream),
+        ).toStrictEqual([]);
+      });
+
+      it('should invoke onError callback with Error', async () => {
+        const result: Array<{ error: unknown }> = [];
+
+        const resultObject = streamObject({
+          model: new MockLanguageModelV1({
+            doStream: async () => {
+              throw new Error('test error');
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+          onError(event) {
+            result.push(event);
+          },
+        });
+
+        // consume stream
+        await convertAsyncIterableToArray(resultObject.partialObjectStream);
+
+        expect(result).toStrictEqual([{ error: new Error('test error') }]);
       });
     });
 
@@ -647,7 +670,7 @@ describe('streamObject', () => {
         // consume stream (runs in parallel)
         convertAsyncIterableToArray(result.partialObjectStream);
 
-        assert.deepStrictEqual(await result.experimental_providerMetadata, {
+        expect(await result.providerMetadata).toStrictEqual({
           testProvider: { testKey: 'testValue' },
         });
       });
@@ -1091,8 +1114,8 @@ describe('streamObject', () => {
       });
     });
 
-    describe('options.providerMetadata', () => {
-      it('should pass provider metadata to model in json mode', async () => {
+    describe('options.providerOptions', () => {
+      it('should pass provider options to model in json mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ providerMetadata }) => {
@@ -1119,7 +1142,7 @@ describe('streamObject', () => {
           schema: z.object({ content: z.string() }),
           mode: 'json',
           prompt: 'prompt',
-          experimental_providerMetadata: {
+          providerOptions: {
             aProvider: { someKey: 'someValue' },
           },
         });
@@ -1129,7 +1152,7 @@ describe('streamObject', () => {
         ).toStrictEqual([{ content: 'provider metadata test' }]);
       });
 
-      it('should pass provider metadata to model in tool mode', async () => {
+      it('should pass provider options to model in tool mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV1({
             doStream: async ({ providerMetadata }) => {
@@ -1159,7 +1182,7 @@ describe('streamObject', () => {
           schema: z.object({ content: z.string() }),
           mode: 'tool',
           prompt: 'prompt',
-          experimental_providerMetadata: {
+          providerOptions: {
             aProvider: { someKey: 'someValue' },
           },
         });
@@ -2275,6 +2298,55 @@ describe('streamObject', () => {
         { content: 'Hello, world' },
         { content: 'Hello, world!' },
       ]);
+    });
+
+    it('should support models that use "this" context in supportsUrl', async () => {
+      let supportsUrlCalled = false;
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV1 {
+        readonly supportsImageUrls = false;
+
+        constructor() {
+          super({
+            supportsUrl(url: URL) {
+              supportsUrlCalled = true;
+              // Reference 'this' to verify context
+              return this.modelId === 'mock-model-id';
+            },
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'text-delta',
+                  textDelta: '{ "content": "Hello, world!" }',
+                },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            }),
+          });
+        }
+      }
+
+      const model = new MockLanguageModelWithImageSupport();
+
+      const result = streamObject({
+        model,
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'image', image: 'https://example.com/test.jpg' }],
+          },
+        ],
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.textStream);
+      expect(chunks.join('')).toBe('{ "content": "Hello, world!" }');
+      expect(supportsUrlCalled).toBe(true);
     });
   });
 });

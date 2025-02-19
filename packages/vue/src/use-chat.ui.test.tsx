@@ -24,6 +24,65 @@ import TestChatToolInvocationsComponent from './TestChatToolInvocationsComponent
 import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
 import TestChatUrlAttachmentsComponent from './TestChatUrlAttachmentsComponent.vue';
 import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsComponent.vue';
+import TestChatPrepareRequestBodyComponent from './TestChatPrepareRequestBodyComponent.vue';
+
+describe('prepareRequestBody', () => {
+  beforeEach(() => {
+    render(TestChatPrepareRequestBodyComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'should show streamed response',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      },
+      async ({ call }) => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await waitFor(() => {
+          const element = screen.getByTestId('on-body-options');
+          expect(element.textContent?.trim() ?? '').not.toBe('');
+        });
+
+        const value = JSON.parse(
+          screen.getByTestId('on-body-options').textContent ?? '',
+        );
+
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+        expect(value).toStrictEqual({
+          id: expect.any(String),
+          messages: [
+            {
+              role: 'user',
+              content: 'hi',
+              id: expect.any(String),
+              createdAt: expect.any(String),
+              parts: [{ type: 'text', text: 'hi' }],
+            },
+          ],
+          requestData: { 'test-data-key': 'test-data-value' },
+          requestBody: { 'request-body-key': 'request-body-value' },
+        });
+
+        expect(await call(0).getRequestBodyJson()).toBe('test-request-body');
+
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: Hello, world.',
+        );
+      },
+    ),
+  );
+});
 
 describe('data protocol stream', () => {
   beforeEach(() => {
@@ -111,8 +170,13 @@ describe('data protocol stream', () => {
     expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
   });
 
-  describe('loading state', () => {
-    it('should show loading state', async () => {
+  describe('status', () => {
+    it('should show status', async () => {
+      let startGeneration: ((value?: unknown) => void) | undefined;
+      const startGenerationPromise = new Promise(resolve => {
+        startGeneration = resolve;
+      });
+
       let finishGeneration: ((value?: unknown) => void) | undefined;
       const finishGenerationPromise = new Promise(resolve => {
         finishGeneration = resolve;
@@ -121,6 +185,7 @@ describe('data protocol stream', () => {
       mockFetchDataStreamWithGenerator({
         url: 'https://example.com/api/chat',
         chunkGenerator: (async function* generate() {
+          await startGenerationPromise;
           const encoder = new TextEncoder();
           yield encoder.encode('0:"Hello"\n');
           await finishGenerationPromise;
@@ -129,23 +194,31 @@ describe('data protocol stream', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      await screen.findByTestId('loading');
-      expect(screen.getByTestId('loading')).toHaveTextContent('true');
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+      });
+
+      startGeneration?.();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+      });
 
       finishGeneration?.();
 
-      await findByText(await screen.findByTestId('loading'), 'false');
-
-      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('ready');
+      });
     });
 
-    it('should reset loading state on error', async () => {
+    it('should set status to error when there is a server error', async () => {
       mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      await screen.findByTestId('loading');
-      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('error');
+      });
     });
   });
 
@@ -185,6 +258,7 @@ describe('data protocol stream', () => {
               createdAt: expect.any(String),
               role: 'assistant',
               content: 'Hello, world.',
+              parts: [{ text: 'Hello, world.', type: 'text' }],
             },
             options: {
               finishReason: 'stop',
@@ -255,6 +329,7 @@ describe('text stream', () => {
               createdAt: expect.any(String),
               role: 'assistant',
               content: 'Hello, world.',
+              parts: [{ text: 'Hello, world.', type: 'text' }],
             },
             options: {
               finishReason: 'unknown',
@@ -319,7 +394,13 @@ describe('custom metadata', () => {
 
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
           id: expect.any(String),
-          messages: [{ content: 'custom metadata component', role: 'user' }],
+          messages: [
+            {
+              content: 'custom metadata component',
+              role: 'user',
+              parts: [{ text: 'custom metadata component', type: 'text' }],
+            },
+          ],
           body1: 'value1',
           body2: 'value2',
         });
@@ -413,7 +494,10 @@ describe('form actions (with options)', () => {
     await userEvent.type(secondInput, '{Enter}');
 
     await screen.findByTestId('message-2');
-    expect(screen.getByTestId('message-2')).toHaveTextContent(
+    expect(screen.getByTestId('message-2')).toHaveTextContent('User:');
+
+    await screen.findByTestId('message-3');
+    expect(screen.getByTestId('message-3')).toHaveTextContent(
       'AI: How can I help you?',
     );
 
@@ -428,13 +512,13 @@ describe('form actions (with options)', () => {
     await userEvent.type(thirdInput, 'what color is the sky?');
     await userEvent.keyboard('{Enter}');
 
-    await screen.findByTestId('message-3');
-    expect(screen.getByTestId('message-3')).toHaveTextContent(
+    await screen.findByTestId('message-4');
+    expect(screen.getByTestId('message-4')).toHaveTextContent(
       'User: what color is the sky?',
     );
 
-    await screen.findByTestId('message-4');
-    expect(screen.getByTestId('message-4')).toHaveTextContent(
+    await screen.findByTestId('message-5');
+    expect(screen.getByTestId('message-5')).toHaveTextContent(
       'AI: The sky is blue.',
     );
   });
@@ -478,7 +562,13 @@ describe('reload', () => {
 
         expect(await call(1).getRequestBodyJson()).toStrictEqual({
           id: expect.any(String),
-          messages: [{ content: 'hi', role: 'user' }],
+          messages: [
+            {
+              content: 'hi',
+              role: 'user',
+              parts: [{ text: 'hi', type: 'text' }],
+            },
+          ],
           data: { 'test-data-key': 'test-data-value' },
           'request-body-key': 'request-body-value',
         });
@@ -555,7 +645,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool"}',
+            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool"}',
           );
         });
 
@@ -568,7 +658,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
+            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
           );
         });
 
@@ -581,7 +671,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -595,7 +685,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -633,7 +723,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -675,7 +765,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
         });
 
@@ -683,7 +773,7 @@ describe('tool invocations', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+            '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
           );
         });
       },

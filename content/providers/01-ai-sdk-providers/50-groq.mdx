@@ -82,10 +82,7 @@ You can use the `extractReasoningMiddleware` to extract this reasoning and expos
 
 ```ts
 import { groq } from '@ai-sdk/groq';
-import {
-  experimental_wrapLanguageModel as wrapLanguageModel,
-  extractReasoningMiddleware,
-} from 'ai';
+import { wrapLanguageModel, extractReasoningMiddleware } from 'ai';
 
 const enhancedModel = wrapLanguageModel({
   model: groq('deepseek-r1-distill-llama-70b'),
@@ -120,7 +117,7 @@ const { text } = await generateText({
 | `mixtral-8x7b-32768`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
-  The table above lists popular models. Please see the [Grop
+  The table above lists popular models. Please see the [Groq
   docs](https://console.groq.com/docs/models) for a full list of available
   models. The table above lists popular models. You can also pass any available
   provider model ID as a string if needed.

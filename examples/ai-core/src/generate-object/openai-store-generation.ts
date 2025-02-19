@@ -19,7 +19,7 @@ async function main() {
       }),
     }),
     prompt: 'Generate a lasagna recipe.',
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: {
         store: true,
         metadata: {

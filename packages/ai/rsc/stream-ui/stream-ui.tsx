@@ -11,10 +11,11 @@ import { Prompt } from '../../core/prompt/prompt';
 import { standardizePrompt } from '../../core/prompt/standardize-prompt';
 import {
   CallWarning,
-  ToolChoice,
   FinishReason,
   ProviderMetadata,
+  ToolChoice,
 } from '../../core/types';
+import { ProviderOptions } from '../../core/types/provider-metadata';
 import {
   LanguageModelUsage,
   calculateLanguageModelUsage,
@@ -95,7 +96,8 @@ export async function streamUI<
   headers,
   initial,
   text,
-  experimental_providerMetadata: providerMetadata,
+  experimental_providerMetadata,
+  providerOptions = experimental_providerMetadata,
   onFinish,
   ...settings
 }: CallSettings &
@@ -121,10 +123,15 @@ export async function streamUI<
     initial?: ReactNode;
 
     /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+    providerOptions?: ProviderOptions;
+
+    /**
+@deprecated Use `providerOptions` instead.
+*/
     experimental_providerMetadata?: ProviderMetadata;
 
     /**
@@ -272,9 +279,9 @@ functionality that can be fully encapsulated in the provider.
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         modelSupportsImageUrls: model.supportsImageUrls,
-        modelSupportsUrl: model.supportsUrl,
+        modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
       }),
-      providerMetadata,
+      providerMetadata: providerOptions,
       abortSignal,
       headers,
     }),

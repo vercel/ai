@@ -162,7 +162,7 @@ The following optional settings are available for OpenAI chat models:
 
   As an example, you can pass `{"50256": -100}` to prevent the token from being generated.
 
-- **logProbs** _boolean | number_
+- **logprobs** _boolean | number_
 
   Return the log probabilities of the tokens. Including logprobs will increase
   the response size and can slow down response times. However, it can
@@ -216,7 +216,7 @@ The following optional settings are available for OpenAI chat models:
 - **reasoningEffort** _'low' | 'medium' | 'high'_
 
   Reasoning effort for reasoning models. Defaults to `medium`. If you use
-  `experimental_providerMetadata` to set the `reasoningEffort` option, this
+  `providerOptions` to set the `reasoningEffort` option, this
   model setting will be ignored.
 
 #### Structured Outputs
@@ -267,7 +267,7 @@ You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 OpenAI supports [predicted outputs](https://platform.openai.com/docs/guides/latency-optimization#use-predicted-outputs) for `gpt-4o` and `gpt-4o-mini`.
 Predicted outputs help you reduce latency by allowing you to specify a base text that the model should modify.
-You can enable predicted outputs by adding the `prediction` option to the `experimental_providerMetadata.openai` object:
+You can enable predicted outputs by adding the `prediction` option to the `providerOptions.openai` object:
 
 ```ts highlight="15-18"
 const result = streamText({
@@ -282,7 +282,7 @@ const result = streamText({
       content: existingCode,
     },
   ],
-  experimental_providerMetadata: {
+  providerOptions: {
     openai: {
       prediction: {
         type: 'content',
@@ -294,10 +294,10 @@ const result = streamText({
 ```
 
 OpenAI provides usage information for predicted outputs (`acceptedPredictionTokens` and `rejectedPredictionTokens`).
-You can access it in the `experimental_providerMetadata` object.
+You can access it in the `providerMetadata` object.
 
 ```ts highlight="11"
-const openaiMetadata = (await result.experimental_providerMetadata)?.openai;
+const openaiMetadata = (await result.providerMetadata)?.openai;
 
 const acceptedPredictionTokens = openaiMetadata?.acceptedPredictionTokens;
 const rejectedPredictionTokens = openaiMetadata?.rejectedPredictionTokens;
@@ -311,7 +311,7 @@ const rejectedPredictionTokens = openaiMetadata?.rejectedPredictionTokens;
 
 #### Image Detail
 
-You can use the `openai` provider metadata to set the [image generation detail](https://platform.openai.com/docs/guides/vision/low-or-high-fidelity-image-understanding) to `high`, `low`, or `auto`:
+You can use the `openai` provider option to set the [image generation detail](https://platform.openai.com/docs/guides/vision/low-or-high-fidelity-image-understanding) to `high`, `low`, or `auto`:
 
 ```ts highlight="13-16"
 const result = await generateText({
@@ -326,8 +326,8 @@ const result = await generateText({
           image:
             'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
 
-          // OpenAI specific extension - image detail:
-          experimental_providerMetadata: {
+          // OpenAI specific options - image detail:
+          providerOptions: {
             openai: { imageDetail: 'low' },
           },
         },
@@ -339,7 +339,9 @@ const result = await generateText({
 
 #### Distillation
 
-OpenAI supports model distillation for some models. If you want to store a generation for use in the distillation process, you can add the `store` option to the `experimental_providerMetadata.openai` object. This will save the generation to the OpenAI platform for later use in distillation.
+OpenAI supports model distillation for some models.
+If you want to store a generation for use in the distillation process, you can add the `store` option to the `providerOptions.openai` object.
+This will save the generation to the OpenAI platform for later use in distillation.
 
 ```typescript highlight="9-16"
 import { openai } from '@ai-sdk/openai';
@@ -350,7 +352,7 @@ async function main() {
   const { text, usage } = await generateText({
     model: openai('gpt-4o-mini'),
     prompt: 'Who worked on the original macintosh?',
-    experimental_providerMetadata: {
+    providerOptions: {
       openai: {
         store: true,
         metadata: {
@@ -370,27 +372,27 @@ main().catch(console.error);
 
 #### Reasoning Models
 
-OpenAI has introduced the `o1` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
-Currently, `o1`, `o1-mini`, and `o1-preview` are available.
+OpenAI has introduced the `o1` and `o3` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
+Currently, `o3-mini`, `o1`, `o1-mini`, and `o1-preview` are available.
 
 Reasoning models currently only generate text, have several limitations, and are only supported using `generateText` and `streamText`.
 
 Reasoning models support additional settings and response metadata:
 
-- You can use `experimental_providerMetadata` to set
+- You can use `providerOptions` to set
 
   - the `reasoningEffort` option (or alternatively the `reasoningEffort` model setting), which determines the amount of reasoning the model performs.
 
-- You can use response `experimental_providerMetadata` to access the number of reasoning tokens that the model generated.
+- You can use response `providerMetadata` to access the number of reasoning tokens that the model generated.
 
-```ts highlight="4,7-12,18"
+```ts highlight="4,7-11,17"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const { text, usage, experimental_providerMetadata } = await generateText({
-  model: openai('o1-mini'),
+const { text, usage, providerMetadata } = await generateText({
+  model: openai('o3-mini'),
   prompt: 'Invent a new holiday and describe its traditions.',
-  experimental_providerMetadata: {
+  providerOptions: {
     openai: {
       reasoningEffort: 'low',
     },
@@ -400,9 +402,16 @@ const { text, usage, experimental_providerMetadata } = await generateText({
 console.log(text);
 console.log('Usage:', {
   ...usage,
-  reasoningTokens: experimental_providerMetadata?.openai?.reasoningTokens,
+  reasoningTokens: providerMetadata?.openai?.reasoningTokens,
 });
 ```
+
+<Note>
+  System messages are automatically converted to OpenAI developer messages for
+  reasoning models when supported. For models that do not support developer
+  messages, such as `o1-preview`, system messages are removed and a warning is
+  added.
+</Note>
 
 <Note>
   Reasoning models like `o1-mini` and `o1-preview` require additional runtime
@@ -412,19 +421,8 @@ console.log('Usage:', {
 </Note>
 
 <Note>
-  For some models such as `o1-preview`, system messages are removed and a
-  warning is added. For other reasoning models, system messages are converted to
-  `developer` messages.
-</Note>
-
-<Note>
   `maxTokens` is automatically mapped to `max_completion_tokens` for reasoning
   models.
-</Note>
-
-<Note>
-  Streaming for the `o1` reasoning model is simulated by default. You can use
-  the `simulateStreaming` option to disable this.
 </Note>
 
 #### Prompt Caching
@@ -434,7 +432,7 @@ including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
 
 - Prompt caching is automatically enabled for these models, when the prompt is 1024 tokens or longer. It does
   not need to be explicitly enabled.
-- You can use response `experimental_providerMetadata` to access the number of prompt tokens that were a cache hit.
+- You can use response `providerMetadata` to access the number of prompt tokens that were a cache hit.
 - Note that caching behavior is dependent on load on OpenAI's infrastructure. Prompt prefixes generally remain in the
   cache following 5-10 minutes of inactivity before they are evicted, but during off-peak periods they may persist for up
   to an hour.
@@ -443,14 +441,14 @@ including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const { text, usage, experimental_providerMetadata } = await generateText({
+const { text, usage, providerMetadata } = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: `A 1024-token or longer prompt...`,
 });
 
 console.log(`usage:`, {
   ...usage,
-  cachedPromptTokens: experimental_providerMetadata?.openai?.cachedPromptTokens,
+  cachedPromptTokens: providerMetadata?.openai?.cachedPromptTokens,
 });
 ```
 
@@ -531,7 +529,7 @@ The following optional settings are available for OpenAI completion models:
   As an example, you can pass `{"50256": -100}` to prevent the &lt;|endoftext|&gt;
   token from being generated.
 
-- **logProbs** _boolean | number_
+- **logprobs** _boolean | number_
 
   Return the log probabilities of the tokens. Including logprobs will increase
   the response size and can slow down response times. However, it can
@@ -563,8 +561,9 @@ The following optional settings are available for OpenAI completion models:
 | `gpt-4`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-3.5-turbo`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `o1`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o1-mini`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `o1-mini`              | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `o1-preview`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `o3-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [OpenAI

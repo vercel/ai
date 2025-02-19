@@ -12,6 +12,7 @@ Below we focus on the general setup and provider instance creation. You can also
 We provide detailed documentation for the following OpenAI compatible providers:
 
 - [LM Studio](/providers/openai-compatible-providers/lmstudio)
+- [NIM](/providers/openai-compatible-providers/nim)
 - [Baseten](/providers/openai-compatible-providers/baseten)
 
 The general setup and provider instance creation is the same for all of these providers.
@@ -88,19 +89,19 @@ const model = provider('model-id');
 You can use provider language models to generate text with the `generateText` function:
 
 ```ts
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
-import { generateText } from 'ai'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
 
 const provider = createOpenAICompatible({
   name: 'provider-name',
   apiKey: process.env.PROVIDER_API_KEY,
-  baseURL: 'https://api.provider.com/v1'
-})
+  baseURL: 'https://api.provider.com/v1',
+});
 
 const { text } = await generateText({
-  model: provider('model-id')
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
-})
+  model: provider('model-id'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 ```
 
 ### Including model ids for auto-completion
@@ -169,6 +170,30 @@ const provider = createOpenAICompatible({
 
 For example, with the above configuration, API requests would include the query parameter in the URL like:
 `https://api.provider.com/v1/chat/completions?api-version=1.0.0`.
+
+## Provider-specific options
+
+The OpenAI Compatible provider supports adding provider-specific options to the request body. These are specified with the `providerOptions` field in the request body.
+
+For example, if you create a provider instance with the name `provider-name`, you can add a `custom-option` field to the request body like this:
+
+```ts
+const provider = createOpenAICompatible({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+});
+
+const { text } = await generateText({
+  model: provider('model-id'),
+  prompt: 'Hello',
+  providerOptions: {
+    'provider-name': { customOption: 'magic-value' },
+  },
+});
+```
+
+The request body sent to the provider will include the `customOption` field with the value `magic-value`. This gives you an easy way to add provider-specific options to requests without having to modify the provider or AI SDK code.
 
 ## Custom Metadata Extraction
 

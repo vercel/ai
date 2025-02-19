@@ -1,12 +1,13 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { DeepInfraImageModel } from './deepinfra-image-model';
 import { createDeepInfra } from './deepinfra-provider';
-import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
-import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
+import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
+import { loadApiKey } from '@ai-sdk/provider-utils';
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 
 // Add type assertion for the mocked class
 const OpenAICompatibleChatLanguageModelMock =
@@ -21,6 +22,10 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
 vi.mock('@ai-sdk/provider-utils', () => ({
   loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
   withoutTrailingSlash: vi.fn(url => url),
+}));
+
+vi.mock('./deepinfra-image-model', () => ({
+  DeepInfraImageModel: vi.fn(),
 }));
 
 describe('DeepInfraProvider', () => {
@@ -130,6 +135,56 @@ describe('DeepInfraProvider', () => {
       const model = provider.textEmbeddingModel(modelId, settings);
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
+    });
+  });
+
+  describe('image', () => {
+    it('should construct an image model with correct configuration', () => {
+      const provider = createDeepInfra();
+      const modelId = 'deepinfra-image-model';
+      const settings = { maxImagesPerCall: 2 };
+
+      const model = provider.image(modelId, settings);
+
+      expect(model).toBeInstanceOf(DeepInfraImageModel);
+      expect(DeepInfraImageModel).toHaveBeenCalledWith(
+        modelId,
+        settings,
+        expect.objectContaining({
+          provider: 'deepinfra.image',
+          baseURL: 'https://api.deepinfra.com/v1/inference',
+        }),
+      );
+    });
+
+    it('should use default settings when none provided', () => {
+      const provider = createDeepInfra();
+      const modelId = 'deepinfra-image-model';
+
+      const model = provider.image(modelId);
+
+      expect(model).toBeInstanceOf(DeepInfraImageModel);
+      expect(DeepInfraImageModel).toHaveBeenCalledWith(
+        modelId,
+        {},
+        expect.any(Object),
+      );
+    });
+
+    it('should respect custom baseURL', () => {
+      const customBaseURL = 'https://custom.api.deepinfra.com';
+      const provider = createDeepInfra({ baseURL: customBaseURL });
+      const modelId = 'deepinfra-image-model';
+
+      const model = provider.image(modelId);
+
+      expect(DeepInfraImageModel).toHaveBeenCalledWith(
+        modelId,
+        expect.any(Object),
+        expect.objectContaining({
+          baseURL: `${customBaseURL}/inference`,
+        }),
+      );
     });
   });
 });

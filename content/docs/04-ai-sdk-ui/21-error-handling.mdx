@@ -19,7 +19,7 @@ You can use the error object to show an error message, disable the submit button
 ```tsx file="app/page.tsx" highlight="7,17-24,30"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, error, reload } =
@@ -61,7 +61,7 @@ Alternatively you can write a custom submit handler that replaces the last messa
 ```tsx file="app/page.tsx" highlight="15-21,33"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const {
@@ -70,7 +70,7 @@ export default function Chat() {
     error,
     input,
     messages,
-    setMesages,
+    setMessages,
   } = useChat({});
 
   function customSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -105,7 +105,7 @@ Errors can be processed by passing an [`onError`](/docs/reference/ai-sdk-ui/use-
 The callback function receives an error object as an argument.
 
 ```tsx file="app/page.tsx" highlight="8-11"
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const {

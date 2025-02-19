@@ -1,5 +1,5 @@
+import { Message } from '@ai-sdk/ui-utils';
 import { detectPromptType } from './detect-prompt-type';
-import type { UIMessage } from './ui-message';
 import type { CoreMessage } from './message';
 
 it('should return "other" for invalid inputs', () => {
@@ -13,7 +13,7 @@ it('should return "messages" for empty arrays', () => {
 });
 
 it('should detect UI messages with data role', () => {
-  const messages: UIMessage[] = [
+  const messages: Omit<Message, 'id'>[] = [
     {
       role: 'data',
       content: 'some data',
@@ -23,7 +23,7 @@ it('should detect UI messages with data role', () => {
 });
 
 it('should detect UI messages with toolInvocations', () => {
-  const messages: UIMessage[] = [
+  const messages: Omit<Message, 'id'>[] = [
     {
       role: 'assistant',
       content: 'Hello',
@@ -42,7 +42,7 @@ it('should detect UI messages with toolInvocations', () => {
 });
 
 it('should detect UI messages with experimental_attachments', () => {
-  const messages: UIMessage[] = [
+  const messages: Omit<Message, 'id'>[] = [
     {
       role: 'user',
       content: 'Check this file',
@@ -62,12 +62,12 @@ it('should detect core messages with array content', () => {
   expect(detectPromptType(messages)).toBe('messages');
 });
 
-it('should detect core messages with experimental_providerMetadata', () => {
+it('should detect core messages with providerOptions', () => {
   const messages: CoreMessage[] = [
     {
       role: 'system',
       content: 'System prompt',
-      experimental_providerMetadata: { provider: { test: 'value' } },
+      providerOptions: { provider: { test: 'value' } },
     },
   ];
   expect(detectPromptType(messages)).toBe('messages');
@@ -96,7 +96,7 @@ it('should detect mixed core messages and simple messages as valid messages', ()
     {
       role: 'system',
       content: 'System prompt',
-      experimental_providerMetadata: { provider: 'test' },
+      providerOptions: { provider: 'test' },
     },
     {
       role: 'user',

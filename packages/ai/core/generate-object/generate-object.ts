@@ -24,6 +24,7 @@ import {
 } from '../types';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import { ProviderOptions } from '../types/provider-metadata';
 import { calculateLanguageModelUsage } from '../types/usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
@@ -100,10 +101,15 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+      providerOptions?: ProviderOptions;
+
+      /**
+@deprecated Use `providerOptions` instead.
+*/
       experimental_providerMetadata?: ProviderMetadata;
 
       /**
@@ -181,10 +187,15 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+      providerOptions?: ProviderOptions;
+
+      /**
+@deprecated Use `providerOptions` instead.
+*/
       experimental_providerMetadata?: ProviderMetadata;
 
       /**
@@ -248,10 +259,15 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+      providerOptions?: ProviderOptions;
+
+      /**
+@deprecated Use `providerOptions` instead.
+*/
       experimental_providerMetadata?: ProviderMetadata;
 
       /**
@@ -300,10 +316,15 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+      providerOptions?: ProviderOptions;
+
+      /**
+@deprecated Use `providerOptions` instead.
+*/
       experimental_providerMetadata?: ProviderMetadata;
 
       /**
@@ -331,7 +352,8 @@ export async function generateObject<SCHEMA, RESULT>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
-  experimental_providerMetadata: providerMetadata,
+  experimental_providerMetadata,
+  providerOptions = experimental_providerMetadata,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -362,6 +384,7 @@ export async function generateObject<SCHEMA, RESULT>({
     }) => string;
     experimental_telemetry?: TelemetrySettings;
     experimental_providerMetadata?: ProviderMetadata;
+    providerOptions?: ProviderOptions;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -465,7 +488,7 @@ export async function generateObject<SCHEMA, RESULT>({
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
-            modelSupportsUrl: model.supportsUrl,
+            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
           });
 
           const generateResult = await retry(() =>
@@ -510,7 +533,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   ...prepareCallSettings(settings),
                   inputFormat: standardizedPrompt.type,
                   prompt: promptMessages,
-                  providerMetadata,
+                  providerMetadata: providerOptions,
                   abortSignal,
                   headers,
                 });
@@ -584,7 +607,7 @@ export async function generateObject<SCHEMA, RESULT>({
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
-            modelSupportsUrl: model.supportsUrl,
+            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context,
           });
           const inputFormat = standardizedPrompt.type;
 
@@ -634,7 +657,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   ...prepareCallSettings(settings),
                   inputFormat,
                   prompt: promptMessages,
-                  providerMetadata,
+                  providerMetadata: providerOptions,
                   abortSignal,
                   headers,
                 });
@@ -793,6 +816,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly warnings: GenerateObjectResult<T>['warnings'];
   readonly logprobs: GenerateObjectResult<T>['logprobs'];
   readonly experimental_providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
+  readonly providerMetadata: GenerateObjectResult<T>['providerMetadata'];
   readonly response: GenerateObjectResult<T>['response'];
   readonly request: GenerateObjectResult<T>['request'];
 
@@ -802,7 +826,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     usage: GenerateObjectResult<T>['usage'];
     warnings: GenerateObjectResult<T>['warnings'];
     logprobs: GenerateObjectResult<T>['logprobs'];
-    providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
+    providerMetadata: GenerateObjectResult<T>['providerMetadata'];
     response: GenerateObjectResult<T>['response'];
     request: GenerateObjectResult<T>['request'];
   }) {
@@ -810,6 +834,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
+    this.providerMetadata = options.providerMetadata;
     this.experimental_providerMetadata = options.providerMetadata;
     this.response = options.response;
     this.request = options.request;

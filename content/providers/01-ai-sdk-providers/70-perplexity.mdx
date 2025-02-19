@@ -77,39 +77,60 @@ const { text } = await generateText({
 });
 ```
 
-Perplexity models can be used in the `streamText` and `streamUI` functions (see
-[AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+### Sources
 
-### Provider Metadata
+Websites that have been used to generate the response are included in the `sources` property of the result:
 
-The Perplexity provider includes additional experimental metadata in the response through `experimental_providerMetadata`:
+```ts
+import { perplexity } from '@ai-sdk/perplexity';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: perplexity('sonar-pro'),
+  prompt: 'What are the latest developments in quantum computing?',
+});
+
+console.log(sources);
+```
+
+### Provider Options & Metadata
+
+The Perplexity provider includes additional metadata in the response through `providerMetadata`.
+Additional configuration options are available through `providerOptions`.
 
 ```ts
 const result = await generateText({
   model: perplexity('sonar-pro'),
   prompt: 'What are the latest developments in quantum computing?',
+  providerOptions: {
+    perplexity: {
+      return_images: true, // Enable image responses (Tier-2 Perplexity users only)
+    },
+  },
 });
 
-console.log(result.experimental_providerMetadata);
+console.log(result.providerMetadata);
 // Example output:
 // {
 //   perplexity: {
-//     citations: [
-//       'https://www.sfchronicle.com',
-//       'https://www.cbsnews.com/sanfrancisco/',
-//     ],
 //     usage: { citationTokens: 5286, numSearchQueries: 1 },
+//     images: [
+//       { imageUrl: "https://example.com/image1.jpg", originUrl: "https://elsewhere.com/page1", height: 1280, width: 720 },
+//       { imageUrl: "https://example.com/image2.jpg", originUrl: "https://elsewhere.com/page2", height: 1280, width: 720 }
+//     ]
 //   },
 // }
 ```
 
 The metadata includes:
 
-- `citations`: Array of URLs used as sources for the response
 - `usage`: Object containing `citationTokens` and `numSearchQueries` metrics
+- `images`: Array of image URLs when `return_images` is enabled (Tier-2 users only)
+
+You can enable image responses by setting `return_images: true` in the provider options. This feature is only available to Perplexity Tier-2 users and above.
 
 <Note>
-  For more details about Perplexity's citations see the [Perplexity chat
+  For more details about Perplexity's capabilities, see the [Perplexity chat
   completion docs](https://docs.perplexity.ai/api-reference/chat-completions).
 </Note>
 
@@ -119,14 +140,6 @@ The metadata includes:
 | ----------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `sonar-pro` | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `sonar`     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-
-### Key Features
-
-- **Real-time Web Search**: Both models provide grounded responses using real-time web search
-- **Citations**: Sonar Pro provides 2x more citations than standard Sonar
-- **Data Privacy**: No training on customer data
-- **Self-serve API**: Immediate access with scalable pricing
-- **Advanced Queries**: Support for complex queries and follow-up questions
 
 <Note>
   Please see the [Perplexity docs](https://docs.perplexity.ai) for detailed API

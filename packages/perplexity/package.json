@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/perplexity",
-  "version": "0.0.4",
+  "version": "1.0.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,9 +30,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "0.1.6",
-    "@ai-sdk/provider": "1.0.6",
-    "@ai-sdk/provider-utils": "2.1.5"
+    "@ai-sdk/provider": "1.0.8",
+    "@ai-sdk/provider-utils": "2.1.9"
   },
   "devDependencies": {
     "@types/node": "^18",

@@ -11,7 +11,11 @@ Allows you to easily create a conversational user interface for your chatbot app
 
 <Tabs items={['React', 'Svelte', 'Vue', 'Solid']}>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/react'" dark prompt={false} />
+    <Snippet
+      text="import { useChat } from '@ai-sdk/react'"
+      dark
+      prompt={false}
+    />
   </Tab>
   <Tab>
     <Snippet
@@ -189,10 +193,10 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'experimental_prepareRequestBody',
-      type: '(options: { messages: Message[]; requestData?: JSONValue; requestBody?: object, id: string }) => unknown',
+      type: '(options: { messages: UIMessage[]; requestData?: JSONValue; requestBody?: object, id: string }) => unknown',
       isOptional: true,
       description:
-        'Experimental (React only). When a function is provided, it will be used to prepare the request body for the chat API. This can be useful for customizing the request body based on the messages and data in the chat.',
+        'Experimental (React, Solid & Vue only). When a function is provided, it will be used to prepare the request body for the chat API. This can be useful for customizing the request body based on the messages and data in the chat.',
     },
     {
       name: 'experimental_throttle',
@@ -211,11 +215,11 @@ Allows you to easily create a conversational user interface for your chatbot app
   content={[
     {
       name: 'messages',
-      type: 'Message[]',
+      type: 'UIMessage[]',
       description: 'The current array of chat messages.',
       properties: [
         {
-          type: 'Message',
+          type: 'UIMessage',
           parameters: [
             {
               name: 'id',
@@ -228,33 +232,15 @@ Allows you to easily create a conversational user interface for your chatbot app
               description: 'The role of the message.',
             },
             {
-              name: 'content',
-              type: 'string',
-              description: 'The content of the message.',
-            },
-            {
-              name: 'reasoning',
-              type: 'string',
-              isOptional: true,
-              description: 'The reasoning of the message.',
-            },
-            {
               name: 'createdAt',
               type: 'Date',
               isOptional: true,
               description: 'The creation date of the message.',
             },
             {
-              name: 'name',
+              name: 'content',
               type: 'string',
-              isOptional: true,
-              description: 'The name of the message.',
-            },
-            {
-              name: 'data',
-              type: 'JSONValue',
-              isOptional: true,
-              description: 'Additional data sent along with the message.',
+              description: 'The content of the message.',
             },
             {
               name: 'annotations',
@@ -264,98 +250,188 @@ Allows you to easily create a conversational user interface for your chatbot app
                 'Additional annotations sent along with the message.',
             },
             {
-              name: 'toolInvocations',
-              type: 'Array<ToolInvocation>',
-              isOptional: true,
+              name: 'parts',
+              type: 'Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart>',
               description:
-                'An array of tool invocations that are associated with the (assistant) message.',
+                'An array of message parts that are associated with the message.',
               properties: [
                 {
-                  type: 'ToolInvocation',
+                  type: 'TextUIPart',
+                  description: 'A text part of the message.',
                   parameters: [
                     {
-                      name: 'state',
-                      type: "'partial-call'",
-                      description:
-                        'The state of the tool call when it was partially created.',
+                      name: 'type',
+                      type: '"text"',
                     },
                     {
-                      name: 'toolCallId',
+                      name: 'text',
                       type: 'string',
-                      description:
-                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
-                    },
-                    {
-                      name: 'toolName',
-                      type: 'string',
-                      description: 'Name of the tool that is being called.',
-                    },
-                    {
-                      name: 'args',
-                      type: 'any',
-                      description:
-                        'Partial arguments of the tool call. This is a JSON-serializable object.',
+                      description: 'The text content of the part.',
                     },
                   ],
                 },
                 {
-                  type: 'ToolInvocation',
+                  type: 'ReasoningUIPart',
+                  description: 'A reasoning part of the message.',
                   parameters: [
                     {
-                      name: 'state',
-                      type: "'call'",
-                      description:
-                        'The state of the tool call when it was fully created.',
+                      name: 'type',
+                      type: '"reasoning"',
                     },
                     {
-                      name: 'toolCallId',
+                      name: 'reasoning',
                       type: 'string',
-                      description:
-                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
-                    },
-                    {
-                      name: 'toolName',
-                      type: 'string',
-                      description: 'Name of the tool that is being called.',
-                    },
-                    {
-                      name: 'args',
-                      type: 'any',
-                      description:
-                        'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
+                      description: 'The reasoning content of the part.',
                     },
                   ],
                 },
                 {
-                  type: 'ToolInvocation',
+                  type: 'ToolInvocationUIPart',
+                  description: 'A tool invocation part of the message.',
                   parameters: [
                     {
-                      name: 'state',
-                      type: "'result'",
-                      description:
-                        'The state of the tool call when the result is available.',
+                      name: 'type',
+                      type: '"tool-invocation"',
                     },
                     {
-                      name: 'toolCallId',
-                      type: 'string',
-                      description:
-                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                      name: 'toolInvocation',
+                      type: 'ToolInvocation',
+                      properties: [
+                        {
+                          type: 'ToolInvocation',
+                          parameters: [
+                            {
+                              name: 'state',
+                              type: "'partial-call'",
+                              description:
+                                'The state of the tool call when it was partially created.',
+                            },
+                            {
+                              name: 'toolCallId',
+                              type: 'string',
+                              description:
+                                'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                            },
+                            {
+                              name: 'toolName',
+                              type: 'string',
+                              description:
+                                'Name of the tool that is being called.',
+                            },
+                            {
+                              name: 'args',
+                              type: 'any',
+                              description:
+                                'Partial arguments of the tool call. This is a JSON-serializable object.',
+                            },
+                          ],
+                        },
+                        {
+                          type: 'ToolInvocation',
+                          parameters: [
+                            {
+                              name: 'state',
+                              type: "'call'",
+                              description:
+                                'The state of the tool call when it was fully created.',
+                            },
+                            {
+                              name: 'toolCallId',
+                              type: 'string',
+                              description:
+                                'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                            },
+                            {
+                              name: 'toolName',
+                              type: 'string',
+                              description:
+                                'Name of the tool that is being called.',
+                            },
+                            {
+                              name: 'args',
+                              type: 'any',
+                              description:
+                                'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
+                            },
+                          ],
+                        },
+                        {
+                          type: 'ToolInvocation',
+                          parameters: [
+                            {
+                              name: 'state',
+                              type: "'result'",
+                              description:
+                                'The state of the tool call when the result is available.',
+                            },
+                            {
+                              name: 'toolCallId',
+                              type: 'string',
+                              description:
+                                'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                            },
+                            {
+                              name: 'toolName',
+                              type: 'string',
+                              description:
+                                'Name of the tool that is being called.',
+                            },
+                            {
+                              name: 'args',
+                              type: 'any',
+                              description:
+                                'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
+                            },
+                            {
+                              name: 'result',
+                              type: 'any',
+                              description: 'The result of the tool call.',
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: 'SourceUIPart',
+                  description: 'A source part of the message.',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: '"source"',
                     },
                     {
-                      name: 'toolName',
-                      type: 'string',
-                      description: 'Name of the tool that is being called.',
-                    },
-                    {
-                      name: 'args',
-                      type: 'any',
-                      description:
-                        'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
-                    },
-                    {
-                      name: 'result',
-                      type: 'any',
-                      description: 'The result of the tool call.',
+                      name: 'source',
+                      type: 'Source',
+                      properties: [
+                        {
+                          type: 'Source',
+                          parameters: [
+                            {
+                              name: 'sourceType',
+                              type: "'url'",
+                              description: 'The type of the source.',
+                            },
+                            {
+                              name: 'id',
+                              type: 'string',
+                              description: 'ID of the source.',
+                            },
+                            {
+                              name: 'url',
+                              type: 'string',
+                              description: 'URL of the source.',
+                            },
+                            {
+                              name: 'title',
+                              type: 'string',
+                              isOptional: true,
+                              description: 'The title of the source.',
+                            },
+                          ],
+                        },
+                      ],
                     },
                   ],
                 },
@@ -432,15 +508,86 @@ Allows you to easily create a conversational user interface for your chatbot app
               type: 'JSONValue',
               description: 'Additional data to be sent to the API endpoint.',
             },
+            {
+              name: 'experimental_attachments',
+              type: 'FileList | Array<Attachment>',
+              isOptional: true,
+              description:
+                'An array of attachments to be sent to the API endpoint.',
+              properties: [
+                {
+                  type: 'FileList',
+                  parameters: [
+                    {
+                      name: '',
+                      type: '',
+                      description:
+                        "A list of files that have been selected by the user using an <input type='file'> element. It's also used for a list of files dropped into web content when using the drag and drop API.",
+                    },
+                  ],
+                },
+                {
+                  type: 'Attachment',
+                  description:
+                    'An attachment object that can be used to describe the metadata of the file.',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'The name of the attachment, usually the file name.',
+                    },
+                    {
+                      name: 'contentType',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'A string indicating the media type of the file.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description:
+                        'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
     },
     {
       name: 'reload',
-      type: '() => Promise<string | undefined>',
+      type: '(options?: ChatRequestOptions) => Promise<string | undefined>',
       description:
         "Function to reload the last AI chat response for the given chat history. If the last message isn't from the assistant, it will request the API to generate a new response.",
+      properties: [
+        {
+          type: 'ChatRequestOptions',
+          parameters: [
+            {
+              name: 'headers',
+              type: 'Record<string, string> | Headers',
+              description:
+                'Additional headers that should be to be passed to the API endpoint.',
+            },
+            {
+              name: 'body',
+              type: 'object',
+              description:
+                'Additional body JSON properties that should be sent to the API endpoint.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              description: 'Additional data to be sent to the API endpoint.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'stop',
@@ -554,10 +701,10 @@ Allows you to easily create a conversational user interface for your chatbot app
       ],
     },
     {
-      name: 'isLoading',
-      type: 'boolean',
+      name: 'status',
+      type: '"submitted" | "streaming" | "ready" | "error"',
       description:
-        'Boolean flag indicating whether a request is currently in progress.',
+        'Status of the chat request: submitted (message sent to API), streaming (receiving response chunks), ready (response complete), or error (request failed).',
     },
     {
       name: 'id',

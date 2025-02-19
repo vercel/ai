@@ -38,7 +38,7 @@ Navigate to the newly created directory:
 
 ### Install dependencies
 
-Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider.
+Install `ai`, `@ai-sdk/react`, and `@ai-sdk/openai`, the AI package, AI SDK's React hooks, and AI SDK's [ OpenAI provider ](/providers/ai-sdk-providers/openai) respectively.
 
 <Note>
   The AI SDK is designed to be a unified interface to interact with any large
@@ -129,7 +129,7 @@ Now that you have an API route that can query an LLM, it's time to setup your fr
 Update your root page (`pages/index.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
 ```tsx filename="pages/index.tsx"
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -160,7 +160,7 @@ This page utilizes the `useChat` hook, which will, by default, use the `POST` AP
 - `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
 - `input` - the current value of the user's input field.
 - `handleInputChange` and `handleSubmit` - functions to handle user interactions (typing into the input field and submitting the form, respectively).
-- `isLoading` - boolean that indicates whether the API request is in progress.
+- `status` - the status of the API request.
 
 ## Running Your Application
 
@@ -238,7 +238,7 @@ Notice the blank response in the UI? This is because instead of generating a tex
 To display the tool invocations in your UI, update your `pages/index.tsx` file:
 
 ```tsx filename="pages/index.tsx" highlight="11-15"
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -283,7 +283,7 @@ To solve this, you can enable multi-step tool calls using the `maxSteps` option 
 Modify your `pages/index.tsx` file to include the `maxSteps` option:
 
 ```tsx filename="pages/index.tsx" highlight="6"
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({

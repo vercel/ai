@@ -117,7 +117,7 @@ export function createCerebras(
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
 
-  return provider as CerebrasProvider;
+  return provider;
 }
 
 export const cerebras = createCerebras();

@@ -36,6 +36,26 @@ describe('createDataStream', () => {
     ]);
   });
 
+  it('should send tool result and close the stream', async () => {
+    const stream = createDataStream({
+      execute: dataStream => {
+        dataStream.write(
+          formatDataStreamPart('tool_result', {
+            toolCallId: 'tool-call-id',
+            result: '1a',
+          }),
+        );
+      },
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toEqual([
+      formatDataStreamPart('tool_result', {
+        toolCallId: 'tool-call-id',
+        result: '1a',
+      }),
+    ]);
+  });
+
   it('should forward a single stream with 2 elements', async () => {
     const stream = createDataStream({
       execute: dataStream => {

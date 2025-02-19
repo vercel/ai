@@ -1,6 +1,6 @@
 import { processChatResponse } from './process-chat-response';
-import { processTextStream } from './process-text-stream';
-import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
+import { processChatTextResponse } from './process-chat-text-response';
+import { IdGenerator, JSONValue, UIMessage, UseChatOptions } from './types';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -19,6 +19,7 @@ export async function callChatApi({
   onToolCall,
   generateId,
   fetch = getOriginalFetch(),
+  lastMessage,
 }: {
   api: string;
   body: Record<string, any>;
@@ -28,11 +29,16 @@ export async function callChatApi({
   abortController: (() => AbortController | null) | undefined;
   restoreMessagesOnFailure: () => void;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
-  onUpdate: (newMessages: Message[], data: JSONValue[] | undefined) => void;
+  onUpdate: (options: {
+    message: UIMessage;
+    data: JSONValue[] | undefined;
+    replaceLastMessage: boolean;
+  }) => void;
   onFinish: UseChatOptions['onFinish'];
   onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
+  lastMessage: UIMessage | undefined;
 }) {
   const response = await fetch(api, {
     method: 'POST',
@@ -69,27 +75,11 @@ export async function callChatApi({
 
   switch (streamProtocol) {
     case 'text': {
-      const resultMessage = {
-        id: generateId(),
-        createdAt: new Date(),
-        role: 'assistant' as const,
-        content: '',
-      };
-
-      await processTextStream({
+      await processChatTextResponse({
         stream: response.body,
-        onTextPart: chunk => {
-          resultMessage.content += chunk;
-
-          // note: creating a new message object is required for Solid.js streaming
-          onUpdate([{ ...resultMessage }], []);
-        },
-      });
-
-      // in text mode, we don't have usage information or finish reason:
-      onFinish?.(resultMessage, {
-        usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
-        finishReason: 'unknown',
+        update: onUpdate,
+        onFinish,
+        generateId,
       });
       return;
     }
@@ -98,6 +88,7 @@ export async function callChatApi({
       await processChatResponse({
         stream: response.body,
         update: onUpdate,
+        lastMessage,
         onToolCall,
         onFinish({ message, finishReason, usage }) {
           if (onFinish && message != null) {

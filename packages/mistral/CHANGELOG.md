@@ -1,5 +1,53 @@
 # @ai-sdk/mistral
 
+## 1.1.12
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+
+## 1.1.11
+
+### Patch Changes
+
+- 31ec1c8: fix (provider/mistral): allow for undefined content
+
+## 1.1.10
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+
+## 1.1.9
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+
+## 1.1.8
+
+### Patch Changes
+
+- e0f90d7: feat (provider/mistral): support multiple text content parts
+
+## 1.1.7
+
+### Patch Changes
+
+- e6a7628: fix (provider/mistral): correctly parse complex content type responses
+
+## 1.1.6
+
+### Patch Changes
+
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/provider-utils@2.1.6
+
 ## 1.1.5
 
 ### Patch Changes

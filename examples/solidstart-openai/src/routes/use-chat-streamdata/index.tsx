@@ -9,7 +9,7 @@ export default function Chat() {
     handleSubmit,
     data,
     setData,
-    isLoading,
+    status,
     error,
     stop,
     reload,
@@ -47,9 +47,11 @@ export default function Chat() {
         )}
       </For>
 
-      <Show when={isLoading()}>
+      <Show when={status() === 'submitted' || status() === 'streaming'}>
         <div class="mt-4 text-gray-500">
-          <div>Loading...</div>
+          <Show when={status() === 'submitted'}>
+            <div>Loading...</div>
+          </Show>
           <button
             type="button"
             class="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"

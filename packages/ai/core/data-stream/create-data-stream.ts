@@ -28,6 +28,9 @@ export function createDataStream({
 
   try {
     const result = execute({
+      write(data: DataStreamString) {
+        safeEnqueue(data);
+      },
       writeData(data) {
         safeEnqueue(formatDataStreamPart('data', [data]));
       },

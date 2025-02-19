@@ -439,10 +439,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    if (
-      this.settings.simulateStreaming ??
-      isStreamingSimulatedByDefault(this.modelId)
-    ) {
+    if (this.settings.simulateStreaming) {
       const result = await this.doGenerate(options);
 
       const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
@@ -941,32 +938,23 @@ function getSystemMessageMode(modelId: string) {
   );
 }
 
-function isStreamingSimulatedByDefault(modelId: string) {
-  if (!isReasoningModel(modelId)) {
-    return false;
-  }
-
-  return (
-    reasoningModels[modelId as keyof typeof reasoningModels]
-      ?.simulateStreamingByDefault ?? true
-  );
-}
-
 const reasoningModels = {
   'o1-mini': {
     systemMessageMode: 'remove',
-    simulateStreamingByDefault: false,
   },
   'o1-mini-2024-09-12': {
     systemMessageMode: 'remove',
-    simulateStreamingByDefault: false,
   },
   'o1-preview': {
     systemMessageMode: 'remove',
-    simulateStreamingByDefault: false,
   },
   'o1-preview-2024-09-12': {
     systemMessageMode: 'remove',
-    simulateStreamingByDefault: false,
+  },
+  'o3-mini': {
+    systemMessageMode: 'developer',
+  },
+  'o3-mini-2025-01-31': {
+    systemMessageMode: 'developer',
   },
 } as const;

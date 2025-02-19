@@ -66,7 +66,8 @@ export function convertToLanguageModelMessage(
       return {
         role: 'system',
         content: message.content,
-        providerMetadata: message.experimental_providerMetadata,
+        providerMetadata:
+          message.providerOptions ?? message.experimental_providerMetadata,
       };
     }
 
@@ -75,7 +76,8 @@ export function convertToLanguageModelMessage(
         return {
           role: 'user',
           content: [{ type: 'text', text: message.content }],
-          providerMetadata: message.experimental_providerMetadata,
+          providerMetadata:
+            message.providerOptions ?? message.experimental_providerMetadata,
         };
       }
 
@@ -85,7 +87,8 @@ export function convertToLanguageModelMessage(
           .map(part => convertPartToLanguageModelPart(part, downloadedAssets))
           // remove empty text parts:
           .filter(part => part.type !== 'text' || part.text !== ''),
-        providerMetadata: message.experimental_providerMetadata,
+        providerMetadata:
+          message.providerOptions ?? message.experimental_providerMetadata,
       };
     }
 
@@ -94,7 +97,8 @@ export function convertToLanguageModelMessage(
         return {
           role: 'assistant',
           content: [{ type: 'text', text: message.content }],
-          providerMetadata: message.experimental_providerMetadata,
+          providerMetadata:
+            message.providerOptions ?? message.experimental_providerMetadata,
         };
       }
 
@@ -106,13 +110,16 @@ export function convertToLanguageModelMessage(
             part => part.type !== 'text' || part.text !== '',
           )
           .map(part => {
-            const { experimental_providerMetadata, ...rest } = part;
+            const { experimental_providerMetadata, providerOptions, ...rest } =
+              part;
             return {
               ...rest,
-              providerMetadata: experimental_providerMetadata,
+              providerMetadata:
+                providerOptions ?? experimental_providerMetadata,
             };
           }),
-        providerMetadata: message.experimental_providerMetadata,
+        providerMetadata:
+          message.providerOptions ?? message.experimental_providerMetadata,
       };
     }
 
@@ -126,9 +133,11 @@ export function convertToLanguageModelMessage(
           result: part.result,
           content: part.experimental_content,
           isError: part.isError,
-          providerMetadata: part.experimental_providerMetadata,
+          providerMetadata:
+            part.providerOptions ?? part.experimental_providerMetadata,
         })),
-        providerMetadata: message.experimental_providerMetadata,
+        providerMetadata:
+          message.providerOptions ?? message.experimental_providerMetadata,
       };
     }
 

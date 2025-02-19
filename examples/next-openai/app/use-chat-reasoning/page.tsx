@@ -1,12 +1,12 @@
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const {
     error,
     input,
-    isLoading,
+    status,
     handleInputChange,
     handleSubmit,
     messages,
@@ -18,21 +18,31 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.reasoning && (
-            <pre className="italic text-gray-500 whitespace-pre-wrap">
-              {m.reasoning}
-            </pre>
-          )}
-          {m.content}
+      {messages.map(message => (
+        <div key={message.id} className="whitespace-pre-wrap">
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.parts.map((part, index) => {
+            if (part.type === 'text') {
+              return <div key={index}>{part.text}</div>;
+            }
+
+            if (part.type === 'reasoning') {
+              return (
+                <pre
+                  key={index}
+                  className="italic text-gray-500 whitespace-pre-wrap"
+                >
+                  {part.reasoning}
+                </pre>
+              );
+            }
+          })}
         </div>
       ))}
 
-      {isLoading && (
+      {(status === 'submitted' || status === 'streaming') && (
         <div className="mt-4 text-gray-500">
-          <div>Loading...</div>
+          {status === 'submitted' && <div>Loading...</div>}
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
@@ -62,7 +72,7 @@ export default function Chat() {
           value={input}
           placeholder="Say something..."
           onChange={handleInputChange}
-          disabled={isLoading || error != null}
+          disabled={status !== 'ready'}
         />
       </form>
     </div>

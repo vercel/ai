@@ -1,4 +1,4 @@
-import { parseDataStreamPart, DataStreamPartType } from './data-stream-parts';
+import { DataStreamPartType, parseDataStreamPart } from './data-stream-parts';
 
 const NEWLINE = '\n'.charCodeAt(0);
 
@@ -20,6 +20,7 @@ export async function processDataStream({
   stream,
   onTextPart,
   onReasoningPart,
+  onSourcePart,
   onDataPart,
   onErrorPart,
   onToolCallStreamingStartPart,
@@ -37,6 +38,9 @@ export async function processDataStream({
   ) => Promise<void> | void;
   onReasoningPart?: (
     streamPart: (DataStreamPartType & { type: 'reasoning' })['value'],
+  ) => Promise<void> | void;
+  onSourcePart?: (
+    streamPart: (DataStreamPartType & { type: 'source' })['value'],
   ) => Promise<void> | void;
   onDataPart?: (
     streamPart: (DataStreamPartType & { type: 'data' })['value'],
@@ -113,6 +117,9 @@ export async function processDataStream({
           break;
         case 'reasoning':
           await onReasoningPart?.(value);
+          break;
+        case 'source':
+          await onSourcePart?.(value);
           break;
         case 'data':
           await onDataPart?.(value);

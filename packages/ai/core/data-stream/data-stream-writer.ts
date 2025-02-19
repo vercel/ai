@@ -5,6 +5,11 @@ export interface DataStreamWriter {
   /**
    * Appends a data part to the stream.
    */
+  write(data: DataStreamString): void;
+
+  /**
+   * Appends a data part to the stream.
+   */
   writeData(value: JSONValue): void;
 
   /**

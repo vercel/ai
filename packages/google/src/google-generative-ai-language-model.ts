@@ -2,8 +2,9 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
-  LanguageModelV1StreamPart,
   LanguageModelV1ProviderMetadata,
+  LanguageModelV1Source,
+  LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -32,8 +33,9 @@ type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
-  generateId: () => string;
   fetch?: FetchFunction;
+  generateId: () => string;
+  isSupportedUrl: (url: URL) => boolean;
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
@@ -194,9 +196,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   }
 
   supportsUrl(url: URL): boolean {
-    return url
-      .toString()
-      .startsWith('https://generativelanguage.googleapis.com/v1beta/files/');
+    return this.config.isSupportedUrl(url);
   }
 
   async doGenerate(
@@ -252,6 +252,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           safetyRatings: candidate.safetyRatings ?? null,
         },
       },
+      sources: extractSources({
+        groundingMetadata: candidate.groundingMetadata,
+        generateId: this.config.generateId,
+      }),
       request: { body },
     };
   }
@@ -328,6 +332,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 hasToolCalls,
               });
 
+              const sources =
+                extractSources({
+                  groundingMetadata: candidate.groundingMetadata,
+                  generateId,
+                }) ?? [];
+
+              for (const source of sources) {
+                controller.enqueue({ type: 'source', source });
+              }
+
               providerMetadata = {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,
@@ -403,7 +417,7 @@ function getToolCallsFromParts({
   parts: z.infer<typeof contentSchema>['parts'];
   generateId: () => string;
 }) {
-  const functionCallParts = parts.filter(
+  const functionCallParts = parts?.filter(
     part => 'functionCall' in part,
   ) as Array<
     GoogleGenerativeAIContentPart & {
@@ -411,7 +425,7 @@ function getToolCallsFromParts({
     }
   >;
 
-  return functionCallParts.length === 0
+  return functionCallParts == null || functionCallParts.length === 0
     ? undefined
     : functionCallParts.map(part => ({
         toolCallType: 'function' as const,
@@ -422,60 +436,46 @@ function getToolCallsFromParts({
 }
 
 function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts.filter(part => 'text' in part) as Array<
+  const textParts = parts?.filter(part => 'text' in part) as Array<
     GoogleGenerativeAIContentPart & { text: string }
   >;
 
-  return textParts.length === 0
+  return textParts == null || textParts.length === 0
     ? undefined
     : textParts.map(part => part.text).join('');
 }
 
 const contentSchema = z.object({
   role: z.string(),
-  parts: z.array(
-    z.union([
-      z.object({
-        text: z.string(),
-      }),
-      z.object({
-        functionCall: z.object({
-          name: z.string(),
-          args: z.unknown(),
+  parts: z
+    .array(
+      z.union([
+        z.object({
+          text: z.string(),
         }),
-      }),
-    ]),
-  ),
+        z.object({
+          functionCall: z.object({
+            name: z.string(),
+            args: z.unknown(),
+          }),
+        }),
+      ]),
+    )
+    .nullish(),
 });
 
 // https://ai.google.dev/gemini-api/docs/grounding
 // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search
+const groundingChunkSchema = z.object({
+  web: z.object({ uri: z.string(), title: z.string() }).nullish(),
+  retrievedContext: z.object({ uri: z.string(), title: z.string() }).nullish(),
+});
+
 export const groundingMetadataSchema = z.object({
   webSearchQueries: z.array(z.string()).nullish(),
   retrievalQueries: z.array(z.string()).nullish(),
-  searchEntryPoint: z
-    .object({
-      renderedContent: z.string(),
-    })
-    .nullish(),
-  groundingChunks: z
-    .array(
-      z.object({
-        web: z
-          .object({
-            uri: z.string(),
-            title: z.string(),
-          })
-          .nullish(),
-        retrievedContext: z
-          .object({
-            uri: z.string(),
-            title: z.string(),
-          })
-          .nullish(),
-      }),
-    )
-    .nullish(),
+  searchEntryPoint: z.object({ renderedContent: z.string() }).nullish(),
+  groundingChunks: z.array(groundingChunkSchema).nullish(),
   groundingSupports: z
     .array(
       z.object({
@@ -551,3 +551,26 @@ const chunkSchema = z.object({
     })
     .nullish(),
 });
+
+function extractSources({
+  groundingMetadata,
+  generateId,
+}: {
+  groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null;
+  generateId: () => string;
+}): undefined | LanguageModelV1Source[] {
+  return groundingMetadata?.groundingChunks
+    ?.filter(
+      (
+        chunk,
+      ): chunk is z.infer<typeof groundingChunkSchema> & {
+        web: { uri: string; title?: string };
+      } => chunk.web != null,
+    )
+    .map(chunk => ({
+      sourceType: 'url',
+      id: generateId(),
+      url: chunk.web.uri,
+      title: chunk.web.title,
+    }));
+}

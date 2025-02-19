@@ -1,5 +1,6 @@
 import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
-import { Experimental_LanguageModelV1Middleware } from './language-model-v1-middleware';
+import { LanguageModelV1Middleware } from './language-model-v1-middleware';
+import { asArray } from '../../util/as-array';
 
 /**
  * Wraps a LanguageModelV1 instance with middleware functionality.
@@ -8,19 +9,37 @@ import { Experimental_LanguageModelV1Middleware } from './language-model-v1-midd
  *
  * @param options - Configuration options for wrapping the language model.
  * @param options.model - The original LanguageModelV1 instance to be wrapped.
- * @param options.middleware - The middleware to be applied to the language model.
+ * @param options.middleware - The middleware to be applied to the language model. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
  * @param options.modelId - Optional custom model ID to override the original model's ID.
  * @param options.providerId - Optional custom provider ID to override the original model's provider.
  * @returns A new LanguageModelV1 instance with middleware applied.
  */
-export const experimental_wrapLanguageModel = ({
+export const wrapLanguageModel = ({
+  model,
+  middleware: middlewareArg,
+  modelId,
+  providerId,
+}: {
+  model: LanguageModelV1;
+  middleware: LanguageModelV1Middleware | LanguageModelV1Middleware[];
+  modelId?: string;
+  providerId?: string;
+}): LanguageModelV1 => {
+  return asArray(middlewareArg)
+    .reverse()
+    .reduce((wrappedModel, middleware) => {
+      return doWrap({ model: wrappedModel, middleware, modelId, providerId });
+    }, model);
+};
+
+const doWrap = ({
   model,
   middleware: { transformParams, wrapGenerate, wrapStream },
   modelId,
   providerId,
 }: {
   model: LanguageModelV1;
-  middleware: Experimental_LanguageModelV1Middleware;
+  middleware: LanguageModelV1Middleware;
   modelId?: string;
   providerId?: string;
 }): LanguageModelV1 => {
@@ -42,7 +61,7 @@ export const experimental_wrapLanguageModel = ({
 
     defaultObjectGenerationMode: model.defaultObjectGenerationMode,
     supportsImageUrls: model.supportsImageUrls,
-    supportsUrl: model.supportsUrl,
+    supportsUrl: model.supportsUrl?.bind(model),
     supportsStructuredOutputs: model.supportsStructuredOutputs,
 
     async doGenerate(
@@ -66,3 +85,9 @@ export const experimental_wrapLanguageModel = ({
     },
   };
 };
+
+/**
+ * @deprecated Use `wrapLanguageModel` instead.
+ */
+// TODO remove in v5
+export const experimental_wrapLanguageModel = wrapLanguageModel;

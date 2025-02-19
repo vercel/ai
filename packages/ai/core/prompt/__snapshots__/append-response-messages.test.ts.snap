@@ -1,0 +1,355 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`appendResponseMessages > adds assistant text response to previous assistant message 1`] = `
+[
+  {
+    "content": "User wants a tool invocation",
+    "createdAt": 1970-01-01T00:00:00.123Z,
+    "id": "1",
+    "parts": [
+      {
+        "text": "User wants a tool invocation",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "content": "This is a response from the assistant.",
+    "createdAt": 1970-01-01T00:00:00.456Z,
+    "id": "2",
+    "parts": [
+      {
+        "toolInvocation": {
+          "args": {
+            "query": "some query",
+          },
+          "result": {
+            "answer": "Tool result data",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "call-1",
+          "toolName": "some-tool",
+        },
+        "type": "tool-invocation",
+      },
+      {
+        "text": "This is a response from the assistant.",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+    "toolInvocations": [
+      {
+        "args": {
+          "query": "some query",
+        },
+        "result": {
+          "answer": "Tool result data",
+        },
+        "state": "result",
+        "step": 0,
+        "toolCallId": "call-1",
+        "toolName": "some-tool",
+      },
+    ],
+  },
+]
+`;
+
+exports[`appendResponseMessages > adds assistant tool call response to previous assistant message 1`] = `
+[
+  {
+    "content": "User wants a tool invocation",
+    "createdAt": 1970-01-01T00:00:00.123Z,
+    "id": "1",
+    "parts": [
+      {
+        "text": "User wants a tool invocation",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "content": "",
+    "createdAt": 1970-01-01T00:00:00.456Z,
+    "id": "2",
+    "parts": [
+      {
+        "toolInvocation": {
+          "args": {
+            "query": "some query",
+          },
+          "result": {
+            "answer": "Tool result data",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "call-1",
+          "toolName": "some-tool",
+        },
+        "type": "tool-invocation",
+      },
+      {
+        "toolInvocation": {
+          "args": {
+            "query": "another query",
+          },
+          "state": "call",
+          "step": 1,
+          "toolCallId": "call-2",
+          "toolName": "some-tool",
+        },
+        "type": "tool-invocation",
+      },
+    ],
+    "role": "assistant",
+    "toolInvocations": [
+      {
+        "args": {
+          "query": "some query",
+        },
+        "result": {
+          "answer": "Tool result data",
+        },
+        "state": "result",
+        "step": 0,
+        "toolCallId": "call-1",
+        "toolName": "some-tool",
+      },
+      {
+        "args": {
+          "query": "another query",
+        },
+        "state": "call",
+        "step": 1,
+        "toolCallId": "call-2",
+        "toolName": "some-tool",
+      },
+    ],
+  },
+]
+`;
+
+exports[`appendResponseMessages > adds chain of assistant messages and tool results 1`] = `
+[
+  {
+    "content": "User wants a tool invocation",
+    "createdAt": 1970-01-01T00:00:00.123Z,
+    "id": "1",
+    "parts": [
+      {
+        "text": "User wants a tool invocation",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "content": "response",
+    "createdAt": 1970-01-01T00:00:00.789Z,
+    "id": "2",
+    "parts": [
+      {
+        "toolInvocation": {
+          "args": {
+            "query": "some query",
+          },
+          "result": {
+            "answer": "Tool result data",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "call-1",
+          "toolName": "some-tool",
+        },
+        "type": "tool-invocation",
+      },
+      {
+        "toolInvocation": {
+          "args": {
+            "query": "another query",
+          },
+          "result": {
+            "answer": "another result",
+          },
+          "state": "result",
+          "step": 1,
+          "toolCallId": "call-2",
+          "toolName": "some-tool",
+        },
+        "type": "tool-invocation",
+      },
+      {
+        "text": "response",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+    "toolInvocations": [
+      {
+        "args": {
+          "query": "some query",
+        },
+        "result": {
+          "answer": "Tool result data",
+        },
+        "state": "result",
+        "step": 0,
+        "toolCallId": "call-1",
+        "toolName": "some-tool",
+      },
+      {
+        "args": {
+          "query": "another query",
+        },
+        "result": {
+          "answer": "another result",
+        },
+        "state": "result",
+        "step": 1,
+        "toolCallId": "call-2",
+        "toolName": "some-tool",
+      },
+    ],
+  },
+]
+`;
+
+exports[`appendResponseMessages > adds tool results to the previously invoked tool calls (assistant message) 1`] = `
+[
+  {
+    "content": "User wants a tool invocation",
+    "createdAt": 1970-01-01T00:00:00.123Z,
+    "id": "1",
+    "parts": [
+      {
+        "text": "User wants a tool invocation",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "content": "Placeholder text",
+    "createdAt": 1970-01-01T00:00:00.456Z,
+    "id": "2",
+    "parts": [
+      {
+        "toolInvocation": {
+          "args": {
+            "query": "some query",
+          },
+          "result": {
+            "answer": "Tool result data",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "call-1",
+          "toolName": "some-tool",
+        },
+        "type": "tool-invocation",
+      },
+    ],
+    "role": "assistant",
+    "toolInvocations": [
+      {
+        "args": {
+          "query": "some query",
+        },
+        "result": {
+          "answer": "Tool result data",
+        },
+        "state": "result",
+        "step": 0,
+        "toolCallId": "call-1",
+        "toolName": "some-tool",
+      },
+    ],
+  },
+]
+`;
+
+exports[`appendResponseMessages > appends assistant messages with text content 1`] = `
+[
+  {
+    "content": "Hello!",
+    "createdAt": 1970-01-01T00:00:00.123Z,
+    "id": "1",
+    "parts": [
+      {
+        "text": "Hello!",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "content": "This is a response from the assistant.",
+    "createdAt": 1970-01-01T00:00:00.789Z,
+    "id": "123",
+    "parts": [
+      {
+        "text": "This is a response from the assistant.",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+    "toolInvocations": [],
+  },
+]
+`;
+
+exports[`appendResponseMessages > handles tool calls and marks them as "call" initially 1`] = `
+[
+  {
+    "content": "User wants a tool invocation",
+    "createdAt": 1970-01-01T00:00:00.123Z,
+    "id": "1",
+    "parts": [
+      {
+        "text": "User wants a tool invocation",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "content": "Processing tool call...",
+    "createdAt": 1970-01-01T00:00:00.789Z,
+    "id": "123",
+    "parts": [
+      {
+        "text": "Processing tool call...",
+        "type": "text",
+      },
+      {
+        "toolInvocation": {
+          "args": {
+            "query": "some query",
+          },
+          "state": "call",
+          "step": 0,
+          "toolCallId": "call-1",
+          "toolName": "some-tool",
+        },
+        "type": "tool-invocation",
+      },
+    ],
+    "role": "assistant",
+    "toolInvocations": [
+      {
+        "args": {
+          "query": "some query",
+        },
+        "state": "call",
+        "step": 0,
+        "toolCallId": "call-1",
+        "toolName": "some-tool",
+      },
+    ],
+  },
+]
+`;

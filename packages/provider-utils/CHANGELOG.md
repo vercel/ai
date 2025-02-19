@@ -1,5 +1,31 @@
 # @ai-sdk/provider-utils
 
+## 2.1.9
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+
+## 2.1.8
+
+### Patch Changes
+
+- 2e898b4: chore (ai): move mockId test helper into provider utils
+
+## 2.1.7
+
+### Patch Changes
+
+- 3ff4ef8: feat (provider-utils): export removeUndefinedEntries for working with e.g. headers
+
+## 2.1.6
+
+### Patch Changes
+
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+
 ## 2.1.5
 
 ### Patch Changes

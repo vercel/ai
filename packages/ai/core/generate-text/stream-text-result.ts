@@ -9,6 +9,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import { Source } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -16,6 +17,27 @@ import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+
+export type DataStreamOptions = {
+  /**
+   * Send usage parts to the client.
+   * Default to true.
+   */
+  // TODO change default to false in v5: secure by default
+  sendUsage?: boolean;
+
+  /**
+   * Send reasoning parts to the client.
+   * Default to false.
+   */
+  sendReasoning?: boolean;
+
+  /**
+   * Send source parts to the client.
+   * Default to false.
+   */
+  sendSources?: boolean;
+};
 
 /**
 A result object for accessing different stream types and additional information.
@@ -35,6 +57,14 @@ Resolved when the response is finished.
   readonly usage: Promise<LanguageModelUsage>;
 
   /**
+Sources that have been used as input to generate the response.
+For multi-step generation, the sources are accumulated from all steps.
+
+Resolved when the response is finished.
+   */
+  readonly sources: Promise<Source[]>;
+
+  /**
 The reason why the generation finished. Taken from the last step.
 
 Resolved when the response is finished.
@@ -45,6 +75,11 @@ Resolved when the response is finished.
 Additional provider-specific metadata from the last step.
 Metadata is passed through from the provider to the AI SDK and
 enables provider-specific results that can be fully encapsulated in the provider.
+   */
+  readonly providerMetadata: Promise<ProviderMetadata | undefined>;
+
+  /**
+@deprecated Use `providerMetadata` instead.
    */
   readonly experimental_providerMetadata: Promise<ProviderMetadata | undefined>;
 
@@ -126,6 +161,14 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   readonly experimental_partialOutputStream: AsyncIterableStream<PARTIAL_OUTPUT>;
 
   /**
+Consumes the stream without processing the parts.
+This is useful to force the stream to finish.
+It effectively removes the backpressure and allows the stream to finish,
+triggering the `onFinish` callback and the promise resolution.
+  */
+  consumeStream(): Promise<void>;
+
+  /**
   Converts the result to a data stream.
 
   @param data an optional StreamData object that will be merged into the stream.
@@ -134,12 +177,12 @@ A stream of partial outputs. It uses the `experimental_output` specification.
   @param sendReasoning whether to send the reasoning information to the client. Defaults to false.
   @return A data stream.
      */
-  toDataStream(options?: {
-    data?: StreamData;
-    getErrorMessage?: (error: unknown) => string;
-    sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
-    sendReasoning?: boolean; // default to false
-  }): ReadableStream<Uint8Array>;
+  toDataStream(
+    options?: {
+      data?: StreamData;
+      getErrorMessage?: (error: unknown) => string;
+    } & DataStreamOptions,
+  ): ReadableStream<Uint8Array>;
 
   /**
    * Merges the result as a data stream into another data stream.
@@ -150,10 +193,7 @@ A stream of partial outputs. It uses the `experimental_output` specification.
    */
   mergeIntoDataStream(
     dataStream: DataStreamWriter,
-    options?: {
-      sendUsage?: boolean;
-      sendReasoning?: boolean;
-    },
+    options?: DataStreamOptions,
   ): void;
 
   /**
@@ -173,9 +213,7 @@ A stream of partial outputs. It uses the `experimental_output` specification.
     options?: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
-      sendReasoning?: boolean; // default to false
-    },
+    } & DataStreamOptions,
   ): void;
 
   /**
@@ -206,9 +244,7 @@ A stream of partial outputs. It uses the `experimental_output` specification.
     options?: ResponseInit & {
       data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
-      sendUsage?: boolean; // default to true (TODO change to false in v5: secure by default)
-      sendReasoning?: boolean; // default to false
-    },
+    } & DataStreamOptions,
   ): Response;
 
   /**
@@ -229,6 +265,10 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'reasoning';
       textDelta: string;
+    }
+  | {
+      type: 'source';
+      source: Source;
     }
   | ({
       type: 'tool-call';
@@ -267,6 +307,11 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       response: LanguageModelResponseMetadata;
       usage: LanguageModelUsage;
       finishReason: FinishReason;
+      providerMetadata: ProviderMetadata | undefined;
+      /**
+       * @deprecated Use `providerMetadata` instead.
+       */
+      // TODO 5.0 breaking change: remove
       experimental_providerMetadata?: ProviderMetadata;
       isContinued: boolean;
     }
@@ -274,6 +319,11 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'finish';
       finishReason: FinishReason;
       usage: LanguageModelUsage;
+      providerMetadata: ProviderMetadata | undefined;
+      /**
+       * @deprecated Use `providerMetadata` instead.
+       */
+      // TODO 5.0 breaking change: remove
       experimental_providerMetadata?: ProviderMetadata;
 
       /**

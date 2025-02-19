@@ -40,7 +40,7 @@ This is a test file.
       {
         role: 'user',
         content: 'Update my README file to talk about AI.',
-        experimental_providerMetadata: {
+        providerOptions: {
           anthropic: {
             cacheControl: { type: 'ephemeral' },
           },
@@ -51,7 +51,7 @@ This is a test file.
   });
 
   console.log('TEXT', result.text);
-  console.log('CACHE', result.experimental_providerMetadata?.anthropic);
+  console.log('CACHE', result.providerMetadata?.anthropic);
   console.log();
   console.log('EDITOR CONTENT', editorContent);
 }

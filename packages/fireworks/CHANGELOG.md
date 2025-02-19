@@ -1,5 +1,48 @@
 # @ai-sdk/fireworks
 
+## 0.1.11
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/openai-compatible@0.1.11
+  - @ai-sdk/provider-utils@2.1.9
+
+## 0.1.10
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+  - @ai-sdk/openai-compatible@0.1.10
+
+## 0.1.9
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+  - @ai-sdk/openai-compatible@0.1.9
+
+## 0.1.8
+
+### Patch Changes
+
+- caf7d6f: fix (provider): extends providerv1 spec
+- d89c3b9: feat (provider): add image model support to provider specification
+- Updated dependencies [d89c3b9]
+  - @ai-sdk/provider@1.0.7
+  - @ai-sdk/openai-compatible@0.1.8
+  - @ai-sdk/provider-utils@2.1.6
+
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [f2c6c37]
+  - @ai-sdk/openai-compatible@0.1.7
+
 ## 0.1.6
 
 ### Patch Changes

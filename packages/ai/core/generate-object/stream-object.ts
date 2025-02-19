@@ -35,7 +35,7 @@ import {
 } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata } from '../types/provider-metadata';
+import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import {
   LanguageModelUsage,
   calculateLanguageModelUsage,
@@ -56,7 +56,21 @@ import { validateObjectGenerationInput } from './validate-object-generation-inpu
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
-type OnFinishCallback<RESULT> = (event: {
+/**
+Callback that is set using the `onError` option.
+
+@param event - The event that is passed to the callback.
+ */
+export type StreamObjectOnErrorCallback = (event: {
+  error: unknown;
+}) => Promise<void> | void;
+
+/**
+Callback that is set using the `onFinish` option.
+
+@param event - The event that is passed to the callback.
+ */
+export type StreamObjectOnFinishCallback<RESULT> = (event: {
   /**
 The token usage of the generated response.
 */
@@ -84,10 +98,15 @@ Warnings from the model provider (e.g. unsupported settings).
 
   /**
 Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
 */
-  experimental_providerMetadata: ProviderMetadata | undefined;
+  providerMetadata: ProviderMetadata | undefined;
+
+  /**
+@deprecated Use `providerMetadata` instead.
+*/
+  experimental_providerMetadata?: ProviderMetadata;
 }) => Promise<void> | void;
 
 /**
@@ -148,16 +167,28 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+      providerOptions?: ProviderOptions;
+
+      /**
+@deprecated Use `providerOptions` instead.
+*/
       experimental_providerMetadata?: ProviderMetadata;
+
+      /**
+Callback that is invoked when an error occurs during streaming.
+You can use it to log errors.
+The stream processing will pause until the callback promise is resolved.
+     */
+      onError?: StreamObjectOnErrorCallback;
 
       /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
-      onFinish?: OnFinishCallback<OBJECT>;
+      onFinish?: StreamObjectOnFinishCallback<OBJECT>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -227,16 +258,28 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+      providerOptions?: ProviderOptions;
+
+      /**
+@deprecated Use `providerOptions` instead.
+*/
       experimental_providerMetadata?: ProviderMetadata;
+
+      /**
+Callback that is invoked when an error occurs during streaming.
+You can use it to log errors.
+The stream processing will pause until the callback promise is resolved.
+     */
+      onError?: StreamObjectOnErrorCallback;
 
       /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
-      onFinish?: OnFinishCallback<Array<ELEMENT>>;
+      onFinish?: StreamObjectOnFinishCallback<Array<ELEMENT>>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -281,16 +324,28 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+      providerOptions?: ProviderOptions;
+
+      /**
+@deprecated Use `providerOptions` instead.
+*/
       experimental_providerMetadata?: ProviderMetadata;
+
+      /**
+Callback that is invoked when an error occurs during streaming.
+You can use it to log errors.
+The stream processing will pause until the callback promise is resolved.
+     */
+      onError?: StreamObjectOnErrorCallback;
 
       /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
-      onFinish?: OnFinishCallback<JSONValue>;
+      onFinish?: StreamObjectOnFinishCallback<JSONValue>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -316,7 +371,9 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
-  experimental_providerMetadata: providerMetadata,
+  experimental_providerMetadata,
+  providerOptions = experimental_providerMetadata,
+  onError,
   onFinish,
   _internal: {
     generateId = originalGenerateId,
@@ -343,8 +400,10 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
+    providerOptions?: ProviderOptions;
     experimental_providerMetadata?: ProviderMetadata;
-    onFinish?: OnFinishCallback<RESULT>;
+    onError?: StreamObjectOnErrorCallback;
+    onFinish?: StreamObjectOnFinishCallback<RESULT>;
     _internal?: {
       generateId?: () => string;
       currentDate?: () => Date;
@@ -379,8 +438,9 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     messages,
     schemaName,
     schemaDescription,
-    inputProviderMetadata: providerMetadata,
+    providerOptions,
     mode,
+    onError,
     onFinish,
     generateId,
     currentDate,
@@ -404,8 +464,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   private readonly responsePromise =
     new DelayedPromise<LanguageModelResponseMetadata>();
 
-  private readonly stitchableStream =
-    createStitchableStream<ObjectStreamPart<PARTIAL>>();
+  private readonly baseStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
 
   private readonly outputStrategy: OutputStrategy<
     PARTIAL,
@@ -426,8 +485,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     messages,
     schemaName,
     schemaDescription,
-    inputProviderMetadata,
+    providerOptions,
     mode,
+    onError,
     onFinish,
     generateId,
     currentDate,
@@ -445,9 +505,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     messages: Prompt['messages'];
     schemaName: string | undefined;
     schemaDescription: string | undefined;
-    inputProviderMetadata: ProviderMetadata | undefined;
+    providerOptions: ProviderOptions | undefined;
     mode: 'auto' | 'json' | 'tool' | undefined;
-    onFinish: OnFinishCallback<RESULT> | undefined;
+    onError: StreamObjectOnErrorCallback | undefined;
+    onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
     generateId: () => string;
     currentDate: () => Date;
     now: () => number;
@@ -465,6 +526,24 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
     const tracer = getTracer(telemetry);
     const self = this;
+
+    const stitchableStream =
+      createStitchableStream<ObjectStreamPart<PARTIAL>>();
+
+    const eventProcessor = new TransformStream<
+      ObjectStreamPart<PARTIAL>,
+      ObjectStreamPart<PARTIAL>
+    >({
+      transform(chunk, controller) {
+        controller.enqueue(chunk);
+
+        if (chunk.type === 'error') {
+          onError?.({ error: chunk.error });
+        }
+      },
+    });
+
+    this.baseStream = stitchableStream.stream.pipeThrough(eventProcessor);
 
     recordSpan({
       name: 'ai.streamObject',
@@ -535,9 +614,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               prompt: await convertToLanguageModelPrompt({
                 prompt: standardizedPrompt,
                 modelSupportsImageUrls: model.supportsImageUrls,
-                modelSupportsUrl: model.supportsUrl,
+                modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
               }),
-              providerMetadata: inputProviderMetadata,
+              providerMetadata: providerOptions,
               abortSignal,
               headers,
             };
@@ -582,9 +661,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               prompt: await convertToLanguageModelPrompt({
                 prompt: standardizedPrompt,
                 modelSupportsImageUrls: model.supportsImageUrls,
-                modelSupportsUrl: model.supportsUrl,
+                modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context,
               }),
-              providerMetadata: inputProviderMetadata,
+              providerMetadata: providerOptions,
               abortSignal,
               headers,
             };
@@ -898,10 +977,11 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                       headers: rawResponse?.headers,
                     },
                     warnings,
+                    providerMetadata,
                     experimental_providerMetadata: providerMetadata,
                   });
                 } catch (error) {
-                  controller.error(error);
+                  controller.enqueue({ type: 'error', error });
                 } finally {
                   rootSpan.end();
                 }
@@ -909,21 +989,22 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
             }),
           );
 
-        self.stitchableStream.addStream(transformedStream);
+        stitchableStream.addStream(transformedStream);
       },
     })
       .catch(error => {
         // add an empty stream with an error to break the stream:
-        self.stitchableStream.addStream(
+        stitchableStream.addStream(
           new ReadableStream({
             start(controller) {
-              controller.error(error);
+              controller.enqueue({ type: 'error', error });
+              controller.close();
             },
           }),
         );
       })
       .finally(() => {
-        self.stitchableStream.close();
+        stitchableStream.close();
       });
 
     this.outputStrategy = outputStrategy;
@@ -941,6 +1022,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     return this.providerMetadataPromise.value;
   }
 
+  get providerMetadata() {
+    return this.providerMetadataPromise.value;
+  }
+
   get warnings() {
     return this.warningsPromise.value;
   }
@@ -955,7 +1040,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
   get partialObjectStream(): AsyncIterableStream<PARTIAL> {
     return createAsyncIterableStream(
-      this.stitchableStream.stream.pipeThrough(
+      this.baseStream.pipeThrough(
         new TransformStream<ObjectStreamPart<PARTIAL>, PARTIAL>({
           transform(chunk, controller) {
             switch (chunk.type) {
@@ -965,10 +1050,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
               case 'text-delta':
               case 'finish':
-                break;
-
-              case 'error':
-                controller.error(chunk.error);
+              case 'error': // suppress error (use onError instead)
                 break;
 
               default: {
@@ -983,14 +1065,12 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get elementStream(): ELEMENT_STREAM {
-    return this.outputStrategy.createElementStream(
-      this.stitchableStream.stream,
-    );
+    return this.outputStrategy.createElementStream(this.baseStream);
   }
 
   get textStream(): AsyncIterableStream<string> {
     return createAsyncIterableStream(
-      this.stitchableStream.stream.pipeThrough(
+      this.baseStream.pipeThrough(
         new TransformStream<ObjectStreamPart<PARTIAL>, string>({
           transform(chunk, controller) {
             switch (chunk.type) {
@@ -1000,10 +1080,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
               case 'object':
               case 'finish':
-                break;
-
-              case 'error':
-                controller.error(chunk.error);
+              case 'error': // suppress error (use onError instead)
                 break;
 
               default: {
@@ -1018,7 +1095,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get fullStream(): AsyncIterableStream<ObjectStreamPart<PARTIAL>> {
-    return createAsyncIterableStream(this.stitchableStream.stream);
+    return createAsyncIterableStream(this.baseStream);
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {

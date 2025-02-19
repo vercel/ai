@@ -17,7 +17,8 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ProviderMetadata, ToolChoice } from '../types';
+import { LanguageModel, ToolChoice } from '../types';
+import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import {
   addLanguageModelUsage,
   calculateLanguageModelUsage,
@@ -43,6 +44,15 @@ const originalGenerateMessageId = createIdGenerator({
   prefix: 'msg',
   size: 24,
 });
+
+/**
+Callback that is set using the `onStepFinish` option.
+
+@param stepResult - The result of the step.
+ */
+export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
+  stepResult: StepResult<TOOLS>,
+) => Promise<void> | void;
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -110,7 +120,8 @@ export async function generateText<
   experimental_output: output,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
-  experimental_providerMetadata: providerMetadata,
+  experimental_providerMetadata,
+  providerOptions = experimental_providerMetadata,
   experimental_activeTools: activeTools,
   experimental_repairToolCall: repairToolCall,
   _internal: {
@@ -163,10 +174,15 @@ Optional telemetry configuration (experimental).
     experimental_telemetry?: TelemetrySettings;
 
     /**
-Additional provider-specific metadata. They are passed through
+Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
+    providerOptions?: ProviderOptions;
+
+    /**
+@deprecated Use `providerOptions` instead.
+     */
     experimental_providerMetadata?: ProviderMetadata;
 
     /**
@@ -188,7 +204,7 @@ A function that attempts to repair a tool call that failed to parse.
     /**
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
-    onStepFinish?: (event: StepResult<TOOLS>) => Promise<void> | void;
+    onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -260,6 +276,7 @@ A function that attempts to repair a tool call that failed to parse.
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
       let text = '';
+      const sources: GenerateTextResult<TOOLS, OUTPUT>['sources'] = [];
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
       let usage: LanguageModelUsage = {
         completionTokens: 0,
@@ -285,7 +302,7 @@ A function that attempts to repair a tool call that failed to parse.
             messages: stepInputMessages,
           },
           modelSupportsImageUrls: model.supportsImageUrls,
-          modelSupportsUrl: model.supportsUrl,
+          modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
         });
 
         currentModelResponse = await retry(() =>
@@ -334,7 +351,7 @@ A function that attempts to repair a tool call that failed to parse.
                 inputFormat: promptFormat,
                 responseFormat: output?.responseFormat({ model }),
                 prompt: promptMessages,
-                providerMetadata,
+                providerMetadata: providerOptions,
                 abortSignal,
                 headers,
               });
@@ -450,6 +467,9 @@ A function that attempts to repair a tool call that failed to parse.
             ? text + stepText
             : stepText;
 
+        // sources:
+        sources.push(...(currentModelResponse.sources ?? []));
+
         // append to messages for potential next step:
         if (stepType === 'continue') {
           // continue step: update the last assistant message
@@ -485,6 +505,7 @@ A function that attempts to repair a tool call that failed to parse.
           stepType,
           text: stepText,
           reasoning: currentModelResponse.reasoning,
+          sources: currentModelResponse.sources ?? [],
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
           finishReason: currentModelResponse.finishReason,
@@ -499,6 +520,7 @@ A function that attempts to repair a tool call that failed to parse.
             // deep clone msgs to avoid mutating past messages in multi-step:
             messages: structuredClone(responseMessages),
           },
+          providerMetadata: currentModelResponse.providerMetadata,
           experimental_providerMetadata: currentModelResponse.providerMetadata,
           isContinued: nextStepType === 'continue',
         };
@@ -531,6 +553,7 @@ A function that attempts to repair a tool call that failed to parse.
       return new DefaultGenerateTextResult({
         text,
         reasoning: currentModelResponse.reasoning,
+        sources,
         outputResolver: () => {
           if (output == null) {
             throw new NoOutputSpecifiedError();
@@ -669,8 +692,13 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     TOOLS,
     OUTPUT
   >['experimental_providerMetadata'];
+  readonly providerMetadata: GenerateTextResult<
+    TOOLS,
+    OUTPUT
+  >['providerMetadata'];
   readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
+  readonly sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
 
   private readonly outputResolver: () => GenerateTextResult<
     TOOLS,
@@ -687,16 +715,14 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
     logprobs: GenerateTextResult<TOOLS, OUTPUT>['logprobs'];
     steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
-    providerMetadata: GenerateTextResult<
-      TOOLS,
-      OUTPUT
-    >['experimental_providerMetadata'];
+    providerMetadata: GenerateTextResult<TOOLS, OUTPUT>['providerMetadata'];
     response: GenerateTextResult<TOOLS, OUTPUT>['response'];
     request: GenerateTextResult<TOOLS, OUTPUT>['request'];
     outputResolver: () => GenerateTextResult<
       TOOLS,
       OUTPUT
     >['experimental_output'];
+    sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
   }) {
     this.text = options.text;
     this.reasoning = options.reasoning;
@@ -709,8 +735,10 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.response = options.response;
     this.steps = options.steps;
     this.experimental_providerMetadata = options.providerMetadata;
+    this.providerMetadata = options.providerMetadata;
     this.logprobs = options.logprobs;
     this.outputResolver = options.outputResolver;
+    this.sources = options.sources;
   }
 
   get experimental_output() {

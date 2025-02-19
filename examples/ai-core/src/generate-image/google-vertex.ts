@@ -1,7 +1,7 @@
-import 'dotenv/config';
 import { vertex } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
+import { presentImages } from '../lib/present-image';
+import 'dotenv/config';
 
 async function main() {
   const { image } = await generateImage({
@@ -16,9 +16,7 @@ async function main() {
     },
   });
 
-  const filename = `image-${Date.now()}.png`;
-  fs.writeFileSync(filename, image.uint8Array);
-  console.log(`Image saved to ${filename}`);
+  await presentImages([image]);
 }
 
 main().catch(console.error);

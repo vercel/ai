@@ -4,6 +4,7 @@ import { LanguageModelV1FinishReason } from './language-model-v1-finish-reason';
 import { LanguageModelV1FunctionToolCall } from './language-model-v1-function-tool-call';
 import { LanguageModelV1LogProbs } from './language-model-v1-logprobs';
 import { LanguageModelV1ProviderMetadata } from './language-model-v1-provider-metadata';
+import { LanguageModelV1Source } from './language-model-v1-source';
 
 /**
 Specification for a language model that implements the language model interface version 1.
@@ -183,11 +184,17 @@ results that can be fully encapsulated in the provider.
     providerMetadata?: LanguageModelV1ProviderMetadata;
 
     /**
+Sources that have been used as input to generate the response.
+     */
+    sources?: LanguageModelV1Source[];
+
+    /**
 Logprobs for the completion.
 `undefined` if the mode does not support logprobs or if was not enabled
 
 @deprecated will be changed into a provider-specific extension in v2
      */
+    // TODO change in language model v2
     logprobs?: LanguageModelV1LogProbs;
   }>;
 
@@ -255,6 +262,9 @@ export type LanguageModelV1StreamPart =
 
   // Reasoning text deltas:
   | { type: 'reasoning'; textDelta: string }
+
+  // Sources:
+  | { type: 'source'; source: LanguageModelV1Source }
 
   // Complete tool calls:
   | ({ type: 'tool-call' } & LanguageModelV1FunctionToolCall)
