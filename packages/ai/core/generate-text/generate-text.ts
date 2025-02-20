@@ -495,7 +495,7 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               text,
-              reasoning: currentModelResponse.reasoning,
+              reasoning: extractReasoningText(currentModelResponse.reasoning),
               tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
               toolResults: currentToolResults,
@@ -559,6 +559,9 @@ A function that attempts to repair a tool call that failed to parse.
       return new DefaultGenerateTextResult({
         text,
         reasoning: extractReasoningText(currentModelResponse.reasoning),
+        reasoningDetails: extractReasoningDetails(
+          currentModelResponse.reasoning,
+        ),
         sources,
         outputResolver: () => {
           if (output == null) {
@@ -682,25 +685,15 @@ async function executeTools<TOOLS extends ToolSet>({
   );
 }
 
-function extractReasoningText(
-  reasoning: string | Array<{ text: string }> | undefined,
-): string | undefined {
-  if (reasoning == null) {
-    return undefined;
-  }
-
-  if (typeof reasoning === 'string') {
-    return reasoning;
-  }
-
-  return reasoning.map(part => part.text).join('');
-}
-
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
   readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
   readonly reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
+  readonly reasoningDetails: GenerateTextResult<
+    TOOLS,
+    OUTPUT
+  >['reasoningDetails'];
   readonly toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
   readonly toolResults: GenerateTextResult<TOOLS, OUTPUT>['toolResults'];
   readonly finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
@@ -728,6 +721,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   constructor(options: {
     text: GenerateTextResult<TOOLS, OUTPUT>['text'];
     reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
+    reasoningDetails: GenerateTextResult<TOOLS, OUTPUT>['reasoningDetails'];
     toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
     toolResults: GenerateTextResult<TOOLS, OUTPUT>['toolResults'];
     finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
@@ -746,6 +740,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }) {
     this.text = options.text;
     this.reasoning = options.reasoning;
+    this.reasoningDetails = options.reasoningDetails;
     this.toolCalls = options.toolCalls;
     this.toolResults = options.toolResults;
     this.finishReason = options.finishReason;
@@ -764,4 +759,44 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   get experimental_output() {
     return this.outputResolver();
   }
+}
+
+function extractReasoningText(
+  reasoning:
+    | string
+    | Array<{ type: 'text' | 'redacted'; text: string; signature?: string }>
+    | undefined,
+): string | undefined {
+  if (reasoning == null) {
+    return undefined;
+  }
+
+  const reasoningText =
+    typeof reasoning === 'string'
+      ? reasoning
+      : reasoning
+          .filter(part => part.type === 'text')
+          .map(part => part.text)
+          .join('');
+
+  return reasoningText.length > 0 ? reasoningText : undefined;
+}
+
+function extractReasoningDetails(
+  reasoning:
+    | string
+    | Array<{ type: 'text' | 'redacted'; text: string; signature?: string }>
+    | undefined,
+):
+  | Array<{ type: 'text' | 'redacted'; text: string; signature?: string }>
+  | undefined {
+  if (reasoning == null) {
+    return undefined;
+  }
+
+  if (typeof reasoning === 'string') {
+    return [{ type: 'text', text: reasoning }];
+  }
+
+  return reasoning;
 }

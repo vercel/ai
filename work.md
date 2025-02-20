@@ -13,7 +13,12 @@
   - [x] streamText assistant message reasoning parts
 - [ ] implementation denim
 
+  - [ ] specification
+    - [ ] doGenerate output
   - [ ] generateText
+    - [ ] reasoningText
+    - [ ] reasoningDetails
+    - [ ] update messages mapping
   - [ ] streamText
 
 - [ ] documentation

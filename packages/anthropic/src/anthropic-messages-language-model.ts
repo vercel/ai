@@ -276,7 +276,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
-    console.log(JSON.stringify(rawValue, null, 2));
+    // console.log(JSON.stringify(rawValue, null, 2));
 
     const { messages: rawPrompt, ...rawSettings } = args;
 

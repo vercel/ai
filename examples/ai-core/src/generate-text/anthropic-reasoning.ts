@@ -17,7 +17,7 @@ async function main() {
   });
 
   console.log('Reasoning:');
-  console.log(result.reasoning); // TODO need full reasoning
+  console.log(result.reasoningDetails);
   console.log();
 
   console.log('Text:');

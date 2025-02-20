@@ -85,15 +85,16 @@ by the user.
   doGenerate(options: LanguageModelV1CallOptions): PromiseLike<{
     // TODO v2: switch to a composite content array with text, tool calls, reasoning
     /**
-Text that the model has generated. Can be undefined if the model
-has only generated tool calls.
+Text that the model has generated.
+Can be undefined if the model did not generate any text.
      */
     text?: string;
 
     /**
-Reasoning text that the model has generated.
-Can be undefined if the model has only generated text.
+Reasoning that the model has generated.
+Can be undefined if the model does not support reasoning.
      */
+    // TODO v2: remove string option
     reasoning?:
       | string
       | Array<{
@@ -103,8 +104,8 @@ Can be undefined if the model has only generated text.
         }>;
 
     /**
-Tool calls that the model has generated. Can be undefined if the
-model has only generated text.
+Tool calls that the model has generated.
+Can be undefined if the model did not generate any tool calls.
      */
     toolCalls?: Array<LanguageModelV1FunctionToolCall>;
 

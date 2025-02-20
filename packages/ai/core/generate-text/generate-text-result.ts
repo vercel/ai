@@ -28,7 +28,17 @@ The generated text.
 The reasoning text that the model has generated. Can be undefined if the model
 has only generated text.
    */
+  // TODO v5: rename to `reasoningText`
   readonly reasoning: string | undefined;
+
+  // TODO v5: rename to `reasoning`
+  readonly reasoningDetails:
+    | Array<{
+        type: 'text' | 'redacted';
+        text: string;
+        signature?: string;
+      }>
+    | undefined;
 
   /**
 Sources that have been used as input to generate the response.
