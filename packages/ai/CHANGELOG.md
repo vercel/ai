@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.45
+
+### Patch Changes
+
+- 93bd5a0: feat (ai/ui): add writeSource to createDataStream
+
 ## 4.1.44
 
 ### Patch Changes
