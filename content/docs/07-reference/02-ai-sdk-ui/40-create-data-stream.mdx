@@ -61,6 +61,11 @@ const stream = createDataStream({
               description: 'Appends a message annotation to the stream.',
             },
             {
+              name: 'writeSource',
+              type: '(source: Source) => void',
+              description: 'Appends a source part to the stream.',
+            },
+            {
               name: 'merge',
               type: '(stream: ReadableStream<DataStreamString>) => void',
               description:

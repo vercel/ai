@@ -69,6 +69,11 @@ const response = createDataStreamResponse({
           type: 'DataStreamWriter',
           parameters: [
             {
+              name: 'write',
+              type: '(data: DataStreamString) => void',
+              description: 'Appends a data part to the stream.',
+            },
+            {
               name: 'writeData',
               type: '(value: JSONValue) => void',
               description: 'Appends a data part to the stream.',
@@ -77,6 +82,11 @@ const response = createDataStreamResponse({
               name: 'writeMessageAnnotation',
               type: '(value: JSONValue) => void',
               description: 'Appends a message annotation to the stream.',
+            },
+            {
+              name: 'writeSource',
+              type: '(source: Source) => void',
+              description: 'Appends a source part to the stream.',
             },
             {
               name: 'merge',
