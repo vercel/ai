@@ -1,6 +1,6 @@
 # Tasks
 
-- [x] implementation
+- [x] implementation flannel
   - [x] reasoning settings & warnings
   - [x] reasoning output streaming
   - [x] reasoning output non-streaming
@@ -11,6 +11,11 @@
   - [x] ui message to core message conversion
   - [x] generateText assistant message reasoning parts
   - [x] streamText assistant message reasoning parts
+- [ ] implementation denim
+
+  - [ ] generateText
+  - [ ] streamText
+
 - [ ] documentation
   - [x] anthropic provider page
   - [x] prompt page: assistant message reasoning part

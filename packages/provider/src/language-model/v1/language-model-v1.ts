@@ -91,10 +91,16 @@ has only generated tool calls.
     text?: string;
 
     /**
-Reasoning text that the model has generated. Can be undefined if the model
-has only generated text.
+Reasoning text that the model has generated.
+Can be undefined if the model has only generated text.
      */
-    reasoning?: string;
+    reasoning?:
+      | string
+      | Array<{
+          type: 'text' | 'redacted';
+          text: string;
+          signature?: string;
+        }>;
 
     /**
 Tool calls that the model has generated. Can be undefined if the

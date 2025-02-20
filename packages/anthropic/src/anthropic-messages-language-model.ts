@@ -260,7 +260,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings, betas } = await this.getArgs(options);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue,
+    } = await postJsonToApi({
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({ betas, headers: options.headers }),
       body: this.transformRequestBody(args),
@@ -271,6 +275,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
+
+    console.log(JSON.stringify(rawValue, null, 2));
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
@@ -298,15 +304,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       }
     }
 
-    // redacted_thinking is currently ignored
-    const reasoningText = response.content
-      .filter(content => content.type === 'thinking')
-      .map(content => content.thinking)
-      .join('');
-
     return {
       text,
-      reasoning: reasoningText.length > 0 ? reasoningText : undefined,
+      reasoning: response.content
+        .filter(
+          content =>
+            content.type === 'redacted_thinking' || content.type === 'thinking',
+        )
+        .map(content => ({
+          text: content.type === 'thinking' ? content.thinking : content.data,
+          type:
+            content.type === 'redacted_thinking'
+              ? ('redacted' as const)
+              : ('text' as const),
+          signature:
+            content.type === 'thinking' ? content.signature : undefined,
+        })),
       toolCalls,
       finishReason: mapAnthropicStopReason(response.stop_reason),
       usage: {
@@ -559,6 +572,11 @@ const anthropicMessagesResponseSchema = z.object({
       z.object({
         type: z.literal('thinking'),
         thinking: z.string(),
+        signature: z.string(),
+      }),
+      z.object({
+        type: z.literal('redacted_thinking'),
+        data: z.string(),
       }),
       z.object({
         type: z.literal('tool_use'),
