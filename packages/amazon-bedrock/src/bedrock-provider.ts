@@ -87,7 +87,7 @@ export interface AmazonBedrockProvider extends ProviderV1 {
     modelId: BedrockEmbeddingModelId,
     settings?: BedrockEmbeddingSettings,
   ): EmbeddingModelV1<string>;
-  
+
   image(
     modelId: BedrockImageModelId,
     settings?: BedrockImageSettings,

@@ -6,7 +6,9 @@ import { injectFetchHeaders } from './inject-fetch-headers';
 const prompt = 'A cute baby sea otter';
 
 const provider = createAmazonBedrock();
-const model = provider.image('amazon.nova-canvas-v1:0', { maxImagesPerCall: 2});
+const model = provider.image('amazon.nova-canvas-v1:0', {
+  maxImagesPerCall: 2,
+});
 const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const invokeUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
@@ -42,8 +44,8 @@ describe('doGenerate', () => {
       baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
       headers: mockConfigHeaders,
       fetch: fakeFetchWithAuth,
-    }
-  )
+    },
+  );
 
   it('should pass the model and the settings', async () => {
     await model.doGenerate({
@@ -59,7 +61,7 @@ describe('doGenerate', () => {
           cfgScale: 1.2,
           width: 1024,
           height: 1024,
-        }
+        },
       },
     });
 
@@ -77,7 +79,7 @@ describe('doGenerate', () => {
         cfgScale: 1.2,
         width: 1024,
         height: 1024,
-      }
+      },
     });
   });
 
@@ -86,7 +88,7 @@ describe('doGenerate', () => {
       'options-header': 'options-value',
       'shared-header': 'options-shared',
     };
-    
+
     const modelWithHeaders = new BedrockImageModel(
       'amazon.nova-canvas-v1:0',
       {},
@@ -122,10 +124,12 @@ describe('doGenerate', () => {
   });
 
   it('should respect maxImagesPerCall setting', async () => {
-    const customModel = provider.image('amazon.nova-canvas-v1:0', { maxImagesPerCall: 2 });
+    const customModel = provider.image('amazon.nova-canvas-v1:0', {
+      maxImagesPerCall: 2,
+    });
     expect(customModel.maxImagesPerCall).toBe(2);
 
-    const defaultModel = provider.image('amazon.nova-canvas-v1:0',);
+    const defaultModel = provider.image('amazon.nova-canvas-v1:0');
     expect(defaultModel.maxImagesPerCall).toBe(5); // 'amazon.nova-canvas-v1:0','s default from settings
 
     const unknownModel = provider.image('unknown-model' as any);
@@ -152,7 +156,8 @@ describe('doGenerate', () => {
       {
         type: 'unsupported-setting',
         setting: 'size',
-        details: 'This model does not support aspect ratio. Use `providerOptions.bedrock.width` & `providerOptions.bedrock.height` instead.',
+        details:
+          'This model does not support aspect ratio. Use `providerOptions.bedrock.width` & `providerOptions.bedrock.height` instead.',
       },
     ]);
   });
