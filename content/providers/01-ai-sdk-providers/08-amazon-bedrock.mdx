@@ -293,6 +293,57 @@ The following optional settings are available for Bedrock Titan embedding models
 | `amazon.titan-embed-text-v1`   | 1536               | <Cross size={18} /> |
 | `amazon.titan-embed-text-v2:0` | 1024               | <Check size={18} /> |
 
+## Image Models
+
+You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/nova/latest/userguide/image-generation.html)
+using the `.image()` factory method.
+
+```ts
+const model = bedrock.image('amazon.nova-canvas-v1:0');
+```
+
+Amazon Nova Canvas supports specifying the max number of images generated.
+You can pass it as an options argument:
+
+```ts
+const model = bedrock.imageModel('amazon.nova-canvas-v1:0', {
+  maxImagesPerCall: 5,
+});
+```
+
+You can use Amazon Nova Canvas to generate images with the `experimental_generateImage` function:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+  prompt: 'A beautiful sunset over a calm ocean',
+  seed: 42,
+  providerOptions: {
+    bedrock: {
+      width: 512,
+      height: 512,
+    },
+  },
+});
+```
+
+<Note>
+  The Amazon Nova Canvas model doesn't support the `aspectRatio` and `size`
+  parameters. Use the `providerOptions.bedrock.width` and
+  `providerOptions.bedrock.height` parameters instead.
+</Note>
+
+Documentation for additional settings can be found within the [Amazon Bedrock User Guide for Amazon Nova Documentation](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html).
+
+### Model Capabilities
+
+| Model                      | Sizes                           |
+| -------------------------- | ------------------------------- |
+| `amazon.nova-canvas-v1:03` | 1024x1024, 1792x1024, 1024x1792 |
+
 ## Response Headers
 
 The Amazon Bedrock provider will return the response headers associated with

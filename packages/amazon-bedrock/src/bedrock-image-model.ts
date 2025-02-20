@@ -14,7 +14,7 @@ import {
   modelMaxImagesPerCall,
 } from './bedrock-image-settings';
 import { BedrockErrorSchema } from './bedrock-error';
-import { number, z } from 'zod';
+import { z } from 'zod';
 
 type BedrockImageModelConfig = {
   baseUrl: () => string;
