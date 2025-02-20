@@ -134,12 +134,7 @@ describe('toResponseMessages', () => {
     const result = toResponseMessages({
       text: undefined,
       reasoning: undefined,
-      tools: {
-        testTool: {
-          description: 'A test tool',
-          parameters: z.object({}),
-        },
-      },
+      tools: {},
       toolCalls: [],
       toolResults: [],
       messageId: 'msg-123',
@@ -155,16 +150,11 @@ describe('toResponseMessages', () => {
     ]);
   });
 
-  it('should include reasoning as a string in the assistant message', () => {
+  it('should include reasoning string in the assistant message', () => {
     const result = toResponseMessages({
       text: 'Final text',
       reasoning: 'Simple reasoning',
-      tools: {
-        testTool: {
-          description: 'A test tool',
-          parameters: z.object({}),
-        },
-      },
+      tools: {},
       toolCalls: [],
       toolResults: [],
       messageId: 'msg-123',
@@ -177,6 +167,33 @@ describe('toResponseMessages', () => {
         id: 'msg-123',
         content: [
           { type: 'reasoning', text: 'Simple reasoning' },
+          { type: 'text', text: 'Final text' },
+        ],
+      },
+    ]);
+  });
+
+  it('should include reasoning array with redacted reasoning in the assistant message', () => {
+    const result = toResponseMessages({
+      text: 'Final text',
+      reasoning: [
+        { type: 'redacted', data: 'redacted-data' },
+        { type: 'text', text: 'Thinking text', signature: 'sig' },
+      ],
+      tools: {},
+      toolCalls: [],
+      toolResults: [],
+      messageId: 'msg-123',
+      generateMessageId: mockValues('msg-345'),
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        id: 'msg-123',
+        content: [
+          { type: 'redacted-reasoning', data: 'redacted-data' },
+          { type: 'reasoning', text: 'Thinking text', signature: 'sig' },
           { type: 'text', text: 'Final text' },
         ],
       },

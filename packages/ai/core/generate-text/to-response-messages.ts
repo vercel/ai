@@ -17,7 +17,13 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   generateMessageId,
 }: {
   text: string | undefined;
-  reasoning: string | undefined;
+  reasoning:
+    | string
+    | Array<
+        | { type: 'text'; text: string; signature?: string }
+        | { type: 'redacted'; data: string }
+      >
+    | undefined;
   tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
   toolResults: ToolResultArray<TOOLS>;
@@ -29,8 +35,16 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   responseMessages.push({
     role: 'assistant',
     content: [
+      // TODO reasoning array with redacted thinking
       ...(reasoning !== null && typeof reasoning === 'string'
         ? [{ type: 'reasoning' as const, text: reasoning }]
+        : []),
+      ...(reasoning !== null && Array.isArray(reasoning)
+        ? reasoning.map(part =>
+            part.type === 'text'
+              ? { ...part, type: 'reasoning' as const }
+              : { ...part, type: 'redacted-reasoning' as const },
+          )
         : []),
       { type: 'text', text },
       ...toolCalls,

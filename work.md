@@ -20,10 +20,10 @@
     - [x] input mapping
   - [x] messages
   - [x] convertToLanguageModelMessage
-  - [ ] generateText
+  - [x] generateText
     - [x] reasoningText
     - [x] reasoningDetails
-    - [ ] update output messages mapping
+    - [x] update output messages mapping
   - [ ] streamText
 
 - [ ] documentation
