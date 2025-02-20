@@ -63,14 +63,17 @@ export class BedrockImageModel implements ImageModelV1 {
       taskType: 'TEXT_IMAGE',
       textToImageParams: {
         text: prompt,
+        ...(providerOptions?.bedrock?.negativeText ? {
+          negativeText: providerOptions.bedrock.negativeText,
+        } : {}),
       },
       imageGenerationConfig: {
-        ...(providerOptions.bedrock.width ? { width: providerOptions.bedrock.width} : {}),
-        ...(providerOptions.bedrock.height ? { height: providerOptions.bedrock.height} : {}),
+        ...(providerOptions?.bedrock?.width ? { width: providerOptions.bedrock.width} : {}),
+        ...(providerOptions?.bedrock?.height ? { height: providerOptions.bedrock.height} : {}),
         ...(seed ? { seed } : {}),
-        ...(n ? { numberOfOutputs: n } : {}),
-        ...(providerOptions.bedrock.quality ? { quality: providerOptions.bedrock.quality } : {}),
-        ...(providerOptions.bedrock.cfgScale ? { cfgScale: providerOptions.bedrock.cfgScale } : {}),
+        ...(n ? { numberOfImages: n } : {}),
+        ...(providerOptions?.bedrock?.quality ? { quality: providerOptions.bedrock.quality } : {}),
+        ...(providerOptions?.bedrock?.cfgScale ? { cfgScale: providerOptions.bedrock.cfgScale } : {}),
       }
     }
 
