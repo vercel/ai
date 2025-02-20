@@ -2,7 +2,7 @@ import { JSONObject } from '@ai-sdk/provider';
 import { Resolvable } from '@ai-sdk/provider-utils';
 
 export interface BedrockConverseInput {
-  system?: Array<{ text: string }>;
+  system?: Array<BedrockSystemContentBlock>;
   messages: Array<{
     role: string;
     content: Array<BedrockContentBlock>;
@@ -21,6 +21,13 @@ export interface BedrockConverseInput {
     | undefined;
 }
 
+export const BEDROCK_CACHE_POINT = {
+  cachePoint: { type: 'default' },
+} as const;
+
+export type BedrockCachePoint = { cachePoint: { type: 'default' } };
+export type BedrockSystemContentBlock = { text: string } | BedrockCachePoint;
+
 export interface BedrockGuardrailConfiguration {
   guardrails?: Array<{
     name: string;
@@ -35,13 +42,15 @@ export interface BedrockToolInputSchema {
   json: Record<string, unknown>;
 }
 
-export interface BedrockTool {
-  toolSpec: {
-    name: string;
-    description?: string;
-    inputSchema: { json: JSONObject };
-  };
-}
+export type BedrockTool =
+  | {
+      toolSpec: {
+        name: string;
+        description?: string;
+        inputSchema: { json: JSONObject };
+      };
+    }
+  | BedrockCachePoint;
 
 export interface BedrockToolConfiguration {
   tools?: BedrockTool[];
@@ -118,4 +127,5 @@ export type BedrockContentBlock =
   | BedrockImageBlock
   | BedrockTextBlock
   | BedrockToolResultBlock
-  | BedrockToolUseBlock;
+  | BedrockToolUseBlock
+  | BedrockCachePoint;

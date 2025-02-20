@@ -21,6 +21,7 @@ import {
   BedrockConverseInput,
   BedrockStopReason,
   BEDROCK_STOP_REASONS,
+  BEDROCK_CACHE_POINT,
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,
@@ -110,7 +111,8 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const { system, messages } = convertToBedrockChatMessages(prompt);
+    const { system, isSystemCachePoint, messages } =
+      convertToBedrockChatMessages(prompt);
 
     const inferenceConfig = {
       ...(maxTokens != null && { maxTokens }),
@@ -120,7 +122,12 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     };
 
     const baseArgs: BedrockConverseInput = {
-      system: system ? [{ text: system }] : undefined,
+      system: system
+        ? [
+            { text: system },
+            ...(isSystemCachePoint ? [BEDROCK_CACHE_POINT] : []),
+          ]
+        : undefined,
       additionalModelRequestFields: this.settings.additionalModelRequestFields,
       ...(Object.keys(inferenceConfig).length > 0 && {
         inferenceConfig,
@@ -203,9 +210,24 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
-    const providerMetadata = response.trace
-      ? { bedrock: { trace: response.trace as JSONObject } }
-      : undefined;
+    const providerMetadata =
+      response.trace || response.usage
+        ? {
+            bedrock: {
+              ...(response.trace && typeof response.trace === 'object'
+                ? { trace: response.trace as JSONObject }
+                : {}),
+              ...(response.usage && {
+                usage: {
+                  cacheReadInputTokens:
+                    response.usage?.cacheReadInputTokens ?? Number.NaN,
+                  cacheWriteInputTokens:
+                    response.usage?.cacheWriteInputTokens ?? Number.NaN,
+                },
+              }),
+            },
+          }
+        : undefined;
 
     return {
       text:
@@ -455,6 +477,8 @@ const BedrockResponseSchema = z.object({
     inputTokens: z.number(),
     outputTokens: z.number(),
     totalTokens: z.number(),
+    cacheReadInputTokens: z.number().nullish(),
+    cacheWriteInputTokens: z.number().nullish(),
   }),
 });
 
@@ -499,6 +523,8 @@ const BedrockStreamSchema = z.object({
       trace: z.unknown().nullish(),
       usage: z
         .object({
+          cacheReadInputTokens: z.number().nullish(),
+          cacheWriteOutputTokens: z.number().nullish(),
           inputTokens: z.number(),
           outputTokens: z.number(),
         })

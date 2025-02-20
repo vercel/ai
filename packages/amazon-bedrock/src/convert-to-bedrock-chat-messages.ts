@@ -2,13 +2,19 @@ import {
   JSONObject,
   LanguageModelV1Message,
   LanguageModelV1Prompt,
+  LanguageModelV1ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
-import { BedrockDocumentFormat, BedrockImageFormat } from './bedrock-api-types';
+import {
+  BedrockCachePoint,
+  BedrockDocumentFormat,
+  BedrockImageFormat,
+  BEDROCK_CACHE_POINT,
+} from './bedrock-api-types';
 import {
   BedrockAssistantMessage,
   BedrockMessagesPrompt,
@@ -17,12 +23,19 @@ import {
 
 const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
+function getCachePoint(
+  providerMetadata: LanguageModelV1ProviderMetadata | undefined,
+): BedrockCachePoint | undefined {
+  return providerMetadata?.bedrock?.cachePoint as BedrockCachePoint | undefined;
+}
+
 export function convertToBedrockChatMessages(
   prompt: LanguageModelV1Prompt,
 ): BedrockMessagesPrompt {
   const blocks = groupIntoBlocks(prompt);
 
   let system: string | undefined = undefined;
+  let isSystemCachePoint = false;
   const messages: BedrockMessagesPrompt['messages'] = [];
 
   for (let i = 0; i < blocks.length; i++) {
@@ -40,6 +53,9 @@ export function convertToBedrockChatMessages(
         }
 
         system = block.messages.map(({ content }) => content).join('\n');
+        isSystemCachePoint = block.messages.some(message =>
+          getCachePoint(message.providerMetadata),
+        );
         break;
       }
 
@@ -48,7 +64,7 @@ export function convertToBedrockChatMessages(
         const bedrockContent: BedrockUserMessage['content'] = [];
 
         for (const message of block.messages) {
-          const { role, content } = message;
+          const { role, content, providerMetadata } = message;
           switch (role) {
             case 'user': {
               for (let j = 0; j < content.length; j++) {
@@ -130,6 +146,10 @@ export function convertToBedrockChatMessages(
               throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
             }
           }
+
+          if (getCachePoint(providerMetadata)) {
+            bedrockContent.push(BEDROCK_CACHE_POINT);
+          }
         }
 
         messages.push({ role: 'user', content: bedrockContent });
@@ -176,6 +196,9 @@ export function convertToBedrockChatMessages(
               }
             }
           }
+          if (getCachePoint(message.providerMetadata)) {
+            bedrockContent.push(BEDROCK_CACHE_POINT);
+          }
         }
 
         messages.push({ role: 'assistant', content: bedrockContent });
@@ -192,6 +215,7 @@ export function convertToBedrockChatMessages(
 
   return {
     system,
+    isSystemCachePoint,
     messages,
   };
 }

@@ -2,6 +2,7 @@ import { BedrockContentBlock } from './bedrock-api-types';
 
 export type BedrockMessagesPrompt = {
   system?: string;
+  isSystemCachePoint: boolean;
   messages: BedrockMessages;
 };
 
