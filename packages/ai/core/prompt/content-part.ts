@@ -142,6 +142,11 @@ The reasoning text.
   text: string;
 
   /**
+An optional signature for verifying that the reasoning originated from the model.
+   */
+  signature?: string;
+
+  /**
 Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.

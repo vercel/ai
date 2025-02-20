@@ -33,11 +33,10 @@ has only generated text.
 
   // TODO v5: rename to `reasoning`
   readonly reasoningDetails:
-    | Array<{
-        type: 'text' | 'redacted';
-        text: string;
-        signature?: string;
-      }>
+    | Array<
+        | { type: 'text'; text: string; signature?: string }
+        | { type: 'redacted'; data: string }
+      >
     | undefined;
 
   /**

@@ -311,15 +311,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
           content =>
             content.type === 'redacted_thinking' || content.type === 'thinking',
         )
-        .map(content => ({
-          text: content.type === 'thinking' ? content.thinking : content.data,
-          type:
-            content.type === 'redacted_thinking'
-              ? ('redacted' as const)
-              : ('text' as const),
-          signature:
-            content.type === 'thinking' ? content.signature : undefined,
-        })),
+        .map(content =>
+          content.type === 'thinking'
+            ? {
+                type: 'text',
+                text: content.thinking,
+                signature: content.signature,
+              }
+            : {
+                type: 'redacted',
+                data: content.data,
+              },
+        ),
       toolCalls,
       finishReason: mapAnthropicStopReason(response.stop_reason),
       usage: {

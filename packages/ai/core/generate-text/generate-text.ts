@@ -764,7 +764,10 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
 function extractReasoningText(
   reasoning:
     | string
-    | Array<{ type: 'text' | 'redacted'; text: string; signature?: string }>
+    | Array<
+        | { type: 'text'; text: string; signature?: string }
+        | { type: 'redacted'; data: string }
+      >
     | undefined,
 ): string | undefined {
   if (reasoning == null) {
@@ -785,10 +788,16 @@ function extractReasoningText(
 function extractReasoningDetails(
   reasoning:
     | string
-    | Array<{ type: 'text' | 'redacted'; text: string; signature?: string }>
+    | Array<
+        | { type: 'text'; text: string; signature?: string }
+        | { type: 'redacted'; data: string }
+      >
     | undefined,
 ):
-  | Array<{ type: 'text' | 'redacted'; text: string; signature?: string }>
+  | Array<
+      | { type: 'text'; text: string; signature?: string }
+      | { type: 'redacted'; data: string }
+    >
   | undefined {
   if (reasoning == null) {
     return undefined;

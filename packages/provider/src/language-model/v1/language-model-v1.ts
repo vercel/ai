@@ -1,3 +1,4 @@
+import { P } from 'vitest/dist/chunks/environment.LoooBwUu';
 import { LanguageModelV1CallOptions } from './language-model-v1-call-options';
 import { LanguageModelV1CallWarning } from './language-model-v1-call-warning';
 import { LanguageModelV1FinishReason } from './language-model-v1-finish-reason';
@@ -97,11 +98,21 @@ Can be undefined if the model does not support reasoning.
     // TODO v2: remove string option
     reasoning?:
       | string
-      | Array<{
-          type: 'text' | 'redacted';
-          text: string;
-          signature?: string;
-        }>;
+      | Array<
+          | {
+              type: 'text';
+              text: string;
+
+              /**
+An optional signature for verifying that the reasoning originated from the model.
+   */
+              signature?: string;
+            }
+          | {
+              type: 'redacted';
+              data: string;
+            }
+        >;
 
     /**
 Tool calls that the model has generated.
