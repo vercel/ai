@@ -880,6 +880,8 @@ describe('doGenerate', () => {
       inputTokens: 4,
       outputTokens: 34,
       totalTokens: 38,
+      cacheReadInputTokens: undefined,
+      cacheWriteInputTokens: undefined,
     },
     stopReason = 'stop_sequence',
     trace,
@@ -894,6 +896,8 @@ describe('doGenerate', () => {
       inputTokens: number;
       outputTokens: number;
       totalTokens: number;
+      cacheReadInputTokens?: number;
+      cacheWriteInputTokens?: number;
     };
     stopReason?: string;
     trace?: typeof mockTrace;
@@ -1280,5 +1284,60 @@ describe('doGenerate', () => {
     // Verify that the outgoing request body includes "foo" at its top level.
     const body = await server.calls[0].requestBody;
     expect(body).toMatchObject({ foo: 'bar' });
+  });
+
+  it('should include cache token usage in providerMetadata', async () => {
+    prepareJsonResponse({
+      content: 'Testing',
+      usage: {
+        inputTokens: 4,
+        outputTokens: 34,
+        totalTokens: 38,
+        cacheReadInputTokens: 2,
+        cacheWriteInputTokens: 3,
+      },
+    });
+
+    const response = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response.providerMetadata).toEqual({
+      bedrock: {
+        usage: {
+          cacheReadInputTokens: 2,
+          cacheWriteInputTokens: 3,
+        },
+      },
+    });
+    expect(response.usage).toEqual({
+      promptTokens: 4,
+      completionTokens: 34,
+    });
+  });
+
+  it('should handle system messages with cache points', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: [
+        {
+          role: 'system',
+          content: 'System Prompt',
+          providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBody;
+    expect(requestBody).toMatchObject({
+      system: [{ text: 'System Prompt' }, { cachePoint: { type: 'default' } }],
+      messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+    });
   });
 });

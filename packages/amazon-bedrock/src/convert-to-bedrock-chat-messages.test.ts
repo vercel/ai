@@ -18,6 +18,22 @@ describe('system messages', () => {
       ]),
     ).toThrowError();
   });
+
+  it('should set isSystemCachePoint when system message has cache point', async () => {
+    const result = convertToBedrockChatMessages([
+      {
+        role: 'system',
+        content: 'Hello',
+        providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+      },
+    ]);
+
+    expect(result).toEqual({
+      system: 'Hello',
+      isSystemCachePoint: true,
+      messages: [],
+    });
+  });
 });
 
 describe('user messages', () => {
@@ -78,6 +94,27 @@ describe('user messages', () => {
 
     expect(system).toEqual('Hello');
   });
+
+  it('should add cache point to user message content when specified', async () => {
+    const result = convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Hello' }, { cachePoint: { type: 'default' } }],
+        },
+      ],
+      system: undefined,
+      isSystemCachePoint: false,
+    });
+  });
 });
 
 describe('assistant messages', () => {
@@ -105,6 +142,7 @@ describe('assistant messages', () => {
         },
       ],
       system: undefined,
+      isSystemCachePoint: false,
     });
   });
 
@@ -135,6 +173,7 @@ describe('assistant messages', () => {
         },
       ],
       system: undefined,
+      isSystemCachePoint: false,
     });
   });
 
@@ -170,6 +209,7 @@ describe('assistant messages', () => {
         },
       ],
       system: undefined,
+      isSystemCachePoint: false,
     });
   });
 
@@ -190,6 +230,28 @@ describe('assistant messages', () => {
         },
       ],
       system: undefined,
+      isSystemCachePoint: false,
+    });
+  });
+
+  it('should add cache point to assistant message content when specified', async () => {
+    const result = convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [{ text: 'Hello' }, { cachePoint: { type: 'default' } }],
+        },
+      ],
+      system: undefined,
+      isSystemCachePoint: false,
     });
   });
 });
