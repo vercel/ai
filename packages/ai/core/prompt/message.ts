@@ -11,6 +11,8 @@ import {
   imagePartSchema,
   ReasoningPart,
   reasoningPartSchema,
+  RedactedReasoningPart,
+  redactedReasoningPartSchema,
   TextPart,
   textPartSchema,
   ToolCallPart,
@@ -111,7 +113,12 @@ export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
     content: z.union([
       z.string(),
       z.array(
-        z.union([textPartSchema, reasoningPartSchema, toolCallPartSchema]),
+        z.union([
+          textPartSchema,
+          reasoningPartSchema,
+          redactedReasoningPartSchema,
+          toolCallPartSchema,
+        ]),
       ),
     ]),
     providerOptions: providerMetadataSchema.optional(),
@@ -123,7 +130,7 @@ Content of an assistant message. It can be a string or an array of text and tool
  */
 export type AssistantContent =
   | string
-  | Array<TextPart | ReasoningPart | ToolCallPart>;
+  | Array<TextPart | ReasoningPart | RedactedReasoningPart | ToolCallPart>;
 
 /**
 A tool message. It contains the result of one or more tool calls.

@@ -33,6 +33,7 @@ export type LanguageModelV1Message =
         content: Array<
           | LanguageModelV1TextPart
           | LanguageModelV1ReasoningPart
+          | LanguageModelV1RedactedReasoningPart
           | LanguageModelV1ToolCallPart
         >;
       }
@@ -78,6 +79,30 @@ export interface LanguageModelV1ReasoningPart {
 The reasoning text.
    */
   text: string;
+
+  /**
+An optional signature for verifying that the reasoning originated from the model.
+   */
+  signature?: string;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+   */
+  providerMetadata?: LanguageModelV1ProviderMetadata;
+}
+
+/**
+Redacted reasoning content part of a prompt.
+ */
+export interface LanguageModelV1RedactedReasoningPart {
+  type: 'redacted-reasoning';
+
+  /**
+Redacted reasoning data.
+   */
+  data: string;
 
   /**
 Additional provider-specific metadata. They are passed through

@@ -14,11 +14,16 @@
 - [ ] implementation denim
 
   - [ ] specification
-    - [ ] doGenerate output
+    - [x] input
+    - [x] doGenerate output
+  - [ ] anthropic provider
+    - [ ] input mapping
+  - [x] messages
+  - [x] convertToLanguageModelMessage
   - [ ] generateText
-    - [ ] reasoningText
-    - [ ] reasoningDetails
-    - [ ] update messages mapping
+    - [x] reasoningText
+    - [x] reasoningDetails
+    - [ ] update output messages mapping
   - [ ] streamText
 
 - [ ] documentation

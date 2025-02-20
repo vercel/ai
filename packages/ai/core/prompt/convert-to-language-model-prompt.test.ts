@@ -737,6 +737,55 @@ describe('convertToLanguageModelMessage', () => {
           ],
         });
       });
+
+      it('should support a mix of reasoning, redacted reasoning, and text parts', () => {
+        const result = convertToLanguageModelMessage(
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: `I'm thinking`,
+              },
+              {
+                type: 'redacted-reasoning',
+                data: 'redacted-reasoning-data',
+              },
+              {
+                type: 'reasoning',
+                text: 'more thinking',
+              },
+              {
+                type: 'text',
+                text: 'hello, world!',
+              },
+            ],
+          },
+          {},
+        );
+
+        expect(result).toEqual({
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: `I'm thinking`,
+            },
+            {
+              type: 'redacted-reasoning',
+              data: 'redacted-reasoning-data',
+            },
+            {
+              type: 'reasoning',
+              text: 'more thinking',
+            },
+            {
+              type: 'text',
+              text: 'hello, world!',
+            },
+          ],
+        });
+      });
     });
 
     describe('tool call parts', () => {
