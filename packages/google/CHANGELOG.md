@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.1.16
+
+### Patch Changes
+
+- 1b2e2a0: fix (provider/google): add resilience against undefined parts
+
 ## 1.1.15
 
 ### Patch Changes

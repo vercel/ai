@@ -17,10 +17,10 @@ Let's see how you can use language model middleware to cache responses.
 
 ```ts filename="ai/middleware.ts"
 import { Redis } from '@upstash/redis';
-import type {
-  LanguageModelV1,
-  LanguageModelV1Middleware,
-  LanguageModelV1StreamPart,
+import {
+  type LanguageModelV1,
+  type LanguageModelV1Middleware,
+  type LanguageModelV1StreamPart,
   simulateReadableStream,
 } from 'ai';
 

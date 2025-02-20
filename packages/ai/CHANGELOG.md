@@ -1,5 +1,17 @@
 # ai
 
+## 4.1.44
+
+### Patch Changes
+
+- f8e7df2: fix (ai/core): add `startWithReasoning` option to `extractReasoningMiddleware`
+
+## 4.1.43
+
+### Patch Changes
+
+- ef2e23b: feat (ai/core): add experimental repairText function to generateObject
+
 ## 4.1.42
 
 ### Patch Changes

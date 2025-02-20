@@ -417,7 +417,7 @@ function getToolCallsFromParts({
   parts: z.infer<typeof contentSchema>['parts'];
   generateId: () => string;
 }) {
-  const functionCallParts = parts.filter(
+  const functionCallParts = parts?.filter(
     part => 'functionCall' in part,
   ) as Array<
     GoogleGenerativeAIContentPart & {
@@ -425,7 +425,7 @@ function getToolCallsFromParts({
     }
   >;
 
-  return functionCallParts.length === 0
+  return functionCallParts == null || functionCallParts.length === 0
     ? undefined
     : functionCallParts.map(part => ({
         toolCallType: 'function' as const,
@@ -436,30 +436,32 @@ function getToolCallsFromParts({
 }
 
 function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts.filter(part => 'text' in part) as Array<
+  const textParts = parts?.filter(part => 'text' in part) as Array<
     GoogleGenerativeAIContentPart & { text: string }
   >;
 
-  return textParts.length === 0
+  return textParts == null || textParts.length === 0
     ? undefined
     : textParts.map(part => part.text).join('');
 }
 
 const contentSchema = z.object({
   role: z.string(),
-  parts: z.array(
-    z.union([
-      z.object({
-        text: z.string(),
-      }),
-      z.object({
-        functionCall: z.object({
-          name: z.string(),
-          args: z.unknown(),
+  parts: z
+    .array(
+      z.union([
+        z.object({
+          text: z.string(),
         }),
-      }),
-    ]),
-  ),
+        z.object({
+          functionCall: z.object({
+            name: z.string(),
+            args: z.unknown(),
+          }),
+        }),
+      ]),
+    )
+    .nullish(),
 });
 
 // https://ai.google.dev/gemini-api/docs/grounding

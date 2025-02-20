@@ -5,6 +5,7 @@ const name = 'AI_JSONParseError';
 const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
+// TODO v5: rename to ParseError
 export class JSONParseError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
