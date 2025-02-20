@@ -22,7 +22,10 @@ export interface AnthropicUserMessage {
 export interface AnthropicAssistantMessage {
   role: 'assistant';
   content: Array<
-    AnthropicTextContent | AnthropicThinkingContent | AnthropicToolCallContent
+    | AnthropicTextContent
+    | AnthropicThinkingContent
+    | AnthropicRedactedThinkingContent
+    | AnthropicToolCallContent
   >;
 }
 
@@ -35,6 +38,13 @@ export interface AnthropicTextContent {
 export interface AnthropicThinkingContent {
   type: 'thinking';
   thinking: string;
+  signature: string;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicRedactedThinkingContent {
+  type: 'redacted_thinking';
+  data: string;
   cache_control: AnthropicCacheControl | undefined;
 }
 

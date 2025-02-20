@@ -17,7 +17,7 @@
     - [x] input
     - [x] doGenerate output
   - [ ] anthropic provider
-    - [ ] input mapping
+    - [x] input mapping
   - [x] messages
   - [x] convertToLanguageModelMessage
   - [ ] generateText

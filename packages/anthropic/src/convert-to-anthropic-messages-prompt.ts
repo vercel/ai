@@ -254,11 +254,20 @@ export function convertToAnthropicMessagesPrompt({
                 anthropicContent.push({
                   type: 'thinking',
                   thinking: part.text,
+                  signature: part.signature!,
                   cache_control: cacheControl,
                 });
-                break; // ignored
+                break;
               }
 
+              case 'redacted-reasoning': {
+                anthropicContent.push({
+                  type: 'redacted_thinking',
+                  data: part.data,
+                  cache_control: cacheControl,
+                });
+                break;
+              }
               case 'tool-call': {
                 anthropicContent.push({
                   type: 'tool_use',
