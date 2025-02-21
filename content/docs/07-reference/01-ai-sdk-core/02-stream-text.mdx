@@ -1662,6 +1662,38 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'type',
+              type: "'reasoning-signature'",
+              description:
+                'The signature for the previous reasoning chunks. Send by some providers.',
+            },
+            {
+              name: 'signature',
+              type: 'string',
+              description: 'The signature.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'redacted-reasoning'",
+              description:
+                'The type to identify the object as redacted reasoning.',
+            },
+            {
+              name: 'data',
+              type: 'string',
+              description: 'The redacted data.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
               type: "'source'",
               description: 'The type to identify the object as source.',
             },

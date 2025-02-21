@@ -47,10 +47,10 @@
   - [x] chatbot ui page
   - [x] anthropic provider page
   - [x] prompt page: assistant message reasoning part
+  - [x] generateText reference
+  - [x] streamText reference
   - [ ] reference pages: assistant message reasoning part
   - [ ] data stream parts page
-  - [ ] streamText reference
-  - [ ] generateText reference
 - [x] examples
   - [x] anthropic reasoning examples
   - [x] anthropic reasoning chatbot with tools (generateText)
