@@ -11,7 +11,7 @@
   - [x] ui message to core message conversion
   - [x] generateText assistant message reasoning parts
   - [x] streamText assistant message reasoning parts
-- [ ] implementation denim
+- [x] implementation denim
   - [x] specification
     - [x] input
     - [x] doGenerate output
@@ -43,6 +43,7 @@
     - [x] redacted_reasoning
     - [x] signature
   - [x] mapping ui message to core message
+  - [x] validate build
 - [ ] documentation
   - [x] chatbot ui page
   - [x] anthropic provider page
@@ -59,3 +60,4 @@
   - [x] e2e deepseek
   - [x] e2e anthropic
 - [x] changeset
+- [ ] clean up pull request

@@ -302,10 +302,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
           if (result.reasoning) {
             if (Array.isArray(result.reasoning)) {
               for (const part of result.reasoning) {
-                controller.enqueue({
-                  type: 'reasoning',
-                  textDelta: part.text,
-                });
+                if (part.type === 'text') {
+                  controller.enqueue({
+                    type: 'reasoning',
+                    textDelta: part.text,
+                  });
+                }
               }
             } else {
               controller.enqueue({

@@ -64,6 +64,7 @@ export function convertToMistralChatMessages(
               text += part.text;
               break;
             }
+            case 'redacted-reasoning':
             case 'reasoning': {
               break; // ignored
             }
