@@ -281,6 +281,8 @@ export type LanguageModelV1StreamPart =
 
   // Reasoning text deltas:
   | { type: 'reasoning'; textDelta: string }
+  | { type: 'reasoning-signature'; signature: string }
+  | { type: 'redacted-reasoning'; data: string }
 
   // Sources:
   | { type: 'source'; source: LanguageModelV1Source }

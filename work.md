@@ -12,12 +12,14 @@
   - [x] generateText assistant message reasoning parts
   - [x] streamText assistant message reasoning parts
 - [ ] implementation denim
-
-  - [ ] specification
+  - [x] specification
     - [x] input
     - [x] doGenerate output
-  - [ ] anthropic provider
+    - [x] doStream output
+  - [x] anthropic provider
     - [x] input mapping
+    - [x] streaming redacted
+    - [x] streaming signature
   - [x] messages
   - [x] convertToLanguageModelMessage
   - [x] generateText
@@ -25,7 +27,9 @@
     - [x] reasoningDetails
     - [x] update output messages mapping
   - [ ] streamText
-
+    - [ ] reasoningDetails
+    - [ ] parts / output
+    - [ ] update output messages mapping
 - [ ] documentation
   - [x] anthropic provider page
   - [x] prompt page: assistant message reasoning part

@@ -14,6 +14,7 @@ async function main() {
         thinking: { type: 'enabled', budgetTokens: 12000 },
       },
     },
+    maxRetries: 0,
   });
 
   console.log('Reasoning:');

@@ -260,11 +260,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings, betas } = await this.getArgs(options);
 
-    const {
-      responseHeaders,
-      value: response,
-      rawValue,
-    } = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({ betas, headers: options.headers }),
       body: this.transformRequestBody(args),
@@ -275,8 +271,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
-
-    // console.log(JSON.stringify(rawValue, null, 2));
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
@@ -304,25 +298,27 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       }
     }
 
+    const reasoning = response.content
+      .filter(
+        content =>
+          content.type === 'redacted_thinking' || content.type === 'thinking',
+      )
+      .map(content =>
+        content.type === 'thinking'
+          ? {
+              type: 'text' as const,
+              text: content.thinking,
+              signature: content.signature,
+            }
+          : {
+              type: 'redacted' as const,
+              data: content.data,
+            },
+      );
+
     return {
       text,
-      reasoning: response.content
-        .filter(
-          content =>
-            content.type === 'redacted_thinking' || content.type === 'thinking',
-        )
-        .map(content =>
-          content.type === 'thinking'
-            ? {
-                type: 'text',
-                text: content.thinking,
-                signature: content.signature,
-              }
-            : {
-                type: 'redacted',
-                data: content.data,
-              },
-        ),
+      reasoning: reasoning.length > 0 ? reasoning : undefined,
       toolCalls,
       finishReason: mapAnthropicStopReason(response.stop_reason),
       usage: {
@@ -385,7 +381,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     let providerMetadata: LanguageModelV1ProviderMetadata | undefined =
       undefined;
 
-    const self = this;
+    let blockType:
+      | 'text'
+      | 'thinking'
+      | 'tool_use'
+      | 'redacted_thinking'
+      | undefined = undefined;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -408,10 +410,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
               case 'content_block_start': {
                 const contentBlockType = value.content_block.type;
 
+                blockType = contentBlockType;
+
                 switch (contentBlockType) {
                   case 'text':
                   case 'thinking': {
                     return; // ignored
+                  }
+
+                  case 'redacted_thinking': {
+                    controller.enqueue({
+                      type: 'redacted-reasoning',
+                      data: value.content_block.data,
+                    });
+                    return;
                   }
 
                   case 'tool_use': {
@@ -448,6 +460,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                   delete toolCallContentBlocks[value.index];
                 }
 
+                blockType = undefined; // reset block type
+
                 return;
               }
 
@@ -473,7 +487,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                   }
 
                   case 'signature_delta': {
-                    return; // ignored
+                    // signature are only supported on thinking blocks:
+                    if (blockType === 'thinking') {
+                      controller.enqueue({
+                        type: 'reasoning-signature',
+                        signature: value.delta.signature,
+                      });
+                    }
+
+                    return;
                   }
 
                   case 'input_json_delta': {
@@ -631,6 +653,10 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         id: z.string(),
         name: z.string(),
       }),
+      z.object({
+        type: z.literal('redacted_thinking'),
+        data: z.string(),
+      }),
     ]),
   }),
   z.object({
@@ -651,6 +677,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       }),
       z.object({
         type: z.literal('signature_delta'),
+        signature: z.string(),
       }),
     ]),
   }),
