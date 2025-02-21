@@ -870,6 +870,99 @@ describe('doStream', () => {
     const body = await server.calls[0].requestBody;
     expect(body).toMatchObject({ foo: 'bar' });
   });
+
+  it('should include cache token usage in providerMetadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: {
+              inputTokens: 4,
+              outputTokens: 34,
+              totalTokens: 38,
+              cacheReadInputTokens: 2,
+              cacheWriteInputTokens: 3,
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      { type: 'text-delta', textDelta: 'Hello' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 34 },
+        providerMetadata: {
+          bedrock: {
+            usage: {
+              cacheReadInputTokens: 2,
+              cacheWriteInputTokens: 3,
+            },
+          },
+        },
+      },
+    ]);
+  });
+
+  it('should handle system messages with cache points', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: [
+        {
+          role: 'system',
+          content: 'System Prompt',
+          providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBody;
+    expect(requestBody).toMatchObject({
+      system: [{ text: 'System Prompt' }, { cachePoint: { type: 'default' } }],
+      messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+    });
+  });
 });
 
 describe('doGenerate', () => {

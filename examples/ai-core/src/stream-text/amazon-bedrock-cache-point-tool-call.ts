@@ -1,7 +1,15 @@
-import { generateText, tool } from 'ai';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  streamText,
+  tool,
+  CoreMessage,
+  ToolCallPart,
+  ToolResultPart,
+} from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+
+const messages: CoreMessage[] = [];
 
 const weatherTool = tool({
   description: 'Get the weather in a location',
@@ -122,12 +130,17 @@ const weatherData: Record<string, number> = {
 };
 
 async function main() {
-  const result = await generateText({
-    model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  let toolResponseAvailable = false;
+
+  const result = streamText({
+    model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+    maxTokens: 512,
     tools: {
       weather: weatherTool,
     },
+    toolChoice: 'required',
     prompt: 'What is the weather in San Francisco?',
+    // TODO: need a way to set cachePoint on `tools`.
     providerOptions: {
       bedrock: {
         cachePoint: {
@@ -137,30 +150,53 @@ async function main() {
     },
   });
 
-  // typed tool calls:
-  for (const toolCall of result.toolCalls) {
-    switch (toolCall.toolName) {
-      case 'weather': {
-        toolCall.args.location; // string
+  let fullResponse = '';
+  const toolCalls: ToolCallPart[] = [];
+  const toolResponses: ToolResultPart[] = [];
+
+  for await (const delta of result.fullStream) {
+    switch (delta.type) {
+      case 'text-delta': {
+        fullResponse += delta.textDelta;
+        process.stdout.write(delta.textDelta);
+        break;
+      }
+
+      case 'tool-call': {
+        toolCalls.push(delta);
+
+        process.stdout.write(
+          `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.args)}`,
+        );
+        break;
+      }
+
+      case 'tool-result': {
+        toolResponses.push(delta);
+
+        process.stdout.write(
+          `\nTool response: '${delta.toolName}' ${JSON.stringify(
+            delta.result,
+          )}`,
+        );
         break;
       }
     }
   }
+  process.stdout.write('\n\n');
 
-  // typed tool results for tools with execute method:
-  for (const toolResult of result.toolResults) {
-    switch (toolResult.toolName) {
-      case 'weather': {
-        toolResult.args.location; // string
-        toolResult.result.location; // string
-        toolResult.result.temperature; // number
-        break;
-      }
-    }
+  messages.push({
+    role: 'assistant',
+    content: [{ type: 'text', text: fullResponse }, ...toolCalls],
+  });
+
+  if (toolResponses.length > 0) {
+    messages.push({ role: 'tool', content: toolResponses });
   }
 
-  console.log(result.text);
-  console.log(JSON.stringify(result.toolCalls, null, 2));
+  toolResponseAvailable = toolCalls.length > 0;
+  console.log('Messages:', messages[0].content);
+  console.log(JSON.stringify(result.providerMetadata, null, 2));
 }
 
 main().catch(console.error);

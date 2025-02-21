@@ -349,10 +349,32 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
                   value.metadata.usage?.outputTokens ?? Number.NaN,
               };
 
-              if (value.metadata.trace) {
+              const cacheUsage =
+                value.metadata.usage?.cacheReadInputTokens != null ||
+                value.metadata.usage?.cacheWriteInputTokens != null
+                  ? {
+                      usage: {
+                        cacheReadInputTokens:
+                          value.metadata.usage?.cacheReadInputTokens ??
+                          Number.NaN,
+                        cacheWriteInputTokens:
+                          value.metadata.usage?.cacheWriteInputTokens ??
+                          Number.NaN,
+                      },
+                    }
+                  : undefined;
+
+              const trace = value.metadata.trace
+                ? {
+                    trace: value.metadata.trace as JSONObject,
+                  }
+                : undefined;
+
+              if (cacheUsage || trace) {
                 providerMetadata = {
                   bedrock: {
-                    trace: value.metadata.trace as JSONObject,
+                    ...cacheUsage,
+                    ...trace,
                   },
                 };
               }
@@ -524,7 +546,7 @@ const BedrockStreamSchema = z.object({
       usage: z
         .object({
           cacheReadInputTokens: z.number().nullish(),
-          cacheWriteOutputTokens: z.number().nullish(),
+          cacheWriteInputTokens: z.number().nullish(),
           inputTokens: z.number(),
           outputTokens: z.number(),
         })
