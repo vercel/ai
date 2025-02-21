@@ -42,19 +42,18 @@
   - [x] ui parsing
     - [x] redacted_reasoning
     - [x] signature
-  - [ ] mapping ui message to core message
+  - [x] mapping ui message to core message
 - [ ] documentation
   - [x] anthropic provider page
   - [x] prompt page: assistant message reasoning part
   - [ ] reference pages: assistant message reasoning part
-  - [ ] update ui examples
+  - [ ] data stream parts page
   - [ ] streamText reference
   - [ ] generateText reference
 - [x] examples
   - [x] anthropic reasoning examples
   - [x] anthropic reasoning chatbot with tools (generateText)
   - [ ] reasoning ui example with roundtrip
-  - [ ] data stream parts page
 - [ ] testing
   - [ ] e2e deepseek
   - [ ] e2e anthropic

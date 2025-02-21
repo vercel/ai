@@ -5,7 +5,12 @@ import {
   ToolInvocationUIPart,
 } from '@ai-sdk/ui-utils';
 import { ToolSet } from '../generate-text/tool-set';
-import { CoreMessage, ToolCallPart, ToolResultPart } from '../prompt';
+import {
+  AssistantContent,
+  CoreMessage,
+  ToolCallPart,
+  ToolResultPart,
+} from '../prompt';
 import { attachmentsToParts } from './attachments-to-parts';
 import { MessageConversionError } from './message-conversion-error';
 
@@ -56,33 +61,54 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
           > = [];
 
           function processBlock() {
+            const content: AssistantContent = [];
+
+            for (const part of block) {
+              switch (part.type) {
+                case 'text':
+                  content.push({
+                    type: 'text' as const,
+                    text: part.text,
+                  });
+                  break;
+                case 'reasoning': {
+                  for (const detail of part.reasoningDetails) {
+                    switch (detail.type) {
+                      case 'text':
+                        content.push({
+                          type: 'reasoning' as const,
+                          text: detail.text,
+                          signature: detail.signature,
+                        });
+                        break;
+                      case 'redacted':
+                        content.push({
+                          type: 'redacted-reasoning' as const,
+                          data: detail.data,
+                        });
+                        break;
+                    }
+                  }
+                  break;
+                }
+                case 'tool-invocation':
+                  content.push({
+                    type: 'tool-call' as const,
+                    toolCallId: part.toolInvocation.toolCallId,
+                    toolName: part.toolInvocation.toolName,
+                    args: part.toolInvocation.args,
+                  });
+                  break;
+                default: {
+                  const _exhaustiveCheck: never = part;
+                  throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
+                }
+              }
+            }
+
             coreMessages.push({
               role: 'assistant',
-              content: block.map(part => {
-                switch (part.type) {
-                  case 'text':
-                    return {
-                      type: 'text' as const,
-                      text: part.text,
-                    };
-                  case 'reasoning':
-                    return {
-                      type: 'reasoning' as const,
-                      text: part.reasoning,
-                    };
-                  case 'tool-invocation':
-                    return {
-                      type: 'tool-call' as const,
-                      toolCallId: part.toolInvocation.toolCallId,
-                      toolName: part.toolInvocation.toolName,
-                      args: part.toolInvocation.args,
-                    };
-                  default: {
-                    const _exhaustiveCheck: never = part;
-                    throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
-                  }
-                }
-              }),
+              content,
             });
 
             // check if there are tool invocations with results in the block
