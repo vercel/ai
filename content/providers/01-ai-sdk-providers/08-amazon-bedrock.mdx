@@ -320,11 +320,11 @@ import { experimental_generateImage as generateImage } from 'ai';
 const { image } = await generateImage({
   model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
   prompt: 'A beautiful sunset over a calm ocean',
+  size: '512x512',
   seed: 42,
   providerOptions: {
     bedrock: {
-      width: 512,
-      height: 512,
+      quality: 'premium',
     },
   },
 });
@@ -342,7 +342,7 @@ Documentation for additional settings can be found within the [Amazon Bedrock Us
 
 | Model                      | Sizes                           |
 | -------------------------- | ------------------------------- |
-| `amazon.nova-canvas-v1:03` | 1024x1024, 1792x1024, 1024x1792 |
+| `amazon.nova-canvas-v1:0`  | 1024x1024, 1792x1024, 1024x1792 |
 
 ## Response Headers
 

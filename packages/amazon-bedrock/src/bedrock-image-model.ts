@@ -59,6 +59,7 @@ export class BedrockImageModel implements ImageModelV1 {
     Awaited<ReturnType<ImageModelV1['doGenerate']>>
   > {
     const warnings: Array<ImageModelV1CallWarning> = [];
+    const [width, height] = size ? size.split('x').map(Number) : [];
     const args = {
       taskType: 'TEXT_IMAGE',
       textToImageParams: {
@@ -70,12 +71,8 @@ export class BedrockImageModel implements ImageModelV1 {
           : {}),
       },
       imageGenerationConfig: {
-        ...(providerOptions?.bedrock?.width
-          ? { width: providerOptions.bedrock.width }
-          : {}),
-        ...(providerOptions?.bedrock?.height
-          ? { height: providerOptions.bedrock.height }
-          : {}),
+        ...(width ? { width } : {}),
+        ...(height ? { height } : {}),
         ...(seed ? { seed } : {}),
         ...(n ? { numberOfImages: n } : {}),
         ...(providerOptions?.bedrock?.quality
@@ -87,21 +84,12 @@ export class BedrockImageModel implements ImageModelV1 {
       },
     };
 
-    if (aspectRatio != null) {
+    if (aspectRatio != undefined) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'aspectRatio',
         details:
-          'This model does not support aspect ratio. Use `providerOptions.bedrock.width` & `providerOptions.bedrock.height` instead.',
-      });
-    }
-
-    if (size != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'size',
-        details:
-          'This model does not support aspect ratio. Use `providerOptions.bedrock.width` & `providerOptions.bedrock.height` instead.',
+          'This model does not support aspect ratio. Use `size` instead.',
       });
     }
 

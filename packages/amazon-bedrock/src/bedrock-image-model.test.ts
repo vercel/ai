@@ -6,9 +6,6 @@ import { injectFetchHeaders } from './inject-fetch-headers';
 const prompt = 'A cute baby sea otter';
 
 const provider = createAmazonBedrock();
-const model = provider.image('amazon.nova-canvas-v1:0', {
-  maxImagesPerCall: 2,
-});
 const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const invokeUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
@@ -51,7 +48,7 @@ describe('doGenerate', () => {
     await model.doGenerate({
       prompt,
       n: 1,
-      size: undefined,
+      size: '1024x1024',
       aspectRatio: undefined,
       seed: 1234,
       providerOptions: {
@@ -59,8 +56,6 @@ describe('doGenerate', () => {
           negativeText: 'bad',
           quality: 'premium',
           cfgScale: 1.2,
-          width: 1024,
-          height: 1024,
         },
       },
     });
@@ -111,7 +106,7 @@ describe('doGenerate', () => {
       size: undefined,
       aspectRatio: undefined,
       seed: undefined,
-      providerOptions: undefined,
+      providerOptions: {},
       headers: optionsHeaders,
     });
 
@@ -151,13 +146,7 @@ describe('doGenerate', () => {
         type: 'unsupported-setting',
         setting: 'aspectRatio',
         details:
-          'This model does not support aspect ratio. Use `providerOptions.bedrock.width` & `providerOptions.bedrock.height` instead.',
-      },
-      {
-        type: 'unsupported-setting',
-        setting: 'size',
-        details:
-          'This model does not support aspect ratio. Use `providerOptions.bedrock.width` & `providerOptions.bedrock.height` instead.',
+          'This model does not support aspect ratio. Use `size` instead.',
       },
     ]);
   });
