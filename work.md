@@ -46,7 +46,7 @@
 - [ ] documentation
   - [x] chatbot ui page
   - [x] anthropic provider page
-  - [ ] prompt page: assistant message reasoning part
+  - [x] prompt page: assistant message reasoning part
   - [ ] reference pages: assistant message reasoning part
   - [ ] data stream parts page
   - [ ] streamText reference
