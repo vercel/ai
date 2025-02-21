@@ -219,6 +219,97 @@ if (result.providerMetadata?.bedrock.trace) {
 
 See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html) for more information.
 
+### Cache Points
+
+<Note>
+  Amazon Bedrock prompt caching is currently in preview release. To request
+  access, visit the [Amazon Bedrock prompt caching
+  page](https://aws.amazon.com/bedrock/prompt-caching/).
+</Note>
+
+In messages, you can use the `providerOptions` property to set cache points. Set the `bedrock` property in the `providerOptions` object to `{ cachePoint: { type: 'default' } }` to create a cache point.
+
+Cache usage information is returned in the `providerMetadata` object`. See examples below.
+
+<Note>
+  Cache points have model-specific token minimums and limits. For example,
+  Claude 3.5 Sonnet v2 requires at least 1,024 tokens for a cache point and
+  allows up to 4 cache points. See the [Amazon Bedrock prompt caching
+  documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html)
+  for details on supported models, regions, and limits.
+</Note>
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const errorMessage = '... long error message ...';
+
+const result = await generateText({
+  model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  messages: [
+    {
+      role: 'system',
+      content: `You are a helpful assistant. You may be asked about ${errorMessage}.`,
+      providerOptions: {
+        bedrock: { cachePoint: { type: 'default' } },
+      },
+    },
+    {
+      role: 'user',
+      content: 'Explain the error message',
+    },
+  ],
+});
+
+console.log(result.text);
+console.log(result.providerMetadata?.bedrock?.usage);
+// Shows cache read/write token usage, e.g.:
+// {
+//   cacheReadInputTokens: 1337,
+//   cacheWriteInputTokens: 42,
+// }
+```
+
+Cache points also work with streaming responses:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  messages: [
+    {
+      role: 'assistant',
+      content: [
+        { type: 'text', text: 'You are a JavaScript expert.' },
+        { type: 'text', text: `Error message: ${errorMessage}` },
+      ],
+      providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
+    },
+    {
+      role: 'user',
+      content: 'Explain the error message',
+    },
+  ],
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+console.log(
+  'Cache token usage:',
+  (await result.providerMetadata)?.bedrock?.usage,
+);
+// Shows cache read/write token usage, e.g.:
+// {
+//   cacheReadInputTokens: 1337,
+//   cacheWriteInputTokens: 42,
+// }
+```
+
 ### Model Capabilities
 
 | Model                                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
