@@ -44,14 +44,14 @@
     - [x] signature
   - [x] mapping ui message to core message
   - [x] validate build
-- [ ] documentation
+- [x] documentation
   - [x] chatbot ui page
   - [x] anthropic provider page
   - [x] prompt page: assistant message reasoning part
   - [x] generateText reference
   - [x] streamText reference
   - [x] data stream parts page
-  - [ ] reference pages: assistant message reasoning part
+  - [x] reference pages: assistant message reasoning part
 - [x] examples
   - [x] anthropic reasoning examples
   - [x] anthropic reasoning chatbot with tools (generateText)

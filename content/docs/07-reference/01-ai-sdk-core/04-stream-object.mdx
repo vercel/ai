@@ -253,7 +253,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | ToolCallPart>',
+              type: 'string | Array<TextPart | ReasoningPart | RedactedReasoningPart | ToolCallPart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -268,6 +268,40 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                       name: 'text',
                       type: 'string',
                       description: 'The text content of the message part.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'reasoning'",
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The reasoning text.',
+                    },
+                    {
+                      name: 'signature',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The signature for the reasoning.',
+                    },
+                  ],
+                },
+                {
+                  type: 'RedactedReasoningPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'redacted-reasoning'",
+                    },
+                    {
+                      name: 'data',
+                      type: 'string',
+                      description: 'The redacted data.',
                     },
                   ],
                 },
