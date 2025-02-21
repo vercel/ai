@@ -49,8 +49,8 @@
   - [x] prompt page: assistant message reasoning part
   - [x] generateText reference
   - [x] streamText reference
+  - [x] data stream parts page
   - [ ] reference pages: assistant message reasoning part
-  - [ ] data stream parts page
 - [x] examples
   - [x] anthropic reasoning examples
   - [x] anthropic reasoning chatbot with tools (generateText)
