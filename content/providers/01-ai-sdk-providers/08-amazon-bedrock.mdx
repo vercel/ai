@@ -243,21 +243,23 @@ Cache usage information is returned in the `providerMetadata` object`. See examp
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
-const errorMessage = '... long error message ...';
+const cyberpunkAnalysis =
+  '... literary analysis of cyberpunk themes and concepts ...';
 
 const result = await generateText({
   model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
   messages: [
     {
       role: 'system',
-      content: `You are a helpful assistant. You may be asked about ${errorMessage}.`,
+      content: `You are an expert on William Gibson's cyberpunk literature and themes. You have access to the following academic analysis: ${cyberpunkAnalysis}`,
       providerOptions: {
         bedrock: { cachePoint: { type: 'default' } },
       },
     },
     {
       role: 'user',
-      content: 'Explain the error message',
+      content:
+        'What are the key cyberpunk themes that Gibson explores in Neuromancer?',
     },
   ],
 });
@@ -277,7 +279,8 @@ Cache points also work with streaming responses:
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { streamText } from 'ai';
 
-const errorMessage = '... long error message ...';
+const cyberpunkAnalysis =
+  '... literary analysis of cyberpunk themes and concepts ...';
 
 const result = streamText({
   model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
@@ -285,14 +288,15 @@ const result = streamText({
     {
       role: 'assistant',
       content: [
-        { type: 'text', text: 'You are a JavaScript expert.' },
-        { type: 'text', text: `Error message: ${errorMessage}` },
+        { type: 'text', text: 'You are an expert on cyberpunk literature.' },
+        { type: 'text', text: `Academic analysis: ${cyberpunkAnalysis}` },
       ],
       providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
     },
     {
       role: 'user',
-      content: 'Explain the error message',
+      content:
+        'How does Gibson explore the relationship between humanity and technology?',
     },
   ],
 });
