@@ -1,7 +1,4 @@
-import {
-  ToolCall as ToolCall,
-  ToolResult as ToolResult,
-} from '@ai-sdk/provider-utils';
+import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { formatDataStreamPart, parseDataStreamPart } from './data-stream-parts';
 
 describe('data-stream-parts', () => {
@@ -381,6 +378,31 @@ describe('redacted_reasoning stream part', () => {
     const input = 'i:"invalid string"';
     expect(() => parseDataStreamPart(input)).toThrow(
       '"redacted_reasoning" parts expect an object with a "data" property.',
+    );
+  });
+});
+
+describe('reasoning_signature stream part', () => {
+  it('should format a reasoning_signature stream part', () => {
+    expect(
+      formatDataStreamPart('reasoning_signature', {
+        signature: 'test signature',
+      }),
+    ).toEqual('j:{"signature":"test signature"}\n');
+  });
+
+  it('should parse a reasoning_signature stream part', () => {
+    const input = 'j:{"signature":"test signature"}';
+    expect(parseDataStreamPart(input)).toEqual({
+      type: 'reasoning_signature',
+      value: { signature: 'test signature' },
+    });
+  });
+
+  it('should throw an error if the value is not an object with a signature property', () => {
+    const input = 'j:"invalid string"';
+    expect(() => parseDataStreamPart(input)).toThrow(
+      '"reasoning_signature" parts expect an object with a "signature" property.',
     );
   });
 });

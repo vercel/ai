@@ -30,18 +30,18 @@
     - [x] reasoningDetails promise
     - [x] parts / output
     - [x] update output messages mapping
-    - [ ] data stream
+    - [x] data stream
       - [x] redacted_reasoning
-      - [ ] signature
+      - [x] signature
   - [x] StepResult
     - [x] reasoningDetails
-  - [ ] data stream parts
+  - [x] data stream parts
     - [x] redacted_reasoning
-    - [ ] signature
+    - [x] signature
   - [x] ui parts
-  - [ ] ui parsing
+  - [x] ui parsing
     - [x] redacted_reasoning
-    - [ ] signature
+    - [x] signature
   - [ ] mapping ui message to core message
 - [ ] documentation
   - [x] anthropic provider page

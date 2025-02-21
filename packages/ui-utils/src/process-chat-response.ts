@@ -178,6 +178,11 @@ export async function processChatResponse({
 
       execUpdate();
     },
+    onReasoningSignaturePart(value) {
+      if (currentReasoningTextDetail != null) {
+        currentReasoningTextDetail.signature = value.signature;
+      }
+    },
     onRedactedReasoningPart(value) {
       if (currentReasoningPart == null) {
         currentReasoningPart = {

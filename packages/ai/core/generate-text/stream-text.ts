@@ -1629,11 +1629,18 @@ However, the LLM results are expected to be small enough to not cause issues.
                   }),
                 );
               }
-              break; // ignore
+              break;
             }
 
             case 'reasoning-signature': {
-              break; // ignore
+              if (sendReasoning) {
+                controller.enqueue(
+                  formatDataStreamPart('reasoning_signature', {
+                    signature: chunk.signature,
+                  }),
+                );
+              }
+              break;
             }
 
             case 'source': {

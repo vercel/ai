@@ -394,6 +394,31 @@ const redactedReasoningStreamPart: DataStreamPart<
   },
 };
 
+const reasoningSignatureStreamPart: DataStreamPart<
+  'j',
+  'reasoning_signature',
+  { signature: string }
+> = {
+  code: 'j',
+  name: 'reasoning_signature',
+  parse: (value: JSONValue) => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('signature' in value) ||
+      typeof value.signature !== 'string'
+    ) {
+      throw new Error(
+        '"reasoning_signature" parts expect an object with a "signature" property.',
+      );
+    }
+    return {
+      type: 'reasoning_signature',
+      value: { signature: value.signature },
+    };
+  },
+};
+
 const dataStreamParts = [
   textStreamPart,
   dataStreamPart,
@@ -409,6 +434,7 @@ const dataStreamParts = [
   reasoningStreamPart,
   sourcePart,
   redactedReasoningStreamPart,
+  reasoningSignatureStreamPart,
 ] as const;
 
 export const dataStreamPartsByCode = Object.fromEntries(

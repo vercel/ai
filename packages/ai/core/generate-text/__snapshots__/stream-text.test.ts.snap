@@ -3851,11 +3851,15 @@ exports[`streamText > result.pipeDataStreamToResponse > should write reasoning c
 ",
   "g:" with witty banter. "
 ",
+  "j:{"signature":"1234567890"}
+",
   "i:{"data":"redacted-reasoning-data"}
 ",
   "g:"Once the user has relaxed,"
 ",
   "g:" I will pry for valuable information."
+",
+  "j:{"signature":"1234567890"}
 ",
   "0:"Hi"
 ",
@@ -4232,11 +4236,15 @@ exports[`streamText > result.toDataStream > should send reasoning content when s
 ",
   "g:" with witty banter. "
 ",
+  "j:{"signature":"1234567890"}
+",
   "i:{"data":"redacted-reasoning-data"}
 ",
   "g:"Once the user has relaxed,"
 ",
   "g:" I will pry for valuable information."
+",
+  "j:{"signature":"1234567890"}
 ",
   "0:"Hi"
 ",
