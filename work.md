@@ -45,7 +45,7 @@
   - [x] mapping ui message to core message
 - [ ] documentation
   - [x] chatbot ui page
-  - [ ] anthropic provider page
+  - [x] anthropic provider page
   - [ ] prompt page: assistant message reasoning part
   - [ ] reference pages: assistant message reasoning part
   - [ ] data stream parts page
@@ -54,8 +54,8 @@
 - [x] examples
   - [x] anthropic reasoning examples
   - [x] anthropic reasoning chatbot with tools (generateText)
-  - [ ] reasoning ui example with roundtrip
-- [ ] testing
-  - [ ] e2e deepseek
-  - [ ] e2e anthropic
+  - [x] reasoning ui example with roundtrip
+- [x] testing
+  - [x] e2e deepseek
+  - [x] e2e anthropic
 - [ ] changeset

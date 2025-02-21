@@ -106,7 +106,7 @@ and specifying a thinking budget in tokens.
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
-const { text, reasoning } = await generateText({
+const { text, reasoning, reasoningDetails } = await generateText({
   model: anthropic('ABC'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
@@ -116,8 +116,9 @@ const { text, reasoning } = await generateText({
   },
 });
 
-console.log(reasoning);
-console.log(text);
+console.log(reasoning); // reasoning text
+console.log(reasoningDetails); // reasoning details including redacted reasoning
+console.log(text); // text response
 ```
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
