@@ -9,6 +9,7 @@ import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { ReasoningDetail } from './reasoning-detail';
 import { StepResult } from './step-result';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
@@ -31,13 +32,11 @@ has only generated text.
   // TODO v5: rename to `reasoningText`
   readonly reasoning: string | undefined;
 
+  /**
+The full reasoning that the model has generated.
+   */
   // TODO v5: rename to `reasoning`
-  readonly reasoningDetails:
-    | Array<
-        | { type: 'text'; text: string; signature?: string }
-        | { type: 'redacted'; data: string }
-      >
-    | undefined;
+  readonly reasoningDetails: Array<ReasoningDetail> | undefined;
 
   /**
 Sources that have been used as input to generate the response.

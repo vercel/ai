@@ -1,3 +1,4 @@
+import { AISDKError, LanguageModelV1Source } from '@ai-sdk/provider';
 import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
 import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
@@ -43,6 +44,7 @@ import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import { Output } from './output';
+import { asReasoningText, ReasoningDetail } from './reasoning-detail';
 import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
@@ -58,7 +60,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { LanguageModelV1Source } from '@ai-sdk/provider';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -483,6 +484,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   private readonly reasoningPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoning']>
   >();
+  private readonly reasoningDetailsPromise = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoningDetails']>
+  >();
   private readonly sourcesPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['sources']>
   >();
@@ -587,7 +591,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedStepText = '';
     let recordedContinuationText = '';
     let recordedFullText = '';
-    let recordedReasoningText: string | undefined = undefined;
+
+    const stepReasoning: Array<ReasoningDetail> = [];
+    let activeReasoningText: undefined | (ReasoningDetail & { type: 'text' }) =
+      undefined;
+
     let recordedStepSources: LanguageModelV1Source[] = [];
     const recordedSources: LanguageModelV1Source[] = [];
 
@@ -639,8 +647,28 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'reasoning') {
-          recordedReasoningText =
-            (recordedReasoningText ?? '') + part.textDelta;
+          if (activeReasoningText == null) {
+            activeReasoningText = { type: 'text', text: part.textDelta };
+            stepReasoning.push(activeReasoningText);
+          } else {
+            activeReasoningText.text += part.textDelta;
+          }
+        }
+
+        if (part.type === 'reasoning-signature') {
+          if (activeReasoningText == null) {
+            throw new AISDKError({
+              name: 'InvalidStreamPart',
+              message: 'reasoning-signature without reasoning',
+            });
+          }
+
+          activeReasoningText.signature = part.signature;
+          activeReasoningText = undefined; // signature concludes reasoning part
+        }
+
+        if (part.type === 'redacted-reasoning') {
+          stepReasoning.push({ type: 'redacted', data: part.data });
         }
 
         if (part.type === 'source') {
@@ -659,8 +687,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (part.type === 'step-finish') {
           const stepMessages = toResponseMessages({
             text: recordedContinuationText,
-            // TODO composite array support
-            reasoning: recordedReasoningText,
+            reasoning: stepReasoning,
             tools: tools ?? ({} as TOOLS),
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
@@ -693,7 +720,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const currentStepResult: StepResult<TOOLS> = {
             stepType,
             text: recordedStepText,
-            reasoning: recordedReasoningText,
+            reasoning: asReasoningText(stepReasoning),
+            reasoningDetails: stepReasoning,
             sources: recordedStepSources,
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
@@ -757,6 +785,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.providerMetadataPromise.resolve(
             lastStep.experimental_providerMetadata,
           );
+          self.reasoningPromise.resolve(lastStep.reasoning);
+          self.reasoningDetailsPromise.resolve(lastStep.reasoningDetails);
 
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
@@ -772,7 +802,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           // aggregate results:
           self.textPromise.resolve(recordedFullText);
-          self.reasoningPromise.resolve(recordedReasoningText);
           self.sourcesPromise.resolve(recordedSources);
           self.stepsPromise.resolve(recordedSteps);
 
@@ -783,6 +812,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             usage,
             text: recordedFullText,
             reasoning: lastStep.reasoning,
+            reasoningDetails: lastStep.reasoningDetails,
             sources: lastStep.sources,
             toolCalls: lastStep.toolCalls,
             toolResults: lastStep.toolResults,
@@ -1008,6 +1038,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepRequest = request ?? {};
           const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
           const stepToolResults: ToolResultUnion<TOOLS>[] = [];
+
+          const stepReasoning: Array<ReasoningDetail> = [];
+          let activeReasoningText:
+            | undefined
+            | (ReasoningDetail & { type: 'text' }) = undefined;
+
           let stepFinishReason: FinishReason = 'unknown';
           let stepUsage: LanguageModelUsage = {
             promptTokens: 0,
@@ -1017,7 +1053,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let stepText = '';
-          let stepReasoning: string | undefined = undefined;
           let fullStepText = stepType === 'continue' ? previousStepText : '';
           let stepLogProbs: LogProbs | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
@@ -1125,12 +1160,43 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'reasoning': {
                       controller.enqueue(chunk);
-                      stepReasoning += chunk.textDelta;
+
+                      if (activeReasoningText == null) {
+                        activeReasoningText = {
+                          type: 'text',
+                          text: chunk.textDelta,
+                        };
+                        stepReasoning.push(activeReasoningText);
+                      } else {
+                        activeReasoningText.text += chunk.textDelta;
+                      }
+
                       break;
                     }
 
-                    case 'source': {
+                    case 'reasoning-signature': {
                       controller.enqueue(chunk);
+
+                      if (activeReasoningText == null) {
+                        // TODO extract to error class
+                        throw new AISDKError({
+                          name: 'InvalidStreamPart',
+                          message: 'reasoning-signature without reasoning',
+                        });
+                      }
+
+                      activeReasoningText.signature = chunk.signature;
+                      activeReasoningText = undefined; // signature concludes reasoning part
+                      break;
+                    }
+
+                    case 'redacted-reasoning': {
+                      controller.enqueue(chunk);
+                      stepReasoning.push({
+                        type: 'redacted',
+                        data: chunk.data,
+                      });
+
                       break;
                     }
 
@@ -1179,6 +1245,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
+                    // forward:
+                    case 'source':
                     case 'tool-call-streaming-start':
                     case 'tool-call-delta': {
                       controller.enqueue(chunk);
@@ -1424,6 +1492,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     return this.reasoningPromise.value;
   }
 
+  get reasoningDetails() {
+    return this.reasoningDetailsPromise.value;
+  }
+
   get sources() {
     return this.sourcesPromise.value;
   }
@@ -1547,6 +1619,11 @@ However, the LLM results are expected to be small enough to not cause issues.
                 );
               }
               break;
+            }
+
+            case 'reasoning-signature':
+            case 'redacted-reasoning': {
+              break; // ignore
             }
 
             case 'source': {

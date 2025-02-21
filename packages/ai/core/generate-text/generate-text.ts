@@ -34,6 +34,7 @@ import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
+import { asReasoningText, ReasoningDetail } from './reasoning-detail';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -273,6 +274,7 @@ A function that attempts to repair a tool call that failed to parse.
       > & { response: { id: string; timestamp: Date; modelId: string } };
       let currentToolCalls: ToolCallArray<TOOLS> = [];
       let currentToolResults: ToolResultArray<TOOLS> = [];
+      let currentReasoningDetails: Array<ReasoningDetail> = [];
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
       let text = '';
@@ -467,7 +469,7 @@ A function that attempts to repair a tool call that failed to parse.
             ? text + stepText
             : stepText;
 
-        const reasoningText = extractReasoningText(
+        currentReasoningDetails = asReasoningDetails(
           currentModelResponse.reasoning,
         );
 
@@ -495,9 +497,7 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               text,
-              reasoning: extractReasoningDetails(
-                currentModelResponse.reasoning,
-              ),
+              reasoning: asReasoningDetails(currentModelResponse.reasoning),
               tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
               toolResults: currentToolResults,
@@ -512,7 +512,8 @@ A function that attempts to repair a tool call that failed to parse.
           stepType,
           text: stepText,
           // TODO v5: rename reasoning to reasoningText (and use reasoning for composite array)
-          reasoning: reasoningText,
+          reasoning: asReasoningText(currentReasoningDetails),
+          reasoningDetails: currentReasoningDetails,
           sources: currentModelResponse.sources ?? [],
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
@@ -560,10 +561,8 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
-        reasoning: extractReasoningText(currentModelResponse.reasoning),
-        reasoningDetails: extractReasoningDetails(
-          currentModelResponse.reasoning,
-        ),
+        reasoning: asReasoningText(currentReasoningDetails),
+        reasoningDetails: currentReasoningDetails,
         sources,
         outputResolver: () => {
           if (output == null) {
@@ -763,7 +762,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 }
 
-function extractReasoningText(
+function asReasoningDetails(
   reasoning:
     | string
     | Array<
@@ -771,38 +770,12 @@ function extractReasoningText(
         | { type: 'redacted'; data: string }
       >
     | undefined,
-): string | undefined {
+): Array<
+  | { type: 'text'; text: string; signature?: string }
+  | { type: 'redacted'; data: string }
+> {
   if (reasoning == null) {
-    return undefined;
-  }
-
-  const reasoningText =
-    typeof reasoning === 'string'
-      ? reasoning
-      : reasoning
-          .filter(part => part.type === 'text')
-          .map(part => part.text)
-          .join('');
-
-  return reasoningText.length > 0 ? reasoningText : undefined;
-}
-
-function extractReasoningDetails(
-  reasoning:
-    | string
-    | Array<
-        | { type: 'text'; text: string; signature?: string }
-        | { type: 'redacted'; data: string }
-      >
-    | undefined,
-):
-  | Array<
-      | { type: 'text'; text: string; signature?: string }
-      | { type: 'redacted'; data: string }
-    >
-  | undefined {
-  if (reasoning == null) {
-    return undefined;
+    return [];
   }
 
   if (typeof reasoning === 'string') {

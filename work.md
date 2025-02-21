@@ -26,10 +26,17 @@
     - [x] reasoningText
     - [x] reasoningDetails
     - [x] update output messages mapping
-  - [ ] streamText
-    - [ ] reasoningDetails
-    - [ ] parts / output
-    - [ ] update output messages mapping
+  - [x] streamText
+    - [x] reasoningDetails promise
+    - [x] parts / output
+    - [x] update output messages mapping
+    - [ ] data stream
+  - [x] StepResult
+    - [x] reasoningDetails
+  - [ ] data stream parts
+  - [ ] ui parts
+  - [ ] ui parsing
+  - [ ] mapping ui message to core message
 - [ ] documentation
   - [x] anthropic provider page
   - [x] prompt page: assistant message reasoning part
@@ -37,7 +44,7 @@
 - [x] examples
   - [x] anthropic reasoning examples
   - [x] anthropic reasoning chatbot with tools (generateText)
-  - [x] reasoning ui example with roundtrip
+  - [ ] reasoning ui example with roundtrip
 - [ ] testing
   - [ ] e2e deepseek
   - [ ] e2e anthropic
