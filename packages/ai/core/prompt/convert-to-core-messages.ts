@@ -72,7 +72,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                   });
                   break;
                 case 'reasoning': {
-                  for (const detail of part.reasoningDetails) {
+                  for (const detail of part.details) {
                     switch (detail.type) {
                       case 'text':
                         content.push({

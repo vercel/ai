@@ -48,7 +48,7 @@ export default function Chat() {
                   key={index}
                   className="max-w-full mb-4 overflow-x-auto italic text-gray-500 break-words whitespace-pre-wrap"
                 >
-                  {part.reasoningDetails.map(detail =>
+                  {part.details.map(detail =>
                     detail.type === 'text' ? detail.text : '<redacted>',
                   )}
                 </pre>

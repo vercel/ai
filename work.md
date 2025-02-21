@@ -44,8 +44,9 @@
     - [x] signature
   - [x] mapping ui message to core message
 - [ ] documentation
-  - [x] anthropic provider page
-  - [x] prompt page: assistant message reasoning part
+  - [x] chatbot ui page
+  - [ ] anthropic provider page
+  - [ ] prompt page: assistant message reasoning part
   - [ ] reference pages: assistant message reasoning part
   - [ ] data stream parts page
   - [ ] streamText reference

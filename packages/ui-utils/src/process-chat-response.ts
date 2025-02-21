@@ -155,9 +155,7 @@ export async function processChatResponse({
       if (currentReasoningTextDetail == null) {
         currentReasoningTextDetail = { type: 'text', text: value };
         if (currentReasoningPart != null) {
-          currentReasoningPart.reasoningDetails.push(
-            currentReasoningTextDetail,
-          );
+          currentReasoningPart.details.push(currentReasoningTextDetail);
         }
       } else {
         currentReasoningTextDetail.text += value;
@@ -167,7 +165,7 @@ export async function processChatResponse({
         currentReasoningPart = {
           type: 'reasoning',
           reasoning: value,
-          reasoningDetails: [currentReasoningTextDetail],
+          details: [currentReasoningTextDetail],
         };
         message.parts.push(currentReasoningPart);
       } else {
@@ -188,12 +186,12 @@ export async function processChatResponse({
         currentReasoningPart = {
           type: 'reasoning',
           reasoning: '',
-          reasoningDetails: [],
+          details: [],
         };
         message.parts.push(currentReasoningPart);
       }
 
-      currentReasoningPart.reasoningDetails.push({
+      currentReasoningPart.details.push({
         type: 'redacted',
         data: value.data,
       });

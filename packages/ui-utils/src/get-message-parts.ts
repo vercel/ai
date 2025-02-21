@@ -24,9 +24,7 @@ export function getMessageParts(
             {
               type: 'reasoning' as const,
               reasoning: message.reasoning,
-              reasoningDetails: [
-                { type: 'text' as const, text: message.reasoning },
-              ],
+              details: [{ type: 'text' as const, text: message.reasoning }],
             },
           ]
         : []),

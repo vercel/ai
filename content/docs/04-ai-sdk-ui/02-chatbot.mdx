@@ -524,7 +524,10 @@ export async function POST(req: Request) {
 }
 ```
 
-On the client side, you can access the reasoning parts of the message object:
+On the client side, you can access the reasoning parts of the message object.
+
+They have a `details` property that contains the reasoning and redacted reasoning parts.
+You can also use `reasoning` to access just the reasoning as a string.
 
 ```tsx filename="app/page.tsx"
 messages.map(message => (
@@ -538,7 +541,13 @@ messages.map(message => (
 
       // reasoning parts:
       if (part.type === 'reasoning') {
-        return <pre key={index}>{part.reasoning}</pre>;
+        return (
+          <pre key={index}>
+            {part.details.map(detail =>
+              detail.type === 'text' ? detail.text : '<redacted>',
+            )}
+          </pre>
+        );
       }
     })}
   </div>

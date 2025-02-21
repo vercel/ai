@@ -455,8 +455,7 @@ exports[`scenario: server provides reasoning > should call the onFinish function
       "id": "step_123",
       "parts": [
         {
-          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "1234567890",
               "text": "I will open the conversation with witty banter. ",
@@ -472,6 +471,7 @@ exports[`scenario: server provides reasoning > should call the onFinish function
               "type": "text",
             },
           ],
+          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
           "type": "reasoning",
         },
         {
@@ -501,13 +501,13 @@ exports[`scenario: server provides reasoning > should call the update function w
       "id": "step_123",
       "parts": [
         {
-          "reasoning": "I will open the conversation",
-          "reasoningDetails": [
+          "details": [
             {
               "text": "I will open the conversation",
               "type": "text",
             },
           ],
+          "reasoning": "I will open the conversation",
           "type": "reasoning",
         },
       ],
@@ -525,13 +525,13 @@ exports[`scenario: server provides reasoning > should call the update function w
       "id": "step_123",
       "parts": [
         {
-          "reasoning": "I will open the conversation with witty banter. ",
-          "reasoningDetails": [
+          "details": [
             {
               "text": "I will open the conversation with witty banter. ",
               "type": "text",
             },
           ],
+          "reasoning": "I will open the conversation with witty banter. ",
           "type": "reasoning",
         },
       ],
@@ -549,8 +549,7 @@ exports[`scenario: server provides reasoning > should call the update function w
       "id": "step_123",
       "parts": [
         {
-          "reasoning": "I will open the conversation with witty banter. ",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "1234567890",
               "text": "I will open the conversation with witty banter. ",
@@ -561,6 +560,7 @@ exports[`scenario: server provides reasoning > should call the update function w
               "type": "redacted",
             },
           ],
+          "reasoning": "I will open the conversation with witty banter. ",
           "type": "reasoning",
         },
       ],
@@ -578,8 +578,7 @@ exports[`scenario: server provides reasoning > should call the update function w
       "id": "step_123",
       "parts": [
         {
-          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed,",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "1234567890",
               "text": "I will open the conversation with witty banter. ",
@@ -594,6 +593,7 @@ exports[`scenario: server provides reasoning > should call the update function w
               "type": "text",
             },
           ],
+          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed,",
           "type": "reasoning",
         },
       ],
@@ -611,8 +611,7 @@ exports[`scenario: server provides reasoning > should call the update function w
       "id": "step_123",
       "parts": [
         {
-          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "1234567890",
               "text": "I will open the conversation with witty banter. ",
@@ -627,6 +626,7 @@ exports[`scenario: server provides reasoning > should call the update function w
               "type": "text",
             },
           ],
+          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
           "type": "reasoning",
         },
       ],
@@ -644,8 +644,7 @@ exports[`scenario: server provides reasoning > should call the update function w
       "id": "step_123",
       "parts": [
         {
-          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "1234567890",
               "text": "I will open the conversation with witty banter. ",
@@ -661,6 +660,7 @@ exports[`scenario: server provides reasoning > should call the update function w
               "type": "text",
             },
           ],
+          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
           "type": "reasoning",
         },
         {
@@ -1291,14 +1291,14 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I will use a tool to get the weather in London.",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "1234567890",
               "text": "I will use a tool to get the weather in London.",
               "type": "text",
             },
           ],
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
         {
@@ -1317,14 +1317,14 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
         {
-          "reasoning": "I know know the weather in London.",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "abc123",
               "text": "I know know the weather in London.",
               "type": "text",
             },
           ],
+          "reasoning": "I know know the weather in London.",
           "type": "reasoning",
         },
         {
@@ -1368,13 +1368,13 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I will ",
-          "reasoningDetails": [
+          "details": [
             {
               "text": "I will ",
               "type": "text",
             },
           ],
+          "reasoning": "I will ",
           "type": "reasoning",
         },
       ],
@@ -1392,13 +1392,13 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I will use a tool to get the weather in London.",
-          "reasoningDetails": [
+          "details": [
             {
               "text": "I will use a tool to get the weather in London.",
               "type": "text",
             },
           ],
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
       ],
@@ -1416,14 +1416,14 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I will use a tool to get the weather in London.",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "1234567890",
               "text": "I will use a tool to get the weather in London.",
               "type": "text",
             },
           ],
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
         {
@@ -1464,14 +1464,14 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I will use a tool to get the weather in London.",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "1234567890",
               "text": "I will use a tool to get the weather in London.",
               "type": "text",
             },
           ],
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
         {
@@ -1518,14 +1518,14 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I will use a tool to get the weather in London.",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "1234567890",
               "text": "I will use a tool to get the weather in London.",
               "type": "text",
             },
           ],
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
         {
@@ -1544,13 +1544,13 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
         {
-          "reasoning": "I know know the weather in London.",
-          "reasoningDetails": [
+          "details": [
             {
               "text": "I know know the weather in London.",
               "type": "text",
             },
           ],
+          "reasoning": "I know know the weather in London.",
           "type": "reasoning",
         },
       ],
@@ -1582,14 +1582,14 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "reasoning": "I will use a tool to get the weather in London.",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "1234567890",
               "text": "I will use a tool to get the weather in London.",
               "type": "text",
             },
           ],
+          "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
         {
@@ -1608,14 +1608,14 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
         {
-          "reasoning": "I know know the weather in London.",
-          "reasoningDetails": [
+          "details": [
             {
               "signature": "abc123",
               "text": "I know know the weather in London.",
               "type": "text",
             },
           ],
+          "reasoning": "I know know the weather in London.",
           "type": "reasoning",
         },
         {

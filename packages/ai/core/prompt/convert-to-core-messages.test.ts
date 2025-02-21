@@ -217,7 +217,7 @@ describe('convertToCoreMessages', () => {
             {
               type: 'reasoning',
               reasoning: 'Thinking...',
-              reasoningDetails: [
+              details: [
                 {
                   type: 'text',
                   text: 'Thinking',
