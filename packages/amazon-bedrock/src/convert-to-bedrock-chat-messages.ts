@@ -1,4 +1,14 @@
 import {
+  BEDROCK_CACHE_POINT,
+  BedrockAssistantMessage,
+  BedrockCachePoint,
+  BedrockDocumentFormat,
+  BedrockImageFormat,
+  BedrockMessages,
+  BedrockSystemMessages,
+  BedrockUserMessage,
+} from './bedrock-api-types';
+import {
   JSONObject,
   LanguageModelV1Message,
   LanguageModelV1Prompt,
@@ -6,20 +16,9 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
-  createIdGenerator,
   convertUint8ArrayToBase64,
+  createIdGenerator,
 } from '@ai-sdk/provider-utils';
-import {
-  BedrockCachePoint,
-  BedrockDocumentFormat,
-  BedrockImageFormat,
-  BEDROCK_CACHE_POINT,
-} from './bedrock-api-types';
-import {
-  BedrockAssistantMessage,
-  BedrockMessagesPrompt,
-  BedrockUserMessage,
-} from './bedrock-chat-prompt';
 
 const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
@@ -29,14 +28,14 @@ function getCachePoint(
   return providerMetadata?.bedrock?.cachePoint as BedrockCachePoint | undefined;
 }
 
-export function convertToBedrockChatMessages(
-  prompt: LanguageModelV1Prompt,
-): BedrockMessagesPrompt {
+export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
+  system: BedrockSystemMessages;
+  messages: BedrockMessages;
+} {
   const blocks = groupIntoBlocks(prompt);
 
-  let system: string | undefined = undefined;
-  let isSystemCachePoint = false;
-  const messages: BedrockMessagesPrompt['messages'] = [];
+  let system: BedrockSystemMessages = [];
+  const messages: BedrockMessages = [];
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -52,10 +51,12 @@ export function convertToBedrockChatMessages(
           });
         }
 
-        system = block.messages.map(({ content }) => content).join('\n');
-        isSystemCachePoint = block.messages.some(message =>
-          getCachePoint(message.providerMetadata),
-        );
+        for (const message of block.messages) {
+          system.push({ text: message.content });
+          if (getCachePoint(message.providerMetadata)) {
+            system.push(BEDROCK_CACHE_POINT);
+          }
+        }
         break;
       }
 
@@ -213,11 +214,7 @@ export function convertToBedrockChatMessages(
     }
   }
 
-  return {
-    system,
-    isSystemCachePoint,
-    messages,
-  };
+  return { system, messages };
 }
 
 type SystemBlock = {

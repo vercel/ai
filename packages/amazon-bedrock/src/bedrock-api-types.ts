@@ -2,11 +2,8 @@ import { JSONObject } from '@ai-sdk/provider';
 import { Resolvable } from '@ai-sdk/provider-utils';
 
 export interface BedrockConverseInput {
-  system?: Array<BedrockSystemContentBlock>;
-  messages: Array<{
-    role: string;
-    content: Array<BedrockContentBlock>;
-  }>;
+  system?: BedrockSystemMessages;
+  messages: BedrockMessages;
   toolConfig?: BedrockToolConfiguration;
   inferenceConfig?: {
     maxTokens?: number;
@@ -19,6 +16,22 @@ export interface BedrockConverseInput {
     | BedrockGuardrailConfiguration
     | BedrockGuardrailStreamConfiguration
     | undefined;
+}
+
+export type BedrockSystemMessages = Array<BedrockSystemContentBlock>;
+
+export type BedrockMessages = Array<
+  BedrockAssistantMessage | BedrockUserMessage
+>;
+
+export interface BedrockAssistantMessage {
+  role: 'assistant';
+  content: Array<BedrockContentBlock>;
+}
+
+export interface BedrockUserMessage {
+  role: 'user';
+  content: Array<BedrockContentBlock>;
 }
 
 export const BEDROCK_CACHE_POINT = {
@@ -42,18 +55,16 @@ export interface BedrockToolInputSchema {
   json: Record<string, unknown>;
 }
 
-export type BedrockTool =
-  | {
-      toolSpec: {
-        name: string;
-        description?: string;
-        inputSchema: { json: JSONObject };
-      };
-    }
-  | BedrockCachePoint;
+export interface BedrockTool {
+  toolSpec: {
+    name: string;
+    description?: string;
+    inputSchema: { json: JSONObject };
+  };
+}
 
 export interface BedrockToolConfiguration {
-  tools?: BedrockTool[];
+  tools?: Array<BedrockTool | BedrockCachePoint>;
   toolChoice?:
     | { tool: { name: string } }
     | { auto: {} }

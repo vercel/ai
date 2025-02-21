@@ -7,7 +7,7 @@ describe('system messages', () => {
       { role: 'system', content: 'World' },
     ]);
 
-    expect(system).toEqual('Hello\nWorld');
+    expect(system).toEqual([{ text: 'Hello' }, { text: 'World' }]);
   });
 
   it('should throw an error if a system message is provided after a non-system message', async () => {
@@ -29,8 +29,7 @@ describe('system messages', () => {
     ]);
 
     expect(result).toEqual({
-      system: 'Hello',
-      isSystemCachePoint: true,
+      system: [{ text: 'Hello' }, { cachePoint: { type: 'default' } }],
       messages: [],
     });
   });
@@ -92,7 +91,7 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(system).toEqual('Hello');
+    expect(system).toEqual([{ text: 'Hello' }]);
   });
 
   it('should add cache point to user message content when specified', async () => {
@@ -111,8 +110,7 @@ describe('user messages', () => {
           content: [{ text: 'Hello' }, { cachePoint: { type: 'default' } }],
         },
       ],
-      system: undefined,
-      isSystemCachePoint: false,
+      system: [],
     });
   });
 });
@@ -141,8 +139,7 @@ describe('assistant messages', () => {
           content: [{ text: 'assistant content' }],
         },
       ],
-      system: undefined,
-      isSystemCachePoint: false,
+      system: [],
     });
   });
 
@@ -172,8 +169,7 @@ describe('assistant messages', () => {
           content: [{ text: 'assistant ' }, { text: 'content' }],
         },
       ],
-      system: undefined,
-      isSystemCachePoint: false,
+      system: [],
     });
   });
 
@@ -208,8 +204,7 @@ describe('assistant messages', () => {
           content: [{ text: 'user content 2' }],
         },
       ],
-      system: undefined,
-      isSystemCachePoint: false,
+      system: [],
     });
   });
 
@@ -229,8 +224,7 @@ describe('assistant messages', () => {
           content: [{ text: 'Hello' }, { text: 'World' }, { text: '!' }],
         },
       ],
-      system: undefined,
-      isSystemCachePoint: false,
+      system: [],
     });
   });
 
@@ -250,8 +244,7 @@ describe('assistant messages', () => {
           content: [{ text: 'Hello' }, { cachePoint: { type: 'default' } }],
         },
       ],
-      system: undefined,
-      isSystemCachePoint: false,
+      system: [],
     });
   });
 });

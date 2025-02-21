@@ -111,8 +111,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const { system, isSystemCachePoint, messages } =
-      convertToBedrockChatMessages(prompt);
+    const { system, messages } = convertToBedrockChatMessages(prompt);
 
     const inferenceConfig = {
       ...(maxTokens != null && { maxTokens }),
@@ -122,12 +121,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     };
 
     const baseArgs: BedrockConverseInput = {
-      system: system
-        ? [
-            { text: system },
-            ...(isSystemCachePoint ? [BEDROCK_CACHE_POINT] : []),
-          ]
-        : undefined,
+      system,
       additionalModelRequestFields: this.settings.additionalModelRequestFields,
       ...(Object.keys(inferenceConfig).length > 0 && {
         inferenceConfig,
