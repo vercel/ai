@@ -17,7 +17,7 @@ const { messages, append, status } = useChat({
   },
 });
 
-const isLoading = computed(() => status !== 'ready');
+const isLoading = computed(() => status.value !== 'ready');
 </script>
 
 <template>

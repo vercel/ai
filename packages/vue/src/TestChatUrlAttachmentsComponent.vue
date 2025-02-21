@@ -3,7 +3,7 @@ import { useChat } from './use-chat';
 import { computed } from 'vue';
 
 const { messages, handleSubmit, status, input } = useChat();
-const isLoading = computed(() => status !== 'ready');
+const isLoading = computed(() => status.value !== 'ready');
 </script>
 
 <template>

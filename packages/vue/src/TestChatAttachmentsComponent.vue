@@ -6,7 +6,7 @@ import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
 const { messages, handleSubmit, handleInputChange, status, input } = useChat();
 const attachments = ref<FileList>();
 const fileInputRef = ref<HTMLInputElement | null>(null);
-const isLoading = computed(() => status !== 'ready');
+const isLoading = computed(() => status.value !== 'ready');
 </script>
 
 <template>
