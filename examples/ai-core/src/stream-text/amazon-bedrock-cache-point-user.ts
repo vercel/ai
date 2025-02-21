@@ -14,18 +14,19 @@ async function main() {
         content: [
           {
             type: 'text',
-            text: 'You are a JavaScript expert.',
+            text: `I was dreaming last night and I dreamt of an error message: ${errorMessage}`,
           },
-          {
-            type: 'text',
-            text: `Error message: ${errorMessage}`,
-          },
+        ],
+        providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
+      },
+      {
+        role: 'user',
+        content: [
           {
             type: 'text',
             text: 'Explain the error message.',
           },
         ],
-        providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
       },
     ],
   });
