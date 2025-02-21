@@ -58,4 +58,4 @@
 - [x] testing
   - [x] e2e deepseek
   - [x] e2e anthropic
-- [ ] changeset
+- [x] changeset
