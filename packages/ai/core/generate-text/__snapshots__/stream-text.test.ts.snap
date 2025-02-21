@@ -3851,6 +3851,8 @@ exports[`streamText > result.pipeDataStreamToResponse > should write reasoning c
 ",
   "g:" with witty banter. "
 ",
+  "i:{"data":"redacted-reasoning-data"}
+",
   "g:"Once the user has relaxed,"
 ",
   "g:" I will pry for valuable information."
@@ -4229,6 +4231,8 @@ exports[`streamText > result.toDataStream > should send reasoning content when s
   "g:"I will open the conversation"
 ",
   "g:" with witty banter. "
+",
+  "i:{"data":"redacted-reasoning-data"}
 ",
   "g:"Once the user has relaxed,"
 ",

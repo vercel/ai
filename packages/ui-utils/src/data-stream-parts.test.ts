@@ -359,3 +359,28 @@ describe('source stream part', () => {
     );
   });
 });
+
+describe('redacted_reasoning stream part', () => {
+  it('should format a redacted_reasoning stream part', () => {
+    expect(
+      formatDataStreamPart('redacted_reasoning', {
+        data: 'test redacted reasoning',
+      }),
+    ).toEqual('i:{"data":"test redacted reasoning"}\n');
+  });
+
+  it('should parse a redacted_reasoning stream part', () => {
+    const input = 'i:{"data":"test redacted reasoning"}';
+    expect(parseDataStreamPart(input)).toEqual({
+      type: 'redacted_reasoning',
+      value: { data: 'test redacted reasoning' },
+    });
+  });
+
+  it('should throw an error if the value is not an object with a data property', () => {
+    const input = 'i:"invalid string"';
+    expect(() => parseDataStreamPart(input)).toThrow(
+      '"redacted_reasoning" parts expect an object with a "data" property.',
+    );
+  });
+});

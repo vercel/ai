@@ -1621,8 +1621,18 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'reasoning-signature':
             case 'redacted-reasoning': {
+              if (sendReasoning) {
+                controller.enqueue(
+                  formatDataStreamPart('redacted_reasoning', {
+                    data: chunk.data,
+                  }),
+                );
+              }
+              break; // ignore
+            }
+
+            case 'reasoning-signature': {
               break; // ignore
             }
 

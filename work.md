@@ -31,11 +31,17 @@
     - [x] parts / output
     - [x] update output messages mapping
     - [ ] data stream
+      - [x] redacted_reasoning
+      - [ ] signature
   - [x] StepResult
     - [x] reasoningDetails
   - [ ] data stream parts
-  - [ ] ui parts
+    - [x] redacted_reasoning
+    - [ ] signature
+  - [x] ui parts
   - [ ] ui parsing
+    - [x] redacted_reasoning
+    - [ ] signature
   - [ ] mapping ui message to core message
 - [ ] documentation
   - [x] anthropic provider page

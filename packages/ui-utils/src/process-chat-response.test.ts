@@ -5,6 +5,7 @@ import { processChatResponse } from './process-chat-response';
 import { createDataProtocolStream } from './test/create-data-protocol-stream';
 import { JSONValue, Message } from './types';
 import { LanguageModelUsage } from './duplicated/usage';
+import { format } from 'path';
 
 let updateCalls: Array<{
   message: Message;
@@ -564,6 +565,9 @@ describe('scenario: server provides reasoning', () => {
       formatDataStreamPart('start_step', { messageId: 'step_123' }),
       formatDataStreamPart('reasoning', 'I will open the conversation'),
       formatDataStreamPart('reasoning', ' with witty banter. '),
+      formatDataStreamPart('redacted_reasoning', {
+        data: 'redacted-data',
+      }),
       formatDataStreamPart('reasoning', 'Once the user has relaxed,'),
       formatDataStreamPart(
         'reasoning',

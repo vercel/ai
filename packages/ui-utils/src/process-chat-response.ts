@@ -62,6 +62,9 @@ export async function processChatResponse({
 
   let currentTextPart: TextUIPart | undefined = undefined;
   let currentReasoningPart: ReasoningUIPart | undefined = undefined;
+  let currentReasoningTextDetail:
+    | { type: 'text'; text: string; signature?: string }
+    | undefined = undefined;
 
   function updateToolInvocationPart(
     toolCallId: string,
@@ -149,10 +152,22 @@ export async function processChatResponse({
       execUpdate();
     },
     onReasoningPart(value) {
+      if (currentReasoningTextDetail == null) {
+        currentReasoningTextDetail = { type: 'text', text: value };
+        if (currentReasoningPart != null) {
+          currentReasoningPart.reasoningDetails.push(
+            currentReasoningTextDetail,
+          );
+        }
+      } else {
+        currentReasoningTextDetail.text += value;
+      }
+
       if (currentReasoningPart == null) {
         currentReasoningPart = {
           type: 'reasoning',
           reasoning: value,
+          reasoningDetails: [currentReasoningTextDetail],
         };
         message.parts.push(currentReasoningPart);
       } else {
@@ -160,6 +175,26 @@ export async function processChatResponse({
       }
 
       message.reasoning = (message.reasoning ?? '') + value;
+
+      execUpdate();
+    },
+    onRedactedReasoningPart(value) {
+      if (currentReasoningPart == null) {
+        currentReasoningPart = {
+          type: 'reasoning',
+          reasoning: '',
+          reasoningDetails: [],
+        };
+        message.parts.push(currentReasoningPart);
+      }
+
+      currentReasoningPart.reasoningDetails.push({
+        type: 'redacted',
+        data: value.data,
+      });
+
+      currentReasoningTextDetail = undefined;
+
       execUpdate();
     },
     onSourcePart(value) {
@@ -314,6 +349,7 @@ export async function processChatResponse({
       // reset the current text and reasoning parts
       currentTextPart = value.isContinued ? currentTextPart : undefined;
       currentReasoningPart = undefined;
+      currentReasoningTextDetail = undefined;
     },
     onStartStepPart(value) {
       // keep message id stable when we are updating an existing message:

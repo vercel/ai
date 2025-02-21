@@ -13,6 +13,8 @@ export async function POST(req: Request) {
   const result = streamText({
     model: anthropic('research-claude-denim'),
     messages,
+    // prompt:
+    //   'ANTHROPIC_MAGIC_STRING_TRIGGER_REDACTED_THINKING_46C9A13E193C177646C7398A98432ECCCE4C1253D5E2D82641AC0E52CC2876CB',
     toolCallStreaming: true,
     maxSteps: 5, // multi-steps for server-side tools
     tools: {

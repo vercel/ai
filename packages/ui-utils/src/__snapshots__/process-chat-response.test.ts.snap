@@ -456,6 +456,20 @@ exports[`scenario: server provides reasoning > should call the onFinish function
       "parts": [
         {
           "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+          "reasoningDetails": [
+            {
+              "text": "I will open the conversation with witty banter. ",
+              "type": "text",
+            },
+            {
+              "data": "redacted-data",
+              "type": "redacted",
+            },
+            {
+              "text": "Once the user has relaxed, I will pry for valuable information.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
         {
@@ -486,6 +500,12 @@ exports[`scenario: server provides reasoning > should call the update function w
       "parts": [
         {
           "reasoning": "I will open the conversation",
+          "reasoningDetails": [
+            {
+              "text": "I will open the conversation",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
       ],
@@ -504,6 +524,12 @@ exports[`scenario: server provides reasoning > should call the update function w
       "parts": [
         {
           "reasoning": "I will open the conversation with witty banter. ",
+          "reasoningDetails": [
+            {
+              "text": "I will open the conversation with witty banter. ",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
       ],
@@ -521,11 +547,21 @@ exports[`scenario: server provides reasoning > should call the update function w
       "id": "step_123",
       "parts": [
         {
-          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed,",
+          "reasoning": "I will open the conversation with witty banter. ",
+          "reasoningDetails": [
+            {
+              "text": "I will open the conversation with witty banter. ",
+              "type": "text",
+            },
+            {
+              "data": "redacted-data",
+              "type": "redacted",
+            },
+          ],
           "type": "reasoning",
         },
       ],
-      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed,",
+      "reasoning": "I will open the conversation with witty banter. ",
       "revisionId": "id-3",
       "role": "assistant",
     },
@@ -539,12 +575,58 @@ exports[`scenario: server provides reasoning > should call the update function w
       "id": "step_123",
       "parts": [
         {
+          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed,",
+          "reasoningDetails": [
+            {
+              "text": "I will open the conversation with witty banter. ",
+              "type": "text",
+            },
+            {
+              "data": "redacted-data",
+              "type": "redacted",
+            },
+            {
+              "text": "Once the user has relaxed,",
+              "type": "text",
+            },
+          ],
+          "type": "reasoning",
+        },
+      ],
+      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed,",
+      "revisionId": "id-4",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
           "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+          "reasoningDetails": [
+            {
+              "text": "I will open the conversation with witty banter. ",
+              "type": "text",
+            },
+            {
+              "data": "redacted-data",
+              "type": "redacted",
+            },
+            {
+              "text": "Once the user has relaxed, I will pry for valuable information.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
       ],
       "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
-      "revisionId": "id-4",
+      "revisionId": "id-5",
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -558,6 +640,20 @@ exports[`scenario: server provides reasoning > should call the update function w
       "parts": [
         {
           "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+          "reasoningDetails": [
+            {
+              "text": "I will open the conversation with witty banter. ",
+              "type": "text",
+            },
+            {
+              "data": "redacted-data",
+              "type": "redacted",
+            },
+            {
+              "text": "Once the user has relaxed, I will pry for valuable information.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
         {
@@ -566,7 +662,7 @@ exports[`scenario: server provides reasoning > should call the update function w
         },
       ],
       "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
-      "revisionId": "id-5",
+      "revisionId": "id-6",
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -1189,6 +1285,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "parts": [
         {
           "reasoning": "I will use a tool to get the weather in London.",
+          "reasoningDetails": [
+            {
+              "text": "I will use a tool to get the weather in London.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
         {
@@ -1208,6 +1310,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
         },
         {
           "reasoning": "I know know the weather in London.",
+          "reasoningDetails": [
+            {
+              "text": "I know know the weather in London.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
         {
@@ -1252,6 +1360,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "parts": [
         {
           "reasoning": "I will ",
+          "reasoningDetails": [
+            {
+              "text": "I will ",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
       ],
@@ -1270,6 +1384,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "parts": [
         {
           "reasoning": "I will use a tool to get the weather in London.",
+          "reasoningDetails": [
+            {
+              "text": "I will use a tool to get the weather in London.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
       ],
@@ -1288,6 +1408,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "parts": [
         {
           "reasoning": "I will use a tool to get the weather in London.",
+          "reasoningDetails": [
+            {
+              "text": "I will use a tool to get the weather in London.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
         {
@@ -1329,6 +1455,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "parts": [
         {
           "reasoning": "I will use a tool to get the weather in London.",
+          "reasoningDetails": [
+            {
+              "text": "I will use a tool to get the weather in London.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
         {
@@ -1376,6 +1508,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "parts": [
         {
           "reasoning": "I will use a tool to get the weather in London.",
+          "reasoningDetails": [
+            {
+              "text": "I will use a tool to get the weather in London.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
         {
@@ -1395,6 +1533,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
         },
         {
           "reasoning": "I know know the weather in London.",
+          "reasoningDetails": [
+            {
+              "text": "I know know the weather in London.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
       ],
@@ -1427,6 +1571,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "parts": [
         {
           "reasoning": "I will use a tool to get the weather in London.",
+          "reasoningDetails": [
+            {
+              "text": "I will use a tool to get the weather in London.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
         {
@@ -1446,6 +1596,12 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
         },
         {
           "reasoning": "I know know the weather in London.",
+          "reasoningDetails": [
+            {
+              "text": "I know know the weather in London.",
+              "type": "text",
+            },
+          ],
           "type": "reasoning",
         },
         {
