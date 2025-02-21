@@ -42,7 +42,7 @@ The reasoning that was generated during the generation.
   readonly reasoning: string | undefined;
 
   // TODO v5: rename to `reasoning`
-  readonly reasoningDetails: Array<ReasoningDetail> | undefined;
+  readonly reasoningDetails: Array<ReasoningDetail>;
 
   /**
 The sources that were used to generate the text.

@@ -36,7 +36,7 @@ has only generated text.
 The full reasoning that the model has generated.
    */
   // TODO v5: rename to `reasoning`
-  readonly reasoningDetails: Array<ReasoningDetail> | undefined;
+  readonly reasoningDetails: Array<ReasoningDetail>;
 
   /**
 Sources that have been used as input to generate the response.

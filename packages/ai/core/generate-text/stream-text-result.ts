@@ -105,7 +105,7 @@ The full reasoning that the model has generated.
 Resolved when the response is finished.
    */
   // TODO v5: rename to `reasoning`
-  readonly reasoningDetails: Promise<Array<ReasoningDetail> | undefined>;
+  readonly reasoningDetails: Promise<Array<ReasoningDetail>>;
 
   /**
 The tool calls that have been executed in the last step.
