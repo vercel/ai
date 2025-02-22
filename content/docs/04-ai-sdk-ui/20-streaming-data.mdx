@@ -30,7 +30,7 @@ You need to:
 
 Here is an example:
 
-```tsx highlight="7-10,16,19-23,25-26,30"
+```tsx filename="route.ts" highlight="7-10,16,19-23,25-26,30"
 import { openai } from '@ai-sdk/openai';
 import { generateId, createDataStreamResponse, streamText } from 'ai';
 
@@ -77,6 +77,38 @@ export async function POST(req: Request) {
   Protocol](/docs/ai-sdk-ui/stream-protocol#data-stream-protocol).
 </Note>
 
+## Sending Custom Sources
+
+You can send custom sources to the client using the `writeSource` method on the `DataStreamWriter`:
+
+```tsx filename="route.ts" highlight="9-15"
+import { openai } from '@ai-sdk/openai';
+import { createDataStreamResponse, streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  return createDataStreamResponse({
+    execute: dataStream => {
+      // write a custom url source to the stream:
+      dataStream.writeSource({
+        sourceType: 'url',
+        id: 'source-1',
+        url: 'https://example.com',
+        title: 'Example Source',
+      });
+
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages,
+      });
+
+      result.mergeIntoDataStream(dataStream);
+    },
+  });
+}
+```
+
 ## Processing Custom Data in `useChat`
 
 The `useChat` hook automatically processes the streamed data and makes it available to you.
@@ -86,7 +118,7 @@ The `useChat` hook automatically processes the streamed data and makes it availa
 On the client, you can destructure `data` from the `useChat` hook which stores all `StreamData`
 as a `JSONValue[]`.
 
-```tsx
+```tsx filename="page.tsx"
 import { useChat } from '@ai-sdk/react';
 
 const { data } = useChat();
@@ -102,7 +134,7 @@ you have to destructure them in a type-safe way on the client side.
 
 Here we just show the annotations as a JSON string:
 
-```tsx highlight="9"
+```tsx filename="page.tsx" highlight="9"
 import { Message, useChat } from '@ai-sdk/react';
 
 const { messages } = useChat();
@@ -122,7 +154,7 @@ const result = (
 
 You can update and clear the `data` object of the `useChat` hook using the `setData` function.
 
-```tsx
+```tsx filename="page.tsx"
 const { setData } = useChat();
 
 // clear existing data
@@ -137,7 +169,7 @@ setData(currentData => [...currentData, { test: 'value' }]);
 
 #### Example: Clear on Submit
 
-```tsx highlight="18-21"
+```tsx filename="page.tsx" highlight="18-21"
 'use client';
 
 import { Message, useChat } from '@ai-sdk/react';

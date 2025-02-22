@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { UIMessage, useChat } from './use-chat';
 import { JSONValue } from '@ai-sdk/ui-utils';
 
@@ -10,12 +10,14 @@ const bodyOptions = ref<{
   requestBody?: object;
 }>();
 
-const { messages, append, isLoading } = useChat({
+const { messages, append, status } = useChat({
   experimental_prepareRequestBody(options) {
     bodyOptions.value = options;
     return 'test-request-body';
   },
 });
+
+const isLoading = computed(() => status.value !== 'ready');
 </script>
 
 <template>
