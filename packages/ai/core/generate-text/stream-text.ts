@@ -60,6 +60,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { InvalidStreamPartError } from '../../errors/invalid-stream-part-error';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1178,9 +1179,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       controller.enqueue(chunk);
 
                       if (activeReasoningText == null) {
-                        // TODO extract to error class
-                        throw new AISDKError({
-                          name: 'InvalidStreamPart',
+                        throw new InvalidStreamPartError({
+                          chunk,
                           message: 'reasoning-signature without reasoning',
                         });
                       }
