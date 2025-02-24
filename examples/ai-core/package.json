@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/amazon-bedrock": "2.0.2",
+    "@ai-sdk/amazon-bedrock": "2.0.3",
     "@ai-sdk/anthropic": "1.1.9",
     "@ai-sdk/azure": "1.1.13",
     "@ai-sdk/cerebras": "0.1.11",

@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useChat } from './use-chat';
 import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
 
-const { messages, handleSubmit, handleInputChange, isLoading, input } = useChat();
+const { messages, handleSubmit, handleInputChange, status, input } = useChat();
 const attachments = ref<FileList>();
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const isLoading = computed(() => status.value !== 'ready');
 </script>
 
 <template>

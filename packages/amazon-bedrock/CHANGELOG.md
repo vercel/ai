@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.0.3
+
+### Patch Changes
+
+- d1475de: feat (provider/amazon-bedrock): add support for cache points
+
 ## 2.0.2
 
 ### Patch Changes

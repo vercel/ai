@@ -21,6 +21,7 @@ import {
   BedrockConverseInput,
   BedrockStopReason,
   BEDROCK_STOP_REASONS,
+  BEDROCK_CACHE_POINT,
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,
@@ -120,7 +121,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     };
 
     const baseArgs: BedrockConverseInput = {
-      system: system ? [{ text: system }] : undefined,
+      system,
       additionalModelRequestFields: this.settings.additionalModelRequestFields,
       ...(Object.keys(inferenceConfig).length > 0 && {
         inferenceConfig,
@@ -203,9 +204,24 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
-    const providerMetadata = response.trace
-      ? { bedrock: { trace: response.trace as JSONObject } }
-      : undefined;
+    const providerMetadata =
+      response.trace || response.usage
+        ? {
+            bedrock: {
+              ...(response.trace && typeof response.trace === 'object'
+                ? { trace: response.trace as JSONObject }
+                : {}),
+              ...(response.usage && {
+                usage: {
+                  cacheReadInputTokens:
+                    response.usage?.cacheReadInputTokens ?? Number.NaN,
+                  cacheWriteInputTokens:
+                    response.usage?.cacheWriteInputTokens ?? Number.NaN,
+                },
+              }),
+            },
+          }
+        : undefined;
 
     return {
       text:
@@ -327,10 +343,32 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
                   value.metadata.usage?.outputTokens ?? Number.NaN,
               };
 
-              if (value.metadata.trace) {
+              const cacheUsage =
+                value.metadata.usage?.cacheReadInputTokens != null ||
+                value.metadata.usage?.cacheWriteInputTokens != null
+                  ? {
+                      usage: {
+                        cacheReadInputTokens:
+                          value.metadata.usage?.cacheReadInputTokens ??
+                          Number.NaN,
+                        cacheWriteInputTokens:
+                          value.metadata.usage?.cacheWriteInputTokens ??
+                          Number.NaN,
+                      },
+                    }
+                  : undefined;
+
+              const trace = value.metadata.trace
+                ? {
+                    trace: value.metadata.trace as JSONObject,
+                  }
+                : undefined;
+
+              if (cacheUsage || trace) {
                 providerMetadata = {
                   bedrock: {
-                    trace: value.metadata.trace as JSONObject,
+                    ...cacheUsage,
+                    ...trace,
                   },
                 };
               }
@@ -455,6 +493,8 @@ const BedrockResponseSchema = z.object({
     inputTokens: z.number(),
     outputTokens: z.number(),
     totalTokens: z.number(),
+    cacheReadInputTokens: z.number().nullish(),
+    cacheWriteInputTokens: z.number().nullish(),
   }),
 });
 
@@ -499,6 +539,8 @@ const BedrockStreamSchema = z.object({
       trace: z.unknown().nullish(),
       usage: z
         .object({
+          cacheReadInputTokens: z.number().nullish(),
+          cacheWriteInputTokens: z.number().nullish(),
           inputTokens: z.number(),
           outputTokens: z.number(),
         })
