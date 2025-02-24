@@ -17,7 +17,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const { steps, response } = await generateText({
-      model: anthropic('research-claude-denim'),
+      model: anthropic('claude-3-7-sonnet-20250219'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

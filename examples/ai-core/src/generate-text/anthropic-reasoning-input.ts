@@ -16,7 +16,7 @@ const anthropic = createAnthropic({
 
 async function main() {
   const result = await generateText({
-    model: anthropic('research-claude-denim'),
+    model: anthropic('claude-3-7-sonnet-20250219'),
     messages: [
       {
         role: 'user',
