@@ -92,7 +92,7 @@ export type AnthropicTool =
     }
   | {
       name: string;
-      type: 'computer_20241022';
+      type: 'computer_20250124' | 'computer_20241022';
       display_width_px: number;
       display_height_px: number;
       display_number: number;

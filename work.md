@@ -11,7 +11,7 @@
   - [x] ui message to core message conversion
   - [x] generateText assistant message reasoning parts
   - [x] streamText assistant message reasoning parts
-- [ ] implementation denim
+- [x] implementation denim
   - [x] specification
     - [x] input
     - [x] doGenerate output
@@ -48,7 +48,7 @@
     - [x] anthropic
     - [x] bedrock
     - [x] google vertex
-  - [ ] tool version updates
+  - [x] tool version updates
 - [ ] documentation
   - [x] chatbot ui page
   - [x] anthropic provider page
