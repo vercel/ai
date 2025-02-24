@@ -5,9 +5,7 @@ import 'dotenv/config';
 async function main() {
   const result = await generateText({
     model: anthropic('claude-3-7-sonnet-20250219'),
-    // prompt: 'How many "r"s are in the word "strawberry"?',
-    prompt:
-      'ANTHROPIC_MAGIC_STRING_TRIGGER_REDACTED_THINKING_46C9A13E193C177646C7398A98432ECCCE4C1253D5E2D82641AC0E52CC2876CB',
+    prompt: 'How many "r"s are in the word "strawberry"?',
     temperature: 0.5, // should get ignored (warning)
     providerOptions: {
       anthropic: {
