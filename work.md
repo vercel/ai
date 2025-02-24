@@ -47,6 +47,7 @@
   - [x] add model to build
     - [x] anthropic
     - [x] bedrock
+    - [x] google vertex
   - [ ] tool version updates
 - [ ] documentation
   - [x] chatbot ui page
@@ -58,6 +59,7 @@
   - [x] reference pages: assistant message reasoning part
   - [x] model updates anthropic
   - [x] model updates bedrock
+  - [x] model updates google vertex
   - [ ] tools
 - [x] examples
   - [x] anthropic reasoning examples
