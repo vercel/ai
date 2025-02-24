@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.0.9
+
+### Patch Changes
+
+- ddf9740: feat (ai): add anthropic reasoning
+
 ## 1.0.8
 
 ### Patch Changes
