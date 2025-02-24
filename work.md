@@ -56,8 +56,9 @@
   - [x] streamText reference
   - [x] data stream parts page
   - [x] reference pages: assistant message reasoning part
-  - [ ] model updates anthropic
-  - [ ] model updates bedrock
+  - [x] model updates anthropic
+  - [x] model updates bedrock
+  - [ ] tools
 - [x] examples
   - [x] anthropic reasoning examples
   - [x] anthropic reasoning chatbot with tools (generateText)
