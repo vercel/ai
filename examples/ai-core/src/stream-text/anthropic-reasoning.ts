@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: anthropic('claude-3-7-sonnet-20250219`'),
+    model: anthropic('claude-3-7-sonnet-20250219'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     temperature: 0.5, // should get ignored (warning)
     onError: error => {
