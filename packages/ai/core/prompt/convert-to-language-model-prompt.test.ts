@@ -700,6 +700,94 @@ describe('convertToLanguageModelMessage', () => {
       });
     });
 
+    describe('reasoning parts', () => {
+      it('should pass through provider metadata', () => {
+        const result = convertToLanguageModelMessage(
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'hello, world!',
+                providerOptions: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                    'key-b': 'test-value-2',
+                  },
+                },
+              },
+            ],
+          },
+          {},
+        );
+
+        expect(result).toEqual({
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'hello, world!',
+              providerMetadata: {
+                'test-provider': {
+                  'key-a': 'test-value-1',
+                  'key-b': 'test-value-2',
+                },
+              },
+            },
+          ],
+        });
+      });
+
+      it('should support a mix of reasoning, redacted reasoning, and text parts', () => {
+        const result = convertToLanguageModelMessage(
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: `I'm thinking`,
+              },
+              {
+                type: 'redacted-reasoning',
+                data: 'redacted-reasoning-data',
+              },
+              {
+                type: 'reasoning',
+                text: 'more thinking',
+              },
+              {
+                type: 'text',
+                text: 'hello, world!',
+              },
+            ],
+          },
+          {},
+        );
+
+        expect(result).toEqual({
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: `I'm thinking`,
+            },
+            {
+              type: 'redacted-reasoning',
+              data: 'redacted-reasoning-data',
+            },
+            {
+              type: 'reasoning',
+              text: 'more thinking',
+            },
+            {
+              type: 'text',
+              text: 'hello, world!',
+            },
+          ],
+        });
+      });
+    });
+
     describe('tool call parts', () => {
       it('should pass through provider metadata', () => {
         const result = convertToLanguageModelMessage(

@@ -4,9 +4,13 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: deepseek('deepseek-chat'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: deepseek('deepseek-reasoner'),
+    prompt: 'How many "r"s are in the word "strawberry"?',
   });
+
+  console.log('Reasoning:');
+  console.log(result.reasoning);
+  console.log();
 
   console.log('Text:');
   console.log(result.text);

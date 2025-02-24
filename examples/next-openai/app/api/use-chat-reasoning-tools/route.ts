@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -8,9 +8,10 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
+  console.log(JSON.stringify(messages, null, 2));
+
   const result = streamText({
-    model: openai('gpt-4o'),
-    // model: anthropic('claude-3-5-sonnet-latest'),
+    model: anthropic('claude-3-7-sonnet-20250219'),
     messages,
     toolCallStreaming: true,
     maxSteps: 5, // multi-steps for server-side tools
@@ -43,7 +44,14 @@ export async function POST(req: Request) {
         parameters: z.object({}),
       }),
     },
+    providerOptions: {
+      anthropic: {
+        thinking: { type: 'enabled', budgetTokens: 12000 },
+      },
+    },
   });
 
-  return result.toDataStreamResponse();
+  return result.toDataStreamResponse({
+    sendReasoning: true,
+  });
 }

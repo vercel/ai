@@ -5,6 +5,7 @@ import { processChatResponse } from './process-chat-response';
 import { createDataProtocolStream } from './test/create-data-protocol-stream';
 import { JSONValue, Message } from './types';
 import { LanguageModelUsage } from './duplicated/usage';
+import { format } from 'path';
 
 let updateCalls: Array<{
   message: Message;
@@ -263,6 +264,9 @@ describe('scenario: server-side tool roundtrip with multiple assistant reasoning
         'reasoning',
         'use a tool to get the weather in London.',
       ),
+      formatDataStreamPart('reasoning_signature', {
+        signature: '1234567890',
+      }),
       formatDataStreamPart('tool_call', {
         toolCallId: 'tool-call-id',
         toolName: 'tool-name',
@@ -278,6 +282,9 @@ describe('scenario: server-side tool roundtrip with multiple assistant reasoning
         isContinued: false,
       }),
       formatDataStreamPart('reasoning', 'I know know the weather in London.'),
+      formatDataStreamPart('reasoning_signature', {
+        signature: 'abc123',
+      }),
       formatDataStreamPart('text', 'The weather in London is sunny.'),
       formatDataStreamPart('finish_step', {
         finishReason: 'stop',
@@ -564,11 +571,20 @@ describe('scenario: server provides reasoning', () => {
       formatDataStreamPart('start_step', { messageId: 'step_123' }),
       formatDataStreamPart('reasoning', 'I will open the conversation'),
       formatDataStreamPart('reasoning', ' with witty banter. '),
+      formatDataStreamPart('reasoning_signature', {
+        signature: '1234567890',
+      }),
+      formatDataStreamPart('redacted_reasoning', {
+        data: 'redacted-data',
+      }),
       formatDataStreamPart('reasoning', 'Once the user has relaxed,'),
       formatDataStreamPart(
         'reasoning',
         ' I will pry for valuable information.',
       ),
+      formatDataStreamPart('reasoning_signature', {
+        signature: 'abc123',
+      }),
       formatDataStreamPart('text', 'Hi there!'),
       formatDataStreamPart('finish_step', {
         finishReason: 'stop',

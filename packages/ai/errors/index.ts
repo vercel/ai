@@ -13,6 +13,7 @@ export {
 } from '@ai-sdk/provider';
 
 export { InvalidArgumentError } from './invalid-argument-error';
+export { InvalidStreamPartError } from './invalid-stream-part-error';
 export { InvalidToolArgumentsError } from './invalid-tool-arguments-error';
 export { NoImageGeneratedError } from './no-image-generated-error';
 export { NoObjectGeneratedError } from './no-object-generated-error';

@@ -502,7 +502,8 @@ export default function Chat() {
 
 ## Reasoning
 
-Some models such as as DeepSeek `deepseek-reasoner` support reasoning tokens.
+Some models such as as DeepSeek `deepseek-reasoner`
+and Anthropic `claude-3-7-sonnet-20250219` support reasoning tokens.
 These tokens are typically sent before the message content.
 You can forward them to the client with the `sendReasoning` option:
 
@@ -524,7 +525,10 @@ export async function POST(req: Request) {
 }
 ```
 
-On the client side, you can access the reasoning parts of the message object:
+On the client side, you can access the reasoning parts of the message object.
+
+They have a `details` property that contains the reasoning and redacted reasoning parts.
+You can also use `reasoning` to access just the reasoning as a string.
 
 ```tsx filename="app/page.tsx"
 messages.map(message => (
@@ -538,7 +542,13 @@ messages.map(message => (
 
       // reasoning parts:
       if (part.type === 'reasoning') {
-        return <pre key={index}>{part.reasoning}</pre>;
+        return (
+          <pre key={index}>
+            {part.details.map(detail =>
+              detail.type === 'text' ? detail.text : '<redacted>',
+            )}
+          </pre>
+        );
       }
     })}
   </div>

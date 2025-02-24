@@ -40,6 +40,24 @@ const modelWithSources = new MockLanguageModelV1({
   }),
 });
 
+const modelWithReasoning = new MockLanguageModelV1({
+  doGenerate: async () => ({
+    ...dummyResponseValues,
+    reasoning: [
+      {
+        type: 'text',
+        text: 'I will open the conversation with witty banter.',
+        signature: 'signature',
+      },
+      {
+        type: 'redacted',
+        data: 'redacted-reasoning-data',
+      },
+    ],
+    text: 'Hello, world!',
+  }),
+});
+
 describe('result.text', () => {
   it('should generate text', async () => {
     const result = await generateText({
@@ -73,15 +91,9 @@ describe('result.text', () => {
 });
 
 describe('result.reasoning', () => {
-  it('should contain reasoning from model response', async () => {
+  it('should contain reasoning string from model response', async () => {
     const result = await generateText({
-      model: new MockLanguageModelV1({
-        doGenerate: async () => ({
-          ...dummyResponseValues,
-          text: 'Hello, world!',
-          reasoning: 'I will open the conversation with witty banter.',
-        }),
-      }),
+      model: modelWithReasoning,
       prompt: 'prompt',
     });
 
@@ -105,13 +117,7 @@ describe('result.sources', () => {
 describe('result.steps', () => {
   it('should add the reasoning from the model response to the step result', async () => {
     const result = await generateText({
-      model: new MockLanguageModelV1({
-        doGenerate: async () => ({
-          ...dummyResponseValues,
-          text: 'Hello, world!',
-          reasoning: 'I will open the conversation with witty banter.',
-        }),
-      }),
+      model: modelWithReasoning,
       prompt: 'prompt',
       experimental_generateMessageId: mockId({
         prefix: 'msg',
@@ -378,6 +384,16 @@ describe('result.response.messages', () => {
           },
         },
       },
+      prompt: 'test-input',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
+    });
+
+    expect(result.response.messages).toMatchSnapshot();
+  });
+
+  it('should contain reasoning', async () => {
+    const result = await generateText({
+      model: modelWithReasoning,
       prompt: 'test-input',
       experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });

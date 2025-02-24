@@ -39,6 +39,15 @@ export function prepareTools(
       case 'provider-defined':
         betas.add('computer-use-2024-10-22');
         switch (tool.id) {
+          case 'anthropic.computer_20250124':
+            anthropicTools.push({
+              name: tool.name,
+              type: 'computer_20250124',
+              display_width_px: tool.args.displayWidthPx as number,
+              display_height_px: tool.args.displayHeightPx as number,
+              display_number: tool.args.displayNumber as number,
+            });
+            break;
           case 'anthropic.computer_20241022':
             anthropicTools.push({
               name: tool.name,
