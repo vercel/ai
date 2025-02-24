@@ -11,7 +11,7 @@
   - [x] ui message to core message conversion
   - [x] generateText assistant message reasoning parts
   - [x] streamText assistant message reasoning parts
-- [x] implementation denim
+- [ ] implementation denim
   - [x] specification
     - [x] input
     - [x] doGenerate output
@@ -44,7 +44,11 @@
     - [x] signature
   - [x] mapping ui message to core message
   - [x] validate build
-- [x] documentation
+  - [x] add model to build
+    - [x] anthropic
+    - [x] bedrock
+  - [ ] tool version updates
+- [ ] documentation
   - [x] chatbot ui page
   - [x] anthropic provider page
   - [x] prompt page: assistant message reasoning part
@@ -52,6 +56,8 @@
   - [x] streamText reference
   - [x] data stream parts page
   - [x] reference pages: assistant message reasoning part
+  - [ ] model updates anthropic
+  - [ ] model updates bedrock
 - [x] examples
   - [x] anthropic reasoning examples
   - [x] anthropic reasoning chatbot with tools (generateText)
