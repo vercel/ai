@@ -92,6 +92,12 @@ export function convertToOpenAIChatMessages({
                       input_audio: { data: part.data, format: 'mp3' },
                     };
                   }
+                  case 'audio/webm': {
+                    return {
+                      type: 'input_audio',
+                      input_audio: { data: part.data, format: 'webm' },
+                    };
+                  }
 
                   default: {
                     throw new UnsupportedFunctionalityError({
