@@ -1,6 +1,16 @@
-import { Message, TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-utils';
+import {
+  Message,
+  ReasoningUIPart,
+  TextUIPart,
+  ToolInvocationUIPart,
+} from '@ai-sdk/ui-utils';
 import { ToolSet } from '../generate-text/tool-set';
-import { CoreMessage, ToolCallPart, ToolResultPart } from '../prompt';
+import {
+  AssistantContent,
+  CoreMessage,
+  ToolCallPart,
+  ToolResultPart,
+} from '../prompt';
 import { attachmentsToParts } from './attachments-to-parts';
 import { MessageConversionError } from './message-conversion-error';
 
@@ -46,34 +56,66 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
         if (message.parts != null) {
           let currentStep = 0;
           let blockHasToolInvocations = false;
-          let block: Array<TextUIPart | ToolInvocationUIPart> = [];
+          let block: Array<
+            TextUIPart | ToolInvocationUIPart | ReasoningUIPart
+          > = [];
 
           function processBlock() {
+            const content: AssistantContent = [];
+
+            for (const part of block) {
+              switch (part.type) {
+                case 'text':
+                  content.push({
+                    type: 'text' as const,
+                    text: part.text,
+                  });
+                  break;
+                case 'reasoning': {
+                  for (const detail of part.details) {
+                    switch (detail.type) {
+                      case 'text':
+                        content.push({
+                          type: 'reasoning' as const,
+                          text: detail.text,
+                          signature: detail.signature,
+                        });
+                        break;
+                      case 'redacted':
+                        content.push({
+                          type: 'redacted-reasoning' as const,
+                          data: detail.data,
+                        });
+                        break;
+                    }
+                  }
+                  break;
+                }
+                case 'tool-invocation':
+                  content.push({
+                    type: 'tool-call' as const,
+                    toolCallId: part.toolInvocation.toolCallId,
+                    toolName: part.toolInvocation.toolName,
+                    args: part.toolInvocation.args,
+                  });
+                  break;
+                default: {
+                  const _exhaustiveCheck: never = part;
+                  throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
+                }
+              }
+            }
+
             coreMessages.push({
               role: 'assistant',
-              content: block.map(part => {
-                switch (part.type) {
-                  case 'text':
-                    return {
-                      type: 'text' as const,
-                      text: part.text,
-                    };
-                  default:
-                    return {
-                      type: 'tool-call' as const,
-                      toolCallId: part.toolInvocation.toolCallId,
-                      toolName: part.toolInvocation.toolName,
-                      args: part.toolInvocation.args,
-                    };
-                }
-              }),
+              content,
             });
 
             // check if there are tool invocations with results in the block
             const stepInvocations = block
               .filter(
                 (
-                  part: TextUIPart | ToolInvocationUIPart,
+                  part: TextUIPart | ToolInvocationUIPart | ReasoningUIPart,
                 ): part is ToolInvocationUIPart =>
                   part.type === 'tool-invocation',
               )
@@ -126,7 +168,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
           for (const part of message.parts) {
             switch (part.type) {
               case 'reasoning':
-                // reasoning is not sent back to the LLM
+                block.push(part);
                 break;
               case 'text': {
                 if (blockHasToolInvocations) {

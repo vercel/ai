@@ -5,6 +5,7 @@ export type BedrockChatModelId =
   | 'anthropic.claude-v2'
   | 'anthropic.claude-v2:1'
   | 'anthropic.claude-instant-v1'
+  | 'anthropic.claude-3-7-sonnet-20250219-v1:0'
   | 'anthropic.claude-3-5-sonnet-20240620-v1:0'
   | 'anthropic.claude-3-5-sonnet-20241022-v2:0'
   | 'anthropic.claude-3-5-haiku-20241022-v1:0'

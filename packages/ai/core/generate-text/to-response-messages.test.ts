@@ -7,6 +7,7 @@ describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
     const result = toResponseMessages({
       text: 'Hello, world!',
+      reasoning: [],
       tools: {
         testTool: {
           description: 'A test tool',
@@ -31,6 +32,7 @@ describe('toResponseMessages', () => {
   it('should include tool calls in the assistant message', () => {
     const result = toResponseMessages({
       text: 'Using a tool',
+      reasoning: [],
       tools: {
         testTool: {
           description: 'A test tool',
@@ -70,6 +72,7 @@ describe('toResponseMessages', () => {
   it('should include tool results as a separate message', () => {
     const result = toResponseMessages({
       text: 'Tool used',
+      reasoning: [],
       tools: {
         testTool: {
           description: 'A test tool',
@@ -130,12 +133,8 @@ describe('toResponseMessages', () => {
   it('should handle undefined text', () => {
     const result = toResponseMessages({
       text: undefined,
-      tools: {
-        testTool: {
-          description: 'A test tool',
-          parameters: z.object({}),
-        },
-      },
+      reasoning: [],
+      tools: {},
       toolCalls: [],
       toolResults: [],
       messageId: 'msg-123',
@@ -151,9 +150,37 @@ describe('toResponseMessages', () => {
     ]);
   });
 
+  it('should include reasoning array with redacted reasoning in the assistant message', () => {
+    const result = toResponseMessages({
+      text: 'Final text',
+      reasoning: [
+        { type: 'redacted', data: 'redacted-data' },
+        { type: 'text', text: 'Thinking text', signature: 'sig' },
+      ],
+      tools: {},
+      toolCalls: [],
+      toolResults: [],
+      messageId: 'msg-123',
+      generateMessageId: mockValues('msg-345'),
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        id: 'msg-123',
+        content: [
+          { type: 'redacted-reasoning', data: 'redacted-data' },
+          { type: 'reasoning', text: 'Thinking text', signature: 'sig' },
+          { type: 'text', text: 'Final text' },
+        ],
+      },
+    ]);
+  });
+
   it('should handle multipart tool results', () => {
     const result = toResponseMessages({
       text: 'multipart tool result',
+      reasoning: [],
       tools: {
         testTool: tool({
           description: 'A test tool',

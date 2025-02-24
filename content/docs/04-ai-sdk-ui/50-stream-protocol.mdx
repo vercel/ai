@@ -119,6 +119,22 @@ Format: `g:string\n`
 
 Example: `g:"I will open the conversation with witty banter."\n`
 
+### Redacted Reasoning Part
+
+The redacted reasoning parts contain reasoning data that has been redacted. This is available through `redacted_reasoning`.
+
+Format: `i:{"data": string}\n`
+
+Example: `i:{"data": "This reasoning has been redacted for security purposes."}\n`
+
+### Reasoning Signature Part
+
+The reasoning signature parts contain a signature associated with the reasoning. This is available through `reasoning_signature`.
+
+Format: `j:{"signature": string}\n`
+
+Example: `j:{"signature": "abc123xyz"}\n`
+
 ### Source Part
 
 The source parts are appended to the message as they are received. The source part is available through `source`.

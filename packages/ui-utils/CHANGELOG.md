@@ -1,5 +1,14 @@
 # @ai-sdk/ui-utils
 
+## 1.1.16
+
+### Patch Changes
+
+- ddf9740: feat (ai): add anthropic reasoning
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/provider-utils@2.1.10
+
 ## 1.1.15
 
 ### Patch Changes
