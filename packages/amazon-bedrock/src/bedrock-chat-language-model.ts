@@ -247,11 +247,13 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       rawResponse: { headers: responseHeaders },
       warnings,
       reasoning: response.output?.message?.content
-        ?.filter(part => part.reasoningContent)
+        ?.filter(part => part.reasoningContent?.reasoningText?.text != null)
         ?.map(part => ({
-          type: 'text',
-          text: part.reasoningContent?.reasoningText?.text,
-          signature: part.reasoningContent?.reasoningText?.signature,
+          type: 'text' as const,
+          text: part.reasoningContent?.reasoningText?.text!,
+          ...(part.reasoningContent?.reasoningText?.signature && {
+            signature: part.reasoningContent.reasoningText.signature,
+          }),
         })),
       ...(providerMetadata && { providerMetadata }),
     };
@@ -399,7 +401,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
             ) {
               controller.enqueue({
                 type: 'reasoning',
-                text: value.contentBlockDelta.delta.reasoningContent.text,
+                textDelta: value.contentBlockDelta.delta.reasoningContent.text,
               });
             }
 
