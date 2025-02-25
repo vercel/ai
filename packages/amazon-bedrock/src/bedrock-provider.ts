@@ -1,5 +1,6 @@
 import {
   EmbeddingModelV1,
+  ImageModelV1,
   LanguageModelV1,
   ProviderV1,
 } from '@ai-sdk/provider';
@@ -20,6 +21,11 @@ import {
   BedrockEmbeddingModelId,
   BedrockEmbeddingSettings,
 } from './bedrock-embedding-settings';
+import { BedrockImageModel } from './bedrock-image-model';
+import {
+  BedrockImageModelId,
+  BedrockImageSettings,
+} from './bedrock-image-settings';
 import { createSigV4FetchFunction } from './bedrock-sigv4-fetch';
 
 export interface AmazonBedrockProviderSettings {
@@ -81,6 +87,16 @@ export interface AmazonBedrockProvider extends ProviderV1 {
     modelId: BedrockEmbeddingModelId,
     settings?: BedrockEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  image(
+    modelId: BedrockImageModelId,
+    settings?: BedrockImageSettings,
+  ): ImageModelV1;
+
+  imageModel(
+    modelId: BedrockImageModelId,
+    settings?: BedrockImageSettings,
+  ): ImageModelV1;
 }
 
 /**
@@ -162,10 +178,22 @@ export function createAmazonBedrock(
       fetch: sigv4Fetch,
     });
 
+  const createImageModel = (
+    modelId: BedrockImageModelId,
+    settings: BedrockImageSettings = {},
+  ) =>
+    new BedrockImageModel(modelId, settings, {
+      baseUrl: getBaseUrl,
+      headers: options.headers ?? {},
+      fetch: sigv4Fetch,
+    });
+
   provider.languageModel = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
   return provider;
 }

@@ -19,6 +19,16 @@ async function main() {
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
   console.log('Metadata:', result.providerMetadata);
+
+  for (const source of result.sources) {
+    if (source.sourceType === 'url') {
+      console.log('ID:', source.id);
+      console.log('Title:', source.title);
+      console.log('URL:', source.url);
+      console.log('Provider metadata:', source.providerMetadata);
+      console.log();
+    }
+  }
 }
 
 main().catch(console.error);

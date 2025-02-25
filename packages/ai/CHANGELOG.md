@@ -1,5 +1,44 @@
 # ai
 
+## 4.1.46
+
+### Patch Changes
+
+- ddf9740: feat (ai): add anthropic reasoning
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/ui-utils@1.1.16
+  - @ai-sdk/provider-utils@2.1.10
+  - @ai-sdk/react@1.1.18
+
+## 4.1.45
+
+### Patch Changes
+
+- 93bd5a0: feat (ai/ui): add writeSource to createDataStream
+
+## 4.1.44
+
+### Patch Changes
+
+- f8e7df2: fix (ai/core): add `startWithReasoning` option to `extractReasoningMiddleware`
+
+## 4.1.43
+
+### Patch Changes
+
+- ef2e23b: feat (ai/core): add experimental repairText function to generateObject
+
+## 4.1.42
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+  - @ai-sdk/ui-utils@1.1.15
+  - @ai-sdk/react@1.1.17
+
 ## 4.1.41
 
 ### Patch Changes

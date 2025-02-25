@@ -142,7 +142,7 @@ export default function Chat() {
   return (
     <>
       {messages?.map(message => (
-        <div key={message.id} className="whitespace-pre-wrap">
+        <div key={message.id}>
           <strong>{`${message.role}: `}</strong>
           {message.parts.map(part => {
             switch (part.type) {
@@ -159,11 +159,10 @@ export default function Chat() {
                     switch (part.toolInvocation.state) {
                       case 'call':
                         return (
-                          <div key={callId} className="text-gray-500">
+                          <div key={callId}>
                             {part.toolInvocation.args.message}
-                            <div className="flex gap-2">
+                            <div>
                               <button
-                                className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                                 onClick={() =>
                                   addToolResult({
                                     toolCallId: callId,
@@ -174,7 +173,6 @@ export default function Chat() {
                                 Yes
                               </button>
                               <button
-                                className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                                 onClick={() =>
                                   addToolResult({
                                     toolCallId: callId,
@@ -189,7 +187,7 @@ export default function Chat() {
                         );
                       case 'result':
                         return (
-                          <div key={callId} className="text-gray-500">
+                          <div key={callId}>
                             Location access allowed:{' '}
                             {part.toolInvocation.result}
                           </div>
@@ -201,14 +199,10 @@ export default function Chat() {
                   case 'getLocation': {
                     switch (part.toolInvocation.state) {
                       case 'call':
-                        return (
-                          <div key={callId} className="text-gray-500">
-                            Getting location...
-                          </div>
-                        );
+                        return <div key={callId}>Getting location...</div>;
                       case 'result':
                         return (
-                          <div key={callId} className="text-gray-500">
+                          <div key={callId}>
                             Location: {part.toolInvocation.result}
                           </div>
                         );
@@ -227,14 +221,14 @@ export default function Chat() {
                         );
                       case 'call':
                         return (
-                          <div key={callId} className="text-gray-500">
+                          <div key={callId}>
                             Getting weather information for{' '}
                             {part.toolInvocation.args.city}...
                           </div>
                         );
                       case 'result':
                         return (
-                          <div key={callId} className="text-gray-500">
+                          <div key={callId}>
                             Weather in {part.toolInvocation.args.city}:{' '}
                             {part.toolInvocation.result}
                           </div>

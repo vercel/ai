@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useChat } from './use-chat';
+import { computed } from 'vue';
 
-const { messages, handleSubmit, isLoading, input } = useChat();
+const { messages, handleSubmit, status, input } = useChat();
+const isLoading = computed(() => status.value !== 'ready');
 </script>
 
 <template>

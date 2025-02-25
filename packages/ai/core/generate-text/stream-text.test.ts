@@ -119,11 +119,14 @@ const modelWithReasoning = new MockLanguageModelV1({
       },
       { type: 'reasoning', textDelta: 'I will open the conversation' },
       { type: 'reasoning', textDelta: ' with witty banter. ' },
+      { type: 'reasoning-signature', signature: '1234567890' },
+      { type: 'redacted-reasoning', data: 'redacted-reasoning-data' },
       { type: 'reasoning', textDelta: 'Once the user has relaxed,' },
       {
         type: 'reasoning',
         textDelta: ' I will pry for valuable information.',
       },
+      { type: 'reasoning-signature', signature: '1234567890' },
       { type: 'text-delta', textDelta: 'Hi' },
       { type: 'text-delta', textDelta: ' there!' },
       {
@@ -285,7 +288,7 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should include reasoning content in fullStream', async () => {
+    it('should send reasoning deltas', async () => {
       const result = streamText({
         model: modelWithReasoning,
         ...defaultSettings(),
@@ -296,7 +299,7 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should include sources in fullStream', async () => {
+    it('should send sources', async () => {
       const result = streamText({
         model: modelWithSources,
         prompt: 'test-input',
@@ -1552,6 +1555,19 @@ describe('streamText', () => {
     });
   });
 
+  describe('result.response.messages', () => {
+    it('should contain reasoning', async () => {
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      result.consumeStream();
+
+      expect((await result.response).messages).toMatchSnapshot();
+    });
+  });
+
   describe('result.request', () => {
     it('should resolve with response information', async () => {
       const result = streamText({
@@ -1637,6 +1653,19 @@ describe('streamText', () => {
       result.consumeStream();
 
       expect(await result.reasoning).toMatchSnapshot();
+    });
+  });
+
+  describe('result.reasoningDetails', () => {
+    it('should contain reasoning from model response', async () => {
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      result.consumeStream();
+
+      expect(await result.reasoningDetails).toMatchSnapshot();
     });
   });
 

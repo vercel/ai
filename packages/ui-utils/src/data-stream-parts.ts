@@ -372,6 +372,53 @@ const sourcePart: DataStreamPart<'h', 'source', LanguageModelV1Source> = {
   },
 };
 
+const redactedReasoningStreamPart: DataStreamPart<
+  'i',
+  'redacted_reasoning',
+  { data: string }
+> = {
+  code: 'i',
+  name: 'redacted_reasoning',
+  parse: (value: JSONValue) => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('data' in value) ||
+      typeof value.data !== 'string'
+    ) {
+      throw new Error(
+        '"redacted_reasoning" parts expect an object with a "data" property.',
+      );
+    }
+    return { type: 'redacted_reasoning', value: { data: value.data } };
+  },
+};
+
+const reasoningSignatureStreamPart: DataStreamPart<
+  'j',
+  'reasoning_signature',
+  { signature: string }
+> = {
+  code: 'j',
+  name: 'reasoning_signature',
+  parse: (value: JSONValue) => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('signature' in value) ||
+      typeof value.signature !== 'string'
+    ) {
+      throw new Error(
+        '"reasoning_signature" parts expect an object with a "signature" property.',
+      );
+    }
+    return {
+      type: 'reasoning_signature',
+      value: { signature: value.signature },
+    };
+  },
+};
+
 const dataStreamParts = [
   textStreamPart,
   dataStreamPart,
@@ -386,6 +433,8 @@ const dataStreamParts = [
   startStepStreamPart,
   reasoningStreamPart,
   sourcePart,
+  redactedReasoningStreamPart,
+  reasoningSignatureStreamPart,
 ] as const;
 
 export const dataStreamPartsByCode = Object.fromEntries(
