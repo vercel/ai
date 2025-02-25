@@ -551,13 +551,15 @@ const BedrockStreamSchema = z.object({
           z.object({ text: z.string() }),
           z.object({ toolUse: z.object({ input: z.string() }) }),
           z.object({
-            reasoningContent: z.union([
-              z.object({ text: z.string() }),
-              z.object({ signature: z.string() }),
-            ]),
+            reasoningContent: z.object({ text: z.string() }),
+          }),
+          z.object({
+            reasoningContent: z.object({
+              signature: z.string(),
+            }),
           }),
         ])
-        .nullish(),
+        .optional(),
     })
     .nullish(),
   contentBlockStart: z
