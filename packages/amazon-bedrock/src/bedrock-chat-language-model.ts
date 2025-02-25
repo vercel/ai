@@ -248,7 +248,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       warnings,
       reasoning: response.output?.message?.reasoningContent
         ?.map(part => ({
-          type: 'text',
+          type: 'reasoning',
           text: part?.reasoningText?.text,
           signature: part?.reasoningText?.signature,
         })),
