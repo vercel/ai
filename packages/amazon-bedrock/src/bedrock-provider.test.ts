@@ -2,12 +2,13 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createAmazonBedrock } from './bedrock-provider';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
-import { loadSetting } from '@ai-sdk/provider-utils';
+import { BedrockImageModel } from './bedrock-image-model';
 
 // Add type assertions for the mocked classes
 const BedrockChatLanguageModelMock =
   BedrockChatLanguageModel as unknown as Mock;
 const BedrockEmbeddingModelMock = BedrockEmbeddingModel as unknown as Mock;
+const BedrockImageModelMock = BedrockImageModel as unknown as Mock;
 
 vi.mock('./bedrock-chat-language-model', () => ({
   BedrockChatLanguageModel: vi.fn(),
@@ -15,6 +16,10 @@ vi.mock('./bedrock-chat-language-model', () => ({
 
 vi.mock('./bedrock-embedding-model', () => ({
   BedrockEmbeddingModel: vi.fn(),
+}));
+
+vi.mock('./bedrock-image-model', () => ({
+  BedrockImageModel: vi.fn(),
 }));
 
 vi.mock('@ai-sdk/provider-utils', () => ({
@@ -120,6 +125,34 @@ describe('AmazonBedrockProvider', () => {
       expect(constructorCall[0]).toBe(modelId);
       expect(constructorCall[1]).toEqual({ dimensions: 1024, normalize: true });
       expect(model).toBeInstanceOf(BedrockEmbeddingModel);
+    });
+
+    it('should create an image model', () => {
+      const provider = createAmazonBedrock();
+      const modelId = 'amazon.titan-image-generator';
+
+      const model = provider.image(modelId, {
+        maxImagesPerCall: 5,
+      });
+
+      const constructorCall = BedrockImageModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe(modelId);
+      expect(constructorCall[1]).toEqual({ maxImagesPerCall: 5 });
+      expect(model).toBeInstanceOf(BedrockImageModel);
+    });
+
+    it('should create an image model via imageModel method', () => {
+      const provider = createAmazonBedrock();
+      const modelId = 'amazon.titan-image-generator';
+
+      const model = provider.imageModel(modelId, {
+        maxImagesPerCall: 5,
+      });
+
+      const constructorCall = BedrockImageModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe(modelId);
+      expect(constructorCall[1]).toEqual({ maxImagesPerCall: 5 });
+      expect(model).toBeInstanceOf(BedrockImageModel);
     });
   });
 });
