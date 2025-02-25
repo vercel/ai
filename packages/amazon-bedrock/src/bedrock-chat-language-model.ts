@@ -399,10 +399,22 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
               'reasoningContent' in value.contentBlockDelta.delta &&
               value.contentBlockDelta.delta.reasoningContent
             ) {
-              controller.enqueue({
-                type: 'reasoning',
-                textDelta: value.contentBlockDelta.delta.reasoningContent.text,
-              });
+              const reasoningContent =
+                value.contentBlockDelta.delta.reasoningContent;
+              if ('text' in reasoningContent && reasoningContent.text) {
+                controller.enqueue({
+                  type: 'reasoning',
+                  textDelta: reasoningContent.text,
+                });
+              } else if (
+                'signature' in reasoningContent &&
+                reasoningContent.signature
+              ) {
+                controller.enqueue({
+                  type: 'reasoning-signature',
+                  signature: reasoningContent.signature,
+                });
+              }
             }
 
             const contentBlockStart = value.contentBlockStart;
@@ -538,7 +550,12 @@ const BedrockStreamSchema = z.object({
         .union([
           z.object({ text: z.string() }),
           z.object({ toolUse: z.object({ input: z.string() }) }),
-          z.object({ reasoningContent: z.object({ text: z.string() }) }),
+          z.object({
+            reasoningContent: z.union([
+              z.object({ text: z.string() }),
+              z.object({ signature: z.string() }),
+            ]),
+          }),
         ])
         .nullish(),
     })
