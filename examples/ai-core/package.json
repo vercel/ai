@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "2.0.5",
-    "@ai-sdk/anthropic": "1.1.10",
+    "@ai-sdk/anthropic": "1.1.11",
     "@ai-sdk/azure": "1.1.14",
     "@ai-sdk/cerebras": "0.1.12",
     "@ai-sdk/cohere": "1.1.12",
@@ -13,7 +13,7 @@
     "@ai-sdk/fal": "0.0.6",
     "@ai-sdk/fireworks": "0.1.12",
     "@ai-sdk/google": "1.1.17",
-    "@ai-sdk/google-vertex": "2.1.18",
+    "@ai-sdk/google-vertex": "2.1.19",
     "@ai-sdk/groq": "1.1.11",
     "@ai-sdk/luma": "0.0.8",
     "@ai-sdk/mistral": "1.1.13",
