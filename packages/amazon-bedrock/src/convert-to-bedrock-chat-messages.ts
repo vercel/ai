@@ -185,6 +185,35 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
                 break;
               }
 
+              case 'reasoning': {
+                bedrockContent.push({
+                  reasoningContent: {
+                    reasoningText: {
+                      // trim the last text part if it's the last message in the block
+                      // because Bedrock does not allow trailing whitespace
+                      // in pre-filled assistant responses
+                      text:
+                        isLastBlock && isLastMessage && isLastContentPart
+                          ? part.text.trim()
+                          : part.text,
+                      signature: part.signature,
+                    },
+                  },
+                });
+                break;
+              }
+
+              case 'redacted-reasoning': {
+                bedrockContent.push({
+                  reasoningContent: {
+                    redactedReasoning: {
+                      data: part.data,
+                    },
+                  },
+                });
+                break;
+              }
+
               case 'tool-call': {
                 bedrockContent.push({
                   toolUse: {
@@ -224,6 +253,11 @@ type SystemBlock = {
 type AssistantBlock = {
   type: 'assistant';
   messages: Array<LanguageModelV1Message & { role: 'assistant' }>;
+};
+type ThinkingBlock = {
+  type: 'thinking';
+  thinking: string;
+  signature: string;
 };
 type UserBlock = {
   type: 'user';
