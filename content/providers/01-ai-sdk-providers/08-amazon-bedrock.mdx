@@ -391,6 +391,86 @@ The following optional settings are available for Bedrock Titan embedding models
 | `amazon.titan-embed-text-v1`   | 1536               | <Cross size={18} /> |
 | `amazon.titan-embed-text-v2:0` | 1024               | <Check size={18} /> |
 
+## Image Models
+
+You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/nova/latest/userguide/image-generation.html)
+using the `.image()` factory method.
+
+For more on the Amazon Nova Canvas image model, see the [Nova Canvas
+Overview](https://docs.aws.amazon.com/ai/responsible-ai/nova-canvas/overview.html).
+
+<Note>
+  The `amazon.nova-canvas-v1:0` model is available in the `us-east-1` region.
+</Note>
+
+```ts
+const model = bedrock.image('amazon.nova-canvas-v1:0');
+```
+
+You can then generate images with the `experimental_generateImage` function:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+  prompt: 'A beautiful sunset over a calm ocean',
+  size: '512x512',
+  seed: 42,
+});
+```
+
+You can also pass the `providerOptions` object to the `generateImage` function to customize the generation behavior:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+  prompt: 'A beautiful sunset over a calm ocean',
+  size: '512x512',
+  seed: 42,
+  providerOptions: { bedrock: { quality: 'premium' } },
+});
+```
+
+Documentation for additional settings can be found within the [Amazon Bedrock
+User Guide for Amazon Nova
+Documentation](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html).
+
+### Image Model Settings
+
+When creating an image model, you can customize the generation behavior with optional settings:
+
+```ts
+const model = bedrock.imageModel('amazon.nova-canvas-v1:0', {
+  maxImagesPerCall: 1, // Maximum number of images to generate per API call
+});
+```
+
+- **maxImagesPerCall** _number_
+
+  Override the maximum number of images generated per API call. Default can vary
+  by model, with 5 as a common default.
+
+### Model Capabilities
+
+The Amazon Nova Canvas model supports custom sizes with constraints as follows:
+
+- Each side must be between 320-4096 pixels, inclusive.
+- Each side must be evenly divisible by 16.
+- The aspect ratio must be between 1:4 and 4:1. That is, one side can't be more than 4 times longer than the other side.
+- The total pixel count must be less than 4,194,304.
+
+For more, see [Image generation access and
+usage](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-access.html).
+
+| Model                     | Sizes                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `amazon.nova-canvas-v1:0` | Custom sizes: 320-4096px per side (must be divisible by 16), aspect ratio 1:4 to 4:1, max 4.2M pixels |
+
 ## Response Headers
 
 The Amazon Bedrock provider will return the response headers associated with
