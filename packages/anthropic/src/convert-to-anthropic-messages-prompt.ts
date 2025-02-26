@@ -251,12 +251,18 @@ export function convertToAnthropicMessagesPrompt({
               }
 
               case 'reasoning': {
-                anthropicContent.push({
-                  type: 'thinking',
-                  thinking: part.text,
-                  signature: part.signature!,
-                  cache_control: cacheControl,
-                });
+                // omit reasoning content if no signature is present. middleware
+                // could have extracted it from an older model's text content
+                // with no associated signature, and anthropic API
+                // requires signature presence even for older models.
+                if (part.signature) {
+                  anthropicContent.push({
+                    type: 'thinking',
+                    thinking: part.text,
+                    signature: part.signature,
+                    cache_control: cacheControl,
+                  });
+                }
                 break;
               }
 

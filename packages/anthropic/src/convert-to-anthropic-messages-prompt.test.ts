@@ -481,7 +481,51 @@ describe('assistant messages', () => {
     });
   });
 
-  it('should convert assistant message reasoning parts into thinking parts', async () => {
+  it('should convert assistant message reasoning parts with signature into thinking parts', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'I need to count the number of "r"s in the word "strawberry".',
+              signature: 'test-signature',
+            },
+            {
+              type: 'text',
+              text: 'The word "strawberry" has 2 "r"s.',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'thinking',
+                thinking:
+                  'I need to count the number of "r"s in the word "strawberry".',
+                signature: 'test-signature',
+              },
+              {
+                type: 'text',
+                text: 'The word "strawberry" has 2 "r"s.',
+              },
+            ],
+          },
+        ],
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should omit reasoning parts without signature', async () => {
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -506,11 +550,6 @@ describe('assistant messages', () => {
           {
             role: 'assistant',
             content: [
-              {
-                type: 'thinking',
-                thinking:
-                  'I need to count the number of "r"s in the word "strawberry".',
-              },
               {
                 type: 'text',
                 text: 'The word "strawberry" has 2 "r"s.',
